@@ -108,36 +108,41 @@ private class RLM_InvoiceSummaryControllerTest {
     // an account, a case and a received date. A dispute with an amount on an open case counts
     // toward the disputed total; one without an amount is skipped, not counted as zero; and
     // one on a closed case is not counted at all.
+    // It runs as a billing operations user, not the deploying admin: RLM_BillingUI, which grants
+    // the dispute fields, is assigned only after this bundle deploys. The read-only user cannot
+    // create records, so the admin creates them owned by that user (cases and disputes are
+    // private), in the user's currency.
     @isTest
     static void getInvoiceSummary_disputesOnOpenCases_areSummed() {
-        String disputeReadError;
-        try {
-            Database.query('SELECT Id, CaseId, InvoiceId, DisputedAmount, CurrencyIsoCode FROM Dispute LIMIT 1',
-                AccessLevel.USER_MODE);
-        } catch (QueryException e) {
-            disputeReadError = e.getMessage();
-        }
-        Assert.isNull(disputeReadError,
-            'PRECONDITION: the running user can read Dispute with CaseId and InvoiceId: ' + disputeReadError);
-
+        User u = billingOperationsUser();
+        String userCurrency = [SELECT DefaultCurrencyIsoCode FROM User WHERE Id = :u.Id].DefaultCurrencyIsoCode;
         Account acc = new Account(Name = 'RLM Invoice Summary Dispute Test');
         insert acc;
-        Case amountCase = new Case(AccountId = acc.Id, Subject = 'RLM disputed amount case');
-        Case emptyCase = new Case(AccountId = acc.Id, Subject = 'RLM dispute without an amount');
-        Case closedCase = new Case(AccountId = acc.Id, Subject = 'RLM closed dispute case', Status = 'Closed');
+        Case amountCase = new Case(AccountId = acc.Id, OwnerId = u.Id, Subject = 'RLM disputed amount case');
+        Case emptyCase = new Case(AccountId = acc.Id, OwnerId = u.Id, Subject = 'RLM dispute without an amount');
+        Case closedCase = new Case(AccountId = acc.Id, OwnerId = u.Id, Subject = 'RLM closed dispute case', Status = 'Closed');
         insert new List<Case>{ amountCase, emptyCase, closedCase };
         Assert.isTrue([SELECT IsClosed FROM Case WHERE Id = :closedCase.Id].IsClosed,
             'PRECONDITION: the closed case is closed.');
 
-        Id withAmountId = newDispute(acc.Id, amountCase.Id, 40).Id;
-        newDispute(acc.Id, emptyCase.Id, null);
-        newDispute(acc.Id, closedCase.Id, 25);
+        Id withAmountId = newDispute(acc.Id, amountCase.Id, 40, u.Id, userCurrency).Id;
+        newDispute(acc.Id, emptyCase.Id, null, u.Id, userCurrency);
+        newDispute(acc.Id, closedCase.Id, 25, u.Id, userCurrency);
         Decimal disputed = [SELECT DisputedAmount FROM Dispute WHERE Id = :withAmountId].DisputedAmount;
         Assert.areEqual(40, disputed, 'PRECONDITION: the dispute must carry its disputed amount.');
 
+        RLM_InvoiceSummaryController.InvoiceSummaryData data;
         Test.startTest();
-        RLM_InvoiceSummaryController.InvoiceSummaryData data =
-            RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        System.runAs(u) {
+            for (String soql : new List<String>{
+                'SELECT Id FROM Case WHERE AccountId != null AND IsClosed = false LIMIT 1',
+                'SELECT Id, DisputedAmount, InvoiceId, CurrencyIsoCode FROM Dispute WHERE CaseId != null LIMIT 1'
+            }) {
+                String readError = userModeError(soql);
+                Assert.isNull(readError, 'PRECONDITION: a billing operations user can run "' + soql + '": ' + readError);
+            }
+            data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        }
         Test.stopTest();
 
         Assert.areEqual(1, data.disputeCount,
@@ -152,11 +157,13 @@ private class RLM_InvoiceSummaryControllerTest {
     // PaymentSchedule.CollectionPlanItemId comes with collections (Billing Advanced), which the
     // build always provisions; the precondition below requires it, as the collections-user test
     // and RLM_BillingUITestUsers do.
+    // It runs as a collections user, not the deploying admin (RLM_BillingUI is assigned after
+    // this bundle deploys). The admin creates the records: collection plans are shared
+    // read/write, and the private payment schedule is owned by that user.
     @isTest
     static void getInvoiceSummary_promiseToPayItem_isSummed() {
-        Assert.isTrue(RLM_InvoiceSummaryController.canReadCollectionPlans(),
-            'PRECONDITION: the running user can read collection plans and PaymentSchedule.CollectionPlanItemId '
-            + 'exists, so the promise-to-pay query runs.');
+        User u = collectionsUser();
+        String userCurrency = [SELECT DefaultCurrencyIsoCode FROM User WHERE Id = :u.Id].DefaultCurrencyIsoCode;
         Account acc = new Account(Name = 'RLM Invoice Summary Promise Test');
         insert acc;
         // No CollectionPlanReason: with one, RLM_Create_Case_for_Collection raises a case
@@ -168,6 +175,7 @@ private class RLM_InvoiceSummaryControllerTest {
         CollectionPlanItem planItem = new CollectionPlanItem(CollectionPlanId = plan.Id);
         insert planItem;
         PaymentSchedule promise = new PaymentSchedule(
+            OwnerId = u.Id,
             ReferenceEntityId = plan.Id,
             Type = 'PromiseToPay',
             UsageType = 'CollectionPlan',
@@ -175,18 +183,31 @@ private class RLM_InvoiceSummaryControllerTest {
             TotalRequestedAmount = 75
         );
         promise.put('CollectionPlanItemId', planItem.Id);
+        promise.put('CurrencyIsoCode', userCurrency);
         insert promise;
-        insert new PaymentScheduleItem(
+        PaymentScheduleItem item = new PaymentScheduleItem(
             PaymentScheduleId = promise.Id,
             PaymentAccountId = acc.Id,
             RequestedAmount = 75,
             TargetPaymentProcessingDate = Date.today().addDays(7),
             Status = 'Draft'
         );
+        item.put('CurrencyIsoCode', userCurrency);
+        insert item;
 
+        RLM_InvoiceSummaryController.InvoiceSummaryData data;
         Test.startTest();
-        RLM_InvoiceSummaryController.InvoiceSummaryData data =
-            RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        System.runAs(u) {
+            Assert.isTrue(RLM_InvoiceSummaryController.canReadCollectionPlans(),
+                'PRECONDITION: a collections user can read collection plans and PaymentSchedule.CollectionPlanItemId '
+                + 'exists, so the promise-to-pay query runs.');
+            String soql = 'SELECT Id, RequestedAmount, Status, CurrencyIsoCode FROM PaymentScheduleItem '
+                + 'WHERE PaymentSchedule.CollectionPlanItemId != null '
+                + 'AND PaymentSchedule.CollectionPlanItem.CollectionPlan.AccountId != null LIMIT 1';
+            String readError = userModeError(soql);
+            Assert.isNull(readError, 'PRECONDITION: a collections user can run the promise-to-pay query: ' + readError);
+            data = RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        }
         Test.stopTest();
 
         Assert.areEqual(1, data.promiseToPayCount, 'The draft promise-to-pay item is counted.');
@@ -227,15 +248,41 @@ private class RLM_InvoiceSummaryControllerTest {
 
     // A dispute on a case; amount may be null, for a dispute with no disputed amount.
     // Dispute.CaseId and DisputedAmount are named in RLM_BillingUI, so this bundle cannot deploy without them.
-    private static Dispute newDispute(Id accountId, Id caseId, Decimal amount) {
+    private static Dispute newDispute(Id accountId, Id caseId, Decimal amount, Id ownerId, String currencyCode) {
         Dispute d = new Dispute(
             AccountId = accountId,
             CaseId = caseId,
+            OwnerId = ownerId,
             ReceivedDate = Date.today(),
             DisputedAmount = amount
         );
+        d.put('CurrencyIsoCode', currencyCode);
         insert d;
         return d;
+    }
+
+    private static User billingOperationsUser() {
+        return RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+    }
+
+    private static User collectionsUser() {
+        return RLM_BillingUITestUsers.create(
+            new List<String>{
+                'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations', 'BillingCollectionsAndRecoverySpecialist'
+            },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL, RLM_BillingUITestUsers.BILLING_ADVANCED_PSL });
+    }
+
+    // Returns the error a USER_MODE query raises for the running user, or null if it runs.
+    private static String userModeError(String soql) {
+        try {
+            Database.query(soql, AccessLevel.USER_MODE);
+            return null;
+        } catch (QueryException e) {
+            return e.getMessage();
+        }
     }
 
     // A billing role without collections can't read the collection plan link that the

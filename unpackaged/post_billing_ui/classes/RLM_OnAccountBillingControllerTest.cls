@@ -37,11 +37,12 @@ private class RLM_OnAccountBillingControllerTest {
     // Payment, unlike invoices, is Apex-createable. A processed payment in the corporate
     // currency, on an account in the corporate currency, is summed as is and lowers the net
     // balance by its balance. (A non-corporate account currency is covered below.)
+    // The positive paths here run as a billing operations user, not the deploying admin:
+    // RLM_BillingUI is assigned only after this bundle deploys. That user is read-only, so the
+    // admin creates the records; accounts and payments are shared read/write.
     @isTest
     static void getBillingSummary_processedPayment_lowersTheNetBalance() {
-        String paymentReadError = userModeError(PAYMENT_READ);
-        Assert.isNull(paymentReadError,
-            'PRECONDITION: the running user can read Payment, so its balance query runs: ' + paymentReadError);
+        User u = billingOperationsUser();
         String corporate = corporateCurrency();
         Account acc = new Account(Name = 'RLM On-Account Billing Payment Test');
         acc.put('CurrencyIsoCode', corporate);
@@ -51,7 +52,7 @@ private class RLM_OnAccountBillingControllerTest {
         Assert.areEqual(250, balance, 'PRECONDITION: an unapplied processed payment\'s balance is its amount.');
 
         Test.startTest();
-        Map<String, Object> result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+        Map<String, Object> result = paymentSummaryAs(u, acc.Id);
         Test.stopTest();
 
         Assert.areEqual(250, (Decimal) result.get('paymentBalance'),
@@ -78,10 +79,7 @@ private class RLM_OnAccountBillingControllerTest {
             System.debug(LoggingLevel.WARN, SKIP_NO_SECOND_CURRENCY);
             return;
         }
-        String paymentReadError = userModeError(PAYMENT_READ);
-        Assert.isNull(paymentReadError,
-            'PRECONDITION: the running user can read Payment, so its balance query runs: ' + paymentReadError);
-
+        User u = billingOperationsUser();
         Account acc = new Account(Name = 'RLM On-Account Billing FX Test');
         acc.put('CurrencyIsoCode', foreign);
         insert acc;
@@ -92,7 +90,7 @@ private class RLM_OnAccountBillingControllerTest {
             * rateOf(effective, foreign);
 
         Test.startTest();
-        Map<String, Object> result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+        Map<String, Object> result = paymentSummaryAs(u, acc.Id);
         Test.stopTest();
 
         Decimal actual = (Decimal) result.get('paymentBalance');
@@ -107,19 +105,18 @@ private class RLM_OnAccountBillingControllerTest {
     // returns early (the currencies match), so the corporate-converted SUM is shown as if it
     // were in the account's currency. This pins today's behaviour; the expected value changes
     // to the payment's own amount when the controller is fixed.
+    // SUM() converts at the STANDARD rate, so the currency is picked by standard rate: a
+    // currency whose standard rate equals the corporate one would make the pin vacuous.
     @isTest
     static void getBillingSummary_sameNonCorporateCurrency_showsTheCorporateSum_whenASecondCurrencyIsActive() {
         String corporate = corporateCurrency();
-        Map<String, Decimal> effective = effectiveRates();
-        String foreign = foreignCurrency(effective, corporate);
+        Map<String, Decimal> standardRates = activeRates();
+        String foreign = foreignCurrency(standardRates, corporate);
         if (foreign == null) {
             System.debug(LoggingLevel.WARN, SKIP_NO_SECOND_CURRENCY);
             return;
         }
-        String paymentReadError = userModeError(PAYMENT_READ);
-        Assert.isNull(paymentReadError,
-            'PRECONDITION: the running user can read Payment, so its balance query runs: ' + paymentReadError);
-
+        User u = billingOperationsUser();
         Account acc = new Account(Name = 'RLM On-Account Billing Same Currency Test');
         acc.put('CurrencyIsoCode', foreign);
         insert acc;
@@ -127,10 +124,11 @@ private class RLM_OnAccountBillingControllerTest {
         Decimal balance = [SELECT Balance FROM Payment WHERE Id = :pmt.Id].Balance;
         Assert.areEqual(100, balance, 'PRECONDITION: an unapplied processed payment\'s balance is its amount.');
         // SUM() converts at the standard rate, into the corporate currency.
-        Decimal corporateSum = balance.divide(activeRates().get(foreign), 10, RoundingMode.HALF_UP);
+        Decimal corporateSum = balance.divide(standardRates.get(foreign), 10, RoundingMode.HALF_UP)
+            * standardRates.get(corporate);
 
         Test.startTest();
-        Map<String, Object> result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+        Map<String, Object> result = paymentSummaryAs(u, acc.Id);
         Test.stopTest();
 
         Decimal actual = (Decimal) result.get('paymentBalance');
@@ -140,20 +138,25 @@ private class RLM_OnAccountBillingControllerTest {
             + ' (100 ' + foreign + ' in ' + corporate + '), got ' + actual + ' ' + foreign);
     }
 
-    // A collection plan on the account puts it in collections.
+    // A collection plan on the account puts it in collections, for a collections user (who can
+    // read collection plans; they are shared read/write, so the admin's plan is visible).
     @isTest
     static void getBillingSummary_accountWithCollectionPlan_isInCollections() {
-        String planReadError = userModeError('SELECT Id, AccountId FROM CollectionPlan LIMIT 1');
-        Assert.isNull(planReadError,
-            'PRECONDITION: the running user can read CollectionPlan, so its count runs: ' + planReadError);
+        User u = collectionsUser();
         Account acc = new Account(Name = 'RLM On-Account Billing Collections Test');
         insert acc;
         // No CollectionPlanReason: with one, RLM_Create_Case_for_Collection raises a case
         // from org data a unit test cannot see.
         insert new CollectionPlan(AccountId = acc.Id, UsageType = 'Billing');
 
+        Map<String, Object> result;
         Test.startTest();
-        Map<String, Object> result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+        System.runAs(u) {
+            String planReadError = userModeError(COLLECTION_PLAN_READ);
+            Assert.isNull(planReadError,
+                'PRECONDITION: a collections user can read CollectionPlan, so its count runs: ' + planReadError);
+            result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
+        }
         Test.stopTest();
 
         Assert.areEqual(true, (Boolean) result.get('inCollections'),
@@ -170,14 +173,15 @@ private class RLM_OnAccountBillingControllerTest {
     static void getBillingSummary_billingOperationsUser_runsEveryBalanceQuery() {
         Account acc = new Account(Name = 'RLM On-Account Billing Role Test');
         insert acc;
-        // A collection plan the admin sees, so "not in collections" for this role comes from
-        // its access, not from the account. No CollectionPlanReason (see above).
+        // A collection plan a collections user sees, so "not in collections" for this role comes
+        // from its access, not from the account. No CollectionPlanReason (see above).
         insert new CollectionPlan(AccountId = acc.Id, UsageType = 'Billing');
-        Assert.areEqual(true, (Boolean) RLM_OnAccountBillingController.getBillingSummary(acc.Id).get('inCollections'),
-            'PRECONDITION: for the admin, the account is in collections.');
-        User u = RLM_BillingUITestUsers.create(
-            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
-            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        User collections = collectionsUser();
+        System.runAs(collections) {
+            Assert.areEqual(true, (Boolean) RLM_OnAccountBillingController.getBillingSummary(acc.Id).get('inCollections'),
+                'PRECONDITION: for a collections user, the account is in collections.');
+        }
+        User u = billingOperationsUser();
 
         Map<String, String> readErrors = new Map<String, String>();
         String collectionPlanError;
@@ -199,7 +203,7 @@ private class RLM_OnAccountBillingControllerTest {
                     readErrors.put(objectName, error);
                 }
             }
-            collectionPlanError = userModeError('SELECT Id FROM CollectionPlan WHERE AccountId != null LIMIT 1');
+            collectionPlanError = userModeError(COLLECTION_PLAN_READ);
             Integer queriesBefore = Limits.getQueries();
             result = RLM_OnAccountBillingController.getBillingSummary(acc.Id);
             summaryQueries = Limits.getQueries() - queriesBefore;
@@ -208,12 +212,12 @@ private class RLM_OnAccountBillingControllerTest {
 
         Assert.isTrue(readErrors.isEmpty(), 'PRECONDITION: the summary\'s reads run for this role: ' + readErrors);
         Assert.isNotNull(collectionPlanError, 'PRECONDITION: this role cannot read collection plans.');
-        // At least the reads that must run for this role: the five balance aggregates (invoice,
-        // debit memo, credit memo, payment, refund) and seven status reads (posted, overdue,
-        // delinquent, partially paid, open with balance, written off, disputes). The account
-        // currency and rate reads come on top and vary with the org's currency setup; the
-        // collection plan count is rejected for this role and does not count.
-        Assert.isTrue(summaryQueries >= 12,
+        // At least the reads that must run for this role: the account currency and the standard
+        // and dated rates (this bundle is multi-currency only, so they always run), the five
+        // balance aggregates (invoice, debit memo, credit memo, payment, refund) and seven status
+        // reads (posted, overdue, delinquent, partially paid, open with balance, written off,
+        // disputes). The collection plan count is rejected for this role and does not count.
+        Assert.isTrue(summaryQueries >= 15,
             'The summary runs its balance and status reads; it ran ' + summaryQueries + ' queries.');
 
         for (String key : new List<String>{
@@ -230,6 +234,35 @@ private class RLM_OnAccountBillingControllerTest {
         }
         Assert.areEqual(false, (Boolean) result.get('inCollections'),
             'A role that cannot read collection plans is shown as not in collections, though the account has one.');
+    }
+
+    private static final String COLLECTION_PLAN_READ = 'SELECT Id FROM CollectionPlan WHERE AccountId != null LIMIT 1';
+
+    private static User billingOperationsUser() {
+        return RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+    }
+
+    private static User collectionsUser() {
+        return RLM_BillingUITestUsers.create(
+            new List<String>{
+                'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations', 'BillingCollectionsAndRecoverySpecialist'
+            },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL, RLM_BillingUITestUsers.BILLING_ADVANCED_PSL });
+    }
+
+    // Runs the summary as the given user, after checking that user can read Payment with the
+    // fields the payment balance sums.
+    private static Map<String, Object> paymentSummaryAs(User u, Id accountId) {
+        Map<String, Object> result;
+        System.runAs(u) {
+            String readError = userModeError(PAYMENT_READ);
+            Assert.isNull(readError,
+                'PRECONDITION: a billing operations user can read Payment, so its balance query runs: ' + readError);
+            result = RLM_OnAccountBillingController.getBillingSummary(accountId);
+        }
+        return result;
     }
 
     private static final String PAYMENT_READ =

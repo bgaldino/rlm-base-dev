@@ -3,7 +3,7 @@ private class RLM_SplitInvoicesControllerTest {
 
     @isTest
     static void getCurrentInvoiceBillingInfo_blankAndUnknown_returnsEmptyInfo() {
-        Id fakeInvoice = Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000000');
+        Id fakeInvoice = fakeId('Invoice', 0);
         Test.startTest();
         RLM_SplitInvoicesController.CurrentInvoiceBillingInfo blank =
             RLM_SplitInvoicesController.getCurrentInvoiceBillingInfo('');
@@ -183,7 +183,11 @@ private class RLM_SplitInvoicesControllerTest {
         Test.stopTest();
         Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read Invoice.');
         Assert.isTrue(listThrew, 'An unreadable invoice query must surface as an AuraHandledException.');
-        // Reaching here means the billing info call returned instead of throwing.
+        // Reaching here means the billing info call returned instead of throwing; it degrades
+        // to an empty info.
+        Assert.isNotNull(info, 'The billing info call returns an info object.');
+        Assert.isNull(info.billingArrangementName, 'The returned info is empty: no arrangement name.');
+        Assert.isNull(info.billingArrangementVerNumber, 'The returned info is empty: no version number.');
     }
 
     private static Id fakeId(String objectName, Integer n) {

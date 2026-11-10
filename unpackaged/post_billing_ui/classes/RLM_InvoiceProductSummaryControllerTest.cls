@@ -2,7 +2,7 @@
 private class RLM_InvoiceProductSummaryControllerTest {
 
     private static Id fakeInvoiceId() {
-        return Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000000');
+        return fakeId(Invoice.SObjectType);
     }
 
     private static Id fakeId(Schema.SObjectType objectType) {
@@ -14,6 +14,29 @@ private class RLM_InvoiceProductSummaryControllerTest {
     private static User userWithoutBillingAccess() {
         return RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
     }
+
+    // Positive paths run as this user, not the deploying admin: RLM_BillingUI is assigned only
+    // after this bundle deploys, so the admin may not hold its grants yet.
+    private static User billingOperationsUser() {
+        return RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+    }
+
+    // Returns the error a USER_MODE query raises for the running user, or null if it runs.
+    private static String userModeError(String soql) {
+        try {
+            Database.query(soql, AccessLevel.USER_MODE);
+            return null;
+        } catch (QueryException e) {
+            return e.getMessage();
+        }
+    }
+
+    private static final String ASSET_STATE_PERIOD_READ =
+        'SELECT Id, AssetId, StartDate FROM AssetStatePeriod LIMIT 1';
+    private static final String ASSET_ATTRIBUTE_READ =
+        'SELECT AssetStatePeriodId, AttributeName, AttributeValue FROM AssetStatePeriodAttribute LIMIT 1';
 
     // Invoices/InvoiceLines are system-managed and not insertable in Apex tests. A non-existent
     // invoice makes the single-row Invoice query throw, surfaced as an AuraHandledException.
@@ -102,54 +125,53 @@ private class RLM_InvoiceProductSummaryControllerTest {
     // to no asset.
     @isTest
     static void resolveBsgToAsset_billingRole_runsTheLookupOnTheSavePath() {
-        User u = RLM_BillingUITestUsers.create(
-            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
-            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        User u = billingOperationsUser();
         Id fakeBsg = fakeId(BillingScheduleGroup.SObjectType);
-        String readError;
         Integer lookupQueries;
         Map<Id, Id> saveResult;
         Test.startTest();
         System.runAs(u) {
-            try {
-                Database.query('SELECT Id, ReferenceEntityId FROM BillingScheduleGroup LIMIT 1', AccessLevel.USER_MODE);
-            } catch (QueryException e) {
-                readError = e.getMessage();
-            }
+            String readError = userModeError('SELECT Id, ReferenceEntityId FROM BillingScheduleGroup LIMIT 1');
+            Assert.isNull(readError, 'PRECONDITION: a billing operations user can read BillingScheduleGroup: ' + readError);
             Integer queriesBefore = Limits.getQueries();
             saveResult = RLM_InvoiceProductSummaryController.resolveBsgToAsset(new Set<Id>{ fakeBsg }, true);
             lookupQueries = Limits.getQueries() - queriesBefore;
         }
         Test.stopTest();
-        Assert.isNull(readError, 'PRECONDITION: a billing operations user can read BillingScheduleGroup: ' + readError);
         Assert.areEqual(1, lookupQueries, 'The BillingScheduleGroup lookup runs.');
         Assert.isTrue(saveResult.isEmpty(), 'An unknown billing schedule group maps to no asset.');
     }
 
     // An asset with no state period has no attributes to show: the helper stops after the
-    // state-period query and returns no entry for it.
+    // state-period query and returns no entry for it. Assets are shared read/write, so the
+    // billing operations user sees the admin's asset.
     @isTest
     static void resolveAssetAttributes_assetWithoutStatePeriods_returnsNoEntry() {
         Account acc = new Account(Name = 'RLM Product Summary Asset Test');
         insert acc;
         Asset a = new Asset(Name = 'RLM Product Summary Asset', AccountId = acc.Id);
         insert a;
+        User u = billingOperationsUser();
 
+        Integer lookupQueries;
+        Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>> result;
         Test.startTest();
-        Integer queriesBefore = Limits.getQueries();
-        Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>> result =
-            RLM_InvoiceProductSummaryController.resolveAssetAttributes(new Set<Id>{ a.Id }, true);
-        Integer queriesAfter = Limits.getQueries();
+        System.runAs(u) {
+            String readError = userModeError(ASSET_STATE_PERIOD_READ);
+            Assert.isNull(readError, 'PRECONDITION: a billing operations user can read AssetStatePeriod: ' + readError);
+            Integer queriesBefore = Limits.getQueries();
+            result = RLM_InvoiceProductSummaryController.resolveAssetAttributes(new Set<Id>{ a.Id }, true);
+            lookupQueries = Limits.getQueries() - queriesBefore;
+        }
         Test.stopTest();
 
-        Assert.areEqual(1, queriesAfter - queriesBefore,
-            'With no state period found, the attribute query must not run.');
+        Assert.areEqual(1, lookupQueries, 'With no state period found, the attribute query must not run.');
         Assert.isTrue(result.isEmpty(), 'An asset with no state period has no attributes.');
     }
 
     // Once a state period exists, the helper runs the attribute query too. With no
     // AssetStatePeriodAttribute rows it still returns no entry: an asset only appears once it
-    // has an attribute.
+    // has an attribute. State periods follow their asset's sharing.
     @isTest
     static void resolveAssetAttributes_statePeriodWithoutAttributes_returnsNoEntry() {
         Account acc = new Account(Name = 'RLM Product Summary Period Test');
@@ -165,15 +187,24 @@ private class RLM_InvoiceProductSummaryControllerTest {
             Mrr = 0
         );
         insert period;
+        User u = billingOperationsUser();
 
+        Integer lookupQueries;
+        Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>> result;
         Test.startTest();
-        Integer queriesBefore = Limits.getQueries();
-        Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>> result =
-            RLM_InvoiceProductSummaryController.resolveAssetAttributes(new Set<Id>{ a.Id }, true);
-        Integer queriesAfter = Limits.getQueries();
+        System.runAs(u) {
+            String periodError = userModeError(ASSET_STATE_PERIOD_READ);
+            Assert.isNull(periodError, 'PRECONDITION: a billing operations user can read AssetStatePeriod: ' + periodError);
+            String attributeError = userModeError(ASSET_ATTRIBUTE_READ);
+            Assert.isNull(attributeError,
+                'PRECONDITION: a billing operations user can read AssetStatePeriodAttribute: ' + attributeError);
+            Integer queriesBefore = Limits.getQueries();
+            result = RLM_InvoiceProductSummaryController.resolveAssetAttributes(new Set<Id>{ a.Id }, true);
+            lookupQueries = Limits.getQueries() - queriesBefore;
+        }
         Test.stopTest();
 
-        Assert.areEqual(2, queriesAfter - queriesBefore,
+        Assert.areEqual(2, lookupQueries,
             'A state period was found, so the attribute query must run after the period query.');
         Assert.isTrue(result.isEmpty(), 'A state period with no attributes resolves no attributes.');
     }
@@ -208,26 +239,24 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Assert.isTrue(summaryResult.isEmpty(), 'The summary path returns no attributes instead of throwing.');
     }
 
-    // For an unknown invoice the admin's save returns as a no-op. For a user who cannot read
-    // invoice lines, the same call must report failure as a handled error rather than return
-    // as if it had saved.
+    // For an unknown invoice a billing operations user's save returns as a no-op. For a user who
+    // cannot read invoice lines, the same call must report failure as a handled error rather
+    // than return as if it had saved.
     @isTest
     static void saveLineAttributes_userWhoCannotReadInvoiceLines_failsWithAHandledError() {
+        User billingUser = billingOperationsUser();
         User u = userWithoutBillingAccess();
         Boolean premise = false;
         Boolean saveThrew = false;
-        String adminReadError;
-        try {
-            Database.query('SELECT Id, BillingScheduleGroupId, RLM_Attributes__c FROM InvoiceLine LIMIT 1',
-                AccessLevel.USER_MODE);
-        } catch (QueryException e) {
-            adminReadError = e.getMessage();
-        }
-        Assert.isNull(adminReadError,
-            'PRECONDITION: the admin can read the InvoiceLine fields the save reads: ' + adminReadError);
         Test.startTest();
-        // The admin's call returns; an exception here fails the test.
-        RLM_InvoiceProductSummaryController.saveLineAttributes(fakeInvoiceId());
+        System.runAs(billingUser) {
+            String readError = userModeError(
+                'SELECT Id, InvoiceId, BillingScheduleGroupId, RLM_Attributes__c FROM InvoiceLine LIMIT 1');
+            Assert.isNull(readError,
+                'PRECONDITION: a billing operations user can read the InvoiceLine fields the save reads: ' + readError);
+            // The billing user's call returns; an exception here fails the test.
+            RLM_InvoiceProductSummaryController.saveLineAttributes(fakeInvoiceId());
+        }
         System.runAs(u) {
             try {
                 Database.query('SELECT Id FROM InvoiceLine LIMIT 1', AccessLevel.USER_MODE);

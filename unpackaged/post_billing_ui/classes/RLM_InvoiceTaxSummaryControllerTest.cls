@@ -27,6 +27,10 @@ private class RLM_InvoiceTaxSummaryControllerTest {
     // The TaxSummaryRow constructor keeps each argument in its own field. (The aggregate
     // mapping that calls it needs InvoiceLineTax rows, whose required InvoiceLine cannot be
     // created in a test, so it is not covered here.)
+    // Documented, not pinned (no InvoiceLineTax row can be created): the controller's
+    // SUM(TaxAmount) ... GROUP BY TaxName, CurrencyIsoCode returns each total in the corporate
+    // currency, but labels it with the group's CurrencyIsoCode, so a non-corporate tax line's
+    // total would be shown under the wrong currency.
     @isTest
     static void taxSummaryRow_constructorKeepsEachArgument() {
         Test.startTest();
