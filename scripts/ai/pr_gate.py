@@ -200,9 +200,14 @@ def config_sections(text):
 
 
 def local_branches():
-    """Every `refs/heads/` name in this repository, short form — what a `[branch]` header names."""
-    out = git(["for-each-ref", "--format=%(refname)", "refs/heads/"], "for-each-ref refs/heads/")
-    return {ref[len("refs/heads/"):] for ref in out.splitlines() if ref.startswith("refs/heads/")}
+    """Every `refs/heads/` name in this repository, short form — what a `[branch]` header names.
+    Split on "\\n" only: a ref name cannot hold a control character, but it can hold U+2028, which
+    splitlines() would cut into a fabricated shorter ref (Copilot, PR 705). Read as bytes and decoded
+    exactly as config_change_note() decodes the config, so the two sides compare like for like under
+    any locale, and a ref name that is not UTF-8 cannot raise UnicodeDecodeError mid-run."""
+    out = git(["for-each-ref", "--format=%(refname)", "refs/heads/"], "for-each-ref refs/heads/",
+              raw=True).decode("utf-8", "surrogateescape")
+    return {ref[len("refs/heads/"):] for ref in out.split("\n") if ref.startswith("refs/heads/")}
 
 
 def config_change_note(before, after):
@@ -247,7 +252,7 @@ def config_change_note(before, after):
         # byte as `\xNN`, so two non-UTF-8 values stay distinct in the diff as well as the verdict.
         shown = [texts[path][i].encode("utf-8", "surrogateescape").decode("utf-8", "backslashreplace")
                  for i in (0, 1)]
-        diffs += difflib.unified_diff(shown[0].splitlines(), shown[1].splitlines(),
+        diffs += difflib.unified_diff(shown[0].split("\n"), shown[1].split("\n"),
                                       f"{name} before", f"{name} after", lineterm="")
     return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in failing) + ")"
             " changed while this check ran. A fixture git command may have reached the real"
@@ -999,8 +1004,9 @@ def changed_files(base):
     return sorted(set(files))
 
 
-def git(args, purpose):
-    """Run git from the repo root and return stdout, or die — never return a verdict.
+def git(args, purpose, raw=False):
+    """Run git from the repo root and return stdout, or die — never return a verdict. `raw` returns
+    stdout as bytes, for a caller that has to decode it the same way as bytes it read elsewhere.
 
     Centralised after the same two guards had to be added to each call site separately and were
     not: `run()` grew an `OSError` guard while this path kept only `FileNotFoundError`, so a git
@@ -1010,11 +1016,12 @@ def git(args, purpose):
     failed command is indistinguishable from a clean tree.
     """
     try:
-        out = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, text=True)
+        out = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, text=not raw)
     except OSError as exc:
         die(f"could not run git ({purpose}): {exc}")
     if out.returncode != 0:
-        die(f"git {purpose} failed: {out.stderr.strip()}")
+        die(f"git {purpose} failed: "
+            f"{(out.stderr.decode('utf-8', 'replace') if raw else out.stderr).strip()}")
     return out.stdout
 
 

@@ -5364,6 +5364,9 @@ try:
     git(branch_root, "-c", "user.email=t@example.com", "-c", "user.name=t",
         "commit", "-q", "--allow-empty", "-m", "seed")
     git(branch_root, "branch", "other-session/work")
+    # A real ref whose name holds U+2028: splitlines() cut it into a fabricated `preview/next`, which
+    # then excused the leaked `[branch "preview/next"]` below (Copilot, PR 705).
+    git(branch_root, "branch", "preview/next\u2028suffix")
     branch_config = os.path.join(branch_root, ".git", "config")
     pr_gate.REPO_ROOT = branch_root
     for label, text in (
@@ -5429,7 +5432,8 @@ check("a section opened on a [branch] header's own line is not excused as that b
 check("a form feed inside a value does not split off a fake [branch] header",
       branch_cases["form-feed"][1] is True, branch_cases["form-feed"])
 ghost_code, ghost_out, ghost_notes = branch_cases["ghost"]
-check("a [branch] section for a branch with no real ref (a leaked fixture's) still fails, with the diff",
+check("a [branch] section for a branch with no real ref (a leaked fixture's) still fails, with the diff, "
+      "even beside a real ref that extends its name past a U+2028",
       ghost_code == 1 and '+[branch "preview/next"]' in ghost_out and not ghost_notes,
       branch_cases["ghost"])
 check("a user.email change still fails",
