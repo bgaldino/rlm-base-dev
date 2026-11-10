@@ -31,8 +31,10 @@
  *    "SKIPPED" debug line and userInformation_paths calls getName as the
  *    runner instead. The sentinel skips its assignment check only when no
  *    learner user exists; for a learner with extra permission sets it still
- *    runs that check. Any other insert failure is rethrown and fails the test
- *    that asked for the learner.
+ *    runs that check. Any insert failure (for example a User validation rule,
+ *    a required custom field or a User trigger in the target org) is rolled
+ *    back and logged as a WARN "SKIPPED: learner insert failed" line, so these
+ *    same skip and fallback paths apply instead of failing a deploy.
  *
  * The runner owns the test content. Other users read it through the Public
  * Read/Write sharing model; a user can delete only the rows it owns, unless it
@@ -178,8 +180,10 @@ private class RLM_Learning_FrameworkTest {
   }
 
   // A Minimum Access user holding only the feature's permission set, or nothing
-  // when the profile or permission set is missing or the platform reports
-  // LICENSE_LIMIT_EXCEEDED. Any other insert failure is rethrown. Never a
+  // when the profile or permission set is missing or the user or assignment
+  // insert fails (for example LICENSE_LIMIT_EXCEEDED, or an org's User
+  // validation rule, required field or trigger): the insert is rolled back and
+  // logged, and the callers' skip and fallback paths take over. Never a
   // broader profile: the sentinel test proves this profile grants nothing on
   // the learning objects.
   static void createLearner() {
@@ -213,9 +217,10 @@ private class RLM_Learning_FrameworkTest {
         insert as system new PermissionSetAssignment(AssigneeId = learner.Id, PermissionSetId = sets[0].Id);
       } catch (DmlException e) {
         Database.rollback(beforeLearner);
-        if (e.getDmlType(0) != StatusCode.LICENSE_LIMIT_EXCEEDED) {
-          throw e;
-        }
+        System.debug(
+          LoggingLevel.WARN,
+          'SKIPPED: learner insert failed: ' + e.getDmlType(0) + ' ' + e.getDmlMessage(0)
+        );
       }
     }
   }
@@ -235,7 +240,7 @@ private class RLM_Learning_FrameworkTest {
       System.debug(
         LoggingLevel.WARN,
         'SKIPPED: least-privilege learner could not be created (no Minimum Access profile, ' +
-        'RLM_Learning missing, or LICENSE_LIMIT_EXCEEDED on the user insert)'
+        'RLM_Learning missing, or the user or assignment insert failed)'
       );
       return null;
     }
@@ -554,9 +559,10 @@ private class RLM_Learning_FrameworkTest {
     Id linkId = testLink().Id;
     Id blockId = testBlock().Id;
     Id secId = sectionByHeader('H').Id;
-    // A later active block with its own link (sequence 2) and an inactive block
-    // ahead of it (sequence 0): only the first active block, and only its link,
-    // may be mapped.
+    // Sequence order disagrees with creation order: a block created after
+    // TestBlock is placed first (sequence 0) with its own link, and an inactive
+    // block below it (sequence -1). Only the first active block by sequence,
+    // and only its link, may be mapped.
     RLM_Learning_DynamicLink__c laterLink = new RLM_Learning_DynamicLink__c(
       Name = 'Later DynamicLink',
       RecordTypeId = rtId('RLM_Learning_DynamicLink__c', 'WebPage'),
@@ -571,12 +577,12 @@ private class RLM_Learning_FrameworkTest {
       new RLM_Learning_SectionBlock__c(
         RLM_Learning_Section__c = secId,
         RLM_Learning_Block__c = laterBlock.Id,
-        RLM_Learning_Order_Sequence__c = 2
+        RLM_Learning_Order_Sequence__c = 0
       ),
       new RLM_Learning_SectionBlock__c(
         RLM_Learning_Section__c = secId,
         RLM_Learning_Block__c = inactiveFirst.Id,
-        RLM_Learning_Order_Sequence__c = 0
+        RLM_Learning_Order_Sequence__c = -1
       )
     };
 
@@ -593,14 +599,14 @@ private class RLM_Learning_FrameworkTest {
       ((RLM_Learning_Section__c) res[0].get('section')).RLM_Learning_Header__c
     );
     Map<String, Object> block = (Map<String, Object>) res[0].get('block');
-    Assert.areEqual(blockId, block.get('blockId'));
-    Assert.areEqual('BH', block.get('header'));
-    Assert.areEqual('small', block.get('iconSize'));
-    Assert.areEqual(linkId, block.get('action'));
+    Assert.areEqual(laterBlock.Id, block.get('blockId'), 'the first active block by sequence is mapped');
+    Assert.areNotEqual(blockId, block.get('blockId'), 'not the earlier-created TestBlock');
+    Assert.areEqual('Later Block header', block.get('header'));
+    Assert.areEqual(laterLink.Id, block.get('action'));
     List<RLM_Learning_DynamicLink__c> links = (List<RLM_Learning_DynamicLink__c>) res[0]
       .get('dynamicLinks');
     Assert.areEqual(1, links.size(), 'only the first active block\'s link is mapped');
-    Assert.areEqual(linkId, links[0].Id, 'the link is the first active block\'s, not the later block\'s');
+    Assert.areEqual(laterLink.Id, links[0].Id, 'the link is the first active block\'s, not TestBlock\'s');
   }
 
   // ---- SectionBlockController: guards -----------------------------------------
@@ -1041,8 +1047,8 @@ private class RLM_Learning_FrameworkTest {
       try {
         RLM_Learning_SectionBlockSequence.updateSectionBlocks(emptyId, new List<String>{ blockId });
         Assert.fail(
-          'Known gap: updateSectionBlocks throws an AuraHandledException when the learner does not own ' +
-          'the section\'s junction rows; update this test when it is fixed.'
+          'Known gap: updateSectionBlocks threw an AuraHandledException when the learner did not own ' +
+          'the section\'s junction rows; it now succeeds. Update this test.'
         );
       } catch (AuraHandledException e) {
         // Expected today. The row count and the ownership control below are the
@@ -1101,15 +1107,20 @@ private class RLM_Learning_FrameworkTest {
   //  - getSetupPageLink('User', 'not-an-id'): without its Id check the call
   //    would return a URL instead of throwing.
   // The other calls are coverage-only. Each still must throw, but a removed
-  // guard is not detectable here: the code after it also ends in an
+  // guard is not detectable here, because the code after it also ends in an
   // AuraHandledException (whose message is the generic "Script-thrown
-  // exception"), and the query check cannot fail for them:
-  //  - getObjectIdFromQuery and getRecordIdFromDynamicLinkType without their
-  //    guards would build a query that is rejected when parsed, and a live
-  //    check showed a parse-rejected Database.query does not increment
-  //    Limits.getQueries().
-  //  - getSetupPageLink only queries custom metadata with no long-text fields,
-  //    which Limits.getQueries() does not count.
+  // exception"):
+  //  - Blank object (getObjectIdFromQuery): the object allow-list rejects it.
+  //  - Blank type (getRecordIdFromDynamicLinkType): the unsupported-type
+  //    branch rejects it.
+  //  - Blank where (both methods): the query would be rejected when parsed,
+  //    and a live check showed a parse-rejected Database.query does not
+  //    increment Limits.getQueries().
+  //  - Unknown object and unsupported type: the allow-list and the
+  //    unsupported-type branch are the guards under test; without them the
+  //    query would likewise be rejected when parsed.
+  //  - getSetupPageLink, blank page or blank record id: Id.valueOf rejects the
+  //    record id inside the method's own try.
   @IsTest
   static void dynamicLinkHelper_guards() {
     List<String> notThrown = new List<String>();

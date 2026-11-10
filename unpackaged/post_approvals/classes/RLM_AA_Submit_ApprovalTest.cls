@@ -79,8 +79,8 @@ private class RLM_AA_Submit_ApprovalTest {
         // second request was tried: the fix. Matches only the flow API name the
         // platform passes through, never its translated wording.
         if (thrown != null && thrown.getMessage() != null && thrown.getMessage().contains(MISSING_FLOW)) {
-            Assert.fail('Known gap: only the first request is started; requests after it are ignored. '
-                + 'Update this test when it is fixed.');
+            Assert.fail('Known gap: only the first request was started; it now started the second request ('
+                + thrown.getTypeName() + '). Update this test.');
         }
         Assert.isNull(thrown, 'Unexpected exception starting the batch (not the known gap): '
             + (thrown == null ? '' : thrown.getTypeName() + ': ' + thrown.getMessage()));
