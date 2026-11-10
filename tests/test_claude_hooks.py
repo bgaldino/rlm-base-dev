@@ -864,6 +864,26 @@ class ArtifactsPlacement(unittest.TestCase):
         (self.tmp / "docs" / "in").symlink_to(other, target_is_directory=True)
         self.assertEqual(self.decide("docs/in/topics/a.md"), "allow")
 
+    def test_a_chained_alias_through_an_in_tree_link_is_an_escape(self):
+        # docs/shortcut -> .agents/artifacts/topics/shared -> docs/analysis (PR 702, round 3).
+        public = self.tmp / "docs" / "analysis"
+        public.mkdir(parents=True)
+        (self.tree / "topics" / "shared").symlink_to(Path("../../../docs/analysis"),
+                                                     target_is_directory=True)
+        (self.tmp / "docs" / "shortcut").symlink_to(Path("../.agents/artifacts/topics/shared"),
+                                                    target_is_directory=True)
+        self.assertEqual(self.decide(".agents/artifacts/topics/shared/evidence.md"), "deny")
+        self.assertEqual(self.decide("docs/shortcut/evidence.md"), "deny")
+        # The same alias with absolute targets, and a plain public write, for contrast.
+        (self.tmp / "docs" / "abs").symlink_to(self.tree / "topics" / "shared",
+                                               target_is_directory=True)
+        self.assertEqual(self.decide("docs/abs/evidence.md"), "deny")
+        self.assertEqual(self.decide("docs/analysis/evidence.md"), "allow")
+
+    def test_a_link_to_the_filesystem_root_lands_there(self):
+        (self.tree / "topics" / "root").symlink_to(Path("/"), target_is_directory=True)
+        self.assertEqual(self.decide(".agents/artifacts/topics/root"), "deny")
+
     def test_public_agents_files_are_untouched(self):
         self.assertEqual(self.decide(".agents/README.md"), "allow")
         self.assertEqual(self.decide(".agents/skills/x/SKILL.md"), "allow")

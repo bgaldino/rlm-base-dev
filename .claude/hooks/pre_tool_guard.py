@@ -47,8 +47,10 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    accept writes until the private repo's reorg moves them. A write is judged by where it
    lands, at BOTH readings of a path that has `..` after a symlink (Claude Code normalises
    `..` away before writing; the OS follows the link first), and the stricter decision wins.
-   Spelled inside the tree but landing outside it, or leaving the tree through a link, is an
-   escape and is denied. The tree and its top-level entries are matched by file identity
+   Spelled inside the tree but landing outside it is an escape and is denied, as is passing
+   through any link that lives inside a clone and resolves outside it or into another clone;
+   links are expanded component by component, so a chain reaching such a link through an
+   outside alias is judged too. The tree and its top-level entries are matched by file identity
    (samefile), never by spelling, so case and Unicode case-fold variants on a case-insensitive
    disk get the same rules; the outermost containing tree's rules apply. Only the private clone
    counts as the tree (a directory with its own `.git`): a same-named public folder deeper in
@@ -672,32 +674,54 @@ def _private_tree(real: Path) -> Optional[Path]:
     return real if _is_tree(real) else None
 
 
-def _resolution_steps(raw: str) -> Optional[List[Tuple[str, Path]]]:
-    """(component, where the path has got to) after each component, the way the OS resolves
-    it: a symlink is followed before any later `..` applies. Incremental, so a deep path costs
-    one lstat per component, plus a realpath only where a component is a link. None when the
-    path is too deep or follows more links than the kernel would (it fails with ELOOP after
-    about 32), so the walk's cost is bounded."""
+class _Walk:
+    """One reading of a path, resolved the way the OS does: `steps` is every position the walk
+    reaches, and `links` is (directory holding the link, where the link resolves) for every
+    symlink it passes through, chains included."""
+
+    def __init__(self, steps: List[Tuple[str, Path]], links: List[Tuple[Path, Path]],
+                 end: Path):
+        self.steps, self.links, self.end = steps, links, end
+
+
+def _resolution_steps(raw: str) -> Optional[_Walk]:
+    """Walk `raw` component by component. A symlink is expanded in place (its target's parts
+    queued, relative to the link's directory), never collapsed into one realpath() step, so
+    every link of a chain is visited, including one inside the private tree reached through an
+    outside alias. None when the path is too deep or follows more links than the kernel would
+    (it fails with ELOOP after about 32), so the walk's cost is bounded."""
     parts = Path(raw).parts
     if len(parts) > MAX_JUDGED_COMPONENTS:
         return None
     cur = Path(parts[0])
-    steps = []
-    hops = 0
-    for comp in parts[1:]:
+    queue: List[str] = list(parts[1:])
+    steps: List[Tuple[str, Path]] = []
+    links: List[Tuple[Path, Path]] = []
+    while queue:
+        if len(steps) > 4 * MAX_JUDGED_COMPONENTS:
+            return None
+        comp = queue.pop(0)
+        if comp in ("", "."):
+            continue
         if comp == "..":
             cur = cur.parent
         else:
             nxt = cur / comp
             if os.path.islink(nxt):  # islink never raises
-                hops += 1
-                if hops > MAX_LINK_HOPS:
+                if len(links) >= MAX_LINK_HOPS:
                     return None
-                cur = Path(os.path.realpath(nxt))
-            else:
-                cur = nxt
+                try:
+                    target = Path(os.readlink(nxt))
+                except (OSError, ValueError):
+                    return None
+                links.append((cur, Path(os.path.realpath(nxt))))
+                if target.is_absolute():
+                    cur = Path(target.anchor)
+                queue[:0] = list(target.parts[1 if target.is_absolute() else 0:])
+                continue
+            cur = nxt
         steps.append((comp, cur))
-    return steps
+    return _Walk(steps, links, cur)
 
 
 def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
@@ -731,9 +755,9 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     # lengthens the raw text), so it is always walked; a reading too deep or too linked to walk
     # is not guessed at: it asks.
     walked = [_resolution_steps(str(lexical)), _resolution_steps(raw)]
-    unjudged = any(steps is None for steps in walked)
-    readings = [steps for steps in walked if steps is not None]
-    landings = [steps[-1][1] if steps else lexical for steps in readings]
+    unjudged = any(w is None for w in walked)
+    readings = [w for w in walked if w is not None]
+    landings = [w.end for w in readings]
     # 1. The spelling the agent asked for: a sibling (`artifacts.old`) is not gitignored, and a
     #    case or Unicode variant is the tree on a case-insensitive disk but an un-ignored
     #    sibling on a case-sensitive one.
@@ -751,10 +775,10 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     roots = [Path(b) / ".agents" / "artifacts"
              for b in (os.environ.get("CLAUDE_PROJECT_DIR"), cwd) if b] + spelled_trees
     trees = {Path(os.path.realpath(t)) for t in roots if _is_clone(t)}
-    for steps in readings:
+    for walk in readings:
         tree_here: Optional[Path] = None
         prev: Optional[Path] = None
-        for _, cur in steps:
+        for _, cur in walk.steps + [(None, t) for _, t in walk.links]:
             # Invariant: tree_here is the outermost tree among cur's ancestors. Appending a
             # component can only add cur itself; climbing (`..`) can only drop trees below cur;
             # only a link jump needs a rescan, so `..` chains stay linear.
@@ -784,13 +808,15 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
         worst = ("ask", (f"one reading of this path is deeper than {MAX_JUDGED_COMPONENTS} "
                          f"components or follows more than {MAX_LINK_HOPS} links, too much for "
                          "the private-tree check to walk; confirm where it lands"))
-    for steps, real in zip(readings, landings):
+    for walk, real in zip(readings, landings):
         decision = ("allow", "")
         final = containing(real)
-        # Leaving a clone through a link (not a spelled `..`) is an escape, including into a
-        # DIFFERENT clone: the step's outermost containing tree changes.
-        link_escape = any(comp != ".." and outer(a) is not None and outer(b) != outer(a)
-                          for (_, a), (comp, b) in zip(steps, steps[1:]))
+        # A link that lives inside a clone and resolves outside it, or into a DIFFERENT clone,
+        # is an escape, wherever the path came from: every link of a chain is in walk.links, so
+        # an in-tree link reached through an outside alias is judged too. Entering a clone from
+        # outside through a link is not an escape.
+        link_escape = any(outer(home) is not None and outer(target) != outer(home)
+                          for home, target in walk.links)
         if link_escape:
             decision = escape
         elif _spelled_hits(real) and not final:
