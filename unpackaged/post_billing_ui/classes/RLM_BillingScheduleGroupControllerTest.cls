@@ -5,7 +5,7 @@ private class RLM_BillingScheduleGroupControllerTest {
     // these tests drive the query down its empty and refused paths only. Each System.runAs
     // test creates its user through RLM_BillingUITestUsers; the billing-role test takes a
     // Billing permission set license seat, the refused-access test (a plain Minimum Access
-    // user with no license) does not.
+    // user with no permission set license) does not.
     @isTest
     static void getBillingScheduleGroups_nullAccount_returnsEmptyList() {
         Test.startTest();

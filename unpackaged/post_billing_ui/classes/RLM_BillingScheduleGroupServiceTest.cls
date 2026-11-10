@@ -14,8 +14,9 @@
  * The other tests run as the deploying admin and read Account, BillingAccount,
  * AccountBillingAccount, Product2, LegalEntity and TaxTreatment in USER_MODE; on a
  * Release 264 org the System Administrator profile grants read on all six. The two junction
- * tests, which read BillingAccount and AccountBillingAccount, also passed with RLM_BillingUI
- * unassigned from the admin.
+ * tests also passed with RLM_BillingUI unassigned from the admin: the create test reads
+ * BillingAccount and AccountBillingAccount, and the getAccountBillingInfo test reads Account
+ * and BillingAccount (only its setup inserts the junction row).
  *
  * Known gap (documented from a diagnostic run, not asserted by a test): on a Release 264
  * org, a run of the action with real records and this service's payload returned
@@ -34,6 +35,15 @@
  * Known gap (pinned): getAccountBillingInfo never resolves a billing account linked to the
  * account only through AccountBillingAccount, although the create path does resolve that
  * link. See getAccountBillingInfo_junctionOnlyBillingAccount_isNotResolved.
+ *
+ * Known gap (pinned): the 264 developer guide lists EndDate__std as required for a TermDefined
+ * new sale, but a Termed create with no end date passes every guard and is sent without
+ * EndDate__std. See buildTransactionDetailsJson_termedWithoutEndDate_omitsEndDate and
+ * createViaAPI_termedWithoutEndDate_isAccepted.
+ *
+ * Known gap (pinned): TotalPrice__std is required for every selling model (developer guide,
+ * and the service's own comment), but the create path never checks totalPrice, so a null
+ * total is accepted. See createViaAPI_nullTotalPrice_isAccepted.
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {
@@ -306,9 +316,9 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     // The expected options are built from the same BillingSchedule describe the service reads,
-    // so these tests prove the describe source is used (labels, values and order). That this
-    // rules out the hard-coded fallback (not exercised) relies on the shipped value sets, which
-    // differ from the fallback lists. Each test also checks one shipped value is offered.
+    // so these tests prove the describe source is used (labels, values and order). What rules
+    // out the hard-coded fallback (not exercised) is the non-empty precondition in
+    // picklistLabelsAndValues: the service falls back only when that same describe is empty.
     @isTest
     static void billingTermUnitOptions_comeFromTheBillingSchedulePicklist() {
         List<String> expected = picklistLabelsAndValues('BillingTermUnit');
@@ -318,7 +328,6 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         assertOptions(expected, options);
-        Assert.isTrue(optionValues(options).contains('Month'), 'The shipped Month unit is offered: ' + expected);
     }
 
     @isTest
@@ -330,7 +339,6 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         assertOptions(expected, options);
-        Assert.isTrue(optionValues(options).contains('Months'), 'The shipped Months unit is offered: ' + expected);
     }
 
     // ---- createBillingScheduleGroupAndScheduleViaAPI ----
@@ -398,6 +406,39 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         Assert.isTrue(rejected.isEmpty(), 'Boundary values were rejected: ' + String.join(rejected, ', '));
+    }
+
+    @isTest
+    static void createViaAPI_termedWithoutEndDate_isAccepted() {
+        Id baId = insertBillingAccount('BSG Termed No End');
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-GAP' };
+        CreateArgs args = new CreateArgs(baId);
+        args.termSetting = 'Termed';
+        args.endDate = null;
+
+        Test.startTest();
+        Boolean rejected = throwsAura(args);
+        Test.stopTest();
+
+        Assert.isFalse(rejected,
+            'Known gap: a Termed schedule with no end date is sent without EndDate__std, which the '
+            + 'standard action requires; update this test when a guard lands.');
+    }
+
+    @isTest
+    static void createViaAPI_nullTotalPrice_isAccepted() {
+        Id baId = insertBillingAccount('BSG Null Total');
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-GAP' };
+        CreateArgs args = new CreateArgs(baId);
+        args.totalPrice = null;
+
+        Test.startTest();
+        Boolean rejected = throwsAura(args);
+        Test.stopTest();
+
+        Assert.isFalse(rejected,
+            'Known gap: a null total price is accepted although TotalPrice__std is required for every '
+            + 'selling model; update this test when a guard lands.');
     }
 
     @isTest
@@ -558,7 +599,9 @@ private class RLM_BillingScheduleGroupServiceTest {
             'Termed', null
         ));
         Assert.areEqual('TermDefined', txn.get('SellingModelType__std'));
-        Assert.isFalse(txn.containsKey('EndDate__std'), 'No end date supplied -> none sent.');
+        Assert.isFalse(txn.containsKey('EndDate__std'),
+            'Known gap: a Termed schedule with no end date is sent without EndDate__std, which the '
+            + 'standard action requires; update this test when a guard lands.');
     }
 
     @isTest
@@ -707,14 +750,6 @@ private class RLM_BillingScheduleGroupServiceTest {
         }
         Assert.isFalse(entries.isEmpty(), 'PRECONDITION: BillingSchedule.' + fieldApi + ' has picklist values.');
         return entries;
-    }
-
-    private static Set<String> optionValues(List<RLM_BillingScheduleGroupService.PicklistOption> options) {
-        Set<String> values = new Set<String>();
-        for (RLM_BillingScheduleGroupService.PicklistOption o : options) {
-            values.add(o.value);
-        }
-        return values;
     }
 
     private static void assertOptions(List<String> expected,

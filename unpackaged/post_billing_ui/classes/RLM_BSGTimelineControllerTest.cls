@@ -10,7 +10,7 @@ private class RLM_BSGTimelineControllerTest {
     // BSG cannot be found; getMilestoneChartData degrades to an empty list. Each System.runAs
     // test creates its user through RLM_BillingUITestUsers; the billing-role test takes a
     // Billing permission set license seat, the refused-access test (a plain Minimum Access
-    // user with no license) does not.
+    // user with no permission set license) does not.
     //
     // Known gap (documented, not pinned): getBillingScheduleGroupData throws its not-found
     // AuraHandledException inside a try and rewraps it with e.getMessage(). On a Release 264
