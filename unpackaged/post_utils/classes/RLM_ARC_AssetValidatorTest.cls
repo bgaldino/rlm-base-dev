@@ -144,7 +144,7 @@ private class RLM_ARC_AssetValidatorTest {
         insert pbe;
         Assert.isTrue(
             [SELECT IsDerived FROM PricebookEntry WHERE Id = :pbe.Id].IsDerived,
-            'Premise: the platform must keep IsDerived=true on the inserted entry, or the derived-price ' +
+            'PRECONDITION: the platform must keep IsDerived=true on the inserted entry, or the derived-price ' +
             'assertions below prove nothing'
         );
 
@@ -191,6 +191,12 @@ private class RLM_ARC_AssetValidatorTest {
     static void cleanAndProductlessAssetsAreNotBlocked() {
         Asset clean = assetNamed(CLEAN_ASSET);
         Asset noProduct = assetNamed(NO_PRODUCT_ASSET);
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM PricebookEntry WHERE Product2Id = :clean.Product2Id AND IsDerived = false],
+            'PRECONDITION: the clean product has a non-derived price book entry, so the IsDerived filter is exercised'
+        );
+        Assert.isNull(noProduct.Product2Id, 'PRECONDITION: the second asset has no product');
 
         Test.startTest();
         RLM_ARC_AssetValidator.Result res = validateOne(new List<Id>{ clean.Id, noProduct.Id });
@@ -202,6 +208,11 @@ private class RLM_ARC_AssetValidatorTest {
     @IsTest
     static void draftProductUsageResourceDoesNotMakeAssetUsageBased() {
         Asset draftUsage = assetNamed(DRAFT_USAGE_ASSET);
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM ProductUsageResource WHERE ProductId = :draftUsage.Product2Id AND Status = 'Draft'],
+            'PRECONDITION: the product has a Draft usage resource, so the Active filter is what excludes it'
+        );
 
         Test.startTest();
         RLM_ARC_AssetValidator.Result res = validateOne(new List<Id>{ draftUsage.Id });
@@ -379,7 +390,7 @@ private class RLM_ARC_AssetValidatorTest {
     // ─── Bulk ───────────────────────────────────────────────────────────
 
     @IsTest
-    static void bulkRequestsMapInOrderWithAFixedQueryCount() {
+    static void bulkRequestsMapInOrderWithOneQueryPerDimension() {
         Asset clean = assetNamed(CLEAN_ASSET);
         Asset usage = assetNamed(USAGE_ASSET);
         Asset noProduct = assetNamed(NO_PRODUCT_ASSET);
@@ -410,6 +421,6 @@ private class RLM_ARC_AssetValidatorTest {
         Assert.areEqual(1, results[3].blockedAssets.size(), 'Only the usage asset is blocked in the fourth request');
 
         // relationships, ramp periods, assets, usage resources, price book entries, blocked assets
-        Assert.areEqual(6, queries, 'All requests share one query per validation dimension');
+        Assert.areEqual(6, queries, 'Four requests together use one query per validation dimension');
     }
 }

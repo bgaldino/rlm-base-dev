@@ -229,11 +229,30 @@ private class RLM_RebuildSearchIndexTest {
     }
 
     @IsTest
-    static void deployPcmIndexRequestDefaultsToFullImmediate() {
-        RLM_RebuildSearchIndex.PCMDeployRequest request = new RLM_RebuildSearchIndex.PCMDeployRequest();
+    static void deployPcmIndexIgnoresRequestBuildAndActivationType() {
+        PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
+        Test.setMock(HttpCalloutMock.class, mock);
 
-        Assert.areEqual('FULL', request.buildType, 'Build type defaults to FULL');
-        Assert.areEqual('IMMEDIATE', request.activationType, 'Activation type defaults to IMMEDIATE');
+        RLM_RebuildSearchIndex.PCMDeployRequest request = new RLM_RebuildSearchIndex.PCMDeployRequest();
+        request.buildType = 'INCREMENTAL';
+        request.activationType = 'DEFERRED';
+
+        Test.startTest();
+        RLM_RebuildSearchIndex.deployPCMIndex(new List<RLM_RebuildSearchIndex.PCMDeployRequest>{ request });
+        Test.stopTest();
+
+        Assert.areEqual(1, mock.received.size(), 'One callout for one request');
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.received[0].getBody());
+        Assert.areEqual(
+            'FULL',
+            body.get('buildType'),
+            'The request\'s buildType is not forwarded; every deploy is a FULL build'
+        );
+        Assert.areEqual(
+            'IMMEDIATE',
+            ((Map<String, Object>) body.get('snapshot')).get('activationType'),
+            'The request\'s activationType is not forwarded; every snapshot activates IMMEDIATE'
+        );
     }
 
     @IsTest

@@ -5,9 +5,12 @@
  * field, and the row cap.
  *
  * UsageSummary and UsageBillingPeriodItem rows are produced by usage orchestration, so those
- * objects are exercised for their column definitions and an empty, correctly scoped result.
- * The null-lookup branch of the flattener is not reached: every lookup in the
- * TransactionJournal field set is required on insert.
+ * objects are exercised for their column definitions and an empty result only.
+ *
+ * Not covered: the null-lookup branch of the flattener. Describe reports every lookup in the
+ * TransactionJournal field set (ReferenceRecordId, UsageResourceId, QuantityUnitOfMeasureId)
+ * as nillable, but inserting a journal with any of them null fails with
+ * FIELD_INTEGRITY_EXCEPTION, so no journal row can carry a null lookup.
  */
 @IsTest
 private class RLM_UsageDataControllerTest {
@@ -210,7 +213,7 @@ private class RLM_UsageDataControllerTest {
         Asset one = assetNamed(ASSET_ONE);
         UsageResource ur = [SELECT Id FROM UsageResource WHERE Name = :RESOURCE_NAME LIMIT 1];
         UnitOfMeasure uom = [SELECT Id FROM UnitOfMeasure WHERE Name = :UOM_NAME LIMIT 1];
-        TransactionJournal withUom = [
+        TransactionJournal journal150 = [
             SELECT Id, Name FROM TransactionJournal WHERE ReferenceRecordId = :one.Id AND Quantity = 150 LIMIT 1
         ];
 
@@ -224,9 +227,14 @@ private class RLM_UsageDataControllerTest {
         List<Map<String, Object>> rows = recordsOf(result);
         Assert.areEqual(3, rows.size(), 'Every journal on the account is returned');
 
-        Map<String, Object> row = rowFor(rows, withUom.Id);
-        Assert.areEqual(withUom.Name, row.get('Name'), 'The name field carries the record name');
-        Assert.areEqual('/' + withUom.Id, row.get('Name__url'), 'The name links to the journal itself');
+        Assert.isTrue(
+            Schema.SObjectType.TransactionJournal.fields.Quantity.isAccessible(),
+            'PRECONDITION: the running user must read TransactionJournal.Quantity ' +
+            '(granted to end users by RLM_UsageDatatables), or stripInaccessible removes it'
+        );
+        Map<String, Object> row = rowFor(rows, journal150.Id);
+        Assert.areEqual(journal150.Name, row.get('Name'), 'The name field carries the record name');
+        Assert.areEqual('/' + journal150.Id, row.get('Name__url'), 'The name links to the journal itself');
         Assert.areEqual(150, ((Decimal) row.get('Quantity')).intValue(), 'Plain fields are copied as-is');
         Assert.areEqual('Pending', row.get('Status'), 'Picklist values are copied as-is');
         Assert.areEqual(ur.Id, row.get('UsageResourceId'), 'The raw lookup id is kept');
@@ -237,7 +245,6 @@ private class RLM_UsageDataControllerTest {
         Assert.areEqual(one.Id, row.get('ReferenceRecordId'), 'The polymorphic asset id is always kept');
         Assert.areEqual('/' + one.Id, row.get('ReferenceRecordId__url'), 'The asset reference links to the asset');
         Assert.areEqual(ASSET_ONE, row.get('ReferenceRecordId__name'), 'The asset reference is labelled by name');
-
     }
 
     @IsTest
@@ -321,12 +328,16 @@ private class RLM_UsageDataControllerTest {
         assertUrlColumn(column(columns, 'AssetId__url'), 'AssetId__name');
         // LiableSummaryId points at UsageBillingPeriodItem, whose name field is an autonumber
         // other than Name; the query must have resolved it or it would have thrown.
+        Assert.isFalse(
+            Schema.SObjectType.UsageBillingPeriodItem.fields.getMap().containsKey('Name'),
+            'PRECONDITION: UsageBillingPeriodItem has no Name field, so a Name fallback would fail the query'
+        );
         assertUrlColumn(column(columns, 'LiableSummaryId__url'), 'LiableSummaryId__name');
         assertUrlColumn(column(columns, 'UsageEntitlementAccountId__url'), 'UsageEntitlementAccountId__name');
         Assert.areEqual('number', column(columns, 'ConsumptionUnits').get('type'), 'Consumption units are numeric');
 
         Assert.isTrue(recordsOf(byAsset).isEmpty(), 'Tests create no usage summaries');
-        Assert.isTrue(recordsOf(byAccount).isEmpty(), 'AccountId is an allowed UsageSummary filter');
+        Assert.isTrue(recordsOf(byAccount).isEmpty(), 'AccountId is accepted as a UsageSummary filter');
     }
 
     @IsTest
@@ -374,14 +385,21 @@ private class RLM_UsageDataControllerTest {
         Test.stopTest();
     }
 
+    /**
+     * ReferenceRecordId is on the controller's UsageSummary filter allowlist but is not a field
+     * of UsageSummary, so only the field-exists check can reject it. Without that check the
+     * dynamic query would fail with a QueryException instead of an AuraHandledException.
+     */
     @IsTest
-    static void rejectsFilterFieldThatIsNotOnTheObject() {
+    static void rejectsAllowlistedFilterFieldThatIsNotOnTheObject() {
         Id accId = accountId(ACCOUNT_NAME);
+        Assert.isFalse(
+            Schema.SObjectType.UsageSummary.fields.getMap().containsKey('ReferenceRecordId'),
+            'PRECONDITION: UsageSummary must not have a ReferenceRecordId field for this case to isolate the check'
+        );
 
         Test.startTest();
-        assertRejected(accId, 'No_Such_Field__c', 'TransactionJournal', FIELD_SET);
-        // AssetId is allowed for UsageSummary but does not exist on TransactionJournal.
-        assertRejected(accId, 'AssetId', 'TransactionJournal', FIELD_SET);
+        assertRejected(accId, 'ReferenceRecordId', 'UsageSummary', FIELD_SET);
         Test.stopTest();
     }
 
@@ -389,8 +407,17 @@ private class RLM_UsageDataControllerTest {
     static void rejectsRealFieldsThatAreNotAllowlistedFilters() {
         Id accId = accountId(ACCOUNT_NAME);
 
+        // Real fields that would widen the query scope beyond one Account or Asset. Each must
+        // exist on its object, so the allowlist (not the field-exists check) is what rejects it.
+        Assert.isTrue(Schema.SObjectType.TransactionJournal.fields.getMap().containsKey('CreatedById'), 'PRECONDITION');
+        Assert.isTrue(Schema.SObjectType.TransactionJournal.fields.getMap().containsKey('UsageResourceId'), 'PRECONDITION');
+        Assert.isTrue(Schema.SObjectType.UsageSummary.fields.getMap().containsKey('Status'), 'PRECONDITION');
+        Assert.isTrue(
+            Schema.SObjectType.UsageBillingPeriodItem.fields.getMap().containsKey('UsageEntitlementBucketId'),
+            'PRECONDITION'
+        );
+
         Test.startTest();
-        // Real fields that would widen the query scope beyond one Account or Asset.
         assertRejected(UserInfo.getUserId(), 'CreatedById', 'TransactionJournal', FIELD_SET);
         assertRejected(accId, 'UsageResourceId', 'TransactionJournal', FIELD_SET);
         assertRejected(accId, 'Status', 'UsageSummary', FIELD_SET);
