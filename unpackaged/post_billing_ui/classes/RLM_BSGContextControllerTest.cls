@@ -3,8 +3,8 @@ private class RLM_BSGContextControllerTest {
 
     // Tests for RLM_BSGContextController. BillingScheduleGroup, BillingSchedule and
     // BsgRelationship cannot be inserted in Apex tests, so getBSGContext is covered only on
-    // the paths that need no BSG: a malformed or null id, an id matching no BSG, and a BSG
-    // query the user may not run. The bundle assembly (appendComponentsDfs) and the
+    // the paths that need no BSG: a malformed or null id, an id matching no BSG, a valid id
+    // of another object, and a BSG query the user may not run. The bundle assembly (appendComponentsDfs) and the
     // charge-type / frequency helpers are covered directly with in-memory BSGs. Each
     // System.runAs test creates its user through RLM_BillingUITestUsers, which takes a
     // Billing permission set license seat.

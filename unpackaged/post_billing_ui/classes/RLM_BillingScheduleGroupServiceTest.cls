@@ -9,12 +9,14 @@
  * test creates its user through RLM_BillingUITestUsers, which takes a Billing permission
  * set license seat.
  *
- * Known gap: on a Release 264 org, a diagnostic run of the action with real records and
- * this service's payload returned isSuccess() = false with REQUIRED_FIELD_MISSING for
- * billToContact, then paymentTermID, then shippingAddress, as each earlier one was supplied
- * on the records. The payload sends none of these, so the create path may fail for a
- * typical account; buildTransactionDetailsJson_mapsInputsToStandardContextFields pins the
- * payload's exact key set.
+ * Known gap (documented from a diagnostic run, not asserted by a test): on a Release 264
+ * org, a run of the action with real records and this service's payload returned
+ * isSuccess() = false with REQUIRED_FIELD_MISSING for billToContact, then paymentTermID,
+ * then shippingAddress, as each earlier one was supplied on the records. The payload sends
+ * none of these, so the create path may fail for a typical account.
+ * buildTransactionDetailsJson_mapsInputsToStandardContextFields pins the payload's exact
+ * key set, so it catches a fix only if the fix adds payload keys; prerequisites supplied on
+ * records through the context mapping would not show there.
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {
@@ -75,55 +77,6 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         System.assertEquals('16PWt000005Dsir', r.requestId, 'requestId surfaced from action output');
-    }
-
-    @isTest
-    static void buildTransactionDetailsJson_termedIncludesEndAndTotal() {
-        String json = RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
-            fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType),
-            'Month', 2, fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType),
-            'USD', 10, 240, 'San Francisco', fakeId(Product2.SObjectType), 'Widget',
-            Date.newInstance(2026, 1, 5), 5, 1, 'Termed', Date.newInstance(2027, 1, 4)
-        );
-        System.assert(json.contains('"Transaction"'), 'Wrapper present');
-        System.assert(json.contains('TransactionId__std'), 'Transaction id present');
-        System.assert(json.contains('TotalPrice__std'), 'Termed includes total price');
-        System.assert(json.contains('EndDate__std'), 'Termed includes end date');
-        System.assert(json.contains('2026-01-05'), 'Start date formatted');
-    }
-
-    @isTest
-    static void buildTransactionDetailsJson_evergreenIncludesTotalOmitsEnd() {
-        String json = RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
-            fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType),
-            'Month', 1, fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType),
-            'USD', 10, 30, 'San Francisco', fakeId(Product2.SObjectType), 'Widget',
-            Date.newInstance(2026, 3, 9), 9, 3, 'Evergreen', null
-        );
-        // TotalPrice__std is Required for Evergreen new-sale transactions.
-        System.assert(json.contains('TotalPrice__std'), 'Evergreen includes total price');
-        // Evergreen has no end date.
-        System.assert(!json.contains('EndDate__std'), 'Evergreen omits end date');
-    }
-
-    @isTest
-    static void buildTransactionDetailsJson_oneTimeIncludesTotalOmitsEnd() {
-        String json = RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
-            fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType),
-            'OneTime', 5, fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType),
-            'USD', 10, 50, 'San Francisco', fakeId(Product2.SObjectType), 'Widget',
-            Date.newInstance(2026, 2, 20), 20, 2, 'OneTime', null
-        );
-        // TotalPrice__std is Required for OneTime new-sale transactions.
-        System.assert(json.contains('TotalPrice__std'), 'OneTime includes total price');
-        // OneTime has no end date.
-        System.assert(!json.contains('EndDate__std'), 'OneTime omits end date');
-    }
-
-    @isTest
-    static void formatIsoDate_padsMonthAndDay() {
-        System.assertEquals('2026-02-03',
-            RLM_BillingScheduleGroupService.formatIsoDate(Date.newInstance(2026, 2, 3)));
     }
 
     @isTest
@@ -472,9 +425,10 @@ private class RLM_BillingScheduleGroupServiceTest {
             Date.newInstance(2026, 4, 7), 7, 4, 'Termed', Date.newInstance(2027, 4, 6)
         ));
 
-        // Known gap, pinned by the exact key set: legalEntityId is accepted but not sent, and the
+        // Known gap, pinned by the exact key set: legalEntityId is accepted but not sent, the
         // public create method likewise accepts billingTerm and billingTypePicklistTiming and
-        // drops them. Any newly sent field, under any key, fails here.
+        // drops them, and no bill-to contact, payment term or shipping address is sent (see the
+        // class header). Any key added to or removed from the payload fails here.
         Set<String> expectedKeys = new Set<String>{
             'TransactionId__std', 'SellingModelType__std', 'ProductId__std', 'ProductName__std',
             'StartDate__std', 'EndDate__std', 'PeriodBoundary__std', 'BillingDayOfMonth__std',
@@ -482,12 +436,14 @@ private class RLM_BillingScheduleGroupServiceTest {
             'TaxTreatmentId__std', 'AccountId__std', 'BillingProfileId__std', 'BillingCity__std',
             'BillingTermUnit__std', 'BillingActionType__std', 'CurrencyIsoCode__std'
         };
-        Assert.areEqual(expectedKeys.size(), txn.size(),
-            'Known gap: legalEntityId, billingTerm and billing type timing are accepted but not sent yet; '
-            + 'update this test when they are. Keys: ' + txn.keySet());
-        Assert.areEqual(expectedKeys, txn.keySet(),
-            'Known gap: legalEntityId, billingTerm and billing type timing are accepted but not sent yet; '
-            + 'update this test when they are.');
+        Set<String> added = new Set<String>(txn.keySet());
+        added.removeAll(expectedKeys);
+        Set<String> missing = new Set<String>(expectedKeys);
+        missing.removeAll(txn.keySet());
+        Assert.isTrue(added.isEmpty() && missing.isEmpty(),
+            'Known gap: the payload omits legalEntityId, billingTerm and billing type timing, and sends no '
+            + 'bill-to contact, payment term or shipping address (see class header); added=' + added
+            + ', missing=' + missing + '. Update this test and the header when either changes.');
 
         Assert.isTrue(String.valueOf(txn.get('TransactionId__std')).startsWith('txn_'), 'Generated transaction id.');
         Assert.areEqual('TermDefined', txn.get('SellingModelType__std'), 'Termed maps to TermDefined.');
@@ -532,14 +488,20 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     @isTest
-    static void buildTransactionDetailsJson_nonTermedIgnoresSuppliedEndDate() {
-        Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
-            fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'Month', 1,
-            fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 10,
-            'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
-            'Evergreen', Date.newInstance(2026, 12, 31)
-        ));
-        Assert.isFalse(txn.containsKey('EndDate__std'), 'Only a termed schedule sends an end date.');
+    static void buildTransactionDetailsJson_nonTermedSendsTotalButNoEndDate() {
+        // TotalPrice__std is required for every new-sale selling model; only TermDefined has an
+        // end date, so a supplied one is ignored for the others.
+        for (String termSetting : new List<String>{ 'Evergreen', 'OneTime' }) {
+            Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
+                fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'Month', 1,
+                fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 75,
+                'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
+                termSetting, Date.newInstance(2026, 12, 31)
+            ));
+            Assert.areEqual(Decimal.valueOf('75'), toDecimal(txn.get('TotalPrice__std')),
+                termSetting + ' sends the total price.');
+            Assert.isFalse(txn.containsKey('EndDate__std'), termSetting + ' sends no end date.');
+        }
     }
 
     @isTest
