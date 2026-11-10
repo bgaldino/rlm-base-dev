@@ -74,17 +74,21 @@ private class RLM_QuoteItemTriggerTest {
     }
 
     /**
-     * Gives the asset a recent action (one source with latestStatus, one with none) and an action
-     * a month older (olderStatus). latestFirst sets which is inserted first. The source with no
-     * status is the newest, so it sorts first and the trigger has to skip it.
+     * Gives the asset a recent action and an action a month older (olderStatus); latestFirst sets
+     * which is inserted first. The recent action has three sources, newest first: one with no
+     * status (the trigger has to skip it), one with latestStatus, and an older one with a stale
+     * status (the trigger has to prefer the newer source).
      */
     private static void seedAssetHistory(Id assetId, Boolean latestFirst, String latestStatus, String olderStatus) {
         for (Boolean insertLatest : latestFirst ? new List<Boolean>{ true, false } : new List<Boolean>{ false, true }) {
             if (insertLatest) {
                 AssetAction latest = assetAction(assetId, Datetime.now().addDays(-1));
-                List<AssetActionSource> sources = actionSources(latest.Id, new List<String>{ latestStatus, null });
-                Test.setCreatedDate(sources[0].Id, Datetime.now().addDays(-2));
-                Test.setCreatedDate(sources[1].Id, Datetime.now().addHours(-1));
+                List<AssetActionSource> sources = actionSources(
+                    latest.Id, new List<String>{ latestStatus, '{"node":"stale"}', null }
+                );
+                Test.setCreatedDate(sources[0].Id, Datetime.now().addHours(-1));
+                Test.setCreatedDate(sources[1].Id, Datetime.now().addDays(-2));
+                Test.setCreatedDate(sources[2].Id, Datetime.now().addMinutes(-10));
             } else {
                 AssetAction older = assetAction(assetId, Datetime.now().addDays(-30));
                 actionSources(older.Id, new List<String>{ olderStatus });
@@ -144,6 +148,7 @@ private class RLM_QuoteItemTriggerTest {
         ];
         Assert.areEqual(200, saved.size(), 'All 200 lines were saved');
         for (QuoteLineItem line : saved) {
+            Assert.isNotNull(expectedByAction.get(line.QuoteActionId), 'PRECONDITION: the line kept its quote action');
             Assert.areEqual(
                 expectedByAction.get(line.QuoteActionId), line.RLM_ConstraintEngineNodeStatus__c,
                 'Each line carries the latest status of its own asset'
@@ -168,7 +173,7 @@ private class RLM_QuoteItemTriggerTest {
         Assert.areEqual(PRESET_STATUS, statusOf(line.Id), 'A status already on the line is kept');
     }
 
-    /** An amend line on an asset with a recorded status, to insert alongside a blank-path line. */
+    /** An amend line on an asset with a recorded status, to insert alongside the line under test. */
     private static QuoteLineItem sourcedLine(Fixture f) {
         Asset a = newAsset(f, 'RLM Constraint Status Asset');
         seedAssetHistory(a.Id, true, '{"node":"latest"}', '{"node":"older"}');

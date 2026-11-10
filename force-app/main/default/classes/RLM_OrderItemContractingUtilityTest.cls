@@ -4,10 +4,10 @@
  * price book entry had one (a quote line on the same entry did get it). So the fixtures use plain
  * price book entries, and every line here counts as a subscription line.
  *
- * Documented, not pinned: results come from a map's values with no ORDER BY, so they do not follow
- * input order and carry no order id. A flow that maps results back to a bulk batch of orders can
- * stamp one order's term onto another's contract. The order is not deterministic, so no assertion
- * can pin it.
+ * Documented, not pinned: results come from a map's values with no ORDER BY, so they are not
+ * guaranteed to follow input order, and they carry no order id. A flow that maps results back to a
+ * bulk batch of orders can stamp one order's term onto another's contract. The order is not
+ * deterministic, so no assertion can pin it.
  *
  * Production gaps that can be observed are pinned below with "Known gap:" assertions.
  */
@@ -108,8 +108,8 @@ private class RLM_OrderItemContractingUtilityTest {
         Test.stopTest();
 
         Assert.areEqual(3, results.size(), 'One result per order');
-        // Known gap (documented in the header): results carry no order id and do not follow input
-        // order, so this test can only match them to orders by end date.
+        // Known gap (documented in the header): results carry no order id and are not guaranteed to
+        // follow input order, so this test can only match them to orders by end date.
         Map<Date, Integer> termByEndDate = new Map<Date, Integer>();
         for (RLM_OrderItemContractingUtility.OrderInfoResults r : results) {
             termByEndDate.put(r.outEndDate, r.outContractTerm);
@@ -190,7 +190,7 @@ private class RLM_OrderItemContractingUtilityTest {
     }
 
     @IsTest
-    static void userWithoutOrderAccessGetsNoResults_whenAMinimumAccessUserCanBeCreated() {
+    static void userWithoutOrderFieldAccessGetsNoResults() {
         Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
         insert o;
         Assert.areEqual(1, run(new List<Id>{ o.Id }).size(), 'PRECONDITION: an admin gets a result for this order');

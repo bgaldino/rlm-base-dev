@@ -73,7 +73,7 @@ private class RLM_DFOTenantProvisioningCalloutTest {
     }
 
     @IsTest
-    static void nonJsonErrorBodyDoesNotThrow() {
+    static void httpErrorWithNonJsonBodyStillReportsSuccess() {
         OrderItem oi = orderItem();
         TenantMock mock = new TenantMock(500, 'Service Unavailable');
         Test.setMock(HttpCalloutMock.class, mock);

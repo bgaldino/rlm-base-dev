@@ -141,6 +141,7 @@ private class RLM_QuoteModelUtilityTest {
             SELECT Id, Product2Id, Quantity, Discount, ListPrice, UnitPrice, ProrationPolicyId
             FROM QuoteLineItem WHERE QuoteId = :f.quote.Id
         ];
+        Assert.areEqual(2, stored.size(), 'PRECONDITION: the fixture quote has two lines');
         for (QuoteLineItem line : stored) {
             Assert.isTrue(line.ListPrice == LIST_PRICE, 'PRECONDITION: the list price comes from the price book entry');
             Assert.isTrue(line.UnitPrice == LINE_PRICE, 'PRECONDITION: the line is priced below the list price');
@@ -165,7 +166,6 @@ private class RLM_QuoteModelUtilityTest {
             Pattern.matches('\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z', txn.EffectiveDate),
             'The effective date is an ISO timestamp: ' + txn.EffectiveDate
         );
-        Assert.areEqual(2, stored.size(), 'PRECONDITION: the fixture quote has two lines');
         Assert.areEqual(2, txn.SalesTransactionItem.size(), 'Every quote line becomes one transaction item');
 
         for (QuoteLineItem line : stored) {
@@ -340,8 +340,8 @@ private class RLM_QuoteModelUtilityTest {
 
         Assert.areEqual(
             1, result.size(),
-            'Known gap: getQuote reads LIMIT 1, so only one of several quote ids is converted; '
-                + 'update this test when it is fixed'
+            'Known gap: CreateQuoteContextString builds one context per call (getQuote returns a single '
+                + 'quote), so only one of several quote ids is converted; update this test when it is fixed'
         );
         Assert.isTrue(
             quoteIds.contains(parse(result[0]).SalesTransactionSource),

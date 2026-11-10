@@ -774,9 +774,9 @@ through the criteria sharing rule `ExpressionSet.RLM_Constraint_Models_Read`
 (`unpackaged/post_constraints/sharingRules/`). Pricing procedures and other Expression Sets
 stay Private. The rule covers internal users only; external (Experience Cloud) users get no
 access from it. On an org built before that change, deploy only the rule, not the whole
-`post_constraints` bundle (that also redeploys an Apex trigger, which needs test coverage on a
-production-type org, and re-applies the repo's IndustriesConstraints and ProductDiscovery
-settings over any later org changes):
+`post_constraints` bundle: that re-applies the repo's IndustriesConstraints and ProductDiscovery
+settings over any later org changes. (The bundle also redeploys the `RLM_QuoteItemTrigger` Apex
+trigger; it now ships its test class, `RLM_QuoteItemTriggerTest`, for production-type coverage.)
 
 ```bash
 sf project deploy start --source-dir unpackaged/post_constraints/sharingRules --target-org <sf_alias>
