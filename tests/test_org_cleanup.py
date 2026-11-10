@@ -2744,8 +2744,9 @@ class PathsAndManifests(Base):
         cli = FakeCli(self.home, self.setup_stale_org())
         plan_file = self.audit_file(cli)
         lock = self.home / ".sf" / "deploy-cache.json.lock"
-        lock.mkdir()  # sf is writing the cache
-        self.assertEqual(self.apply(cli, plan_file), 1)
+        with mock.patch.object(oc, "lock_held", side_effect=[False, True]):  # sf takes it after the preflight
+            lock.mkdir()
+            self.assertEqual(self.apply(cli, plan_file), 1)
         self.assertIn("sf holds its lock", self.stdout.getvalue())
         self.assertIn("job1", self.read_cache())
         self.assertTrue(self.manifest.exists())
@@ -2755,14 +2756,75 @@ class PathsAndManifests(Base):
         plan_file = self.audit_file(cli)
         lock, seen, real = self.home / ".sf" / "deploy-cache.json.lock", [], oc.rewrite_deploy_cache
 
-        def check_lock(*args):
+        def check_lock(*args, **kwargs):
             seen.append(lock.is_dir())
-            return real(*args)
+            return real(*args, **kwargs)
 
         with mock.patch.object(oc, "rewrite_deploy_cache", side_effect=check_lock):
             self.assertEqual(self.apply(cli, plan_file), 0, self.stdout.getvalue())
         self.assertEqual(seen, [True])
         self.assertFalse(lock.exists())
+
+    def test_a_quarantine_reached_through_a_link_into_the_project_is_refused(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        link = self.home.parent / "slink"
+        link.symlink_to(self.project / ".sf")
+        self.assertEqual(self.apply(cli, plan_file, quarantine=link / "q"), 2)
+        self.assertTrue(self.index.exists())
+
+    def test_a_quarantine_that_holds_the_project_further_up_is_refused(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        self.assertEqual(self.apply(cli, plan_file, quarantine=self.home.parent), 2)
+        self.assertEqual(self.logouts(cli), [])
+
+    def test_a_held_cache_lock_stops_the_run_before_any_logout(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        (self.home / ".sf" / "deploy-cache.json.lock").mkdir()
+        self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertIn("holds the deploy cache's lock", self.stderr.getvalue())
+        self.assertEqual(self.logouts(cli), [])
+
+    def test_an_abandoned_cache_lock_is_taken_over_as_sf_does(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        lock = self.home / ".sf" / "deploy-cache.json.lock"
+        lock.mkdir()
+        os.utime(str(lock), (1, 1))
+        self.assertEqual(self.apply(cli, plan_file), 0, self.stdout.getvalue())
+        self.assertNotIn("job1", self.read_cache())
+        self.assertFalse(lock.exists())
+
+    def test_the_lock_is_refreshed_while_manifests_move(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        lock, real, seen = self.home / ".sf" / "deploy-cache.json.lock", oc.rewrite_deploy_cache, []
+
+        def age_then_rewrite(*args, **kwargs):
+            os.utime(str(lock), (1, 1))  # as if the rewrite had run past sf's stale window
+            result = real(*args, **kwargs)
+            seen.append(lock.stat().st_mtime > 1)
+            return result
+
+        with mock.patch.object(oc, "rewrite_deploy_cache", side_effect=age_then_rewrite):
+            self.assertEqual(self.apply(cli, plan_file), 0)
+        self.assertEqual(seen, [True])
+
+    def test_a_lock_taken_over_during_the_rewrite_is_reported_not_raised(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        lock, real = self.home / ".sf" / "deploy-cache.json.lock", oc.rewrite_deploy_cache
+
+        def lose_lock(*args, **kwargs):
+            result = real(*args, **kwargs)
+            lock.rmdir()  # another sf took it over as stale and finished
+            return result
+
+        with mock.patch.object(oc, "rewrite_deploy_cache", side_effect=lose_lock):
+            self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertIn("the lock was no longer ours", self.stdout.getvalue())
 
     def test_a_path_spelled_in_another_case_is_still_inside_the_project(self):
         spelled = Path(str(self.project).swapcase()) / "plan.json"

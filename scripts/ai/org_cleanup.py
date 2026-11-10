@@ -43,6 +43,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import unicodedata
 from pathlib import Path
 
@@ -524,8 +525,9 @@ def plain_job_id(job):
 
 def within(path, root):
     """Whether a path is the root or inside it, compared by file identity: a case-insensitive
-    filesystem (APFS) can spell the same folder differently, and a link can reach it."""
-    path = Path(os.path.abspath(str(path)))
+    filesystem (APFS) can spell the same folder differently, and a link anywhere on the way can
+    reach it, so the path is resolved as the OS would reach it first."""
+    path = Path(os.path.realpath(os.path.abspath(str(path))))
     for candidate in [path] + list(path.parents):
         try:
             if os.path.samefile(str(candidate), str(root)):
@@ -1002,21 +1004,50 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures, done=None
         if is_link(linked):
             failures.append((str(linked), "symlink"))
             return 0, 0
-    lock = path.with_name(path.name + ".lock")  # sf's own lock on it: a folder made with mkdir (proper-lockfile)
+    lock = cache_lock(home)
     try:
-        os.mkdir(str(lock))
+        take_lock(lock)
     except OSError as error:
         failures.append((str(path), "not modified: sf holds its lock (an sf command is writing it), or the "
                                     "lock could not be taken ({})".format(reason(error))))
         return 0, 0
     try:
-        return rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done)
+        return rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done,
+                                    touch=lambda: os.utime(str(lock)))
     finally:
+        try:
+            os.rmdir(str(lock))
+        except OSError:  # taken over as stale, or gone: never let this hide what happened above
+            failures.append((str(lock), "the lock was no longer ours when the rewrite ended"))
+
+
+LOCK_STALE_SECONDS = 10  # @salesforce/core lockOptions: proper-lockfile treats an older lock as abandoned
+
+
+def cache_lock(home):
+    """sf's lock on the deploy cache: a folder proper-lockfile makes with mkdir beside the file."""
+    return home / ".sf" / "deploy-cache.json.lock"
+
+
+def lock_held(lock):
+    """Whether an sf command holds the lock now: it exists and was refreshed within sf's stale window."""
+    info = lstat_or_none(lock)
+    return info is not None and time.time() - info.st_mtime < LOCK_STALE_SECONDS
+
+
+def take_lock(lock):
+    """Take the lock as proper-lockfile does, reclaiming one sf would treat as abandoned."""
+    try:
+        os.mkdir(str(lock))
+    except FileExistsError:
+        if lock_held(lock):
+            raise
         os.rmdir(str(lock))
+        os.mkdir(str(lock))
 
 
-def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done):
-    """remove_deploy_jobs' work, under sf's lock on the cache."""
+def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done, touch=lambda: None):
+    """remove_deploy_jobs' work, under sf's lock on the cache, refreshed as sf's holder would."""
     cache = read_json(path, None)
     if not isinstance(cache, dict):
         failures.append(("deploy-cache", "unreadable"))
@@ -1036,6 +1067,7 @@ def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failur
             if lstat_or_none(manifest) is not None:
                 failures.append((job, "no longer in the deploy cache; its manifest was left in place"))
             continue
+        touch()
         if lstat_or_none(manifest) is not None:
             why = move_to_quarantine(run, manifest, [manifests], quarantine, project)
             if why:
@@ -1386,8 +1418,10 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
             print("Hubs or logins that gave no evidence now: {}".format(plan["hub_failures"]), file=sys.stderr)
         return 3
     quarantine = Path(os.path.abspath(args.quarantine)) if args.quarantine else default_quarantine(home, today)
-    for root in (project, home / ".sf", home / ".sfdx"):  # a move there would leave residue where it was
-        if any(within(where, root) for where in [quarantine] + [quarantine / f for f in QUARANTINE_FOLDERS]):
+    for root in (project, home / ".sf", home / ".sfdx"):
+        # A move inside a root leaves residue where it was; a quarantine that holds a root would take
+        # the root with it when the user empties it.
+        if within(root, quarantine) or within(quarantine, root):
             print("The quarantine must be outside {}; nothing was changed.".format(root), file=sys.stderr)
             return 2
     moves = any(plan["remove"][key] for key in FILE_KEYS + ("deploy_jobs",))
@@ -1398,6 +1432,10 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
                   "Use --quarantine <dir> to choose another folder.".format(quarantine, why),
                   file=sys.stderr)
             return 1
+    if plan["remove"]["deploy_jobs"] and lock_held(cache_lock(home)):
+        print("Stopped before any logout; nothing was changed. An sf command holds the deploy cache's lock "
+              "({}); run apply again when it has finished.".format(cache_lock(home)), file=sys.stderr)
+        return 1
     done, failures, stopped, code = dict.fromkeys(DONE_KEYS, 0), [], None, 0
     try:
         apply_plan(run, plan, home, project, quarantine, done, failures, env, view["state"])

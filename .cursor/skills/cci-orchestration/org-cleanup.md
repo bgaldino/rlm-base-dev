@@ -169,9 +169,10 @@ python scripts/ai/org_cleanup.py apply --plan <plan-path>
 ```
 
 Do not run `apply` while another `sf` or `cci` process is running. The deploy cache is rewritten
-under sf's own lock (`deploy-cache.json.lock`); if sf holds it, the cache is left as it is and
-reported. A lock left by a crashed sf command blocks it the same way: remove that folder once no sf
-command is running.
+under sf's own lock (`deploy-cache.json.lock`), held and refreshed as sf holds it: if an sf command
+holds it when `apply` starts and deploy jobs are planned, `apply` stops before any logout (exit 1);
+one held later leaves the cache as it is, reported. A lock not refreshed for 10 seconds is
+abandoned, as sf treats it, and taken over.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
 reviewed one: its project, every removal, each logout's org and the aliases and config keys it
@@ -182,7 +183,8 @@ logout, if the plan moves files, it checks the quarantine (no linked root or fol
 where a folder belongs) and moves a temp file in, and exits 1 if that fails. The quarantine is a
 dated folder in the user's Trash, or with no Trash, beside the real CLI state, which in the Docker
 image is the `rlm-state` volume; `--quarantine <dir>` chooses another folder, which must be
-outside the project, `~/.sf` and `~/.sfdx`, and must not hold them either (exit 2).
+outside the project, `~/.sf` and `~/.sfdx` (through links too), and must not hold any of them,
+since emptying it would delete them (exit 2).
 
 It then runs targeted `sf org logout` per user, `sf alias unset -- <alias>` per alias, and `sf config
 unset target-org` (with `--global` for the global scope) for each planned default. It tracks the
