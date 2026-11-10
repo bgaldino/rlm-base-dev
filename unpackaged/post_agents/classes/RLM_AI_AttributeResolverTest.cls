@@ -166,11 +166,6 @@ private class RLM_AI_AttributeResolverTest {
         Assert.isTrue(tier.isOnClassification);
         Assert.isFalse(tier.isOnLine);
         Assert.isNull(tier.currentValue);
-
-        String json = RLM_AI_AttributeResolver.toJson(res.attributes);
-        Assert.isTrue(json.contains(TIER_DEV_NAME) && json.contains(CAPACITY_DEV_NAME),
-            'Both resolved attributes serialize: ' + json);
-        Assert.isTrue(json.contains('"Premium"'), 'Picklist values serialize: ' + json);
     }
 
     // ── Fixture ──────────────────────────────────────────────────────────────

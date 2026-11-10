@@ -42,6 +42,10 @@
  *    learnerCannotResequenceRowsItDoesNotOwn pins this.
  *
  * Not covered here:
+ *  - The learner's read access to Page, Section, Block, Icon and DynamicLink.
+ *    The read-path tests run as the runner (normally an admin) plus
+ *    RLM_Learning, and View/Modify All Data already supply object Read, so
+ *    they do not prove RLM_Learning alone is enough to read the content.
  *  - Setup lookups. The setup-page map (custom metadata), FlowDefinitionView,
  *    Network and Organization lookups run as the runner here. In production
  *    they run as the learner, and RLM_Learning grants no custom-metadata-type
@@ -225,15 +229,13 @@ private class RLM_Learning_FrameworkTest {
     return created;
   }
 
-  // Found by its fixed markers plus the RLM_Learning assignment.
+  // Found by its fixed markers only, so the sentinel can catch a learner that
+  // is missing its RLM_Learning assignment.
   static User findLearner() {
     List<User> found = [
       SELECT Id, FirstName, ProfileId
       FROM User
-      WHERE
-        LastName = :LEARNER_LAST_NAME
-        AND Alias = :LEARNER_ALIAS
-        AND Id IN (SELECT AssigneeId FROM PermissionSetAssignment WHERE PermissionSet.Name = 'RLM_Learning')
+      WHERE LastName = :LEARNER_LAST_NAME AND Alias = :LEARNER_ALIAS
       LIMIT 1
     ];
     return found.isEmpty() ? null : found[0];
@@ -393,7 +395,8 @@ private class RLM_Learning_FrameworkTest {
     System.runAs(runner) {
       res = RLM_Learning_SectionBlockController.getSectionsWithBlocksByPageId('Top', pageId);
     }
-    Assert.isFalse(res.isEmpty(), 'expected sections by page id');
+    Assert.areEqual(1, res.size(), 'one active Top section on the page');
+    Assert.areEqual('H', ((RLM_Learning_Section__c) res[0].get('section')).RLM_Learning_Header__c);
   }
 
   @IsTest
@@ -1350,7 +1353,8 @@ private class RLM_Learning_FrameworkTest {
     // (Part-of-day greeting moved to the client; no Apex getTiming/timingForHour.)
     // getExpiryDays runs as the runner. getName runs as the learner when one
     // exists, so its result is a known first name. Without a learner it runs as
-    // the runner and only shows the call does not throw.
+    // the runner and must return the runner's first name (not the last or full
+    // name).
     Datetime trialExpiry = [SELECT TrialExpirationDate FROM Organization LIMIT 1].TrialExpirationDate;
     User learnerUser = learner();
 
@@ -1368,6 +1372,8 @@ private class RLM_Learning_FrameworkTest {
 
     if (learnerUser != null) {
       Assert.areEqual('Learning', name, 'greets the learner by first name');
+    } else {
+      Assert.areEqual(UserInfo.getFirstName(), name, 'greets the runner by first name');
     }
     if (trialExpiry == null) {
       Assert.isNull(expiryDays, 'no trial expiry means no countdown');

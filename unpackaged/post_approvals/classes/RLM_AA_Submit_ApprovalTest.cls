@@ -59,7 +59,7 @@ private class RLM_AA_Submit_ApprovalTest {
     // then trips the assertion below. A fix that loops but swallows each
     // request's failure would not trip it.
     @IsTest
-    static void knownGap_callFlowStartsOnlyTheFirstRequest_whenTheFlowIsActive() {
+    static void knownGap_callFlowIgnoresRequestsAfterTheFirst_whenTheFlowIsActive() {
         if (!activeFlowAvailable()) {
             return;
         }

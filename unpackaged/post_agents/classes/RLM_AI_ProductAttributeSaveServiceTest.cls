@@ -182,7 +182,7 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
             );
         Test.stopTest();
 
-        Assert.areEqual(2, results.size(), 'One result per input, in order.');
+        Assert.areEqual(2, results.size(), 'One result per input.');
         for (RLM_AI_ProductAttributeSaveService.SaveOutput out : results) {
             Assert.isFalse(out.isSuccess);
             Assert.isFalse(out.isValid);
