@@ -206,7 +206,7 @@ private with sharing class RLM_MockTaxAdapterTest {
 
         // Integer.valueOf(Math.random()) truncates a value in [0, 1) to 0 (anonymous Apex:
         // Integer.valueOf(0.9d) and Integer.valueOf(0.999999d) both return 0), so the result is always min.
-        Assert.areEqual(5, fromFive, 'getRandomInteger returns min.');
-        Assert.areEqual(0, fromZero, 'getRandomInteger returns min.');
+        Assert.areEqual(5, fromFive, 'Known gap: getRandomInteger always returns min. Update this test when it is fixed.');
+        Assert.areEqual(0, fromZero, 'Known gap: getRandomInteger always returns min. Update this test when it is fixed.');
     }
 }

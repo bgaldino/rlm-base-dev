@@ -267,7 +267,6 @@ private with sharing class RLM_JsonSuccessParserTest {
         RLM_JsonSuccessParser parsed = RLM_JsonSuccessParser.parse('{}');
         Test.stopTest();
 
-        Assert.isNotNull(parsed, 'An empty object still parses.');
         Assert.isNull(parsed.id, 'id');
         Assert.isNull(parsed.code, 'code');
         Assert.isNull(parsed.transactionDate, 'transactionDate');

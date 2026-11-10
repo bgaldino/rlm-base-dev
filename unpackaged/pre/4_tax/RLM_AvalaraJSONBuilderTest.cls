@@ -60,7 +60,8 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
         Map<String, Object> addresses = asMap(line.get('addresses'));
         Map<String, Object> shipFrom = asMap(addresses.get('ShipFrom'));
         Assert.areEqual('1 Market St', shipFrom.get('line1'), 'ShipFrom.line1 is the street.');
-        Assert.areEqual('1 Market St', shipFrom.get('line2'), 'ShipFrom.line2 repeats the street.');
+        Assert.areEqual('1 Market St', shipFrom.get('line2'),
+            'Known gap: line2 repeats the street instead of a second address line. Update this test when it is fixed.');
         Assert.areEqual('San Francisco', shipFrom.get('city'), 'ShipFrom.city');
         Assert.areEqual('CA', shipFrom.get('region'), 'ShipFrom.region is the state.');
         Assert.areEqual('US', shipFrom.get('country'), 'ShipFrom.country');
@@ -74,9 +75,11 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
 
         // Pins current behaviour: the builder writes taxOverride before closing the addresses
         // object, so the block lands inside "addresses", not on the line itself.
-        Assert.isFalse(line.containsKey('taxOverride'), 'taxOverride is not written at line level today.');
+        Assert.isFalse(line.containsKey('taxOverride'),
+            'Known gap: taxOverride is not written at line level. Update this test when it is fixed.');
         Map<String, Object> taxOverride = asMap(addresses.get('taxOverride'));
-        Assert.isNotNull(taxOverride, 'A line effective date writes a taxOverride block inside addresses.');
+        Assert.isNotNull(taxOverride,
+            'Known gap: taxOverride is written inside addresses. Update this test when it is fixed.');
         Assert.isTrue(String.valueOf(taxOverride.get('taxDate')).startsWith('2026-01-20'),
             'The taxOverride carries the line effective date: ' + taxOverride.get('taxDate'));
     }

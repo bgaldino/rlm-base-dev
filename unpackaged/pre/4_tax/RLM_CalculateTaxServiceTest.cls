@@ -96,6 +96,29 @@ private with sharing class RLM_CalculateTaxServiceTest {
     }
 
     @IsTest
+    static void getTax_withoutTransactionType_throwsNullPointer() {
+        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
+        Test.setMock(HttpCalloutMock.class, mock);
+        commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
+            commercetax.CalculateTaxType.Estimated, 'DOC-NO-TYPE', RLM_TaxTestFactory.lines(232));
+        request.taxTransactionType = null;
+
+        Exception caught;
+        Test.startTest();
+        try {
+            RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
+        } catch (Exception e) {
+            caught = e;
+        }
+        Test.stopTest();
+
+        Assert.isInstanceOfType(caught, NullPointerException.class,
+            'Known gap: a request without a tax transaction type fails, because the null is passed to '
+            + 'setTaxTransactionType (the mock adapters default it to Debit). Update this test when it is fixed. ' + caught);
+        Assert.areEqual(1, mock.requests.size(), 'The failure comes after the engine callout.');
+    }
+
+    @IsTest
     static void getTax_withoutLines_returnsNullWithoutCallout() {
         RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
         Test.setMock(HttpCalloutMock.class, mock);

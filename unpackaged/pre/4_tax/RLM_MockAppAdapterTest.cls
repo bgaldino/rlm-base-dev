@@ -135,7 +135,6 @@ private with sharing class RLM_MockAppAdapterTest {
         }
         Test.stopTest();
 
-        Assert.areEqual(4, responses.size(), 'Every variant is processed.');
         for (Integer i = 0; i < responses.size(); i++) {
             Assert.isInstanceOfType(responses[i], commercetax.CalculateTaxResponse.class,
                 'Variant ' + i + ' returns a calculated response.');
@@ -155,7 +154,9 @@ private with sharing class RLM_MockAppAdapterTest {
         // Line 1's number is echoed; line 2's null number is passed through (the adapter computes
         // a fallback number but never uses it).
         Assert.areEqual(1, RLM_TaxTestFactory.countResponseField(responses[0], 'lineNumber', '1'), 'Line 1 keeps its number.');
-        Assert.areEqual(1, RLM_TaxTestFactory.countResponseField(responses[0], 'lineNumber', '<null>'), 'Line 2 has no number.');
+        Assert.areEqual(1, RLM_TaxTestFactory.countResponseField(responses[0], 'lineNumber', '<null>'),
+            'Known gap: a line without a number keeps a null number; the computed fallback is unused. '
+            + 'Update this test when it is fixed.');
 
         // The empty-document-code scenario.
         RLM_TaxTestFactory.assertResponseField(responses[1], 'documentCode', '', 'The document code is set to empty.');
@@ -172,7 +173,9 @@ private with sharing class RLM_MockAppAdapterTest {
         RLM_TaxTestFactory.assertResponseField(responses[2], 'currencyIsoCode', 'USD', 'A null currency defaults to USD.');
 
         // No codes at all: the generated code is getRandomInteger(0, max), which is always 0.
-        RLM_TaxTestFactory.assertResponseField(responses[3], 'documentCode', '0', 'A document code is generated.');
+        RLM_TaxTestFactory.assertResponseField(responses[3], 'documentCode', '0',
+            'Known gap: the generated document code is always 0 (getRandomInteger returns min). '
+            + 'Update this test when it is fixed.');
     }
 
     @IsTest
@@ -239,7 +242,7 @@ private with sharing class RLM_MockAppAdapterTest {
 
         // Integer.valueOf(Math.random()) truncates a value in [0, 1) to 0 (anonymous Apex:
         // Integer.valueOf(0.9d) and Integer.valueOf(0.999999d) both return 0), so the result is always min.
-        Assert.areEqual(3, fromThree, 'getRandomInteger returns min.');
-        Assert.areEqual(0, fromZero, 'getRandomInteger returns min.');
+        Assert.areEqual(3, fromThree, 'Known gap: getRandomInteger always returns min. Update this test when it is fixed.');
+        Assert.areEqual(0, fromZero, 'Known gap: getRandomInteger always returns min. Update this test when it is fixed.');
     }
 }

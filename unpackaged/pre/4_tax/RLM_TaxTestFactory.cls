@@ -101,7 +101,7 @@ public with sharing class RLM_TaxTestFactory {
     public static final Datetime DATE_2001 = Datetime.newInstanceGmt(2001, 6, 15, 12, 0, 0);
 
     private static final String PREMISE_HINT =
-        ' (If the platform changed this format, RLM_TaxTestFactory.responseStringForm_matchesHelperPremise fails too.)';
+        ' (If RLM_TaxTestFactory.responseStringForm_matchesHelperPremise also fails, the platform format changed.)';
 
     /**
      * How many times field=value appears as a whole entry in one copy of the response (e.g. once
@@ -128,16 +128,34 @@ public with sharing class RLM_TaxTestFactory {
      */
     @IsTest
     static void responseStringForm_matchesHelperPremise() {
+        // Line 1: null addresses, one tax detail with null imposition and jurisdiction, amounts,
+        // and a 2001 effective date. Line 2 and the header carry non-null addresses.
+        commercetax.TaxDetailsResponse taxDetail = new commercetax.TaxDetailsResponse();
+        taxDetail.setImposition(null);
+        taxDetail.setJurisdiction(null);
+        Double lineAmount = 100;
+        commercetax.AmountDetailsResponse amounts = new commercetax.AmountDetailsResponse();
+        amounts.setTotalAmount(lineAmount);
         commercetax.LineItemResponse first = new commercetax.LineItemResponse();
         first.setLineNumber('1');
+        first.setAddresses(null);
+        first.setTaxes(new List<commercetax.TaxDetailsResponse>{ taxDetail });
+        first.setAmountDetails(amounts);
+        first.setEffectiveDate(DATE_2001);
         commercetax.LineItemResponse second = new commercetax.LineItemResponse();
         second.setLineNumber('2');
+        second.setAddresses(new commercetax.AddressesResponse());
         commercetax.CalculateTaxResponse response = new commercetax.CalculateTaxResponse();
         response.setDocumentCode('PREMISE-1');
         response.setStatus(commercetax.TaxTransactionStatus.Committed);
         response.setTaxTransactionType(commercetax.TaxTransactionType.Credit);
         response.setTransactionDate(DATE_2001);
+        response.setAddresses(new commercetax.AddressesResponse());
         response.setLineItems(new List<commercetax.LineItemResponse>{ first, second });
+
+        commercetax.CalculateTaxResponse emptyResponse = new commercetax.CalculateTaxResponse();
+        emptyResponse.setDocumentCode('');
+
         commercetax.ErrorResponse error = new commercetax.ErrorResponse(commercetax.ResultCode.TaxEngineError, null, 'm');
 
         Test.startTest();
@@ -145,7 +163,14 @@ public with sharing class RLM_TaxTestFactory {
         String errorDescribed = String.valueOf(error);
         Test.stopTest();
 
+        // Nested line, tax, amount and address objects do not add delegate= labels.
         Assert.areEqual(2, described.countMatches('delegate='), 'A CalculateTaxResponse prints its delegate twice: ' + described);
+        Assert.areEqual(1, countResponseField(response, 'addresses', '<null>'), 'Only line 1 has null addresses.');
+        Assert.areEqual(1, countResponseField(response, 'imposition', '<null>'), 'A null imposition prints as <null>.');
+        Assert.areEqual(1, countResponseField(response, 'jurisdiction', '<null>'), 'A null jurisdiction prints as <null>.');
+        assertResponseFieldMatches(response, 'effectiveDate', YEAR_2001, 'A line effective date prints with its year.');
+        Assert.areEqual(1, countResponseField(emptyResponse, 'documentCode', ''), 'An empty String prints as field=.');
+        Assert.areEqual(1, countResponseField(emptyResponse, 'lineItems', '<null>'), 'Unset line items print as <null>.');
         Assert.areEqual(1, errorDescribed.countMatches('delegate='), 'An ErrorResponse prints its delegate once: ' + errorDescribed);
         Assert.areEqual(1, countResponseField(response, 'documentCode', 'PREMISE-1'), 'A String field prints as field=value.');
         Assert.areEqual(1, countResponseField(response, 'status', 'Committed'), 'An enum prints by name.');

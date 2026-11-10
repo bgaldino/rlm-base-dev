@@ -39,7 +39,6 @@ private with sharing class RLM_JsonErrorParserTest {
         RLM_JsonErrorParser parsed = RLM_JsonErrorParser.parse('{"unrelated":"value"}');
         Test.stopTest();
 
-        Assert.isNotNull(parsed, 'Parsing should return an instance even with no error key.');
         Assert.isNull(parsed.error, 'No error key means no error object.');
     }
 }
