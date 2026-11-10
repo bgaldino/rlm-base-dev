@@ -55,7 +55,7 @@ private class RLM_AI_ProductAttributeServiceTest {
     }
 
     @isTest
-    static void guidesUserWhenInputIsNull() {
+    static void guidesUserWhenAnInputEntryIsNull() {
         Test.startTest();
         List<RLM_AI_ProductAttributeService.GetAttributeOptionsOutput> results =
             RLM_AI_ProductAttributeService.getProductAttributeOptions(

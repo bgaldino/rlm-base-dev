@@ -117,7 +117,7 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
     }
 
     @isTest
-    static void saveGuidesUserWhenInputIsNull() {
+    static void saveGuidesUserWhenAnInputEntryIsNull() {
         Test.startTest();
         List<RLM_AI_ProductAttributeSaveService.SaveOutput> results =
             RLM_AI_ProductAttributeSaveService.saveAttributeSelections(
@@ -139,7 +139,8 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
     static void saveGuidesUserWhenQuoteIdIsNotAQuote() {
         RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
             RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('RLM Save Wrong Quote Type');
-        Account notAQuote = [SELECT Id FROM Account LIMIT 1];
+        Account notAQuote = new Account(Name = 'RLM Save Not A Quote');
+        insert notAQuote;
 
         RLM_AI_ProductAttributeSaveService.SaveInput input =
             new RLM_AI_ProductAttributeSaveService.SaveInput();

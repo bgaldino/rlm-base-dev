@@ -246,48 +246,16 @@ private class RLM_AI_AttributeResolverTest {
         );
     }
 
-    // A quote line whose product is based on the given classification.
+    // A quote line (from the shared fixture) whose product is then based on the
+    // given classification.
     private static Id createLine(String productName, Id classificationId) {
-        Account acct = new Account(Name = 'RLM Resolver Test Account');
-        insert acct;
-        Opportunity opp = new Opportunity(
-            Name = 'RLM Resolver Test Opportunity',
-            AccountId = acct.Id,
-            StageName = 'Prospecting',
-            CloseDate = Date.today().addDays(30)
-        );
-        insert opp;
-
-        Id standardPbId = Test.getStandardPricebookId();
-        Product2 product = new Product2(
-            Name = productName,
-            IsActive = true,
-            BasedOnId = classificationId
-        );
-        insert product;
-        PricebookEntry pbe = new PricebookEntry(
-            Pricebook2Id = standardPbId,
-            Product2Id = product.Id,
-            UnitPrice = 100,
-            IsActive = true
-        );
-        insert pbe;
-
-        Quote q = new Quote(
-            Name = 'RLM Resolver Test Quote',
-            OpportunityId = opp.Id,
-            Pricebook2Id = standardPbId,
-            Status = 'Draft'
-        );
-        insert q;
-        QuoteLineItem qli = new QuoteLineItem(
-            QuoteId = q.Id,
-            PricebookEntryId = pbe.Id,
-            Quantity = 1,
-            UnitPrice = 100
-        );
-        insert qli;
-        return qli.Id;
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
+            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture(productName);
+        Id productId = [
+            SELECT Product2Id FROM QuoteLineItem WHERE Id = :fixture.quoteLineItemId
+        ].Product2Id;
+        update new Product2(Id = productId, BasedOnId = classificationId);
+        return fixture.quoteLineItemId;
     }
 
 }
