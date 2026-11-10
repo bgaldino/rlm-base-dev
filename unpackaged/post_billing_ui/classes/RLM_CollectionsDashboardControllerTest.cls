@@ -5,8 +5,9 @@
  * (cards aging, critical follow-ups, high-value delinquents and the worklist fallbacks)
  * can only be verified live. What a test can build -- payments, payment schedule items,
  * collection plans, tasks, cases and debit memos -- is built here, and every card is
- * asserted against it. Records are created in admin context; the persona tests then read
- * them as the user who works the dashboard.
+ * asserted against it. Records are created in admin context. Two tests then run as other
+ * users: a collections specialist, who reads their own plan, and a user with no access, who
+ * gets empty sections.
  */
 @isTest
 private class RLM_CollectionsDashboardControllerTest {
@@ -194,8 +195,6 @@ private class RLM_CollectionsDashboardControllerTest {
         assertAmount(expected, unfiltered.unappliedPaymentBalance, 'The payment balance is unapplied.');
         Assert.areEqual(expectedCount, unfiltered.unappliedPaymentCount, 'The payment is counted when it has a balance.');
         assertAmount(0, unfiltered.unappliedCredits, 'A Sale payment is not counted as a credit.');
-        assertAmount(0, unfiltered.receivablesOutstanding, 'No invoices can exist in a unit test.');
-        Assert.areEqual(0, unfiltered.invoiceCount, 'No invoices can exist in a unit test.');
         assertAmount(-expected, unfiltered.totalBalance, 'Total balance = invoices + debit memos - credits - payments.');
         assertAmount(-expected, unfiltered.totalOutstanding, 'Total outstanding = invoices - unapplied payments.');
 
@@ -208,10 +207,11 @@ private class RLM_CollectionsDashboardControllerTest {
             'Unapplied payments are shown as a reduction.');
 
         List<String> agingKeys = new List<String>{ 'current', '1-30', '31-60', '61-90', '90+' };
+        // Bucket and invoice amounts are not asserted: no invoice can exist in a unit test, so
+        // they are zero whatever the controller does.
         Assert.areEqual(agingKeys.size(), unfiltered.agingBuckets.size(), 'Five aging buckets.');
         for (Integer i = 0; i < agingKeys.size(); i++) {
             Assert.areEqual(agingKeys[i], unfiltered.agingBuckets[i].get('key'), 'Aging bucket order, bucket ' + i);
-            assertAmount(0, (Decimal) unfiltered.agingBuckets[i].get('amount'), 'No invoices, nothing aged: ' + agingKeys[i]);
         }
 
         assertAmount(expected, payerInCurrency.unappliedPaymentBalance,
@@ -242,6 +242,16 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isTrue(memoTotal != null && memoTotal > 0,
             'PRECONDITION: the Draft memo totals its line. Got ' + memoTotal);
         Assert.areEqual('Draft', saved.get('Status'), 'PRECONDITION: the memo is Draft.');
+        // The controller's debit memo query without its Status clause, also in user mode: it
+        // finds the memo, so the controller's zero comes from the Status filter, not from a
+        // query error it swallowed.
+        Id aId = a.Id;
+        List<AggregateResult> control = Database.query(
+            'SELECT SUM(TotalAmount) s FROM DebitMemo WHERE TotalAmount != null'
+            + ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\' AND AccountId = :aId',
+            AccessLevel.USER_MODE);
+        assertAmount(memoTotal, (Decimal) control[0].get('s'),
+            'PRECONDITION: without the Status filter, the controller\'s query finds the memo.');
 
         Test.startTest();
         RLM_CollectionsDashboardController.CollectionsDashboardData cards =
@@ -267,10 +277,12 @@ private class RLM_CollectionsDashboardControllerTest {
             Reason = firstActivePicklistValue(Case.Reason));
         Case caseB = new Case(AccountId = b.Id, Description = 'Short note');
         Case caseC = new Case(AccountId = c.Id);
-        // An older open case on account A: the row must carry the newer one.
+        // An older open case on account A, inserted first so only the CreatedDate ordering can
+        // make the row carry the newer one.
         Case olderA = new Case(AccountId = a.Id, Subject = 'Older case on A');
-        insert new List<Case>{ caseA, caseB, caseC, olderA };
+        insert olderA;
         Test.setCreatedDate(olderA.Id, Datetime.now().addDays(-5));
+        insert new List<Case>{ caseA, caseB, caseC };
         // Read back: CaseNumber is assigned on insert, and the org may default Reason.
         List<Id> caseIds = new List<Id>{ caseA.Id, caseB.Id, caseC.Id };
         Map<Id, Case> saved = new Map<Id, Case>([SELECT Id, CaseNumber, Reason FROM Case WHERE Id IN :caseIds]);
@@ -294,9 +306,6 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(caseA.Id, rowA.caseId, 'The row links the newest case, not the older one.');
         Assert.areEqual(saved.get(caseA.Id).CaseNumber, rowA.caseNumber, 'The row shows the case number.');
         Assert.areEqual('RLM CD Worklist A', rowA.accountName, 'The row names the account.');
-        assertAmount(0, rowA.balance, 'No invoices, no balance.');
-        Assert.isNull(rowA.daysOverdue, 'No invoices, nothing overdue.');
-        Assert.isNull(rowA.ptpDate, 'No invoices, no promise to pay.');
         Assert.areEqual('disputed', rowA.segment, 'Disputed segment.');
         Assert.areEqual('amber', rowA.healthScore, 'Disputed rows are amber.');
         Assert.areEqual(expectedB, disputed.get(b.Id).disputeReason, 'A description alone is the reason.');
@@ -354,7 +363,6 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(later.Id, items[1].collectionPlanId, 'The later plan comes second.');
         Assert.areEqual(a.Id, items[1].accountId, 'The plan\'s account id.');
         Assert.areEqual('RLM CD Plan Account', items[1].accountName, 'The plan\'s account name.');
-        assertAmount(0, items[1].totalInvoiceBalance, 'No invoices, no balance.');
         Assert.isTrue(String.isNotBlank(items[1].name) && items[1].name != NO_VALUE, 'The plan\'s autonumber name.');
     }
 
@@ -369,7 +377,8 @@ private class RLM_CollectionsDashboardControllerTest {
         CollectionPlan openPlan = newPlan(a.Id, Date.today().addDays(-30));
         openPlan.DaysPastDue = 20;
         insert new List<CollectionPlan>{ closedPlan, openPlan };
-        Test.setCreatedDate(closedPlan.Id, Datetime.now().addDays(-6));
+        // Local noon, so the date part is six days back whatever the time zone or time of day.
+        Test.setCreatedDate(closedPlan.Id, Datetime.newInstance(Date.today().addDays(-6), Time.newInstance(12, 0, 0, 0)));
 
         Test.startTest();
         RLM_CollectionsDashboardController.CollectionsProgressData progress =
@@ -383,8 +392,6 @@ private class RLM_CollectionsDashboardControllerTest {
         assertAmount(50, progress.notRecoveredPercent, 'One of two plans open.');
         assertAmount(6, progress.avgDaysToClose, 'Created six days before it closed.');
         assertAmount(15, progress.avgDaysPastDue, 'The average of 10 and 20 days past due.');
-        assertAmount(0, progress.recoveredAmount, 'No invoices, no balance recovered.');
-        assertAmount(0, progress.notRecoveredAmount, 'No invoices, no balance outstanding.');
     }
 
     @isTest
@@ -396,7 +403,9 @@ private class RLM_CollectionsDashboardControllerTest {
         insert new List<CollectionPlan>{ planA, planB };
         Task taskA = new Task(WhatId = planA.Id, Subject = 'Call about the plan', ActivityDate = Date.today().addDays(1));
         Task taskB = new Task(WhatId = planB.Id, Subject = 'Send a reminder', ActivityDate = Date.today());
-        insert new List<Task>{ taskA, taskB };
+        // The later-dated task is inserted last, so only the ORDER BY can put it first.
+        insert taskB;
+        insert taskA;
 
         Test.startTest();
         List<RLM_CollectionsDashboardController.CpTaskItem> forA =
@@ -416,11 +425,11 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(taskA.Id, forAll[0].taskId, 'The latest activity date comes first.');
     }
 
-    // A user who cannot read the billing objects gets empty cards, not an error: each card
+    // A user who cannot read the billing objects gets empty sections, not an error: each one
     // catches its own failure. The same records give the admin a populated dashboard, so the
     // empties come from access, not from missing data.
     @isTest
-    static void cards_forAUserWhoCannotReadThem_degradeToEmpty() {
+    static void allSections_forAUserWhoCannotReadThem_degradeToEmpty() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Account a = newAccount('RLM CD Unreadable');
         CollectionPlan plan = newPlan(a.Id, Date.today());
@@ -432,7 +441,8 @@ private class RLM_CollectionsDashboardControllerTest {
         insert new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = a.Id,
             RequestedAmount = 10, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
 
-        // The admin sees every seeded record.
+        // The admin's view of the same data: the cards are built (Invoice is readable), and the
+        // open case, the placeholder, the plan's task, the plan and the schedule item all show.
         Assert.areEqual(4, RLM_CollectionsDashboardController.getDashboardCards(null, null).totalBalanceBreakdown.size(),
             'PRECONDITION: the admin gets the full breakdown.');
         RLM_CollectionsDashboardController.WorklistData adminWorklist =

@@ -84,15 +84,14 @@ private class RLM_BillingCaseMetricsControllerTest {
         Assert.areEqual(2, (Integer) result.get('openDisputes'), 'Both new disputes are open.');
         Decimal total = (Decimal) result.get('totalDisputedAmount');
         Assert.isTrue(total == 150, 'The open disputes total 100 + 50. Got ' + total);
-        Assert.areEqual(0, (Integer) result.get('disputedInvoices'), 'No dispute names an invoice.');
     }
 
-    // A user who cannot query Case or Dispute gets zeros instead of an error. The open dispute
-    // seeded here is counted for the admin, so its zero for this user comes from access.
-    // The case count is checked only as "no error": the repo's Case Type values do not include
-    // 'Billing', so no case this test could seed would be counted for anyone.
+    // A user who cannot query Case or Dispute gets metrics instead of an error. The open
+    // dispute seeded here is counted for the admin, so the zero this user gets comes from
+    // access. The case count is checked only as returned without an error: the repo's Case
+    // Type values do not include 'Billing', so no case this test could seed would be counted.
     @isTest
-    static void getMetrics_userWhoCannotReadCasesOrDisputes_seesZero() {
+    static void getMetrics_userWhoCannotReadCasesOrDisputes_doesNotCountTheDispute() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Account a = new Account(Name = 'RLM Case Metrics unreadable');
         insert a;
@@ -123,9 +122,8 @@ private class RLM_BillingCaseMetricsControllerTest {
         Test.stopTest();
 
         Assert.isTrue(readable.isEmpty(), 'PRECONDITION: the user cannot query ' + readable + ' in user mode.');
-        Assert.areEqual(0, (Integer) result.get('openBillingCases'), 'An unreadable Case counts as none, not an error.');
+        Assert.isNotNull(result.get('openBillingCases'), 'An unreadable Case still returns a count, not an error.');
         Assert.areEqual(0, (Integer) result.get('openDisputes'), 'The admin\'s open dispute is not counted.');
-        Assert.areEqual(0, (Integer) result.get('disputedInvoices'), 'No readable disputed invoices.');
     }
 
     // The dispute aggregates swallow their errors and show zero, so the zero-path test passes

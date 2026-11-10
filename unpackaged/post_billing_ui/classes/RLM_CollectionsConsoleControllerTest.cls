@@ -73,9 +73,6 @@ private class RLM_CollectionsConsoleControllerTest {
         List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
             RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>{ inv },
                 new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>());
-        List<RLM_CollectionsConsoleController.DelinquentWrapper> none =
-            RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>(),
-                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>());
         Test.stopTest();
 
         Assert.areEqual(1, rows.size(), 'One row per invoice.');
@@ -86,10 +83,28 @@ private class RLM_CollectionsConsoleControllerTest {
         Assert.areEqual('', rows[0].collectionPlanId, 'No plan, blank.');
         Assert.isNull(rows[0].collectionPlanRecordId, 'No plan record.');
         Assert.isNull(rows[0].ptpDate, 'No promise to pay.');
-        Assert.isTrue(rows[0].balance == 2500 && rows[0].invoiceBalance == 2500, 'Both balances are the invoice balance.');
+        assertAmount(2500, rows[0].balance, 'The balance is the invoice balance.');
+        assertAmount(2500, rows[0].invoiceBalance, 'The invoice balance is the invoice balance.');
         Assert.areEqual(40, rows[0].overdueDays, 'Days overdue come from the invoice.');
         Assert.isNull(rows[0].documentNumber, 'No document number on the invoice, none on the row.');
-        Assert.isTrue(none.isEmpty(), 'No invoices, no rows.');
+    }
+
+    @isTest
+    static void buildDelinquents_noInvoices_returnsEmpty() {
+        Test.startTest();
+        List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
+            RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>(),
+                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>());
+        Test.stopTest();
+
+        Assert.isNotNull(rows, 'A list is returned for no invoices.');
+        Assert.isTrue(rows.isEmpty(), 'No invoices, no rows.');
+    }
+
+    // Compares amounts by value, so 2500 and 2500.00 match.
+    private static void assertAmount(Decimal expected, Decimal actual, String message) {
+        Assert.isTrue(actual != null && actual == expected,
+            message + ' Expected ' + expected + ', got ' + actual + '.');
     }
 
     private static Integer seq = 0;

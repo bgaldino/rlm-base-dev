@@ -107,6 +107,9 @@ private class RLM_DisputeDetailsControllerTest {
         try {
             RLM_DisputeDetailsController.saveApprovedAmounts(items);
         } catch (AuraHandledException e) {
+            // The controller builds its message without setMessage, so in a test getMessage()
+            // returns only 'Script-thrown exception'; the describe-derived amount is the premise
+            // that ties the failure to the save.
             rejected = true;
         }
         Test.stopTest();
