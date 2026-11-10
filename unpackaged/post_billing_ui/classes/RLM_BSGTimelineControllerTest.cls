@@ -120,17 +120,19 @@ private class RLM_BSGTimelineControllerTest {
         }
         Test.stopTest();
 
-        Assert.isTrue(bsgRefused, 'Premise: this user must be unable to read BillingScheduleGroup.');
+        Assert.isTrue(bsgRefused, 'PRECONDITION: this user must be unable to read BillingScheduleGroup.');
         Assert.isTrue(milestoneRefused,
-            'Premise: this user must be unable to read BillingSchedule.BillingMilestonePlanId.');
+            'PRECONDITION: this user must be unable to read BillingSchedule.BillingMilestonePlanId.');
         Assert.isTrue(dataThrew, 'A refused read surfaces as an AuraHandledException.');
         Assert.isTrue(timelineThrew, 'The timeline surfaces the refused read as an AuraHandledException.');
         Assert.isNotNull(items, 'Milestone data degrades to a list, never null.');
         Assert.isTrue(items.isEmpty(), 'A refused milestone query yields no milestones.');
     }
 
-    // A billing role can select every field the timeline's queries read, including the
-    // milestone extension's dynamic ones, so an unknown id is "not found" rather than "refused".
+    // A billing role can select and filter on every field the timeline's queries use,
+    // including the milestone extension's dynamic ones, so an unknown id is "not found"
+    // rather than "refused". The suspension fields get their own query because the
+    // controller reads them separately, inside a try/catch.
     @isTest
     static void billingRole_canRunTheTimelineQueries() {
         User u = RLM_BillingUITestUsers.create(
@@ -141,21 +143,19 @@ private class RLM_BSGTimelineControllerTest {
         Boolean dataThrew = false;
         List<RLM_BSGTimelineController.MilestoneChartItem> items;
 
-        // CurrencyIsoCode exists only in multi-currency orgs.
-        String currencyField = UserInfo.isMultiCurrencyOrganization() ? 'CurrencyIsoCode, ' : '';
-
         Test.startTest();
         System.runAs(u) {
             for (String soql : new List<String>{
                 'SELECT Id, BillingScheduleGroupNumber, ProductName, BillingAccountId, BillingAccount.Name, '
-                    + currencyField
-                    + 'TotalBilledAmount, TotalPendingAmount, BillingTerm, BillingTermUnit, BillDayOfMonth, '
-                    + 'CancellationDate, StartDate, EndDate, BillingSuspensionDate, BillingResumptionDate '
+                    + 'CurrencyIsoCode, TotalBilledAmount, TotalPendingAmount, BillingTerm, BillingTermUnit, '
+                    + 'BillDayOfMonth, CancellationDate, StartDate, EndDate '
                     + 'FROM BillingScheduleGroup LIMIT 1',
+                'SELECT BillingSuspensionDate, BillingResumptionDate FROM BillingScheduleGroup LIMIT 1',
                 'SELECT Id, BillingScheduleNumber, Category, Status, Quantity, BilledAmount, PendingAmount, '
                     + 'TotalAmount, BillingPeriodAmount, UnitPrice, BillingScheduleStartDate, '
                     + 'BillingScheduleEndDate, NextBillingDate, BillingMethod, BillingType, BillingTerm, '
-                    + 'BillingTermUnit, BillingMilestonePlanId, CreatedDate FROM BillingSchedule LIMIT 1',
+                    + 'BillingTermUnit, BillingMilestonePlanId, BillingScheduleGroupId, CreatedDate '
+                    + 'FROM BillingSchedule LIMIT 1',
                 'SELECT Id, ReferenceItemAmount FROM BillingMilestonePlan LIMIT 1',
                 'SELECT Id, Name, MilestoneAmount, Percentage, Status, MilestoneAccomplishmentDate, '
                     + 'IsMilestoneAccomplished, MilestoneType, BillingMilestonePlanId '
@@ -176,7 +176,7 @@ private class RLM_BSGTimelineControllerTest {
         }
         Test.stopTest();
 
-        Assert.isTrue(refused.isEmpty(), 'Premise: a billing role can run the timeline queries: ' + refused);
+        Assert.isTrue(refused.isEmpty(), 'PRECONDITION: a billing role can run the timeline queries: ' + refused);
         Assert.isTrue(dataThrew, 'An unknown BSG is still "not found" for a billing role.');
         Assert.isTrue(items.isEmpty(), 'An unknown BSG has no milestone plan.');
     }

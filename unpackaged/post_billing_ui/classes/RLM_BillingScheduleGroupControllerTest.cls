@@ -1,8 +1,8 @@
 @isTest
 private class RLM_BillingScheduleGroupControllerTest {
 
-    // BillingScheduleGroup records are system-managed and not insertable in Apex tests, so a
-    // null account and an Account with no BSGs both drive the query down its empty path.
+    // BillingScheduleGroup records are system-managed and not insertable in Apex tests, so
+    // these tests drive the query down its empty and refused paths only.
     @isTest
     static void getBillingScheduleGroups_nullAccount_returnsEmptyList() {
         Test.startTest();
@@ -13,26 +13,8 @@ private class RLM_BillingScheduleGroupControllerTest {
         System.assertEquals(0, result.size(), 'A null account id yields no billing schedule groups.');
     }
 
-    @isTest
-    static void getBillingScheduleGroups_accountWithNoBsgs_returnsEmptyList() {
-        Account acc = new Account(Name = 'RLM BSG Controller Test');
-        insert acc;
-
-        Test.startTest();
-        try {
-            List<RLM_BillingScheduleGroupController.BsgWrapper> result =
-                RLM_BillingScheduleGroupController.getBillingScheduleGroups(acc.Id);
-            System.assertNotEquals(null, result, 'A non-null list should be returned.');
-            System.assertEquals(0, result.size(), 'An account with no BSGs yields an empty list.');
-        } catch (AuraHandledException e) {
-            // Running user lacks BillingScheduleGroup read FLS; the controller wraps the USER_MODE
-            // failure as AuraHandledException. Tolerated for cross-org determinism.
-        }
-        Test.stopTest();
-    }
-
     // A billing role can run the BSG query, so an account with no BSGs must come back as an
-    // empty list. Unlike the admin test above, no exception is tolerated here.
+    // empty list.
     @isTest
     static void getBillingScheduleGroups_billingRole_accountWithNoBsgs_returnsEmptyList() {
         Account acc = new Account(Name = 'RLM BSG Controller Role Test');
@@ -80,7 +62,7 @@ private class RLM_BillingScheduleGroupControllerTest {
         }
         Test.stopTest();
 
-        Assert.isTrue(premise, 'Premise: this user must be unable to read BillingScheduleGroup.');
+        Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read BillingScheduleGroup.');
         Assert.isNotNull(thrown, 'A refused read must not come back as an empty list.');
         Assert.isInstanceOfType(thrown, AuraHandledException.class,
             'The refused read is wrapped for the LWC, got ' + thrown.getTypeName());
@@ -93,11 +75,5 @@ private class RLM_BillingScheduleGroupControllerTest {
         Assert.isNotNull(wrapper.relationships, 'Relationships default to an empty list, never null.');
         Assert.isTrue(wrapper.relationships.isEmpty());
         Assert.isNull(wrapper.bsg, 'No BSG until one is assigned.');
-
-        BillingScheduleGroup bsg = new BillingScheduleGroup();
-        wrapper.bsg = bsg;
-        wrapper.relationships.add(new BsgRelationship());
-        Assert.areEqual(bsg, wrapper.bsg);
-        Assert.areEqual(1, wrapper.relationships.size());
     }
 }

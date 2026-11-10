@@ -1,11 +1,12 @@
 /**
  * Tests for RLM_BillingScheduleGroupService.
  *
- * The native standard-action invoke (createBillingSchedulesFromTrxn) cannot be
- * executed deterministically in a unit test, so the create-via-API path is
- * covered through the @TestVisible mock seam (mockActionOutputs) plus direct
- * coverage of the pure payload-build and result-parse helpers. Validation guards
- * are covered by asserting AuraHandledException on bad input.
+ * A successful native standard-action invoke (createBillingSchedulesFromTrxn)
+ * cannot be produced in a unit test, so the create-via-API path is covered through
+ * the @TestVisible mock seam (mockActionOutputs) plus direct coverage of the pure
+ * payload-build and result-parse helpers. One test invokes the real action with a
+ * payload it rejects, to cover the failed-result path. Validation guards are
+ * covered by asserting AuraHandledException on bad input.
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {
@@ -340,29 +341,31 @@ private class RLM_BillingScheduleGroupServiceTest {
     // without them and are not exercised.
     @isTest
     static void billingTermUnitOptions_mirrorTheBillingSchedulePicklist() {
-        List<String> expected = picklistValues('BillingTermUnit');
+        List<String> expected = picklistLabelsAndValues('BillingTermUnit');
         Test.startTest();
         List<RLM_BillingScheduleGroupService.PicklistOption> options =
             RLM_BillingScheduleGroupService.getBillingScheduleBillingTermUnitOptions();
         Test.stopTest();
 
         assertOptions(expected, options);
+        Assert.isTrue(optionValues(options).contains('Month'), 'The standard Month unit is offered: ' + options);
     }
 
     @isTest
     static void pricingTermUnitOptions_mirrorTheBillingSchedulePicklist() {
-        List<String> expected = picklistValues('PricingTermUnit');
+        List<String> expected = picklistLabelsAndValues('PricingTermUnit');
         Test.startTest();
         List<RLM_BillingScheduleGroupService.PicklistOption> options =
             RLM_BillingScheduleGroupService.getPricingTermUnitOptions();
         Test.stopTest();
 
         assertOptions(expected, options);
+        Assert.isTrue(optionValues(options).contains('Months'), 'The standard Months unit is offered: ' + options);
     }
 
     // ---- createBillingScheduleGroupAndScheduleViaAPI ----
 
-    // Every guard after the billing-account lookup, flipped one at a time from inputs that
+    // Every input guard after the account is resolved, flipped one at a time from inputs that
     // pass. The baseline call proves the defaults are valid, so each rejection is caused by
     // the one input that changed.
     @isTest
@@ -393,7 +396,7 @@ private class RLM_BillingScheduleGroupServiceTest {
 
         List<String> accepted = new List<String>();
         Test.startTest();
-        Assert.areEqual('REQ-OK', new CreateArgs(baId).call().requestId, 'Premise: the default inputs are valid.');
+        Assert.areEqual('REQ-OK', new CreateArgs(baId).call().requestId, 'PRECONDITION: the default inputs are valid.');
         for (String label : invalidInputs.keySet()) {
             if (!throwsAura(invalidInputs.get(label))) {
                 accepted.add(label);
@@ -472,11 +475,17 @@ private class RLM_BillingScheduleGroupServiceTest {
         Id ttId = fakeId(TaxTreatment.SObjectType);
         Id prodId = fakeId(Product2.SObjectType);
 
+        // Quantity, unit price and total are deliberately inconsistent (3 x 12.5 != 450): the
+        // builder passes each through as given and must not derive one from the others.
         Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
             accId, baId, 'Month', 3, fakeId(LegalEntity.SObjectType), ttId,
             'EUR', 12.5, 450, 'Lisbon', prodId, 'Widget Pro',
             Date.newInstance(2026, 4, 7), 7, 4, 'Termed', Date.newInstance(2027, 4, 6)
         ));
+
+        // Pins current behaviour: the legal entity is accepted but not sent (the public create
+        // method likewise accepts billingTerm and billingTypePicklistTiming and drops them).
+        Assert.isFalse(txn.containsKey('LegalEntityId__std'), 'The legal entity is not part of the payload today.');
 
         Assert.isTrue(String.valueOf(txn.get('TransactionId__std')).startsWith('txn_'), 'Generated transaction id.');
         Assert.areEqual('TermDefined', txn.get('SellingModelType__std'), 'Termed maps to TermDefined.');
@@ -573,11 +582,13 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual('{}', r.apiResponse, 'The (empty) action output is still echoed.');
     }
 
-    // Without the mock the standard action is really invoked. Its payload references ids that
-    // don't exist, so the action reports the transaction as failed, and that failure must
-    // reach the LWC as an AuraHandledException rather than a raw platform error or a result.
+    // Without the mock the standard action is really invoked, with a payload of ids that don't
+    // exist. This test checks only that a failed action result is wrapped as an
+    // AuraHandledException. It relies on the platform rejecting such a payload in the
+    // synchronous result (observed on a Release 264 org) even though the action's work is
+    // asynchronous; it does not check why the action failed.
     @isTest
-    static void invokeStandaloneBillingScheduleCreate_withoutMock_surfacesActionFailure() {
+    static void invokeStandaloneBillingScheduleCreate_failedResult_isWrappedAsAuraHandledException() {
         String payload = RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
             fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'Month', 1,
             fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 10,
@@ -594,10 +605,10 @@ private class RLM_BillingScheduleGroupServiceTest {
         }
         Test.stopTest();
 
-        Assert.isNull(outputs, 'A rejected transaction must not be reported as accepted: ' + outputs);
-        Assert.isNotNull(failure, 'A rejected transaction must raise an error.');
+        Assert.isNull(outputs, 'PRECONDITION: the action rejects this payload synchronously; got outputs ' + outputs);
+        Assert.isNotNull(failure, 'A failed action result must raise an error.');
         Assert.isInstanceOfType(failure, AuraHandledException.class,
-            'An action failure must reach the LWC as an AuraHandledException, got '
+            'A failed action result must be wrapped as an AuraHandledException, got '
             + failure.getTypeName() + ': ' + failure.getMessage());
     }
 
@@ -677,27 +688,33 @@ private class RLM_BillingScheduleGroupServiceTest {
         return value == null ? null : Decimal.valueOf(String.valueOf(value));
     }
 
-    // The BillingSchedule field's picklist values, in describe order.
-    private static List<String> picklistValues(String fieldApi) {
-        Map<String, Schema.SObjectField> fields =
-            Schema.getGlobalDescribe().get('BillingSchedule').getDescribe().fields.getMap();
+    // The BillingSchedule field's picklist entries as "label|value", in describe order.
+    private static List<String> picklistLabelsAndValues(String fieldApi) {
+        Map<String, Schema.SObjectField> fields = BillingSchedule.SObjectType.getDescribe().fields.getMap();
         Assert.isTrue(fields.containsKey(fieldApi), 'PRECONDITION: BillingSchedule.' + fieldApi + ' exists.');
-        List<String> values = new List<String>();
+        List<String> entries = new List<String>();
         for (Schema.PicklistEntry pe : fields.get(fieldApi).getDescribe().getPicklistValues()) {
-            values.add(pe.getValue());
+            entries.add(pe.getLabel() + '|' + pe.getValue());
         }
-        Assert.isFalse(values.isEmpty(), 'PRECONDITION: BillingSchedule.' + fieldApi + ' has picklist values.');
-        return values;
+        Assert.isFalse(entries.isEmpty(), 'PRECONDITION: BillingSchedule.' + fieldApi + ' has picklist values.');
+        return entries;
     }
 
     private static void assertOptions(List<String> expected,
             List<RLM_BillingScheduleGroupService.PicklistOption> actual) {
-        List<String> actualValues = new List<String>();
+        List<String> actualEntries = new List<String>();
         for (RLM_BillingScheduleGroupService.PicklistOption o : actual) {
-            Assert.isNotNull(o.label, 'Every option has a label.');
-            actualValues.add(o.value);
+            actualEntries.add(o.label + '|' + o.value);
         }
-        Assert.areEqual(expected, actualValues, 'Options must match the picklist, in order.');
+        Assert.areEqual(expected, actualEntries, 'Option labels and values must match the picklist, in order.');
+    }
+
+    private static Set<String> optionValues(List<RLM_BillingScheduleGroupService.PicklistOption> options) {
+        Set<String> values = new Set<String>();
+        for (RLM_BillingScheduleGroupService.PicklistOption o : options) {
+            values.add(o.value);
+        }
+        return values;
     }
 
     private static Boolean throwsViaApi(Id billingAccountId) {

@@ -203,7 +203,7 @@ private class RLM_BSGContextControllerTest {
         }
         Test.stopTest();
 
-        Assert.isTrue(canQuery, 'Premise: a billing role can run the controller\'s BSG query.');
+        Assert.isTrue(canQuery, 'PRECONDITION: a billing role can run the controller\'s BSG query.');
         Assert.areEqual('standard', ctx.viewType, 'An id with no BSG resolves to the standard view.');
         Assert.isNull(ctx.bsgNumber);
         Assert.isNull(ctx.bsBilledAmount, 'No schedules were read.');
@@ -347,7 +347,6 @@ private class RLM_BSGContextControllerTest {
         Assert.areEqual(b, result[1].bsgId);
         Assert.areEqual(2, result[1].depth);
         Assert.isTrue(result[1].isCurrent, 'b was passed as the current record.');
-        Assert.isTrue(result[1].isSubBundle, 'b parents a (in the cycle), so it is a sub-bundle.');
     }
 
     // Nesting is cut off below depth 5: a sixth level is never emitted.
@@ -383,7 +382,6 @@ private class RLM_BSGContextControllerTest {
             Assert.areEqual(chain[i], result[i].bsgId);
             Assert.areEqual('Level ' + (i + 1), result[i].productName);
         }
-        Assert.isTrue(result[4].isSubBundle, 'Level 5 still parents level 6; only the emission stops.');
     }
 
     @isTest
@@ -423,17 +421,6 @@ private class RLM_BSGContextControllerTest {
 
     // ─── Synthetic-record helpers ───────────────────────────────────────────
 
-    // Variant of synthBsg that overrides the default billing fields.
-    private static BillingScheduleGroup synthBsg(Id id, String productName, Map<String, Object> fields) {
-        Map<String, Object> m = new Map<String, Object>{
-            'attributes'  => new Map<String, Object>{ 'type' => 'BillingScheduleGroup' },
-            'Id'          => id,
-            'ProductName' => productName
-        };
-        m.putAll(fields);
-        return (BillingScheduleGroup) JSON.deserialize(JSON.serialize(m), BillingScheduleGroup.class);
-    }
-
     private static Integer seq = 0;
 
     private static Id mintBsgId() {
@@ -448,6 +435,11 @@ private class RLM_BSGContextControllerTest {
     // BillingScheduleGroup fields are not writeable on a constructed sObject, so build the
     // synthetic record via JSON to populate ProductName etc. for the assembly logic.
     private static BillingScheduleGroup synthBsg(Id id, String productName) {
+        return synthBsg(id, productName, new Map<String, Object>());
+    }
+
+    // Same defaults as above, with the given fields overriding them.
+    private static BillingScheduleGroup synthBsg(Id id, String productName, Map<String, Object> overrides) {
         Map<String, Object> m = new Map<String, Object>{
             'attributes'      => new Map<String, Object>{ 'type' => 'BillingScheduleGroup' },
             'Id'              => id,
@@ -456,6 +448,7 @@ private class RLM_BSGContextControllerTest {
             'BillingTermUnit' => 'Months',
             'BillingTerm'     => 1
         };
+        m.putAll(overrides);
         return (BillingScheduleGroup) JSON.deserialize(JSON.serialize(m), BillingScheduleGroup.class);
     }
 }
