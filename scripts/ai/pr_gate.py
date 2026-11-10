@@ -68,7 +68,6 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
 
@@ -163,30 +162,34 @@ def repo_config_bytes():
 # `git push -u`, or a branch it creates from a remote-tracking ref, adds a `[branch "<name>"]` section
 # mid-run, and that failed an innocent check twice during PR 702. Who wrote a change cannot be known
 # from here (PR 705 tried to infer it from refs, then from worktrees, and a leaked fixture command met
-# each test in one step), so the guard judges what the change does instead. A change passes, as a
-# printed note, only when every changed entry is branch bookkeeping that alters no commit and points
-# the branch at nothing but its own name:
-# - a `branch.<name>.<key>` entry with <key> in BOOKKEEPING_KEYS, for a real refs/heads/<name>;
-# - whose `remote`, if any, is "." or a remote the same file defines;
-# - and whose `merge`, if any, is refs/heads/<name> itself, as `push -u` and `switch -c X origin/X`
-#   write it. A `merge` naming another branch redirects `git pull`, and `git push` under
-#   push.default=upstream (`feat -> trunk`), so it fails.
-# `rebase`, `pushRemote`, `mergeOptions`, a URL as `remote`, and user.*, core.*, remote.* and the rest
-# alter commits, pushes, merges or fetches, so they fail, as does any entry changed alongside them.
-# A swap between two remotes the file defines does pass: tracking decides only where a bare `git push`
-# or `git pull` goes, and this repository's docs push with an explicit remote and branch. A section removed for a branch that no longer exists fails too (pinned by
-# tests, by the owner's decision): nothing can be said about a ref that is gone.
+# each test in one step), so the guard judges what the change leaves behind. A file's change passes, as
+# a printed note, only when it is confined to branches that each meet all of these:
+# - refs/heads/<name> exists;
+# - every entry that changed is a bookkeeping key (BOOKKEEPING_KEYS);
+# - afterwards, every `remote` the branch has is a remote the same file defines (has a url for), and
+#   every `merge` is refs/heads/<name> itself, as `push -u` and `switch -c X origin/X` write them.
+# The last point is judged on the branch's state after the change, not on the entries that changed: a
+# `merge` naming another branch, left from before or added now, makes `git pull` merge it and
+# `git push` under push.default=upstream push there (`feat -> trunk`), and a URL or `.` as `remote`
+# sends a bare push somewhere no remote names. So those fail, as do `rebase`, `pushRemote`,
+# `mergeOptions`, user.*, core.*, remote.* and the rest, and any entry changed alongside them.
+# Accepted: a swap between two remotes the file defines, since tracking steers only a bare `git push`
+# or `git pull` and this repository's docs push with an explicit remote and branch; and bytes git reads
+# as no entry (a comment) beside an excused branch, since git reads them as nothing (alone, they fail).
+# A section removed for a branch that no longer exists fails, by the owner's decision (pinned).
 #
-# Both snapshots are read by git itself (`git config --file <snapshot> --null --list`), not by a parser
-# here: a hand-rolled one disagreed with git repeatedly in PR 705's reviews (a backslash continuation, a
-# section opened on a header's own line, splitlines() breaking on \f and U+2028), each time letting a
-# line git reads as user.* pass as a branch's. `--file` reads that file alone: no `-c`, no GIT_CONFIG_*
-# variables, and no includes, which it lists as plain `include.path` entries. A snapshot git cannot
-# parse, or that cannot be handed to git at all, excuses nothing.
+# Both snapshots are read by git itself (`git config --file - --no-includes --null --list`, the
+# snapshot on stdin), not by a parser here: a hand-rolled one disagreed with git repeatedly in PR
+# 705's reviews (a backslash continuation, a section opened on a header's own line, splitlines()
+# breaking on \f and U+2028), each time letting a line git reads as user.* pass as a branch's. That
+# reads the snapshot alone: no `-c`, no GIT_CONFIG_* variables, and includes listed as plain
+# `include.path` entries rather than followed. A snapshot git cannot read excuses nothing.
 
-# What `push -u` writes (remote, merge), plus the notes this repository's shared config already carries
-# from editors and gh: VS Code and Cursor's `vscode-merge-base` and gh's `github-pr-owner-number`.
-BOOKKEEPING_KEYS = {"remote", "merge", "vscode-merge-base", "github-pr-owner-number"}
+# What `push -u` writes (remote, merge), plus notes this repository's shared config already carries
+# from editors: VS Code's and Cursor's `vscode-merge-base`, and the GitHub Pull Requests extension's
+# `github-pr-owner-number` and `github-pr-base-branch`. None of the notes changes what git does.
+BOOKKEEPING_KEYS = {"remote", "merge", "vscode-merge-base", "github-pr-owner-number",
+                    "github-pr-base-branch"}
 
 # Notes about excused `[branch]` bookkeeping, collected by run() and printed by main() whatever the
 # check's verdict: a passing check's output is otherwise never shown.
@@ -196,26 +199,15 @@ CONFIG_NOTES = []
 def config_entries(data):
     """git's own reading of one config snapshot, as [(key, value)] in file order: the key with its
     section and variable lowercased and its subsection verbatim, the value None for a bare boolean.
-    [] for a missing or empty file; None when git rejects it or cannot be given it. The snapshot goes
-    to a private (0700) temporary directory for the length of one git call, since a config can hold
-    credentials."""
+    [] for a missing or empty file; None when git cannot read it."""
     if not data:
         return []
-    try:
-        with tempfile.TemporaryDirectory() as tmp:
-            path = os.path.join(tmp, "config")
-            with open(path, "wb") as fh:
-                fh.write(data)
-            out = git(["config", "--file", path, "--null", "--list"], "config --list of a snapshot",
-                      raw=True, fatal=False)
-    except OSError:
-        # No usable temporary directory (removed, full): fail closed with the diff, as for a
-        # snapshot git rejects, rather than escape as a traceback whose exit 1 reads as a verdict.
-        return None
+    out = git(["config", "--file", "-", "--no-includes", "--null", "--list"],
+              "config --list of a snapshot", fatal=False, stdin=data)
     if out is None:
         return None
     entries = []
-    for record in out.decode("utf-8", "surrogateescape").split("\0")[:-1]:
+    for record in out.split("\0")[:-1]:
         key, newline, value = record.partition("\n")
         entries.append((key, value if newline else None))
     return entries
@@ -237,57 +229,46 @@ def without(entries, branches):
 
 def shown(text):
     """`text` (decoded with surrogateescape) made printable: each undecodable byte as `\\xNN`, so two
-    non-UTF-8 values stay distinct on screen and print() cannot raise on a lone surrogate."""
-    return text.encode("utf-8", "surrogateescape").decode("utf-8", "backslashreplace")
+    non-UTF-8 values stay distinct on screen and print() cannot raise on a lone surrogate, and a
+    carriage return as `\\r`, so a terminal cannot overwrite the line it ends."""
+    return (text.encode("utf-8", "surrogateescape").decode("utf-8", "backslashreplace")
+            .replace("\r", "\\r"))
 
 
 def local_branches():
     """Every `refs/heads/` name in this repository, short form: what a `[branch]` subsection names.
     Split on "\\n" only: a ref name cannot hold a control character, but it can hold U+2028, which
-    splitlines() would cut into a fabricated shorter ref (Copilot, PR 705). Read as bytes and decoded
-    exactly as config_entries() decodes git's reading of the config, so the two compare like for like
-    under any locale. Empty when the refs cannot be listed, which excuses nothing rather than stopping
-    the gate and losing the diff of what changed."""
+    splitlines() would cut into a fabricated shorter ref (Copilot, PR 705). Decoded exactly as
+    config_entries() decodes git's reading of the config, so the two compare like for like. Empty
+    when the refs cannot be listed, which excuses nothing rather than stopping the gate and losing
+    the diff of what changed."""
     out = git(["for-each-ref", "--format=%(refname)", "refs/heads/"], "for-each-ref refs/heads/",
-              raw=True, fatal=False)
+              fatal=False)
     if out is None:
         return set()
-    refs = out.decode("utf-8", "surrogateescape").split("\n")
-    return {ref[len("refs/heads/"):] for ref in refs if ref.startswith("refs/heads/")}
-
-
-def bookkeeping_only(changed, name, remotes):
-    """True when every changed `branch.<name>.*` entry is a bookkeeping key, each `remote` among them is
-    "." or one of `remotes`, and each `merge` is refs/heads/<name>. Only the entries that changed are
-    judged, so `push -u` on a branch that already has a `description` is still bookkeeping."""
-    for key, value in changed:
-        variable = key.rpartition(".")[2]
-        if (variable not in BOOKKEEPING_KEYS
-                or (variable == "remote" and value != "." and value not in remotes)
-                or (variable == "merge" and value != f"refs/heads/{name}")):
-            return False
-    return True
+    return {ref[len("refs/heads/"):] for ref in out.split("\n") if ref.startswith("refs/heads/")}
 
 
 def excused_branches(old, new, real):
-    """The branches whose entries moved between `old` and `new` and are excusable: real local
-    branches (`real()`, called only if one moved) whose changed entries are bookkeeping only."""
+    """The branches whose entries moved between `old` and `new` and meet the rule above: real
+    (in `real`), changed only in bookkeeping keys, and left tracking only themselves on a defined
+    remote."""
     groups = [{}, {}]
     for group, entries in zip(groups, (old, new)):
         for entry in entries:
             group.setdefault(branch_of(entry[0]), []).append(entry)
-    moved = {name for name in set(groups[0]) | set(groups[1])
-             if name is not None and groups[0].get(name) != groups[1].get(name)}
-    if not moved:
-        return set()
     # A remote's name may hold dots, so it is everything between `remote.` and `.url`.
     remotes = {key[len("remote."):-len(".url")] for key, _ in new
                if key.startswith("remote.") and key.endswith(".url")}
     excused = set()
-    for name in moved & real():
+    for name in (set(groups[0]) | set(groups[1])) & real:
         was, now = groups[0].get(name, []), groups[1].get(name, [])
+        if was == now:
+            continue
         changed = [entry for entry in was if entry not in now] + [entry for entry in now if entry not in was]
-        if bookkeeping_only(changed, name, remotes):
+        if (all(key.rpartition(".")[2] in BOOKKEEPING_KEYS for key, _ in changed)
+                and all(value in remotes for key, value in now if key.endswith(".remote"))
+                and all(value == f"refs/heads/{name}" for key, value in now if key.endswith(".merge"))):
             excused.add(name)
     return excused
 
@@ -300,32 +281,22 @@ def config_change_note(before, after):
     changed = [path for path in before if after.get(path) != before[path]]
     if not changed:
         return "", False
-    refs = []
-
-    def real():
-        # Listed at most once, and only when a branch's entries actually moved.
-        if not refs:
-            refs.append(local_branches())
-        return refs[0]
-
-    excused, failing = set(), []
+    real = local_branches()
+    excused, failing, unread = set(), [], False
     for path in changed:
         old, new = config_entries(before[path]), config_entries(after.get(path))
+        unread |= old is None or new is None
         ours = excused_branches(old, new, real) if old is not None and new is not None else set()
-        # A file passes only when its excused branches account for every entry that changed. Bytes git
-        # reads as no entries at all (a comment, quoting) fail on their own, rather than pass
-        # unexamined; beside an excused branch they ride along, since git reads them as nothing.
+        # A file passes only when its excused branches account for every entry that changed.
         if not ours or without(old, ours) != without(new, ours):
             failing.append(path)
         excused |= ours
     named = ", ".join(shown(name) for name in sorted(excused))
     if not failing:
-        return ("\nnote: the repository's git config gained or changed [branch] bookkeeping for " + named
-                + " while this check ran: a real local branch's tracking of its own name (on `.` or a remote"
-                " this config defines), which steers only a bare `git push` or `git pull`, or an"
-                " editor's or gh's note (vscode-merge-base, github-pr-owner-number). Usually another worktree's `git push -u` or"
-                " tracking checkout (push with `git push origin <branch>` and branch with `--no-track`"
-                " to avoid it); if this check runs git, it may be its fixture's. Left in place.\n", False)
+        return ("\nnote: the repository's git config changed [branch] bookkeeping for " + named
+                + " while this check ran: a real local branch's tracking of its own name on a remote"
+                " this config defines (which steers only a bare `git push` or `git pull`), or an"
+                " editor's note. Left in place.\n", False)
     diffs = []
     for path in changed:
         name = os.path.basename(path)
@@ -336,9 +307,11 @@ def config_change_note(before, after):
     return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in failing) + ")"
             " changed while this check ran. A fixture git command may have reached the real"
             " repository (or something else wrote it meanwhile). Only [branch] bookkeeping is excused"
-            " (a real local branch's tracking of its own name on `.` or a defined remote, or an"
-            " editor's or gh's note); this"
-            " change is not. Restore it by hand; the change is not reverted for you."
+            " (a real local branch's tracking of its own name on a defined remote, or an editor's"
+            " note), and this change is not that"
+            + (": git could not read a snapshot of it, so nothing in that file could be excused"
+               if unread else "")
+            + ". Restore it by hand; the change is not reverted for you."
             + (f" (The [branch] bookkeeping for {named} in the diff below is excused.)" if excused
                else "") + "\n" + "\n".join(diffs) + "\n", True)
 
@@ -1086,14 +1059,13 @@ def changed_files(base):
     return sorted(set(files))
 
 
-def git(args, purpose, raw=False, fatal=True):
+def git(args, purpose, fatal=True, stdin=None):
     """Run git from the repo root and return stdout, or die — never return a verdict. stdout is
-    decoded with surrogateescape, so a path that is not UTF-8 survives rather than raising; `raw`
-    returns the bytes instead, for a caller that has to decode them the same way as bytes it read
-    elsewhere. `fatal=False` returns None instead of dying, on a spawn failure or a non-zero exit,
-    for a caller whose answer to a git failure is to fail closed (the config guard) rather than to
-    stop the gate and lose its diff; None is never mistaken for an empty answer, which is the
-    confusion dying here exists to prevent.
+    decoded with surrogateescape, so a path or config value that is not UTF-8 survives rather than
+    raising; `stdin` (bytes) is fed to git. `fatal=False` returns None instead of dying, on a spawn
+    failure or a non-zero exit, for a caller whose answer to a git failure is to fail closed (the
+    config guard) rather than to stop the gate and lose its diff; None is never mistaken for an
+    empty answer, which is the confusion dying here exists to prevent.
 
     Centralised after the same two guards had to be added to each call site separately and were
     not: `run()` grew an `OSError` guard while this path kept only `FileNotFoundError`, so a git
@@ -1103,7 +1075,7 @@ def git(args, purpose, raw=False, fatal=True):
     failed command is indistinguishable from a clean tree.
     """
     try:
-        out = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True)
+        out = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, input=stdin)
     except OSError as exc:
         if not fatal:
             return None
@@ -1112,7 +1084,7 @@ def git(args, purpose, raw=False, fatal=True):
         return None
     if out.returncode != 0:
         die(f"git {purpose} failed: {out.stderr.decode('utf-8', 'replace').strip()}")
-    return out.stdout if raw else out.stdout.decode("utf-8", "surrogateescape")
+    return out.stdout.decode("utf-8", "surrogateescape")
 
 
 def selects(check, files):

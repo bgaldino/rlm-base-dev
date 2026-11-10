@@ -616,7 +616,7 @@ file (about 3), and `agent_tooling`. The third, `dockerignore`, added since, tak
 one ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
 `harness_suites`) reports it rather than counting it, and its total is lower.
 
-Verified by `tests/test_pr_gate.py` (820 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (824 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
@@ -1408,7 +1408,7 @@ anywhere between the changed-file list and the selected list shows up as a check
 compared, not its last word; and the payload is checked under both selectors. Two survivors admit no
 behavioural refutation at all — `os.path.isdir("/opt/hostedtoolcache")` is true on a runner and false
 everywhere else, so no local observation contradicts it. For those the answer is a smaller surface rather
-than a cleverer rule: the three regions that decide a verdict are fingerprinted, and any edit to them
+than a cleverer rule: the four regions that decide a verdict are fingerprinted, and any edit to them
 fails until a reader re-approves it, on the same reasoning as `EXPECTED`. The general lesson is the one
 the sweep corpus was built on and had never been applied here: a rule about an artifact needs a mutation
 of that artifact to have any evidence behind it, and for twenty-two waves the artifact under test was the
