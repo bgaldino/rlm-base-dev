@@ -99,11 +99,11 @@ private with sharing class RLM_MockTaxAdapterTest {
         RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'USD', 'A null currency defaults to USD.');
         RLM_TaxTestFactory.assertResponseField(response, 'description', 'description',
             'A seller other than testSellerCode gets the default description.');
-        Assert.areEqual(1, RLM_TaxTestFactory.countResponseField(response, 'lineNumber', '1'), 'Line 1 is answered.');
-        Assert.areEqual(1, RLM_TaxTestFactory.countResponseField(response, 'lineNumber', '2'), 'Line 2 is answered.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'lineNumber', '1', 1, 'Line 1 is answered.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'lineNumber', '2', 1, 'Line 2 is answered.');
         // Lines of 100 and 250: line 1 reports 100.0; line 2 and the header both report 350.0.
-        Assert.areEqual(1, RLM_TaxTestFactory.countResponseField(response, 'totalAmount', '100.0'), 'Line 1 total.');
-        Assert.areEqual(2, RLM_TaxTestFactory.countResponseField(response, 'totalAmount', '350.0'),
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmount', '100.0', 1, 'Line 1 total.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmount', '350.0', 2,
             'Known gap: line amount details accumulate across lines instead of each line carrying its own '
             + 'amount (line 2 reports 350.0, not 250.0). Update this test when it is fixed.');
     }
@@ -172,11 +172,11 @@ private with sharing class RLM_MockTaxAdapterTest {
 
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class, 'A calculated response is returned.');
         // Two request lines, one tax detail each; the header addresses are still set.
-        Assert.areEqual(2, RLM_TaxTestFactory.countResponseField(response, 'addresses', '<null>'),
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'addresses', '<null>', 2,
             'Both lines leave their addresses null.');
-        Assert.areEqual(2, RLM_TaxTestFactory.countResponseField(response, 'imposition', '<null>'),
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'imposition', '<null>', 2,
             'Both tax details leave imposition null.');
-        Assert.areEqual(2, RLM_TaxTestFactory.countResponseField(response, 'jurisdiction', '<null>'),
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'jurisdiction', '<null>', 2,
             'Both tax details leave jurisdiction null.');
     }
 

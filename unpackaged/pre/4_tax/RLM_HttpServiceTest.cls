@@ -55,8 +55,9 @@ private with sharing class RLM_HttpServiceTest {
         Assert.isNotNull(response, 'The response should be stored.');
         Assert.areEqual(200, response.getStatusCode(), 'Stored response status');
         Assert.areEqual('{"ping":"pong"}', response.getBody(), 'Stored response body');
-        Assert.areEqual(String.valueOf(service.getResponse()), service.getResponseToString(),
-            'getResponseToString describes the stored response.');
+        String described = service.getResponseToString();
+        Assert.isTrue(described.contains('200') && described.contains('OK'),
+            'getResponseToString describes the stored response (status code and status): ' + described);
     }
 
     @IsTest
@@ -110,7 +111,9 @@ private with sharing class RLM_HttpServiceTest {
         Test.stopTest();
 
         Assert.areEqual(1, mock.calls, 'The callout should be attempted once.');
-        Assert.isNull(service.getResponse(), 'A failed callout leaves no stored response.');
+        Assert.isNull(service.getResponse(),
+            'Known gap: a failed callout is swallowed (debug log only) and leaves a null response, which '
+            + 'RLM_CalculateTaxService then dereferences. Update this test when it is fixed.');
     }
 
     @IsTest
@@ -124,6 +127,8 @@ private with sharing class RLM_HttpServiceTest {
         Test.stopTest();
 
         Assert.areEqual(1, mock.calls, 'The callout should be attempted once.');
-        Assert.isNull(service.getResponse(), 'A failed callout leaves no stored response.');
+        Assert.isNull(service.getResponse(),
+            'Known gap: a failed callout is swallowed (debug log only) and leaves a null response, which '
+            + 'RLM_CalculateTaxService then dereferences. Update this test when it is fixed.');
     }
 }

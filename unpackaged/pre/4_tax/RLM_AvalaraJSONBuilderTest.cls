@@ -167,7 +167,9 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
         Assert.isNotNull(caught,
             'Known gap: missing customer details are not guarded and throw a raw NullPointerException. '
             + 'Update this test when it is fixed.');
-        Assert.isInstanceOfType(caught, NullPointerException.class, 'The original exception is rethrown: ' + caught);
+        Assert.isInstanceOfType(caught, NullPointerException.class,
+            'Known gap: missing customer details are not guarded and throw a raw NullPointerException. '
+            + 'Update this test when it is fixed. ' + caught);
     }
 
     @IsTest
@@ -188,6 +190,8 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
         Assert.isNotNull(caught,
             'Known gap: a malformed account id is not validated and Id.valueOf throws a raw StringException. '
             + 'Update this test when it is fixed.');
-        Assert.isInstanceOfType(caught, StringException.class, 'The Id.valueOf exception is rethrown: ' + caught);
+        Assert.isInstanceOfType(caught, StringException.class,
+            'Known gap: a malformed account id is not validated and Id.valueOf throws a raw StringException. '
+            + 'Update this test when it is fixed. ' + caught);
     }
 }

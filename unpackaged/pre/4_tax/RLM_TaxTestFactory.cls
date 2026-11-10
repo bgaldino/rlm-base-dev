@@ -14,7 +14,8 @@
  *
  * The same accepted risk covers how the commercetax setters reject input: the tests expect
  * setAmountDetails(null) to throw an exception named commercetax.TaxApiException, and
- * setTaxTransactionType(null) to throw. A release that changes either fails those tests.
+ * setTaxTransactionType(null) to throw System.NullPointerException. A release that changes
+ * either fails those tests.
  */
 @IsTest
 public with sharing class RLM_TaxTestFactory {
@@ -138,24 +139,43 @@ public with sharing class RLM_TaxTestFactory {
         return count / copies;
     }
 
+    /** Asserts how many times field=value appears in one copy of the response. */
+    public static void assertResponseFieldCount(Object response, String field, String value, Integer expected, String message) {
+        Assert.areEqual(expected, countResponseField(response, field, value),
+            message + ' (' + field + '=' + value + ')' + PREMISE_HINT);
+    }
+
     /**
      * Premise for every response assertion in these tests: the platform's undocumented String form
      * of commercetax responses. If a release changes it, this test names the cause.
      */
     @IsTest
     static void responseStringForm_matchesHelperPremise() {
-        // Line 1: null addresses, one tax detail with null imposition and jurisdiction, amounts,
-        // and a 2001 effective date. Line 2 and the header carry non-null addresses.
+        // Line 1: null addresses, a tax detail with null imposition and jurisdiction, a second
+        // tax detail with a jurisdiction, imposition and rate, amounts, and a 2001 effective date.
+        // Line 2 carries empty addresses; the header carries a Ship From address.
         commercetax.TaxDetailsResponse taxDetail = new commercetax.TaxDetailsResponse();
         taxDetail.setImposition(null);
         taxDetail.setJurisdiction(null);
+        commercetax.JurisdictionResponse jurisdiction = new commercetax.JurisdictionResponse();
+        jurisdiction.setName('PREMISE-J');
+        commercetax.ImpositionResponse imposition = new commercetax.ImpositionResponse();
+        imposition.setType('PREMISE-I');
+        commercetax.TaxDetailsResponse ratedDetail = new commercetax.TaxDetailsResponse();
+        ratedDetail.setJurisdiction(jurisdiction);
+        ratedDetail.setImposition(imposition);
+        ratedDetail.setRate(Double.valueOf('0.065'));
         Double lineAmount = 100;
         commercetax.AmountDetailsResponse amounts = new commercetax.AmountDetailsResponse();
         amounts.setTotalAmount(lineAmount);
+        commercetax.AddressResponse shipFrom = new commercetax.AddressResponse();
+        shipFrom.setLocationCode('PREMISE-LOC');
+        commercetax.AddressesResponse headerAddresses = new commercetax.AddressesResponse();
+        headerAddresses.setShipFrom(shipFrom);
         commercetax.LineItemResponse first = new commercetax.LineItemResponse();
         first.setLineNumber('1');
         first.setAddresses(null);
-        first.setTaxes(new List<commercetax.TaxDetailsResponse>{ taxDetail });
+        first.setTaxes(new List<commercetax.TaxDetailsResponse>{ taxDetail, ratedDetail });
         first.setAmountDetails(amounts);
         first.setEffectiveDate(DATE_2001);
         commercetax.LineItemResponse second = new commercetax.LineItemResponse();
@@ -166,7 +186,7 @@ public with sharing class RLM_TaxTestFactory {
         response.setStatus(commercetax.TaxTransactionStatus.Committed);
         response.setTaxTransactionType(commercetax.TaxTransactionType.Credit);
         response.setTransactionDate(DATE_2001);
-        response.setAddresses(new commercetax.AddressesResponse());
+        response.setAddresses(headerAddresses);
         response.setLineItems(new List<commercetax.LineItemResponse>{ first, second });
 
         commercetax.CalculateTaxResponse emptyResponse = new commercetax.CalculateTaxResponse();
@@ -179,24 +199,28 @@ public with sharing class RLM_TaxTestFactory {
         String errorDescribed = String.valueOf(error);
         Test.stopTest();
 
-        // Nested line, tax, amount and address objects do not add delegate= labels.
+        // Nested line, tax, jurisdiction, imposition, amount and address objects add no delegate= labels.
         Assert.areEqual(2, described.countMatches('delegate='), 'A CalculateTaxResponse prints its delegate twice: ' + described);
-        Assert.areEqual(1, countResponseField(response, 'addresses', '<null>'), 'Only line 1 has null addresses.');
-        Assert.areEqual(1, countResponseField(response, 'imposition', '<null>'), 'A null imposition prints as <null>.');
-        Assert.areEqual(1, countResponseField(response, 'jurisdiction', '<null>'), 'A null jurisdiction prints as <null>.');
+        assertResponseFieldCount(response, 'addresses', '<null>', 1, 'Only line 1 has null addresses.');
+        assertResponseFieldCount(response, 'imposition', '<null>', 1, 'A null imposition prints as <null>.');
+        assertResponseFieldCount(response, 'jurisdiction', '<null>', 1, 'A null jurisdiction prints as <null>.');
+        assertResponseFieldCount(response, 'name', 'PREMISE-J', 1, 'A nested jurisdiction lists its name.');
+        assertResponseFieldCount(response, 'locationCode', 'PREMISE-LOC', 1, 'A nested address lists its location code.');
+        assertResponseFieldCount(response, 'rate', '0.065', 1, 'A Double prints in its shortest decimal form.');
+        assertResponseFieldCount(response, 'totalAmount', '100.0', 1, 'A whole-number Double prints with ".0".');
         assertResponseFieldMatches(response, 'effectiveDate', YEAR_2001, 'A line effective date prints with its year.');
-        Assert.areEqual(1, countResponseField(emptyResponse, 'documentCode', ''), 'An empty String prints as field=.');
-        Assert.areEqual(1, countResponseField(emptyResponse, 'lineItems', '<null>'), 'Unset line items print as <null>.');
+        assertResponseFieldCount(emptyResponse, 'documentCode', '', 1, 'An empty String prints as field=.');
+        assertResponseFieldCount(emptyResponse, 'lineItems', '<null>', 1, 'Unset line items print as <null>.');
         Assert.areEqual(1, errorDescribed.countMatches('delegate='), 'An ErrorResponse prints its delegate once: ' + errorDescribed);
-        Assert.areEqual(1, countResponseField(response, 'documentCode', 'PREMISE-1'), 'A String field prints as field=value.');
-        Assert.areEqual(1, countResponseField(response, 'status', 'Committed'), 'An enum prints by name.');
-        Assert.areEqual(1, countResponseField(response, 'taxTransactionType', 'Credit'), 'An enum prints by name.');
-        Assert.areEqual(1, countResponseField(response, 'referenceEntityId', '<null>'), 'An unset field prints as <null>.');
-        Assert.areEqual(1, countResponseField(response, 'lineNumber', '1'), 'Nested line items are listed.');
-        Assert.areEqual(1, countResponseField(response, 'lineNumber', '2'), 'Each nested line item is listed once.');
+        assertResponseFieldCount(response, 'documentCode', 'PREMISE-1', 1, 'A String field prints as field=value.');
+        assertResponseFieldCount(response, 'status', 'Committed', 1, 'An enum prints by name.');
+        assertResponseFieldCount(response, 'taxTransactionType', 'Credit', 1, 'An enum prints by name.');
+        assertResponseFieldCount(response, 'referenceEntityId', '<null>', 1, 'An unset field prints as <null>.');
+        assertResponseFieldCount(response, 'lineNumber', '1', 1, 'Nested line items are listed.');
+        assertResponseFieldCount(response, 'lineNumber', '2', 1, 'Each nested line item is listed once.');
         assertResponseFieldMatches(response, 'transactionDate', YEAR_2001, 'A date prints with its year.');
-        Assert.areEqual(1, countResponseField(error, 'errorCode', ''), 'ErrorResponse prints a null error code as empty.');
-        Assert.areEqual(1, countResponseField(error, 'errorMessage', 'm'), 'ErrorResponse prints its message.');
+        assertResponseFieldCount(error, 'errorCode', '', 1, 'ErrorResponse prints a null error code as empty.');
+        assertResponseFieldCount(error, 'errorMessage', 'm', 1, 'ErrorResponse prints its message.');
     }
 
     /** Records every request and answers with a fixed status and body. Never reaches the network. */

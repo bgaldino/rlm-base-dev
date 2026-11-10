@@ -40,16 +40,16 @@ private with sharing class RLM_CalculateTaxServiceTest {
         RLM_TaxTestFactory.assertResponseField(response, 'lineNumber', '1', 'The engine line number is mapped.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxCode', 'P0000000', 'The engine line tax code is mapped.');
         // The engine line has two tax details: WASHINGTON (rate 0.065) and KING (rate 0).
-        Assert.areEqual(1, RLM_TaxTestFactory.countResponseField(response, 'name', 'WASHINGTON'),
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'name', 'WASHINGTON', 1,
             'The state jurisdiction detail is mapped.');
-        Assert.areEqual(1, RLM_TaxTestFactory.countResponseField(response, 'name', 'KING'),
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'name', 'KING', 1,
             'The county jurisdiction detail is mapped.');
-        Assert.areEqual(2, RLM_TaxTestFactory.countResponseField(response, 'rate', '0.065'),
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'rate', '0.065', 2,
             'Known gap: detail rates accumulate across a line\'s details instead of each detail keeping '
             + 'its own rate (KING reports 0.065, not 0). Update this test when it is fixed.');
-        Assert.areEqual(0, RLM_TaxTestFactory.countResponseField(response, 'lineNumber', 'REQ-7'),
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'lineNumber', 'REQ-7', 0,
             'Response lines come from the engine payload, not the request.');
-        Assert.areEqual(0, RLM_TaxTestFactory.countResponseField(response, 'taxCode', 'PC040100'),
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxCode', 'PC040100', 0,
             'Response tax codes come from the engine payload, not the request.');
         // From the request.
         RLM_TaxTestFactory.assertResponseField(response, 'referenceEntityId', 'REF-CALC-1', 'The request reference entity is echoed.');
@@ -111,10 +111,11 @@ private with sharing class RLM_CalculateTaxServiceTest {
             commercetax.CalculateTaxType.Estimated, 'DOC-NO-TYPE', RLM_TaxTestFactory.lines(232));
         request.taxTransactionType = null;
 
+        commercetax.TaxEngineContext context = RLM_TaxTestFactory.context(request);
         Exception caught;
         Test.startTest();
         try {
-            RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
+            RLM_CalculateTaxService.getTax(context);
         } catch (Exception e) {
             caught = e;
         }
@@ -126,7 +127,9 @@ private with sharing class RLM_CalculateTaxServiceTest {
             + 'default it to Debit). '
             + 'Update this test when it is fixed.');
         // The setter's exception type is platform behaviour (see the accepted risk in RLM_TaxTestFactory).
-        Assert.areEqual('System.NullPointerException', caught.getTypeName(), 'The platform setter throws: ' + caught);
+        Assert.areEqual('System.NullPointerException', caught.getTypeName(),
+            'Known gap: the null transaction type reaches the platform setter, which throws a raw '
+            + 'NullPointerException. Update this test when it is fixed. ' + caught);
         Assert.areEqual(1, mock.requests.size(), 'The failure comes after the engine callout: ' + caught);
     }
 
@@ -141,6 +144,8 @@ private with sharing class RLM_CalculateTaxServiceTest {
         commercetax.TaxEngineResponse response = RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
         Test.stopTest();
 
+        // getTax has an explicit "else return null" for an empty list, like the adapters' explicit
+        // null for request types they do not handle, so this is treated as intended, not a gap.
         Assert.isNull(response, 'An empty line list returns null.');
         Assert.areEqual(0, mock.requests.size(), 'No callout is made without lines.');
     }
@@ -152,19 +157,22 @@ private with sharing class RLM_CalculateTaxServiceTest {
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, 'DOC-NULL-LINES', null);
 
+        commercetax.TaxEngineContext context = RLM_TaxTestFactory.context(request);
         Exception caught;
         Test.startTest();
         try {
-            RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
+            RLM_CalculateTaxService.getTax(context);
         } catch (Exception e) {
             caught = e;
         }
         Test.stopTest();
 
         Assert.isNotNull(caught,
-            'Known gap: a null line list is not guarded and throws a raw NullPointerException instead of '
-            + 'an error response. Update this test when it is fixed.');
-        Assert.isInstanceOfType(caught, NullPointerException.class, 'The original exception is rethrown: ' + caught);
+            'Known gap: a null line list is not guarded and getTax throws a raw NullPointerException. '
+            + 'Update this test when it is fixed.');
+        Assert.isInstanceOfType(caught, NullPointerException.class,
+            'Known gap: a null line list is not guarded and getTax throws a raw NullPointerException. '
+            + 'Update this test when it is fixed. ' + caught);
         Assert.areEqual(0, mock.requests.size(), 'No callout is made when the request is unusable.');
     }
 }
