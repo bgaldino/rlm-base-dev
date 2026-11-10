@@ -4,8 +4,8 @@
  * Documented, not pinned: the open-billing-cases metric counts Case Type 'Billing', which the
  * CaseType value set this repo ships does not include. Case.Type is unrestricted by default (see
  * billingCaseTypeIsBlocked), so a test (or an API load) can still create such a case, and the
- * tests here do; but on a
- * repo-built org no case created through the UI has that type, so the metric reads zero there.
+ * tests here do; but on a repo-built org no case created through the UI has that type, so the
+ * metric reads zero there.
  */
 @isTest
 private class RLM_BillingCaseMetricsControllerTest {

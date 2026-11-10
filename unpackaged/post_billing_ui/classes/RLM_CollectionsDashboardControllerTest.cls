@@ -262,15 +262,18 @@ private class RLM_CollectionsDashboardControllerTest {
         // The controller filters on BillToAccountId when DebitMemo has it, else on AccountId.
         Assert.isFalse(Schema.getGlobalDescribe().get('DebitMemo').getDescribe().fields.getMap().containsKey('billtoaccountid'),
             'PRECONDITION: DebitMemo has no BillToAccountId, so the controller filters on AccountId.');
-        // The controller's debit memo clauses, in user mode, with Status = 'Draft' in place of
-        // 'Posted': the query runs and finds the memo, so the fields are readable and the
-        // controller's zero comes from its Status filter, not from a query error it swallowed.
+        // The controller's own aggregate, in user mode, with Status = 'Draft' in place of
+        // 'Posted': the SUM runs and returns a positive total for the memo, so the controller's
+        // query is not refused and its zero comes from the Status filter, not from a swallowed
+        // error. Only the sign is checked, so the currency the SUM reports in does not matter.
         Id aId = a.Id;
-        Integer control = Database.countQuery(
-            'SELECT COUNT() FROM DebitMemo WHERE TotalAmount != null AND Status = \'Draft\''
+        List<AggregateResult> control = Database.query(
+            'SELECT SUM(TotalAmount) s FROM DebitMemo WHERE TotalAmount != null AND Status = \'Draft\''
             + ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\' AND AccountId = :aId',
             AccessLevel.USER_MODE);
-        Assert.areEqual(1, control, 'PRECONDITION: with Status = Draft, the controller\'s query finds the memo.');
+        Decimal controlSum = (Decimal) control[0].get('s');
+        Assert.isTrue(controlSum != null && controlSum > 0,
+            'PRECONDITION: with Status = Draft, the controller\'s aggregate sums the memo. Got ' + controlSum);
 
         Test.startTest();
         RLM_CollectionsDashboardController.CollectionsDashboardData cards =
