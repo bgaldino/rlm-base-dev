@@ -280,7 +280,6 @@ def read_logins(home):
                         "org": org[:15],
                         "linked": linked,
                         "is_hub": bool(data.get("isDevHub")),
-                        "dev_hub": data.get("devHubUsername"),
                         "is_sandbox": bool(data.get("isSandbox")),
                         # A JWT login re-signs with its key, so only one with neither expires with its session.
                         "refreshable": bool(data.get("refreshToken") or data.get("privateKey")),
@@ -293,13 +292,6 @@ def read_logins(home):
         unread[name] = why
         if not (isinstance(data, dict) and isinstance(data.get("username"), str) and not data.get("isDevHub")):
             maybe_hubs.append(name)
-    # sf sets isDevHub once, from a probe at login, and leaves it false if the probe failed; a login
-    # that a scratch login names as its hub is a hub all the same, so it is queried and kept, and an
-    # unread one may be a hub. Names compare as the filesystem compares the login files.
-    named_hubs = {fold(info["dev_hub"]) for info in logins.values() if isinstance(info["dev_hub"], str)}
-    for info in logins.values():
-        info["is_hub"] = info["is_hub"] or fold(info["username"]) in named_hubs
-    maybe_hubs += [name for name, user in listed.items() if fold(user) in named_hubs and name not in maybe_hubs]
     return logins, unread, unreadable, "; ".join(blocks), listed, maybe_hubs
 
 
