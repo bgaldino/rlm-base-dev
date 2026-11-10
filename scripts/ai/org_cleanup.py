@@ -280,6 +280,7 @@ def read_logins(home):
                         "org": org[:15],
                         "linked": linked,
                         "is_hub": bool(data.get("isDevHub")),
+                        "dev_hub": data.get("devHubUsername"),
                         "is_sandbox": bool(data.get("isSandbox")),
                         # A JWT login re-signs with its key, so only one with neither expires with its session.
                         "refreshable": bool(data.get("refreshToken") or data.get("privateKey")),
@@ -292,6 +293,11 @@ def read_logins(home):
         unread[name] = why
         if not (isinstance(data, dict) and isinstance(data.get("username"), str) and not data.get("isDevHub")):
             maybe_hubs.append(name)
+    # sf sets isDevHub once, from a probe at login, and leaves it false if the probe failed; a login
+    # that a scratch login names as its hub is a hub all the same, so it is queried and kept.
+    named_hubs = {info["dev_hub"] for info in logins.values()}
+    for info in logins.values():
+        info["is_hub"] = info["is_hub"] or info["username"] in named_hubs
     return logins, unread, unreadable, "; ".join(blocks), listed, maybe_hubs
 
 
@@ -1379,6 +1385,8 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
         value = getattr(args, flag[2:], None)
         if value is not None and not value.strip():
             parser.error("{} needs a path".format(flag))
+        if value is not None:  # `--out=~/plan.json` reaches here unexpanded
+            setattr(args, flag[2:], os.path.expanduser(value))
 
     home = home or Path.home()
     project = project or Path.cwd()

@@ -85,7 +85,9 @@ python scripts/ai/org_cleanup.py audit --out <plan-path-outside-the-repo>
 
 The tool reads local auth, alias, tracking, `fileResponses`, config and cache state, then queries
 `ScratchOrgInfo` on every connected Dev Hub, by org ID and, for names with no login, by signup
-username. Only a removable class goes on the plan:
+username. A connected Dev Hub is a login marked `isDevHub`, or one a scratch login names as its
+`devHubUsername` (sf leaves the mark off when its check at login failed); either is never logged
+out. Only a removable class goes on the plan:
 
 | Hub evidence | Class | Result |
 |--------------|-------|--------|

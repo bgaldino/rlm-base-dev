@@ -292,6 +292,18 @@ class Evidence(Base):
         self.assertEqual(plan["hub_failures"], [HUB])
         self.assertEqual(plan["remove"]["logout"], [])
 
+    def test_a_login_a_scratch_login_names_as_its_hub_is_queried_and_kept(self):
+        # sf leaves isDevHub false when its probe at login failed; the scratch login still names it.
+        self.add_auth("hub2@x.invalid", "00DHUB000000002")
+        self.add_auth("live@x.invalid", "00DCC0000000001", devHubUsername="hub2@x.invalid")
+        cli = FakeCli(self.home, [row("00DHUB000000002")], {"old": "reused@x.invalid"},
+                      fail_hubs=["hub2@x.invalid"])
+        plan = self.plan(cli)
+        self.assertEqual(plan["hubs"], [HUB, "hub2@x.invalid"])
+        self.assertIn("hub2@x.invalid", plan["hub_failures"])
+        self.assertEqual(plan["remove"]["aliases"], [])  # no username is judged while a hub is silent
+        self.assertNotIn("hub2@x.invalid", plan["remove"]["logout"])
+
     def test_a_row_on_a_second_hub_counts_and_an_absent_row_elsewhere_does_not_block(self):
         self.add_auth("hub2@x.invalid", "00DHUB000000002", isDevHub=True)
         self.add_auth("rep@x.invalid", DEAD_ORG)
@@ -2903,6 +2915,11 @@ class PathsAndManifests(Base):
         cli = FakeCli(self.home)
         self.assertEqual(self.main(["apply", "--plan", str(self.home.parent / "missing.json")], cli), 1)
         self.assertEqual(cli.calls, [])
+
+    def test_a_path_written_with_a_tilde_after_an_equals_sign_is_expanded(self):
+        with mock.patch.dict(os.environ, {"HOME": str(self.home.parent)}):
+            self.assertEqual(self.main(["audit", "--out=~/plan.json"], FakeCli(self.home)), 0)
+        self.assertTrue((self.home.parent / "plan.json").is_file())
 
     def test_an_empty_plan_or_quarantine_path_is_refused(self):
         for argv in (["audit", "--out", ""], ["apply", "--plan", "p", "--quarantine", " "], ["apply", "--plan", " "]):
