@@ -165,10 +165,8 @@ private class RLM_QuoteModelUtilityTest {
             Pattern.matches('\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z', txn.EffectiveDate),
             'The effective date is an ISO timestamp: ' + txn.EffectiveDate
         );
-        Assert.areEqual(
-            stored.size(), txn.SalesTransactionItem.size(),
-            'Every quote line becomes one transaction item'
-        );
+        Assert.areEqual(2, stored.size(), 'PRECONDITION: the fixture quote has two lines');
+        Assert.areEqual(2, txn.SalesTransactionItem.size(), 'Every quote line becomes one transaction item');
 
         for (QuoteLineItem line : stored) {
             RLM_QuoteModelUtility.SalesTransactionItemModel item = itemFor(txn, line.Id);

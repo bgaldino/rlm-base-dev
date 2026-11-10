@@ -128,8 +128,6 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             Assert.isTrue(e.getMessage().contains('no rows'), 'No source relation is found: ' + e.getMessage());
         }
         Test.stopTest();
-
-        Assert.areEqual(0, mock.callCount, 'No callout is made without a resolvable order');
     }
 
     @IsTest

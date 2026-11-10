@@ -4,7 +4,12 @@
  * price book entry had one (a quote line on the same entry did get it). So the fixtures use plain
  * price book entries, and every line here counts as a subscription line.
  *
- * Production gaps are pinned below with "Known gap:" assertions.
+ * Documented, not pinned: results come from a map's values with no ORDER BY, so they do not follow
+ * input order and carry no order id. A flow that maps results back to a bulk batch of orders can
+ * stamp one order's term onto another's contract. The order is not deterministic, so no assertion
+ * can pin it.
+ *
+ * Production gaps that can be observed are pinned below with "Known gap:" assertions.
  */
 @IsTest
 private class RLM_OrderItemContractingUtilityTest {
@@ -77,8 +82,9 @@ private class RLM_OrderItemContractingUtilityTest {
         Assert.areEqual(12, r.outContractTerm, 'A partial final month counts as a month');
         Assert.areEqual(
             1, r.subscriptionItemCount,
-            'Known gap: two items, but the LIMIT 1 subquery caps subscriptionItemCount at 1; '
-                + 'update this test when it is fixed'
+            'Known gap: two items, but the LIMIT 1 subquery caps subscriptionItemCount at 1. That LIMIT 1 '
+                + 'also picks the latest end date, so a correct count needs its own aggregate or subquery; '
+                + 'the shipped flow only checks for zero. Update this test when it is fixed'
         );
     }
 
@@ -102,7 +108,8 @@ private class RLM_OrderItemContractingUtilityTest {
         Test.stopTest();
 
         Assert.areEqual(3, results.size(), 'One result per order');
-        // Results carry no order id and do not follow input order, so they are keyed by end date.
+        // Known gap (documented in the header): results carry no order id and do not follow input
+        // order, so this test can only match them to orders by end date.
         Map<Date, Integer> termByEndDate = new Map<Date, Integer>();
         for (RLM_OrderItemContractingUtility.OrderInfoResults r : results) {
             termByEndDate.put(r.outEndDate, r.outContractTerm);
