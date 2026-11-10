@@ -114,6 +114,25 @@ class UpdateToolchainSf(unittest.TestCase):
         self.assertEqual(warns[0].count(str(stale / "bin" / "sf")), 1, warns[0])
         self.assertNotIn(str(current / "bin" / "sf") + " ", warns[0].split("updated:")[1])
 
+    def test_an_unavailable_npm_still_updates_a_standalone(self):
+        # A plain `X="$(failing npm)"` assignment ends the script under `set -e`; the step must
+        # carry on and update the standalone with `sf update`, as it did before.
+        npm = executable(self.tmp / "tools" / "npm", "exit 1\n").parent
+        standalone = self.standalone("aisuite")
+        out, calls = self.run_step(npm, standalone)
+        self.assertEqual(calls, ["sf update (aisuite)"])
+        self.assertNotIn("WARN", out)
+
+    def test_one_copy_reached_through_a_symlinked_dir_is_named_once(self):
+        current, stale = self.npm_prefix("node24"), self.npm_prefix("node24-old")
+        alias = self.tmp / "stale-alias"
+        alias.symlink_to(stale / "bin")
+        out, _ = self.run_step(self.npm_tool(current), current / "bin", stale / "bin", alias)
+        warns = [ln for ln in out.splitlines() if ln.startswith("WARN sf CLI: other copies")]
+        self.assertEqual(len(warns), 1, out)
+        listed = warns[0].split("updated: ", 1)[1].split(" — ", 1)[0].split(" ")
+        self.assertEqual(listed, [str(stale / "bin" / "sf")], warns[0])
+
     def test_a_failed_npm_update_is_reported_not_fatal(self):
         prefix = self.npm_prefix("node24")
         npm = executable(self.tmp / "tools" / "npm",
