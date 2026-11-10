@@ -141,13 +141,13 @@ private class RLM_BSGTimelineControllerTest {
         Assert.isTrue(items.isEmpty(), 'A refused milestone query yields no milestones.');
     }
 
-    // A billing role gets "not found" (AuraHandledException) for an id with no BSG. The
-    // controller's result cannot show whether the not-found throw or a refused query ran, so
-    // the premise is the evidence: the role can run a copy of the controller's group query.
-    // That query is the only one reached: with no BSG the method throws before its schedule,
-    // suspension and milestone reads.
+    // A billing role can read the fields the controller's group query selects, and gets
+    // "not found" (AuraHandledException) for an id with no BSG. The controller hides a refusal
+    // (it wraps a refused query in the same AuraHandledException), so the premise, a copy of
+    // its query, is the evidence. That query is the only one reached: with no BSG the method
+    // throws before its schedule, suspension and milestone reads.
     @isTest
-    static void billingRole_canRunTheGroupQuery_unknownIdIsNotFound() {
+    static void billingRole_canReadTheControllersGroupFields() {
         User u = RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });

@@ -187,11 +187,11 @@ private class RLM_BSGContextControllerTest {
         Assert.isNull(ctx.arrangement);
     }
 
-    // A billing role gets the standard view for an id with no BSG. The controller's result
-    // cannot show whether the "no matching record" return or the catch ran, so the premise is
-    // the evidence: the role can run a copy of the controller's BSG query.
+    // A billing role can read the fields the controller's BSG query selects, and gets the
+    // standard view for an id with no BSG. The controller hides a refusal (its catch also
+    // returns the standard view), so the premise, a copy of its query, is the evidence.
     @isTest
-    static void getBSGContext_billingRole_unknownId_returnsStandard() {
+    static void billingRole_canReadTheControllersGroupFields() {
         User u = RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });

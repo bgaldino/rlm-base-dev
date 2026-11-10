@@ -11,6 +11,9 @@
  * unverified (capturing it needs a production seam).
  * The System.runAs test creates its user through RLM_BillingUITestUsers, which takes a
  * Billing permission set license seat.
+ * The other tests run as the deploying admin, whose USER_MODE reads of BillingAccount and
+ * AccountBillingAccount come from the System Administrator profile, not RLM_BillingUI
+ * (verified with RLM_BillingUI unassigned on a Release 264 org).
  *
  * Known gap (documented from a diagnostic run, not asserted by a test): on a Release 264
  * org, a run of the action with real records and this service's payload returned
@@ -302,8 +305,8 @@ private class RLM_BillingScheduleGroupServiceTest {
 
     // The expected options are built from the same BillingSchedule describe the service reads,
     // so these tests prove the describe source is used (labels, values and order). That this
-    // rules out the hard-coded fallback (not exercised) relies on the shipped value sets being
-    // larger than the fallback lists. Each test also checks one shipped value is offered.
+    // rules out the hard-coded fallback (not exercised) relies on the shipped value sets, which
+    // differ from the fallback lists. Each test also checks one shipped value is offered.
     @isTest
     static void billingTermUnitOptions_comeFromTheBillingSchedulePicklist() {
         List<String> expected = picklistLabelsAndValues('BillingTermUnit');
@@ -448,7 +451,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     static void createViaAPI_billingAccountWithoutAccount_throws() {
         BillingAccount orphan = new BillingAccount(Name = 'BSG Orphan BA');
         insert orphan;
-        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-NO' };
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-CONTROL' };
 
         List<BillingAccount> found = [
             SELECT Id, AccountId FROM BillingAccount WHERE Id = :orphan.Id WITH USER_MODE
@@ -467,7 +470,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Boolean threw = throwsAura(new CreateArgs(orphan.Id));
         Test.stopTest();
 
-        Assert.areEqual('REQ-NO', control.requestId,
+        Assert.areEqual('REQ-CONTROL', control.requestId,
             'PRECONDITION: the same defaults with a billing account that has an Account are accepted.');
         Assert.isTrue(threw, 'A billing account with no resolvable account must be rejected.');
     }
