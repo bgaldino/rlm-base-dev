@@ -394,7 +394,7 @@ Node LTS refreshes, sf/CCI/SFDMU upgrades) are handled by a single script:
 scripts/bash/update-toolchain.sh
 ```
 
-It walks `brew update` → keep `openssl@3` installed on request → `brew upgrade --formula` (casks are yours to upgrade) → latest patch in your pinned Python line (stopping if it can't import `ssl`) → the newest patch of the Node line in `.nvmrc` → `sf` via `npm install -g`, or `sf update` for an installer-based `sf` → CCI reinstall/upgrade → Robot pins re-injected → `sf plugins update` → gate interpreter `.venv` refresh (if it exists) → `cci task run validate_setup`. Major-line pins: Python's (3.13) is at the top of the script, Node's (24) is `.nvmrc`.
+It walks `brew update` → keep `openssl@3` installed on request → `brew upgrade --formula` (casks are yours to upgrade) → latest patch in your pinned Python line (stopping if it can't import `ssl`) → the newest patch of the Node line in `.nvmrc` → the `sf` that runs, via `npm install -g` for an npm install or `sf update` for an installer-based one (other copies on PATH are named, not updated) → CCI reinstall/upgrade → Robot pins re-injected → `sf plugins update` → gate interpreter `.venv` refresh (if it exists) → `cci task run validate_setup`. Major-line pins: Python's (3.13) is at the top of the script, Node's (24) is `.nvmrc`.
 
 For the full architecture — shell config responsibilities, the per-project `.envrc` pattern via [direnv](https://direnv.net/), troubleshooting, and instructions for replicating on a new workstation — see [`docs/guides/dev-environment-setup.md`](dev-environment-setup.md).
 
