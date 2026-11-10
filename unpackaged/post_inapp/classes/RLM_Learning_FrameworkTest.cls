@@ -22,21 +22,26 @@
  *    userInformation_paths use it, and learnerProfileGrantsNoLearningObjectAccess
  *    checks its profile. In the Apex test context user inserts are not limited
  *    by free seats (observed on a Release 264 org: 22 Minimum Access users
- *    inserted with 12 free seats). When the learner cannot be created (no
- *    Minimum Access profile, RLM_Learning missing, or LICENSE_LIMIT_EXCEEDED
- *    on the insert), learnerCannotResequenceRowsItDoesNotOwn returns early with
- *    a WARN "SKIPPED" debug line and userInformation_paths calls getName as
- *    the runner instead.
+ *    inserted with 12 free seats). The learner is created lazily by learner(),
+ *    only in the tests that use it, so a failure to create it affects only
+ *    those tests. When it cannot be created (no Minimum Access profile,
+ *    RLM_Learning missing, or LICENSE_LIMIT_EXCEEDED on the insert),
+ *    learnerCannotResequenceRowsItDoesNotOwn returns early with a WARN
+ *    "SKIPPED" debug line, the sentinel skips its assignment check, and
+ *    userInformation_paths calls getName as the runner instead. Any other
+ *    insert failure is rethrown and fails the test that asked for the learner.
  *
  * The runner owns the test content. Other users read it through the Public
  * Read/Write sharing model; a user can delete only the rows it owns, unless it
  * is above the owner in the role hierarchy or holds Modify All.
  *
- * Known gaps, not covered here:
+ * Pinned known gaps:
  *  - Ownership. Re-sequencing a section deletes its junction rows, so a user
  *    who does not own them (for example a learner, for content an admin
  *    loaded) cannot re-sequence that section;
  *    learnerCannotResequenceRowsItDoesNotOwn pins this.
+ *
+ * Not covered here:
  *  - Setup lookups. The setup-page map (custom metadata), FlowDefinitionView,
  *    Network and Organization lookups run as the runner here. In production
  *    they run as the learner, and RLM_Learning grants no custom-metadata-type
@@ -47,7 +52,6 @@ private class RLM_Learning_FrameworkTest {
   @TestSetup
   static void makeData() {
     insertContent();
-    createLearner();
   }
 
   static void insertContent() {
@@ -202,9 +206,27 @@ private class RLM_Learning_FrameworkTest {
     }
   }
 
-  // The learner, or null (with a WARN "SKIPPED" line) when @TestSetup could
-  // not create one.
+  // The learner, created on first use in this test, or null (with a WARN
+  // "SKIPPED" line) when it cannot be created.
   static User learner() {
+    User existing = findLearner();
+    if (existing != null) {
+      return existing;
+    }
+    createLearner();
+    User created = findLearner();
+    if (created == null) {
+      System.debug(
+        LoggingLevel.WARN,
+        'SKIPPED: least-privilege learner could not be created (no Minimum Access profile, ' +
+        'RLM_Learning missing, or LICENSE_LIMIT_EXCEEDED on the user insert)'
+      );
+    }
+    return created;
+  }
+
+  // Found by its fixed markers plus the RLM_Learning assignment.
+  static User findLearner() {
     List<User> found = [
       SELECT Id, FirstName, ProfileId
       FROM User
@@ -214,15 +236,7 @@ private class RLM_Learning_FrameworkTest {
         AND Id IN (SELECT AssigneeId FROM PermissionSetAssignment WHERE PermissionSet.Name = 'RLM_Learning')
       LIMIT 1
     ];
-    if (found.isEmpty()) {
-      System.debug(
-        LoggingLevel.WARN,
-        'SKIPPED: least-privilege learner could not be created (no Minimum Access profile, ' +
-        'RLM_Learning missing, or LICENSE_LIMIT_EXCEEDED on the user insert)'
-      );
-      return null;
-    }
-    return found[0];
+    return found.isEmpty() ? null : found[0];
   }
 
   // Every custom object the learning content is stored in.
@@ -841,7 +855,7 @@ private class RLM_Learning_FrameworkTest {
   // the runner, whatever the runner holds. Each call must throw without running
   // a query.
   @IsTest
-  static void updateSectionBlocks_validationErrors() {
+  static void sectionBlockSequence_validationErrors() {
     Id secId = sectionByHeader('H').Id;
     List<String> notThrown = new List<String>();
     List<String> afterQuery = new List<String>();
@@ -1300,7 +1314,11 @@ private class RLM_Learning_FrameworkTest {
     Id siteId = null;
     String loginUrl = null;
     for (SObject candidate : networks) {
-      loginUrl = Network.getLoginUrl(candidate.Id);
+      try {
+        loginUrl = Network.getLoginUrl(candidate.Id);
+      } catch (Exception e) {
+        loginUrl = null; // this network has no usable login URL; try the next
+      }
       if (loginUrl != null) {
         siteId = candidate.Id;
         break;

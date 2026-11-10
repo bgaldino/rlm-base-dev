@@ -105,13 +105,18 @@ private class RLM_AI_AttributeResolverTest {
         Definitions defs = createDefinitions();
         Id classificationId = createClassification(defs);
         Id lineId = createLine('RLM Resolver Classified', classificationId);
-        Assert.areEqual(2, [
+        Assert.areEqual(1, [
             SELECT COUNT() FROM ProductClassificationAttr
             WHERE ProductClassificationId = :classificationId
               AND Status = 'Active'
-              AND (IsHidden = true OR IsReadOnly = true)
-        ], 'PRECONDITION: one hidden and one read-only Active attribute are on the classification, '
-            + 'so only those flags can exclude them.');
+              AND IsHidden = true AND IsReadOnly = false
+        ], 'PRECONDITION: one Active attribute is hidden but not read-only, so only IsHidden can exclude it.');
+        Assert.areEqual(1, [
+            SELECT COUNT() FROM ProductClassificationAttr
+            WHERE ProductClassificationId = :classificationId
+              AND Status = 'Active'
+              AND IsReadOnly = true AND IsHidden = false
+        ], 'PRECONDITION: one Active attribute is read-only but not hidden, so only IsReadOnly can exclude it.');
         Assert.areEqual(1, [
             SELECT COUNT() FROM ProductClassificationAttr
             WHERE ProductClassificationId = :classificationId
