@@ -1514,9 +1514,9 @@ def test_writeback_apply_diffs_only_the_dropped_field(repo_copy):
 def test_a_bare_page_name_is_refused_with_the_file_name_to_use():
     from scripts.ux._assemble import validate_selection
     with pytest.raises(UxOptionError, match=r"Use the full file name, e\.g\. 'RLM_Case_Record_Page\.flexipage-meta\.xml'"):
-        validate_selection("all", "RLM_Case_Record_Page")
+        validate_selection("flexipages", "RLM_Case_Record_Page", ("flexipages",))
     with pytest.raises(UxOptionError) as err:  # a name with a suffix gets no guessed hint
-        validate_selection("all", "RLM_Case_Record_Page.txt")
+        validate_selection("flexipages", "RLM_Case_Record_Page.txt", ("flexipages",))
     assert "Use the full file name" not in str(err.value)
 
 
@@ -1688,3 +1688,17 @@ def test_a_comment_that_ends_a_block_scalar_is_seen_though_deeper_than_its_key()
     # At or below the content indent it is still part of the xml.
     assert not _has_comment(['    xml: |2\n', '          <x/>\n', '      # content\n'])
     assert not _has_comment(['    xml: |\n', '      <x>\n', '        # content\n', '      </x>\n'])
+
+
+def test_the_bare_name_hint_follows_the_requested_type():
+    from scripts.ux._assemble import validate_selection
+    with pytest.raises(UxOptionError, match=r"e\.g\. 'Case-Case Layout\.layout-meta\.xml'\."):
+        validate_selection("layouts", "Case-Case Layout")
+    with pytest.raises(UxOptionError) as err:  # objects has three suffixes: name each
+        validate_selection("objects", "Quote")
+    assert "'Quote.object-meta.xml'" in str(err.value) and "'Quote.listView-meta.xml'" in str(err.value)
+    with pytest.raises(UxOptionError, match=r"e\.g\. 'RLM_Case_Record_Page\.flexipage-meta\.xml'\."):
+        validate_selection("flexipages", "RLM_Case_Record_Page", ("flexipages",))
+    with pytest.raises(UxOptionError) as err:  # "all" spans seven suffixes: no single guess
+        validate_selection("all", "Thing")
+    assert "Use the full file name" not in str(err.value)

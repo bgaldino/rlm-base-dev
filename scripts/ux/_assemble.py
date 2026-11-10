@@ -142,9 +142,16 @@ def validate_selection(
             )
         resolved = resolve_type_from_name(metadata_name)
         if resolved is None:
+            # Suggest only names that pass the checks below: the requested type's
+            # suffixes, or with "all" those of the supported types.
+            candidates = [
+                sfx for sfx, kind in SUFFIX_TO_TYPE.items()
+                if (kind == metadata_type if metadata_type != "all" else kind in supported)
+            ]
             hint = (
-                f" Use the full file name, e.g. '{metadata_name}{FLEXIPAGE_SUFFIX}'."
-                if "." not in metadata_name else ""
+                " Use the full file name, e.g. "
+                + " or ".join(f"'{metadata_name}{sfx}'" for sfx in candidates) + "."
+                if "." not in metadata_name and 0 < len(candidates) <= 3 else ""
             )
             raise UxOptionError(
                 f"Cannot determine metadata type from filename: '{metadata_name}'. "
