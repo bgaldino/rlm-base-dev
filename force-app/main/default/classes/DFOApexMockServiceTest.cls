@@ -1,3 +1,8 @@
+/**
+ * Not covered: the response executeCallout returns (success flag set, response code 500). The call
+ * goes through the framework's HttpBaseProvider, which cannot be subclassed and whose callout
+ * ignores Test.setMock, so no test can get past the send.
+ */
 @IsTest
 private class DFOApexMockServiceTest {
 

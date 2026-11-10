@@ -6,7 +6,8 @@
  *
  * Activating the contract fires the RLM_Contract_Activation_Refresh_Pricing_Tables flow. Its three
  * refreshDecisionTable calls were verified on a live 264 org to run cleanly in test context (each
- * returns Queued; the fault path is never taken).
+ * returns Queued). A refresh that faulted would be absorbed by the flow's fault sink, so the
+ * activation would not roll back.
  *
  * Production gaps are pinned below with "Known gap:" assertions.
  */
@@ -106,7 +107,9 @@ private class RLM_AssetInfoUtilityTest {
             l.assetId = assets[i].Id;
             lines.add(l);
         }
-        for (Asset a : [SELECT RenewalTerm, RenewalTermUnit, PricingSource FROM Asset WHERE Id IN :assets]) {
+        List<Asset> stored = [SELECT RenewalTerm, RenewalTermUnit, PricingSource FROM Asset WHERE Id IN :assets];
+        Assert.areEqual(count, stored.size(), 'PRECONDITION: every seeded asset is stored');
+        for (Asset a : stored) {
             assertSeeded(ctx, a, 'PRECONDITION: seeded values are stored');
         }
         return lines;

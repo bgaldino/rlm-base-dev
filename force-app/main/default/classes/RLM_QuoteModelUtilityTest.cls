@@ -4,6 +4,11 @@
  * is not zero at the quote's CreatedDate (e.g. Europe/London during BST), so no fixed expected
  * value holds for every runner; the test checks only its format.
  *
+ * Not covered: attribute mapping (QuoteLineItemAttribute rejects plain DML, and a row saved with
+ * Database.insertImmediate is not returned by SOQL in the same test transaction). Not asserted:
+ * StartProrationPeriod, StartProrationPeriodMonth, and the relationship's RootProductSellingModel
+ * and MainItemProductSellingModel.
+ *
  * Production gaps that can be observed are pinned below with "Known gap:" assertions.
  */
 @IsTest
@@ -290,9 +295,6 @@ private class RLM_QuoteModelUtilityTest {
             );
         }
     }
-
-    // Attribute mapping is not covered: QuoteLineItemAttribute rejects plain DML, and a row saved
-    // with Database.insertImmediate is not returned by SOQL in the same test transaction.
 
     @IsTest
     static void largeQuoteUsesConstantQueries() {

@@ -226,9 +226,10 @@ private class RLM_OrderItemContractingUtilityTest {
     }
 
     /**
-     * A Minimum Access user: no object access to Order, OrderItem or OrderAction. Returns null
-     * when the org has no "Minimum Access - Salesforce" profile (a standard profile, so rare) or
-     * no free Salesforce seat for the user.
+     * A Minimum Access user: no object access to Order, OrderItem or OrderAction. Returns null,
+     * after logging a SKIPPED warning, when no profile has the English name "Minimum Access -
+     * Salesforce" (standard profile names can be translated, so a non-English running user always
+     * skips) or when there is no free Salesforce seat.
      */
     private static User minimumAccessUser() {
         List<Profile> profiles = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
