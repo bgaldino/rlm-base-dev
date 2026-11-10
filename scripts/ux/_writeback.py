@@ -276,7 +276,8 @@ for _dumper in (_PatchDumper, _FlushPatchDumper):
     _dumper.add_representer(_BlockStr, _block_repr)
     _dumper.add_representer(_QuotedStr, _quoted_repr)
 
-_QUOTED_KEY = re.compile(r'^[ \t]*(?:- )?([A-Za-z_][\w-]*):[ \t]+"', re.M)
+_QUOTED_KEY = re.compile(
+    r'''^[ \t]*(?:- )?(?:"([^"\n]+)"|'([^'\n]+)'|([A-Za-z_][\w-]*)):[ \t]+"''', re.M)
 _QUOTED_ITEM = re.compile(r'^[ \t]*- "', re.M)
 
 
@@ -289,7 +290,8 @@ def _in_file_style(value: Any, text: str) -> Any:
     double-quoted, so a re-rendered entry does not change quoting it never meant
     to. Multi-line ``xml``/``anchor`` values stay block strings.
     """
-    quoted_keys = set(_QUOTED_KEY.findall(text))
+    # A key may itself be quoted (``"after": "Edit"``); its value's quoting counts all the same.
+    quoted_keys = {next(k for k in groups if k) for groups in _QUOTED_KEY.findall(text)}
     quote_items = bool(_QUOTED_ITEM.search(text))
 
     def style(v: Any, key: Optional[str], in_list: bool) -> Any:

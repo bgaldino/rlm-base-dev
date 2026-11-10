@@ -1667,3 +1667,14 @@ def test_a_quote_inside_a_plain_word_does_not_hide_a_later_comment():
     assert _has_comment(["    name: a-'b # rationale\n"])
     assert _has_comment(['    label: Record-"Main" view # keep\n'])
     assert not _has_comment(['    - "a # b"\n', '    ["c # d"]\n'])
+
+
+def test_a_quoted_key_keeps_its_value_quoted_when_the_value_changes():
+    import yaml
+    text = ('feature: demo\npatches:\n  - "type": insert_action\n    "after": "Edit"\n'
+            '    actions:\n      - "Order.First"\n')
+    entries = _entries(text)
+    entries[0]["after"] = "Delete"
+    out = _rewrite(text, entries)
+    assert yaml.safe_load(out)["patches"][0]["after"] == "Delete"
+    assert 'after: "Delete"' in out  # the value stays double-quoted, as the file writes it
