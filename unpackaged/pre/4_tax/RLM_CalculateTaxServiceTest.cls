@@ -121,8 +121,9 @@ private with sharing class RLM_CalculateTaxServiceTest {
         Test.stopTest();
 
         Assert.isNotNull(caught,
-            'Known gap: a request without a tax transaction type throws after the callout, because the null '
-            + 'is passed unvalidated to setTaxTransactionType (the mock adapters default it to Debit). '
+            'Known gap: a request without a tax transaction type throws a raw NullPointerException after the '
+            + 'callout, because the null is passed unvalidated to setTaxTransactionType (the mock adapters '
+            + 'default it to Debit). '
             + 'Update this test when it is fixed.');
         // The setter's exception type is platform behaviour (see the accepted risk in RLM_TaxTestFactory).
         Assert.areEqual('System.NullPointerException', caught.getTypeName(), 'The platform setter throws: ' + caught);
@@ -160,10 +161,10 @@ private with sharing class RLM_CalculateTaxServiceTest {
         }
         Test.stopTest();
 
-        Assert.isNotNull(caught, 'A null line list should fail rather than return a response.');
-        Assert.isInstanceOfType(caught, NullPointerException.class,
-            'Known gap: a null line list is not guarded and throws a NullPointerException instead of an '
-            + 'error response. Update this test when it is fixed. ' + caught);
+        Assert.isNotNull(caught,
+            'Known gap: a null line list is not guarded and throws a raw NullPointerException instead of '
+            + 'an error response. Update this test when it is fixed.');
+        Assert.isInstanceOfType(caught, NullPointerException.class, 'The original exception is rethrown: ' + caught);
         Assert.areEqual(0, mock.requests.size(), 'No callout is made when the request is unusable.');
     }
 }
