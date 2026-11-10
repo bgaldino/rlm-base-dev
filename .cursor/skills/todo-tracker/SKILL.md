@@ -88,6 +88,9 @@ If `.agents/artifacts/` is empty, nothing above will work — clone it:
 git clone https://github.com/bgaldino/rlm-base-artifacts.git .agents/artifacts
 ```
 
+Then follow that repository's README to enable its hooks; its layout check runs only once
+they are enabled.
+
 Access is limited. If the clone fails, say so plainly and continue without the tracker
 rather than inventing what might be in it.
 

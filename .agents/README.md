@@ -133,7 +133,7 @@ Keep private tracker payloads and generated working artifacts out of public
 commits. `.agents/artifacts/` is gitignored; authorized maintainers synchronize
 it as a private nested repository. Inside it, placement follows
 `.cursor/rules/analysis-artifacts.mdc` and the private repository's own README;
-its pre-commit hook rejects misplaced files.
+its pre-commit hook, once enabled as that README describes, rejects misplaced files.
 
 ### PMOS integration
 

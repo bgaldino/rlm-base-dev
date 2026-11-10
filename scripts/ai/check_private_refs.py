@@ -8,10 +8,10 @@ clone and CI never have the tree, so citations can rot unseen: of 16 paths cited
 
 Three checks, in order:
 
-(a) Leak guard — GATING. No tracked path may contain a `.agents/` segment followed by a name
-    starting with `artifacts` (any case), at the root or nested: the clone, sibling backups such
-    as `.agents/artifacts.old/` and case variants are all private copies, and `.gitignore`
-    ignores them all, so only a forced add tracks one. Nor may a path contain `-core-code-`.
+(a) Leak guard — GATING. No tracked file may be one the repository's own `.gitignore` files
+    ignore: they ignore the private clone with every sibling and case-variant copy of it, and
+    the other local-only content, so a tracked one was force-added (or predates the rule).
+    `.gitignore` is the one definition; git answers the question.
 (b) Shape. Every `.agents/artifacts/<x>` literal in tracked text must be the bare directory, a
     template or glob, or start with a private tier (PRIVATE_TIERS). A top-level-shaped citation
     is a warning until SHAPE_GATING is switched on, once the citations are rewritten (todo 358,
@@ -46,7 +46,7 @@ PRIVATE_TIERS = ("todos", "topics", "archive", "memory", "reports", "inbox", "to
 
 SHAPE_GATING = False  # todo 358 PR-B turns this on after rewriting the citations below it
 
-PLACEHOLDER = re.compile(r"\{[^}]*\}|<[^>]*>|\$\{?\w+\}?|\*+")
+PLACEHOLDER = re.compile(r"\{[^}]*\}|\$\{?\w+\}?|\*+")
 
 # Files whose citations are deliberate examples of a wrong path, with the reason.
 EXEMPT = {
@@ -54,17 +54,19 @@ EXEMPT = {
 }
 
 # A path ends at whitespace, quoting or bracketing punctuation (typographic dashes and quotes
-# included), a URL anchor/query, or Markdown emphasis (`**` wrapped around a citation), which
-# would otherwise read as a glob and be skipped.
-LITERAL = re.compile(r"\.agents/artifacts(?![\w.-])(/[^\s`'\"()\[\]<>|,;#?*\u2013\u2014\u2018\u2019\u201c\u201d\u2026]*)?")
-# What follows a path in prose but is not part of it: a `:12` or `:12:3` location, then sentence
-# punctuation or `_italics_`.
-TRAILER = re.compile(r"(?::\d+){0,2}[.:_]*$")
-GLOB_TAIL = re.compile(r"\*+[\w./-]")
+# included), or a URL anchor/query. A `*` stays in it: a glob is a template, not a path.
+LITERAL = re.compile(r"\.agents/artifacts(?![\w.-])(/[^\s`'\"()\[\]<>|,;#?\u2013\u2014\u2018\u2019\u201c\u201d\u2026]*)?")
+# What follows a path in prose but is not part of it: a `:12`, `:12:3` or `:12-20` location,
+# then sentence punctuation or `_italics_`.
+TRAILER = re.compile(r"(?::\d+(?:-\d+)?){0,2}[.:_]*$")
 
 
-def tracked() -> list[str]:
-    out = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, capture_output=True, check=True).stdout
+def tracked_but_ignored() -> list[str]:
+    """Tracked files the repository's own `.gitignore` files ignore. Only those files are read:
+    no global excludes file, and case-sensitive matching, so every workstation and CI agree."""
+    out = subprocess.run(["git", "-c", "core.ignorecase=false", "ls-files", "-z", "-c", "-i",
+                          "--exclude-per-directory=.gitignore"], cwd=REPO, capture_output=True,
+                         check=True).stdout
     return [p for p in out.decode("utf-8", "replace").split("\0") if p]
 
 
@@ -81,7 +83,7 @@ def citing() -> list[str]:
 
 
 def classify(rel: str) -> str:
-    """'bare', 'template', 'tier' or 'top-level' for a path that may start with `.agents/artifacts`."""
+    """'bare', 'template', 'tier' or 'top-level' for a citation, which starts with `.agents/artifacts`."""
     rest = rel[len(ROOT):].strip("/")
     if not rest:
         return "bare"
@@ -92,14 +94,6 @@ def classify(rel: str) -> str:
     # concrete top-level name with a placeholder inside it (`x-{release}.md`) is still a
     # top-level citation.
     return "template" if PLACEHOLDER.fullmatch(first) else "top-level"
-
-
-def is_private_path(path: str) -> bool:
-    """Whether a repository path is inside the private tree or a copy of it: a `.agents/` segment
-    followed by a name starting `artifacts`, any case, at any depth, as `.gitignore` has it. Any
-    such copy is ignored, so a tracked one was added on purpose (`git add -f`) or before the
-    rule."""
-    return ("/" + path.casefold()).find("/" + ROOT) != -1
 
 
 def clone_present(tree: Path) -> bool:
@@ -162,13 +156,10 @@ def citations(paths: list[str]):
         # \x85 and U+2028/9.
         for n, line in enumerate(text.split("\n"), 1):
             for m in LITERAL.finditer(line):
-                lit = TRAILER.sub("", m.group(0))
-                # A glob (`inbox/2026-*-notes.md`): keep its `*`, so it reads as a template and
-                # is not resolved as if the text before the `*` were a path. Bold (`**x**`) is
-                # not a glob: what follows its stars is not part of a path.
-                if GLOB_TAIL.match(line, m.end()):
-                    lit += "*"
-                yield rel, n, lit
+                lit = m.group(0)
+                if m.start() and line[m.start() - 1] == "*":  # **bold**: its closing stars
+                    lit = TRAILER.sub("", lit).rstrip("*")      # are not a glob
+                yield rel, n, TRAILER.sub("", lit)
 
 
 def main(argv: list[str]) -> int:
@@ -182,14 +173,12 @@ def main(argv: list[str]) -> int:
 
 
 def _check() -> int:
-    paths = tracked()
     errors: list[str] = []
     warnings: list[str] = []
 
-    for p in paths:  # (a)
-        if is_private_path(p) or "-core-code-" in p.casefold():
-            errors.append(f"{p}: private content is tracked in the public repo; remove it "
-                          f"(git rm --cached) and keep it in the private tree")
+    for p in tracked_but_ignored():  # (a)
+        errors.append(f"{p}: tracked although .gitignore ignores it (private or local-only "
+                      f"content); remove it (git rm --cached) and keep it in the private tree")
 
     tree = REPO / ROOT
     present = clone_present(tree)

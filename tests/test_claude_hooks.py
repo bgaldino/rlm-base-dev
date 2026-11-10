@@ -589,17 +589,31 @@ def verdict(case, proc):
     return "allow"
 
 
+def _outside_any_repo(case, path):
+    """Skip when `path` sits inside a git work tree (a $TMPDIR inside a checkout), since the
+    case needs a folder no repository contains."""
+    for d in (Path(path), *Path(path).parents):
+        if (d / ".git").exists():
+            case.skipTest(f"{path} is inside a git work tree ({d})")
+
+
 class ArtifactsPlacement(unittest.TestCase):
     """Rule 4: the private tree's top level is closed, its archive and tooling ask, and a
-    misnamed, misplaced or missing tree is refused. Judged on the path as spelled."""
+    misnamed, misplaced or missing tree is refused. Judged on the path as spelled. Table cases
+    run in-process; the hook's own protocol (exit codes, stdin) is exercised by run_write."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.guard = _guard_module()
+        cls.guard.stop_file = lambda cwd: None  # loop-agent stop files are KillSwitch's subject
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         (self.tmp / ".git").mkdir()  # the public repository: misnamed folders here get committed
         self.tree = self.tmp / ".agents" / "artifacts"
         for d in ("topics/collections", "inbox", "todos/attachments", "archive/2026/x",
-                  "verification", ".git/hooks"):  # .git: the private clone is a repo of its own
-            (self.tree / d).mkdir(parents=True)
+                  "verification", "tools", ".githooks", ".git/hooks"):
+            (self.tree / d).mkdir(parents=True)  # .git: the private clone is a repo of its own
 
     def tearDown(self):
         shutil.rmtree(self.tmp)
@@ -611,17 +625,30 @@ class ArtifactsPlacement(unittest.TestCase):
         return run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input,
                                 "cwd": str(cwd or self.tmp)}, env=env)
 
+    def event(self, tool, tool_input, cwd=None):
+        """The decision for one event, through the hook process."""
+        return verdict(self, run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input,
+                                              "cwd": str(cwd or self.tmp)}))
+
     def decide(self, rel, tool="Write", cwd=None, raw=False):
         """The decision for `rel`, sent the way Claude Code sends it: absolute, `~` expanded and
         normalised (`backfillObservableInput`), unless `raw` sends the text as typed."""
         cwd = cwd or self.tmp
         path = rel if raw else os.path.normpath(os.path.join(str(cwd), os.path.expanduser(rel)))
-        return verdict(self, self.run_write(path, cwd=cwd, tool=tool))
+        tool_input = {"file_path": path, "content": "x\n"}
+        if tool == "Edit":
+            tool_input = {"file_path": path, "old_string": "a", "new_string": "b"}
+        return self.guard.decide({"tool_name": tool, "tool_input": tool_input,
+                                  "cwd": str(cwd)})[0]
 
     def test_a_new_top_level_file_or_folder_is_denied(self):
         self.assertEqual(self.decide(".agents/artifacts/feature-gaps.md"), "deny")
         self.assertEqual(self.decide(str(self.tree / "new-topic" / "notes.md")), "deny")
         self.assertEqual(self.decide(".agents/artifacts/stray/.agents/artifacts/a.md"), "deny")
+        proc = self.run_write(str(self.tree / "feature-gaps.md"))
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("an existing topics/<slug>/", proc.stderr)  # no invented topic
+        self.assertIn("do not invent a topic", proc.stderr)
 
     def test_tier_paths_and_existing_folders_are_allowed(self):
         for rel in ("topics/collections/gaps.md", "inbox/2026-11-09-gaps.md",
@@ -640,18 +667,22 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide(".agents/artifacts/archive/2026/x/HANDOFF.md"), "ask")
 
     def test_writes_to_the_clones_own_tooling_ask(self):
-        # Its git dir (core.hooksPath lives in its config), the hooks it runs and the layout
-        # check they call back this rule up for Bash writes; any of them can switch that off.
+        # Its git dir, the hooks it runs and the layout check they call back this rule up for
+        # Bash writes; any of them can switch that off.
         for rel in (".git/hooks/pre-commit", ".git/config", ".githooks/pre-commit",
                     "tools/check_layout.py"):
             self.assertEqual(self.decide(f".agents/artifacts/{rel}"), "ask", rel)
 
-    def test_archive_and_tooling_names_match_case_insensitively(self):
-        # A case-insensitive disk treats ARCHIVE/ as archive/; on a sensitive one asking is
-        # still the safe answer for a name that close.
+    def test_a_case_variant_is_the_entry_only_where_the_disk_says_so(self):
+        # Where the disk resolves ARCHIVE/ to archive/ it asks as archive/; on a case-sensitive
+        # disk it would be a new top-level entry, and is refused like one.
+        insensitive = (self.tree / "ARCHIVE").exists()
         for rel in ("ARCHIVE/2026/x/a.md", "Archive/new.md", "Tools/check_layout.py",
                     ".GIT/config", ".GitHooks/pre-commit"):
-            self.assertEqual(self.decide(f".agents/artifacts/{rel}"), "ask", rel)
+            self.assertEqual(self.decide(f".agents/artifacts/{rel}"),
+                             "ask" if insensitive else "deny", rel)
+        shutil.rmtree(self.tree / "archive")  # a variant of a missing entry is a new entry
+        self.assertEqual(self.decide(".agents/artifacts/Archive/new.md"), "deny")
 
     def test_sibling_and_variant_spellings_are_denied(self):
         for rel in (".agents/artifacts.old/notes.md", ".agents/artifacts-backup/notes.md",
@@ -660,7 +691,7 @@ class ArtifactsPlacement(unittest.TestCase):
                     # spelling refuses it.
                     ".agents/Artifacts/inbox/2026-11-09-a.md",
                     # U+017F casefolds to "s": caught by casefold(), not by lower().
-                    ".agents/artifact\u017f/newtop.md", ".agent\u017f/artifacts/newtop.md"):
+                    ".agents/artifactſ/newtop.md", ".agentſ/artifacts/newtop.md"):
             self.assertEqual(self.decide(rel), "deny", rel)
         proc = self.run_write(str(self.tmp / ".agents" / "artifacts.old" / "a.md"))
         self.assertIn("is not `.agents/artifacts` exactly", proc.stderr)
@@ -668,6 +699,7 @@ class ArtifactsPlacement(unittest.TestCase):
     def test_a_variant_folder_above_the_repository_is_not_judged(self):
         # Only pairs inside the work tree count: a checkout that happens to live under a folder
         # named like a sibling is judged by its own `.agents/artifacts`.
+        _outside_any_repo(self, self.tmp.parent)
         outer = self.tmp / "scratch" / ".agents" / "artifacts.old" / "proj"
         (outer / ".git").mkdir(parents=True)
         (outer / ".agents" / "artifacts" / ".git").mkdir(parents=True)
@@ -678,7 +710,8 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide(str(outer / ".agents" / "artifacts" / "newtop.md")), "deny")
 
     def test_spelling_rules_apply_only_inside_a_git_work_tree(self):
-        with tempfile.TemporaryDirectory() as scratch:  # no `.git` anywhere above it
+        with tempfile.TemporaryDirectory() as scratch:
+            _outside_any_repo(self, scratch)
             for rel in (".agents/artifacts.old/notes.md", ".agents/Artifacts/x.md",
                         ".agents/artifacts/x.md"):
                 self.assertEqual(self.decide(rel, cwd=scratch), "allow", rel)
@@ -692,7 +725,7 @@ class ArtifactsPlacement(unittest.TestCase):
         with tempfile.TemporaryDirectory() as other:
             (Path(other) / ".git").write_text("gitdir: elsewhere\n")  # a worktree's .git file
             proc = self.run_write(str(Path(other) / ".agents" / "artifacts" / "inbox" / "a.md"),
-                                  cwd=other, env={"CLAUDE_PROJECT_DIR": str(self.tmp)})
+                                  cwd=other)
         self.assertEqual(proc.returncode, 2)
         self.assertIn("not cloned in this checkout", proc.stderr)
         self.assertIn("Maintainers clone it here", proc.stderr)
@@ -703,6 +736,8 @@ class ArtifactsPlacement(unittest.TestCase):
         proc = self.run_write(str(self.tree / "inbox" / "a.md"))
         self.assertEqual(proc.returncode, 2)
         self.assertIn("not the private clone (a git repository of its own)", proc.stderr)
+        (self.tree / ".git").symlink_to(self.tmp / "nowhere")  # a dangling `.git` is no clone
+        self.assertEqual(self.decide(str(self.tree / "inbox" / "a.md")), "deny")
 
     def test_a_link_to_an_ancestor_is_not_the_clone(self):
         # `.agents/artifacts -> ..` reaches the public repo, which has a `.git`: treating it as the
@@ -750,28 +785,48 @@ class ArtifactsPlacement(unittest.TestCase):
                               (str(self.tmp / "lnk/../.agents/artifacts/newtop.md"), "deny"),
                               ("~/x.md", "allow")):
             self.assertEqual(self.decide(raw, raw=True), expected, raw)
+        # A relative cwd is resolved too, rather than leaving the path relative (fail-open).
+        self.assertEqual(self.guard.resolve_path("x/y.md", ""), os.path.abspath("x/y.md"))
 
-    def test_a_deep_path_is_asked_about_quickly(self):
+    def test_the_depth_cap_asks_and_a_deep_scan_stays_fast(self):
         import time
-        start = time.monotonic()
         self.assertEqual(self.decide("/".join(["a"] * 600) + "/x.md"), "ask")
-        self.assertEqual(self.decide("/".join([".agents/artifacts.old"] * 300) + "/x.md"), "ask")
-        self.assertEqual(self.decide("/".join(["a"] * 200) + "/x.md"), "allow")
-        self.assertLess(time.monotonic() - start, 5.0)
+        # The worst case under the cap: a pair at every other part and no repository to stop
+        # the scan early.
+        with tempfile.TemporaryDirectory() as scratch:
+            _outside_any_repo(self, scratch)
+            deep = os.path.join(scratch, *([".agents", "artifacts.old"] * 250), "x.md")
+            start = time.monotonic()
+            self.assertEqual(self.guard.artifacts_decision(deep, scratch)[0], "allow")
+            self.assertLess(time.monotonic() - start, 1.0)
 
     def test_notebook_edits_get_the_same_rule(self):
         for name, expected in (("nb.ipynb", "deny"), ("inbox/nb.ipynb", "allow"),
                                ("archive/2026/x/nb.ipynb", "ask")):
-            proc = run_hook(GUARD, {"tool_name": "NotebookEdit", "cwd": str(self.tmp),
-                                    "tool_input": {"notebook_path": str(self.tree / name),
-                                                   "new_source": "x"}})
-            self.assertEqual(verdict(self, proc), expected, name)
+            self.assertEqual(self.event("NotebookEdit", {"notebook_path": str(self.tree / name),
+                                                         "new_source": "x"}), expected, name)
 
     def test_unusual_characters_never_crash_the_rule(self):
         for name in ("a\x00b.ipynb", "\udcff.md", "topics/\udcff/x.md"):
             proc = self.run_write(str(self.tree) + "/" + name)
             self.assertIn(proc.returncode, (0, 2), name)
             self.assertNotIn("Traceback", proc.stderr, name)
+
+    def test_an_unreadable_event_asks_instead_of_failing_open(self):
+        for stdin in ("not json", "[1, 2]"):
+            proc = subprocess.run([sys.executable, str(GUARD)], input=stdin, capture_output=True,
+                                  text=True, timeout=60)
+            self.assertIn('"ask"', proc.stdout, stdin)
+        for tool in ("Write", "NotebookEdit"):
+            self.assertEqual(self.event(tool, "x"), "ask", tool)  # tool_input not an object
+        # Decoded as UTF-8 whatever the locale: a cp1252 pipe must not skip the rules. The raw
+        # bytes matter (json.dumps would escape the character to ASCII).
+        event = json.dumps({"tool_name": "Write", "cwd": str(self.tmp), "tool_input": {
+            "file_path": str(self.tree / "newtop.md"), "content": "\u274c done"}},
+            ensure_ascii=False).encode("utf-8")
+        proc = subprocess.run([sys.executable, str(GUARD)], input=event, capture_output=True,
+                              env={**os.environ, "PYTHONIOENCODING": "cp1252"}, timeout=60)
+        self.assertEqual(proc.returncode, 2, proc.stderr)
 
     def test_an_error_inside_the_rule_asks(self):
         guard = _guard_module()
@@ -787,6 +842,7 @@ class ArtifactsPlacement(unittest.TestCase):
 
     def test_only_sfdmu_plans_are_read(self):
         guard = _guard_module()
+        guard.stop_file = lambda cwd: None
 
         def never(path):
             raise AssertionError(f"read {path}")
@@ -797,15 +853,56 @@ class ArtifactsPlacement(unittest.TestCase):
                                 "old_string": "a", "new_string": "b"}}
         self.assertEqual(guard.decide(event), ("allow", ""))
 
+    def test_the_plan_reader_never_blocks_and_says_when_it_cannot_judge(self):
+        datasets = self.tmp / "datasets" / "p"
+        datasets.mkdir(parents=True)
+        self.assertEqual(self.guard.current_text(str(datasets / "missing.json")), "")
+        (datasets / "crlf.json").write_bytes(b"a\r\nb\rc\n")
+        self.assertEqual(self.guard.current_text(str(datasets / "crlf.json")), "a\nb\nc\n")
+        os.mkfifo(str(datasets / "fifo.json"))
+        (datasets / "big.json").write_text("x" * (self.guard.MAX_PLAN_BYTES + 1))
+        (datasets / "latin1.json").write_bytes(b"caf\xe9")
+        import time
+        start = time.monotonic()
+        for name in ("fifo.json", "big.json", "latin1.json", "p\ud800.json", "a\x00b.json"):
+            with self.assertRaises(self.guard.Unreadable, msg=name):
+                self.guard.current_text(str(datasets / name))
+        self.assertLess(time.monotonic() - start, 5.0)
+
+    def test_a_plan_that_cannot_be_read_asks(self):
+        plan = self.tmp / "datasets" / "sfdmu" / "big" / "export.json"
+        plan.parent.mkdir(parents=True)
+        pad = " " * self.guard.MAX_PLAN_BYTES
+        plan.write_text('{"objects": [{"query": "SELECT Id FROM Account", '
+                        '"operation": "Upsert"}]}' + pad)
+        # Over the cap, the current plan is not compared as if it were empty: it asks.
+        self.assertEqual(self.event("Write", {"file_path": str(plan), "content": (
+            '{"objects": [{"query": "SELECT Id FROM Account", "operation": "Insert"}]}')}),
+            "ask")
+        # An edit that replays past the cap falls back to the snippet comparison.
+        plan.write_text('{"objects": [{"query": "SELECT Id FROM Account", '
+                        '"operation": "Upsert"}]}')
+        before, after, _, _ = self.guard.text_change("Edit", {
+            "old_string": " ", "new_string": " " * self.guard.MAX_PLAN_BYTES,
+            "replace_all": True}, str(plan))
+        self.assertTrue(before)
+        self.assertIsNone(after)
+
     def test_a_placement_deny_stands_on_a_plan_path(self):
         plan = self.tmp / ".agents" / "artifacts.old" / "datasets" / "export.json"
         plan.parent.mkdir(parents=True)
         plan.write_text('{"objects": [{"query": "SELECT Id FROM Account", '
                         '"operation": "Upsert"}]}')
-        proc = run_hook(GUARD, {"tool_name": "Edit", "cwd": str(self.tmp),
-                                "tool_input": {"file_path": str(plan), "old_string": '"Upsert"',
-                                               "new_string": '"Insert"'}})
-        self.assertEqual(verdict(self, proc), "deny")
+        self.assertEqual(self.event("Edit", {"file_path": str(plan), "old_string": '"Upsert"',
+                                             "new_string": '"Insert"'}), "deny")
+
+    def test_a_relative_plan_path_is_still_judged(self):
+        plan = self.tmp / "datasets" / "sfdmu" / "p" / "export.json"
+        plan.parent.mkdir(parents=True)
+        plan.write_text('{"objects": [{"query": "SELECT Id FROM Account", '
+                        '"operation": "Upsert"}]}')
+        self.assertEqual(self.event("Edit", {"file_path": "export.json", "old_string": '"Upsert"',
+                                             "new_string": '"Insert"'}, cwd=plan.parent), "ask")
 
     def test_a_crlf_plan_is_compared_as_claude_code_edits_it(self):
         # Claude Code matches edits against LF text; the plan on disk may be CRLF.
@@ -813,11 +910,10 @@ class ArtifactsPlacement(unittest.TestCase):
         plan.parent.mkdir(parents=True)
         plan.write_bytes(b'{"objects": [\r\n  {"query": "SELECT Id FROM Account",\r\n'
                          b'   "operation": "Upsert"}\r\n]}\r\n')
-        proc = run_hook(GUARD, {"tool_name": "Edit", "cwd": str(self.tmp), "tool_input": {
+        self.assertEqual(self.event("Edit", {
             "file_path": str(plan),
             "old_string": '"SELECT Id FROM Account",\n   "operation": "Upsert"',
-            "new_string": '"SELECT Id FROM Account",\n   "operation": "insert"'}})
-        self.assertEqual(verdict(self, proc), "ask")
+            "new_string": '"SELECT Id FROM Account",\n   "operation": "insert"'}), "ask")
 
     def test_malformed_input_after_placement_asks_and_keeps_the_reason(self):
         plan = self.tree / "archive" / "2026" / "x" / "datasets" / "export.json"
@@ -829,18 +925,6 @@ class ArtifactsPlacement(unittest.TestCase):
                                     "tool_input": tool_input})
             self.assertEqual(verdict(self, proc), "ask", tool)
             self.assertIn("frozen history", proc.stdout)
-
-    def test_an_unreadable_plan_never_blocks_or_crashes_the_hook(self):
-        # Rule 2 reads the current plan; a FIFO would block that read past the hook's timeout and
-        # a lone surrogate would crash it, and either would let the archive ask go unasked.
-        datasets = self.tree / "archive" / "2026" / "x" / "datasets"
-        datasets.mkdir(parents=True)
-        os.mkfifo(str(datasets / "export.json"))
-        import time
-        start = time.monotonic()
-        self.assertEqual(self.decide(str(datasets / "export.json"), tool="Edit"), "ask")
-        self.assertEqual(self.decide(str(datasets / "p\ud800.json")), "ask")
-        self.assertLess(time.monotonic() - start, 5.0)
 
     def test_an_archived_plan_edit_gives_both_reasons(self):
         plan = self.tree / "archive" / "2026" / "x" / "datasets" / "export.json"

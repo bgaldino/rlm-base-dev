@@ -47,8 +47,8 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
      `.agents/artifacts` below the repository root, not cloned, or not a clone; and a new
      top-level entry of the clone (not in ARTIFACTS_ROOT, not already on disk).
    - Ask: a write under the clone's `archive/` (frozen history) or into its own tooling
-     (ARTIFACTS_TOOLING: `.git/`, `.githooks/`, `tools/`), names matched case-insensitively;
-     and any path the rule fails to judge.
+     (ARTIFACTS_TOOLING: `.git/`, `.githooks/`, `tools/`), or a case variant of either that
+     the disk resolves to the existing entry; and any event or path the guard fails to judge.
    Existing top-level entries keep accepting writes until the reorg moves them.
 
 What this guard does not catch, and what backs it up:
@@ -70,9 +70,10 @@ What this guard does not catch, and what backs it up:
   owner's credentials is rejected. This guard refuses it earlier and says why.
 - Artifacts writes made through Bash (`>`, `cp`, `mv`, a script) rather than Edit/Write, and
   writes whose path does not spell `.agents/artifacts`: a link inside or into the clone, a
-  linked clone addressed at its real location, an inode path (macOS `/.vol`) or a hard link.
-  Rule 4 catches the misplaced write an agent spells out; the private repository's pre-commit
-  hook (`tools/check_layout.py`) is the backstop for layout, and `.gitignore` ignores every
+  linked clone addressed at its real location, a clone link that points at another checkout,
+  an inode path (macOS `/.vol`) or a hard link. Rule 4 catches the misplaced write an agent
+  spells out; the private repository's pre-commit hook (`tools/check_layout.py`, once enabled as
+  its README describes) is the backstop for layout, and `.gitignore` ignores every
   `.agents/artifacts*` path, so a copy is not staged by accident.
 - SFDMU edits made through Bash (`sed -i`, a script) rather than Edit/Write. No diff-level
   check for destructive operations exists in `pr_gate.py` yet; adding one is planned with the
@@ -85,6 +86,7 @@ from __future__ import annotations
 
 import json
 import os
+from itertools import accumulate
 import re
 import shlex
 import stat
@@ -500,52 +502,60 @@ def push_decision(push: Push) -> Tuple[str, str]:
     return "allow", ""
 
 
-# Over ten times the largest SFDMU plan in the repo; a larger file is compared by snippet. It
-# bounds the parse as well as the read, which together must stay well inside the hook's timeout.
+# Over ten times the largest SFDMU plan in the repo. Plans are parsed only up to this size,
+# before and after the edit, so the parse stays well inside the hook's timeout.
 MAX_PLAN_BYTES = 1 << 20
 
 
+class Unreadable(Exception):
+    """The current plan exists but cannot be judged (not a regular UTF-8 file, or too large)."""
+
+
 def current_text(path: str) -> str:
-    """The text of `path` if it is a regular UTF-8 file of at most MAX_PLAN_BYTES, else "", with
-    line endings read as read_text() reads them (Claude Code matches edits against LF text).
-    Never blocks and never raises: a FIFO or device would hold the hook past its timeout, and an
-    exception would crash it, either of which lets the tool call through unchecked."""
+    """The text of `path` ("" if there is no such file), with line endings read as read_text()
+    reads them (Claude Code matches edits against LF text). Raises Unreadable for a file that is
+    there but cannot be judged. Never blocks: a FIFO or device would hold the hook past its
+    timeout, which lets the tool call through unchecked."""
     try:
         fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOCTTY", 0))
-    except (OSError, ValueError):  # ValueError: a NUL byte, or a lone surrogate
+    except FileNotFoundError:
         return ""
+    except (OSError, ValueError) as exc:  # ValueError: a NUL byte, or a lone surrogate
+        raise Unreadable(type(exc).__name__) from exc
     try:
-        st = os.fstat(fd)
-        if not stat.S_ISREG(st.st_mode) or st.st_size > MAX_PLAN_BYTES:
-            return ""
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise Unreadable("not a regular file")
         with os.fdopen(fd, "rb", closefd=False) as f:
             data = f.read(MAX_PLAN_BYTES + 1)
         if len(data) > MAX_PLAN_BYTES:
-            return ""
+            raise Unreadable(f"larger than {MAX_PLAN_BYTES} bytes")
         return data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
-    except (OSError, ValueError):  # UnicodeDecodeError is a ValueError
-        return ""
+    except (OSError, ValueError) as exc:  # UnicodeDecodeError is a ValueError
+        raise Unreadable(type(exc).__name__) from exc
     finally:
         os.close(fd)
 
 
-def text_change(tool: str, tool_input: dict) -> Tuple[str, str, Optional[str], str, str]:
-    """(path, whole file before, whole file after or None, snippet before, snippet after), for
-    a Write, Edit or MultiEdit."""
-    path = tool_input.get("file_path") or ""
+def text_change(tool: str, tool_input: dict, path: str) -> Tuple[str, Optional[str], str, str]:
+    """(whole file before, whole file after or None, snippet before, snippet after) for a Write,
+    Edit or MultiEdit of `path`. `after` is None when the edit cannot be replayed, or replays to
+    more than MAX_PLAN_BYTES: the snippets are then compared instead, which costs only the size
+    of the tool input."""
     before = current_text(path)
     if tool == "Write":
-        after = tool_input.get("content") or ""
-        return path, before, after, before, after
+        after: Optional[str] = tool_input.get("content") or ""
+        return before, after if len(after) <= MAX_PLAN_BYTES else None, before, after
     edits = [tool_input] if tool == "Edit" else (tool_input.get("edits") or [])
-    after: Optional[str] = before
+    after = before
     for edit in edits:
         old, new = edit.get("old_string") or "", edit.get("new_string") or ""
         if after is None or not old or old not in after:
             after = None  # the edit can't be replayed here; fall back to the snippets
             continue
         after = after.replace(old, new) if edit.get("replace_all") else after.replace(old, new, 1)
-    return (path, before, after, "".join(e.get("old_string") or "" for e in edits),
+        if len(after) > MAX_PLAN_BYTES:
+            after = None
+    return (before, after, "".join(e.get("old_string") or "" for e in edits),
             "".join(e.get("new_string") or "" for e in edits))
 
 
@@ -586,10 +596,9 @@ def is_sfdmu_plan(path: str) -> bool:
     return "datasets/" in path.replace(os.sep, "/") and path.endswith(".json")
 
 
-def sfdmu_decision(path: str, before: str, after: Optional[str], old: str,
-                   new: str) -> Tuple[str, str]:
-    was = destructive_objects(before) if before else {}
+def sfdmu_decision(before: str, after: Optional[str], old: str, new: str) -> Tuple[str, str]:
     now = destructive_objects(after) if after is not None else None
+    was = (destructive_objects(before) if before else {}) if now else None
     # A document that parses but declares no objects isn't a plan the parsers understand, so
     # it gets the conservative text comparison below rather than a vacuous "nothing changed".
     if was is not None and now:
@@ -630,11 +639,18 @@ ARTIFACTS_ROOT = frozenset({
 # The private repository's own machinery: its git dir, the hooks it runs (core.hooksPath) and the
 # layout check they call. A write there can switch that backstop off, so it asks.
 ARTIFACTS_TOOLING = (".git", ".githooks", "tools")
-ARTIFACTS_HINT = ("file it under topics/<slug>/, todos/attachments/<id>/ or "
-                  "inbox/<yyyy-mm-dd>-<name> (.cursor/rules/analysis-artifacts.mdc)")
+ARTIFACTS_HINT = ("file it under todos/attachments/<id>/, an existing topics/<slug>/, or else "
+                  "inbox/<yyyy-mm-dd>-<name>; do not invent a topic "
+                  "(.cursor/rules/analysis-artifacts.mdc)")
 # An implementation limit, not part of the contract: no writable path is this deep, and it keeps
 # every scan below short.
 MAX_JUDGED_COMPONENTS = 512
+
+
+def resolve_path(path: str, cwd: str) -> str:
+    """`path` as Claude Code hands it to hooks: absolute, `~` expanded, normalised. It already
+    is; anything else is resolved the same way, lexically (links are not followed)."""
+    return os.path.abspath(os.path.join(cwd, os.path.expanduser(path)))
 
 
 def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
@@ -650,9 +666,7 @@ def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
 def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     if not path:
         return "allow", ""
-    # Claude Code already hands hooks an absolute, `~`-expanded, normalised path; resolve anything
-    # else the same way, lexically (links are not followed: see the module docstring).
-    parts = Path(os.path.normpath(os.path.join(cwd, os.path.expanduser(path)))).parts
+    parts = Path(resolve_path(path, cwd)).parts
     if len(parts) > MAX_JUDGED_COMPONENTS:
         return "ask", (f"`{path}` is deeper than {MAX_JUDGED_COMPONENTS} components, so the "
                        "private-tree check does not judge it; confirm where it lands")
@@ -663,14 +677,9 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     if not pairs:
         return "allow", ""
     # Only inside a git work tree can a misplaced folder reach a commit: find the shallowest
-    # directory with a `.git` (each prefix built from the last, so the scan stays linear).
-    repo, prefix = None, parts[0]
-    for k in range(1, pairs[-1] + 1):
-        if k > 1:
-            prefix = os.path.join(prefix, parts[k - 1])
-        if os.path.exists(os.path.join(prefix, ".git")):
-            repo = k
-            break
+    # directory with a `.git`.
+    repo = next((k for k, d in enumerate(accumulate(parts[:pairs[-1]], os.path.join), 1)
+                 if os.path.exists(os.path.join(d, ".git"))), None)
     if repo is None:
         return "allow", ""
     i = next(i for i in pairs if i >= repo)  # the outermost: a tree inside the clone is a folder
@@ -690,36 +699,30 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
                         "checkout; do not create it. Maintainers clone it here (todo-tracker "
                         "skill, First run); otherwise use $TMPDIR for scratch, or say where the "
                         "content should live")
-    if not os.path.exists(tree / ".git") or _is_an_ancestor(tree, parts[:i + 1], repo):
+    # A clone is a repository of its own, and not one of the directories above it (a
+    # `.agents/artifacts -> ..` link would make the public repo "the clone").
+    if not os.path.exists(tree / ".git") or any(
+            os.path.samefile(tree, Path(*parts[:k])) for k in range(repo, i + 2)):
         return "deny", (f"`{tree}` is not the private clone (a git repository of its own), so "
                         "nothing written there is versioned; replace it with a clone "
                         "(todo-tracker skill, First run), or use $TMPDIR for scratch")
     return _placement(parts[i + 2:], tree)
 
 
-def _is_an_ancestor(tree: Path, above: Tuple[str, ...], repo: int) -> bool:
-    """Whether `tree` resolves to one of the directories from the repository root down to its
-    own parent (`.agents/artifacts -> ..` would make the public repo "the clone"). Shallower
-    ones cannot be it: they have no `.git`, and the clone does."""
-    try:
-        me = os.stat(tree)
-        return any(os.path.samestat(me, os.stat(os.path.join(*above[:k])))
-                   for k in range(repo, len(above) + 1))
-    except (OSError, ValueError):
-        return True  # cannot tell: not treated as the clone
-
-
 def _placement(rest: Tuple[str, ...], tree: Path) -> Tuple[str, str]:
-    """Where a write lands in the clone, by the top-level entry it names. Names match
-    case-insensitively, since the disk may treat `ARCHIVE/` as `archive/`."""
+    """Where a write lands in the clone, by the top-level entry it names: the name itself, or
+    a case variant that the disk resolves to an existing entry (`ARCHIVE/` on a
+    case-insensitive disk). A variant that does not exist would be a new entry."""
     if not rest:
         return "allow", ""
     top = rest[0]
-    if top.casefold() in ARTIFACTS_TOOLING:
+    if top not in (*ARTIFACTS_TOOLING, "archive") and os.path.lexists(tree / top):
+        top = top.casefold()
+    if top in ARTIFACTS_TOOLING:
         return "ask", ("this changes the private repository's own tooling (`.git/`, `.githooks/` "
                        "or `tools/`), which runs its pre-commit layout check. Confirm it is "
                        "deliberate")
-    if top.casefold() == "archive":
+    if top == "archive":
         return "ask", ("this writes under `.agents/artifacts/archive/`, which is frozen history "
                        "(moves and per-entry READMEs only). Confirm it is a deliberate archive "
                        "edit")
@@ -919,27 +922,36 @@ def decide(event: dict) -> Tuple[str, str]:
         return "allow", ""
     path = tool_input.get("file_path") or ""
     placement = artifacts_decision(path, cwd)
-    # The current file is read only for an SFDMU plan, the one case rule 2 judges, and only by
-    # current_text(), which cannot block or raise.
+    if placement[0] == "deny":
+        return placement
+    # Rule 2 reads the current file only for an SFDMU plan, the one case it judges, and only
+    # through current_text(), which cannot block.
     try:
-        if placement[0] == "deny" or not is_sfdmu_plan(path):
-            return placement
-        sfdmu = sfdmu_decision(*text_change(tool, tool_input))
-    except Exception as exc:  # malformed input: ask, keeping rule 4's reason, never crash
-        reason = placement[1] + ". Also: " if placement[0] == "ask" else ""
-        return "ask", (f"{reason}the SFDMU plan check could not judge this edit "
-                       f"({type(exc).__name__}); confirm it")
-    if placement[0] == "ask" and sfdmu[0] == "ask":  # both reasons, not just the first
-        return "ask", f"{placement[1]}. Also: {sfdmu[1]}"
-    return sfdmu if sfdmu[0] != "allow" else placement
+        plan = resolve_path(path, cwd)
+        sfdmu = (sfdmu_decision(*text_change(tool, tool_input, plan)) if is_sfdmu_plan(plan)
+                 else ("allow", ""))
+    except Unreadable as exc:
+        sfdmu = ("ask", f"the current SFDMU plan cannot be read to compare this edit ({exc}); "
+                        "confirm it adds no deleteOldData and no Insert where an Upsert was")
+    except Exception as exc:  # malformed input: ask, never crash the hook into an allow
+        sfdmu = ("ask", f"the SFDMU plan check could not judge this edit "
+                        f"({type(exc).__name__}); confirm it")
+    asks = [reason for decision, reason in (placement, sfdmu) if decision == "ask"]
+    return ("ask", ". Also: ".join(asks)) if asks else ("allow", "")
 
 
 def main() -> int:
+    # Bytes decoded as UTF-8, whatever the locale: Claude Code sends UTF-8 JSON, and a locale
+    # codec (cp1252 on a Windows pipe) can fail on it and skip every rule.
     try:
-        event = json.load(sys.stdin)
-    except ValueError:
-        return 0
-    return respond(*decide(event))
+        event = json.loads(sys.stdin.buffer.read().decode("utf-8"))
+        if not isinstance(event, dict):
+            raise ValueError("not a JSON object")
+        decision = decide(event)
+    except Exception as exc:  # an unreadable event or a guard bug: ask, never fail open
+        decision = ("ask", f"the guard hook could not judge this tool call "
+                           f"({type(exc).__name__}); confirm it")
+    return respond(*decision)
 
 
 if __name__ == "__main__":

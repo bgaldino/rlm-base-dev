@@ -614,8 +614,8 @@ one ran, because no optional dependency was missing; a machine blocked on one (`
 `harness_suites`) reports it rather than counting it, and its total is lower.
 
 The two always-run checks added since: `private_refs` (one `git grep` of the private-tree
-citations) takes under a second, and `dockerignore` a few seconds where the private tree is
-present (measured 2026-11-10).
+citations and one `git ls-files` of ignored-but-tracked files) takes under a second, and
+`dockerignore` about three (measured 2026-11-10).
 
 Verified by `tests/test_pr_gate.py` (771 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which

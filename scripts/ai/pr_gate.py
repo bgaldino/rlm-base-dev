@@ -426,7 +426,7 @@ CHECKS = [
         # checks that every tracked file still reaches the build context, so a file force-added
         # anywhere .dockerignore excludes (most of it at any depth) is an input too. A trigger
         # list mirroring those patterns would drift from them, so like agent_tooling it always
-        # runs; it takes under a second.
+        # runs; it takes about three seconds.
         triggers=[".dockerignore", ".gitignore", "tests/test_dockerignore.py"], always=True,
         deps=[], gating=True,
     ),
@@ -508,6 +508,9 @@ CHECKS = [
                   "force-app/", "unpackaged/",
                   ".agents/", ".claude/", ".cursor/", "docs/references/",
                   "AGENTS.md", "CLAUDE.md", "README.md",
+                  # tests/test_check_private_refs.py checks the private-tree patterns in it
+                  # against the guard hook, so narrowing them must run that suite.
+                  ".gitignore",
                   # tests/test_toolchain_audit.py runs the guide's ~/.zshenv NVM block against the
                   # audit's nested-shell check, so an edit to the template must run it.
                   "docs/guides/dev-environment-setup.md",
