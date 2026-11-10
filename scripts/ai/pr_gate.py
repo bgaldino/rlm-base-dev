@@ -123,22 +123,26 @@ CHECK_TIMEOUT = 900
 # (a fixture whose cwd is not a repository yet walks up into this one). Suites keep their own
 # preamble too, because they are also run directly, outside the gate.
 #
-# Every variable here either names a repository, work tree, index, object store or config file, or
-# injects config (GIT_CONFIG_PARAMETERS/COUNT/KEY_n/VALUE_n can carry `core.bare` or
-# `core.worktree`). GIT_CONFIG* is dropped as a prefix, global/system included: the legacy
-# GIT_CONFIG names the file `git config` writes, and a check has no business depending on a
-# caller's config redirection. GIT_CEILING_DIRECTORIES goes too, so discovery from a check's cwd
-# behaves the same under a hook as outside one.
+# Every variable here either names a repository, work tree, index or object store, or can rewrite
+# this repository's own config: the legacy GIT_CONFIG names the file `git config` writes, and
+# GIT_CONFIG_PARAMETERS/COUNT/KEY_n/VALUE_n inject settings such as `core.bare` or `core.worktree`.
+# The same list the git-using suites drop in their preambles. Deliberately kept:
+# GIT_CEILING_DIRECTORIES only narrows discovery, and a check starts at the repository root, so it
+# cannot aim a check at this repo but can stop a fixture walking up into it; and
+# GIT_CONFIG_GLOBAL/SYSTEM/NOSYSTEM name the user's and system's config, not this repository's, and
+# are how a hermetic caller keeps ~/.gitconfig (a global hooksPath, gpgsign) out of fixtures.
 GIT_LOCATING_ENV = frozenset((
     "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
-    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX", "GIT_NAMESPACE", "GIT_CEILING_DIRECTORIES",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX", "GIT_NAMESPACE",
+    "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",
 ))
+GIT_CONFIG_INJECTION_PREFIXES = ("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_")
 
 
 def check_env():
     """This process's environment minus git's repository-locating variables, for a check to run in."""
     return {k: v for k, v in os.environ.items()
-            if k not in GIT_LOCATING_ENV and not k.startswith("GIT_CONFIG")}
+            if k not in GIT_LOCATING_ENV and not k.startswith(GIT_CONFIG_INJECTION_PREFIXES)}
 
 
 def repo_config_paths():

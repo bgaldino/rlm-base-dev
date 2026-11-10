@@ -4979,7 +4979,7 @@ VERDICT_REGIONS = {
     # The environment every check runs in, and the variable list it strips. Pinned with run() because
     # a hosted-runner-only predicate here changes every check's inputs while run() reads unchanged, and
     # the env rule allows `os.environ.items()` in this function.
-    "check_env()": ("4aacad556ea0", "the environment every check runs in"),
+    "check_env()": ("cb715cb2c533", "the environment every check runs in"),
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
     # made that a deliberate edit rather than a quiet one, which is exactly its purpose.
@@ -4992,7 +4992,8 @@ observed = {
     "run()": fingerprint(body_of(gate_src, "def run(", "the command runner")),
     "run_sequence()": fingerprint(body_of(gate_src, "def run_sequence(", "the sequence runner")),
     "check_env()": fingerprint(body_of(gate_src, "def check_env(", "the check environment")
-                               + repr(sorted(pr_gate.GIT_LOCATING_ENV))),
+                               + repr(sorted(pr_gate.GIT_LOCATING_ENV))
+                               + repr(pr_gate.GIT_CONFIG_INJECTION_PREFIXES)),
     "the booking loop and main()'s return":
         fingerprint(gate_src.split("results, failures, advisory_failures")[-1]),
 }
@@ -5460,20 +5461,26 @@ check("nor commit onto its branch, and it passes rather than tripping the config
 _hostile = {v: "/nonexistent" for v in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE",
                                         "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
                                         "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
-                                        "GIT_NAMESPACE", "GIT_CEILING_DIRECTORIES", "GIT_CONFIG",
+                                        "GIT_NAMESPACE", "GIT_CONFIG",
                                         "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",
-                                        "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0",
-                                        "GIT_CONFIG_GLOBAL")}
+                                        "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0")}
+# Kept on purpose: these narrow discovery or isolate the caller's own config, and cannot aim a check
+# at this repository. Stripping them would let ~/.gitconfig into fixtures and widen the walk-up.
+_kept = {v: "/kept" for v in ("GIT_CEILING_DIRECTORIES", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM",
+                              "GIT_CONFIG_NOSYSTEM", "PR_GATE_ENV_PROBE")}
 _saved_env = dict(os.environ)
 try:
-    os.environ.update(_hostile, PR_GATE_ENV_PROBE="kept")
+    os.environ.update(_hostile, **_kept)
     _scrubbed = pr_gate.check_env()
 finally:
     os.environ.clear()
     os.environ.update(_saved_env)
 check("check_env() drops every repository-locating and config-injecting variable",
       not set(_hostile) & set(_scrubbed), sorted(set(_hostile) & set(_scrubbed)))
-check("and keeps the rest of the environment", _scrubbed.get("PR_GATE_ENV_PROBE") == "kept")
+check("and keeps the rest of the environment, including the ceiling and the caller's global/system "
+      "config isolation",
+      all(_scrubbed.get(k) == v for k, v in _kept.items()),
+      sorted(k for k in _kept if k not in _scrubbed))
 
 # And the same class one layer *up*, which is where it was actually still open. `run()` normalises a
 # signal-killed child to 2 and its comment calls that "the definition of a tool error in this file's
