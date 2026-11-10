@@ -1,8 +1,7 @@
 @isTest
 private class RLM_InvoiceSummaryControllerTest {
 
-    // Invoices/DebitMemos/Disputes/PSIs are system-managed and not insertable in Apex tests.
-    // An Account with no billing activity drives every query down its empty path, verifying
+    // An Account with no billing records drives every query down its empty path, verifying
     // the summary is fully zero-initialized and the (USER_MODE) queries run clean.
     @isTest
     static void getInvoiceSummary_accountWithNoBilling_returnsZeroedSummary() {
@@ -111,8 +110,6 @@ private class RLM_InvoiceSummaryControllerTest {
     // one on a closed case is not counted at all.
     @isTest
     static void getInvoiceSummary_disputesOnOpenCases_areSummed() {
-        Assert.isTrue(available(new List<String>{ 'Dispute' }),
-            'PRECONDITION: billing disputes exist in this org (RLM_BillingUI grants them).');
         String disputeReadError;
         try {
             Database.query('SELECT Id, CaseId, InvoiceId, DisputedAmount, CurrencyIsoCode FROM Dispute LIMIT 1',
@@ -135,9 +132,7 @@ private class RLM_InvoiceSummaryControllerTest {
         Id withAmountId = newDispute(acc.Id, amountCase.Id, 40).Id;
         newDispute(acc.Id, emptyCase.Id, null);
         newDispute(acc.Id, closedCase.Id, 25);
-        Decimal disputed = (Decimal) Database.query(
-            'SELECT DisputedAmount FROM Dispute WHERE Id = :withAmountId'
-        )[0].get('DisputedAmount');
+        Decimal disputed = [SELECT DisputedAmount FROM Dispute WHERE Id = :withAmountId].DisputedAmount;
         Assert.areEqual(40, disputed, 'PRECONDITION: the dispute must carry its disputed amount.');
 
         Test.startTest();
@@ -156,8 +151,6 @@ private class RLM_InvoiceSummaryControllerTest {
     // account's collection plan counts, at its requested amount.
     @isTest
     static void getInvoiceSummary_promiseToPayItem_isSummed() {
-        Assert.isTrue(available(new List<String>{ 'CollectionPlan', 'CollectionPlanItem' }),
-            'PRECONDITION: collection plans exist in this org (RLM_BillingUI grants them).');
         Assert.isTrue(RLM_InvoiceSummaryController.canReadCollectionPlans(),
             'PRECONDITION: the running user can read collection plans, so the promise-to-pay query runs.');
         Account acc = new Account(Name = 'RLM Invoice Summary Promise Test');
@@ -166,12 +159,10 @@ private class RLM_InvoiceSummaryControllerTest {
         // from org data a unit test cannot see. No UsageType either: a Billing plan's items
         // must each link an invoice, and invoices cannot be created in a test. The
         // promise-to-pay query follows the plan chain whatever the plan's usage type.
-        SObject plan = newRecord('CollectionPlan', new Map<String, Object>{
-            'AccountId' => acc.Id
-        });
-        SObject planItem = newRecord('CollectionPlanItem', new Map<String, Object>{
-            'CollectionPlanId' => plan.Id
-        });
+        CollectionPlan plan = new CollectionPlan(AccountId = acc.Id);
+        insert plan;
+        CollectionPlanItem planItem = new CollectionPlanItem(CollectionPlanId = plan.Id);
+        insert planItem;
         PaymentSchedule promise = new PaymentSchedule(
             ReferenceEntityId = plan.Id,
             Type = 'PromiseToPay',
@@ -230,34 +221,16 @@ private class RLM_InvoiceSummaryControllerTest {
         return (SObject) JSON.deserialize(JSON.serialize(m), Invoice.class);
     }
 
-    // Collections and dispute objects are created by name, as the controller queries them.
-    private static Boolean available(List<String> objectNames) {
-        Map<String, Schema.SObjectType> types = Schema.getGlobalDescribe();
-        for (String objectName : objectNames) {
-            if (!types.containsKey(objectName)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static SObject newRecord(String objectName, Map<String, Object> values) {
-        SObject record = Schema.getGlobalDescribe().get(objectName).newSObject();
-        for (String field : values.keySet()) {
-            record.put(field, values.get(field));
-        }
-        insert record;
-        return record;
-    }
-
     // A dispute on a case; amount may be null, for a dispute with no disputed amount.
-    private static SObject newDispute(Id accountId, Id caseId, Decimal amount) {
-        return newRecord('Dispute', new Map<String, Object>{
-            'AccountId' => accountId,
-            'CaseId' => caseId,
-            'ReceivedDate' => Date.today(),
-            'DisputedAmount' => amount
-        });
+    private static Dispute newDispute(Id accountId, Id caseId, Decimal amount) {
+        Dispute d = new Dispute(
+            AccountId = accountId,
+            CaseId = caseId,
+            ReceivedDate = Date.today(),
+            DisputedAmount = amount
+        );
+        insert d;
+        return d;
     }
 
     // A billing role without collections can't read the collection plan link that the

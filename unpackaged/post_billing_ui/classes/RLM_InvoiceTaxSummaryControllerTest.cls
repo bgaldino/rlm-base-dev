@@ -1,7 +1,7 @@
 @isTest
 private class RLM_InvoiceTaxSummaryControllerTest {
 
-    // InvoiceLineTax rows are system-generated and not insertable in Apex tests; a null id
+    // An InvoiceLineTax row needs an InvoiceLine, which cannot be created in Apex tests; a null id
     // and a well-formed but non-existent Invoice id both drive the empty aggregate path.
     @isTest
     static void getTaxSummaryByInvoice_nullId_returnsEmptyList() {

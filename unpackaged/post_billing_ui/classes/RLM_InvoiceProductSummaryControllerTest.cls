@@ -107,6 +107,7 @@ private class RLM_InvoiceProductSummaryControllerTest {
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
         Id fakeBsg = fakeId(BillingScheduleGroup.SObjectType);
         String readError;
+        Integer lookupQueries;
         Map<Id, Id> saveResult;
         Test.startTest();
         System.runAs(u) {
@@ -115,10 +116,13 @@ private class RLM_InvoiceProductSummaryControllerTest {
             } catch (QueryException e) {
                 readError = e.getMessage();
             }
+            Integer queriesBefore = Limits.getQueries();
             saveResult = RLM_InvoiceProductSummaryController.resolveBsgToAsset(new Set<Id>{ fakeBsg }, true);
+            lookupQueries = Limits.getQueries() - queriesBefore;
         }
         Test.stopTest();
         Assert.isNull(readError, 'PRECONDITION: a billing operations user can read BillingScheduleGroup: ' + readError);
+        Assert.areEqual(1, lookupQueries, 'The BillingScheduleGroup lookup runs.');
         Assert.isTrue(saveResult.isEmpty(), 'An unknown billing schedule group maps to no asset.');
     }
 
@@ -143,9 +147,9 @@ private class RLM_InvoiceProductSummaryControllerTest {
         Assert.isTrue(result.isEmpty(), 'An asset with no state period has no attributes.');
     }
 
-    // With a state period but no AssetStatePeriodAttribute rows (those are system-generated and
-    // not insertable), the helper runs the attribute query for the asset's latest-starting
-    // period and still returns no entry: an asset only appears once it has an attribute.
+    // Once a state period exists, the helper runs the attribute query too. With no
+    // AssetStatePeriodAttribute rows it still returns no entry: an asset only appears once it
+    // has an attribute.
     @isTest
     static void resolveAssetAttributes_statePeriodWithoutAttributes_returnsNoEntry() {
         Account acc = new Account(Name = 'RLM Product Summary Period Test');

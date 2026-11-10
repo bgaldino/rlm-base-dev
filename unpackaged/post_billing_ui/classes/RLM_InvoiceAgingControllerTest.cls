@@ -19,16 +19,11 @@ private class RLM_InvoiceAgingControllerTest {
         insert acc;
 
         Test.startTest();
-        try {
-            RLM_InvoiceAgingController.InvoiceAgingData data =
-                RLM_InvoiceAgingController.getInvoiceAgingData(acc.Id);
-            System.assertNotEquals(null, data, 'A non-null aging wrapper should be returned.');
-            System.assertEquals(0, data.totalInvoices, 'No posted invoices -> zero count.');
-        } catch (AuraHandledException e) {
-            // Running user lacks Invoice read FLS; the controller wraps the USER_MODE failure as
-            // AuraHandledException. Tolerated for cross-org determinism.
-        }
+        RLM_InvoiceAgingController.InvoiceAgingData data =
+            RLM_InvoiceAgingController.getInvoiceAgingData(acc.Id);
         Test.stopTest();
+        System.assertNotEquals(null, data, 'A non-null aging wrapper should be returned.');
+        System.assertEquals(0, data.totalInvoices, 'No posted invoices -> zero count.');
     }
 
     // The same account loads for the running admin; a user who cannot read invoices gets a
