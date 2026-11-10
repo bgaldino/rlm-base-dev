@@ -747,6 +747,41 @@ class ArtifactsPlacement(unittest.TestCase):
                                                "new_source": "x"}})
         self.assertEqual((proc.returncode, proc.stdout), (0, ""), proc.stderr)
 
+    def test_both_landings_are_judged_and_the_stricter_wins(self):
+        # Claude Code normalises `..` before writing; the OS follows a link before `..`.
+        deep = self.tmp / "deep" / "x"
+        deep.mkdir(parents=True)
+        (self.tmp / "lnk").symlink_to(deep, target_is_directory=True)
+        # Tool: <tmp>/.agents/artifacts/newtop.md (new top-level). OS: under deep/ (public).
+        self.assertEqual(self.decide("lnk/../.agents/artifacts/newtop.md"), "deny")
+        # Tool reading: archive/ (ask); OS reading: public deep/ (escape). Deny is stricter.
+        self.assertEqual(self.decide("lnk/../.agents/artifacts/archive/2026/x/a.md"), "deny")
+        # Only the tool's reading is wrong here: OS -> inbox/newtop.md (fine), tool ->
+        # <tree>/newtop.md (a new top-level entry), so judging the OS reading alone allows it.
+        (self.tree / "inbox" / "a" / "b").mkdir(parents=True)
+        (self.tree / "topics" / "lnk").symlink_to(self.tree / "inbox" / "a" / "b",
+                                                  target_is_directory=True)
+        self.assertEqual(self.decide(".agents/artifacts/topics/lnk/../../newtop.md"), "deny")
+        # With no link before the `..`, both readings agree and archive/ just asks.
+        self.assertEqual(self.decide("deep/../.agents/artifacts/archive/2026/x/a.md"), "ask")
+        # Tool: topics/docs/secret.md (inside). OS: up -> tree root, `..` -> public .agents/.
+        (self.tree / "topics" / "up").symlink_to(self.tree, target_is_directory=True)
+        self.assertEqual(self.decide(".agents/artifacts/topics/up/../docs/secret.md"), "deny")
+
+    def test_an_absent_tree_is_refused_even_when_the_project_has_one(self):
+        with tempfile.TemporaryDirectory() as other:
+            proc = run_hook(GUARD, {"tool_name": "Write", "cwd": other,
+                                    "tool_input": {"file_path": ".agents/artifacts/inbox/a.md",
+                                                   "content": "x"}},
+                            env={"CLAUDE_PROJECT_DIR": str(self.tmp)})
+            self.assertEqual(proc.returncode, 2, proc.stderr)
+
+    def test_a_deep_path_stays_fast(self):
+        import time
+        start = time.monotonic()
+        self.assertEqual(self.decide("/".join(["a"] * 600) + "/x.md"), "allow")
+        self.assertLess(time.monotonic() - start, 5.0)
+
     def test_public_agents_files_are_untouched(self):
         self.assertEqual(self.decide(".agents/README.md"), "allow")
         self.assertEqual(self.decide(".agents/skills/x/SKILL.md"), "allow")
