@@ -156,7 +156,7 @@ private class RLM_SplitInvoicesControllerTest {
     // For an admin an unknown correlation id is an empty list (see above). A user who cannot
     // read invoices gets a handled error from the correlation list instead.
     @isTest
-    static void userWithoutInvoiceAccess_getsAHandledListError() {
+    static void getInvoicesByCorrelation_userWithoutInvoiceAccess_throwsAHandledError() {
         // Minimum Access with no license or permission set: no billing object is readable.
         User u = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Id fakeInvoice = fakeId('Invoice', 3);
@@ -175,15 +175,16 @@ private class RLM_SplitInvoicesControllerTest {
             } catch (AuraHandledException e) {
                 listThrew = true;
             }
-            // getCurrentInvoiceBillingInfo catches every exception, so for this user it returns
-            // an empty info rather than throwing.
+            // Coverage-only check: getCurrentInvoiceBillingInfo catches every exception, so it
+            // returns an info instead of throwing. Its fields are not asserted: they would be
+            // null for any user, because the fake id matches no invoice.
             info = RLM_SplitInvoicesController.getCurrentInvoiceBillingInfo(fakeInvoice);
         }
         Test.stopTest();
         Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read Invoice.');
         Assert.isTrue(listThrew, 'An unreadable invoice query must surface as an AuraHandledException.');
-        Assert.isNull(info.billingArrangementName, 'The no-access user gets no arrangement name.');
-        Assert.isNull(info.billingArrangementVerNumber, 'The no-access user gets no version number.');
+        Assert.isNotNull(info,
+            'getCurrentInvoiceBillingInfo returns an empty info instead of throwing for a user who cannot read Invoice.');
     }
 
     // The positive path as a billing operations user rather than the deploying admin
