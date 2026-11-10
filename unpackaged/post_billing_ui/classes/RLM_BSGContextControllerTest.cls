@@ -4,8 +4,9 @@ private class RLM_BSGContextControllerTest {
     // Tests for RLM_BSGContextController. BillingScheduleGroup, BillingSchedule and
     // BsgRelationship cannot be inserted in Apex tests, so getBSGContext is covered only on
     // the paths that need no BSG: a malformed or null id, an id matching no BSG, and a BSG
-    // query the user may not run. The bundle assembly (appendComponentsDfs) and the
-    // charge-type / frequency helpers are covered directly with in-memory BSGs. Each
+    // query the user may not run. The bundle assembly (appendComponentsDfs) is covered with
+    // in-memory BSGs; the charge-type / frequency helpers are called directly with plain
+    // inputs. Each
     // System.runAs test creates its user through RLM_BillingUITestUsers, which takes a
     // Billing permission set license seat.
     //
@@ -195,7 +196,7 @@ private class RLM_BSGContextControllerTest {
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
         Id bsgId = fakeBsgId();
-        Boolean canQuery = true;
+        String refused;
         RLM_BSGContextController.BSGContext ctx;
 
         Test.startTest();
@@ -209,13 +210,13 @@ private class RLM_BSGContextControllerTest {
                     + 'BillingArrangementId, TotalBilledAmount, EndDate FROM BillingScheduleGroup LIMIT 1',
                     AccessLevel.USER_MODE);
             } catch (QueryException e) {
-                canQuery = false;
+                refused = e.getMessage();
             }
             ctx = RLM_BSGContextController.getBSGContext(bsgId);
         }
         Test.stopTest();
 
-        Assert.isTrue(canQuery, 'PRECONDITION: a billing role can run the controller\'s BSG query.');
+        Assert.isNull(refused, 'PRECONDITION: a billing role can run the controller\'s BSG query: ' + refused);
         Assert.areEqual('standard', ctx.viewType, 'An id with no BSG resolves to the standard view.');
         Assert.isNull(ctx.bsgNumber);
         Assert.isNull(ctx.bsBilledAmount, 'No billed amount without a BSG.');

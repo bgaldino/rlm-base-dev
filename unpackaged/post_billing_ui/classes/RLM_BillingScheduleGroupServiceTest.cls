@@ -301,9 +301,9 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     // The expected options are built from the same BillingSchedule describe the service reads,
-    // so these tests prove the describe source is used (labels, values and order) rather than
-    // the hard-coded fallback, which is not exercised. Billing orgs ship both fields with
-    // values; each test also checks one shipped value is offered.
+    // so these tests prove the describe source is used (labels, values and order). That this
+    // rules out the hard-coded fallback (not exercised) relies on the shipped value sets being
+    // larger than the fallback lists. Each test also checks one shipped value is offered.
     @isTest
     static void billingTermUnitOptions_comeFromTheBillingSchedulePicklist() {
         List<String> expected = picklistLabelsAndValues('BillingTermUnit');
@@ -380,8 +380,8 @@ private class RLM_BillingScheduleGroupServiceTest {
         List<CreateArgs> edges = new List<CreateArgs>();
         CreateArgs a;
         a = new CreateArgs(baId); a.quantity = 0; a.unitPrice = 0; edges.add(a);
-        a = new CreateArgs(baId); a.billingDayOfMonth = 1; a.billingStartMonth = 1; edges.add(a);
-        a = new CreateArgs(baId); a.billingDayOfMonth = 31; a.billingStartMonth = 12; edges.add(a);
+        a = new CreateArgs(baId); a.billingDayOfMonth = 1; a.billingStartMonth = 12; edges.add(a);
+        a = new CreateArgs(baId); a.billingDayOfMonth = 31; a.billingStartMonth = 1; edges.add(a);
 
         Test.startTest();
         for (CreateArgs edge : edges) {

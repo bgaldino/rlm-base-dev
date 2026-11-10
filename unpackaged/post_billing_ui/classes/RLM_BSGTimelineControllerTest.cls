@@ -56,8 +56,9 @@ private class RLM_BSGTimelineControllerTest {
     // ─── Malformed input ────────────────────────────────────────────────────
 
     // A string that is not an id: the two group reads must throw AuraHandledException (not a
-    // raw platform exception) and the milestone read must return an empty list. Runs as the
-    // running user (no System.runAs), so it does not show which branch inside each method ran.
+    // raw platform exception) and the milestone read must return an empty list. Both failure
+    // routes (an invalid or refused bind, and not-found) surface as AuraHandledException with
+    // an unreadable message, so the test does not show which branch inside each method ran.
     @isTest
     static void malformedId_throwsHandledExceptionsAndReturnsNoMilestones() {
         Boolean dataThrew = false;
