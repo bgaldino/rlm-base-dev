@@ -12,8 +12,10 @@ and checks:
 
 - a sample path from every class of private or org-derived local state is excluded;
 - every tracked file is still in the context, apart from the few left out on purpose;
-- every .gitignore pattern is either mirrored in .dockerignore or listed in NOT_MIRRORED with
-  the reason it is safe to bake. A new .gitignore entry fails here until someone decides which.
+- every .gitignore pattern is mirrored in .dockerignore with the same scope: a pattern with no
+  slash but a trailing one matches at any depth in git, so its mirror must be `**/<pattern>`,
+  since a bare Docker pattern only matches at the root. NOT_MIRRORED holds only the entries a
+  broader .dockerignore line already covers. A new .gitignore entry fails here until mirrored.
 """
 import os
 import re
@@ -128,34 +130,40 @@ MUST_EXCLUDE = [
     "docs/salesforce/262/revenue-cloud-summer-26.pdf",
     "docs/salesforce/262/solution-overview-summer-26-rca.pdf",
     "logs/build.log",
+    # Slashless .gitignore entries match at any depth, so their mirrors have to as well.
+    "docker/.env",
+    "scripts/mcp/.env.local",
+    "tasks/.sf/config.json",
+    "robot/rlm-base/.cci/keychain",
+    "certs/server.key",
+    "scripts/x/logs/run.txt",
+    "datasets/sfdmu/qb/en-US/qb-tax/sfdmu.log",
+    "unpackaged/post_x/core.code-workspace",
+    "scripts/x/.harness/run.json",
+    # Robot output from a direct `robot` run lands outside robot/rlm-base/results and records
+    # queried org data.
+    "log.html",
+    "report.html",
+    "output.xml",
+    "robot/rlm-base/tests/e2e/log.html",
+    "selenium-screenshot-1.png",
+    "robot/rlm-base/selenium-screenshot-2.png",
+    "document_builder_toggle_verification_failed.png",
+    # Browser profiles left by third-party tooling, retrieved org metadata.
+    "browser/Default/Cookies",
+    "mdapi/package.xml",
+    "deploy/objects/Account.object",
+    "postman/archive/env.json",
 ]
 
 # Tracked paths .dockerignore leaves out on purpose; everything else tracked must be copied.
 TRACKED_EXCLUDED_OK = (".git", ".gitattributes", ".github/")
 
-# .gitignore patterns deliberately not mirrored: generated or editor/OS cruft with no private
-# or org-derived content, already covered by a broader .dockerignore line, or never present at
-# build time. Add a new .gitignore entry here only with that reason; otherwise mirror it.
+# .gitignore patterns not mirrored line for line because a broader .dockerignore line already
+# excludes everything they match (the comment names it). Anything else is mirrored.
 NOT_MIRRORED = {
-    # Editor, OS and tool cruft
-    ".localdevserver/", "deploy-options.json", "**/lwc/jsconfig.json", "coverage/",
-    "npm-debug.log*", "yarn-debug.log*", "yarn-error.log*", ".eslintcache",
-    "__MACOSX/", "**/__MACOSX/", "._*", "**/._*", "Thumbs.db", "ehthumbs.db",
-    "[Dd]esktop.ini", "$RECYCLE.BIN/", ".husky", ".eslintignore", "**/.eslintrc.json",
-    "/IlluminatedCloud/", "/out/", "/.illuminatedCloud/", "**/tsconfig*.json",
-    "**/*.tsbuildinfo", ".~lock.*#", "*.tmp",
-    # Third-party / generated build and test output with no org data
-    ".qbrix", "qbrix_local", "browser", "playwright*", "deploy", "sfdx", "mdapi",
-    "temp_folder", "temp", "experience-bundle-package*/**", "log.html", "report.html",
-    "output.xml", "document_builder_toggle_verification_failed.png", "selenium-screenshot*.png",
-    "agents256*/**", "unpackaged/*bak/**", "postman/archive/",
-    "force-app/main/default/aiEvaluationDefinitions/",
-    # Covered by a broader .dockerignore line
-    "/.idea/",            # .idea
-    ".env.local",         # .env.*
-    "**/.venv/",          # .venv (only the root one exists; virtualenvs are rebuilt)
-    "**/venv/",           # venv
-    "datasets/bre/exports/**",  # datasets/bre
+    ".env.local",                   # **/.env.*
+    "datasets/bre/exports/**",      # datasets/bre
     "datasets/sfdmu/**/*.csv.bak",  # **/*.bak
     "docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf",  # .../revenue-cloud-*.pdf
     "docs/salesforce/262/salesforce-release-notes-summer-26-2026-05-07.pdf",  # ...-notes-*.pdf
@@ -170,14 +178,22 @@ def _gitignore_patterns():
 
 
 def _forms(pattern):
-    """The .dockerignore spellings that mirror a .gitignore pattern."""
-    core = pattern.lstrip("/").rstrip("/")
+    """The .dockerignore spellings that mirror a .gitignore pattern with the same scope.
+
+    Git anchors a pattern only when a slash appears at its start or middle; any other pattern
+    matches at every depth. Docker anchors every pattern at the context root, so an unanchored
+    git pattern is mirrored only by `**/<pattern>`. An anchored one is mirrored by itself (or
+    the `**/` form, which is broader). A trailing `/` or `/**` is dropped: Docker excludes the
+    subtree of a bare path, and `dir/**` would leave the empty directory behind.
+    """
+    body = pattern.rstrip("/")
+    anchored = "/" in body
+    core = body.lstrip("/")
     if core.endswith("/**"):
         core = core[:-3]
-    forms = {core, "**/" + core}
     if core.startswith("**/"):
-        forms.add(core[3:])
-    return forms
+        return {core}
+    return {core, "**/" + core} if anchored else {"**/" + core}
 
 
 class DockerignoreTest(unittest.TestCase):

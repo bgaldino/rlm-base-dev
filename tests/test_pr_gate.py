@@ -267,18 +267,23 @@ check("a cumulusci.yml change selects the CCI reference drift check",
       "cci_reference_drift" in sel, sel)
 sel = selected_names(["docs/erds/erd-data.json"])
 check("an ERD data change selects the ERD count check", "erd_doc_counts" in sel, sel)
-# Local Markdown links can target any repository file, and a numbered branch can appear in
-# any tracked text file. The two cheap whole-repo checks (navigation baseline and
-# release_refs) therefore run for every non-empty change, while unrelated expensive checks
-# stay skipped.
+# Local Markdown links can target any repository file, a numbered branch can appear in any
+# tracked text file, and a file force-added anywhere .dockerignore excludes drops out of a local
+# image. The three cheap whole-repo checks (navigation baseline, release_refs, dockerignore)
+# therefore run for every non-empty change, while unrelated expensive checks stay skipped.
 sel = selected_names(["docker/compose.yaml"])
-check("an otherwise unrelated path selects only the two whole-repo baselines",
-      sel == {"agent_tooling", "release_refs"}, sel)
+check("an otherwise unrelated path selects only the three whole-repo baselines",
+      sel == {"agent_tooling", "release_refs", "dockerignore"}, sel)
 # docker/Dockerfile used to be that unrelated path; it names the Node major line now, so it selects
 # the one cheap check that compares it with .nvmrc — and still nothing expensive.
 sel = selected_names(["docker/Dockerfile"])
 check("a Dockerfile change selects the Node-line check and nothing expensive",
-      sel == {"agent_tooling", "release_refs", "node_line"}, sel)
+      sel == {"agent_tooling", "release_refs", "dockerignore", "node_line"}, sel)
+# A trigger list mirroring .dockerignore once let a force-added file under an excluded path skip
+# the suite that checks every tracked file still reaches the image (PR review, todo 357).
+for _forced in (".env.example", ".harness/README.md", "logs/probe.txt"):
+    check(f"a change that only force-adds {_forced} selects the dockerignore check",
+          "dockerignore" in selected_names([_forced]), selected_names([_forced]))
 # A suffix selector, for the check that walks every .md in the repo. Prefix triggers left
 # the root README and seven datasets/**/README.md build-step citations unable to select the
 # suite that audits them.
@@ -292,7 +297,7 @@ check("a non-markdown file does not select it via the suffix",
       "doc_build_steps" not in selected_names(["robot/x.robot"]))
 check("only the whole-repo checks carry a suffix selector",
       [c["name"] for c in pr_gate.CHECKS if c.get("suffixes")]
-      == ["permission_set_dependencies", "dockerignore", "doc_build_steps"],
+      == ["permission_set_dependencies", "doc_build_steps"],
       [c["name"] for c in pr_gate.CHECKS if c.get("suffixes")])
 check("a permission set selects the Account/Contact dependency check via the suffix",
       "permission_set_dependencies" in selected_names(
@@ -5413,7 +5418,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 765
+EXPECTED = 768
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

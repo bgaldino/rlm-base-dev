@@ -413,15 +413,12 @@ CHECKS = [
         name="dockerignore",
         cmd=["python", "tests/test_dockerignore.py"],
         # A locally built image copies the working tree, so a git-ignored folder missing from
-        # .dockerignore is baked into it (todo 357). The suite
-        # compares the two ignore files, and checks every tracked file still reaches the build
-        # context, so a file force-added under an excluded path selects it too: the excluded
-        # trees below, plus the suffixes .dockerignore excludes at any depth. That walk over
-        # every tracked file is why it carries a suffix selector.
-        triggers=[".dockerignore", ".gitignore", "tests/test_dockerignore.py",
-                  ".agents/", ".claude/", ".cursor/", "datasets/", "docs/", "extracted/",
-                  "force-app/", "robot/", "scripts/", "unpackaged/", "core.code-workspace"],
-        suffixes=[".bak", ".mcp.json", ".log", ".pyc", ".pyo", ".key", ".pem"],
+        # .dockerignore is baked into it (todo 357). The suite compares the two ignore files and
+        # checks that every tracked file still reaches the build context, so a file force-added
+        # anywhere .dockerignore excludes (most of it at any depth) is an input too. A trigger
+        # list mirroring those patterns would drift from them, so like agent_tooling it always
+        # runs; it takes under a second.
+        triggers=[".dockerignore", ".gitignore", "tests/test_dockerignore.py"], always=True,
         deps=[], gating=True,
     ),
     dict(
