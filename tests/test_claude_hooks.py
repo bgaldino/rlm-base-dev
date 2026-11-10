@@ -984,6 +984,44 @@ class ArtifactsPlacement(unittest.TestCase):
             locked.chmod(0o755)
         self.assertIn("cannot be examined", proc.stdout)
 
+    def _guard_module(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("pre_tool_guard_under_test", GUARD)
+        guard = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(guard)
+        return guard
+
+    def test_a_repo_folder_named_artifacts_is_not_the_tree(self):
+        repo = self.tmp / "code" / "artifacts"
+        (repo / ".git").mkdir(parents=True)  # a clone, but not under `.agents`
+        self.assertEqual(self.decide("code/artifacts/new.md"), "allow")
+
+    def test_an_error_inside_the_rule_asks(self):
+        guard = self._guard_module()
+
+        def boom(path, cwd):
+            raise RuntimeError("boom")
+
+        guard._artifacts_decision = boom
+        decision, reason = guard.artifacts_decision(".agents/artifacts/inbox/a.md", str(self.tmp))
+        self.assertEqual(decision, "ask")
+        self.assertIn("RuntimeError", reason)
+
+    def test_the_depth_cap_is_what_stops_a_deep_walk(self):
+        # Checked on the walk directly, so the OS's own path-length error cannot stand in for it.
+        guard = self._guard_module()
+        deep = "/" + "/".join(["a"] * (guard.MAX_JUDGED_COMPONENTS + 1))
+        self.assertIn("deeper than", guard._resolution_steps(deep))
+        self.assertIsInstance(guard._resolution_steps("/" + "/".join(["a"] * 10)), guard._Walk)
+
+    def test_a_link_from_a_nested_clone_back_into_its_outer_clone_is_allowed(self):
+        inner = self.tree / "topics" / "x" / ".agents" / "artifacts"
+        (inner / ".git").mkdir(parents=True)
+        (inner / "lnk").symlink_to(self.tree / "inbox", target_is_directory=True)
+        # Both ends are in the OUTER clone; judged by the inner one it would look like an escape.
+        self.assertEqual(self.decide(".agents/artifacts/topics/x/.agents/artifacts/lnk/a.md"),
+                         "allow")
+
     def test_public_agents_files_are_untouched(self):
         self.assertEqual(self.decide(".agents/README.md"), "allow")
         self.assertEqual(self.decide(".agents/skills/x/SKILL.md"), "allow")
