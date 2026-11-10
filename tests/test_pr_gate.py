@@ -4506,18 +4506,60 @@ for node in ast.walk(gate_tree):
 # *variables* a read is allowed to name, which works for `os.environ["X"]` and not at all for
 # `os.environ.copy()` — a read with no literal in it, whose harvested set is empty, so the only way to
 # permit it would be to delete the rule. `ENV_SPELLINGS_OK` allows an exact expression instead.
-ENV_SPELLINGS_OK = set()
-unallowed = []
-for node in env_nodes:
-    if isinstance(node, ast.alias):
-        unallowed.append(f"line ?: from os import {node.name}")
-        continue
-    segment = ast.get_source_segment(gate_src, node) or ""
-    named = {c.value for c in ast.walk(node)
-             if isinstance(c, ast.Constant) and isinstance(c.value, str)}
-    if segment in ENV_SPELLINGS_OK or (named and not (named - ENV_READS_OK)):
-        continue
-    unallowed.append(f"line {node.lineno}: {segment or ast.dump(node)[:60]}")
+# Keyed by the whole expression, mapped to the one top-level function allowed to spell it: an exact
+# expression such as `os.environ.items()` is just as able to read `CI` anywhere else.
+# Both hatches read the *whole* expression the reference sits in (`os.environ.items()`, `os.environ.get(
+# "X")`), not the bare `os.environ` node: matched on that node, neither could ever fire, since its text
+# is always `os.environ` and it holds no literal.
+ENV_SPELLINGS_OK = {
+    # check_env() hands each check this environment minus git's repository-locating variables. It only
+    # removes, and CI exports none of them, so what a check sees can differ locally only by lacking a
+    # variable that would have aimed its fixtures at this repository.
+    "os.environ.items()": "check_env",
+}
+
+
+def unallowed_env_reads(tree, src, nodes):
+    owner_of, parent_of = {}, {}
+    for fn in tree.body:
+        if isinstance(fn, ast.FunctionDef):
+            for inner in ast.walk(fn):
+                owner_of[id(inner)] = fn.name
+    for outer in ast.walk(tree):
+        for child in ast.iter_child_nodes(outer):
+            parent_of[id(child)] = outer
+    refused = []
+    for node in nodes:
+        if isinstance(node, ast.alias):
+            refused.append(f"line ?: from os import {node.name}")
+            continue
+        top = node
+        while True:
+            up = parent_of.get(id(top))
+            if (isinstance(up, (ast.Attribute, ast.Subscript)) and up.value is top) or (
+                    isinstance(up, ast.Call) and up.func is top):
+                top = up
+            else:
+                break
+        segment = ast.get_source_segment(src, top) or ""
+        named = {c.value for c in ast.walk(top)
+                 if isinstance(c, ast.Constant) and isinstance(c.value, str)}
+        owner = owner_of.get(id(node))
+        if owner is not None and ENV_SPELLINGS_OK.get(segment) == owner:
+            continue
+        if named and not (named - ENV_READS_OK):
+            continue
+        refused.append(f"line {node.lineno}: {segment or ast.dump(node)[:60]}")
+    return refused
+
+
+unallowed = unallowed_env_reads(gate_tree, gate_src, env_nodes)
+_moved = "def check_env():\n    return 1\ndef elsewhere():\n    return os.environ.items()\n"
+_moved_tree = ast.parse(_moved)
+check("an allowed environment spelling is refused outside the function it is declared for",
+      unallowed_env_reads(_moved_tree, _moved,
+                          [n for n in ast.walk(_moved_tree)
+                           if isinstance(n, ast.Attribute) and n.attr in ENV_ATTRS]) != [])
 check("the gate reads no environment variable under any spelling — attribute, bare name, or `from os "
       "import environ` — so it cannot behave one way locally and another in Actions (allow one by "
       "naming the variable in ENV_READS_OK, or the expression in ENV_SPELLINGS_OK when it names no "
@@ -4929,8 +4971,15 @@ VERDICT_REGIONS = {
     # region: (fingerprint, what it decides)
     # Repinned for todo 237: a check that leaves the repository's .git/config changed now fails (code
     # raised to at least 1, with a message). The comparison is a local file read, the same on every host.
-    "run()": ("30ce6447552c", "the exit code, stdout and duration of one command"),
+    # Repinned when run() began spawning checks with `env=check_env()`: git's repository-locating
+    # variables are removed so a fixture cannot reach this repository. It only removes, the same list on
+    # every host, and CI exports none of them.
+    "run()": ("eab35c66b602", "the exit code, stdout and duration of one command"),
     "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
+    # The environment every check runs in, and the variable list it strips. Pinned with run() because
+    # a hosted-runner-only predicate here changes every check's inputs while run() reads unchanged, and
+    # the env rule allows `os.environ.items()` in this function.
+    "check_env()": ("4aacad556ea0", "the environment every check runs in"),
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
     # made that a deliberate edit rather than a quiet one, which is exactly its purpose.
@@ -4942,6 +4991,8 @@ VERDICT_REGIONS = {
 observed = {
     "run()": fingerprint(body_of(gate_src, "def run(", "the command runner")),
     "run_sequence()": fingerprint(body_of(gate_src, "def run_sequence(", "the sequence runner")),
+    "check_env()": fingerprint(body_of(gate_src, "def check_env(", "the check environment")
+                               + repr(sorted(pr_gate.GIT_LOCATING_ENV))),
     "the booking loop and main()'s return":
         fingerprint(gate_src.split("results, failures, advisory_failures")[-1]),
 }
@@ -5343,6 +5394,87 @@ check("in a linked worktree the guard watches the main repository's config and i
       == [os.path.realpath(os.path.join(main_repo, ".git", "config")),
           os.path.realpath(os.path.join(linked_gitdir, "config.worktree"))], found)
 
+# The guard above notices a leak after it happened; it cannot un-commit one. The cause is a check
+# inheriting GIT_DIR (from a hook, or a caller that exported it), which aims a fixture's `git init`,
+# `git config` and `git commit` at this repository. Reproduced on test_check_permission_set_
+# dependencies.py, whose fixture wrote `user.*` and `core.bare=true` into the real config and
+# committed onto the session branch. `run()` now strips the variables at spawn; the fixture below is
+# that suite's, run with GIT_DIR naming a stand-in for the real repository, with a positive control
+# proving the same fixture does leak when the environment is inherited.
+LEAKY_FIXTURE = (
+    "import os, shutil, subprocess, tempfile\n"
+    "d = tempfile.mkdtemp()\n"
+    "for a in (['init', '-q'], ['config', 'user.email', 'leak@example.com'],\n"
+    "          ['config', 'user.name', 'leak']):\n"
+    "    subprocess.run(['git', *a], cwd=d)\n"
+    "open(os.path.join(d, 'f.txt'), 'w').write('x')\n"
+    "subprocess.run(['git', 'add', '.'], cwd=d)\n"
+    "subprocess.run(['git', 'commit', '-qm', 'leaked'], cwd=d)\n"
+    "shutil.rmtree(d, ignore_errors=True)\n")
+
+
+def stand_in_repo():
+    """A throwaway repository with one commit, standing in for the real one."""
+    root = tempfile.mkdtemp()
+    git(root, "init", "-q", "-b", "session")
+    git(root, "-c", "user.email=t@example.com", "-c", "user.name=t",
+        "commit", "-q", "--allow-empty", "-m", "seed")
+    return root
+
+
+def repo_state(root):
+    """Config bytes and HEAD, read with no inherited GIT_DIR so they describe `root` itself."""
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True,
+                          env=pr_gate.check_env()).stdout.strip()
+    return pathlib.Path(root, ".git", "config").read_bytes(), head
+
+
+prior_root, prior_git_dir = pr_gate.REPO_ROOT, os.environ.get("GIT_DIR")
+control_root, guarded_root = stand_in_repo(), stand_in_repo()
+try:
+    control_before, guarded_before = repo_state(control_root), repo_state(guarded_root)
+    os.environ["GIT_DIR"] = os.path.join(control_root, ".git")
+    subprocess.run([sys.executable, "-c", LEAKY_FIXTURE], capture_output=True)
+    os.environ["GIT_DIR"] = os.path.join(guarded_root, ".git")
+    pr_gate.REPO_ROOT = guarded_root
+    leak_code, leak_out, _ = pr_gate.run([sys.executable, "-c", LEAKY_FIXTURE])
+finally:
+    pr_gate.REPO_ROOT = prior_root
+    if prior_git_dir is None:
+        os.environ.pop("GIT_DIR", None)
+    else:
+        os.environ["GIT_DIR"] = prior_git_dir
+control_after, guarded_after = repo_state(control_root), repo_state(guarded_root)
+shutil.rmtree(control_root, ignore_errors=True)
+shutil.rmtree(guarded_root, ignore_errors=True)
+check("control: the fixture run with an inherited GIT_DIR does write the repository's config and "
+      "commit onto its branch, so the next two checks can see a leak",
+      control_after[0] != control_before[0] and control_after[1] != control_before[1],
+      (control_before[1], control_after[1]))
+check("a check run with GIT_DIR set in the parent cannot write the real repository's config",
+      guarded_after[0] == guarded_before[0], guarded_after[0].decode(errors="replace")[-300:])
+check("nor commit onto its branch, and it passes rather than tripping the config guard",
+      guarded_after[1] == guarded_before[1] and leak_code == 0,
+      (guarded_before[1], guarded_after[1], leak_code, leak_out[-300:]))
+# Each variable, not only GIT_DIR: the list is the guarantee, so dropping one from it must fail here.
+_hostile = {v: "/nonexistent" for v in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE",
+                                        "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
+                                        "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
+                                        "GIT_NAMESPACE", "GIT_CEILING_DIRECTORIES", "GIT_CONFIG",
+                                        "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",
+                                        "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0",
+                                        "GIT_CONFIG_GLOBAL")}
+_saved_env = dict(os.environ)
+try:
+    os.environ.update(_hostile, PR_GATE_ENV_PROBE="kept")
+    _scrubbed = pr_gate.check_env()
+finally:
+    os.environ.clear()
+    os.environ.update(_saved_env)
+check("check_env() drops every repository-locating and config-injecting variable",
+      not set(_hostile) & set(_scrubbed), sorted(set(_hostile) & set(_scrubbed)))
+check("and keeps the rest of the environment", _scrubbed.get("PR_GATE_ENV_PROBE") == "kept")
+
 # And the same class one layer *up*, which is where it was actually still open. `run()` normalises a
 # signal-killed child to 2 and its comment calls that "the definition of a tool error in this file's
 # 0/1/2 contract" — but the booking loop sent 1 and 2 down one branch, so an OOM-killed suite was
@@ -5418,7 +5550,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 768
+EXPECTED = 776
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

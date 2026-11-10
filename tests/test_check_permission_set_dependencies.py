@@ -11,6 +11,19 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts", "ai"))
 import check_permission_set_dependencies as cpd  # noqa: E402
 
+# Run as if outside any git hook. A hook exports GIT_DIR and friends, which would aim every fixture
+# and every script under test at this repository instead of a throwaway one. This suite's fixture
+# did exactly that when GIT_DIR was inherited: it wrote `user.*` and `core.bare=true` into the real
+# .git/config and committed onto the session branch.
+# GIT_CONFIG* would inject config into every fixture, past GIT_CONFIG_GLOBAL/SYSTEM; the ceiling
+# and discovery variables only narrow where git looks, so they stay.
+for _var in [v for v in os.environ
+             if v in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+                      "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
+                      "GIT_NAMESPACE", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT")
+             or v.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))]:
+    os.environ.pop(_var)
+
 
 def perm(obj, **flags):
     body = "".join(f"<{k}>{str(v).lower()}</{k}>" for k, v in flags.items())
