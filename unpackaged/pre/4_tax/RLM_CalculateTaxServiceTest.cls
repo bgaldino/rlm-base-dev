@@ -5,7 +5,7 @@
  * the response type and its String form; the error-response branch cannot be reached from a test.
  */
 @IsTest
-private class RLM_CalculateTaxServiceTest {
+private with sharing class RLM_CalculateTaxServiceTest {
 
     @IsTest
     static void getTax_withLines_postsAvalaraPayloadAndReturnsCalculateTaxResponse() {
@@ -23,12 +23,18 @@ private class RLM_CalculateTaxServiceTest {
         Assert.isNotNull(response, 'A request with lines should produce a response.');
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class,
             'A success payload (no "error") maps to a CalculateTaxResponse, not an ErrorResponse.');
-        // Values come from the parsed engine payload (document code, transaction id) and the request.
-        RLM_TaxTestFactory.assertResponseHas(response, 'documentCode=testDocCode1231245984',
+        // From the parsed (canned) engine payload: code, id, status "Temporary", one P0000000 line.
+        RLM_TaxTestFactory.assertResponseField(response, 'documentCode', 'testDocCode1231245984',
             'The document code is taken from the parsed engine response.');
-        RLM_TaxTestFactory.assertResponseHas(response, 'taxTransactionId=0', 'The engine transaction id is mapped.');
-        RLM_TaxTestFactory.assertResponseHas(response, 'referenceEntityId=REF-CALC-1', 'The request reference entity is echoed.');
-        RLM_TaxTestFactory.assertResponseHas(response, 'currencyIsoCode=USD', 'The request currency is echoed.');
+        RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionId', '0', 'The engine transaction id is mapped.');
+        RLM_TaxTestFactory.assertResponseField(response, 'status', 'Uncommitted', 'An engine status of Temporary maps to Uncommitted.');
+        RLM_TaxTestFactory.assertResponseField(response, 'lineNumber', '1', 'The engine line is mapped.');
+        RLM_TaxTestFactory.assertResponseField(response, 'taxCode', 'P0000000', 'The engine line tax code is mapped.');
+        // From the request.
+        RLM_TaxTestFactory.assertResponseField(response, 'referenceEntityId', 'REF-CALC-1', 'The request reference entity is echoed.');
+        RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'USD', 'The request currency is echoed.');
+        RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Debit', 'The request transaction type is echoed.');
+        RLM_TaxTestFactory.assertResponseField(response, 'taxType', 'Estimated', 'The request tax type is echoed.');
 
         Assert.areEqual(1, mock.requests.size(), 'Exactly one Avalara callout should be sent.');
         HttpRequest sent = mock.requests[0];
@@ -44,7 +50,7 @@ private class RLM_CalculateTaxServiceTest {
     }
 
     @IsTest
-    static void getTax_actualCommittedRequest_returnsCalculateTaxResponse() {
+    static void getTax_actualCommitRequest_sendsSalesInvoiceAndEchoesTransactionType() {
         RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
         Test.setMock(HttpCalloutMock.class, mock);
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
@@ -60,6 +66,12 @@ private class RLM_CalculateTaxServiceTest {
         Test.stopTest();
 
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class, 'Actual tax also maps to a CalculateTaxResponse.');
+        RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Credit', 'The request transaction type is echoed.');
+        RLM_TaxTestFactory.assertResponseField(response, 'taxType', 'Actual', 'The request tax type is echoed.');
+        // The status comes from the engine payload, not from isCommit: the test payload is Temporary.
+        RLM_TaxTestFactory.assertResponseField(response, 'status', 'Uncommitted', 'The engine status drives the response status.');
+
+        Assert.areEqual(1, mock.requests.size(), 'Exactly one Avalara callout should be sent.');
         Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.requests[0].getBody());
         Assert.areEqual('SalesInvoice', body.get('type'), 'Actual tax is sent as a SalesInvoice.');
         Assert.areEqual(true, body.get('commit'), 'The commit flag is sent.');

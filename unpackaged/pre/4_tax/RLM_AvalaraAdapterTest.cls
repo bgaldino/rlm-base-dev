@@ -1,5 +1,5 @@
 @IsTest
-private class RLM_AvalaraAdapterTest {
+private with sharing class RLM_AvalaraAdapterTest {
 
     @IsTest
     static void processRequest_calculateTax_delegatesToCalculateTaxService() {
@@ -15,11 +15,14 @@ private class RLM_AvalaraAdapterTest {
 
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class,
             'A CalculateTax request is answered by RLM_CalculateTaxService.');
+        // The document code comes from the service's parsed engine payload, not from the request.
+        RLM_TaxTestFactory.assertResponseField(response, 'documentCode', 'testDocCode1231245984',
+            'The response is the one RLM_CalculateTaxService builds.');
         Assert.areEqual(1, mock.requests.size(), 'The service sends one Avalara callout.');
     }
 
     @IsTest
-    static void processRequest_otherRequestType_returnsNullWithoutCallout() {
+    static void processRequest_nullRequestType_returnsNullWithoutCallout() {
         RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
         Test.setMock(HttpCalloutMock.class, mock);
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
@@ -31,6 +34,6 @@ private class RLM_AvalaraAdapterTest {
         Test.stopTest();
 
         Assert.isNull(response, 'Only CalculateTax requests are handled.');
-        Assert.areEqual(0, mock.requests.size(), 'No callout is made for an unhandled request type.');
+        Assert.areEqual(0, mock.requests.size(), 'No callout is made for a request that is not CalculateTax.');
     }
 }

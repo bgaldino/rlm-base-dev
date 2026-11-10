@@ -5,9 +5,13 @@
  * LineTaxAddressesRequest, TaxAddressRequest, TaxCustomerDetailsRequest,
  * TaxSellerDetailsRequest, TaxEngineContext) are documented as test-only: they throw
  * outside the Apex test context, so they may only be used from @IsTest code.
+ *
+ * The commercetax response classes have setters only. assertResponseField reads values back
+ * from the platform's String.valueOf form of a response (for example
+ * "...[status=Committed,taxTransactionType=Credit,...]"), so it depends on that format.
  */
 @IsTest
-public class RLM_TaxTestFactory {
+public with sharing class RLM_TaxTestFactory {
 
     public static final String CUSTOMER_CODE = 'CUST-001';
     public static final String SELLER_CODE = 'SELLER-01';
@@ -68,11 +72,22 @@ public class RLM_TaxTestFactory {
     /**
      * The commercetax response classes have setters only. Their String form lists the values an
      * adapter set (for example documentCode=DOC-1 or errorCode=404), so it is the read-back path.
+     * An empty String value prints as "field=" and a null as "field=<null>".
      */
-    public static void assertResponseHas(Object response, String fragment, String message) {
-        String described = String.valueOf(response);
-        Assert.isTrue(described.contains(fragment), message + ' Expected "' + fragment + '" in: ' + described);
+    public static void assertResponseField(Object response, String field, String value, String message) {
+        assertResponseFieldMatches(response, field, Pattern.quote(value), message);
     }
+
+    /** Matches field=<value> as a whole entry, wherever it sits in the field list. */
+    public static void assertResponseFieldMatches(Object response, String field, String valueRegex, String message) {
+        String described = String.valueOf(response);
+        Pattern entry = Pattern.compile('(?<=[\\[,])' + Pattern.quote(field + '=') + '(' + valueRegex + ')(?=[,\\]])');
+        Assert.isTrue(entry.matcher(described).find(),
+            message + ' Expected ' + field + '=' + valueRegex + ' in: ' + described);
+    }
+
+    /** A value other than the platform's "<null>" marker. */
+    public static final String NON_NULL = '(?!<null>)[^,\\]]+';
 
     /** Records every request and answers with a fixed status and body. Never reaches the network. */
     public class RecordingHttpMock implements HttpCalloutMock {

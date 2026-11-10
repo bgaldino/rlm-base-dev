@@ -1,8 +1,8 @@
 @IsTest
-private class RLM_InvalidAdapterTest {
+private with sharing class RLM_InvalidAdapterTest {
 
     @IsTest
-    static void processRequest_alwaysReturnsNull() {
+    static void processRequest_calculateTaxRequest_returnsNull() {
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, 'DOC-INVALID', RLM_TaxTestFactory.lines(100));
 
@@ -10,6 +10,6 @@ private class RLM_InvalidAdapterTest {
         commercetax.TaxEngineResponse response = new RLM_InvalidAdapter().processRequest(RLM_TaxTestFactory.context(request));
         Test.stopTest();
 
-        Assert.isNull(response, 'The invalid adapter never answers a request.');
+        Assert.isNull(response, 'The invalid adapter does not answer even a valid CalculateTax request.');
     }
 }

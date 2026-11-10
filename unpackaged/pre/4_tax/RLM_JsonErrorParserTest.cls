@@ -1,5 +1,5 @@
 @IsTest
-private class RLM_JsonErrorParserTest {
+private with sharing class RLM_JsonErrorParserTest {
 
     @IsTest
     static void parse_avalaraErrorPayload_mapsErrorAndDetails() {
@@ -28,6 +28,7 @@ private class RLM_JsonErrorParserTest {
         Assert.areEqual('Error', first.severity, 'details[0].severity');
 
         RLM_JsonErrorParser.cls_details second = parsed.error.details[1];
+        Assert.areEqual('SecondError', second.code, 'details[1].code');
         Assert.areEqual('Second message', second.message, 'details[1].message');
         Assert.isNull(second.severity, 'Absent fields stay null.');
     }

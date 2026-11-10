@@ -4,7 +4,7 @@
  * the codes and values the adapter set on it.
  */
 @IsTest
-private class RLM_MockTaxAdapterTest {
+private with sharing class RLM_MockTaxAdapterTest {
 
     private static commercetax.TaxEngineResponse process(commercetax.CalculateTaxRequest request) {
         return new RLM_MockTaxAdapter().processRequest(RLM_TaxTestFactory.context(request));
@@ -27,7 +27,7 @@ private class RLM_MockTaxAdapterTest {
         Test.stopTest();
 
         Assert.isInstanceOfType(response, commercetax.ErrorResponse.class, 'documentCode is mandatory for this adapter.');
-        RLM_TaxTestFactory.assertResponseHas(response, 'errorCode=404', 'A missing document code is a 404.');
+        RLM_TaxTestFactory.assertResponseField(response, 'errorCode', '404', 'A missing document code is a 404.');
     }
 
     @IsTest
@@ -50,11 +50,15 @@ private class RLM_MockTaxAdapterTest {
             Assert.isInstanceOfType(responses.get(code), commercetax.ErrorResponse.class,
                 code + ' should produce an ErrorResponse.');
         }
-        RLM_TaxTestFactory.assertResponseHas(responses.get('TaxEngineError'), 'errorCode=504', 'TaxEngineError');
-        RLM_TaxTestFactory.assertResponseHas(responses.get('simulateValidationFailureInAdapter'), 'errorCode=400', 'Validation failure');
-        RLM_TaxTestFactory.assertResponseHas(responses.get('simulateMalformedErrorInAdapter'),
-            'errorMessage=malformed adapter error response', 'Malformed error keeps its message');
-        RLM_TaxTestFactory.assertResponseHas(responses.get('simulateTaxEngineProcessFailure'), 'errorCode=500', 'Process failure');
+        RLM_TaxTestFactory.assertResponseField(responses.get('TaxEngineError'), 'errorCode', '504', 'TaxEngineError');
+        RLM_TaxTestFactory.assertResponseField(responses.get('simulateValidationFailureInAdapter'), 'errorCode', '400',
+            'Validation failure');
+        RLM_TaxTestFactory.assertResponseField(responses.get('simulateMalformedErrorInAdapter'), 'errorCode', '',
+            'The malformed error carries no error code.');
+        RLM_TaxTestFactory.assertResponseField(responses.get('simulateMalformedErrorInAdapter'), 'errorMessage',
+            'malformed adapter error response', 'The malformed error keeps its message.');
+        RLM_TaxTestFactory.assertResponseField(responses.get('simulateTaxEngineProcessFailure'), 'errorCode', '500',
+            'Process failure');
     }
 
     @IsTest
@@ -86,17 +90,24 @@ private class RLM_MockTaxAdapterTest {
 
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class,
             'A normal document code is answered with a calculated response.');
-        RLM_TaxTestFactory.assertResponseHas(response, 'documentCode=DOC-MOCK-1', 'The document code is echoed.');
-        RLM_TaxTestFactory.assertResponseHas(response, 'currencyIsoCode=USD', 'A null currency defaults to USD.');
-        RLM_TaxTestFactory.assertResponseHas(response, 'description=description,', 'A non-test seller gets the default description.');
+        RLM_TaxTestFactory.assertResponseField(response, 'documentCode', 'DOC-MOCK-1', 'The document code is echoed.');
+        RLM_TaxTestFactory.assertResponseField(response, 'status', 'Uncommitted', 'isCommit=false is Uncommitted.');
+        RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Debit',
+            'A missing transaction type defaults to Debit.');
+        RLM_TaxTestFactory.assertResponseFieldMatches(response, 'transactionDate', RLM_TaxTestFactory.NON_NULL,
+            'A missing transaction date defaults to now.');
+        RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'USD', 'A null currency defaults to USD.');
+        RLM_TaxTestFactory.assertResponseField(response, 'description', 'description',
+            'A seller other than testSellerCode gets the default description.');
+        RLM_TaxTestFactory.assertResponseField(response, 'lineNumber', '2', 'Every request line is answered.');
     }
 
     @IsTest
-    static void processRequest_committedWithExplicitValues_returnsCalculateTaxResponse() {
+    static void processRequest_committedWithExplicitValues_echoesThem() {
         commercetax.CalculateTaxRequest request = requestFor('DOC-MOCK-2');
         request.isCommit = true;
         request.sellerDetails = new commercetax.TaxSellerDetailsRequest('testSellerCode');
-        request.transactionDate = Datetime.newInstanceGmt(2026, 3, 1, 0, 0, 0);
+        request.transactionDate = Datetime.newInstanceGmt(2026, 3, 1, 12, 0, 0);
         request.taxTransactionType = commercetax.TaxTransactionType.Credit;
         request.currencyIsoCode = 'EUR';
 
@@ -104,10 +115,13 @@ private class RLM_MockTaxAdapterTest {
         commercetax.TaxEngineResponse response = process(request);
         Test.stopTest();
 
-        Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class,
-            'Explicit commit, seller, date, type and currency values are echoed into a calculated response.');
-        RLM_TaxTestFactory.assertResponseHas(response, 'currencyIsoCode=EUR', 'An explicit currency is echoed.');
-        RLM_TaxTestFactory.assertResponseHas(response, 'description=SellerCode fetched from TaxEngine entity',
+        Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class, 'A calculated response is returned.');
+        RLM_TaxTestFactory.assertResponseField(response, 'status', 'Committed', 'isCommit=true is Committed.');
+        RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Credit', 'The transaction type is echoed.');
+        RLM_TaxTestFactory.assertResponseFieldMatches(response, 'transactionDate', 'Sun Mar 01 [^,\\]]*2026',
+            'The request transaction date is echoed.');
+        RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'EUR', 'An explicit currency is echoed.');
+        RLM_TaxTestFactory.assertResponseField(response, 'description', 'SellerCode fetched from TaxEngine entity',
             'The testSellerCode seller gets its own description.');
     }
 
@@ -122,7 +136,8 @@ private class RLM_MockTaxAdapterTest {
 
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class,
             'The empty-document-code scenario still returns a calculated response.');
-        RLM_TaxTestFactory.assertResponseHas(response, 'currencyIsoCode=USD', 'A blank currency defaults to USD.');
+        RLM_TaxTestFactory.assertResponseField(response, 'documentCode', '', 'The document code is set to empty.');
+        RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'USD', 'A blank currency defaults to USD.');
     }
 
     @IsTest
@@ -137,33 +152,37 @@ private class RLM_MockTaxAdapterTest {
         Test.stopTest();
 
         Assert.isNotNull(caught, 'Null amount details are rejected by the response setter.');
-        // commercetax.TaxApiException is not a visible type in Apex, so match its name.
+        // Assert.isInstanceOfType(caught, commercetax.TaxApiException.class) does not compile:
+        // "Type is not visible: commercetax.TaxApiException". Match the type name instead.
         Assert.areEqual('commercetax.TaxApiException', caught.getTypeName(), 'The platform setter throws: ' + caught);
         Assert.isTrue(caught.getMessage().contains('Amount details cannot be null'), caught.getMessage());
     }
 
     @IsTest
-    static void processRequest_nullResponseScenarios_returnCalculateTaxResponses() {
-        List<String> scenarios = new List<String>{
-            'SetsNullForResponseWithoutException',
-            'nolines'
-        };
-        Map<String, commercetax.TaxEngineResponse> responses = new Map<String, commercetax.TaxEngineResponse>();
-
+    static void processRequest_nullSubResponses_leavesThemNullOnEachLine() {
         Test.startTest();
-        for (String scenario : scenarios) {
-            responses.put(scenario, process(requestFor(scenario)));
-        }
+        commercetax.TaxEngineResponse response = process(requestFor('SetsNullForResponseWithoutException'));
         Test.stopTest();
 
-        for (String scenario : scenarios) {
-            Assert.isInstanceOfType(responses.get(scenario), commercetax.CalculateTaxResponse.class,
-                scenario + ' builds its (partially null) response inside the adapter without throwing.');
-        }
+        Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class, 'A calculated response is returned.');
+        RLM_TaxTestFactory.assertResponseField(response, 'addresses', '<null>', 'Line addresses are left null.');
+        RLM_TaxTestFactory.assertResponseField(response, 'imposition', '<null>', 'Tax imposition is left null.');
+        RLM_TaxTestFactory.assertResponseField(response, 'jurisdiction', '<null>', 'Tax jurisdiction is left null.');
     }
 
     @IsTest
-    static void processRequest_otherRequestType_returnsNull() {
+    static void processRequest_noLinesScenario_omitsLineItems() {
+        Test.startTest();
+        commercetax.TaxEngineResponse response = process(requestFor('nolines'));
+        Test.stopTest();
+
+        Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class, 'A calculated response is returned.');
+        RLM_TaxTestFactory.assertResponseField(response, 'lineItems', '<null>', 'The nolines scenario sets no line items.');
+        RLM_TaxTestFactory.assertResponseField(response, 'documentCode', 'nolines', 'The header is still built.');
+    }
+
+    @IsTest
+    static void processRequest_nullRequestType_returnsNull() {
         Test.startTest();
         commercetax.TaxEngineResponse response =
             new RLM_MockTaxAdapter().processRequest(RLM_TaxTestFactory.contextWithoutRequestType(requestFor('DOC-MOCK-3')));
@@ -173,11 +192,14 @@ private class RLM_MockTaxAdapterTest {
     }
 
     @IsTest
-    static void getRandomInteger_staysWithinBounds() {
+    static void getRandomInteger_alwaysReturnsMin() {
         Test.startTest();
-        Integer value = RLM_MockTaxAdapter.getRandomInteger(5, 10);
+        Integer fromFive = RLM_MockTaxAdapter.getRandomInteger(5, 10);
+        Integer fromZero = RLM_MockTaxAdapter.getRandomInteger(0, 2147483647);
         Test.stopTest();
 
-        Assert.isTrue(value >= 5 && value <= 10, 'getRandomInteger should stay within [min, max]: ' + value);
+        // Integer.valueOf(Math.random()) truncates a value in [0, 1) to 0, so the result is always min.
+        Assert.areEqual(5, fromFive, 'getRandomInteger returns min.');
+        Assert.areEqual(0, fromZero, 'getRandomInteger returns min.');
     }
 }

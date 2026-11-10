@@ -1,5 +1,5 @@
 @IsTest
-private class RLM_AvalaraJSONBuilderTest {
+private with sharing class RLM_AvalaraJSONBuilderTest {
 
     private static Map<String, Object> asMap(Object value) {
         return (Map<String, Object>) value;
@@ -72,9 +72,13 @@ private class RLM_AvalaraJSONBuilderTest {
         Assert.areEqual('Austin', origin.get('city'), 'The Sold To address is the point of order origin.');
         Assert.areEqual('78701', origin.get('postalCode'), 'pointOfOrderOrigin.postalCode');
 
-        String serialized = JSON.serialize(body);
-        Assert.isTrue(serialized.contains('"taxOverride"'), 'A line effective date writes a taxOverride block.');
-        Assert.isTrue(serialized.contains('2026-01-20'), 'The taxOverride carries the line effective date.');
+        // Pins current behaviour: the builder writes taxOverride before closing the addresses
+        // object, so the block lands inside "addresses", not on the line itself.
+        Assert.isFalse(line.containsKey('taxOverride'), 'taxOverride is not written at line level today.');
+        Map<String, Object> taxOverride = asMap(addresses.get('taxOverride'));
+        Assert.isNotNull(taxOverride, 'A line effective date writes a taxOverride block inside addresses.');
+        Assert.isTrue(String.valueOf(taxOverride.get('taxDate')).startsWith('2026-01-20'),
+            'The taxOverride carries the line effective date: ' + taxOverride.get('taxDate'));
     }
 
     @IsTest
@@ -94,6 +98,7 @@ private class RLM_AvalaraJSONBuilderTest {
             RLM_TaxTestFactory.line(50, null, null)
         };
 
+        Date todayBeforeBuild = Date.today();
         Test.startTest();
         Map<String, Object> body = build(request);
         Test.stopTest();
@@ -104,7 +109,12 @@ private class RLM_AvalaraJSONBuilderTest {
         Assert.areEqual('REF-ENTITY-1', body.get('code'), 'The reference entity id is the code when no document code is set.');
         Assert.areEqual('Avalara Builder Test Customer', body.get('customerCode'),
             'With no customer code the account name is looked up.');
-        Assert.areEqual(String.valueOf(Date.today()), body.get('date'), 'No effective date defaults to today.');
+        // Today, or tomorrow if the build ran across midnight.
+        Set<String> acceptedDates = new Set<String>{
+            String.valueOf(todayBeforeBuild), String.valueOf(todayBeforeBuild.addDays(1))
+        };
+        Assert.isTrue(acceptedDates.contains(String.valueOf(body.get('date'))),
+            'No effective date defaults to today: ' + body.get('date'));
 
         List<Object> lines = (List<Object>) body.get('lines');
         Assert.areEqual(2, lines.size(), 'Every request line is written once.');

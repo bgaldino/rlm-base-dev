@@ -1,5 +1,5 @@
 @IsTest
-private class RLM_HttpServiceTest {
+private with sharing class RLM_HttpServiceTest {
 
     private static final String POST_ENDPOINT_PREFIX = 'callout:commerce.tax.TaxTypedNamedCredential:test';
 

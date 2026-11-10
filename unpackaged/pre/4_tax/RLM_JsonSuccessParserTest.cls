@@ -1,8 +1,9 @@
 @IsTest
-private class RLM_JsonSuccessParserTest {
+private with sharing class RLM_JsonSuccessParserTest {
 
-    // Every field each parser class maps, plus an unmapped scalar, an unmapped object and
-    // array (consumeObject) and a null value (VALUE_NULL skip) at every level.
+    // Every field each parser class maps. Each level (transaction, line, first detail, address,
+    // summary, message) also carries an unmapped scalar, an unmapped object or array
+    // (consumeObject) and a null value (VALUE_NULL skip); the mapped values after them must survive.
     private static final String FULL_TRANSACTION = '{'
         + '"id": 123456,'
         + '"code": "DOC-PARSE-1",'
@@ -47,6 +48,7 @@ private class RLM_JsonSuccessParserTest {
         +     '"itemCode": "QB-ITEM-1",'
         +     '"description": null,'
         +     '"taxOverrideType": "None",'
+        +     '"taxOverride": {"type": "None", "reasons": ["a", {"b": 1}]},'
         +     '"nonPassthroughDetails": [],'
         +     '"details": [{'
         +         '"id": 11,'
@@ -87,6 +89,7 @@ private class RLM_JsonSuccessParserTest {
         +     '"country": "US",'
         +     '"taxRegionId": 2109700,'
         +     '"latitude": "47.59821",'
+        +     '"validatedAddresses": [{"line1": "255 S KING ST", "geo": {"lat": 47.6}}],'
         +     '"line2": null'
         + '}],'
         + '"summary": [{'
@@ -258,15 +261,23 @@ private class RLM_JsonSuccessParserTest {
     }
 
     @IsTest
-    static void parse_emptyObject_leavesEveryFieldNull() {
+    static void parse_emptyObject_leavesScalarsAndListsNull() {
         Test.startTest();
         RLM_JsonSuccessParser parsed = RLM_JsonSuccessParser.parse('{}');
         Test.stopTest();
 
+        Assert.isNotNull(parsed, 'An empty object still parses.');
         Assert.isNull(parsed.id, 'id');
+        Assert.isNull(parsed.code, 'code');
+        Assert.isNull(parsed.transactionDate, 'transactionDate');
         Assert.isNull(parsed.status, 'status');
+        Assert.isNull(parsed.type_Z, 'type_Z');
+        Assert.isNull(parsed.reconciled, 'reconciled');
         Assert.isNull(parsed.totalAmount, 'totalAmount');
+        Assert.isNull(parsed.totalTax, 'totalTax');
         Assert.isNull(parsed.lines, 'lines are only created when the key is present.');
+        Assert.isNull(parsed.addresses, 'addresses');
+        Assert.isNull(parsed.summary, 'summary');
         Assert.isNull(parsed.messages, 'messages');
     }
 
