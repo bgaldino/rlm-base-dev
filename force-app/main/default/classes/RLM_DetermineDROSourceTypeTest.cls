@@ -78,12 +78,13 @@ private class RLM_DetermineDROSourceTypeTest {
     static void emptyInputListThrows() {
         try {
             RLM_DetermineDROSourceType.returnDROSourceObjectType(new List<RLM_DetermineDROSourceType.droSourceInfo>());
-            Assert.fail('An empty input list has no first input to read');
+            Assert.fail(
+                'Known gap: an empty input list throws a raw ListException; update this test when it is fixed'
+            );
         } catch (ListException e) {
             Assert.isTrue(
                 e.getMessage().contains('out of bounds'),
-                'Known gap: an empty input list throws a raw ListException; update this test when it is fixed. '
-                    + e.getMessage()
+                'The missing first input is indexed: ' + e.getMessage()
             );
         }
     }
@@ -95,12 +96,13 @@ private class RLM_DetermineDROSourceTypeTest {
 
         try {
             run(info);
-            Assert.fail('An empty record id list has no first id to read');
+            Assert.fail(
+                'Known gap: an empty recordIds list throws a raw ListException; update this test when it is fixed'
+            );
         } catch (ListException e) {
             Assert.isTrue(
                 e.getMessage().contains('out of bounds'),
-                'Known gap: an empty recordIds list throws a raw ListException; update this test when it is fixed. '
-                    + e.getMessage()
+                'The missing first id is indexed: ' + e.getMessage()
             );
         }
     }
@@ -112,7 +114,9 @@ private class RLM_DetermineDROSourceTypeTest {
 
         try {
             run(info);
-            Assert.fail('A malformed record id must not resolve to a source type');
+            Assert.fail(
+                'Known gap: a malformed record id throws a raw StringException; update this test when it is fixed'
+            );
         } catch (StringException e) {
             Assert.isTrue(e.getMessage().contains('not-an-id'), 'The invalid id is named: ' + e.getMessage());
         }

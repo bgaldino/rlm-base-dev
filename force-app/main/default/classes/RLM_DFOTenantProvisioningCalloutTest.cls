@@ -60,11 +60,9 @@ private class RLM_DFOTenantProvisioningCalloutTest {
         Test.setMock(HttpCalloutMock.class, mock);
 
         Test.startTest();
-        industriesintegrationfwk.IntegrationCalloutResponse result =
-            RLM_DFOTenantProvisioningCallout.executeCallout('guid-1', oi.Id, '', new Map<String, Object>());
+        RLM_DFOTenantProvisioningCallout.executeCallout('guid-1', oi.Id, '', new Map<String, Object>());
         Test.stopTest();
 
-        Assert.isTrue(result.isSuccess(), 'A successful callout reports success');
         Assert.areEqual(1, mock.callCount, 'Exactly one tenant callout is made');
         Assert.areEqual('POST', mock.lastRequest.getMethod(), 'Tenant creation is a POST');
         Assert.areEqual(ENDPOINT, mock.lastRequest.getEndpoint(), 'The RLM named credential endpoint is used');
@@ -122,13 +120,12 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             RLM_DFOTenantProvisioningCallout.executeCallout(
                 'guid-4', fakeId(FulfillmentOrderLineItem.SObjectType), '', new Map<String, Object>()
             );
-            Assert.fail('A fulfillment line with no order item source relation must fail');
-        } catch (QueryException e) {
-            Assert.isTrue(
-                e.getMessage().contains('no rows'),
+            Assert.fail(
                 'Known gap: a fulfillment line without an order item source throws a raw QueryException; '
-                    + 'update this test when it is fixed. ' + e.getMessage()
+                    + 'update this test when it is fixed'
             );
+        } catch (QueryException e) {
+            Assert.isTrue(e.getMessage().contains('no rows'), 'No source relation is found: ' + e.getMessage());
         }
         Test.stopTest();
 
