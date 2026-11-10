@@ -212,7 +212,7 @@ NPM_SF=""
 if [ -n "$NPM_PREFIX" ]; then NPM_SF="$NPM_PREFIX/bin/sf"; fi
 if [ -z "$RUN_SF" ]; then
   warn "sf not found on PATH for $NEW_NODE — installing"
-  npm install -g @salesforce/cli@latest
+  npm install -g @salesforce/cli@latest || fail_later "sf CLI install failed — try: npm install -g @salesforce/cli@latest"
 elif [ -n "$NPM_SF" ] && [ "$RUN_SF" -ef "$NPM_SF" ]; then
   log "sf CLI: npm install -g @salesforce/cli@latest (was $(sf --version 2>/dev/null | head -1 | cut -d' ' -f1))"
   npm install -g @salesforce/cli@latest || fail_later "sf CLI update failed — try: npm install -g @salesforce/cli@latest"

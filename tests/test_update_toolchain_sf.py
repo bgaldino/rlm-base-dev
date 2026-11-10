@@ -133,6 +133,13 @@ class UpdateToolchainSf(unittest.TestCase):
         listed = warns[0].split("updated: ", 1)[1].split(" — ", 1)[0].split(" ")
         self.assertEqual(listed, [str(stale / "bin" / "sf")], warns[0])
 
+    def test_a_failed_install_with_no_sf_is_reported_not_fatal(self):
+        prefix = self.npm_prefix("node24", sf=False)
+        npm = executable(self.tmp / "tools" / "npm",
+                         f'[ "$1" = prefix ] && echo "{prefix}" && exit 0\nexit 1\n').parent
+        out, _ = self.run_step(npm, prefix / "bin")
+        self.assertIn("WARN sf CLI install failed", out)
+
     def test_a_failed_npm_update_is_reported_not_fatal(self):
         prefix = self.npm_prefix("node24")
         npm = executable(self.tmp / "tools" / "npm",
