@@ -1,7 +1,8 @@
 /**
  * Documented, not pinned: the context's EffectiveDate is the quote's CreatedDate formatted in the
- * running user's time zone but labelled Z (UTC). It is only wrong for users outside GMT, so no
- * assertion here can catch it for every runner.
+ * running user's time zone but labelled Z (UTC). It is wrong whenever the running user's UTC offset
+ * is not zero at the quote's CreatedDate (e.g. Europe/London during BST), so no fixed expected
+ * value holds for every runner; the test checks only its format.
  *
  * Production gaps that can be observed are pinned below with "Known gap:" assertions.
  */
@@ -160,6 +161,10 @@ private class RLM_QuoteModelUtilityTest {
             'The quote price book is carried'
         );
         Assert.areEqual(q.CurrencyIsoCode, txn.CurrencyIsoCode, 'The quote currency is carried');
+        Assert.isTrue(
+            Pattern.matches('\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z', txn.EffectiveDate),
+            'The effective date is an ISO timestamp: ' + txn.EffectiveDate
+        );
         Assert.areEqual(
             stored.size(), txn.SalesTransactionItem.size(),
             'Every quote line becomes one transaction item'

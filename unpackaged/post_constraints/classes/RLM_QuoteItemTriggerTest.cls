@@ -166,29 +166,40 @@ private class RLM_QuoteItemTriggerTest {
         Assert.areEqual(PRESET_STATUS, statusOf(line.Id), 'A status already on the line is kept');
     }
 
+    /** An amend line on an asset with a recorded status, to insert alongside a blank-path line. */
+    private static QuoteLineItem sourcedLine(Fixture f) {
+        Asset a = newAsset(f, 'RLM Constraint Status Asset');
+        seedAssetHistory(a.Id, true, '{"node":"latest"}', '{"node":"older"}');
+        return amendLine(f, quoteAction(f, a.Id, 'Amend').Id, null);
+    }
+
     @IsTest
     static void lineWithoutQuoteActionStaysBlank() {
         Fixture f = buildFixture();
+        QuoteLineItem sourced = sourcedLine(f);
         QuoteLineItem line = newLine(f, null, null);
 
         Test.startTest();
-        insert line;
+        insert new List<QuoteLineItem>{ sourced, line };
         Test.stopTest();
 
-        Assert.isNull(statusOf(line.Id), 'A new-sale line is saved without error and stays blank');
+        Assert.areEqual('{"node":"latest"}', statusOf(sourced.Id), 'The sourced line in the same batch is stamped');
+        Assert.isNull(statusOf(line.Id), 'A new-sale line in the same batch stays blank');
     }
 
     @IsTest
     static void quoteActionWithoutSourceAssetStaysBlank() {
         Fixture f = buildFixture();
+        QuoteLineItem sourced = sourcedLine(f);
         QuoteAction add = quoteAction(f, null, 'Add');
         QuoteLineItem line = newLine(f, add.Id, null);
 
         Test.startTest();
-        insert line;
+        insert new List<QuoteLineItem>{ sourced, line };
         Test.stopTest();
 
-        Assert.isNull(statusOf(line.Id), 'A line whose quote action has no source asset is saved and stays blank');
+        Assert.areEqual('{"node":"latest"}', statusOf(sourced.Id), 'The sourced line in the same batch is stamped');
+        Assert.isNull(statusOf(line.Id), 'A line whose quote action has no source asset stays blank');
     }
 
     @IsTest

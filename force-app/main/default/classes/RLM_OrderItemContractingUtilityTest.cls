@@ -168,13 +168,16 @@ private class RLM_OrderItemContractingUtilityTest {
     }
 
     @IsTest
-    static void userWithoutOrderAccessGetsNoResults_whenMinimumAccessProfileExists() {
+    static void userWithoutOrderAccessGetsNoResults_whenAMinimumAccessUserCanBeCreated() {
         Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
         insert o;
         Assert.areEqual(1, run(new List<Id>{ o.Id }).size(), 'PRECONDITION: an admin gets a result for this order');
         User noAccess = minimumAccessUser();
         if (noAccess == null) {
-            System.debug(LoggingLevel.WARN, 'SKIPPED: no Minimum Access - Salesforce profile in this org');
+            System.debug(
+                LoggingLevel.WARN,
+                'SKIPPED: no Minimum Access - Salesforce profile, or no free Salesforce seat, in this org'
+            );
             return;
         }
 
@@ -199,7 +202,8 @@ private class RLM_OrderItemContractingUtilityTest {
 
     /**
      * A Minimum Access user: no object access to Order, OrderItem or OrderAction. Returns null
-     * when the org has no "Minimum Access - Salesforce" profile (a standard profile, so rare).
+     * when the org has no "Minimum Access - Salesforce" profile (a standard profile, so rare) or
+     * no free Salesforce seat for the user.
      */
     private static User minimumAccessUser() {
         List<Profile> profiles = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
@@ -220,8 +224,15 @@ private class RLM_OrderItemContractingUtilityTest {
             LanguageLocaleKey = 'en_US'
         );
         // Setup-object DML after the orders above needs its own runAs context (mixed DML).
-        System.runAs(new User(Id = UserInfo.getUserId())) {
-            insert u;
+        try {
+            System.runAs(new User(Id = UserInfo.getUserId())) {
+                insert u;
+            }
+        } catch (DmlException e) {
+            if (e.getDmlType(0) == StatusCode.LICENSE_LIMIT_EXCEEDED) {
+                return null;
+            }
+            throw e;
         }
         return u;
     }
