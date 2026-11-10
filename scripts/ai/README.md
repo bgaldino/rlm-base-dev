@@ -608,8 +608,8 @@ made the first version of three separate guards vacuous.
 
 A full `--all` run is 33 checks in about 100 seconds, of which the branch-scope *suite*
 (`tests/test_branch_scope.py`) is about 14. A typical docs-only selection is about 7 seconds, most
-of it the two checks that run on every change: `release_refs`, which reads every tracked text
-file (about 3), and `agent_tooling`. Measured 2026-10-11, with twenty-five checks then, on a workstation where every
+of it two of the three checks that run on every change: `release_refs`, which reads every tracked text
+file (about 3), and `agent_tooling`. The third, `dockerignore`, added since, takes under a second. Measured 2026-10-11, with twenty-five checks then, on a workstation where every
 one ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
 `harness_suites`) reports it rather than counting it, and its total is lower.
 

@@ -16,8 +16,9 @@ and checks:
   slash but a trailing one matches at any depth in git, so its mirror must be `**/<pattern>`,
   since a bare Docker pattern only matches at the root. NOT_MIRRORED holds only the entries a
   broader .dockerignore line already covers. A new .gitignore entry fails here until mirrored;
-- a `!` re-include does not bring back a secret nested under it. The last matching pattern wins,
-  so a re-include placed after the recursive secret rules overrides them inside its subtree.
+- a `!` re-include sits above every rule it could override, and does not bring back a secret
+  nested under it: the last matching pattern wins, so a re-include placed after the recursive
+  secret rules overrides them inside its subtree.
 """
 import os
 import re
@@ -48,7 +49,9 @@ def _to_regex(pattern):
         elif ch == "?":
             out += "[^/]"
         elif ch == "[":
-            end = pattern.index("]", i)
+            end = pattern.find("]", i)
+            if end < 0:
+                raise ValueError(f"unterminated '[' in .dockerignore pattern {pattern!r}")
             out += pattern[i:end + 1]
             i = end
         else:
@@ -175,17 +178,51 @@ def reincluded_paths(text):
     """The paths .dockerignore re-includes with `!`, as written."""
     return [line.strip()[1:].strip() for line in text.splitlines() if line.strip().startswith("!")]
 
+
+def misplaced_reincludes(text):
+    """(re-include, earlier exclusion) pairs where the `!` line comes after a rule it can override.
+
+    Docker applies the last matching pattern, so a `!R` line wins over every earlier exclusion
+    inside R's subtree. The only exclusions allowed before it are the one it carves R out of
+    (which matches R itself, like `.claude/*` for `!.claude/hooks`) and ones anchored under a
+    different top-level name, which cannot match anything under R.
+    """
+    rules, bad = [], []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("!"):
+            target = line[1:].strip().lstrip("/")
+            top = target.split("/")[0]
+            for earlier in rules:
+                if excluded(load_dockerignore(earlier), target):
+                    continue  # the rule this line carves the path out of
+                first = earlier.lstrip("/").split("/")[0]
+                if first != top and not any(c in first for c in "*?["):
+                    continue  # anchored under another top-level name
+                bad.append((line, earlier))
+        else:
+            rules.append(line)
+    return bad
+
 # Tracked paths .dockerignore leaves out on purpose; everything else tracked must be copied.
-TRACKED_EXCLUDED_OK = (".git", ".gitattributes", ".github/")
+# Exact names and directory prefixes, so `.gitignore` itself is not excused by a `.git` prefix.
+TRACKED_EXCLUDED_FILES = {".gitattributes"}
+TRACKED_EXCLUDED_DIRS = (".github/",)
 
 # .gitignore patterns not mirrored line for line because a broader .dockerignore line already
-# excludes everything they match (the comment names it). Anything else is mirrored.
+# excludes everything they match (the comment names it). Anything else is mirrored. Each maps to
+# sample paths that git ignores under that pattern and Docker must exclude, so the "covered"
+# claim is checked rather than taken on trust.
 NOT_MIRRORED = {
-    ".env.local",                   # **/.env.*
-    "datasets/bre/exports/**",      # datasets/bre
-    "datasets/sfdmu/**/*.csv.bak",  # **/*.bak
-    "docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf",  # .../revenue-cloud-*.pdf
-    "docs/salesforce/262/salesforce-release-notes-summer-26-2026-05-07.pdf",  # ...-notes-*.pdf
+    ".env.local": [".env.local", "docker/.env.local"],                          # **/.env.*
+    "datasets/bre/exports/**": ["datasets/bre/exports/a.json"],                 # datasets/bre
+    "datasets/sfdmu/**/*.csv.bak": ["datasets/sfdmu/qb/en-US/x/Product2.csv.bak"],  # **/*.bak
+    "docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf":               # revenue-cloud-*.pdf
+        ["docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf"],
+    "docs/salesforce/262/salesforce-release-notes-summer-26-2026-05-07.pdf":    # ...-notes-*.pdf
+        ["docs/salesforce/262/salesforce-release-notes-summer-26-2026-05-07.pdf"],
 }
 
 
@@ -241,24 +278,51 @@ class DockerignoreTest(unittest.TestCase):
             self.assertFalse(excluded(PATTERNS, path), path)
 
     def test_every_tracked_file_is_copied(self):
-        try:
-            files = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, check=True,
-                                   capture_output=True, text=True).stdout.split("\0")
-        except (OSError, subprocess.CalledProcessError) as exc:
-            self.skipTest(f"git ls-files unavailable: {exc}")
-        dropped = [f for f in files if f and not f.startswith(TRACKED_EXCLUDED_OK)
-                   and excluded(PATTERNS, f)]
+        # No skip when git is unavailable: a skipped suite exits 0, and the gate would book a
+        # pass for a check that verified nothing.
+        files = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, check=True,
+                               capture_output=True, text=True).stdout.split("\0")
+        self.assertTrue([f for f in files if f], "git ls-files listed no tracked files")
+        dropped = [f for f in files if f and f not in TRACKED_EXCLUDED_FILES
+                   and not f.startswith(TRACKED_EXCLUDED_DIRS) and excluded(PATTERNS, f)]
         self.assertEqual(dropped, [], "tracked files left out of the build context")
 
     def test_every_gitignore_pattern_is_mirrored_or_explained(self):
         docker = {line.strip() for line in read(".dockerignore").splitlines()}
         unhandled = [p for p in _gitignore_patterns()
                      if p not in NOT_MIRRORED and not (_forms(p) & docker)]
-        self.assertEqual(unhandled, [], "add each to .dockerignore, or to NOT_MIRRORED with why")
+        self.assertEqual(unhandled, [], "mirror each in .dockerignore with the same scope, or "
+                                        "list it in NOT_MIRRORED with a covered sample path")
 
     def test_not_mirrored_has_no_stale_entries(self):
         gitignore = set(_gitignore_patterns())
-        self.assertEqual(sorted(NOT_MIRRORED - gitignore), [], "no longer in .gitignore")
+        self.assertEqual(sorted(set(NOT_MIRRORED) - gitignore), [], "no longer in .gitignore")
+
+    def test_not_mirrored_entries_really_are_covered(self):
+        samples = [p for paths in NOT_MIRRORED.values() for p in paths]
+        self.assertTrue(all(NOT_MIRRORED.values()), "every NOT_MIRRORED entry needs a sample")
+        # The samples must be paths git ignores, or they prove nothing about the pattern.
+        ignored = subprocess.run(["git", "check-ignore", "--no-index", "--stdin"], cwd=REPO,
+                                 input="\n".join(samples) + "\n", capture_output=True,
+                                 text=True).stdout.split()
+        self.assertEqual(sorted(set(samples) - set(ignored)), [], "samples git does not ignore")
+        leaked = [p for p in samples if not excluded(PATTERNS, p)]
+        self.assertEqual(leaked, [], "listed as covered, but copied into the image")
+
+    def test_reincludes_sit_above_every_rule_they_could_override(self):
+        self.assertEqual(misplaced_reincludes(read(".dockerignore")), [],
+                         "move each `!` line above the rules it follows")
+
+    def test_reinclude_ordering_rule_can_fail(self):
+        self.assertEqual(misplaced_reincludes(".git\nx/*\n!x/keep\n**/.env\n"), [])
+        self.assertEqual(misplaced_reincludes("x/*\n**/.env\n!x/keep\n"),
+                         [("!x/keep", "**/.env")])
+        self.assertEqual(misplaced_reincludes("x/*\nx/keep/logs\n!x/keep\n"),
+                         [("!x/keep", "x/keep/logs")])
+
+    def test_an_unterminated_bracket_names_the_pattern(self):
+        with self.assertRaisesRegex(ValueError, "unterminated.*'a\\[b'"):
+            load_dockerignore("a[b\n")
 
     def test_matcher_emulation(self):
         pats = load_dockerignore("a/b\n**/*.pyc\nx/*\n!x/keep\n/root/\nd/**\n")
