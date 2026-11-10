@@ -2740,30 +2740,14 @@ class PathsAndManifests(Base):
         plan = self.plan(FakeCli(self.home))
         self.assertEqual(plan["report"]["unsafe_deploy_cache_keys"], ["\ud800"])
 
-    def test_the_deploy_cache_is_rewritten_under_sfs_lock(self):
+    def test_a_lock_sf_takes_after_the_preflight_leaves_the_cache_alone(self):
         cli = FakeCli(self.home, self.setup_stale_org())
         plan_file = self.audit_file(cli)
-        lock = self.home / ".sf" / "deploy-cache.json.lock"
         with mock.patch.object(oc, "lock_held", side_effect=[False, True]):  # sf takes it after the preflight
-            lock.mkdir()
             self.assertEqual(self.apply(cli, plan_file), 1)
-        self.assertIn("sf holds its lock", self.stdout.getvalue())
+        self.assertIn("not modified: an sf command holds its lock", self.stdout.getvalue())
         self.assertIn("job1", self.read_cache())
         self.assertTrue(self.manifest.exists())
-
-    def test_the_lock_is_held_while_the_cache_is_rewritten_and_released_after(self):
-        cli = FakeCli(self.home, self.setup_stale_org())
-        plan_file = self.audit_file(cli)
-        lock, seen, real = self.home / ".sf" / "deploy-cache.json.lock", [], oc.rewrite_deploy_cache
-
-        def check_lock(*args, **kwargs):
-            seen.append(lock.is_dir())
-            return real(*args, **kwargs)
-
-        with mock.patch.object(oc, "rewrite_deploy_cache", side_effect=check_lock):
-            self.assertEqual(self.apply(cli, plan_file), 0, self.stdout.getvalue())
-        self.assertEqual(seen, [True])
-        self.assertFalse(lock.exists())
 
     def test_a_quarantine_reached_through_a_link_into_the_project_is_refused(self):
         cli = FakeCli(self.home, self.setup_stale_org())
@@ -2787,48 +2771,44 @@ class PathsAndManifests(Base):
         self.assertIn("holds the deploy cache's lock", self.stderr.getvalue())
         self.assertEqual(self.logouts(cli), [])
 
-    def test_an_abandoned_cache_lock_is_taken_over_as_sf_does(self):
+    def test_an_abandoned_cache_lock_does_not_stop_the_run_and_is_left_to_sf(self):
         cli = FakeCli(self.home, self.setup_stale_org())
         plan_file = self.audit_file(cli)
         lock = self.home / ".sf" / "deploy-cache.json.lock"
         lock.mkdir()
-        os.utime(str(lock), (1, 1))
+        os.utime(str(lock), (1, 1))  # not refreshed for 10 seconds: sf treats it as abandoned
         self.assertEqual(self.apply(cli, plan_file), 0, self.stdout.getvalue())
         self.assertNotIn("job1", self.read_cache())
-        self.assertFalse(lock.exists())
+        self.assertTrue(lock.is_dir())  # the tool never takes or removes sf's lock
 
-    def test_the_lock_is_refreshed_while_manifests_move(self):
-        cli = FakeCli(self.home, self.setup_stale_org())
-        plan_file = self.audit_file(cli)
-        real, calls = oc.refresh_lock, []
-
-        def count(lock):
-            calls.append(lock.name)
-            return real(lock)
-
-        with mock.patch.object(oc, "refresh_lock", side_effect=count):
-            self.assertEqual(self.apply(cli, plan_file), 0)
-        self.assertEqual(len(calls), 3)  # when taken, before the manifest moves, before the write
-
-    def test_a_lock_taken_over_during_the_rewrite_is_left_to_sf(self):
+    def test_a_lock_sf_takes_while_manifests_move_leaves_the_cache_and_names_the_jobs(self):
         cli = FakeCli(self.home, self.setup_stale_org())
         plan_file = self.audit_file(cli)
         lock, real = self.home / ".sf" / "deploy-cache.json.lock", oc.move_to_quarantine
 
-        def stall_then_move(*args, **kwargs):
-            if str(args[1]).endswith(".xml"):  # the manifest move stalled past 10s; sf reclaimed the lock
-                lock.rmdir()
+        def sf_starts_writing(*args, **kwargs):
+            if str(args[1]).endswith(".xml"):
                 lock.mkdir()
-                os.utime(str(lock), (5, 5))
             return real(*args, **kwargs)
 
-        with mock.patch.object(oc, "move_to_quarantine", side_effect=stall_then_move):
+        with mock.patch.object(oc, "move_to_quarantine", side_effect=sf_starts_writing):
             self.assertEqual(self.apply(cli, plan_file), 1)
-        self.assertIn("job1", self.read_cache())  # not written under sf's lock
-        self.assertTrue(lock.is_dir())  # and its lock not removed
-        self.assertIn("not written: an sf command took its lock over", self.stdout.getvalue())
+        self.assertIn("job1", self.read_cache())  # not written while sf holds its lock
+        self.assertTrue(lock.is_dir())
+        self.assertIn("not written: an sf command took its lock meanwhile", self.stdout.getvalue())
         self.assertIn("job1 (manifest is in the quarantine, but its cache entry was kept)", self.stdout.getvalue())
-        self.assertNotIn("left in place", self.stdout.getvalue())  # the loss is reported once
+
+    def test_a_cache_that_cannot_be_written_names_the_jobs_whose_manifests_moved(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        with mock.patch.object(oc, "replace_json", side_effect=OSError(errno.ENOSPC, "No space left on device")):
+            self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertIn("job1 (manifest is in the quarantine, but its cache entry was kept)", self.stdout.getvalue())
+
+    def test_an_unreadable_plan_stops_before_any_query(self):
+        cli = FakeCli(self.home)
+        self.assertEqual(self.main(["apply", "--plan", str(self.home.parent / "missing.json")], cli), 1)
+        self.assertEqual(cli.calls, [])
 
     def test_an_empty_plan_or_quarantine_path_is_refused(self):
         for argv in (["audit", "--out", ""], ["apply", "--plan", "p", "--quarantine", " "]):
@@ -2837,60 +2817,11 @@ class PathsAndManifests(Base):
 
     def test_paths_are_checked_before_any_audit_work(self):
         cli = FakeCli(self.home)
+        plan = self.home.parent / "p.json"
+        plan.write_text("{}")
         self.assertEqual(self.main(["audit", "--out", str(self.project / "p.json")], cli), 2)
-        self.assertEqual(self.main(["apply", "--plan", "p", "--quarantine", str(self.project)], cli), 2)
+        self.assertEqual(self.main(["apply", "--plan", str(plan), "--quarantine", str(self.project)], cli), 2)
         self.assertEqual(cli.calls, [])
-
-    def test_a_lock_taken_over_after_the_write_is_left_to_sf(self):
-        cli = FakeCli(self.home, self.setup_stale_org())
-        plan_file = self.audit_file(cli)
-        lock, real = self.home / ".sf" / "deploy-cache.json.lock", oc.rewrite_deploy_cache
-
-        def write_then_lose(*args, **kwargs):
-            result = real(*args, **kwargs)
-            lock.rmdir()  # sf reclaimed it after our write and holds it now
-            lock.mkdir()
-            return result
-
-        with mock.patch.object(oc, "rewrite_deploy_cache", side_effect=write_then_lose):
-            self.assertEqual(self.apply(cli, plan_file), 1)
-        self.assertTrue(lock.is_dir())
-        self.assertIn("the lock was not ours when the rewrite ended", self.stdout.getvalue())
-
-    def test_a_refresh_that_fails_is_a_lost_lock_not_a_crash(self):
-        cli = FakeCli(self.home, self.setup_stale_org())
-        plan_file = self.audit_file(cli)
-        real, calls = oc.refresh_lock, []
-
-        def fail_second(path):
-            calls.append(1)
-            if len(calls) == 2:
-                raise FileNotFoundError(errno.ENOENT, "No such file or directory")
-            return real(path)
-
-        with mock.patch.object(oc, "refresh_lock", side_effect=fail_second):
-            self.assertEqual(self.apply(cli, plan_file), 1)
-        self.assertIn("not written: an sf command took its lock over", self.stdout.getvalue())
-        self.assertNotIn("Stopped part-way", self.stderr.getvalue())
-
-    def test_a_lock_replaced_by_another_folder_is_not_ours(self):
-        cli = FakeCli(self.home, self.setup_stale_org())
-        plan_file = self.audit_file(cli)
-        lock, real = self.home / ".sf" / "deploy-cache.json.lock", oc.refresh_lock
-        calls = []
-
-        def swap_then_refresh(path):
-            calls.append(1)
-            if len(calls) == 2:  # sf reclaimed it, and our refresh landed on sf's new folder
-                path.rmdir()
-                path.mkdir()
-            return real(path)
-
-        with mock.patch.object(oc, "refresh_lock", side_effect=swap_then_refresh):
-            self.assertEqual(self.apply(cli, plan_file), 1)
-        self.assertTrue(lock.is_dir())
-        self.assertIn("job1", self.read_cache())
-        self.assertTrue(self.manifest.exists())  # caught before the manifest moved
 
     def test_a_path_spelled_in_another_case_is_still_inside_the_project(self):
         spelled = Path(str(self.project).swapcase()) / "plan.json"

@@ -168,22 +168,18 @@ An audit request ends here.
 python scripts/ai/org_cleanup.py apply --plan <plan-path>
 ```
 
-Do not run `apply` while another `sf` or `cci` process is running. The deploy cache is rewritten
-under sf's own lock (`deploy-cache.json.lock`). If an sf command holds it when `apply` starts and
-deploy jobs are planned, `apply` stops before any logout (exit 1); one held later leaves the cache
-as it is, reported. `apply` refreshes the lock before each manifest move and before the write,
-and checks it is still its own first, as sf does: a lock not refreshed for 10 seconds counts as
-abandoned and is taken over, so after a stall longer than that (a slow move across volumes, a
-suspended process), the cache is left to the sf command that took it, and each job whose manifest
-already moved is named. The lock only orders the writes: an sf command already running when
-`apply` rewrites the cache can write removed entries back, which is why `apply` must not run
-alongside one.
+Do not run `apply` while another `sf` or `cci` process is running: an sf command can write
+removed deploy-cache entries back. sf writes the cache under its own lock
+(`deploy-cache.json.lock`, refreshed while held; one not refreshed for 10 seconds is abandoned).
+`apply` does not take it. If an sf command holds it when `apply` starts and deploy jobs are planned,
+`apply` stops before any logout (exit 1); if one takes it before the cache is written, the cache is
+left as it is and each job whose manifest already moved to the quarantine is named.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
 reviewed one: its project, every removal, each logout's org and the aliases and config keys it
 clears, and the value and orgs each alias, default, deploy job and file reaches. It does not run
-`cci`. An unreadable state folder, or a plan file it cannot read, stops the run with exit 1
-before anything changes. Before any
+`cci`. A plan file it cannot read stops the run with exit 1 before any
+query; an unreadable state folder stops it with exit 1 before anything changes. Before any
 logout, if the plan moves files, it checks the quarantine (no linked root or folder, no file
 where a folder belongs) and moves a temp file in, and exits 1 if that fails. The quarantine is a
 dated folder in the user's Trash, or with no Trash, beside the real CLI state, which in the Docker

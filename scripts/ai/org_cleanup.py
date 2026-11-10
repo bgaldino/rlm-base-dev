@@ -1005,50 +1005,20 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures, done=None
         if is_link(linked):
             failures.append((str(linked), "symlink"))
             return 0, 0
-    lock = cache_lock(home)
-    try:
-        mark = [take_lock(lock)]
-        ident = os.lstat(str(lock))[stat.ST_INO], os.lstat(str(lock))[stat.ST_DEV]
-    except OSError as error:
-        failures.append((str(path), "not modified: sf holds its lock (an sf command is writing it), or the "
-                                    "lock could not be taken ({})".format(reason(error))))
+    # sf writes the cache under its own lock. The tool does not take it: it leaves the cache to an
+    # sf command that holds it, here and again just before the write.
+    if lock_held(cache_lock(home)):
+        failures.append((str(path), "not modified: an sf command holds its lock"))
         return 0, 0
-
-    lost = []
-
-    def ours():  # proper-lockfile's rule, plus the folder's identity: the one we made, at the time we set
-        info = lstat_or_none(lock)
-        return info is not None and (info.st_ino, info.st_dev) == ident and info.st_mtime_ns == mark[0]
-
-    def touch():
-        """Refresh the lock if it is still ours; False, once and for all, when it is not."""
-        if lost or not ours():
-            lost.append(True)
-            return False
-        try:
-            mark[0] = refresh_lock(lock)
-        except OSError:
-            lost.append(True)
-            return False
-        if not ours():  # the refresh landed on a folder sf made in the meantime
-            lost.append(True)
-            return False
-        return True
-
-    try:
-        return rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done, touch)
-    finally:
-        if not lost and ours():
-            os.rmdir(str(lock))
-        elif not lost:  # never remove a lock an sf command holds now
-            failures.append((str(lock), "the lock was not ours when the rewrite ended; left in place"))
+    return rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done)
 
 
 LOCK_STALE_SECONDS = 10  # @salesforce/core lockOptions: proper-lockfile treats an older lock as abandoned
 
 
 def cache_lock(home):
-    """sf's lock on the deploy cache: a folder proper-lockfile makes with mkdir beside the file."""
+    """sf's lock on the deploy cache: a folder proper-lockfile makes with mkdir beside the file, and
+    refreshes while it writes."""
     return home / ".sf" / "deploy-cache.json.lock"
 
 
@@ -1058,29 +1028,9 @@ def lock_held(lock):
     return info is not None and time.time() - info.st_mtime < LOCK_STALE_SECONDS
 
 
-def refresh_lock(lock):
-    """Set the lock's time to now; returns it, the mark that says the lock is still ours."""
-    os.utime(str(lock))
-    return os.lstat(str(lock)).st_mtime_ns
-
-
-def take_lock(lock):
-    """Take the lock as proper-lockfile does, reclaiming one sf would treat as abandoned. Returns
-    its mark."""
-    try:
-        os.mkdir(str(lock))
-    except FileExistsError:
-        if lock_held(lock):
-            raise
-        os.rmdir(str(lock))
-        os.mkdir(str(lock))
-    return refresh_lock(lock)
-
-
-def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done, touch=lambda: True):
-    """remove_deploy_jobs' work, under sf's lock on the cache. `touch` refreshes the lock before each
-    manifest and before the write, and says whether it is still ours: once it is not, nothing more
-    is moved and the cache is not written."""
+def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done):
+    """remove_deploy_jobs' work: move each job's manifest, then rewrite the cache without its entry.
+    If the cache is not written in the end, each job whose manifest already moved is named."""
     cache = read_json(path, None)
     if not isinstance(cache, dict):
         failures.append(("deploy-cache", "unreadable"))
@@ -1090,7 +1040,12 @@ def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failur
     except (ValueError, RecursionError):
         failures.append(("deploy-cache", "holds a value this tool cannot write back; not modified"))
         return 0, 0
-    removed, moved, moved_jobs, taken = 0, 0, [], False
+    removed, moved, moved_jobs = 0, 0, []
+
+    def kept_entries():  # their manifests are in the quarantine, their entries still in the cache
+        for job in moved_jobs:
+            failures.append((job, "manifest is in the quarantine, but its cache entry was kept"))
+
     for job in jobs:
         if not plain_job_id(job):
             failures.append((job, "cache key is not a plain job id; its manifest was not looked for"))
@@ -1100,9 +1055,6 @@ def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failur
             if lstat_or_none(manifest) is not None:
                 failures.append((job, "no longer in the deploy cache; its manifest was left in place"))
             continue
-        if not touch():
-            taken = True
-            break
         if lstat_or_none(manifest) is not None:
             why = move_to_quarantine(run, manifest, [manifests], quarantine, project)
             if why:
@@ -1113,16 +1065,16 @@ def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failur
             done["manifests"] = done.get("manifests", 0) + 1
         del cache[job]
         removed += 1
-    if taken or (removed and not touch()):
-        failures.append((str(path), "not written: an sf command took its lock over"))
-        for job in moved_jobs:
-            failures.append((job, "manifest is in the quarantine, but its cache entry was kept"))
+    if removed and lock_held(path.with_name(path.name + ".lock")):
+        failures.append((str(path), "not written: an sf command took its lock meanwhile"))
+        kept_entries()
         return 0, moved
     if removed:
         try:
             replace_json(path, cache)
         except OSError as error:
             failures.append((str(path), "could not write: {}".format(reason(error))))
+            kept_entries()
             return 0, moved
         except BaseException:
             if read_json(path, None) == cache:  # interrupted after the rewrite landed
@@ -1428,6 +1380,10 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
                 print("The plan holds usernames and org IDs: write it outside {}.".format(root), file=sys.stderr)
                 return 2
     if args.command == "apply":
+        reviewed = read_json(args.plan, None)
+        if not isinstance(reviewed, dict):
+            print("Could not read a plan from {}. Nothing was changed.".format(args.plan), file=sys.stderr)
+            return 1
         quarantine = Path(os.path.abspath(args.quarantine)) if args.quarantine else default_quarantine(home, today)
         for root in roots:
             if within(root, quarantine) or within(quarantine, root):
@@ -1463,10 +1419,6 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
             return 1 if failed else 0
         return 0
 
-    reviewed = read_json(args.plan, None)
-    if not isinstance(reviewed, dict):
-        print("Could not read a plan from {}. Nothing was changed.".format(args.plan), file=sys.stderr)
-        return 1
     drifted = [key for key in ("schema", "project", "remove", "targets") if reviewed.get(key) != plan[key]]
     if drifted:
         print("The plan differs from the current state ({}). Review a fresh audit before applying.".format(
