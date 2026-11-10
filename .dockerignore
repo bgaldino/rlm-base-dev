@@ -25,6 +25,19 @@
 .gitattributes
 .github
 
+# Agent session state. Only the tracked .claude files belong in the image;
+# worktrees/ alone holds full repo copies, settings.local.json is per user.
+# Keep this block (and any other `!` re-include) ABOVE every other rule: Docker
+# applies the last pattern that matches, so a re-include placed later would bring
+# back a nested secret (.claude/hooks/.env, .claude/skills/x/.sf/...) that the
+# recursive rules below exclude.
+.claude/*
+!.claude/skill-manifest.yml
+!.claude/commands
+!.claude/skills
+!.claude/settings.json
+!.claude/hooks
+
 # Local Python / Node toolchains (reinstalled inside the image)
 **/.venv
 **/venv
@@ -104,14 +117,7 @@ docs/analysis/*-core-code-*.md
 .cursor/plans
 agents256*
 
-# Agent session state. Only the tracked .claude files belong in the image;
-# worktrees/ alone holds full repo copies, settings.local.json is per user.
-.claude/*
-!.claude/skill-manifest.yml
-!.claude/commands
-!.claude/skills
-!.claude/settings.json
-!.claude/hooks
+# Agent loop runs (builder worktrees) and per-user tool settings
 **/.loop
 scripts/build_harness/tui/settings.local.json
 

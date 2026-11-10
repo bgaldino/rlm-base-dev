@@ -15,7 +15,9 @@ and checks:
 - every .gitignore pattern is mirrored in .dockerignore with the same scope: a pattern with no
   slash but a trailing one matches at any depth in git, so its mirror must be `**/<pattern>`,
   since a bare Docker pattern only matches at the root. NOT_MIRRORED holds only the entries a
-  broader .dockerignore line already covers. A new .gitignore entry fails here until mirrored.
+  broader .dockerignore line already covers. A new .gitignore entry fails here until mirrored;
+- a `!` re-include does not bring back a secret nested under it. The last matching pattern wins,
+  so a re-include placed after the recursive secret rules overrides them inside its subtree.
 """
 import os
 import re
@@ -154,7 +156,24 @@ MUST_EXCLUDE = [
     "mdapi/package.xml",
     "deploy/objects/Account.object",
     "postman/archive/env.json",
+    # Secrets nested under a `!` re-included .claude path (the re-include must not win).
+    ".claude/hooks/.env",
+    ".claude/commands/credentials.pem",
+    ".claude/skills/tool/.sf/orgs/local.json",
 ]
+
+# Local secrets and org-derived files that could sit anywhere, including inside a subtree a `!`
+# line re-includes. Each is checked under every re-included path in .dockerignore.
+NESTED_SECRETS = [
+    ".env", ".env.local", "server.key", "cert.pem", ".sf/orgs/x.json", ".sfdx/x.json",
+    ".cci/keychain", ".cumulusci/keychain", ".mcp.json", ".mcp-state/x", "run.log", "logs/x",
+    "x.bak", "log.html", "output.xml", "selenium-screenshot-1.png", ".harness/x",
+]
+
+
+def reincluded_paths(text):
+    """The paths .dockerignore re-includes with `!`, as written."""
+    return [line.strip()[1:].strip() for line in text.splitlines() if line.strip().startswith("!")]
 
 # Tracked paths .dockerignore leaves out on purpose; everything else tracked must be copied.
 TRACKED_EXCLUDED_OK = (".git", ".gitattributes", ".github/")
@@ -201,6 +220,14 @@ class DockerignoreTest(unittest.TestCase):
     def test_private_and_org_state_is_excluded(self):
         leaked = [p for p in MUST_EXCLUDE if not excluded(PATTERNS, p)]
         self.assertEqual(leaked, [], "copied into a locally built image")
+
+    def test_a_reinclude_does_not_bring_back_a_nested_secret(self):
+        roots = reincluded_paths(read(".dockerignore"))
+        self.assertTrue(roots, "no `!` lines found: update this test if that is intended")
+        leaked = [f"{root}/{name}" for root in roots for name in NESTED_SECRETS
+                  if not excluded(PATTERNS, f"{root}/{name}")]
+        self.assertEqual(leaked, [], "a `!` line after the secret rules re-includes these; "
+                                     "keep re-includes above every other rule")
 
     def test_the_excluded_folder_itself_is_gone_not_just_its_contents(self):
         # `dir/**` would exclude the children but still create an empty `dir` in the image.
