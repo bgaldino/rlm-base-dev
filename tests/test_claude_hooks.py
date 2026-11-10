@@ -1022,6 +1022,33 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide(".agents/artifacts/topics/x/.agents/artifacts/lnk/a.md"),
                          "allow")
 
+    def test_an_absent_clone_gets_the_not_cloned_guidance(self):
+        with tempfile.TemporaryDirectory() as other:
+            proc = run_hook(GUARD, {"tool_name": "Write", "cwd": other,
+                                    "tool_input": {"file_path": ".agents/artifacts/inbox/a.md",
+                                                   "content": "x"}})
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("not cloned here", proc.stderr)
+        self.assertIn("$TMPDIR", proc.stderr)
+        # A public folder of that name that does exist is the other case.
+        (self.tmp / "pub" / ".agents" / "artifacts").mkdir(parents=True)
+        proc = run_hook(GUARD, {"tool_name": "Write", "cwd": str(self.tmp),
+                                "tool_input": {"file_path": "pub/.agents/artifacts/a.md",
+                                               "content": "x"}})
+        self.assertIn("not the private clone", proc.stderr)
+
+    def test_placement_is_decided_before_the_current_file_is_read(self):
+        # text_change() reads the existing file; a FIFO there would block past the timeout.
+        ff = self.tmp / "ff"
+        (ff / "d").mkdir(parents=True)
+        (ff / ".agents" / "artifacts").mkdir(parents=True)
+        os.mkfifo(str(ff / ".agents" / "artifacts" / "newtop.md"))
+        (self.tmp / "lnk").symlink_to(ff / "d", target_is_directory=True)
+        import time
+        start = time.monotonic()
+        self.assertEqual(self.decide("lnk/../.agents/artifacts/newtop.md"), "deny")
+        self.assertLess(time.monotonic() - start, 5.0)
+
     def test_public_agents_files_are_untouched(self):
         self.assertEqual(self.decide(".agents/README.md"), "allow")
         self.assertEqual(self.decide(".agents/skills/x/SKILL.md"), "allow")

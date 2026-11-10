@@ -865,6 +865,9 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
         return found[0][1] if found else None
 
     spelled_inside = any(_within(lexical, t) for t in spelled_trees if _is_clone(t))
+    not_cloned = ("deny", ("`.agents/artifacts/` (the private repository) is not cloned here; "
+                           "do not create it. Use $TMPDIR for scratch, or say where the content "
+                           "should live"))
     escape = ("deny", (f"`{path}` resolves through a symlink outside the private "
                        "`.agents/artifacts/` tree; write to a plain path inside the tree "
                        "itself"))
@@ -884,18 +887,25 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
         if link_escape:
             decision = escape
         elif _spelled_hits(real) and not final:
-            # It lands in a `.agents/artifacts` that is not the clone (a public folder of that
-            # name, however the path got there): not gitignored, so it would be committed.
-            decision = ("deny", (f"`{path}` lands in `{real}`, a `.agents/artifacts` folder "
-                                 "that is not the private clone; it is not gitignored, so it "
-                                 "would surface in the public repo"))
+            # It lands in a `.agents/artifacts` that is not the clone. If no such folder exists
+            # the clone is simply not here (the public contributor's case): say so, with the
+            # guidance analysis-artifacts.mdc promises. If one exists, it is a public folder of
+            # that name, which is not gitignored and would be committed.
+            parts = real.parts
+            folders = [Path(*parts[:i + 2]) for i in range(len(parts) - 1)
+                       if parts[i].casefold() == ".agents"
+                       and parts[i + 1].casefold().startswith("artifacts")]
+            if not any(_isdir(f) for f in folders):
+                decision = not_cloned
+            else:
+                decision = ("deny", (f"`{path}` lands in `{real}`, a `.agents/artifacts` folder "
+                                     "that is not the private clone; it is not gitignored, so "
+                                     "it would surface in the public repo"))
         elif not final:
             # A spelled tree that is not the clone would be created; a path spelled inside the
             # clone that lands outside every tree escapes it.
             if spelled_trees and not any(_is_clone(t) for t in spelled_trees):
-                decision = ("deny", ("`.agents/artifacts/` (the private repository) is not "
-                                     "cloned here; do not create it. Use $TMPDIR for scratch, "
-                                     "or say where the content should live"))
+                decision = not_cloned
             elif spelled_inside:
                 decision = escape
         else:
@@ -1111,11 +1121,14 @@ def decide(event: dict) -> Tuple[str, str]:
         return worst
     if tool == "NotebookEdit":
         return artifacts_decision(tool_input.get("notebook_path") or "", cwd)
-    change = text_change(tool, tool_input)
-    if change:
-        placement = artifacts_decision(change[0], cwd)
+    if tool in ("Write", "Edit", "MultiEdit"):
+        # Placement first: text_change() reads the current file, which can block (a FIFO) past
+        # the hook's timeout and let the call through before the placement rule ever ran.
+        placement = artifacts_decision(tool_input.get("file_path") or "", cwd)
         if placement[0] != "allow":
             return placement
+    change = text_change(tool, tool_input)
+    if change:
         return sfdmu_decision(*change)
     return "allow", ""
 
