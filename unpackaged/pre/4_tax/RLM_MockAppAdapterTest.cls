@@ -162,6 +162,9 @@ private with sharing class RLM_MockAppAdapterTest {
         RLM_TaxTestFactory.assertResponseFieldCount(responses[0], 'totalAmount', '350.0', 2,
             'Known gap: line amount details accumulate across lines instead of each line carrying its own '
             + 'amount (line 2 reports 350.0, not 250.0). Update this test when it is fixed.');
+        // Tax at the adapter's rate of 1: line 1 100.0; line 2 (accumulated, see above) and the header 350.0.
+        RLM_TaxTestFactory.assertResponseFieldCount(responses[0], 'taxAmount', '100.0', 1, 'Line 1 tax amount.');
+        RLM_TaxTestFactory.assertResponseFieldCount(responses[0], 'taxAmount', '350.0', 2, 'Line 2 and header tax amount.');
 
         // The empty-document-code scenario.
         RLM_TaxTestFactory.assertResponseField(responses[1], 'documentCode', '', 'The document code is set to empty.');
@@ -174,7 +177,7 @@ private with sharing class RLM_MockAppAdapterTest {
         RLM_TaxTestFactory.assertResponseField(responses[2], 'taxTransactionType', 'Debit',
             'A missing transaction type defaults to Debit.');
         RLM_TaxTestFactory.assertResponseFieldMatches(responses[2], 'transactionDate', RLM_TaxTestFactory.NOT_NULL,
-            'A missing transaction date defaults to now.');
+            'A missing transaction date is filled in (the adapter uses now).');
         RLM_TaxTestFactory.assertResponseField(responses[2], 'currencyIsoCode', 'USD', 'A null currency defaults to USD.');
 
         // No codes at all: the generated code is getRandomInteger(0, max), which is always 0.

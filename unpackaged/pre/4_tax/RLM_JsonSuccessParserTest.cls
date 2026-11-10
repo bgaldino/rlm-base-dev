@@ -282,6 +282,23 @@ private with sharing class RLM_JsonSuccessParserTest {
     }
 
     @IsTest
+    static void parse_fractionalAmounts_truncatesIntegerFields() {
+        Test.startTest();
+        RLM_JsonSuccessParser parsed = RLM_JsonSuccessParser.parse(
+            '{"totalAmount": 232.5, "lines": [{"lineAmount": 232.5, "taxCalculated": 23.43}]}');
+        Test.stopTest();
+
+        Assert.areEqual(232, parsed.totalAmount,
+            'Known gap: Integer amount fields read with getIntegerValue truncate 232.5 to 232. '
+            + 'Update this test when it is fixed.');
+        Assert.areEqual(232, parsed.lines[0].lineAmount,
+            'Known gap: Integer amount fields read with getIntegerValue truncate 232.5 to 232. '
+            + 'Update this test when it is fixed.');
+        Assert.isTrue(parsed.lines[0].taxCalculated == Double.valueOf('23.43'),
+            'Double fields keep their fraction: ' + parsed.lines[0].taxCalculated);
+    }
+
+    @IsTest
     static void consumeObject_skipsNestedValueAndStopsOnItsClosingToken() {
         JSONParser parser = JSON.createParser('{"skip": {"a": [1, {"b": 2}], "c": {}}, "next": "kept"}');
         parser.nextToken(); // START_OBJECT

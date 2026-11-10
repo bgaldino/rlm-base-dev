@@ -106,10 +106,18 @@ private with sharing class RLM_HttpServiceTest {
         Test.setMock(HttpCalloutMock.class, mock);
         RLM_HttpService service = new RLM_HttpService();
 
+        Exception caught;
         Test.startTest();
-        service.post('/transactions/create', '{"type":"SalesOrder"}');
+        try {
+            service.post('/transactions/create', '{"type":"SalesOrder"}');
+        } catch (Exception e) {
+            caught = e;
+        }
         Test.stopTest();
 
+        Assert.isNull(caught,
+            'Known gap: a failed callout is swallowed (debug log only) and leaves a null response, which '
+            + 'RLM_CalculateTaxService then dereferences. Update this test when it is fixed. ' + caught);
         Assert.areEqual(1, mock.calls, 'The callout should be attempted once.');
         Assert.isNull(service.getResponse(),
             'Known gap: a failed callout is swallowed (debug log only) and leaves a null response, which '
@@ -122,10 +130,18 @@ private with sharing class RLM_HttpServiceTest {
         Test.setMock(HttpCalloutMock.class, mock);
         RLM_HttpService service = new RLM_HttpService();
 
+        Exception caught;
         Test.startTest();
-        service.get('https://example.invalid/api/v2/utilities/ping');
+        try {
+            service.get('https://example.invalid/api/v2/utilities/ping');
+        } catch (Exception e) {
+            caught = e;
+        }
         Test.stopTest();
 
+        Assert.isNull(caught,
+            'Known gap: a failed callout is swallowed (debug log only) and leaves a null response, which '
+            + 'RLM_CalculateTaxService then dereferences. Update this test when it is fixed. ' + caught);
         Assert.areEqual(1, mock.calls, 'The callout should be attempted once.');
         Assert.isNull(service.getResponse(),
             'Known gap: a failed callout is swallowed (debug log only) and leaves a null response, which '

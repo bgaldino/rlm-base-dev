@@ -95,7 +95,7 @@ private with sharing class RLM_MockTaxAdapterTest {
         RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Debit',
             'A missing transaction type defaults to Debit.');
         RLM_TaxTestFactory.assertResponseFieldMatches(response, 'transactionDate', RLM_TaxTestFactory.NOT_NULL,
-            'A missing transaction date defaults to now.');
+            'A missing transaction date is filled in (the adapter uses now).');
         RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'USD', 'A null currency defaults to USD.');
         RLM_TaxTestFactory.assertResponseField(response, 'description', 'description',
             'A seller other than testSellerCode gets the default description.');
@@ -106,6 +106,9 @@ private with sharing class RLM_MockTaxAdapterTest {
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmount', '350.0', 2,
             'Known gap: line amount details accumulate across lines instead of each line carrying its own '
             + 'amount (line 2 reports 350.0, not 250.0). Update this test when it is fixed.');
+        // Tax at the adapter's 0.1 rate: line 1 10.0; line 2 (accumulated, see above) and the header 35.0.
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxAmount', '10.0', 1, 'Line 1 tax amount.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxAmount', '35.0', 2, 'Line 2 and header tax amount.');
     }
 
     @IsTest

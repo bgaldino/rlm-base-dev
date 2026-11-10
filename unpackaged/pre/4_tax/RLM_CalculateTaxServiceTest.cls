@@ -47,6 +47,17 @@ private with sharing class RLM_CalculateTaxServiceTest {
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'rate', '0.065', 2,
             'Known gap: detail rates accumulate across a line\'s details instead of each detail keeping '
             + 'its own rate (KING reports 0.065, not 0). Update this test when it is fixed.');
+        // Amounts from the engine payload: line and header total 232 with tax 23.43; the WASHINGTON
+        // detail taxes 15.08 and KING 0, each on 232.
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmount', '232.0', 2, 'Header and line total amount.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxAmount', '23.43', 2, 'Header and line tax amount.');
+        RLM_TaxTestFactory.assertResponseFieldMatches(response, 'totalAmountWithTax', '255\\.4[0-9]*',
+            'Total with tax is the total plus the tax.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'tax', '15.08', 1, 'The WASHINGTON detail tax.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'tax', '0.0', 1, 'The KING detail tax.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxableAmount', '232.0', 2, 'Both details tax 232.');
+        RLM_TaxTestFactory.assertResponseField(response, 'statusDescription', 'NotAdjusted',
+            'The engine adjustment reason becomes the status description.');
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'lineNumber', 'REQ-7', 0,
             'Response lines come from the engine payload, not the request.');
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxCode', 'PC040100', 0,
