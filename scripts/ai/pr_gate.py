@@ -201,8 +201,10 @@ def config_change_note(before, after):
     changed = [path for path in before if after.get(path) != before[path]]
     if not changed:
         return "", False
-    texts = {path: ((before[path] or b"").decode("utf-8", "replace"),
-                    (after.get(path) or b"").decode("utf-8", "replace")) for path in changed}
+    # Lossless: `surrogateescape` keeps each undecodable byte distinct, where "replace" folded them all
+    # into U+FFFD, so `user.name` going from b"Andr\xe9" to b"Andr\xe4" compared equal and passed.
+    texts = {path: ((before[path] or b"").decode("utf-8", "surrogateescape"),
+                    (after.get(path) or b"").decode("utf-8", "surrogateescape")) for path in changed}
     branches = {}
     for path, (old, new) in texts.items():
         old_blocks, new_blocks = config_sections(old), config_sections(new)
@@ -219,15 +221,21 @@ def config_change_note(before, after):
         if ([block for name, block in config_sections(old) if name not in ours]
                 != [block for name, block in config_sections(new) if name not in ours]):
             failing.append(path)
-    if not failing:
+    # `not foreign` too: a change no section accounts for must never pass as an empty note.
+    if not failing and foreign:
         return ("\nnote: another worktree changed the shared git config's [branch] section(s) for "
                 + ", ".join(sorted(foreign)) + " while this check ran (each a real local branch, so"
                 " not a fixture leak; push with `git push origin <branch>`, not `-u`, to avoid it).\n",
                 False)
+    failing = failing or changed
     diffs = []
     for path in failing:
         name = os.path.basename(path)
-        diffs += difflib.unified_diff(texts[path][0].splitlines(), texts[path][1].splitlines(),
+        # The escaped surrogates above cannot be printed; `backslashreplace` shows each undecodable
+        # byte as `\xNN`, so two non-UTF-8 values stay distinct in the diff as well as the verdict.
+        shown = [texts[path][i].encode("utf-8", "surrogateescape").decode("utf-8", "backslashreplace")
+                 for i in (0, 1)]
+        diffs += difflib.unified_diff(shown[0].splitlines(), shown[1].splitlines(),
                                       f"{name} before", f"{name} after", lineterm="")
     return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in failing) + ")"
             " changed while this check ran. A fixture git command may have reached the real"

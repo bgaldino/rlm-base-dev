@@ -5412,6 +5412,13 @@ check("a user.email change alongside an excused [branch] section still fails",
       branch_cases["real+user"][0] == 1 and not branch_cases["real+user"][2], branch_cases["real+user"])
 check("config_sections reads an escaped branch name back as the ref it names",
       [n for n, _ in pr_gate.config_sections('[core]\n[branch "a\\\\b"]\n')] == [None, None, "a\\b"])
+# Classification is lossless: decoded with "replace", two distinct non-UTF-8 names both became U+FFFD,
+# compared equal, and the change passed as an empty branch note (Copilot, PR 705).
+latin_note, latin_fails = pr_gate.config_change_note(
+    {"config": b"[user]\n\tname = Andr\xe9\n"}, {"config": b"[user]\n\tname = Andr\xe4\n"})
+check("a user.name change between two non-UTF-8 values still fails, with a printable diff",
+      latin_fails and "-\tname = Andr\\xe9" in latin_note and "+\tname = Andr\\xe4" in latin_note,
+      (latin_fails, latin_note[-200:]))
 noted = gate_verdict_all(0, only=lambda c: c is pr_gate.CHECKS[0],
                          config_note="note: probe-config-note [during: x]")
 check("main() prints another worktree's config note even though the check passed",
@@ -5492,7 +5499,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 775
+EXPECTED = 776
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
