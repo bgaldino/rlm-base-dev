@@ -53,6 +53,10 @@ private class RLM_DFOTenantProvisioningCalloutTest {
         return objectType.getDescribe().getKeyPrefix() + '000000000001';
     }
 
+    private static Map<String, Object> responseOf(industriesintegrationfwk.IntegrationCalloutResponse result) {
+        return (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(result));
+    }
+
     @IsTest
     static void orderItemSourcePostsItsOrderIdToTenantEndpoint() {
         OrderItem oi = orderItem();
@@ -64,7 +68,7 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             RLM_DFOTenantProvisioningCallout.executeCallout('guid-1', oi.Id, '', new Map<String, Object>());
         Test.stopTest();
 
-        Assert.isNotNull(result, 'A callout response is returned to the orchestrator');
+        Assert.areEqual(true, responseOf(result).get('isSuccess'), 'A successful callout reports success');
         Assert.areEqual(1, mock.callCount, 'Exactly one tenant callout is made');
         Assert.areEqual('POST', mock.lastRequest.getMethod(), 'Tenant creation is a POST');
         Assert.areEqual(ENDPOINT, mock.lastRequest.getEndpoint(), 'The RLM named credential endpoint is used');
@@ -75,7 +79,7 @@ private class RLM_DFOTenantProvisioningCalloutTest {
     }
 
     @IsTest
-    static void failedNonJsonResponseIsStillReturned() {
+    static void nonJsonErrorBodyDoesNotThrow() {
         OrderItem oi = orderItem();
         TenantMock mock = new TenantMock(500, 'Service Unavailable');
         Test.setMock(HttpCalloutMock.class, mock);
@@ -85,8 +89,11 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             RLM_DFOTenantProvisioningCallout.executeCallout('guid-2', oi.Id, '', new Map<String, Object>());
         Test.stopTest();
 
-        Assert.isNotNull(result, 'A non-JSON error body does not throw');
         Assert.areEqual(1, mock.callCount, 'The callout was attempted once');
+        Assert.areEqual(
+            true, responseOf(result).get('isSuccess'),
+            'Success is reported whatever the HTTP status (known gap: the status is not passed back)'
+        );
     }
 
     @IsTest
@@ -101,25 +108,23 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             );
         Test.stopTest();
 
-        Assert.isNotNull(result, 'A response is still returned for an unsupported source');
+        Assert.areEqual(true, responseOf(result).get('isSuccess'), 'An unsupported source still returns a response');
         Assert.areEqual(0, mock.callCount, 'Only order items and fulfillment lines trigger a callout');
     }
 
     @IsTest
     static void fulfillmentLineWithoutOrderItemSourceFails() {
-        Schema.SObjectType foliType = Schema.getGlobalDescribe().get('FulfillmentOrderLineItem');
-        Assert.isNotNull(foliType, 'FulfillmentOrderLineItem exists wherever this class compiles');
         TenantMock mock = new TenantMock(200, '{}');
         Test.setMock(HttpCalloutMock.class, mock);
 
         Test.startTest();
         try {
             RLM_DFOTenantProvisioningCallout.executeCallout(
-                'guid-4', fakeId(foliType), '', new Map<String, Object>()
+                'guid-4', fakeId(FulfillmentOrderLineItem.SObjectType), '', new Map<String, Object>()
             );
             Assert.fail('A fulfillment line with no order item source relation must fail');
         } catch (QueryException e) {
-            Assert.isNotNull(e.getMessage(), 'The missing source relation is reported');
+            Assert.isTrue(e.getMessage().contains('no rows'), 'No source relation is found: ' + e.getMessage());
         }
         Test.stopTest();
 
@@ -131,7 +136,6 @@ private class RLM_DFOTenantProvisioningCalloutTest {
         List<industriesintegrationfwk.ApexProviderAttr> attrs =
             new RLM_DFOTenantProvisioningCallout().getProviderAttributes();
 
-        Assert.isNotNull(attrs, 'An attribute list is always returned');
         Assert.areEqual(0, attrs.size(), 'The tenant provider has no configurable attributes');
     }
 }

@@ -1,8 +1,9 @@
 /**
  * Not covered here:
- * - Term-defined and evergreen renewal terms. Order items inserted by an Apex test carry no
- *   product selling model (the platform does not derive it from the price book entry in a test
- *   context), so new assets always take the default renewal path.
+ * - Term-defined and evergreen renewal terms. OrderItem.ProductSellingModelId cannot be set by
+ *   DML, and an order item inserted by an Apex test stays without a selling model even when its
+ *   price book entry has one (a quote line on the same entry does get it). So new assets always
+ *   take the default renewal path; the fixture asserts the missing selling model as a PRECONDITION.
  * - Contract-based renewal for changed assets. The utility keys its asset-contract map by the
  *   relationship id but looks it up by asset id, so that branch never runs.
  */
@@ -36,8 +37,21 @@ private class RLM_AssetInfoUtilityTest {
         ctx.accountId = acct.Id;
         Product2 product = new Product2(Name = 'RLM Asset Info Product', IsActive = true);
         insert product;
+        ProductSellingModel psm = new ProductSellingModel(
+            Name = 'RLM Asset Info Term Monthly',
+            SellingModelType = 'TermDefined',
+            PricingTermUnit = 'Months',
+            PricingTerm = 1,
+            Status = 'Active'
+        );
+        insert psm;
+        insert new ProductSellingModelOption(Product2Id = product.Id, ProductSellingModelId = psm.Id, IsDefault = true);
         ctx.pbe = new PricebookEntry(
-            Pricebook2Id = Test.getStandardPricebookId(), Product2Id = product.Id, UnitPrice = 100, IsActive = true
+            Pricebook2Id = Test.getStandardPricebookId(),
+            Product2Id = product.Id,
+            ProductSellingModelId = psm.Id,
+            UnitPrice = 100,
+            IsActive = true
         );
         insert ctx.pbe;
         ctx.order = new Order(
@@ -67,7 +81,8 @@ private class RLM_AssetInfoUtilityTest {
                 Quantity = 1,
                 UnitPrice = 100,
                 ServiceDate = Date.newInstance(2026, 1, 1),
-                EndDate = Date.newInstance(2026, 12, 31)
+                EndDate = Date.newInstance(2026, 12, 31),
+                BillingFrequency2 = 'Monthly'
             );
             if (ctx.actionType != 'Add') {
                 // A change to an existing asset must state the quantity it starts from.
@@ -85,6 +100,9 @@ private class RLM_AssetInfoUtilityTest {
         }
         insert items;
         insert assets;
+        for (OrderItem oi : [SELECT ProductSellingModelId FROM OrderItem WHERE Id IN :items]) {
+            Assert.isNull(oi.ProductSellingModelId, 'PRECONDITION: test order items carry no selling model');
+        }
         List<Line> lines = new List<Line>();
         for (Integer i = 0; i < count; i++) {
             Line l = new Line();
@@ -143,12 +161,9 @@ private class RLM_AssetInfoUtilityTest {
     }
 
     @IsTest
-    static void newAssetWithoutRecurringModelRenewsForOneYear() {
+    static void newAssetWithoutSellingModelRenewsForOneYear() {
         OrderContext ctx = newOrder('Add');
         List<Line> lines = createLines(ctx, 2, 'PriceBookListPrice');
-        for (OrderItem oi : [SELECT ProductSellingModelId FROM OrderItem WHERE OrderId = :ctx.order.Id]) {
-            Assert.isNull(oi.ProductSellingModelId, 'PRECONDITION: test order items carry no selling model');
-        }
         for (Line l : lines) {
             assertSeeded(l.assetId, 'PriceBookListPrice');
         }

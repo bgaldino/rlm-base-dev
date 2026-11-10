@@ -68,12 +68,15 @@ private class RLM_QuoteItemTriggerTest {
         insert sources;
     }
 
-    /** The asset's history: an older action, then a newer one whose source carries the latest status. */
+    /**
+     * The asset's history: a recent action whose source carries the latest status, and an older
+     * action. The recent one is inserted first, so only ActionDate (not insert order) picks it.
+     */
     private static void seedAssetHistory(Id assetId) {
-        AssetAction older = assetAction(assetId, Datetime.now().addDays(-30));
-        actionSources(older.Id, new List<String>{ OLDER_STATUS });
         AssetAction latest = assetAction(assetId, Datetime.now().addDays(-1));
         actionSources(latest.Id, new List<String>{ LATEST_STATUS, null });
+        AssetAction older = assetAction(assetId, Datetime.now().addDays(-30));
+        actionSources(older.Id, new List<String>{ OLDER_STATUS });
     }
 
     private static QuoteLineItem newLine(Fixture f, Id quoteActionId, String status) {
@@ -104,7 +107,7 @@ private class RLM_QuoteItemTriggerTest {
         Fixture f = buildFixture();
         seedAssetHistory(f.asset.Id);
         QuoteAction amend = quoteAction(f, f.asset.Id, 'Amend');
-        QuoteLineItem line = amendLine(f, amend.Id,null);
+        QuoteLineItem line = amendLine(f, amend.Id, null);
 
         Test.startTest();
         insert line;
@@ -118,7 +121,7 @@ private class RLM_QuoteItemTriggerTest {
         Fixture f = buildFixture();
         seedAssetHistory(f.asset.Id);
         QuoteAction amend = quoteAction(f, f.asset.Id, 'Amend');
-        QuoteLineItem line = amendLine(f, amend.Id,PRESET_STATUS);
+        QuoteLineItem line = amendLine(f, amend.Id, PRESET_STATUS);
 
         Test.startTest();
         insert line;
@@ -160,7 +163,7 @@ private class RLM_QuoteItemTriggerTest {
         AssetAction action = assetAction(f.asset.Id, Datetime.now().addDays(-1));
         actionSources(action.Id, new List<String>{ null });
         QuoteAction amend = quoteAction(f, f.asset.Id, 'Amend');
-        QuoteLineItem line = amendLine(f, amend.Id,null);
+        QuoteLineItem line = amendLine(f, amend.Id, null);
 
         Test.startTest();
         insert line;
@@ -176,7 +179,7 @@ private class RLM_QuoteItemTriggerTest {
         QuoteAction amend = quoteAction(f, f.asset.Id, 'Amend');
         List<QuoteLineItem> lines = new List<QuoteLineItem>();
         for (Integer i = 0; i < 200; i++) {
-            lines.add(amendLine(f, amend.Id,null));
+            lines.add(amendLine(f, amend.Id, null));
         }
 
         Test.startTest();
@@ -187,7 +190,7 @@ private class RLM_QuoteItemTriggerTest {
         List<QuoteLineItem> saved = [
             SELECT RLM_ConstraintEngineNodeStatus__c FROM QuoteLineItem WHERE Id IN :byId.keySet()
         ];
-        Assert.areEqual(200, saved.size(), 'All lines were inserted in one batch');
+        Assert.areEqual(200, saved.size(), 'All 200 lines were saved');
         for (QuoteLineItem line : saved) {
             Assert.areEqual(LATEST_STATUS, line.RLM_ConstraintEngineNodeStatus__c, 'Every line in the batch is stamped');
         }

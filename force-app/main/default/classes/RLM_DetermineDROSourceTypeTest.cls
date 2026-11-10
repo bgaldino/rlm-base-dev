@@ -64,7 +64,7 @@ private class RLM_DetermineDROSourceTypeTest {
             run(info);
             Assert.fail('A malformed record id must not resolve to a source type');
         } catch (StringException e) {
-            Assert.isNotNull(e.getMessage(), 'The invalid id is reported');
+            Assert.isTrue(e.getMessage().contains('not-an-id'), 'The invalid id is named: ' + e.getMessage());
         }
     }
 }

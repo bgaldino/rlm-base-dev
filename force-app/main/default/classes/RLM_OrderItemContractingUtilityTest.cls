@@ -1,7 +1,10 @@
 /**
- * Order items inserted by an Apex test carry no product selling model (the platform does not
- * derive it from the price book entry in a test context), so the lines here have none. The
- * utility only excludes OneTime items, so these lines count as subscription lines.
+ * Known gaps, asserted as they stand:
+ * - The OneTime exclusion is not exercised. OrderItem.ProductSellingModelId cannot be set by DML,
+ *   and an order item inserted by an Apex test stays without a selling model even when its price
+ *   book entry has one (a quote line on the same entry does get it). So every line here counts
+ *   as a subscription line, and each fixture asserts that as a PRECONDITION.
+ * - subscriptionItemCount is the size of a LIMIT 1 subquery, so it is never more than 1.
  */
 @IsTest
 private class RLM_OrderItemContractingUtilityTest {
@@ -12,12 +15,23 @@ private class RLM_OrderItemContractingUtilityTest {
         return acct.Id;
     }
 
-    private static PricebookEntry standardEntry() {
+    /** A product priced on the standard price book under a monthly term-defined selling model. */
+    private static PricebookEntry termedEntry() {
         Product2 product = new Product2(Name = 'RLM Contract Info Product', IsActive = true);
         insert product;
+        ProductSellingModel psm = new ProductSellingModel(
+            Name = 'RLM Contract Info Term Monthly',
+            SellingModelType = 'TermDefined',
+            PricingTermUnit = 'Months',
+            PricingTerm = 1,
+            Status = 'Active'
+        );
+        insert psm;
+        insert new ProductSellingModelOption(Product2Id = product.Id, ProductSellingModelId = psm.Id, IsDefault = true);
         PricebookEntry pbe = new PricebookEntry(
             Pricebook2Id = Test.getStandardPricebookId(),
             Product2Id = product.Id,
+            ProductSellingModelId = psm.Id,
             UnitPrice = 100,
             IsActive = true
         );
@@ -42,8 +56,15 @@ private class RLM_OrderItemContractingUtilityTest {
             Quantity = 1,
             UnitPrice = 100,
             ServiceDate = serviceDate,
-            EndDate = endDate
+            EndDate = endDate,
+            BillingFrequency2 = 'Monthly'
         );
+    }
+
+    private static void assertNoSellingModel(Set<Id> orderIds) {
+        for (OrderItem oi : [SELECT ProductSellingModelId FROM OrderItem WHERE OrderId IN :orderIds]) {
+            Assert.isNull(oi.ProductSellingModelId, 'PRECONDITION: test order items carry no selling model');
+        }
     }
 
     private static List<RLM_OrderItemContractingUtility.OrderInfoResults> run(List<Id> orderIds) {
@@ -57,17 +78,14 @@ private class RLM_OrderItemContractingUtilityTest {
 
     @IsTest
     static void latestEndDateDrivesContractTerm() {
-        PricebookEntry pbe = standardEntry();
+        PricebookEntry pbe = termedEntry();
         Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
         insert o;
         insert new List<OrderItem>{
             newItem(o.Id, pbe, Date.newInstance(2026, 1, 1), Date.newInstance(2026, 6, 30)),
-            newItem(o.Id, pbe, Date.newInstance(2026, 1, 1), Date.newInstance(2026, 12, 31)),
-            newItem(o.Id, pbe, Date.newInstance(2026, 1, 1), null)
+            newItem(o.Id, pbe, Date.newInstance(2026, 1, 1), Date.newInstance(2026, 12, 31))
         };
-        for (OrderItem oi : [SELECT ProductSellingModelId FROM OrderItem WHERE OrderId = :o.Id]) {
-            Assert.isNull(oi.ProductSellingModelId, 'PRECONDITION: test order items carry no selling model');
-        }
+        assertNoSellingModel(new Set<Id>{ o.Id });
 
         Test.startTest();
         List<RLM_OrderItemContractingUtility.OrderInfoResults> results = run(new List<Id>{ o.Id });
@@ -75,34 +93,38 @@ private class RLM_OrderItemContractingUtilityTest {
 
         Assert.areEqual(1, results.size(), 'One result per order');
         RLM_OrderItemContractingUtility.OrderInfoResults r = results[0];
-        Assert.areEqual(Date.newInstance(2026, 12, 31), r.outEndDate, 'The latest end date is used; open-ended items are skipped');
+        Assert.areEqual(Date.newInstance(2026, 12, 31), r.outEndDate, 'The latest end date is used');
         // Jan 1 -> Dec 31 is 11 whole months; the end day (31) is past the start day (1), so it rounds up.
         Assert.areEqual(12, r.outContractTerm, 'A partial final month counts as a month');
-        Assert.areEqual(1, r.subscriptionItemCount, 'The latest item was found');
+        Assert.areEqual(1, r.subscriptionItemCount, 'Two items, but the LIMIT 1 subquery caps the count at 1 (known gap)');
     }
 
     @IsTest
     static void termRoundsUpOnlyWhenEndDayIsPastStartDay() {
-        PricebookEntry pbe = standardEntry();
+        PricebookEntry pbe = termedEntry();
         Id acctId = accountId();
-        Order exact = newOrder(acctId, Date.newInstance(2026, 1, 15));
-        Order over = newOrder(acctId, Date.newInstance(2026, 1, 15));
-        insert new List<Order>{ exact, over };
+        Order before = newOrder(acctId, Date.newInstance(2026, 1, 15));
+        Order sameDay = newOrder(acctId, Date.newInstance(2026, 1, 15));
+        Order after = newOrder(acctId, Date.newInstance(2026, 1, 15));
+        insert new List<Order>{ before, sameDay, after };
         insert new List<OrderItem>{
-            newItem(exact.Id, pbe, Date.newInstance(2026, 1, 15), Date.newInstance(2027, 1, 14)),
-            newItem(over.Id, pbe, Date.newInstance(2026, 1, 15), Date.newInstance(2027, 1, 20))
+            newItem(before.Id, pbe, Date.newInstance(2026, 1, 15), Date.newInstance(2027, 1, 14)),
+            newItem(sameDay.Id, pbe, Date.newInstance(2026, 1, 15), Date.newInstance(2027, 1, 15)),
+            newItem(after.Id, pbe, Date.newInstance(2026, 1, 15), Date.newInstance(2027, 1, 20))
         };
+        assertNoSellingModel(new Set<Id>{ before.Id, sameDay.Id, after.Id });
 
         Test.startTest();
-        List<RLM_OrderItemContractingUtility.OrderInfoResults> results = run(new List<Id>{ exact.Id, over.Id });
+        List<RLM_OrderItemContractingUtility.OrderInfoResults> results = run(new List<Id>{ before.Id, sameDay.Id, after.Id });
         Test.stopTest();
 
-        Assert.areEqual(2, results.size(), 'One result per order');
+        Assert.areEqual(3, results.size(), 'One result per order');
         Map<Date, Integer> termByEndDate = new Map<Date, Integer>();
         for (RLM_OrderItemContractingUtility.OrderInfoResults r : results) {
             termByEndDate.put(r.outEndDate, r.outContractTerm);
         }
         Assert.areEqual(12, termByEndDate.get(Date.newInstance(2027, 1, 14)), 'End day 14 before start day 15: no round-up');
+        Assert.areEqual(12, termByEndDate.get(Date.newInstance(2027, 1, 15)), 'End day equal to start day: no round-up');
         Assert.areEqual(13, termByEndDate.get(Date.newInstance(2027, 1, 20)), 'End day 20 past start day 15: rounds up');
     }
 
@@ -123,6 +145,7 @@ private class RLM_OrderItemContractingUtilityTest {
         List<RLM_OrderItemContractingUtility.OrderInfoResults> results = run(new List<Id>{ o.Id });
         Test.stopTest();
 
+        Assert.areEqual(1, results.size(), 'One result per order');
         RLM_OrderItemContractingUtility.OrderInfoResults r = results[0];
         Assert.areEqual(2, r.addOrderActionCount, 'Two Add actions');
         Assert.areEqual(1, r.amendOrderActionCount, 'One Amend action');
@@ -159,15 +182,21 @@ private class RLM_OrderItemContractingUtilityTest {
     }
 
     @IsTest
-    static void userWithoutOrderAccessGetsNoResults() {
+    static void userWithoutOrderFieldAccessGetsNoResults() {
         Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
         insert o;
         Assert.areEqual(1, run(new List<Id>{ o.Id }).size(), 'PRECONDITION: an admin gets a result for this order');
         User noAccess = minimumAccessUser();
 
+        // The field-access check runs before any query, so whether this user could see the order
+        // record under sharing does not affect the result.
         List<RLM_OrderItemContractingUtility.OrderInfoResults> results;
         Test.startTest();
         System.runAs(noAccess) {
+            Assert.isFalse(
+                Schema.SObjectType.Order.fields.EffectiveDate.isAccessible(),
+                'PRECONDITION: the user cannot read Order.EffectiveDate'
+            );
             results = run(new List<Id>{ o.Id });
         }
         Test.stopTest();

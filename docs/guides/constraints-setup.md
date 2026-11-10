@@ -88,7 +88,7 @@ cci task run manage_transaction_processing_types -o operation list
 
 The `unpackaged/post_constraints` bundle contains metadata that must deploy **after** the constraint fields exist. This includes:
 
-- `RLM_QuoteItemTrigger`
+- `RLM_QuoteItemTrigger`, and its test class `RLM_QuoteItemTriggerTest` in `classes/`
 - `RLM_ConstraintEngineNodeStatus__c` fields on AssetActionSource, OrderItem, and QuoteLineItem
 - `RLM_Constraints.permissionset-meta.xml`
 - IndustriesConstraints and ProductDiscovery settings
