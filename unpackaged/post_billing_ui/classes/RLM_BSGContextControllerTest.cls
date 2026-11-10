@@ -8,6 +8,11 @@ private class RLM_BSGContextControllerTest {
     // charge-type / frequency helpers are covered directly with in-memory BSGs. Each
     // System.runAs test creates its user through RLM_BillingUITestUsers, which takes a
     // Billing permission set license seat.
+    //
+    // Known gap (documented, not pinned; needs BSG records): getBSGContext reads
+    // bsBilledAmount and bsPendingAmount from one arbitrary BillingSchedule of the group
+    // (LIMIT 1, no ORDER BY), and the usage view's resource name likewise comes from one
+    // arbitrary schedule. With several schedules the values shown are nondeterministic.
     private static Id fakeBsgId() {
         return Id.valueOf(
             BillingScheduleGroup.SObjectType.getDescribe().getKeyPrefix() + '000000000000'

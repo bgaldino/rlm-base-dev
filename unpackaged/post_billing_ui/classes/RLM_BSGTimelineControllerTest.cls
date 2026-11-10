@@ -10,6 +10,13 @@ private class RLM_BSGTimelineControllerTest {
     // BSG cannot be found; getMilestoneChartData degrades to an empty list. Each System.runAs
     // test creates its user through RLM_BillingUITestUsers, which takes a Billing permission
     // set license seat.
+    //
+    // Known gap (documented, not pinned): getBillingScheduleGroupData throws its not-found
+    // AuraHandledException inside a try and rewraps it with e.getMessage(). On a Release 264
+    // org, AuraHandledException.getMessage() returned "Script-thrown exception" for both a
+    // directly constructed one and this method's not-found error, so the text built for the
+    // LWC is the "Error retrieving Billing Schedule Group: " prefix plus that, not "Billing
+    // Schedule Group not found". The text the LWC receives is not readable from Apex.
     @isTest
     static void getBillingScheduleGroupData_unknownBsg_throws() {
         Boolean threw = false;
@@ -134,39 +141,32 @@ private class RLM_BSGTimelineControllerTest {
 
     // A billing role gets "not found" (AuraHandledException) for an id with no BSG. The
     // controller's result cannot show whether the not-found throw or a refused query ran, so
-    // the premise is the evidence: the role can run copies of the controller's group and
-    // schedule queries. The suspension and milestone reads are left out: the controller
-    // tolerates their absence (try/catch), and RLM_BillingUIAccessTest already requires them.
+    // the premise is the evidence: the role can run a copy of the controller's group query.
+    // That query is the only one reached: with no BSG the method throws before its schedule,
+    // suspension and milestone reads.
     @isTest
-    static void billingRole_canRunTheGroupAndScheduleQueries_unknownIdIsNotFound() {
+    static void billingRole_canRunTheGroupQuery_unknownIdIsNotFound() {
         User u = RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
         String bsgId = fakeBsgId();
-        List<String> refused = new List<String>();
+        String refused;
         Boolean dataThrew = false;
 
         Test.startTest();
         System.runAs(u) {
-            // Keep in step with the two static queries in
-            // RLM_BSGTimelineController.getBillingScheduleGroupData (SELECT, WHERE and ORDER BY
-            // fields), and with READS in RLM_BillingUIAccessTest, which asserts the billing role can read these fields.
-            for (String soql : new List<String>{
-                'SELECT Id, BillingScheduleGroupNumber, ProductName, BillingAccountId, BillingAccount.Name, '
+            try {
+                // Keep in step with the BillingScheduleGroup query in
+                // RLM_BSGTimelineController.getBillingScheduleGroupData, and with READS in
+                // RLM_BillingUIAccessTest, which asserts the billing role can read these fields.
+                Database.query(
+                    'SELECT Id, BillingScheduleGroupNumber, ProductName, BillingAccountId, BillingAccount.Name, '
                     + 'CurrencyIsoCode, TotalBilledAmount, TotalPendingAmount, BillingTerm, BillingTermUnit, '
                     + 'BillDayOfMonth, CancellationDate, StartDate, EndDate '
                     + 'FROM BillingScheduleGroup LIMIT 1',
-                'SELECT Id, BillingScheduleNumber, Category, Status, Quantity, BilledAmount, PendingAmount, '
-                    + 'TotalAmount, BillingPeriodAmount, UnitPrice, BillingScheduleStartDate, '
-                    + 'BillingScheduleEndDate, NextBillingDate, BillingMethod, BillingType, BillingTerm, '
-                    + 'BillingTermUnit, BillingScheduleGroupId, CreatedDate '
-                    + 'FROM BillingSchedule LIMIT 1'
-            }) {
-                try {
-                    Database.query(soql, AccessLevel.USER_MODE);
-                } catch (QueryException e) {
-                    refused.add(e.getMessage());
-                }
+                    AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                refused = e.getMessage();
             }
             try {
                 RLM_BSGTimelineController.getBillingScheduleGroupData(bsgId);
@@ -176,8 +176,7 @@ private class RLM_BSGTimelineControllerTest {
         }
         Test.stopTest();
 
-        Assert.isTrue(refused.isEmpty(),
-            'PRECONDITION: a billing role can run the group and schedule queries: ' + refused);
+        Assert.isNull(refused, 'PRECONDITION: a billing role can run the group query: ' + refused);
         Assert.isTrue(dataThrew, 'An unknown BSG is "not found" for a billing role.');
     }
 }

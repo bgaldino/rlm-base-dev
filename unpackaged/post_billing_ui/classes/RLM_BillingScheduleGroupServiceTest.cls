@@ -20,9 +20,12 @@
  *
  * Known gap (documented, not pinned): getAccountBillingInfo reads one arbitrary
  * BillingAccount for the account (LIMIT 1 with no ORDER BY, ignoring
- * IsDefaultBillingProfile) and never resolves accounts linked only through
- * AccountBillingAccount. With more than one billing account the result is
+ * IsDefaultBillingProfile). With more than one billing account the result is
  * nondeterministic, so an assertion could not pin it reliably; the tests use at most one.
+ *
+ * Known gap (pinned): getAccountBillingInfo never resolves a billing account linked to the
+ * account only through AccountBillingAccount, although the create path does resolve that
+ * link. See getAccountBillingInfo_junctionOnlyBillingAccount_isNotResolved.
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {
@@ -173,6 +176,25 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.isNull(info.billingCity, 'Billing city is read through the billing account, so it is blank too.');
     }
 
+    @isTest
+    static void getAccountBillingInfo_junctionOnlyBillingAccount_isNotResolved() {
+        Account a = new Account(Name = 'BSG Junction Acct');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = 'BSG Junction BA');
+        insert ba;
+        insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = ba.Id);
+
+        Test.startTest();
+        RLM_BillingScheduleGroupService.AccountInfo info =
+            RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+        Test.stopTest();
+
+        Assert.areEqual('BSG Junction Acct', info.accountName);
+        Assert.isNull(info.billingAccountId,
+            'Known gap: getAccountBillingInfo does not resolve a billing account linked only through '
+            + 'AccountBillingAccount; update this test when it is fixed.');
+    }
+
     // ---- option queries ----
 
     @isTest
@@ -236,8 +258,8 @@ private class RLM_BillingScheduleGroupServiceTest {
 
     @isTest
     static void getTaxTreatments_returnsAllSortedByName() {
-        // Two treatments on one legal entity collide on TaxTreatment's unique key, so each
-        // gets its own.
+        // Two treatments on one legal entity with no tax policy or product code collided on
+        // TaxTreatment's unique key, so each gets its own legal entity.
         LegalEntity le1 = new LegalEntity(Name = 'BSG TT LE 1', Status = 'Active');
         LegalEntity le2 = new LegalEntity(Name = 'BSG TT LE 2', Status = 'Active');
         insert new List<LegalEntity>{ le1, le2 };
@@ -384,6 +406,25 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual(bsId, r.billingScheduleId, 'A synchronous schedule id is passed through.');
         Map<String, Object> echoed = (Map<String, Object>) System.JSON.deserializeUntyped(r.apiResponse);
         Assert.areEqual('REQ-1', echoed.get('requestId'), 'apiResponse is the serialized action output.');
+    }
+
+    // A billing account with no AccountId resolves its account through AccountBillingAccount,
+    // so the create goes ahead. The orphan test below is the same input without the junction
+    // row, which is rejected; together they show the junction row is what resolves it.
+    @isTest
+    static void createViaAPI_billingAccountLinkedThroughJunction_resolvesTheAccount() {
+        Account a = new Account(Name = 'BSG Junction Create Acct');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = 'BSG Junction Create BA');
+        insert ba;
+        insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = ba.Id);
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-JN' };
+
+        Test.startTest();
+        RLM_BillingScheduleGroupService.CreateResult r = new CreateArgs(ba.Id).call();
+        Test.stopTest();
+
+        Assert.areEqual('REQ-JN', r.requestId, 'The account is resolved through the junction row.');
     }
 
     // A billing account with no AccountId resolves its account through AccountBillingAccount;
