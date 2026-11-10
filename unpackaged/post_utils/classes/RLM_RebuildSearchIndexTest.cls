@@ -3,6 +3,8 @@
  * how each response (success with and without index details, HTTP error, unparseable body,
  * transport failure) maps onto the LWC result map and the invocable result.
  *
+ * Known gap: the invocable sends one identical FULL deploy per request, not one per batch.
+ *
  * Not covered: getApiSessionId's non-test path (Page.RLM_SessionId.getContent()), which
  * Test.isRunningTest() makes unreachable.
  */
@@ -233,7 +235,7 @@ private class RLM_RebuildSearchIndexTest {
         Test.stopTest();
 
         Assert.areEqual(2, results.size(), 'One result per request');
-        Assert.areEqual(2, mock.received.size(), 'One callout per request');
+        Assert.areEqual(2, mock.received.size(), 'Known gap: one identical FULL deploy per request; update this test when the invocable sends one per batch');
         for (RLM_RebuildSearchIndex.PCMDeployResult r : results) {
             Assert.areEqual(true, r.isSuccess, 'Each request succeeds');
             Assert.areEqual('201', r.statusCode, 'Status code is mapped');
@@ -313,7 +315,7 @@ private class RLM_RebuildSearchIndexTest {
         );
         Test.stopTest();
 
-        Assert.areEqual(2, mock.received.size(), 'The first failure does not stop the second request\'s callout');
+        Assert.areEqual(2, mock.received.size(), 'Known gap: one identical FULL deploy per request; update this test when the invocable sends one per batch');
         Assert.areEqual(2, results.size(), 'Each failing callout still yields its own result, not an exception');
         for (RLM_RebuildSearchIndex.PCMDeployResult r : results) {
             Assert.areEqual(false, r.isSuccess, 'The result is marked failed');

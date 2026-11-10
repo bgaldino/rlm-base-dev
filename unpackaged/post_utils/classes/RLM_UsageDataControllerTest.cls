@@ -193,7 +193,8 @@ private class RLM_UsageDataControllerTest {
      * for each reference member with a relationship name, the related object's name field used
      * as the link label. The related name field is found the way the controller finds it: the
      * isNameField() field of getReferenceTo()[0], falling back to Name. Derived from the field
-     * set and describe, so it cannot drift from what the controller selects.
+     * set and describe, so it follows the field set; mirrors the controller's name-field
+     * resolution (polymorphic lookups excepted).
      */
     private static void assertFieldSetReadable(Schema.SObjectType type, List<String> filterFields) {
         Schema.DescribeSObjectResult objDescribe = type.getDescribe();
@@ -212,7 +213,10 @@ private class RLM_UsageDataControllerTest {
             if (fieldDescribe.isNameField()
                 || member.getType() != Schema.DisplayType.REFERENCE
                 || fieldDescribe.getRelationshipName() == null
-                || fieldDescribe.getReferenceTo().isEmpty()) {
+                || fieldDescribe.getReferenceTo().isEmpty()
+                || fieldDescribe.getReferenceTo().size() > 1) {
+                // A polymorphic lookup's .Name resolves against the Name entity, not
+                // getReferenceTo()[0], so its label field is not checked here.
                 continue;
             }
             Schema.DescribeSObjectResult refDescribe = fieldDescribe.getReferenceTo()[0].getDescribe();
@@ -237,7 +241,7 @@ private class RLM_UsageDataControllerTest {
     }
 
     private static Id usageDatatablesSetId() {
-        List<PermissionSet> sets = [SELECT Id FROM PermissionSet WHERE Name = 'RLM_UsageDatatables' LIMIT 1];
+        List<PermissionSet> sets = [SELECT Id FROM PermissionSet WHERE Name = 'RLM_UsageDatatables' AND NamespacePrefix = null LIMIT 1];
         Assert.isFalse(sets.isEmpty(), 'PRECONDITION: RLM_UsageDatatables ships in this bundle');
         return sets[0].Id;
     }

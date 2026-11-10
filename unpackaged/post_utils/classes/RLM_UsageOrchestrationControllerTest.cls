@@ -36,17 +36,17 @@ private with sharing class RLM_UsageOrchestrationControllerTest {
         // The assertions assume the repo's version of the flow, so require that the latest
         // version is the active one, not just that some version is active.
         List<FlowDefinitionView> flows = [
-            SELECT ActiveVersionId, LatestVersionId FROM FlowDefinitionView WHERE ApiName = :NO_OP_FLOW LIMIT 1
+            SELECT ActiveVersionId, LatestVersionId FROM FlowDefinitionView
+            WHERE ApiName = :NO_OP_FLOW AND NamespacePrefix = null LIMIT 1
         ];
-        Boolean latestIsActive = !flows.isEmpty()
-            && flows[0].ActiveVersionId != null
+        Assert.isFalse(flows.isEmpty(), 'DEPENDENCY: ' + NO_OP_FLOW + ' ships in post_utils; if it was renamed, update NO_OP_FLOW');
+        Boolean latestIsActive = flows[0].ActiveVersionId != null
             && flows[0].ActiveVersionId == flows[0].LatestVersionId;
         if (!latestIsActive) {
             System.debug(
                 LoggingLevel.WARN,
                 'SKIPPED: the latest version of ' + NO_OP_FLOW + ' is not its active version (active=' +
-                (flows.isEmpty() ? null : flows[0].ActiveVersionId) + ', latest=' +
-                (flows.isEmpty() ? null : flows[0].LatestVersionId) +
+                flows[0].ActiveVersionId + ', latest=' + flows[0].LatestVersionId +
                 '); flows deploy inactive in production unless Deploy-as-active is on'
             );
             return;
