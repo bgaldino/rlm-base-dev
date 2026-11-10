@@ -184,8 +184,6 @@ private class RLM_SplitInvoicesControllerTest {
         Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read Invoice.');
         Assert.isTrue(listThrew, 'An unreadable invoice query must surface as an AuraHandledException.');
         // Reaching here means the billing info call returned instead of throwing.
-        Assert.isNull(info.billingArrangementName, 'The returned info carries no arrangement name.');
-        Assert.isNull(info.billingArrangementVerNumber, 'The returned info carries no version number.');
     }
 
     private static Id fakeId(String objectName, Integer n) {

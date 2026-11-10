@@ -17,6 +17,8 @@ private class RLM_InvoiceAgingControllerTest {
     static void getInvoiceAgingData_accountWithNoInvoices_returnsZeroes() {
         Account acc = new Account(Name = 'RLM Invoice Aging Test');
         insert acc;
+        String readError = invoiceReadError();
+        Assert.isNull(readError, 'PRECONDITION: the running user can read the aging fields of Invoice: ' + readError);
 
         Test.startTest();
         RLM_InvoiceAgingController.InvoiceAgingData data =
@@ -37,6 +39,8 @@ private class RLM_InvoiceAgingControllerTest {
         User u = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Boolean premise = false;
         Boolean threw = false;
+        String readError = invoiceReadError();
+        Assert.isNull(readError, 'PRECONDITION: the admin can read the aging fields of Invoice: ' + readError);
         Test.startTest();
         RLM_InvoiceAgingController.InvoiceAgingData adminData = RLM_InvoiceAgingController.getInvoiceAgingData(acc.Id);
         Assert.areEqual(0, adminData.totalInvoices, 'PRECONDITION: the account loads for the admin, with no invoices.');
@@ -55,5 +59,18 @@ private class RLM_InvoiceAgingControllerTest {
         Test.stopTest();
         Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read Invoice.');
         Assert.isTrue(threw, 'An unreadable invoice query must surface as an AuraHandledException.');
+    }
+
+    // The controller's own field list, run in USER_MODE: returns its error, or null if it runs.
+    private static String invoiceReadError() {
+        try {
+            Database.query(
+                'SELECT Id, InvoiceNumber, DaysInvoiceOpen, DaysInvoiceOverdue, TotalAmountWithTax, Balance, '
+                + 'DueDate, InvoiceDate, CurrencyIsoCode, Status, SettlementStatus FROM Invoice LIMIT 1',
+                AccessLevel.USER_MODE);
+            return null;
+        } catch (QueryException e) {
+            return e.getMessage();
+        }
     }
 }

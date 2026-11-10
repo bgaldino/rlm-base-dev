@@ -216,8 +216,17 @@ private class RLM_InvoiceProductSummaryControllerTest {
         User u = userWithoutBillingAccess();
         Boolean premise = false;
         Boolean saveThrew = false;
+        String adminReadError;
+        try {
+            Database.query('SELECT Id, BillingScheduleGroupId, RLM_Attributes__c FROM InvoiceLine LIMIT 1',
+                AccessLevel.USER_MODE);
+        } catch (QueryException e) {
+            adminReadError = e.getMessage();
+        }
+        Assert.isNull(adminReadError,
+            'PRECONDITION: the admin can read the InvoiceLine fields the save reads: ' + adminReadError);
         Test.startTest();
-        // PRECONDITION: the admin's call returns; an exception here fails the test.
+        // The admin's call returns; an exception here fails the test.
         RLM_InvoiceProductSummaryController.saveLineAttributes(fakeInvoiceId());
         System.runAs(u) {
             try {

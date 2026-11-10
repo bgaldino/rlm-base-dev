@@ -149,18 +149,14 @@ private class RLM_InvoiceSummaryControllerTest {
 
     // Promise to pay: a draft payment schedule item under a collection plan item of the
     // account's collection plan counts, at its requested amount.
-    // PaymentSchedule.CollectionPlanItemId comes with collections (Billing Advanced), not with
-    // this bundle: the controller only reads it by name, behind a field check. Without it the
-    // test is skipped, visibly, rather than failing the deploy.
+    // PaymentSchedule.CollectionPlanItemId comes with collections (Billing Advanced), which the
+    // build always provisions; the precondition below requires it, as the collections-user test
+    // and RLM_BillingUITestUsers do.
     @isTest
-    static void getInvoiceSummary_promiseToPayItem_isSummed_whenSchedulesLinkCollectionPlanItems() {
-        if (!Schema.SObjectType.PaymentSchedule.fields.getMap().containsKey('CollectionPlanItemId')) {
-            System.debug(LoggingLevel.WARN,
-                'SKIPPED: PaymentSchedule.CollectionPlanItemId is not in this org (collections adds it).');
-            return;
-        }
+    static void getInvoiceSummary_promiseToPayItem_isSummed() {
         Assert.isTrue(RLM_InvoiceSummaryController.canReadCollectionPlans(),
-            'PRECONDITION: the running user can read collection plans, so the promise-to-pay query runs.');
+            'PRECONDITION: the running user can read collection plans and PaymentSchedule.CollectionPlanItemId '
+            + 'exists, so the promise-to-pay query runs.');
         Account acc = new Account(Name = 'RLM Invoice Summary Promise Test');
         insert acc;
         // No CollectionPlanReason: with one, RLM_Create_Case_for_Collection raises a case
