@@ -304,6 +304,15 @@ class DockerignoreTest(unittest.TestCase):
         self.assertEqual(unhandled, [], "mirror each in .dockerignore with the same scope, or "
                                         "list it in NOT_MIRRORED with a covered sample path")
 
+    def test_the_root_gitignore_is_the_only_one(self):
+        # The mirror check reads only the root .gitignore. A nested one would ignore paths it
+        # never compares with .dockerignore, so its arrival has to fail here until it is mirrored
+        # (with its directory prefixed) and this test and _gitignore_patterns are extended.
+        tracked = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, check=True,
+                                 capture_output=True, text=True).stdout.split("\0")
+        nested = [f for f in tracked if f.endswith("/.gitignore")]
+        self.assertEqual(nested, [], "nested .gitignore files are not mirrored by this suite")
+
     def test_not_mirrored_has_no_stale_entries(self):
         gitignore = set(_gitignore_patterns())
         self.assertEqual(sorted(set(NOT_MIRRORED) - gitignore), [], "no longer in .gitignore")
