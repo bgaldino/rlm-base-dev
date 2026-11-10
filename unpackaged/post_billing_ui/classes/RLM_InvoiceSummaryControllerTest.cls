@@ -149,8 +149,16 @@ private class RLM_InvoiceSummaryControllerTest {
 
     // Promise to pay: a draft payment schedule item under a collection plan item of the
     // account's collection plan counts, at its requested amount.
+    // PaymentSchedule.CollectionPlanItemId comes with collections (Billing Advanced), not with
+    // this bundle: the controller only reads it by name, behind a field check. Without it the
+    // test is skipped, visibly, rather than failing the deploy.
     @isTest
-    static void getInvoiceSummary_promiseToPayItem_isSummed() {
+    static void getInvoiceSummary_promiseToPayItem_isSummed_whenSchedulesLinkCollectionPlanItems() {
+        if (!Schema.SObjectType.PaymentSchedule.fields.getMap().containsKey('CollectionPlanItemId')) {
+            System.debug(LoggingLevel.WARN,
+                'SKIPPED: PaymentSchedule.CollectionPlanItemId is not in this org (collections adds it).');
+            return;
+        }
         Assert.isTrue(RLM_InvoiceSummaryController.canReadCollectionPlans(),
             'PRECONDITION: the running user can read collection plans, so the promise-to-pay query runs.');
         Account acc = new Account(Name = 'RLM Invoice Summary Promise Test');
@@ -222,6 +230,7 @@ private class RLM_InvoiceSummaryControllerTest {
     }
 
     // A dispute on a case; amount may be null, for a dispute with no disputed amount.
+    // Dispute.CaseId and DisputedAmount are named in RLM_BillingUI, so this bundle cannot deploy without them.
     private static Dispute newDispute(Id accountId, Id caseId, Decimal amount) {
         Dispute d = new Dispute(
             AccountId = accountId,

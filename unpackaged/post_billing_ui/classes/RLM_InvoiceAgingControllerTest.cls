@@ -22,8 +22,8 @@ private class RLM_InvoiceAgingControllerTest {
         RLM_InvoiceAgingController.InvoiceAgingData data =
             RLM_InvoiceAgingController.getInvoiceAgingData(acc.Id);
         Test.stopTest();
-        System.assertNotEquals(null, data, 'A non-null aging wrapper should be returned.');
-        System.assertEquals(0, data.totalInvoices, 'No posted invoices -> zero count.');
+        Assert.isNotNull(data, 'A non-null aging wrapper should be returned.');
+        Assert.areEqual(0, data.totalInvoices, 'No posted invoices -> zero count.');
     }
 
     // The same account loads for the running admin; a user who cannot read invoices gets a

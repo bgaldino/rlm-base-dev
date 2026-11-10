@@ -34,8 +34,14 @@ private class RLM_OnAccountBillingControllerTest {
             'No collection plans -> account is not in collections.');
     }
 
-    // Payment, unlike invoices, is Apex-createable. A processed payment in the account's own
-    // currency is summed as is and lowers the net balance by its balance.
+    // Payment, unlike invoices, is Apex-createable. A processed payment in the corporate
+    // currency, on an account in the corporate currency, is summed as is and lowers the net
+    // balance by its balance.
+    // Known gap: SUM() returns the corporate-converted total even with GROUP BY CurrencyIsoCode,
+    // and correctConversion returns early when the payment and account currencies match. So
+    // for an account in a non-corporate currency the summary shows the corporate-converted
+    // amount in the account's currency (on a live org, a 100 AUD payment on an AUD account
+    // showed as 69.92 AUD). This test pins the corporate currency and does not cover that case.
     @isTest
     static void getBillingSummary_processedPayment_lowersTheNetBalance() {
         String paymentReadError = userModeError(PAYMENT_READ);
@@ -88,8 +94,6 @@ private class RLM_OnAccountBillingControllerTest {
                 'SKIPPED: no second active currency with a different rate (the qb or q3 pricing data adds them).');
             return;
         }
-        Assert.areNotEqual(rateOf(effective, corporate), rateOf(effective, foreign),
-            'PRECONDITION: the payment\'s currency converts at a different rate from the account\'s.');
         String paymentReadError = userModeError(PAYMENT_READ);
         Assert.isNull(paymentReadError,
             'PRECONDITION: the running user can read Payment, so its balance query runs: ' + paymentReadError);
@@ -145,6 +149,11 @@ private class RLM_OnAccountBillingControllerTest {
     static void getBillingSummary_billingOperationsUser_runsEveryBalanceQuery() {
         Account acc = new Account(Name = 'RLM On-Account Billing Role Test');
         insert acc;
+        // A collection plan the admin sees, so "not in collections" for this role comes from
+        // its access, not from the account. No CollectionPlanReason (see above).
+        insert new CollectionPlan(AccountId = acc.Id, UsageType = 'Billing');
+        Assert.areEqual(true, (Boolean) RLM_OnAccountBillingController.getBillingSummary(acc.Id).get('inCollections'),
+            'PRECONDITION: for the admin, the account is in collections.');
         User u = RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
@@ -196,11 +205,15 @@ private class RLM_OnAccountBillingControllerTest {
             Assert.areEqual(0, (Integer) result.get(key), key + ' should be zero with no billing activity.');
         }
         Assert.areEqual(false, (Boolean) result.get('inCollections'),
-            'A role that cannot read collection plans is shown as not in collections.');
+            'A role that cannot read collection plans is shown as not in collections, though the account has one.');
     }
 
     private static final String PAYMENT_READ =
         'SELECT Id, Balance, AccountId, Status, CurrencyIsoCode FROM Payment LIMIT 1';
+    // Measured live on a Release 264 org: the reads getBillingSummary runs for a billing
+    // operations user. A query USER_MODE rejects for an unsupported object (the collection plan
+    // count) does not count toward the query limit. A refactor of the controller's reads must
+    // update this number.
     private static final Integer SUMMARY_QUERY_COUNT = 15;
 
     private static Payment newProcessedPayment(Id accountId, Decimal amount, String currencyCode) {
