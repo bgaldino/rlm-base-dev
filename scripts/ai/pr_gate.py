@@ -316,9 +316,9 @@ def config_change_note(before, after):
     named = ", ".join(shown(name) for name in sorted(excused))
     if not failing:
         return ("\nnote: the repository's git config gained or changed [branch] bookkeeping for " + named
-                + " while this check ran: tracking or editor entries pointing a real local branch at its own"
-                " name on a defined remote, which decide only where a bare `git push` or `git pull`"
-                " goes. Usually another worktree's `git push -u` or"
+                + " while this check ran: a real local branch's tracking of its own name (on `.` or a remote"
+                " this config defines), which steers only a bare `git push` or `git pull`, or an"
+                " editor's or gh's note (vscode-merge-base, github-pr-owner-number). Usually another worktree's `git push -u` or"
                 " tracking checkout (push with `git push origin <branch>` and branch with `--no-track`"
                 " to avoid it); if this check runs git, it may be its fixture's. Left in place.\n", False)
     diffs = []
@@ -330,9 +330,9 @@ def config_change_note(before, after):
                                       f"{name} before", f"{name} after", lineterm="")
     return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in failing) + ")"
             " changed while this check ran. A fixture git command may have reached the real"
-            " repository (or something else wrote it meanwhile). Only [branch] bookkeeping (tracking"
-            " or editor entries pointing a real local branch at its own name on a defined remote) is"
-            " excused; this"
+            " repository (or something else wrote it meanwhile). Only [branch] bookkeeping is excused"
+            " (a real local branch's tracking of its own name on `.` or a defined remote, or an"
+            " editor's or gh's note); this"
             " change is not. Restore it by hand; the change is not reverted for you."
             + (f" (The [branch] bookkeeping for {named} in the diff below is excused.)" if excused
                else "") + "\n" + "\n".join(diffs) + "\n", True)

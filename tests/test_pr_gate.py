@@ -148,6 +148,15 @@ def upgrade_flag(word):
     return word == "--upgrade" or bool(re.fullmatch(r"-[A-Za-z]+", word) and "U" in word[1:])
 
 
+def span_of(src, start, end, label):
+    """The source from `start` up to `end`, or "" with a reported failure: body_of()'s guard against a
+    rename, for a region that does not end at the next top-level `def`."""
+    found = start in src and end in src.split(start, 1)[-1]
+    check(f"{label} still runs from {start!r} to {end!r}, so the rules scoped to it still apply",
+          found, "not found — rename the markers in this file too")
+    return src.split(start, 1)[1].split(end, 1)[0] if found else ""
+
+
 def body_of(src, marker, label):
     """The source between `marker` and the next top-level `def`, or "" with a reported failure.
 
@@ -4942,7 +4951,7 @@ VERDICT_REGIONS = {
     # Pinned when the excuse for `[branch]` bookkeeping entries moved here from a one-line byte
     # comparison in run(): about sixty lines that call git now decide whether a config change fails.
     # It reads git's own answers (config --list, for-each-ref), the same on every host.
-    "the config guard": ("b83d6225cccf", "whether a check's config change fails it"),
+    "the config guard": ("c1785352d855", "whether a check's config change fails it"),
     "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
@@ -4957,14 +4966,14 @@ VERDICT_REGIONS = {
 observed = {
     "run()": fingerprint(body_of(gate_src, "def run(", "the command runner")),
     "run_sequence()": fingerprint(body_of(gate_src, "def run_sequence(", "the sequence runner")),
-    "the config guard": fingerprint("".join(
-        body_of(gate_src, marker, label) for marker, label in (
-            ("def config_entries(", "the config reader"),
-            ("def local_branches(", "the ref lister"),
-            ("def bookkeeping_only(", "the bookkeeping-key filter"),
-            ("def excused_branches(", "the branch excuser"),
-            ("def config_change_note(", "the config verdict"),
-            ("def config_drift(", "the config note filer")))),
+    # One bounded span rather than body_of() per function: body_of() runs to the next top-level
+    # `def`, which left the key allowlist, branch_of() and without() unpinned while folding the whole
+    # CHECKS table after config_change_note() into the pin.
+    "the config guard": fingerprint(
+        span_of(gate_src, "\nBOOKKEEPING_KEYS = ", "\n# name, command, path prefixes",
+                "the config guard")
+        + body_of(gate_src, "def config_drift(", "the config note filer")
+        + body_of(gate_src, "def git(", "the git runner")),
     "the booking loop and main()'s return":
         fingerprint(gate_src.split("results, failures, advisory_failures")[-1]),
 }
@@ -5761,7 +5770,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 820
+EXPECTED = 817
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
