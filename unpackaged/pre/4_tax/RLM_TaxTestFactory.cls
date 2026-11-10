@@ -120,6 +120,11 @@ public with sharing class RLM_TaxTestFactory {
         ' (If RLM_TaxTestFactory.responseStringForm_matchesHelperPremise also fails, the platform format changed:'
         + ' that test names the cause; every String-form assertion fails with it.)';
 
+    /** Appended to assertions that rely on how the commercetax setters reject null input. */
+    public static final String SETTER_PREMISE_HINT =
+        ' (If RLM_TaxTestFactory.responseStringForm_matchesHelperPremise also fails, the platform setter'
+        + ' behaviour changed, not the production code.)';
+
     /**
      * How many times field=value appears as a whole entry in one copy of the response (e.g. once
      * per line item). The String form prints the response's delegate once per "delegate=" label
@@ -221,6 +226,26 @@ public with sharing class RLM_TaxTestFactory {
         assertResponseFieldMatches(response, 'transactionDate', YEAR_2001, 'A date prints with its year.');
         assertResponseFieldCount(error, 'errorCode', '', 1, 'ErrorResponse prints a null error code as empty.');
         assertResponseFieldCount(error, 'errorMessage', 'm', 1, 'ErrorResponse prints its message.');
+
+        // Setter premises: how the platform rejects null input.
+        Exception typeError;
+        try {
+            new commercetax.CalculateTaxResponse().setTaxTransactionType(null);
+        } catch (Exception e) {
+            typeError = e;
+        }
+        Assert.isNotNull(typeError, 'setTaxTransactionType(null) throws.');
+        Assert.areEqual('System.NullPointerException', typeError.getTypeName(),
+            'setTaxTransactionType(null) throws a NullPointerException: ' + typeError);
+        Exception amountError;
+        try {
+            new commercetax.LineItemResponse().setAmountDetails(null);
+        } catch (Exception e) {
+            amountError = e;
+        }
+        Assert.isNotNull(amountError, 'setAmountDetails(null) throws.');
+        Assert.areEqual('commercetax.TaxApiException', amountError.getTypeName(),
+            'setAmountDetails(null) throws a TaxApiException: ' + amountError);
     }
 
     /** Records every request and answers with a fixed status and body. Never reaches the network. */

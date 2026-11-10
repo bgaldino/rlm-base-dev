@@ -51,8 +51,8 @@ private with sharing class RLM_CalculateTaxServiceTest {
         // detail taxes 15.08 and KING 0, each on 232.
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmount', '232.0', 2, 'Header and line total amount.');
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxAmount', '23.43', 2, 'Header and line tax amount.');
-        RLM_TaxTestFactory.assertResponseFieldMatches(response, 'totalAmountWithTax', '255\\.4[0-9]*',
-            'Total with tax is the total plus the tax.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmountWithTax', '255.43', 2,
+            'Header and line total with tax.');
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'tax', '15.08', 1, 'The WASHINGTON detail tax.');
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'tax', '0.0', 1, 'The KING detail tax.');
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxableAmount', '232.0', 2, 'Both details tax 232.');
@@ -136,11 +136,12 @@ private with sharing class RLM_CalculateTaxServiceTest {
             'Known gap: a request without a tax transaction type throws a raw NullPointerException after the '
             + 'callout, because the null is passed unvalidated to setTaxTransactionType (the mock adapters '
             + 'default it to Debit). '
-            + 'Update this test when it is fixed.');
+            + 'Update this test when it is fixed.' + RLM_TaxTestFactory.SETTER_PREMISE_HINT);
         // The setter's exception type is platform behaviour (see the accepted risk in RLM_TaxTestFactory).
         Assert.areEqual('System.NullPointerException', caught.getTypeName(),
             'Known gap: the null transaction type reaches the platform setter, which throws a raw '
-            + 'NullPointerException. Update this test when it is fixed. ' + caught);
+            + 'NullPointerException. Update this test when it is fixed. ' + caught
+            + RLM_TaxTestFactory.SETTER_PREMISE_HINT);
         Assert.areEqual(1, mock.requests.size(), 'The failure comes after the engine callout: ' + caught);
     }
 

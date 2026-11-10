@@ -108,7 +108,9 @@ private with sharing class RLM_MockTaxAdapterTest {
             + 'amount (line 2 reports 350.0, not 250.0). Update this test when it is fixed.');
         // Tax at the adapter's 0.1 rate: line 1 10.0; line 2 (accumulated, see above) and the header 35.0.
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxAmount', '10.0', 1, 'Line 1 tax amount.');
-        RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxAmount', '35.0', 2, 'Line 2 and header tax amount.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxAmount', '35.0', 2,
+            'Known gap: line amount details accumulate across lines instead of each line carrying its own '
+            + 'amount (line 2 reports 35.0 tax, not 25.0). Update this test when it is fixed.');
     }
 
     @IsTest
@@ -161,10 +163,12 @@ private with sharing class RLM_MockTaxAdapterTest {
         }
         Test.stopTest();
 
-        Assert.isNotNull(caught, 'Null amount details are rejected by the response setter.');
+        Assert.isNotNull(caught, 'Null amount details are rejected by the response setter.'
+            + RLM_TaxTestFactory.SETTER_PREMISE_HINT);
         // Assert.isInstanceOfType(caught, commercetax.TaxApiException.class) does not compile:
         // "Type is not visible: commercetax.TaxApiException". Match the type name instead.
-        Assert.areEqual('commercetax.TaxApiException', caught.getTypeName(), 'The platform setter throws: ' + caught);
+        Assert.areEqual('commercetax.TaxApiException', caught.getTypeName(),
+            'The platform setter throws: ' + caught + RLM_TaxTestFactory.SETTER_PREMISE_HINT);
     }
 
     @IsTest
