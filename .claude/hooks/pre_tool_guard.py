@@ -70,8 +70,8 @@ What this guard does not catch, and what backs it up:
   owner's credentials is rejected. This guard refuses it earlier and says why.
 - Artifacts writes made through Bash (`>`, `cp`, `mv`, a script) rather than Edit/Write, and
   writes whose path does not spell `.agents/artifacts`: a link inside or into the clone, a
-  linked clone addressed at its real location, a clone link that points at another checkout,
-  an inode path (macOS `/.vol`) or a hard link. Rule 4 catches the misplaced write an agent
+  linked clone addressed at its real location, a clone link that points at another checkout
+  or at a directory above it (`-> ..`), an inode path (macOS `/.vol`) or a hard link. Rule 4 catches the misplaced write an agent
   spells out; the private repository's pre-commit hook (`tools/check_layout.py`, once enabled as
   its README describes) is the backstop for layout, and `.gitignore` ignores every
   `.agents/artifacts*` path, so a copy is not staged by accident.
@@ -81,6 +81,8 @@ What this guard does not catch, and what backs it up:
 
 Stdlib only, Python 3.9-safe: it runs under whatever `python3` the shell provides.
 Exit 0 = allow (or a JSON `ask` decision on stdout) · exit 2 = deny, reason on stderr.
+Fails closed: any error while judging an event asks (main()), because a crashed or timed-out
+hook lets the tool call through unchecked.
 """
 from __future__ import annotations
 
@@ -211,7 +213,7 @@ def git(cwd: str, *args: str, opts: Sequence[str] = ()) -> Optional[str]:
     try:
         out = subprocess.run(["git", *opts, "-C", cwd, *args], capture_output=True, text=True,
                              timeout=10)
-    except (OSError, subprocess.TimeoutExpired):
+    except (OSError, ValueError, subprocess.TimeoutExpired):  # ValueError: a NUL in an argument
         return None
     return out.stdout.strip() if out.returncode == 0 else None
 
@@ -538,23 +540,29 @@ def current_text(path: str) -> str:
 
 def text_change(tool: str, tool_input: dict, path: str) -> Tuple[str, Optional[str], str, str]:
     """(whole file before, whole file after or None, snippet before, snippet after) for a Write,
-    Edit or MultiEdit of `path`. `after` is None when the edit cannot be replayed, or replays to
-    more than MAX_PLAN_BYTES: the snippets are then compared instead, which costs only the size
-    of the tool input."""
+    Edit or MultiEdit of `path`. `after` is None when the edit cannot be replayed: the snippets
+    are then compared instead. Raises Unreadable when the result would exceed MAX_PLAN_BYTES,
+    predicting a replay's size before building it."""
     before = current_text(path)
+    utf8 = lambda s: len(s.encode("utf-8"))  # noqa: E731
+    too_large = Unreadable(f"the edited plan would be larger than {MAX_PLAN_BYTES} bytes")
     if tool == "Write":
         after: Optional[str] = tool_input.get("content") or ""
-        return before, after if len(after) <= MAX_PLAN_BYTES else None, before, after
+        if utf8(after) > MAX_PLAN_BYTES:
+            raise too_large
+        return before, after, before, after
     edits = [tool_input] if tool == "Edit" else (tool_input.get("edits") or [])
-    after = before
+    after, size = before, utf8(before)
     for edit in edits:
         old, new = edit.get("old_string") or "", edit.get("new_string") or ""
         if after is None or not old or old not in after:
             after = None  # the edit can't be replayed here; fall back to the snippets
             continue
+        times = after.count(old) if edit.get("replace_all") else 1
+        size += times * (utf8(new) - utf8(old))
+        if size > MAX_PLAN_BYTES:
+            raise too_large
         after = after.replace(old, new) if edit.get("replace_all") else after.replace(old, new, 1)
-        if len(after) > MAX_PLAN_BYTES:
-            after = None
     return (before, after, "".join(e.get("old_string") or "" for e in edits),
             "".join(e.get("new_string") or "" for e in edits))
 
@@ -642,9 +650,9 @@ ARTIFACTS_TOOLING = (".git", ".githooks", "tools")
 ARTIFACTS_HINT = ("file it under todos/attachments/<id>/, an existing topics/<slug>/, or else "
                   "inbox/<yyyy-mm-dd>-<name>; do not invent a topic "
                   "(.cursor/rules/analysis-artifacts.mdc)")
-# An implementation limit, not part of the contract: no writable path is this deep, and it keeps
-# every scan below short.
-MAX_JUDGED_COMPONENTS = 512
+# An implementation limit, not part of the contract: Linux PATH_MAX (4096 bytes) allows no deeper
+# path, and it keeps every scan below short.
+MAX_JUDGED_COMPONENTS = 4096
 
 
 def resolve_path(path: str, cwd: str) -> str:
@@ -654,22 +662,14 @@ def resolve_path(path: str, cwd: str) -> str:
 
 
 def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
-    """Rule 4. Any unexpected error asks rather than escaping: a crashed hook is a non-blocking
-    error to Claude Code, which would let the call through unchecked."""
-    try:
-        return _artifacts_decision(path, cwd)
-    except Exception as exc:  # never crash the hook into an allow
-        return "ask", (f"the private-tree check could not judge this path "
-                       f"({type(exc).__name__}); confirm where it lands")
-
-
-def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
+    """Rule 4."""
     if not path:
         return "allow", ""
-    parts = Path(resolve_path(path, cwd)).parts
-    if len(parts) > MAX_JUDGED_COMPONENTS:
+    resolved = resolve_path(path, cwd)
+    if resolved.count(os.sep) > MAX_JUDGED_COMPONENTS:
         return "ask", (f"`{path}` is deeper than {MAX_JUDGED_COMPONENTS} components, so the "
                        "private-tree check does not judge it; confirm where it lands")
+    parts = Path(resolved).parts
     # Every `.agents/artifacts*` pair the path names (casefold(): a case or Unicode case-fold
     # variant is the tree on a case-insensitive disk and a different folder on a sensitive one).
     pairs = [i for i in range(len(parts) - 1) if parts[i].casefold() == ".agents"
@@ -699,10 +699,7 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
                         "checkout; do not create it. Maintainers clone it here (todo-tracker "
                         "skill, First run); otherwise use $TMPDIR for scratch, or say where the "
                         "content should live")
-    # A clone is a repository of its own, and not one of the directories above it (a
-    # `.agents/artifacts -> ..` link would make the public repo "the clone").
-    if not os.path.exists(tree / ".git") or any(
-            os.path.samefile(tree, Path(*parts[:k])) for k in range(repo, i + 2)):
+    if not os.path.exists(tree / ".git"):  # a clone is a repository of its own
         return "deny", (f"`{tree}` is not the private clone (a git repository of its own), so "
                         "nothing written there is versioned; replace it with a clone "
                         "(todo-tracker skill, First run), or use $TMPDIR for scratch")
@@ -716,13 +713,13 @@ def _placement(rest: Tuple[str, ...], tree: Path) -> Tuple[str, str]:
     if not rest:
         return "allow", ""
     top = rest[0]
-    if top not in (*ARTIFACTS_TOOLING, "archive") and os.path.lexists(tree / top):
-        top = top.casefold()
-    if top in ARTIFACTS_TOOLING:
+    # Fold only to classify an existing entry: an existing `README.md` stays itself below.
+    known = top.casefold() if os.path.lexists(tree / top) else top
+    if known in ARTIFACTS_TOOLING:
         return "ask", ("this changes the private repository's own tooling (`.git/`, `.githooks/` "
                        "or `tools/`), which runs its pre-commit layout check. Confirm it is "
                        "deliberate")
-    if top == "archive":
+    if known == "archive":
         return "ask", ("this writes under `.agents/artifacts/archive/`, which is frozen history "
                        "(moves and per-entry READMEs only). Confirm it is a deliberate archive "
                        "edit")
@@ -906,15 +903,19 @@ def decide(event: dict) -> Tuple[str, str]:
                                 "the push runs can't be resolved; run it as "
                                 "`git -C <dir> push …` instead")
             directories = [cwd]
+        # Each command is judged on its own, so an error in one cannot hide a later deny.
         for directory in directories:
             for argv in simple_commands(command):
-                push = git_push(argv, directory)
-                if push:
-                    decision = push_decision(push)
-                    if decision[0] == "deny":
-                        return decision
-                    if decision[0] == "ask":
-                        worst = decision
+                try:
+                    push = git_push(argv, directory)
+                    decision = push_decision(push) if push else ("allow", "")
+                except Exception as exc:  # noqa: BLE001  recorded as an ask; a deny still wins
+                    decision = ("ask", f"the push check could not judge `{argv[0]}` "
+                                       f"({type(exc).__name__}); confirm it")
+                if decision[0] == "deny":
+                    return decision
+                if decision[0] == "ask":
+                    worst = decision
         return worst
     if tool == "NotebookEdit":
         return artifacts_decision(tool_input.get("notebook_path") or "", cwd)
@@ -931,11 +932,8 @@ def decide(event: dict) -> Tuple[str, str]:
         sfdmu = (sfdmu_decision(*text_change(tool, tool_input, plan)) if is_sfdmu_plan(plan)
                  else ("allow", ""))
     except Unreadable as exc:
-        sfdmu = ("ask", f"the current SFDMU plan cannot be read to compare this edit ({exc}); "
-                        "confirm it adds no deleteOldData and no Insert where an Upsert was")
-    except Exception as exc:  # malformed input: ask, never crash the hook into an allow
-        sfdmu = ("ask", f"the SFDMU plan check could not judge this edit "
-                        f"({type(exc).__name__}); confirm it")
+        sfdmu = ("ask", f"the SFDMU plan check cannot compare this edit ({exc}); confirm it adds "
+                        "no deleteOldData and no Insert where an Upsert was")
     asks = [reason for decision, reason in (placement, sfdmu) if decision == "ask"]
     return ("ask", ". Also: ".join(asks)) if asks else ("allow", "")
 

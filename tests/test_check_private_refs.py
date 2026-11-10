@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Tests for scripts/ai/check_private_refs.py (the `private_refs` pr_gate check, todo 358).
 
-Each case copies the script into a throwaway git repository, so the leak guard, the shape check
-and MOVED.tsv resolution are exercised against a tree this test controls. Stdlib only.
+Each case copies the script into a throwaway git repository, so the shape check and MOVED.tsv
+resolution are exercised against a tree this test controls. Stdlib only.
 """
 from __future__ import annotations
 
@@ -50,7 +50,6 @@ class Fixture(unittest.TestCase):
         sh(self.root, "git", "init", "-q")
         (self.root / "scripts" / "ai").mkdir(parents=True)
         shutil.copy(SCRIPT, self.root / "scripts" / "ai" / "check_private_refs.py")
-        shutil.copy(REPO / ".gitignore", self.root / ".gitignore")  # the leak guard's definition
 
     def tearDown(self):
         shutil.rmtree(self.root)
@@ -67,30 +66,13 @@ class Fixture(unittest.TestCase):
                               capture_output=True, text=True)
 
 
-class LeakGuard(Fixture):
-    def test_a_tracked_file_in_the_private_tree_fails(self):
-        self.write(".agents/artifacts/notes.md", "private\n")
-        proc = self.run_check()
-        self.assertEqual(proc.returncode, 1, proc.stdout)
-        self.assertIn(".agents/artifacts/notes.md: tracked although .gitignore ignores it",
-                      proc.stdout)
-
-    def test_a_sibling_backup_and_core_code_names_fail(self):
-        self.write(".agents/artifacts.old/notes.md", "private\n")
-        self.write("docs/analysis/x-core-code-y.md", "private\n")
-        proc = self.run_check()
-        self.assertEqual(proc.returncode, 1)
-        self.assertIn("artifacts.old/notes.md", proc.stdout)
-        self.assertIn("x-core-code-y.md", proc.stdout)
-
-    def test_public_agents_files_pass(self):
-        self.write(".agents/README.md", "public\n")
-        self.assertEqual(self.run_check().returncode, 0)
-
+class Basics(Fixture):
     def test_a_git_failure_is_a_tool_error_not_a_verdict(self):
-        shutil.rmtree(self.root / ".git")  # not a repository: `git ls-files` fails
+        shutil.rmtree(self.root / ".git")  # not a repository: `git grep` fails
+        # The ceiling stops git finding a repository above a $TMPDIR inside a checkout.
+        env = {**os.environ, "GIT_CEILING_DIRECTORIES": str(self.root.parent)}
         proc = subprocess.run([sys.executable, "scripts/ai/check_private_refs.py"], cwd=self.root,
-                              capture_output=True, text=True)
+                              capture_output=True, text=True, env=env)
         self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
         self.assertNotIn("Traceback", proc.stderr)
 
@@ -135,19 +117,6 @@ class Shape(Fixture):
         self.assertIn(".agents/artifacts/other.md cites the private tree's top level", proc.stdout)
         self.assertNotIn("other.md_", proc.stdout)
 
-    def test_a_nested_tree_folder_fails_the_leak_guard(self):
-        self.write("docs/.agents/artifacts/notes.md", "private\n")
-        proc = self.run_check()
-        self.assertEqual(proc.returncode, 1, proc.stdout)
-        self.assertIn("docs/.agents/artifacts/notes.md: tracked although .gitignore",
-                      proc.stdout)
-
-    def test_case_variants_of_the_tree_fail_the_leak_guard(self):
-        self.write(".Agents/artifacts/notes.md", "private\n")
-        proc = self.run_check()
-        self.assertEqual(proc.returncode, 1, proc.stdout)
-        self.assertIn("tracked although .gitignore ignores it", proc.stdout)
-
     def test_lookalike_siblings_are_not_citations(self):
         self.write("docs/a.md", "a decoy at .agents/artifacts-notes/x.md and .agents/artifacts.old/\n")
         self.assertIn("0 citation(s)", self.run_check().stdout)
@@ -173,28 +142,6 @@ class Shape(Fixture):
     def test_a_lone_carriage_return_does_not_shift_line_numbers(self):
         self.write("docs/a.md", "a\rb\n.agents/artifacts/stray.md\n")
         self.assertIn("docs/a.md:2: .agents/artifacts/stray.md", self.run_check().stdout)
-
-    def test_gitignore_and_the_guard_hook_agree_on_what_is_private(self):
-        # `.gitignore` (which the leak guard reads) and the hook's spelling rule each define a
-        # private copy. Only `.gitignore`'s own patterns count, matched case-sensitively, so
-        # no workstation setting can make a narrowed pattern pass here and fail on CI.
-        hook = _hook_module()
-        samples = {".agents/artifacts/x.md": True, ".agents/artifacts.old/x.md": True,
-                   ".agents/Artifacts/x.md": True, "docs/.agents/artifacts/x.md": True,
-                   ".Agents/artifacts-bak/x.md": True, ".agents/artifact/x.md": False,
-                   ".agents/README.md": False, "docs/artifacts/x.md": False}
-        proc = subprocess.run(["git", "-c", "core.ignorecase=false", "-c",
-                               "core.excludesFile=" + os.devnull, "check-ignore", "--no-index",
-                               "--stdin"], cwd=self.root, input="\n".join(samples),
-                              capture_output=True, text=True)
-        ignored = set(proc.stdout.split())
-        for path, private in samples.items():
-            denied = hook._artifacts_decision(str(self.root / path), str(self.root))[0] == "deny"
-            self.assertEqual((path in ignored, denied), (private, private), path)
-
-    def test_only_what_gitignore_ignores_is_a_leak(self):
-        self.write("scripts/fix-core-code-paths.py", "x\n")  # a public name, not ignored
-        self.assertEqual(self.run_check().returncode, 0)
 
     def test_locations_and_typographic_punctuation_end_a_citation(self):
         self.write("docs/a.md", "a\fb\n.agents/artifacts/stray.md:12:3 and "
@@ -298,10 +245,12 @@ class Resolution(Fixture):
 
     def test_a_glob_citation_is_not_resolved_as_a_path(self):
         self.write("docs/a.md", "see .agents/artifacts/topics/collections/2026-*-notes.md and "
-                   "**.agents/artifacts/topics/nope.md**\n")
+                   "**.agents/artifacts/topics/nope.md** and **Report: "
+                   ".agents/artifacts/topics/gone.md**\n")
         proc = self.run_check()
         self.assertNotIn("2026-", proc.stdout)  # the glob draws no warning
         self.assertIn("topics/nope.md is not at that path", proc.stdout)  # bold is not a glob
+        self.assertIn("topics/gone.md is not at that path", proc.stdout)  # nor bold mid-phrase
 
     def test_resolve_moved_chains_rows(self):
         (self.tree / "MOVED.tsv").write_text(

@@ -200,9 +200,9 @@ CHECKS = [
     dict(
         name="private_refs",
         cmd=["python", "scripts/ai/check_private_refs.py"],
-        # The private `.agents/artifacts/` tree must never be tracked here (sibling backups
-        # included), and citations into it must be tier-shaped (todo 358). It reads every tracked
-        # text file, so like release_refs it always runs. Shape findings warn until PR-B.
+        # Citations into the private `.agents/artifacts/` tree must be tier-shaped (todo 358).
+        # One `git grep` finds the citing files, so it always runs, in under a second. Shape
+        # findings warn until PR-B; keeping the tree untracked is the dockerignore check's job.
         triggers=["scripts/ai/check_private_refs.py"], always=True,
         deps=[], gating=True,
     ),
@@ -508,9 +508,6 @@ CHECKS = [
                   "force-app/", "unpackaged/",
                   ".agents/", ".claude/", ".cursor/", "docs/references/",
                   "AGENTS.md", "CLAUDE.md", "README.md",
-                  # tests/test_check_private_refs.py checks the private-tree patterns in it
-                  # against the guard hook, so narrowing them must run that suite.
-                  ".gitignore",
                   # tests/test_toolchain_audit.py runs the guide's ~/.zshenv NVM block against the
                   # audit's nested-shell check, so an edit to the template must run it.
                   "docs/guides/dev-environment-setup.md",

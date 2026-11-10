@@ -16,13 +16,18 @@ and checks:
   slash but a trailing one matches at any depth in git, so its mirror must be `**/<pattern>`,
   since a bare Docker pattern only matches at the root. NOT_MIRRORED holds only the entries a
   broader .dockerignore line already covers. A new .gitignore entry fails here until mirrored;
+- `.gitignore` ignores exactly the private-tree copies the Claude guard hook (rule 4) denies, so
+  neither definition can narrow without the other;
 - a `!` re-include sits above every rule it could override, and does not bring back a secret
   nested under it: the last matching pattern wins, so a re-include placed after the recursive
   secret rules overrides them inside its subtree.
 """
+import importlib.util
 import os
 import re
+import shutil
 import subprocess
+import tempfile
 import unittest
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -337,6 +342,34 @@ class DockerignoreTest(unittest.TestCase):
         self.assertEqual(sorted(set(samples) - ignored), [], "samples .gitignore does not ignore")
         leaked = [p for p in samples if not excluded(PATTERNS, p)]
         self.assertEqual(leaked, [], "listed as covered, but copied into the image")
+
+    def test_gitignore_and_the_guard_hook_agree_on_what_is_private(self):
+        # `.gitignore` and the hook's spelling rule each define a private copy of the tree. Only
+        # the repo's own `.gitignore` counts (`-v` names the source), matched case-sensitively,
+        # so no workstation setting can make a narrowed pattern pass here and fail on CI. Known
+        # exception, stricter in the hook: a Unicode case-fold variant (`artifactſ`) is denied
+        # there but is not a pattern .gitignore can spell.
+        spec = importlib.util.spec_from_file_location(
+            "pre_tool_guard_for_ignore", os.path.join(REPO, ".claude", "hooks", "pre_tool_guard.py"))
+        hook = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(hook)
+        samples = {".agents/artifacts/x.md": True, ".agents/artifacts.old/x.md": True,
+                   ".agents/Artifacts/x.md": True, "docs/.agents/artifacts/x.md": True,
+                   ".Agents/artifacts-bak/x.md": True, ".agents/artifact/x.md": False,
+                   ".agents/README.md": False, "docs/artifacts/x.md": False}
+        out = subprocess.run(["git", "-c", "core.ignorecase=false", "check-ignore", "--no-index",
+                              "-v", "--stdin"], cwd=REPO, input="\n".join(samples) + "\n",
+                             capture_output=True, text=True).stdout
+        ignored = {path for source, _, path in (ln.partition("\t") for ln in out.splitlines())
+                   if source.split(":")[0] == ".gitignore"}
+        root = tempfile.mkdtemp()
+        try:
+            os.mkdir(os.path.join(root, ".git"))  # a work tree with no clone in it
+            for path, private in samples.items():
+                denied = hook.artifacts_decision(os.path.join(root, path), root)[0] == "deny"
+                self.assertEqual((path in ignored, denied), (private, private), path)
+        finally:
+            shutil.rmtree(root)
 
     def test_reincludes_sit_above_every_rule_they_could_override(self):
         self.assertEqual(misplaced_reincludes(read(".dockerignore")), [],

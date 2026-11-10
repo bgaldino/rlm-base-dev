@@ -1,29 +1,26 @@
 #!/usr/bin/env python3
-"""Keep the private artifacts tree private, and keep public citations into it shaped right.
+"""Keep public citations into the private artifacts tree shaped right, and resolvable.
 
 `.agents/artifacts/` is a separate PRIVATE repository that this one gitignores
 (`.cursor/rules/analysis-artifacts.mdc`). Tracked files may cite paths inside it, but a fresh
 clone and CI never have the tree, so citations can rot unseen: of 16 paths cited in Nov 2026,
 13 no longer resolved, and the manifest audit (which walks one section) saw one of them.
 
-Three checks, in order:
+Keeping the tree itself out of commits is `.gitignore`'s job, and the always-run
+`dockerignore` check fails a tracked file it ignores. Two checks here:
 
-(a) Leak guard — GATING. No tracked file may be one the repository's own `.gitignore` files
-    ignore: they ignore the private clone with every sibling and case-variant copy of it, and
-    the other local-only content, so a tracked one was force-added (or predates the rule).
-    `.gitignore` is the one definition; git answers the question.
-(b) Shape. Every `.agents/artifacts/<x>` literal in tracked text must be the bare directory, a
+(a) Shape. Every `.agents/artifacts/<x>` literal in tracked text must be the bare directory, a
     template or glob, or start with a private tier (PRIVATE_TIERS). A top-level-shaped citation
     is a warning until SHAPE_GATING is switched on, once the citations are rewritten (todo 358,
     PR-B).
-(c) Resolution, only when the private clone is present. Each concrete citation must exist, or
-    resolve through the private tree's MOVED.tsv. Warnings for now, like (b). With the clone
+(b) Resolution, only when the private clone is present. Each concrete citation must exist, or
+    resolve through the private tree's MOVED.tsv. Warnings for now, like (a). With the clone
     absent, the count of shape-checked citations is printed: never a silent skip.
 
-`tests/` is not scanned for (b)/(c): fixtures there cite misplaced paths on purpose.
+`tests/` is not scanned: fixtures there cite misplaced paths on purpose.
 
-Exit 0 when (a) passes (and, once gating, (b)); 1 otherwise; 2 when the check cannot run (git
-fails), so a tool error never reads as a verdict. Stdlib only.
+Exit 0 unless (a) is gating and fails (1); 2 when the check cannot run (git fails), so a tool
+error never reads as a verdict. Stdlib only.
 """
 from __future__ import annotations
 
@@ -59,15 +56,8 @@ LITERAL = re.compile(r"\.agents/artifacts(?![\w.-])(/[^\s`'\"()\[\]<>|,;#?\u2013
 # What follows a path in prose but is not part of it: a `:12`, `:12:3` or `:12-20` location,
 # then sentence punctuation or `_italics_`.
 TRAILER = re.compile(r"(?::\d+(?:-\d+)?){0,2}[.:_]*$")
-
-
-def tracked_but_ignored() -> list[str]:
-    """Tracked files the repository's own `.gitignore` files ignore. Only those files are read:
-    no global excludes file, and case-sensitive matching, so every workstation and CI agree."""
-    out = subprocess.run(["git", "-c", "core.ignorecase=false", "ls-files", "-z", "-c", "-i",
-                          "--exclude-per-directory=.gitignore"], cwd=REPO, capture_output=True,
-                         check=True).stdout
-    return [p for p in out.decode("utf-8", "replace").split("\0") if p]
+# Closing emphasis (`**path**`): trailing stars, unless they end a glob segment (`x/**`, `x-*`).
+EMPHASIS = re.compile(r"(?<![/*-])\*+$")
 
 
 def citing() -> list[str]:
@@ -156,10 +146,8 @@ def citations(paths: list[str]):
         # \x85 and U+2028/9.
         for n, line in enumerate(text.split("\n"), 1):
             for m in LITERAL.finditer(line):
-                lit = m.group(0)
-                if m.start() and line[m.start() - 1] == "*":  # **bold**: its closing stars
-                    lit = TRAILER.sub("", lit).rstrip("*")      # are not a glob
-                yield rel, n, TRAILER.sub("", lit)
+                lit = TRAILER.sub("", m.group(0))
+                yield rel, n, TRAILER.sub("", EMPHASIS.sub("", lit))
 
 
 def main(argv: list[str]) -> int:
@@ -176,15 +164,11 @@ def _check() -> int:
     errors: list[str] = []
     warnings: list[str] = []
 
-    for p in tracked_but_ignored():  # (a)
-        errors.append(f"{p}: tracked although .gitignore ignores it (private or local-only "
-                      f"content); remove it (git rm --cached) and keep it in the private tree")
-
     tree = REPO / ROOT
     present = clone_present(tree)
     rows = moved_rows(tree) if present else []
     shaped = 0
-    for rel, n, lit in citations(citing()):  # (b) and (c)
+    for rel, n, lit in citations(citing()):  # (a) and (b)
         kind = classify(lit)
         if kind in ("bare", "template"):
             continue

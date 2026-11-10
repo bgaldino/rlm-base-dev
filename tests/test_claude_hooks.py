@@ -579,13 +579,18 @@ def _guard_module():
     return guard
 
 
-def verdict(case, proc):
-    """allow, ask or deny, from a PreToolUse hook run: exit 2 denies, JSON on stdout asks."""
+def verdict(case, proc, judged=True):
+    """allow, ask or deny, from a PreToolUse hook run: exit 2 denies, JSON on stdout asks. A
+    guard error also asks (main() fails closed), so unless `judged` is False an ask that says
+    the guard could not judge the call fails the test instead of passing as a verdict."""
     if proc.returncode == 2:
         return "deny"
     case.assertEqual(proc.returncode, 0, proc.stderr)
     if proc.stdout.strip():
-        return json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"]
+        out = json.loads(proc.stdout)["hookSpecificOutput"]
+        if judged:
+            case.assertNotIn("could not judge", out["permissionDecisionReason"])
+        return out["permissionDecision"]
     return "allow"
 
 
@@ -625,10 +630,10 @@ class ArtifactsPlacement(unittest.TestCase):
         return run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input,
                                 "cwd": str(cwd or self.tmp)}, env=env)
 
-    def event(self, tool, tool_input, cwd=None):
+    def event(self, tool, tool_input, cwd=None, judged=True):
         """The decision for one event, through the hook process."""
         return verdict(self, run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input,
-                                              "cwd": str(cwd or self.tmp)}))
+                                              "cwd": str(cwd or self.tmp)}), judged)
 
     def decide(self, rel, tool="Write", cwd=None, raw=False):
         """The decision for `rel`, sent the way Claude Code sends it: absolute, `~` expanded and
@@ -683,6 +688,26 @@ class ArtifactsPlacement(unittest.TestCase):
                              "ask" if insensitive else "deny", rel)
         shutil.rmtree(self.tree / "archive")  # a variant of a missing entry is a new entry
         self.assertEqual(self.decide(".agents/artifacts/Archive/new.md"), "deny")
+
+    def test_existing_entries_keep_their_names_on_a_case_sensitive_disk(self):
+        # Folding is only for classifying an entry as tooling or archive: an existing README.md
+        # or legacy folder is still itself, not a new `readme.md`.
+        from unittest import mock
+        (self.tree / "README.md").write_text("x")
+        (self.tree / "MOVED.tsv").write_text("x")
+        (self.tree / "Legacy-Notes").mkdir()
+
+        def exact(path):  # lexists as a case-sensitive disk answers it
+            path = Path(path)
+            return path.parent.is_dir() and path.name in os.listdir(path.parent)
+
+        with mock.patch.object(self.guard.os.path, "lexists", exact):
+            for rel, expected in (("README.md", "allow"), ("MOVED.tsv", "allow"),
+                                  ("Legacy-Notes/a.md", "allow"), ("legacy-notes/a.md", "deny"),
+                                  ("ARCHIVE/a.md", "deny"), ("archive/2026/x/a.md", "ask")):
+                self.assertEqual(self.decide(f".agents/artifacts/{rel}"), expected, rel)
+        for rel in ("README.md", "MOVED.tsv", "Legacy-Notes/a.md"):  # and on this disk
+            self.assertEqual(self.decide(f".agents/artifacts/{rel}"), "allow", rel)
 
     def test_sibling_and_variant_spellings_are_denied(self):
         for rel in (".agents/artifacts.old/notes.md", ".agents/artifacts-backup/notes.md",
@@ -739,15 +764,6 @@ class ArtifactsPlacement(unittest.TestCase):
         (self.tree / ".git").symlink_to(self.tmp / "nowhere")  # a dangling `.git` is no clone
         self.assertEqual(self.decide(str(self.tree / "inbox" / "a.md")), "deny")
 
-    def test_a_link_to_an_ancestor_is_not_the_clone(self):
-        # `.agents/artifacts -> ..` reaches the public repo, which has a `.git`: treating it as the
-        # clone would let a write spelled inside the private tree land in the public one.
-        shutil.rmtree(self.tree)
-        self.tree.symlink_to(Path(".."), target_is_directory=True)
-        proc = self.run_write(str(self.tree / "inbox" / "a.md"))
-        self.assertEqual(proc.returncode, 2, proc.stderr)
-        self.assertIn("not the private clone (a git repository of its own)", proc.stderr)
-
     def test_a_tree_below_the_repository_root_is_not_the_clone(self):
         for nested in (self.tmp / "pub" / ".agents" / "artifacts",
                        self.tmp / "docs" / ".agents" / "artifacts"):
@@ -790,12 +806,14 @@ class ArtifactsPlacement(unittest.TestCase):
 
     def test_the_depth_cap_asks_and_a_deep_scan_stays_fast(self):
         import time
-        self.assertEqual(self.decide("/".join(["a"] * 600) + "/x.md"), "ask")
+        cap = self.guard.MAX_JUDGED_COMPONENTS
+        self.assertEqual(self.decide("/".join(["a"] * (cap + 1)) + "/x.md"), "ask")
         # The worst case under the cap: a pair at every other part and no repository to stop
-        # the scan early.
+        # the scan early. The pair count leaves room for $TMPDIR's own depth.
         with tempfile.TemporaryDirectory() as scratch:
             _outside_any_repo(self, scratch)
-            deep = os.path.join(scratch, *([".agents", "artifacts.old"] * 250), "x.md")
+            pairs = (cap - len(Path(scratch).parts) - 1) // 2
+            deep = os.path.join(scratch, *([".agents", "artifacts.old"] * pairs), "x.md")
             start = time.monotonic()
             self.assertEqual(self.guard.artifacts_decision(deep, scratch)[0], "allow")
             self.assertLess(time.monotonic() - start, 1.0)
@@ -806,10 +824,11 @@ class ArtifactsPlacement(unittest.TestCase):
             self.assertEqual(self.event("NotebookEdit", {"notebook_path": str(self.tree / name),
                                                          "new_source": "x"}), expected, name)
 
-    def test_unusual_characters_never_crash_the_rule(self):
-        for name in ("a\x00b.ipynb", "\udcff.md", "topics/\udcff/x.md"):
+    def test_unusual_characters_are_judged_like_any_other(self):
+        for name, expected in (("a\x00b.ipynb", "deny"), ("\udcff.md", "deny"),
+                               ("topics/\udcff/x.md", "allow")):
             proc = self.run_write(str(self.tree) + "/" + name)
-            self.assertIn(proc.returncode, (0, 2), name)
+            self.assertEqual(verdict(self, proc), expected, name)
             self.assertNotIn("Traceback", proc.stderr, name)
 
     def test_an_unreadable_event_asks_instead_of_failing_open(self):
@@ -817,8 +836,8 @@ class ArtifactsPlacement(unittest.TestCase):
             proc = subprocess.run([sys.executable, str(GUARD)], input=stdin, capture_output=True,
                                   text=True, timeout=60)
             self.assertIn('"ask"', proc.stdout, stdin)
-        for tool in ("Write", "NotebookEdit"):
-            self.assertEqual(self.event(tool, "x"), "ask", tool)  # tool_input not an object
+        for tool in ("Write", "NotebookEdit"):  # tool_input not an object
+            self.assertEqual(self.event(tool, "x", judged=False), "ask", tool)
         # Decoded as UTF-8 whatever the locale: a cp1252 pipe must not skip the rules. The raw
         # bytes matter (json.dumps would escape the character to ASCII).
         event = json.dumps({"tool_name": "Write", "cwd": str(self.tmp), "tool_input": {
@@ -828,17 +847,41 @@ class ArtifactsPlacement(unittest.TestCase):
                               env={**os.environ, "PYTHONIOENCODING": "cp1252"}, timeout=60)
         self.assertEqual(proc.returncode, 2, proc.stderr)
 
-    def test_an_error_inside_the_rule_asks(self):
+    def test_an_error_inside_a_rule_asks(self):
+        import contextlib
+        import io
+        from unittest import mock
         guard = _guard_module()
 
-        def boom(path, cwd):
+        def boom(*args, **kwargs):
             raise RuntimeError("boom")
 
-        guard._artifacts_decision = boom
-        decision, reason = guard.artifacts_decision(str(self.tree / "inbox" / "a.md"),
-                                                    str(self.tmp))
-        self.assertEqual(decision, "ask")
-        self.assertIn("RuntimeError", reason)
+        guard.decide = boom
+        stdin = io.TextIOWrapper(io.BytesIO(b"{}"))
+        with mock.patch.object(sys, "stdin", stdin), \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(guard.main(), 0)
+        self.assertIn('"ask"', out.getvalue())
+        self.assertIn("RuntimeError", out.getvalue())
+
+    def test_an_error_in_one_command_never_hides_a_later_push_deny(self):
+        guard = _guard_module()
+        guard.stop_file = lambda cwd: None
+        real = guard.git_push
+
+        def flaky(argv, cwd, env=None, depth=0):
+            if argv[:1] == ["boom"]:
+                raise RuntimeError("boom")
+            return real(argv, cwd, env, depth)
+
+        guard.git_push = flaky
+        event = {"tool_name": "Bash", "cwd": str(self.tmp),
+                 "tool_input": {"command": "boom && git push origin HEAD:main"}}
+        self.assertEqual(guard.decide(event)[0], "deny")
+        event["tool_input"]["command"] = "boom"
+        self.assertEqual(guard.decide(event)[0], "ask")
+        # A NUL in an argument fails the git call, not the scan.
+        self.assertIsNone(guard.git(str(self.tmp), "config", "--get", "alias.a\x00b"))
 
     def test_only_sfdmu_plans_are_read(self):
         guard = _guard_module()
@@ -879,14 +922,17 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.event("Write", {"file_path": str(plan), "content": (
             '{"objects": [{"query": "SELECT Id FROM Account", "operation": "Insert"}]}')}),
             "ask")
-        # An edit that replays past the cap falls back to the snippet comparison.
+        # Nor is a result past the cap compared by the weaker snippet regex: a replay predicted
+        # past it, or Write content past it in bytes (not characters), asks.
         plan.write_text('{"objects": [{"query": "SELECT Id FROM Account", '
                         '"operation": "Upsert"}]}')
-        before, after, _, _ = self.guard.text_change("Edit", {
-            "old_string": " ", "new_string": " " * self.guard.MAX_PLAN_BYTES,
-            "replace_all": True}, str(plan))
-        self.assertTrue(before)
-        self.assertIsNone(after)
+        cap = self.guard.MAX_PLAN_BYTES
+        for tool, tool_input in (
+                ("Edit", {"old_string": " ", "new_string": " " * (cap // 4), "replace_all": True}),
+                ("Write", {"content": "\u00e9" * (cap // 2 + 1)})):
+            with self.assertRaises(self.guard.Unreadable, msg=tool):
+                self.guard.text_change(tool, tool_input, str(plan))
+            self.assertEqual(self.event(tool, {"file_path": str(plan), **tool_input}), "ask", tool)
 
     def test_a_placement_deny_stands_on_a_plan_path(self):
         plan = self.tmp / ".agents" / "artifacts.old" / "datasets" / "export.json"
@@ -915,7 +961,7 @@ class ArtifactsPlacement(unittest.TestCase):
             "old_string": '"SELECT Id FROM Account",\n   "operation": "Upsert"',
             "new_string": '"SELECT Id FROM Account",\n   "operation": "insert"'}), "ask")
 
-    def test_malformed_input_after_placement_asks_and_keeps_the_reason(self):
+    def test_malformed_input_after_placement_asks(self):
         plan = self.tree / "archive" / "2026" / "x" / "datasets" / "export.json"
         plan.parent.mkdir(parents=True)
         for tool, tool_input in (("MultiEdit", {"file_path": str(plan), "edits": [None]}),
@@ -923,8 +969,7 @@ class ArtifactsPlacement(unittest.TestCase):
                                            "new_string": "x"})):
             proc = run_hook(GUARD, {"tool_name": tool, "cwd": str(self.tmp),
                                     "tool_input": tool_input})
-            self.assertEqual(verdict(self, proc), "ask", tool)
-            self.assertIn("frozen history", proc.stdout)
+            self.assertEqual(verdict(self, proc, judged=False), "ask", tool)  # main() fails closed
 
     def test_an_archived_plan_edit_gives_both_reasons(self):
         plan = self.tree / "archive" / "2026" / "x" / "datasets" / "export.json"

@@ -139,10 +139,11 @@ def cmd_prepare(args):
         "batch_coverage": sum(r["count"] for r in next_batch),
         "objects": next_batch,
     }
-    # The batch input is regenerable, so it goes under the system temp folder by default, never
-    # into the private .agents/artifacts/ tree (.cursor/rules/analysis-artifacts.mdc).
+    # The batch input is regenerable, so it goes to a fresh temp folder by default (one per run, so
+    # worktrees and users never share it), never into the private .agents/artifacts/ tree
+    # (.cursor/rules/analysis-artifacts.mdc).
     out_dir = (Path(args.output_dir) if args.output_dir
-               else Path(tempfile.gettempdir()) / "orphan-fields")
+               else Path(tempfile.mkdtemp(prefix="orphan-fields-")))
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"orphan-fields-batch{args.batch}-input.json"
     with open(out_path, "w") as f:
@@ -319,7 +320,7 @@ def main():
                              f"missing-file is non-fatal for prepare).")
     p_prep.add_argument("--output-dir",
                         help=f"Directory to write the batch input JSON into "
-                             f"(default: orphan-fields/ under the system temp folder).")
+                             f"(default: a new orphan-fields-* folder under the system temp folder).")
     p_prep.set_defaults(func=cmd_prepare)
 
     p_apply = sub.add_parser("apply", help="Apply removals from current ownership JSON")
