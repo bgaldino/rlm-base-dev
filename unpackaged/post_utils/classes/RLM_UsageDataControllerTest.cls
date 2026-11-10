@@ -195,8 +195,10 @@ private class RLM_UsageDataControllerTest {
         }
         for (Schema.FieldSetMember member : objDescribe.fieldSets.getMap().get(FIELD_SET).getFields()) {
             String path = member.getFieldPath();
-            Schema.DescribeFieldResult fieldDescribe = fields.get(path).getDescribe();
-            touched.put(objName + '.' + path, fields.get(path));
+            Schema.SObjectField f = fields.get(path);
+            Assert.isNotNull(f, 'PRECONDITION: ' + objName + '.' + path + ' exists on the object');
+            Schema.DescribeFieldResult fieldDescribe = f.getDescribe();
+            touched.put(objName + '.' + path, f);
             if (fieldDescribe.isNameField()
                 || member.getType() != Schema.DisplayType.REFERENCE
                 || fieldDescribe.getRelationshipName() == null
