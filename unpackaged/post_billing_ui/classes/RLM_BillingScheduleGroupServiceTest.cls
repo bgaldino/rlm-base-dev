@@ -32,13 +32,15 @@
  * records through the context mapping would not show there.
  *
  * Known gap (pinned): the Create Billing Schedule Group modal (rlmBillingScheduleGroupModal)
- * sends termSetting only as 'Evergreen' or 'Termed' and expresses a one-time charge with
- * billingTermUnitPicklist = 'OneTime'. The service derives SellingModelType__std from
- * termSetting alone, so a one-time charge goes out as SellingModelType__std 'Evergreen' (or
- * 'TermDefined') with BillingTermUnit__std 'OneTime'. The 264 developer guide requires
- * SellingModelType 'OneTime' for a one-time sale, and lists only Month, Quarter,
- * Semi-Annual and Year as evergreen billing term units. See
- * buildTransactionDetailsJson_oneTimeChargeFromModal_isSentAsEvergreen. If the fix lands in the
+ * sends termSetting only as 'Evergreen' (its default) or 'Termed' and expresses a one-time
+ * charge with billingTermUnitPicklist = 'OneTime'; handleChargeTypeChange changes neither
+ * termSetting nor endDate. The service derives SellingModelType__std from termSetting alone,
+ * so a one-time charge goes out as SellingModelType__std 'Evergreen' with
+ * BillingTermUnit__std 'OneTime' or, after Recurring -> Termed -> One Time, as 'TermDefined'
+ * with the old EndDate__std. The 264 developer guide requires SellingModelType 'OneTime' for
+ * a one-time sale, and lists only Month, Quarter, Semi-Annual and Year as evergreen billing
+ * term units. See buildTransactionDetailsJson_oneTimeChargeFromModal_isSentAsEvergreen and
+ * buildTransactionDetailsJson_oneTimeAfterTermedFromModal_isSentAsTermDefined. If the fix lands in the
  * modal instead (sending termSetting 'OneTime'), that pin and the "no caller sends OneTime"
  * comments on the pass-through tests must be updated too.
  *
@@ -308,25 +310,35 @@ private class RLM_BillingScheduleGroupServiceTest {
     static void getTaxTreatments_returnsAllSortedByName() {
         // Two treatments on one legal entity with no tax policy or product code collided on
         // TaxTreatment's unique key, so each gets its own legal entity.
+        // The Active treatment is the control: it must be returned whether or not a Status
+        // filter lands, so losing it means the query broke, not that the gap was fixed.
         LegalEntity le1 = new LegalEntity(Name = 'BSG TT LE 1', Status = 'Active');
         LegalEntity le2 = new LegalEntity(Name = 'BSG TT LE 2', Status = 'Active');
-        insert new List<LegalEntity>{ le1, le2 };
+        LegalEntity le3 = new LegalEntity(Name = 'BSG TT LE 3', Status = 'Active');
+        insert new List<LegalEntity>{ le1, le2, le3 };
         TaxTreatment ttSecond = new TaxTreatment(Name = 'BSG TT Second', Status = 'Draft', LegalEntityId = le1.Id);
         TaxTreatment ttFirst = new TaxTreatment(Name = 'BSG TT First', Status = 'Draft', LegalEntityId = le2.Id);
-        insert new List<TaxTreatment>{ ttSecond, ttFirst };
+        TaxTreatment ttActive = new TaxTreatment(Name = 'BSG TT Active', Status = 'Active', LegalEntityId = le3.Id);
+        insert new List<TaxTreatment>{ ttSecond, ttFirst, ttActive };
 
         Test.startTest();
         List<RLM_BillingScheduleGroupService.TaxTreatmentOption> options =
             RLM_BillingScheduleGroupService.getTaxTreatments();
         Test.stopTest();
 
-        Assert.areEqual(2, options.size(),
+        Set<Id> returned = new Set<Id>();
+        for (RLM_BillingScheduleGroupService.TaxTreatmentOption o : options) {
+            returned.add(o.id);
+        }
+        Assert.isTrue(returned.contains(ttActive.Id), 'The Active tax treatment is returned (control).');
+        Assert.areEqual(3, options.size(),
             'Known gap: Draft tax treatments are offered (no Status filter); update this test when '
-            + 'a filter lands. Both inserted tax treatments (Draft) are returned.');
-        Assert.areEqual(ttFirst.Id, options[0].id, 'Options are sorted by name.');
-        Assert.areEqual('BSG TT First', options[0].name);
-        Assert.areEqual(ttSecond.Id, options[1].id);
-        Assert.areEqual('BSG TT Second', options[1].name);
+            + 'a filter lands. All three inserted tax treatments (two Draft, one Active) are returned.');
+        Assert.areEqual(ttActive.Id, options[0].id, 'Options are sorted by name.');
+        Assert.areEqual(ttFirst.Id, options[1].id);
+        Assert.areEqual('BSG TT First', options[1].name);
+        Assert.areEqual(ttSecond.Id, options[2].id);
+        Assert.areEqual('BSG TT Second', options[2].name);
     }
 
     @isTest
@@ -641,8 +653,9 @@ private class RLM_BillingScheduleGroupServiceTest {
             'The builder sends no EndDate__std when none is given.');
     }
 
-    // What the modal sends for a one-time charge: billingTermUnitPicklist 'OneTime' with its
-    // default termSetting 'Evergreen' (rlmBillingScheduleGroupModal.handleChargeTypeChange).
+    // What the modal sends for a one-time charge: handleChargeTypeChange sets
+    // billingTermUnitPicklist 'OneTime' and leaves termSetting at its default, 'Evergreen'
+    // (rlmBillingScheduleGroupModal.js, termSetting = 'Evergreen').
     @isTest
     static void buildTransactionDetailsJson_oneTimeChargeFromModal_isSentAsEvergreen() {
         Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
@@ -656,6 +669,25 @@ private class RLM_BillingScheduleGroupServiceTest {
             'Known gap: a one-time charge from the modal (billing term unit OneTime, termSetting '
             + 'Evergreen) is sent as SellingModelType__std Evergreen, but a one-time sale needs '
             + 'OneTime; update this test when it is fixed.');
+    }
+
+    // The modal path Recurring -> Termed (which sets endDate) -> One Time: handleChargeTypeChange
+    // sets billingTermUnitPicklist 'OneTime' but keeps termSetting 'Termed' and the old endDate.
+    @isTest
+    static void buildTransactionDetailsJson_oneTimeAfterTermedFromModal_isSentAsTermDefined() {
+        Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
+            fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'OneTime', 1,
+            fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 10,
+            'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
+            'Termed', Date.newInstance(2026, 12, 31)
+        ));
+        Assert.areEqual('OneTime', txn.get('BillingTermUnit__std'), 'The one-time unit is sent as given.');
+        Assert.areEqual('TermDefined', txn.get('SellingModelType__std'),
+            'Known gap: a one-time charge chosen after Termed is sent as SellingModelType__std '
+            + 'TermDefined, but a one-time sale needs OneTime; update this test when it is fixed.');
+        Assert.isTrue(txn.containsKey('EndDate__std'),
+            'Known gap: a one-time charge chosen after Termed still sends the old EndDate__std; '
+            + 'update this test when it is fixed.');
     }
 
     @isTest

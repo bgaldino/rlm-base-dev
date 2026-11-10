@@ -293,17 +293,16 @@ private class RLM_BSGContextControllerTest {
         Id mainId = mintBsgId();
         Id a = mintBsgId();
         Id b = mintBsgId();
+        Map<Id, List<Id>> parentToChildren = new Map<Id, List<Id>>{
+            mainId => new List<Id>{ a },
+            a => new List<Id>{ b },
+            b => new List<Id>{ a }
+        };
         List<RLM_BSGContextController.BundleComponentData> result =
             new List<RLM_BSGContextController.BundleComponentData>();
 
         RLM_BSGContextController.appendComponentsDfs(
-            mainId, b, 1,
-            new Map<Id, List<Id>>{
-                mainId => new List<Id>{ a },
-                a => new List<Id>{ b },
-                b => new List<Id>{ a }
-            },
-            new Set<Id>{ a, b },
+            mainId, b, 1, parentToChildren, new Set<Id>(parentToChildren.keySet()),
             new Map<Id, BillingScheduleGroup>{ a => synthBsg(a, 'A'), b => synthBsg(b, 'B') },
             result, new Set<Id>()
         );

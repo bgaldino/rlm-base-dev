@@ -8,10 +8,10 @@ private class RLM_BSGTimelineControllerTest {
     // BillingScheduleGroup records are system-managed and not insertable in Apex tests.
     // getBillingScheduleGroupData / getConsolidatedTimeline raise AuraHandledException when the
     // BSG cannot be found; getMilestoneChartData degrades to an empty list. The admin-run
-    // unknown-id tests reach "not found or refused" (indistinguishable when run as the admin). The refused-access
-    // test runs as a plain Minimum Access user with no permission set license (no Billing PSL
-    // seat); billing-role read coverage for the controller's fields is in
-    // RLM_BillingUIAccessTest (billingOperationsCanRunItsControllerReads).
+    // unknown-id tests reach "not found or refused" (indistinguishable when run as the admin).
+    // The refused-access test runs as a plain Minimum Access user with no permission set
+    // license (no Billing PSL seat); billing-role read coverage for the controller's fields is
+    // in RLM_BillingUIAccessTest (billingOperationsCanRunItsControllerReads).
     //
     // Known gap (documented, not pinned): getBillingScheduleGroupData throws its not-found
     // AuraHandledException inside a try and rewraps it with e.getMessage(). On a Release 264
@@ -63,26 +63,30 @@ private class RLM_BSGTimelineControllerTest {
     // an unreadable message, so the test does not show which branch inside each method ran.
     @isTest
     static void malformedId_throwsHandledExceptionsAndReturnsNoMilestones() {
-        Boolean dataThrew = false;
-        Boolean timelineThrew = false;
+        Exception dataThrown;
+        Exception timelineThrown;
         List<RLM_BSGTimelineController.MilestoneChartItem> items;
 
         Test.startTest();
         try {
             RLM_BSGTimelineController.getBillingScheduleGroupData('not-an-id');
-        } catch (AuraHandledException e) {
-            dataThrew = true;
+        } catch (Exception e) {
+            dataThrown = e;
         }
         try {
             RLM_BSGTimelineController.getConsolidatedTimeline('not-an-id');
-        } catch (AuraHandledException e) {
-            timelineThrew = true;
+        } catch (Exception e) {
+            timelineThrown = e;
         }
         items = RLM_BSGTimelineController.getMilestoneChartData('not-an-id');
         Test.stopTest();
 
-        Assert.isTrue(dataThrew, 'A malformed id surfaces as an AuraHandledException.');
-        Assert.isTrue(timelineThrew, 'The timeline surfaces a malformed id as an AuraHandledException.');
+        Assert.isNotNull(dataThrown, 'A malformed id must raise an error.');
+        Assert.isInstanceOfType(dataThrown, AuraHandledException.class,
+            'A malformed id surfaces as an AuraHandledException, got ' + dataThrown.getTypeName());
+        Assert.isNotNull(timelineThrown, 'A malformed id must raise an error from the timeline.');
+        Assert.isInstanceOfType(timelineThrown, AuraHandledException.class,
+            'The timeline surfaces a malformed id as an AuraHandledException, got ' + timelineThrown.getTypeName());
         Assert.isNotNull(items, 'Milestone data degrades to a list, never null.');
         Assert.isTrue(items.isEmpty(), 'A malformed id has no milestones.');
     }
@@ -102,8 +106,8 @@ private class RLM_BSGTimelineControllerTest {
         String bsgId = fakeBsgId();
         Boolean bsgRefused = false;
         Boolean milestoneRefused = false;
-        Boolean dataThrew = false;
-        Boolean timelineThrew = false;
+        Exception dataThrown;
+        Exception timelineThrown;
         List<RLM_BSGTimelineController.MilestoneChartItem> items;
 
         Test.startTest();
@@ -120,13 +124,13 @@ private class RLM_BSGTimelineControllerTest {
             }
             try {
                 RLM_BSGTimelineController.getBillingScheduleGroupData(bsgId);
-            } catch (AuraHandledException e) {
-                dataThrew = true;
+            } catch (Exception e) {
+                dataThrown = e;
             }
             try {
                 RLM_BSGTimelineController.getConsolidatedTimeline(bsgId);
-            } catch (AuraHandledException e) {
-                timelineThrew = true;
+            } catch (Exception e) {
+                timelineThrown = e;
             }
             items = RLM_BSGTimelineController.getMilestoneChartData(bsgId);
         }
@@ -135,8 +139,12 @@ private class RLM_BSGTimelineControllerTest {
         Assert.isTrue(bsgRefused, 'PRECONDITION: this user must be unable to read BillingScheduleGroup.');
         Assert.isTrue(milestoneRefused,
             'PRECONDITION: BillingSchedule.BillingMilestonePlanId must be absent or unreadable for this user.');
-        Assert.isTrue(dataThrew, 'A refused read surfaces as an AuraHandledException.');
-        Assert.isTrue(timelineThrew, 'The timeline surfaces the refused read as an AuraHandledException.');
+        Assert.isNotNull(dataThrown, 'A refused read must raise an error.');
+        Assert.isInstanceOfType(dataThrown, AuraHandledException.class,
+            'A refused read surfaces as an AuraHandledException, got ' + dataThrown.getTypeName());
+        Assert.isNotNull(timelineThrown, 'A refused read must raise an error from the timeline.');
+        Assert.isInstanceOfType(timelineThrown, AuraHandledException.class,
+            'The timeline surfaces the refused read as an AuraHandledException, got ' + timelineThrown.getTypeName());
         Assert.isNotNull(items, 'Milestone data degrades to a list, never null.');
         Assert.isTrue(items.isEmpty(), 'A refused milestone query yields no milestones.');
     }
