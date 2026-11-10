@@ -129,8 +129,8 @@ the Channel Program pages and the PRM pricing patches even though
   patch produces, and then edits only the entries and keys that changed: the rest
   of the file, comments and quoting included, is left as it was. A comment inside
   a value that changed is not kept, and a file whose layout it can't follow is
-  rewritten whole, comments lost, with a warning. Restore any rationale comments
-  from `git diff` before committing.
+  rewritten whole, comments lost. Either way it logs a warning naming what was
+  lost; restore any rationale comments from `git diff` before committing.
 - `retrieve` and `capture-drift` overwrite `unpackaged/post_ux/flexipages/` with
   org state. Run `assemble` (or `git checkout unpackaged/post_ux/`) afterwards if
   you do not mean to commit that state.

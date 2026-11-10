@@ -230,7 +230,10 @@ def _refresh_patch_files(
             continue
         original = patch_path.read_text(encoding="utf-8")
         patch_data["patches"] = new_patches
-        edited = rewrite_patch_entries(original, originals, refreshed_each, patch_data)
+        notes: List[str] = []
+        edited = rewrite_patch_entries(original, originals, refreshed_each, patch_data, notes)
+        for note in notes:
+            ctx.logger.warning(f"{label}: {note}; restore them from git diff if they still apply")
         if edited is None:
             ctx.logger.warning(
                 f"{label}: layout not recognised, rewriting the whole file "
@@ -370,6 +373,12 @@ def _entry_spans(lines: List[str]) -> Optional[Tuple[List[Tuple[int, int, int]],
         while start - 1 > key and is_entry_comment(lines[start - 1]):
             start -= 1
         starts.append(start)
+    # A column-0 comment block right above the next top-level key is about that
+    # key (or, after indented entries, about the file), not the last entry, so
+    # it stays in the untouched rest of the file when that entry is dropped.
+    if end < len(lines) or indent > 0:
+        while end - 1 > items[-1] and lines[end - 1].startswith("#"):
+            end -= 1
     spans = [
         (start, item, starts[n + 1] if n + 1 < len(starts) else end)
         for n, (start, item) in enumerate(zip(starts, items))
@@ -377,7 +386,7 @@ def _entry_spans(lines: List[str]) -> Optional[Tuple[List[Tuple[int, int, int]],
     return spans, indent
 
 
-_KEY = re.compile(r"[A-Za-z_][\w-]*:")
+_KEY = re.compile(r"""(?:"[^"\n]*"|'[^'\n]*'|[A-Za-z_][\w-]*):""")
 
 
 def _indented(rendered: str, pad: int) -> List[str]:
@@ -407,7 +416,7 @@ def _key_chunks(body: List[str], indent: int) -> Optional[List[Tuple[str, List[s
     chunks = []
     for n, (start, head) in enumerate(zip(starts, heads)):
         stop = starts[n + 1] if n + 1 < len(starts) else len(body)
-        key = _KEY.match(body[head][at:]).group(0)[:-1]
+        key = _KEY.match(body[head][at:]).group(0)[:-1].strip("\"'")
         chunks.append((key, body[start:stop], head - start))
     return chunks
 
@@ -421,19 +430,27 @@ def _as_mapping(chunk: List[str], key_line: int, indent: int) -> Any:
     return yaml.safe_load(textwrap.dedent("".join(lines)))
 
 
+def _has_comment(lines: List[str]) -> bool:
+    return any(line.lstrip(" ").startswith("#") for line in lines)
+
+
 def _changed_entry(
     body: List[str], indent: int, before: Dict[str, Any], after: Dict[str, Any], text: str,
+    notes: List[str],
 ) -> List[str]:
     """The new lines for one changed entry.
 
     Each key whose value is unchanged keeps its exact lines, comments and odd
     indentation included, and only changed or new keys are rendered, in the
     file's quoting. When the entry's keys cannot be told apart, the whole entry
-    is rendered instead.
+    is rendered instead. Each comment that cannot be kept that way is named in
+    ``notes``, so it is never dropped silently.
     """
     flush = indent == 0  # the file writes its lists flush with their key
 
     def whole() -> List[str]:
+        if _has_comment(body):
+            notes.append(f"comments inside {describe_patch(before)} were not kept")
         return _indented(_dump([_in_file_style(after, text)], flush), indent)
 
     chunks = _key_chunks(body, indent)
@@ -454,6 +471,8 @@ def _changed_entry(
             piece = list(chunk)
         else:
             lead = by_key[key][0][: by_key[key][1]] if key in by_key else []
+            if key in by_key and _has_comment(by_key[key][0][by_key[key][1]:]):
+                notes.append(f"comments inside `{key}` of {describe_patch(before)} were not kept")
             piece = lead + _indented(_dump(_in_file_style({key: value}, text), flush), indent + 2)
             key_line = len(lead)
         line = piece[key_line]
@@ -467,6 +486,7 @@ def rewrite_patch_entries(
     old: List[Dict[str, Any]],
     refreshed: List[Optional[Dict[str, Any]]],
     expected: Dict[str, Any],
+    notes: Optional[List[str]] = None,
 ) -> Optional[str]:
     """Edit only the changed entries of patch file ``text`` in place.
 
@@ -485,6 +505,7 @@ def rewrite_patch_entries(
     spans, indent = found
     if len(spans) != len(old) or len(refreshed) != len(old):
         return None
+    found_notes: List[str] = []
     out = lines[: spans[0][0]]
     for (start, item, end), before, after in zip(spans, old, refreshed):
         chunk = lines[start:end]
@@ -501,7 +522,7 @@ def rewrite_patch_entries(
             continue
         out.extend(lines[start:item])
         body = _rstrip_blank(lines[item:end])
-        out.extend(_changed_entry(body, indent, before, after, text))
+        out.extend(_changed_entry(body, indent, before, after, text, found_notes))
         # Keep the blank lines that separated it from the next entry.
         out.extend(lines[item + len(body):end])
     out.extend(lines[spans[-1][2]:])
@@ -511,4 +532,6 @@ def rewrite_patch_entries(
             return None
     except yaml.YAMLError:
         return None
+    if notes is not None:
+        notes.extend(found_notes)
     return edited

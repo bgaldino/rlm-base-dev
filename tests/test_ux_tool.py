@@ -1567,3 +1567,48 @@ def test_a_whole_rewrite_keeps_the_files_quoting_and_block_strings(tmp_path):
     assert yaml.safe_load(written) == data
     assert 'after: "Delete"' in written and "type: insert_after_xml" in written
     assert "xml: |" in written
+
+
+def test_dropping_the_last_entry_keeps_the_comment_above_the_next_top_level_key():
+    text = ("feature: demo\npatches:\n  - type: a\n    after: \"X\"\n  - type: b\n    after: \"Y\"\n"
+            "# Controls activation.\nfeature_flag: demo\n")
+    entries = _entries(text)
+    assert _rewrite(text, [entries[0], None]) == text.replace('  - type: b\n    after: "Y"\n', "")
+
+
+def test_a_quoted_key_entry_is_still_edited_key_by_key():
+    text = ('feature: demo\npatches:\n  - "type": insert_action\n    "after": "Edit"\n    actions:\n'
+            '      # Why this action is gated.\n      - "Order.First"\n')
+    entries = _entries(text)
+    entries[0]["after"] = "Delete"
+    notes = []
+    from scripts.ux._writeback import rewrite_patch_entries
+    import yaml
+    data = yaml.safe_load(text)
+    out = rewrite_patch_entries(text, _entries(text), entries, dict(data, patches=entries), notes)
+    assert "# Why this action is gated." in out and '- "Order.First"' in out
+    assert yaml.safe_load(out)["patches"][0]["after"] == "Delete" and notes == []
+
+
+def test_a_comment_that_cannot_be_kept_is_named_not_dropped_silently():
+    from scripts.ux._writeback import rewrite_patch_entries
+    import yaml
+    # A comment inside the value that changes (key level).
+    text = ('feature: demo\npatches:\n  - type: insert_action\n    actions:\n      # Gate note.\n'
+            '      - "a"\n      - "b"\n')
+    entries = _entries(text)
+    entries[0]["actions"] = ["a"]
+    notes = []
+    out = rewrite_patch_entries(text, _entries(text), entries,
+                                dict(yaml.safe_load(text), patches=entries), notes)
+    assert out is not None and "# Gate note." not in out
+    assert len(notes) == 1 and "`actions`" in notes[0] and "were not kept" in notes[0]
+    # A flow-style entry, whose keys can't be told apart: the whole entry is rendered.
+    text = ('feature: demo\npatches:\n  - {type: insert_action,\n     # Gate note.\n'
+            '     actions: ["a"]}\n')
+    entries = _entries(text)
+    entries[0]["type"] = "insert_action_v2"
+    notes = []
+    out = rewrite_patch_entries(text, _entries(text), entries,
+                                dict(yaml.safe_load(text), patches=entries), notes)
+    assert out is not None and len(notes) == 1 and "were not kept" in notes[0]
