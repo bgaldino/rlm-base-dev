@@ -781,7 +781,9 @@ class ArtifactsPlacement(unittest.TestCase):
     def test_a_deep_path_stays_fast(self):
         import time
         start = time.monotonic()
-        self.assertEqual(self.decide("/".join(["a"] * 600) + "/x.md"), "allow")
+        # Too deep to walk (no real path is): asked about, quickly, rather than guessed.
+        self.assertEqual(self.decide("/".join(["a"] * 600) + "/x.md"), "ask")
+        self.assertEqual(self.decide("/".join(["a"] * 400) + "/x.md"), "allow")
         self.assertLess(time.monotonic() - start, 5.0)
 
     def test_an_unstatable_component_on_one_reading_does_not_excuse_the_other(self):
@@ -814,12 +816,31 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide(path), "deny")
         self.assertLess(time.monotonic() - start, 5.0)
 
-    def test_paths_past_the_depth_cap_ask_instead_of_timing_out(self):
+    def test_padding_cannot_push_a_short_write_past_the_depth_cap(self):
         import time
         start = time.monotonic()
-        path = ".agents/artifacts/" + "a/" * 3000 + "../" * 3000 + "new.md"
-        self.assertEqual(self.decide(path), "ask")
-        self.assertEqual(self.decide("a/" * 3000 + "x.md"), "allow")  # no `.agents`: not ours
+        # What Claude Code writes is the normalised path, always judged: a new top-level entry.
+        self.assertEqual(self.decide(".agents/artifacts/" + "a/" * 3000 + "../" * 3000 + "new.md"),
+                         "deny")
+        clone = self.tmp / "store" / "rlm-artifacts"
+        shutil.move(str(self.tree), str(clone))
+        self.tree.symlink_to(clone, target_is_directory=True)
+        self.assertEqual(self.decide(str(clone) + "/" + "a/../" * 260 + "newtop"), "deny")
+        (self.tmp / "docs").mkdir()
+        (self.tmp / "docs" / "lnk").symlink_to(self.tree, target_is_directory=True)
+        self.assertEqual(self.decide("docs/lnk/" + "a/../" * 300 + "newtop"), "deny")
+        self.assertLess(time.monotonic() - start, 5.0)
+
+    def test_link_hops_are_bounded(self):
+        import time
+        d1, d2 = self.tmp / "D", self.tmp / "D2"
+        d1.mkdir()
+        d2.mkdir()
+        (d1 / "k").symlink_to(d2, target_is_directory=True)
+        (d2 / "k").symlink_to(d1, target_is_directory=True)
+        start = time.monotonic()
+        self.assertEqual(self.decide("D/" + "k/" * 300 + "x"), "ask")
+        self.assertEqual(self.decide("D/" + "k/" * 10 + "x"), "allow")
         self.assertLess(time.monotonic() - start, 5.0)
 
     def test_a_link_to_a_public_tree_named_folder_is_denied(self):

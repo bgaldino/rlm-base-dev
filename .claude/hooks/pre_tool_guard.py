@@ -52,7 +52,9 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    (samefile), never by spelling, so case and Unicode case-fold variants on a case-insensitive
    disk get the same rules; the outermost containing tree's rules apply. Only the private clone
    counts as the tree (a directory with its own `.git`): a same-named public folder deeper in
-   the repo is not gitignored, so writes into it are refused like any other new tree.
+   the repo is not gitignored, so writes into it are refused like any other new tree. A reading
+   deeper than MAX_JUDGED_COMPONENTS or following more than MAX_LINK_HOPS links is not walked:
+   the rule asks. The normalised reading (what Claude Code writes) is always walked.
 
 What this guard does not catch, and what backs it up:
 - Commands hidden in `$(...)`, `bash -c`, `eval`, `env -S '…'`, `xargs` or `find -exec`, a
@@ -670,19 +672,30 @@ def _private_tree(real: Path) -> Optional[Path]:
     return real if _is_tree(real) else None
 
 
-def _resolution_steps(raw: str) -> List[Tuple[str, Path]]:
+def _resolution_steps(raw: str) -> Optional[List[Tuple[str, Path]]]:
     """(component, where the path has got to) after each component, the way the OS resolves
     it: a symlink is followed before any later `..` applies. Incremental, so a deep path costs
-    one lstat per component, plus a realpath only where a component is a link."""
+    one lstat per component, plus a realpath only where a component is a link. None when the
+    path is too deep or follows more links than the kernel would (it fails with ELOOP after
+    about 32), so the walk's cost is bounded."""
     parts = Path(raw).parts
+    if len(parts) > MAX_JUDGED_COMPONENTS:
+        return None
     cur = Path(parts[0])
     steps = []
+    hops = 0
     for comp in parts[1:]:
         if comp == "..":
             cur = cur.parent
         else:
             nxt = cur / comp
-            cur = Path(os.path.realpath(nxt)) if os.path.islink(nxt) else nxt  # islink: no raise
+            if os.path.islink(nxt):  # islink never raises
+                hops += 1
+                if hops > MAX_LINK_HOPS:
+                    return None
+                cur = Path(os.path.realpath(nxt))
+            else:
+                cur = nxt
         steps.append((comp, cur))
     return steps
 
@@ -697,9 +710,11 @@ def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
 
 
 _RANK = {"allow": 0, "ask": 1, "deny": 2}
-# No real path is this deep; beyond it the rule asks rather than spend the hook's timeout (a
-# timed-out hook lets the tool call through unchecked).
+# No real path is this deep or follows this many links; beyond either, a reading is not walked
+# and the rule asks instead, rather than spend the hook's timeout (a timed-out hook lets the tool
+# call through unchecked).
 MAX_JUDGED_COMPONENTS = 512
+MAX_LINK_HOPS = 40
 
 
 def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
@@ -707,18 +722,17 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
         return "allow", ""
     _TREE_CACHE.clear()
     raw = os.path.join(cwd, os.path.expanduser(path))
-    if len(Path(raw).parts) > MAX_JUDGED_COMPONENTS:
-        if ".agents" in raw.casefold():
-            return "ask", (f"this path has more than {MAX_JUDGED_COMPONENTS} components and "
-                           "mentions `.agents`, too deep for the private-tree check to judge; "
-                           "confirm where it lands")
-        return "allow", ""
     lexical = Path(os.path.normpath(raw))
     # Where does the write land? Claude Code's tools normalise the text first (`..` removed
     # lexically), then the OS follows links; a plain open() follows links before each `..`.
     # The two can differ when a `..` comes after a symlink, so the write is judged at BOTH
     # landings and the stricter decision wins.
-    readings = [_resolution_steps(str(lexical)), _resolution_steps(raw)]
+    # The normalised reading is short whenever the written path is (padding with `a/../` only
+    # lengthens the raw text), so it is always walked; a reading too deep or too linked to walk
+    # is not guessed at: it asks.
+    walked = [_resolution_steps(str(lexical)), _resolution_steps(raw)]
+    unjudged = any(steps is None for steps in walked)
+    readings = [steps for steps in walked if steps is not None]
     landings = [steps[-1][1] if steps else lexical for steps in readings]
     # 1. The spelling the agent asked for: a sibling (`artifacts.old`) is not gitignored, and a
     #    case or Unicode variant is the tree on a case-insensitive disk but an un-ignored
@@ -766,6 +780,10 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
                        "`.agents/artifacts/` tree; write to a plain path inside the tree "
                        "itself"))
     worst = ("allow", "")
+    if unjudged:
+        worst = ("ask", (f"one reading of this path is deeper than {MAX_JUDGED_COMPONENTS} "
+                         f"components or follows more than {MAX_LINK_HOPS} links, too much for "
+                         "the private-tree check to walk; confirm where it lands"))
     for steps, real in zip(readings, landings):
         decision = ("allow", "")
         final = containing(real)
