@@ -868,7 +868,9 @@ class ArtifactsPlacement(unittest.TestCase):
         # docs/shortcut -> .agents/artifacts/topics/shared -> docs/analysis (PR 702, round 3).
         public = self.tmp / "docs" / "analysis"
         public.mkdir(parents=True)
-        (self.tree / "topics" / "shared").symlink_to(Path("../../../docs/analysis"),
+        # A relative target, three levels up from topics/ to the fixture root (built from parts so
+        # the suite analyzer does not read it as a path in this repository).
+        (self.tree / "topics" / "shared").symlink_to(Path(*[".."] * 3, "docs", "analysis"),
                                                      target_is_directory=True)
         (self.tmp / "docs" / "shortcut").symlink_to(Path("../.agents/artifacts/topics/shared"),
                                                     target_is_directory=True)
@@ -881,8 +883,33 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide("docs/analysis/evidence.md"), "allow")
 
     def test_a_link_to_the_filesystem_root_lands_there(self):
+        # Checked on the walk itself: through the hook, the link escape denies either way.
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("pre_tool_guard_under_test", GUARD)
+        guard = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(guard)
         (self.tree / "topics" / "root").symlink_to(Path("/"), target_is_directory=True)
-        self.assertEqual(self.decide(".agents/artifacts/topics/root"), "deny")
+        walk = guard._resolution_steps(str(self.tree / "topics" / "root"))
+        self.assertEqual(walk.end, Path("/"))
+
+    def test_padded_link_chains_are_still_judged(self):
+        (self.tmp / "docs" / "a").mkdir(parents=True)
+        (self.tmp / "docs" / "L0").symlink_to(Path("..", ".agents", "artifacts"),
+                                              target_is_directory=True)
+        # Seven links padded to ~1000 bytes each (macOS caps a target at 1024): the expanded
+        # walk is ~2800 steps, short of nothing the kernel would refuse.
+        for i in range(1, 8):
+            (self.tmp / "docs" / f"L{i}").symlink_to(Path("a/.." + "/a/.." * 199, f"L{i - 1}"),
+                                                     target_is_directory=True)
+        self.assertEqual(self.decide("docs/L7/newtop.md"), "deny")
+        self.assertEqual(self.decide("docs/L7/inbox/2026-11-10-a.md"), "allow")
+
+    def test_a_differently_cased_link_back_into_the_clone_is_not_an_escape(self):
+        if not (self.tree.parent / "ARTIFACTS").exists():
+            self.skipTest("needs a case-insensitive filesystem")
+        cased = Path(str(self.tree).replace("/.agents/artifacts", "/.AGENTS/ARTIFACTS"))
+        (self.tree / "topics" / "cv").symlink_to(cased / "inbox", target_is_directory=True)
+        self.assertEqual(self.decide(".agents/artifacts/topics/cv/2026-11-10-a.md"), "allow")
 
     def test_public_agents_files_are_untouched(self):
         self.assertEqual(self.decide(".agents/README.md"), "allow")

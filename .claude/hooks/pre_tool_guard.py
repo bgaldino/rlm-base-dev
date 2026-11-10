@@ -623,6 +623,21 @@ def _same(a: Path, b: Path) -> bool:
         return False
 
 
+_IDENTITY_CACHE: Dict[str, Optional[Tuple[int, int]]] = {}
+
+
+def _identity(p: Path) -> Optional[Tuple[int, int]]:
+    """(device, inode) of an existing path, following links; None if it cannot be stat-ed."""
+    key = str(p)
+    if key not in _IDENTITY_CACHE:
+        try:
+            st = os.stat(p)
+            _IDENTITY_CACHE[key] = (st.st_dev, st.st_ino)
+        except (OSError, ValueError):
+            _IDENTITY_CACHE[key] = None
+    return _IDENTITY_CACHE[key]
+
+
 def _isdir(p: Path) -> bool:
     """is_dir() that answers False rather than raising on a path the OS cannot stat."""
     try:
@@ -698,7 +713,7 @@ def _resolution_steps(raw: str) -> Optional[_Walk]:
     steps: List[Tuple[str, Path]] = []
     links: List[Tuple[Path, Path]] = []
     while queue:
-        if len(steps) > 4 * MAX_JUDGED_COMPONENTS:
+        if len(steps) > MAX_WALK_STEPS:
             return None
         comp = queue.pop(0)
         if comp in ("", "."):
@@ -739,12 +754,18 @@ _RANK = {"allow": 0, "ask": 1, "deny": 2}
 # call through unchecked).
 MAX_JUDGED_COMPONENTS = 512
 MAX_LINK_HOPS = 40
+# A walk expands each link's target in place, so its length is bounded by the kernel's own
+# limits: the path plus at most MAX_LINK_HOPS targets of at most PATH_MAX (4096) bytes, i.e.
+# about 2048 components each. This cap only stops a pathological walk; no input the OS would
+# accept reaches it.
+MAX_WALK_STEPS = MAX_JUDGED_COMPONENTS + MAX_LINK_HOPS * 2048
 
 
 def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     if not path:
         return "allow", ""
     _TREE_CACHE.clear()
+    _IDENTITY_CACHE.clear()
     raw = os.path.join(cwd, os.path.expanduser(path))
     lexical = Path(os.path.normpath(raw))
     # Where does the write land? Claude Code's tools normalise the text first (`..` removed
@@ -761,7 +782,9 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     # 1. The spelling the agent asked for: a sibling (`artifacts.old`) is not gitignored, and a
     #    case or Unicode variant is the tree on a case-insensitive disk but an un-ignored
     #    sibling on a case-sensitive one.
-    for name in _spelled_hits(lexical) + [n for land in landings for n in _spelled_hits(land)]:
+    # The typed path only: where a link leads is judged by identity below (a variant-spelled
+    # landing that is not inside a clone is refused there as a non-clone landing).
+    for name in _spelled_hits(lexical):
         if name != ".agents/artifacts":
             return "deny", (f"`{name}` is not `.agents/artifacts` exactly, so it is not "
                             "gitignored everywhere and would surface in the public repo; write "
@@ -792,12 +815,30 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
                 trees.add(tree_here)
             prev = cur
 
-    def containing(p: Path) -> List[Path]:
-        return [t for t in trees if _within(p, t)]
+    # Trees, and containment in them, are matched by file identity: a path is inside a tree
+    # when one of its ancestors IS that tree, however either is spelled (case-insensitive
+    # disks, firmlinks). Equal identities are one tree.
+    tree_ids: Dict[Tuple[int, int], Path] = {}
+    for t in sorted(trees, key=lambda t: len(t.parts)):
+        ident = _identity(t)
+        if ident is not None and ident not in tree_ids:
+            tree_ids[ident] = t
 
-    def outer(p: Path) -> Optional[Path]:
-        found = containing(p)
-        return min(found, key=lambda t: len(t.parts)) if found else None
+    def anchors(p: Path) -> List[Tuple[Path, Tuple[int, int]]]:
+        """(the ancestor of p that IS a tree, that tree's identity), outermost first."""
+        found = []
+        for anc in [*reversed(p.parents), p]:
+            ident = _identity(anc)
+            if ident in tree_ids:
+                found.append((anc, ident))
+        return found
+
+    def containing(p: Path) -> List[Path]:
+        return [anc for anc, _ in anchors(p)]
+
+    def outer(p: Path) -> Optional[Tuple[int, int]]:
+        found = anchors(p)
+        return found[0][1] if found else None
 
     spelled_inside = any(_within(lexical, t) for t in spelled_trees if _is_clone(t))
     escape = ("deny", (f"`{path}` resolves through a symlink outside the private "
@@ -806,8 +847,9 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     worst = ("allow", "")
     if unjudged:
         worst = ("ask", (f"one reading of this path is deeper than {MAX_JUDGED_COMPONENTS} "
-                         f"components or follows more than {MAX_LINK_HOPS} links, too much for "
-                         "the private-tree check to walk; confirm where it lands"))
+                         f"components, follows more than {MAX_LINK_HOPS} links, or expands to "
+                         f"more than {MAX_WALK_STEPS} steps, too much for the private-tree check "
+                         "to walk; confirm where it lands"))
     for walk, real in zip(readings, landings):
         decision = ("allow", "")
         final = containing(real)
@@ -835,7 +877,7 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
             elif spelled_inside:
                 decision = escape
         else:
-            decision = _placement(real, min(final, key=lambda t: len(t.parts)))
+            decision = _placement(real, final[0])
         if _RANK[decision[0]] > _RANK[worst[0]]:
             worst = decision
     return worst
