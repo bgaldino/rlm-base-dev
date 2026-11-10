@@ -28,7 +28,7 @@
  *    to be readable, so stripping never removes anything in these tests.
  */
 @IsTest
-private class RLM_UsageDataControllerTest {
+private with sharing class RLM_UsageDataControllerTest {
 
     private static final String FIELD_SET = 'RLM_UsageDatatable';
     private static final String ACCOUNT_NAME = 'RLM UDC Account';
@@ -317,7 +317,14 @@ private class RLM_UsageDataControllerTest {
             Assert.areEqual('number', column(columns, 'Quantity').get('type'), 'Quantity renders as a number column');
             Assert.areEqual('text', column(columns, 'Status').get('type'), 'Status renders as a text column');
             Assert.areEqual(true, column(columns, 'Quantity').get('sortable'), 'Plain columns are sortable');
-            Assert.isNotNull(column(columns, 'Quantity').get('label'), 'Plain columns carry the field label');
+            String quantityLabel;
+            for (Schema.FieldSetMember member : usageFieldSet(TransactionJournal.SObjectType).getFields()) {
+                if (member.getFieldPath() == 'Quantity') {
+                    quantityLabel = member.getLabel();
+                }
+            }
+            Assert.isNotNull(quantityLabel, 'PRECONDITION: Quantity is in the TransactionJournal field set');
+            Assert.areEqual(quantityLabel, column(columns, 'Quantity').get('label'), 'Plain columns carry the field set label');
         }
     }
 
@@ -394,7 +401,11 @@ private class RLM_UsageDataControllerTest {
             Test.stopTest();
 
             Assert.isTrue(recordsOf(result).isEmpty(), 'No journals, no rows');
-            Assert.isFalse(columnsOf(result).isEmpty(), 'Columns are still returned for the empty table');
+            Assert.areEqual(
+                usageFieldSet(TransactionJournal.SObjectType).getFields().size(),
+                columnsOf(result).size(),
+                'Every field set column is still returned for the empty table'
+            );
             Assert.areEqual(false, result.get('truncated'), 'An empty result is not truncated');
         }
     }

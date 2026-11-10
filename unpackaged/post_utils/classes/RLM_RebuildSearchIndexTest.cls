@@ -4,12 +4,14 @@
  * transport failure) maps onto the LWC result map and the invocable result.
  *
  * Known gap: the invocable sends one identical FULL deploy per request, not one per batch.
+ * Known gap: the buildType and activationType inputs are not forwarded; FULL/IMMEDIATE is
+ * always sent.
  *
  * Not covered: getApiSessionId's non-test path (Page.RLM_SessionId.getContent()), which
  * Test.isRunningTest() makes unreachable.
  */
 @IsTest
-private class RLM_RebuildSearchIndexTest {
+private with sharing class RLM_RebuildSearchIndexTest {
 
     // The class pins an API version in its path; match around it so a version bump there does
     // not break this test.
@@ -32,7 +34,7 @@ private class RLM_RebuildSearchIndexTest {
      * Returns a canned response (or throws) and records the request it was sent, so tests can
      * assert both what the class sends and how it reads the answer.
      */
-    private class PcmDeployMock implements HttpCalloutMock {
+    private with sharing class PcmDeployMock implements HttpCalloutMock {
         private final Integer statusCode;
         private final String status;
         private final String body;
@@ -46,12 +48,12 @@ private class RLM_RebuildSearchIndexTest {
             this.throwCalloutError = false;
         }
 
-        /** A mock whose every callout throws a CalloutException; use throwingMock(). */
-        public PcmDeployMock() {
+        /** With throwCalloutError true, every callout throws a CalloutException; use throwingMock(). */
+        public PcmDeployMock(Boolean throwCalloutError) {
             this.statusCode = null;
             this.status = null;
             this.body = null;
-            this.throwCalloutError = true;
+            this.throwCalloutError = throwCalloutError;
         }
 
         public HttpResponse respond(HttpRequest req) {
@@ -70,7 +72,7 @@ private class RLM_RebuildSearchIndexTest {
 
     /** A mock whose callouts fail at the transport level, before any HTTP response exists. */
     private static PcmDeployMock throwingMock() {
-        return new PcmDeployMock();
+        return new PcmDeployMock(true);
     }
 
     // ─── deployIndex (LWC) ──────────────────────────────────────────────

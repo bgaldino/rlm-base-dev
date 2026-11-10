@@ -14,7 +14,7 @@
  *    by order activation carry it.
  */
 @IsTest
-private class RLM_ARC_AssetValidatorTest {
+private with sharing class RLM_ARC_AssetValidatorTest {
 
     private static final String ACCOUNT_NAME = 'RLM ARC Validator Account';
     private static final String CLEAN_PRODUCT = 'RLM ARC Clean Product';
