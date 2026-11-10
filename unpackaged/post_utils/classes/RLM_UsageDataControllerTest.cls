@@ -185,6 +185,14 @@ private class RLM_UsageDataControllerTest {
      * isNameField() field of getReferenceTo()[0], falling back to Name. Derived from the field
      * set and describe, so it cannot drift from what the controller selects.
      */
+    /** The object's RLM_UsageDatatable field set, failing as a PRECONDITION when it is missing. */
+    private static Schema.FieldSet usageFieldSet(Schema.SObjectType type) {
+        Schema.DescribeSObjectResult objDescribe = type.getDescribe();
+        Schema.FieldSet fs = objDescribe.fieldSets.getMap().get(FIELD_SET);
+        Assert.isNotNull(fs, 'PRECONDITION: ' + objDescribe.getName() + ' has the ' + FIELD_SET + ' field set');
+        return fs;
+    }
+
     private static void assertFieldSetReadable(Schema.SObjectType type, List<String> filterFields) {
         Schema.DescribeSObjectResult objDescribe = type.getDescribe();
         String objName = objDescribe.getName();
@@ -193,7 +201,7 @@ private class RLM_UsageDataControllerTest {
         for (String filterField : filterFields) {
             touched.put(objName + '.' + filterField, fields.get(filterField));
         }
-        for (Schema.FieldSetMember member : objDescribe.fieldSets.getMap().get(FIELD_SET).getFields()) {
+        for (Schema.FieldSetMember member : usageFieldSet(type).getFields()) {
             String path = member.getFieldPath();
             Schema.SObjectField f = fields.get(path);
             Assert.isNotNull(f, 'PRECONDITION: ' + objName + '.' + path + ' exists on the object');
@@ -284,7 +292,7 @@ private class RLM_UsageDataControllerTest {
 
             List<Map<String, Object>> columns = columnsOf(result);
             Assert.areEqual(
-                SObjectType.TransactionJournal.fieldSets.getMap().get(FIELD_SET).getFields().size(),
+                usageFieldSet(TransactionJournal.SObjectType).getFields().size(),
                 columns.size(),
                 'One column per field set member'
             );
@@ -447,7 +455,7 @@ private class RLM_UsageDataControllerTest {
 
             List<Map<String, Object>> columns = columnsOf(byAsset);
             Assert.areEqual(
-                SObjectType.UsageSummary.fieldSets.getMap().get(FIELD_SET).getFields().size(),
+                usageFieldSet(UsageSummary.SObjectType).getFields().size(),
                 columns.size(),
                 'One column per field set member'
             );
@@ -477,7 +485,7 @@ private class RLM_UsageDataControllerTest {
 
             List<Map<String, Object>> columns = columnsOf(result);
             Assert.areEqual(
-                SObjectType.UsageBillingPeriodItem.fieldSets.getMap().get(FIELD_SET).getFields().size(),
+                usageFieldSet(UsageBillingPeriodItem.SObjectType).getFields().size(),
                 columns.size(),
                 'One column per field set member'
             );
@@ -529,6 +537,8 @@ private class RLM_UsageDataControllerTest {
             Schema.SObjectType.UsageSummary.fields.getMap().containsKey('ReferenceRecordId'),
             'PRECONDITION: UsageSummary has no ReferenceRecordId field, so only the field-exists check can reject it'
         );
+        // The controller checks the field set first; it must exist so the field-exists check is the one that rejects.
+        usageFieldSet(UsageSummary.SObjectType);
 
         Test.startTest();
         assertRejected(accId, 'ReferenceRecordId', 'UsageSummary', FIELD_SET);
@@ -552,6 +562,10 @@ private class RLM_UsageDataControllerTest {
             Schema.SObjectType.UsageBillingPeriodItem.fields.getMap().containsKey('UsageEntitlementBucketId'),
             'PRECONDITION: UsageBillingPeriodItem.UsageEntitlementBucketId exists'
         );
+        // The controller checks the field set first; each must exist so the allowlist is the check that rejects.
+        usageFieldSet(TransactionJournal.SObjectType);
+        usageFieldSet(UsageSummary.SObjectType);
+        usageFieldSet(UsageBillingPeriodItem.SObjectType);
 
         Test.startTest();
         assertRejected(UserInfo.getUserId(), 'CreatedById', 'TransactionJournal', FIELD_SET);
