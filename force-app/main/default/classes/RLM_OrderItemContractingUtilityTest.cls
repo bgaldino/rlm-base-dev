@@ -102,6 +102,7 @@ private class RLM_OrderItemContractingUtilityTest {
         Test.stopTest();
 
         Assert.areEqual(3, results.size(), 'One result per order');
+        // Results carry no order id and do not follow input order, so they are keyed by end date.
         Map<Date, Integer> termByEndDate = new Map<Date, Integer>();
         for (RLM_OrderItemContractingUtility.OrderInfoResults r : results) {
             termByEndDate.put(r.outEndDate, r.outContractTerm);
@@ -114,6 +115,20 @@ private class RLM_OrderItemContractingUtilityTest {
         );
         Assert.areEqual(
             13, termByEndDate.get(Date.newInstance(2027, 1, 20)), 'End day 20 past start day 15: rounds up'
+        );
+    }
+
+    @IsTest
+    static void duplicateOrderIdsGetOneResult() {
+        Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
+        insert o;
+
+        List<RLM_OrderItemContractingUtility.OrderInfoResults> results = run(new List<Id>{ o.Id, o.Id });
+
+        Assert.areEqual(
+            1, results.size(),
+            'Known gap: two inputs for the same order return one output, which faults the calling flow; '
+                + 'update this test when it is fixed'
         );
     }
 
@@ -176,7 +191,8 @@ private class RLM_OrderItemContractingUtilityTest {
         if (noAccess == null) {
             System.debug(
                 LoggingLevel.WARN,
-                'SKIPPED: no Minimum Access - Salesforce profile, or no free Salesforce seat, in this org'
+                'SKIPPED: no profile named \'Minimum Access - Salesforce\' (English name; standard profile '
+                    + 'names can be translated), or no free Salesforce seat, in this org'
             );
             return;
         }
@@ -197,7 +213,11 @@ private class RLM_OrderItemContractingUtilityTest {
 
         // No query ran, so the empty result comes from the field-access check, not record sharing.
         Assert.areEqual(0, queriesUsed, 'The field-access check returns before any query');
-        Assert.isTrue(results.isEmpty(), 'Without access to the order fields the utility returns no result');
+        Assert.isTrue(
+            results.isEmpty(),
+            'Known gap: without access to the order fields the utility returns no output for an input, '
+                + 'which faults the calling flow; update this test when it is fixed'
+        );
     }
 
     /**

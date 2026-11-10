@@ -52,7 +52,11 @@ private class RLM_DetermineDROSourceTypeTest {
     static void noIdsReturnsEmptyList() {
         List<String> result = run(new RLM_DetermineDROSourceType.droSourceInfo());
 
-        Assert.isTrue(result.isEmpty(), 'No input ids yields no source type');
+        Assert.isTrue(
+            result.isEmpty(),
+            'Known gap: an input with no ids returns no output for that input, which faults the calling flow; '
+                + 'update this test when it is fixed'
+        );
     }
 
     @IsTest

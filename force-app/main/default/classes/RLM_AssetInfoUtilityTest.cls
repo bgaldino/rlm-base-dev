@@ -187,11 +187,13 @@ private class RLM_AssetInfoUtilityTest {
     static void changedAssetWithoutContractIsLeftAsIs() {
         OrderContext ctx = newOrder('Amend');
         Line l = createLines(ctx, 1)[0];
+        Line added = createLines(newOrder('Add'), 1)[0];
 
         Test.startTest();
-        run(new List<Line>{ l });
+        run(new List<Line>{ l, added });
         Test.stopTest();
 
+        assertDefaultRenewal(added.assetId);
         assertUnchanged(ctx, l.assetId, 'Without a contract a changed asset keeps its values');
     }
 
@@ -212,11 +214,13 @@ private class RLM_AssetInfoUtilityTest {
             1, [SELECT COUNT() FROM AssetContractRelationship WHERE AssetId = :l.assetId],
             'PRECONDITION: the asset is related to the contract'
         );
+        Line added = createLines(newOrder('Add'), 1)[0];
 
         Test.startTest();
-        run(new List<Line>{ l });
+        run(new List<Line>{ l, added });
         Test.stopTest();
 
+        assertDefaultRenewal(added.assetId);
         assertUnchanged(
             ctx, l.assetId,
             'Known gap: acrMap is keyed by relationship Id but looked up by AssetId, so the contract term is '

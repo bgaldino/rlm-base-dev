@@ -158,11 +158,13 @@ private class RLM_QuoteItemTriggerTest {
         seedAssetHistory(a.Id, true, '{"node":"latest"}', '{"node":"older"}');
         QuoteAction amend = quoteAction(f, a.Id, 'Amend');
         QuoteLineItem line = amendLine(f, amend.Id, PRESET_STATUS);
+        QuoteLineItem sourced = sourcedLine(f);
 
         Test.startTest();
-        insert line;
+        insert new List<QuoteLineItem>{ sourced, line };
         Test.stopTest();
 
+        Assert.areEqual('{"node":"latest"}', statusOf(sourced.Id), 'The sourced line in the same batch is stamped');
         Assert.areEqual(PRESET_STATUS, statusOf(line.Id), 'A status already on the line is kept');
     }
 
@@ -213,11 +215,13 @@ private class RLM_QuoteItemTriggerTest {
         actionSources(latest.Id, new List<String>{ null });
         QuoteAction amend = quoteAction(f, a.Id, 'Amend');
         QuoteLineItem line = amendLine(f, amend.Id, null);
+        QuoteLineItem sourced = sourcedLine(f);
 
         Test.startTest();
-        insert line;
+        insert new List<QuoteLineItem>{ sourced, line };
         Test.stopTest();
 
+        Assert.areEqual('{"node":"latest"}', statusOf(sourced.Id), 'The sourced line in the same batch is stamped');
         Assert.isNull(statusOf(line.Id), 'An older action\'s status is not used when the latest action has none');
     }
 }
