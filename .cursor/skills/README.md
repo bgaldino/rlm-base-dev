@@ -63,7 +63,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | I need to... | Skill | Entry Point |
 |-------------|-------|-------------|
 | Add new code, features, metadata | Repository Integration | [repo-integration/SKILL.md](repo-integration/SKILL.md) |
-| Work with CCI tasks, flows, or CLI | CCI Orchestration | [cci-orchestration/SKILL.md](cci-orchestration/SKILL.md) |
+| Work with CCI tasks/flows/CLI, or clean expired orgs and stale SF auth | CCI Orchestration | [cci-orchestration/SKILL.md](cci-orchestration/SKILL.md) |
 | Write a Python CCI task class | Custom Task Authoring | [cci-orchestration/custom-task-authoring.md](cci-orchestration/custom-task-authoring.md) |
 | Create/modify SFDMU data plans | SFDMU Data Plans | [sfdmu-data-plans/SKILL.md](sfdmu-data-plans/SKILL.md) |
 | Run build harness profiles/resume/report | Build Harness | [build-harness/SKILL.md](build-harness/SKILL.md) |
