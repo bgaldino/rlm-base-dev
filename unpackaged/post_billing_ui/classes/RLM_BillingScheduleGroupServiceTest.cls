@@ -199,7 +199,507 @@ private class RLM_BillingScheduleGroupServiceTest {
         System.assertEquals('City', ai.billingCity);
     }
 
+    // ---- getAccountBillingInfo ----
+
+    @isTest
+    static void getAccountBillingInfo_withBillingAccount_returnsAccountAndBillingDetails() {
+        Account a = new Account(Name = 'BSG Info Acct', BillingCity = 'Austin');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = 'BSG Info BA', AccountId = a.Id);
+        insert ba;
+
+        Test.startTest();
+        RLM_BillingScheduleGroupService.AccountInfo info =
+            RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+        Test.stopTest();
+
+        Assert.areEqual('BSG Info Acct', info.accountName, 'Account name surfaced.');
+        Assert.areEqual(ba.Id, info.billingAccountId, 'The billing account linked to the account is returned.');
+        Assert.areEqual('BSG Info BA', info.billingAccountName, 'Billing account name surfaced.');
+        Assert.areEqual('Austin', info.billingCity, 'Billing city comes from the billing account\'s account.');
+    }
+
+    @isTest
+    static void getAccountBillingInfo_withoutBillingAccount_returnsAccountNameOnly() {
+        Account a = new Account(Name = 'BSG No BA Acct', BillingCity = 'Denver');
+        insert a;
+
+        Test.startTest();
+        RLM_BillingScheduleGroupService.AccountInfo info =
+            RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+        Test.stopTest();
+
+        Assert.areEqual('BSG No BA Acct', info.accountName, 'Account name is returned without a billing account.');
+        Assert.isNull(info.billingAccountId, 'No billing account -> no billing account id.');
+        Assert.isNull(info.billingAccountName, 'No billing account -> no billing account name.');
+        Assert.isNull(info.billingCity, 'Billing city is read through the billing account, so it is blank too.');
+    }
+
+    // ---- option queries ----
+
+    @isTest
+    static void getProducts_returnsActiveSoftwareProductsSortedByName() {
+        Product2 zeta = new Product2(Name = 'BSG Zeta Software', Family = 'Software', IsActive = true);
+        Product2 alpha = new Product2(Name = 'BSG Alpha Software', Family = 'Software', IsActive = true);
+        Product2 inactive = new Product2(Name = 'BSG Inactive Software', Family = 'Software', IsActive = false);
+        Product2 noFamily = new Product2(Name = 'BSG No Family', IsActive = true);
+        insert new List<Product2>{ zeta, alpha, inactive, noFamily };
+
+        Test.startTest();
+        List<RLM_BillingScheduleGroupService.ProductOption> options =
+            RLM_BillingScheduleGroupService.getProducts();
+        Test.stopTest();
+
+        Assert.areEqual(2, options.size(), 'Only active products in the Software family are offered.');
+        Assert.areEqual(alpha.Id, options[0].id, 'Options are sorted by name.');
+        Assert.areEqual('BSG Alpha Software', options[0].name);
+        Assert.areEqual(zeta.Id, options[1].id);
+        Assert.areEqual('BSG Zeta Software', options[1].name);
+    }
+
+    // Product2 has no record sharing, so this proves a billing role can run the USER_MODE
+    // product query (object read plus Name/IsActive/Family) without depending on OWD.
+    @isTest
+    static void getProducts_asBillingRole_returnsTheProducts() {
+        Product2 prod = new Product2(Name = 'BSG Role Software', Family = 'Software', IsActive = true);
+        insert prod;
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+
+        List<RLM_BillingScheduleGroupService.ProductOption> options;
+        Test.startTest();
+        System.runAs(u) {
+            options = RLM_BillingScheduleGroupService.getProducts();
+        }
+        Test.stopTest();
+
+        Assert.areEqual(1, options.size(), 'The billing role sees the active Software product.');
+        Assert.areEqual(prod.Id, options[0].id);
+    }
+
+    @isTest
+    static void getLegalEntities_returnsAllSortedByName() {
+        LegalEntity zulu = new LegalEntity(Name = 'BSG LE Zulu', Status = 'Active');
+        LegalEntity alpha = new LegalEntity(Name = 'BSG LE Alpha', Status = 'Active');
+        insert new List<LegalEntity>{ zulu, alpha };
+
+        Test.startTest();
+        List<RLM_BillingScheduleGroupService.LegalEntityOption> options =
+            RLM_BillingScheduleGroupService.getLegalEntities();
+        Test.stopTest();
+
+        Assert.areEqual(2, options.size(), 'Every legal entity is offered.');
+        Assert.areEqual(alpha.Id, options[0].id, 'Options are sorted by name.');
+        Assert.areEqual('BSG LE Alpha', options[0].name);
+        Assert.areEqual(zulu.Id, options[1].id);
+        Assert.areEqual('BSG LE Zulu', options[1].name);
+    }
+
+    @isTest
+    static void getTaxTreatments_returnsAllSortedByName() {
+        // Two treatments on one legal entity collide on TaxTreatment's unique key, so each
+        // gets its own.
+        LegalEntity le1 = new LegalEntity(Name = 'BSG TT LE 1', Status = 'Active');
+        LegalEntity le2 = new LegalEntity(Name = 'BSG TT LE 2', Status = 'Active');
+        insert new List<LegalEntity>{ le1, le2 };
+        TaxTreatment ttSecond = new TaxTreatment(Name = 'BSG TT Second', Status = 'Draft', LegalEntityId = le1.Id);
+        TaxTreatment ttFirst = new TaxTreatment(Name = 'BSG TT First', Status = 'Draft', LegalEntityId = le2.Id);
+        insert new List<TaxTreatment>{ ttSecond, ttFirst };
+
+        Test.startTest();
+        List<RLM_BillingScheduleGroupService.TaxTreatmentOption> options =
+            RLM_BillingScheduleGroupService.getTaxTreatments();
+        Test.stopTest();
+
+        Assert.areEqual(2, options.size(), 'Every tax treatment is offered.');
+        Assert.areEqual(ttFirst.Id, options[0].id, 'Options are sorted by name.');
+        Assert.areEqual('BSG TT First', options[0].name);
+        Assert.areEqual(ttSecond.Id, options[1].id);
+        Assert.areEqual('BSG TT Second', options[1].name);
+    }
+
+    @isTest
+    static void optionQueries_noRecords_returnEmptyLists() {
+        Test.startTest();
+        List<RLM_BillingScheduleGroupService.LegalEntityOption> les =
+            RLM_BillingScheduleGroupService.getLegalEntities();
+        List<RLM_BillingScheduleGroupService.TaxTreatmentOption> tts =
+            RLM_BillingScheduleGroupService.getTaxTreatments();
+        List<RLM_BillingScheduleGroupService.ProductOption> prods =
+            RLM_BillingScheduleGroupService.getProducts();
+        Test.stopTest();
+
+        Assert.isTrue(les.isEmpty(), 'No legal entities -> empty list, not null.');
+        Assert.isTrue(tts.isEmpty(), 'No tax treatments -> empty list, not null.');
+        Assert.isTrue(prods.isEmpty(), 'No products -> empty list, not null.');
+    }
+
+    // The term-unit options mirror the BillingSchedule picklist. Billing orgs ship both fields
+    // with values, so that is a precondition here; the hard-coded fallback lists are for orgs
+    // without them and are not exercised.
+    @isTest
+    static void billingTermUnitOptions_mirrorTheBillingSchedulePicklist() {
+        List<String> expected = picklistValues('BillingTermUnit');
+        Test.startTest();
+        List<RLM_BillingScheduleGroupService.PicklistOption> options =
+            RLM_BillingScheduleGroupService.getBillingScheduleBillingTermUnitOptions();
+        Test.stopTest();
+
+        assertOptions(expected, options);
+    }
+
+    @isTest
+    static void pricingTermUnitOptions_mirrorTheBillingSchedulePicklist() {
+        List<String> expected = picklistValues('PricingTermUnit');
+        Test.startTest();
+        List<RLM_BillingScheduleGroupService.PicklistOption> options =
+            RLM_BillingScheduleGroupService.getPricingTermUnitOptions();
+        Test.stopTest();
+
+        assertOptions(expected, options);
+    }
+
+    // ---- createBillingScheduleGroupAndScheduleViaAPI ----
+
+    // Every guard after the billing-account lookup, flipped one at a time from inputs that
+    // pass. The baseline call proves the defaults are valid, so each rejection is caused by
+    // the one input that changed.
+    @isTest
+    static void createViaAPI_rejectsEachInvalidInput() {
+        Id baId = insertBillingAccount('BSG Guards');
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-OK' };
+
+        Map<String, CreateArgs> invalidInputs = new Map<String, CreateArgs>();
+        CreateArgs a;
+        a = new CreateArgs(baId); a.billingTermUnit = null;       invalidInputs.put('null billing term unit', a);
+        a = new CreateArgs(baId); a.billingTermUnit = '  ';       invalidInputs.put('blank billing term unit', a);
+        a = new CreateArgs(baId); a.quantity = null;              invalidInputs.put('null quantity', a);
+        a = new CreateArgs(baId); a.quantity = -1;                invalidInputs.put('negative quantity', a);
+        a = new CreateArgs(baId); a.legalEntityId = null;         invalidInputs.put('null legal entity', a);
+        a = new CreateArgs(baId); a.taxTreatmentId = null;        invalidInputs.put('null tax treatment', a);
+        a = new CreateArgs(baId); a.currencyIsoCode = '';         invalidInputs.put('blank currency', a);
+        a = new CreateArgs(baId); a.unitPrice = null;             invalidInputs.put('null unit price', a);
+        a = new CreateArgs(baId); a.unitPrice = -0.01;            invalidInputs.put('negative unit price', a);
+        a = new CreateArgs(baId); a.billingCity = ' ';            invalidInputs.put('blank billing city', a);
+        a = new CreateArgs(baId); a.productId = null;             invalidInputs.put('null product', a);
+        a = new CreateArgs(baId); a.startDate = null;             invalidInputs.put('null start date', a);
+        a = new CreateArgs(baId); a.billingDayOfMonth = null;     invalidInputs.put('null billing day', a);
+        a = new CreateArgs(baId); a.billingDayOfMonth = 0;        invalidInputs.put('billing day 0', a);
+        a = new CreateArgs(baId); a.billingDayOfMonth = 32;       invalidInputs.put('billing day 32', a);
+        a = new CreateArgs(baId); a.billingStartMonth = null;     invalidInputs.put('null start month', a);
+        a = new CreateArgs(baId); a.billingStartMonth = 0;        invalidInputs.put('start month 0', a);
+        a = new CreateArgs(baId); a.billingStartMonth = 13;       invalidInputs.put('start month 13', a);
+
+        List<String> accepted = new List<String>();
+        Test.startTest();
+        Assert.areEqual('REQ-OK', new CreateArgs(baId).call().requestId, 'Premise: the default inputs are valid.');
+        for (String label : invalidInputs.keySet()) {
+            if (!throwsAura(invalidInputs.get(label))) {
+                accepted.add(label);
+            }
+        }
+        Test.stopTest();
+
+        Assert.isTrue(accepted.isEmpty(), 'Invalid input was accepted: ' + String.join(accepted, ', '));
+    }
+
+    @isTest
+    static void createViaAPI_acceptsBoundaryValues() {
+        Id baId = insertBillingAccount('BSG Boundaries');
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-EDGE' };
+
+        List<CreateArgs> edges = new List<CreateArgs>();
+        CreateArgs a;
+        a = new CreateArgs(baId); a.quantity = 0; a.unitPrice = 0; edges.add(a);
+        a = new CreateArgs(baId); a.billingDayOfMonth = 1; a.billingStartMonth = 1; edges.add(a);
+        a = new CreateArgs(baId); a.billingDayOfMonth = 31; a.billingStartMonth = 12; edges.add(a);
+
+        Test.startTest();
+        for (CreateArgs edge : edges) {
+            RLM_BillingScheduleGroupService.CreateResult r = edge.call();
+            Assert.areEqual('REQ-EDGE', r.requestId,
+                'Boundary values (0 quantity/price, day 1-31, month 1-12) are valid.');
+        }
+        Test.stopTest();
+    }
+
+    @isTest
+    static void createViaAPI_mapsEveryActionOutput() {
+        Id baId = insertBillingAccount('BSG Outputs');
+        Id bsgId = fakeId(BillingScheduleGroup.SObjectType);
+        Id bsId = fakeId(BillingSchedule.SObjectType);
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{
+            'requestId' => 'REQ-1',
+            'statusUrl' => '/services/data/v68.0/sobjects/AsyncOperationTracker/REQ-1',
+            'billingScheduleGroupId' => bsgId,
+            'billingScheduleId' => bsId
+        };
+
+        Test.startTest();
+        RLM_BillingScheduleGroupService.CreateResult r = new CreateArgs(baId).call();
+        Test.stopTest();
+
+        Assert.areEqual('REQ-1', r.requestId);
+        Assert.areEqual('/services/data/v68.0/sobjects/AsyncOperationTracker/REQ-1', r.statusUrl);
+        Assert.areEqual(bsgId, r.billingScheduleGroupId, 'A synchronous BSG id is passed through.');
+        Assert.areEqual(bsId, r.billingScheduleId, 'A synchronous schedule id is passed through.');
+        Map<String, Object> echoed = (Map<String, Object>) System.JSON.deserializeUntyped(r.apiResponse);
+        Assert.areEqual('REQ-1', echoed.get('requestId'), 'apiResponse is the serialized action output.');
+    }
+
+    // A billing account with no AccountId resolves its account through AccountBillingAccount;
+    // with no junction row either, the create must refuse rather than send a null account.
+    @isTest
+    static void createViaAPI_billingAccountWithoutAccount_throws() {
+        BillingAccount orphan = new BillingAccount(Name = 'BSG Orphan BA');
+        insert orphan;
+        RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-NO' };
+
+        Test.startTest();
+        Boolean threw = throwsAura(new CreateArgs(orphan.Id));
+        Test.stopTest();
+
+        Assert.isTrue(threw, 'A billing account with no resolvable account must be rejected.');
+    }
+
+    // ---- payload builder ----
+
+    @isTest
+    static void buildTransactionDetailsJson_mapsInputsToStandardContextFields() {
+        Id accId = fakeId(Account.SObjectType);
+        Id baId = fakeId(BillingAccount.SObjectType);
+        Id ttId = fakeId(TaxTreatment.SObjectType);
+        Id prodId = fakeId(Product2.SObjectType);
+
+        Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
+            accId, baId, 'Month', 3, fakeId(LegalEntity.SObjectType), ttId,
+            'EUR', 12.5, 450, 'Lisbon', prodId, 'Widget Pro',
+            Date.newInstance(2026, 4, 7), 7, 4, 'Termed', Date.newInstance(2027, 4, 6)
+        ));
+
+        Assert.isTrue(String.valueOf(txn.get('TransactionId__std')).startsWith('txn_'), 'Generated transaction id.');
+        Assert.areEqual('TermDefined', txn.get('SellingModelType__std'), 'Termed maps to TermDefined.');
+        Assert.areEqual(String.valueOf(prodId), txn.get('ProductId__std'));
+        Assert.areEqual('Widget Pro', txn.get('ProductName__std'));
+        Assert.areEqual('2026-04-07', txn.get('StartDate__std'));
+        Assert.areEqual('2027-04-06', txn.get('EndDate__std'), 'A termed schedule carries its end date.');
+        Assert.areEqual('Anniversary', txn.get('PeriodBoundary__std'));
+        Assert.areEqual(7, txn.get('BillingDayOfMonth__std'));
+        Assert.areEqual(4, txn.get('BillingStartMonth__std'));
+        Assert.areEqual(Decimal.valueOf('12.5'), toDecimal(txn.get('UnitPrice__std')));
+        Assert.areEqual(Decimal.valueOf('3'), toDecimal(txn.get('Quantity__std')));
+        Assert.areEqual(Decimal.valueOf('450'), toDecimal(txn.get('TotalPrice__std')));
+        Assert.areEqual(String.valueOf(ttId), txn.get('TaxTreatmentId__std'));
+        Assert.areEqual(String.valueOf(accId), txn.get('AccountId__std'));
+        Assert.areEqual(String.valueOf(baId), txn.get('BillingProfileId__std'),
+            'The billing account is sent as the billing profile.');
+        Assert.areEqual('Lisbon', txn.get('BillingCity__std'));
+        Assert.areEqual('Month', txn.get('BillingTermUnit__std'));
+        Assert.areEqual('Add', txn.get('BillingActionType__std'));
+        Assert.areEqual('EUR', txn.get('CurrencyIsoCode__std'));
+    }
+
+    @isTest
+    static void buildTransactionDetailsJson_sellingModelFollowsTermSetting() {
+        Assert.areEqual('Evergreen', sellingModelFor('Evergreen'), 'Evergreen passes through.');
+        Assert.areEqual('OneTime', sellingModelFor('OneTime'), 'Any other non-blank setting passes through.');
+        Assert.areEqual('Evergreen', sellingModelFor(null), 'No term setting defaults to Evergreen.');
+        Assert.areEqual('Evergreen', sellingModelFor('  '), 'A blank term setting defaults to Evergreen.');
+    }
+
+    @isTest
+    static void buildTransactionDetailsJson_termedWithoutEndDate_omitsEndDate() {
+        Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
+            fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'Month', 1,
+            fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 120,
+            'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
+            'Termed', null
+        ));
+        Assert.areEqual('TermDefined', txn.get('SellingModelType__std'));
+        Assert.isFalse(txn.containsKey('EndDate__std'), 'No end date supplied -> none sent.');
+    }
+
+    @isTest
+    static void buildTransactionDetailsJson_nonTermedIgnoresSuppliedEndDate() {
+        Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
+            fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'Month', 1,
+            fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 10,
+            'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
+            'Evergreen', Date.newInstance(2026, 12, 31)
+        ));
+        Assert.isFalse(txn.containsKey('EndDate__std'), 'Only a termed schedule sends an end date.');
+    }
+
+    @isTest
+    static void formatIsoDate_keepsTwoDigitMonthAndDay() {
+        Assert.areEqual('2026-12-31', RLM_BillingScheduleGroupService.formatIsoDate(Date.newInstance(2026, 12, 31)));
+        Assert.areEqual('2027-01-09', RLM_BillingScheduleGroupService.formatIsoDate(Date.newInstance(2027, 1, 9)));
+    }
+
+    // ---- result parser ----
+
+    @isTest
+    static void parseCreateResult_prefersSingleScheduleIdOverList() {
+        Id single = fakeId(BillingSchedule.SObjectType);
+        Id other = Id.valueOf(BillingSchedule.SObjectType.getDescribe().getKeyPrefix() + '000000000001');
+        RLM_BillingScheduleGroupService.CreateResult r = RLM_BillingScheduleGroupService.parseCreateResult(
+            new Map<String, Object>{
+                'billingScheduleId' => single,
+                'billingScheduleIds' => new List<Object>{ other }
+            });
+        Assert.areEqual(single, r.billingScheduleId, 'billingScheduleId wins when both are present.');
+    }
+
+    @isTest
+    static void parseCreateResult_ignoresEmptyOrNonListScheduleIds() {
+        RLM_BillingScheduleGroupService.CreateResult emptyList = RLM_BillingScheduleGroupService.parseCreateResult(
+            new Map<String, Object>{ 'billingScheduleIds' => new List<Object>() });
+        Assert.isNull(emptyList.billingScheduleId, 'An empty id list yields no schedule id.');
+
+        RLM_BillingScheduleGroupService.CreateResult notAList = RLM_BillingScheduleGroupService.parseCreateResult(
+            new Map<String, Object>{ 'billingScheduleIds' => 'not-a-list' });
+        Assert.isNull(notAList.billingScheduleId, 'A non-list value yields no schedule id.');
+    }
+
+    @isTest
+    static void parseCreateResult_emptyOutputs_leavesFieldsNullButEchoesResponse() {
+        RLM_BillingScheduleGroupService.CreateResult r =
+            RLM_BillingScheduleGroupService.parseCreateResult(new Map<String, Object>());
+        Assert.isNull(r.requestId);
+        Assert.isNull(r.statusUrl);
+        Assert.isNull(r.billingScheduleGroupId);
+        Assert.isNull(r.billingScheduleId);
+        Assert.areEqual('{}', r.apiResponse, 'The (empty) action output is still echoed.');
+    }
+
+    // Without the mock the standard action is really invoked. Its payload references ids that
+    // don't exist, so the action reports the transaction as failed, and that failure must
+    // reach the LWC as an AuraHandledException rather than a raw platform error or a result.
+    @isTest
+    static void invokeStandaloneBillingScheduleCreate_withoutMock_surfacesActionFailure() {
+        String payload = RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
+            fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'Month', 1,
+            fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 10,
+            'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
+            'Evergreen', null
+        );
+        Map<String, Object> outputs;
+        Exception failure;
+        Test.startTest();
+        try {
+            outputs = RLM_BillingScheduleGroupService.invokeStandaloneBillingScheduleCreate(payload);
+        } catch (Exception e) {
+            failure = e;
+        }
+        Test.stopTest();
+
+        Assert.isNull(outputs, 'A rejected transaction must not be reported as accepted: ' + outputs);
+        Assert.isNotNull(failure, 'A rejected transaction must raise an error.');
+        Assert.isInstanceOfType(failure, AuraHandledException.class,
+            'An action failure must reach the LWC as an AuraHandledException, got '
+            + failure.getTypeName() + ': ' + failure.getMessage());
+    }
+
     // ---- helpers ----
+
+    // Inputs for createBillingScheduleGroupAndScheduleViaAPI that pass every guard; a test
+    // overrides one field to drive one guard.
+    private class CreateArgs {
+        public Id billingAccountId;
+        public String billingTermUnit = 'Month';
+        public Integer billingTerm = 12;
+        public String billingType = 'Advance';
+        public Decimal quantity = 2;
+        public Id legalEntityId = fakeId(LegalEntity.SObjectType);
+        public Id taxTreatmentId = fakeId(TaxTreatment.SObjectType);
+        public String currencyIsoCode = 'USD';
+        public Decimal unitPrice = 10;
+        public Decimal totalPrice = 240;
+        public String billingCity = 'San Francisco';
+        public Id productId = fakeId(Product2.SObjectType);
+        public String productName = 'Widget';
+        public Date startDate = Date.newInstance(2026, 1, 1);
+        public Integer billingDayOfMonth = 1;
+        public Integer billingStartMonth = 1;
+        public String termSetting = 'Termed';
+        public Date endDate = Date.newInstance(2026, 12, 31);
+
+        public CreateArgs(Id billingAccountId) {
+            this.billingAccountId = billingAccountId;
+        }
+
+        public RLM_BillingScheduleGroupService.CreateResult call() {
+            return RLM_BillingScheduleGroupService.createBillingScheduleGroupAndScheduleViaAPI(
+                billingAccountId, billingTermUnit, billingTerm, billingType, quantity, legalEntityId,
+                taxTreatmentId, currencyIsoCode, unitPrice, totalPrice, billingCity, productId,
+                productName, startDate, billingDayOfMonth, billingStartMonth, termSetting, endDate
+            );
+        }
+    }
+
+    private static Boolean throwsAura(CreateArgs args) {
+        try {
+            args.call();
+            return false;
+        } catch (AuraHandledException e) {
+            return true;
+        }
+    }
+
+    private static Id insertBillingAccount(String name) {
+        Account a = new Account(Name = name + ' Acct');
+        insert a;
+        BillingAccount ba = new BillingAccount(Name = name + ' BA', AccountId = a.Id);
+        insert ba;
+        return ba.Id;
+    }
+
+    private static Map<String, Object> onlyTransaction(String payload) {
+        Map<String, Object> wrapper = (Map<String, Object>) System.JSON.deserializeUntyped(payload);
+        List<Object> txns = (List<Object>) wrapper.get('Transaction');
+        Assert.areEqual(1, txns.size(), 'The payload carries exactly one transaction.');
+        return (Map<String, Object>) txns[0];
+    }
+
+    private static String sellingModelFor(String termSetting) {
+        Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
+            fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'Month', 1,
+            fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 10,
+            'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
+            termSetting, null
+        ));
+        return (String) txn.get('SellingModelType__std');
+    }
+
+    // deserializeUntyped returns whole numbers as Integer and fractions as Decimal.
+    private static Decimal toDecimal(Object value) {
+        return value == null ? null : Decimal.valueOf(String.valueOf(value));
+    }
+
+    // The BillingSchedule field's picklist values, in describe order.
+    private static List<String> picklistValues(String fieldApi) {
+        Map<String, Schema.SObjectField> fields =
+            Schema.getGlobalDescribe().get('BillingSchedule').getDescribe().fields.getMap();
+        Assert.isTrue(fields.containsKey(fieldApi), 'PRECONDITION: BillingSchedule.' + fieldApi + ' exists.');
+        List<String> values = new List<String>();
+        for (Schema.PicklistEntry pe : fields.get(fieldApi).getDescribe().getPicklistValues()) {
+            values.add(pe.getValue());
+        }
+        Assert.isFalse(values.isEmpty(), 'PRECONDITION: BillingSchedule.' + fieldApi + ' has picklist values.');
+        return values;
+    }
+
+    private static void assertOptions(List<String> expected,
+            List<RLM_BillingScheduleGroupService.PicklistOption> actual) {
+        List<String> actualValues = new List<String>();
+        for (RLM_BillingScheduleGroupService.PicklistOption o : actual) {
+            Assert.isNotNull(o.label, 'Every option has a label.');
+            actualValues.add(o.value);
+        }
+        Assert.areEqual(expected, actualValues, 'Options must match the picklist, in order.');
+    }
+
     private static Boolean throwsViaApi(Id billingAccountId) {
         try {
             RLM_BillingScheduleGroupService.createBillingScheduleGroupAndScheduleViaAPI(
