@@ -5390,6 +5390,24 @@ try:
             " open(p, 'w').write(t.replace('remote = origin', 'remote = upstream'))")
     branch_cases["real-edit"] = (*pr_gate.run([sys.executable, "-c", edit, branch_config])[:2],
                                  list(pr_gate.CONFIG_NOTES))
+    # A backslash continues a value, so the "[branch]" header below is still inside [user] and the
+    # email line sets user.email: a change to it must fail even though that branch is real. The
+    # control, without the backslash, is a genuine [branch] key and is excused.
+    def continued_config(email, cont):
+        return {branch_config: ('[user]\n\tname = Alice' + cont + '\n[branch "other-session/work"]\n'
+                                f'\temail = {email}\n').encode()}
+    for label, cont in (("continued", "\\"), ("uncontinued", "")):
+        branch_cases[label] = pr_gate.config_change_note(continued_config("old@example.com", cont),
+                                                         continued_config("new@example.com", cont))
+    # Two more ways a line git reads as user.email could be filed under that real branch (local review
+    # of PR 705, both confirmed with `git config --list`): a section opened on the [branch] header's own
+    # line, and a form feed, which str.splitlines treats as a line break and git keeps inside a value.
+    for label, template in (
+            ("same-line", '[branch "other-session/work"][user] email = {}\n'),
+            ("form-feed", '[user]\n\tname = A\f[branch "other-session/work"]\n\temail = {}\n')):
+        branch_cases[label] = pr_gate.config_change_note(
+            {branch_config: template.format("old@example.com").encode()},
+            {branch_config: template.format("new@example.com").encode()})
 finally:
     pr_gate.REPO_ROOT = prior_root
     pr_gate.CONFIG_NOTES.clear()
@@ -5401,6 +5419,15 @@ check("a [branch] section another worktree adds for a real local branch passes, 
 check("a [branch] section another worktree edits for a real local branch passes too",
       branch_cases["real-edit"][0] == 0 and len(branch_cases["real-edit"][2]) == 1,
       branch_cases["real-edit"])
+check("a line continuation that carries user.email past a [branch] header still fails",
+      branch_cases["continued"][1] is True, branch_cases["continued"])
+check("...while the same text without the continuation is a real [branch] key, excused as a note",
+      branch_cases["uncontinued"][1] is False and "other-session/work" in branch_cases["uncontinued"][0],
+      branch_cases["uncontinued"])
+check("a section opened on a [branch] header's own line is not excused as that branch",
+      branch_cases["same-line"][1] is True, branch_cases["same-line"])
+check("a form feed inside a value does not split off a fake [branch] header",
+      branch_cases["form-feed"][1] is True, branch_cases["form-feed"])
 ghost_code, ghost_out, ghost_notes = branch_cases["ghost"]
 check("a [branch] section for a branch with no real ref (a leaked fixture's) still fails, with the diff",
       ghost_code == 1 and '+[branch "preview/next"]' in ghost_out and not ghost_notes,
@@ -5499,7 +5526,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 776
+EXPECTED = 780
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

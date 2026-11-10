@@ -167,8 +167,19 @@ def repo_config_bytes():
 # tolerated, and only for the `[branch]` section itself; any other change still fails. The one gap is a
 # fixture name that is also a real branch here (`main`): a leak confined to that branch's tracking keys
 # would pass as another worktree's, which is the price of not failing on every concurrent `push -u`.
-_SECTION_HEADER = re.compile(r"\s*\[")
-_BRANCH_HEADER = re.compile(r'\s*\[\s*branch\s+"((?:[^"\\\n]|\\.)*)"\s*\]', re.IGNORECASE)
+# The parse has to agree with git's, or a line git reads as user.* can be filed under a branch. So:
+# lines end at "\n" only (str.splitlines also breaks on \f, \u2028 and others, which git keeps inside a
+# value); whitespace is ASCII, as git's isspace is; and a `[branch "X"]` header counts only when nothing
+# but a comment follows it, since git opens another section on the same line: `[branch "main"][user]
+# email = x` sets user.email. A header line with anything else after it is read as a non-branch one.
+_SECTION_HEADER = re.compile(r"\s*\[", re.ASCII)
+_BRANCH_HEADER = re.compile(r'\s*\[branch\s+"((?:[^"\\\n]|\\.)*)"\]\s*(?:[#;][^\n]*)?$',
+                            re.IGNORECASE | re.ASCII)
+# A value ending in a backslash continues onto the next line, so a line that looks like a header may
+# still be part of the previous section's value: `name = Alice\` then `[branch "main"]` then
+# `email = ...` sets user.email. config_sections() reads physical lines, so a file with any line
+# ending in a backslash (Copilot, PR 705) is excused nothing and keeps the strict behaviour.
+_CONTINUATION = re.compile(r"\\\r?$", re.MULTILINE)
 
 # Notes about another worktree's `[branch]` sections, collected by run() and printed by main() whatever
 # the check's verdict: a passing check's output is otherwise never shown.
@@ -179,7 +190,7 @@ def config_sections(text):
     """A git config's text as [(branch name or None, block text)]: one block per section header, plus
     a leading one for any lines before the first. A `[branch "X"]` block carries X (unescaped)."""
     blocks = [[None, []]]
-    for line in text.splitlines(keepends=True):
+    for line in re.findall(r"[^\n]*\n|[^\n]+$", text):
         if _SECTION_HEADER.match(line):
             header = _BRANCH_HEADER.match(line)
             name = re.sub(r"\\(.)", r"\1", header.group(1)) if header else None
@@ -216,12 +227,13 @@ def config_change_note(before, after):
     real = local_branches() if any(branches.values()) else set()
     foreign, failing = set(), []
     for path, (old, new) in texts.items():
-        ours = branches[path] & real
+        ours = set() if _CONTINUATION.search(old + "\n" + new) else branches[path] & real
         foreign |= ours
         if ([block for name, block in config_sections(old) if name not in ours]
                 != [block for name, block in config_sections(new) if name not in ours]):
             failing.append(path)
-    # `not foreign` too: a change no section accounts for must never pass as an empty note.
+    # `not foreign` too: with lossless decoding every change lands in some block, so this cannot
+    # trigger today; it keeps a future parsing gap from passing as an empty note.
     if not failing and foreign:
         return ("\nnote: another worktree changed the shared git config's [branch] section(s) for "
                 + ", ".join(sorted(foreign)) + " while this check ran (each a real local branch, so"
