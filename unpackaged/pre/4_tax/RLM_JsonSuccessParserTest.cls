@@ -3,7 +3,8 @@ private with sharing class RLM_JsonSuccessParserTest {
 
     // Every field each parser class maps. Each level (transaction, line, first detail, address,
     // summary, message) also carries an unmapped scalar, an unmapped object or array
-    // (consumeObject) and a null value (VALUE_NULL skip); the mapped values after them must survive.
+    // (consumeObject) and a null value (VALUE_NULL skip), followed by at least one mapped field
+    // (lines, details, rateType, taxRegionId, exemption, source) whose value must still be parsed.
     private static final String FULL_TRANSACTION = '{'
         + '"id": 123456,'
         + '"code": "DOC-PARSE-1",'
@@ -69,10 +70,10 @@ private with sharing class RLM_JsonSuccessParserTest {
         +         '"taxName": "CA STATE TAX",'
         +         '"taxAuthorityTypeId": 45,'
         +         '"taxCalculated": 72.5,'
-        +         '"rateType": "General",'
         +         '"jurisdictionType": "State",'
         +         '"liabilityType": {"code": "Seller"},'
-        +         '"unitOfBasis": null'
+        +         '"unitOfBasis": null,'
+        +         '"rateType": "General"'
         +     '}, {'
         +         '"id": 12,'
         +         '"jurisName": "SAN FRANCISCO"'
@@ -87,10 +88,10 @@ private with sharing class RLM_JsonSuccessParserTest {
         +     '"region": "WA",'
         +     '"postalCode": "98104",'
         +     '"country": "US",'
-        +     '"taxRegionId": 2109700,'
         +     '"latitude": "47.59821",'
         +     '"validatedAddresses": [{"line1": "255 S KING ST", "geo": {"lat": 47.6}}],'
-        +     '"line2": null'
+        +     '"line2": null,'
+        +     '"taxRegionId": 2109700'
         + '}],'
         + '"summary": [{'
         +     '"country": "US",'
@@ -109,20 +110,20 @@ private with sharing class RLM_JsonSuccessParserTest {
         +     '"tax": 15.08,'
         +     '"taxCalculated": 15.08,'
         +     '"nonTaxable": 0,'
-        +     '"exemption": 0,'
         +     '"taxSubType": "S",'
         +     '"rateTypeCode": {"value": "G"},'
-        +     '"reportingTaxable": null'
+        +     '"reportingTaxable": null,'
+        +     '"exemption": 7'
         + '}],'
         + '"messages": [{'
         +     '"summary": "Address not geocoded",'
         +     '"details": "Address fell back to a zip centroid",'
         +     '"refersTo": "Addresses[0]",'
         +     '"severity": "Warning",'
-        +     '"source": "Avalara.AvaTax.Services",'
         +     '"helpLink": "https://developer.avalara.com/",'
         +     '"extra": {"k": [1]},'
-        +     '"code": null'
+        +     '"code": null,'
+        +     '"source": "Avalara.AvaTax.Services"'
         + '}]'
         + '}';
 
@@ -250,7 +251,7 @@ private with sharing class RLM_JsonSuccessParserTest {
         assertClose(15.08, summary.tax, 'summary.tax');
         assertClose(15.08, summary.taxCalculated, 'summary.taxCalculated');
         Assert.areEqual(0, summary.nonTaxable, 'summary.nonTaxable');
-        Assert.areEqual(0, summary.exemption, 'summary.exemption');
+        Assert.areEqual(7, summary.exemption, 'summary.exemption follows the skipped entries.');
 
         RLM_JsonSuccessParser.Messages message = parsed.messages[0];
         Assert.areEqual('Address not geocoded', message.summary, 'message.summary');

@@ -11,8 +11,16 @@ private with sharing class RLM_CalculateTaxServiceTest {
     static void getTax_withLines_postsAvalaraPayloadAndReturnsCalculateTaxResponse() {
         RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
         Test.setMock(HttpCalloutMock.class, mock);
+        // The request line number and tax code differ from the engine payload's ("1", "P0000000"),
+        // so the response can show which side each value came from.
+        Double amount = 232;
+        Double quantity = 1;
+        commercetax.TaxLineItemRequest requestLine = new commercetax.TaxLineItemRequest(
+            RLM_TaxTestFactory.lineAddresses(), amount, 'Test line', RLM_TaxTestFactory.PRODUCT_CODE,
+            quantity, 'REQ-7', 'PC040100', null);
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
-            commercetax.CalculateTaxType.Estimated, 'DOC-CALC-1', RLM_TaxTestFactory.lines(232));
+            commercetax.CalculateTaxType.Estimated, 'DOC-CALC-1',
+            new List<commercetax.TaxLineItemRequest>{ requestLine });
         request.referenceEntityId = 'REF-CALC-1';
         request.taxTransactionType = commercetax.TaxTransactionType.Debit;
 
@@ -28,8 +36,12 @@ private with sharing class RLM_CalculateTaxServiceTest {
             'The document code is taken from the parsed engine response.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionId', '0', 'The engine transaction id is mapped.');
         RLM_TaxTestFactory.assertResponseField(response, 'status', 'Uncommitted', 'An engine status of Temporary maps to Uncommitted.');
-        RLM_TaxTestFactory.assertResponseField(response, 'lineNumber', '1', 'The engine line is mapped.');
+        RLM_TaxTestFactory.assertResponseField(response, 'lineNumber', '1', 'The engine line number is mapped.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxCode', 'P0000000', 'The engine line tax code is mapped.');
+        Assert.areEqual(0, RLM_TaxTestFactory.countResponseField(response, 'lineNumber', 'REQ-7'),
+            'Response lines come from the engine payload, not the request.');
+        Assert.areEqual(0, RLM_TaxTestFactory.countResponseField(response, 'taxCode', 'PC040100'),
+            'Response tax codes come from the engine payload, not the request.');
         // From the request.
         RLM_TaxTestFactory.assertResponseField(response, 'referenceEntityId', 'REF-CALC-1', 'The request reference entity is echoed.');
         RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'USD', 'The request currency is echoed.');
@@ -46,7 +58,11 @@ private with sharing class RLM_CalculateTaxServiceTest {
         Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(sent.getBody());
         Assert.areEqual('SalesOrder', body.get('type'), 'Estimated tax is sent as a SalesOrder.');
         Assert.areEqual('DOC-CALC-1', body.get('code'), 'The document code is sent.');
-        Assert.areEqual(1, ((List<Object>) body.get('lines')).size(), 'Every request line is sent.');
+        List<Object> sentLines = (List<Object>) body.get('lines');
+        Assert.areEqual(1, sentLines.size(), 'Every request line is sent.');
+        Map<String, Object> sentLine = (Map<String, Object>) sentLines[0];
+        Assert.areEqual('REQ-7', sentLine.get('number'), 'The request line number is sent to the engine.');
+        Assert.areEqual('PC040100', sentLine.get('taxCode'), 'The request tax code is sent to the engine.');
     }
 
     @IsTest

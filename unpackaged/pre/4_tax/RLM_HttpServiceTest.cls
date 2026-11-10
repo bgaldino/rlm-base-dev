@@ -48,13 +48,14 @@ private with sharing class RLM_HttpServiceTest {
         HttpRequest sent = mock.requests[0];
         Assert.areEqual('GET', sent.getMethod(), 'get() should send a GET.');
         Assert.areEqual('https://example.invalid/api/v2/utilities/ping', sent.getEndpoint(), 'get() uses the endpoint as given.');
-        Assert.isTrue(String.isBlank(sent.getBody()), 'A GET carries no body.');
+        String body = sent.getBody();
+        Assert.isTrue(body == null || body == '', 'A GET carries no body: [' + body + ']');
 
         HttpResponse response = service.getResponse();
         Assert.isNotNull(response, 'The response should be stored.');
         Assert.areEqual(200, response.getStatusCode(), 'Stored response status');
         Assert.areEqual('{"ping":"pong"}', response.getBody(), 'Stored response body');
-        Assert.isTrue(service.getResponseToString().contains('200'),
+        Assert.isTrue(service.getResponseToString().contains('StatusCode=200'),
             'getResponseToString should describe the stored response: ' + service.getResponseToString());
     }
 
@@ -93,7 +94,9 @@ private with sharing class RLM_HttpServiceTest {
         Test.stopTest();
 
         Assert.areEqual(1, mock.requests.size(), 'The POST is still sent.');
-        Assert.isTrue(String.isBlank(mock.requests[0].getBody()), 'A blank body is not set on the request.');
+        // An unset HttpRequest body reads back as ''; the whitespace must not have been set.
+        String body = mock.requests[0].getBody();
+        Assert.isTrue(body == null || body == '', 'A whitespace-only body is not set on the request: [' + body + ']');
     }
 
     @IsTest

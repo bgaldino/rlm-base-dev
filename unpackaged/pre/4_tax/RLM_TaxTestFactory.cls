@@ -72,22 +72,32 @@ public with sharing class RLM_TaxTestFactory {
     /**
      * The commercetax response classes have setters only. Their String form lists the values an
      * adapter set (for example documentCode=DOC-1 or errorCode=404), so it is the read-back path.
-     * An empty String value prints as "field=" and a null as "field=<null>".
+     * Use it for stable code and enum fields only, not for dates (their text depends on the time zone).
+     * An empty String prints as "field=" and an unset or null field as "field=<null>". Observed
+     * exception: ErrorResponse prints a null error code as an empty one ("errorCode=").
      */
     public static void assertResponseField(Object response, String field, String value, String message) {
-        assertResponseFieldMatches(response, field, Pattern.quote(value), message);
+        Assert.isTrue(countResponseField(response, field, value) > 0,
+            message + ' Expected ' + field + '=' + value + ' in: ' + String.valueOf(response));
     }
 
-    /** Matches field=<value> as a whole entry, wherever it sits in the field list. */
-    public static void assertResponseFieldMatches(Object response, String field, String valueRegex, String message) {
+    /**
+     * How many times field=value appears as a whole entry in one copy of the response (e.g. once
+     * per line item). The String form prints the response's delegate once per "delegate=" label
+     * (twice for a CalculateTaxResponse, observed), so the raw count is divided by that.
+     */
+    public static Integer countResponseField(Object response, String field, String value) {
         String described = String.valueOf(response);
-        Pattern entry = Pattern.compile('(?<=[\\[,])' + Pattern.quote(field + '=') + '(' + valueRegex + ')(?=[,\\]])');
-        Assert.isTrue(entry.matcher(described).find(),
-            message + ' Expected ' + field + '=' + valueRegex + ' in: ' + described);
+        Pattern entry = Pattern.compile('(?<=[\\[,])' + Pattern.quote(field + '=' + value) + '(?=[,\\]])');
+        Matcher matcher = entry.matcher(described);
+        Integer count = 0;
+        while (matcher.find()) {
+            count++;
+        }
+        Integer copies = Math.max(1, described.countMatches('delegate='));
+        Assert.areEqual(0, Math.mod(count, copies), 'Every printed copy should list the same entries: ' + described);
+        return count / copies;
     }
-
-    /** A value other than the platform's "<null>" marker. */
-    public static final String NON_NULL = '(?!<null>)[^,\\]]+';
 
     /** Records every request and answers with a fixed status and body. Never reaches the network. */
     public class RecordingHttpMock implements HttpCalloutMock {
@@ -104,7 +114,7 @@ public with sharing class RLM_TaxTestFactory {
             requests.add(request);
             HttpResponse response = new HttpResponse();
             response.setStatusCode(statusCode);
-            response.setStatus(statusCode == 200 ? 'OK' : 'Error');
+            response.setStatus(statusCode >= 200 && statusCode < 300 ? 'OK' : 'Error');
             response.setHeader('Content-Type', 'application/json');
             response.setBody(body);
             return response;
