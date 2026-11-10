@@ -836,21 +836,20 @@ private class RLM_Learning_FrameworkTest {
       'PRECONDITION: the learner does not own the existing row.'
     );
 
-    Boolean threw = false;
     Test.startTest();
     System.runAs(learnerUser) {
       try {
         RLM_Learning_SectionBlockSequence.updateSectionBlocks(emptyId, new List<String>{ blockId });
+        Assert.fail(
+          'Known gap: updateSectionBlocks throws an AuraHandledException when the learner does not own ' +
+          'the section\'s junction rows; update this test when it is fixed.'
+        );
       } catch (AuraHandledException e) {
-        threw = true;
+        Assert.isNotNull(e, 'the failed delete surfaces as an AuraHandledException');
       }
     }
     Test.stopTest();
 
-    Assert.isTrue(
-      threw,
-      'Known gap: a learner cannot delete junction rows it does not own; update this test when it is fixed.'
-    );
     Assert.areEqual(
       1,
       [SELECT COUNT() FROM RLM_Learning_SectionBlock__c WHERE RLM_Learning_Section__c = :emptyId WITH SYSTEM_MODE],

@@ -45,18 +45,16 @@ private class RLM_AA_Submit_ApprovalTest {
     // and any requests after the first are ignored. No flow is started.
     @IsTest
     static void callFlowFailsOnAnEmptyRequestList() {
-        Boolean threw = false;
         Test.startTest();
         try {
             RLM_AA_Submit_Approval.callFlow(new List<RLM_AA_Submit_Approval.svcParameter>());
+            Assert.fail('Known gap: an empty request list throws a raw ListException (only the first '
+                + 'request is read); update this test when it is fixed.');
         } catch (ListException caught) {
-            threw = true;
+            Assert.isTrue(caught.getMessage().contains('out of bounds'),
+                'the failure is the read of request 0: ' + caught.getMessage());
         }
         Test.stopTest();
-
-        Assert.isTrue(threw,
-            'Known gap: an empty request list throws ListException (only the first request is read); '
-            + 'update this test when it is fixed.');
     }
 
     // An unknown flow name cannot be started: the platform's TypeException
