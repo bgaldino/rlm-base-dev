@@ -1,3 +1,11 @@
+/**
+ * Tests for RLM_BillingCaseMetricsController.
+ *
+ * Documented, not pinned: the open-billing-cases metric counts Case Type 'Billing', which the
+ * CaseType value set this repo ships does not include. Case.Type is not a restricted picklist,
+ * so a test (or an API load) can still create such a case, and the tests here do; but on a
+ * repo-built org no case created through the UI has that type, so the metric reads zero there.
+ */
 @isTest
 private class RLM_BillingCaseMetricsControllerTest {
 
@@ -22,18 +30,11 @@ private class RLM_BillingCaseMetricsControllerTest {
         System.assertNotEquals(null, result.get('totalDisputedAmount'), 'Disputed amount should default to zero, not null.');
     }
 
-    // Positive path for the open-billing-case count. Case is an insertable standard object, so an
-    // open Case of Type 'Billing' should be reflected in the metric. Guarded to the orgs where
-    // 'Billing' is a valid Case.Type picklist value: the CaseType value set this repo ships has
-    // no 'Billing', so it runs only where an org adds that value itself.
+    // Positive path for the open-billing-case count. Case.Type is not a restricted picklist, so an
+    // open Case of Type 'Billing' can be created even where the value is not listed (see the
+    // class header), and it is reflected in the metric.
     @isTest
     static void getMetrics_openBillingCase_isCounted() {
-        if (!billingCaseTypeIsValid()) {
-            System.debug(LoggingLevel.WARN, 'SKIPPED: this org has no active \'Billing\' Case Type; '
-                + 'the repo\'s CaseType value set does not ship one.');
-            return;
-        }
-
         insert new Case(Subject = 'RLM Billing Case Metrics Test', Status = 'New', Type = 'Billing');
 
         Test.startTest();
@@ -44,16 +45,6 @@ private class RLM_BillingCaseMetricsControllerTest {
             'One open Type=Billing case should be counted.');
     }
 
-    private static Boolean billingCaseTypeIsValid() {
-        Schema.DescribeFieldResult typeField =
-            Case.SObjectType.getDescribe().fields.getMap().get('Type').getDescribe();
-        for (Schema.PicklistEntry entry : typeField.getPicklistValues()) {
-            if (entry.isActive() && entry.getValue() == 'Billing') {
-                return true;
-            }
-        }
-        return false;
-    }
 
     // Dispute is createable, so the dispute aggregates count real open disputes and sum their
     // amounts, read by a Billing Operations user who owns them (see billingUser). SUM is
@@ -121,9 +112,10 @@ private class RLM_BillingCaseMetricsControllerTest {
     }
 
     // A user who cannot query Dispute does not see an open dispute: the dispute seeded here is
-    // counted for the Billing Operations user who owns it, and the controller's dispute query is
-    // refused for this user (it records the error), so the zero comes from that refusal rather
-    // than from sharing.
+    // counted for the Billing Operations user who owns it. For this user either describe hides
+    // Dispute.Status (so the controller skips the query) or the controller's user-mode query is
+    // refused (it records the error); both are access refusals, so the zero does not come from
+    // sharing.
     @isTest
     static void getMetrics_userWhoCannotReadDisputes_doesNotCountTheDispute() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
@@ -144,6 +136,7 @@ private class RLM_BillingCaseMetricsControllerTest {
         }
 
         Boolean canQuery = true;
+        Boolean statusVisible = false;
         Map<String, Object> result;
         RLM_BillingCaseMetricsController.lastDisputeQueryError = null;
         Test.startTest();
@@ -153,27 +146,25 @@ private class RLM_BillingCaseMetricsControllerTest {
             } catch (Exception e) {
                 canQuery = false;
             }
+            Schema.SObjectType disputeType = Schema.getGlobalDescribe().get('Dispute');
+            statusVisible = disputeType != null
+                && disputeType.getDescribe().fields.getMap().containsKey('status');
             result = RLM_BillingCaseMetricsController.getMetrics();
         }
         Test.stopTest();
 
         Assert.isFalse(canQuery, 'PRECONDITION: the user cannot query Dispute in user mode.');
-        Assert.isNotNull(RLM_BillingCaseMetricsController.lastDisputeQueryError,
-            'The controller\'s user-mode dispute query was refused for this user.');
+        Assert.isTrue(RLM_BillingCaseMetricsController.lastDisputeQueryError != null || !statusVisible,
+            'The controller\'s dispute query was refused or skipped for lack of access, not run and '
+            + 'filtered by sharing.');
         Assert.areEqual(0, (Integer) result.get('openDisputes'), 'The open dispute is not counted.');
     }
 
     // A user who cannot query Case does not see the admin's open billing case (through access or
     // sharing; the controller records no error for the case count), and gets a zero rather than
-    // an error. It needs a 'Billing' Case Type, which the CaseType value set this
-    // repo ships does not include; without one the test is skipped with a warning.
+    // an error.
     @isTest
-    static void getMetrics_userWhoCannotReadCases_doesNotCountABillingCase_whenTheBillingTypeExists() {
-        if (!billingCaseTypeIsValid()) {
-            System.debug(LoggingLevel.WARN, 'SKIPPED: this org has no active \'Billing\' Case Type; '
-                + 'the repo\'s CaseType value set does not ship one.');
-            return;
-        }
+    static void getMetrics_userWhoCannotReadCases_doesNotCountABillingCase() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         Case openCase = new Case(Subject = 'RLM Billing Case Metrics unreadable', Status = 'New', Type = 'Billing');
         insert openCase;

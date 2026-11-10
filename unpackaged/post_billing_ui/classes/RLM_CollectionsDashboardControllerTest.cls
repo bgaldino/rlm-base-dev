@@ -116,11 +116,10 @@ private class RLM_CollectionsDashboardControllerTest {
 
     // The currency filter: an item in the corporate currency is summed under that currency and
     // left out under any other. The SUM is grouped by Status, so it comes back in the corporate
-    // currency whoever runs it.
+    // currency whoever runs it, and the item is created in it.
     @isTest
     static void getPaymentPromiseSummary_appliesTheCurrencyFilter() {
         Account acc = newAccount('RLM CD Promise Currency');
-        // A grouped SUM comes back in the corporate currency, so the item is created in it.
         String itemCurrency = corporateCurrency();
         String otherCurrency = anotherCurrency(itemCurrency);
         PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100, CurrencyIsoCode = itemCurrency);
@@ -254,8 +253,9 @@ private class RLM_CollectionsDashboardControllerTest {
         }
         Assert.isFalse(paymentTypes.isEmpty(), 'PRECONDITION: Payment.Type lists its values.');
         Assert.isFalse(paymentTypes.contains('Credit') || paymentTypes.contains('Credit Memo'),
-            'PRECONDITION: the unapplied-credits card filters Payment.Type on Credit and Credit Memo, '
-            + 'which are not Payment types here (' + paymentTypes + ').');
+            'Payment.Type has no credit value, so the unapplied-credits filter cannot match (see the '
+            + 'class header); if this fails, revisit the controller\'s credit filter and the header. '
+            + 'Payment types: ' + paymentTypes);
     }
 
     // A Draft debit memo is not owed: only a posted memo not yet on a posted invoice counts.
@@ -333,8 +333,10 @@ private class RLM_CollectionsDashboardControllerTest {
             RLM_CollectionsDashboardController.getWorklist(b.Id, UserInfo.getDefaultCurrency());
         Test.stopTest();
 
+        Assert.areEqual(3, unfiltered.disputedInvoices.size(),
+            'One disputed row per account with an open case, not one per case.');
         Map<Id, RLM_CollectionsDashboardController.WorklistItem> disputed = byAccount(unfiltered.disputedInvoices);
-        Assert.areEqual(3, disputed.size(), 'One disputed row per account with an open case.');
+        Assert.areEqual(3, disputed.size(), 'Each row is a different account.');
 
         RLM_CollectionsDashboardController.WorklistItem rowA = disputed.get(a.Id);
         Assert.areEqual(expectedA, rowA.disputeReason, 'Subject, description cut at 200, then the Reason.');

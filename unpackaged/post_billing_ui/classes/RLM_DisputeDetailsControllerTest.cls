@@ -68,9 +68,9 @@ private class RLM_DisputeDetailsControllerTest {
         }
         Test.stopTest();
 
-        assertAmount(30, approvedAmount(itemIds[0]), 'The known item\'s approved amount is saved.');
         Assert.isNull(caught, 'Known gap: an unmatched item id is skipped and the save reports success. '
             + 'Update this test when it is fixed.');
+        assertAmount(30, approvedAmount(itemIds[0]), 'The known item\'s approved amount is saved.');
     }
 
     // Dispute and DisputeItem are createable (Invoice and InvoiceLine are not), so the save
@@ -133,7 +133,7 @@ private class RLM_DisputeDetailsControllerTest {
         }
         Test.stopTest();
 
-        Assert.isTrue(rejected, 'An amount of ' + tooLarge + ' is past the field\'s range and is reported to the page.');
+        Assert.isTrue(rejected, 'An amount of ' + tooLarge + ' is rejected and reported to the page.');
         assertAmount(20, approvedAmount(itemIds[0]), 'The rejected save leaves the approved amount unchanged.');
     }
 
