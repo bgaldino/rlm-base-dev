@@ -712,13 +712,14 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide("docs/snaplink/.agents/artifacts/inbox/x.md"), "ask")
         self.assertEqual(self.decide("docs/arch/snap/.agents/artifacts/inbox/x.md"), "ask")
 
-    def test_paths_the_os_cannot_stat_do_not_crash_the_hook(self):
+    def test_paths_the_os_cannot_stat_are_asked_about_not_crashed_on(self):
+        # A missing parent is reported as missing first: a plain new path, judged normally.
         self.assertEqual(self.decide("docs/" + "a" * 300 + "/x.md"), "allow")
         locked = self.tmp / "locked"
         (locked / "sub").mkdir(parents=True)
         locked.chmod(0)
         try:
-            self.assertEqual(self.decide("locked/sub/x.md"), "allow")
+            self.assertEqual(self.decide("locked/sub/x.md"), "ask")
         finally:
             locked.chmod(0o755)
 
@@ -745,8 +746,9 @@ class ArtifactsPlacement(unittest.TestCase):
         proc = run_hook(GUARD, {"tool_name": "NotebookEdit", "cwd": str(self.tmp),
                                 "tool_input": {"notebook_path": ".agents/artifacts/a\x00b.ipynb",
                                                "new_source": "x"}})
-        # Judged, not crashed: a NUL-named top-level entry is a new one, so it is denied.
-        self.assertEqual(proc.returncode, 2, proc.stderr)
+        # Not walkable (lstat rejects a NUL), so asked about rather than guessed; never a crash.
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn('"ask"', proc.stdout)
         self.assertNotIn("Traceback", proc.stderr)
 
     def test_both_landings_are_judged_and_the_stricter_wins(self):
@@ -910,6 +912,52 @@ class ArtifactsPlacement(unittest.TestCase):
         cased = Path(str(self.tree).replace("/.agents/artifacts", "/.AGENTS/ARTIFACTS"))
         (self.tree / "topics" / "cv").symlink_to(cased / "inbox", target_is_directory=True)
         self.assertEqual(self.decide(".agents/artifacts/topics/cv/2026-11-10-a.md"), "allow")
+
+    def test_a_lone_surrogate_is_judged_as_the_name_the_tool_writes(self):
+        # Node writes a lone surrogate as U+FFFD and follows a link of that name.
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        (self.tree / "topics" / "\ufffd").symlink_to(outside, target_is_directory=True)
+        self.assertEqual(self.decide(".agents/artifacts/topics/\udcff/pwn.md"), "deny")
+
+    def test_a_link_the_walk_cannot_stat_leaves_the_reading_unjudged(self):
+        # Past PATH_MAX the walk cannot lstat a component, though the kernel, resolving each
+        # link separately, could still write through it: ask, never walk it as a plain dir.
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        name = "a" * 200
+        three = "/".join([name] * 3)
+        here = os.getcwd()
+        try:
+            # Built one level at a time: no single call may pass macOS's 1024-byte PATH_MAX.
+            os.chdir(self.tree / "topics")
+            os.symlink(three, "s1")
+            for _ in range(3):
+                os.mkdir(name)
+                os.chdir(name)
+            os.symlink(three, "s2")
+            for _ in range(3):
+                os.mkdir(name)
+                os.chdir(name)
+            os.symlink(str(outside), "esc")  # six levels deep: physically past PATH_MAX
+        finally:
+            os.chdir(here)
+        self.assertEqual(self.decide(".agents/artifacts/topics/s1/s2/esc/pwn.md"), "ask")
+
+    def test_a_nested_clone_is_judged_by_the_outer_clone(self):
+        inner = self.tree / "topics" / "x" / ".agents" / "artifacts"
+        (inner / ".git").mkdir(parents=True)
+        # Outer rules: topics/ is a tier, so this is allowed; inner rules would call
+        # newtop.md a new top-level entry.
+        self.assertEqual(self.decide(".agents/artifacts/topics/x/.agents/artifacts/newtop.md"),
+                         "allow")
+
+    def test_a_sibling_with_its_own_repo_is_not_the_clone(self):
+        sib = self.tmp / ".agents" / "artifacts.old"
+        (sib / ".git").mkdir(parents=True)
+        (self.tmp / "docs").mkdir()
+        (self.tmp / "docs" / "old").symlink_to(sib, target_is_directory=True)
+        self.assertEqual(self.decide("docs/old/inbox/a.md"), "deny")
 
     def test_public_agents_files_are_untouched(self):
         self.assertEqual(self.decide(".agents/README.md"), "allow")

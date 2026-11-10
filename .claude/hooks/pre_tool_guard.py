@@ -90,6 +90,7 @@ import json
 import os
 import re
 import shlex
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -722,7 +723,17 @@ def _resolution_steps(raw: str) -> Optional[_Walk]:
             cur = cur.parent
         else:
             nxt = cur / comp
-            if os.path.islink(nxt):  # islink never raises
+            # lstat, not islink(): islink() answers False for ANY failure, so a link the walk
+            # cannot stat (its own path past PATH_MAX, an unencodable name) would be walked as
+            # a plain directory and its target never judged. Only "missing" or "not a
+            # directory" means plain; any other failure leaves this reading unjudged.
+            try:
+                is_link = stat.S_ISLNK(os.lstat(nxt).st_mode)
+            except (FileNotFoundError, NotADirectoryError):
+                is_link = False
+            except (OSError, ValueError):
+                return None
+            if is_link:
                 if len(links) >= MAX_LINK_HOPS:
                     return None
                 try:
@@ -740,8 +751,10 @@ def _resolution_steps(raw: str) -> Optional[_Walk]:
 
 
 def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
-    """Rule 4. A path the OS cannot even stat (too long, an unreadable directory, a NUL byte)
-    is allowed here: the write itself fails the same way, and a crash would skip later rules."""
+    """Rule 4. A reading the walk cannot stat (a component past PATH_MAX, an unreadable
+    directory, a NUL byte) is not guessed at: the rule asks, since the kernel, resolving each
+    link separately, may still write where the walk could not look. Any unexpected error is
+    allowed rather than crashing the hook, which would skip the rules after this one."""
     try:
         return _artifacts_decision(path, cwd)
     except (OSError, ValueError):
@@ -766,6 +779,9 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
         return "allow", ""
     _TREE_CACHE.clear()
     _IDENTITY_CACHE.clear()
+    # Claude Code (Node) writes a lone UTF-16 surrogate as U+FFFD; Python would encode it as a
+    # different byte, so judge the name the tool will actually write.
+    path = re.sub("[\ud800-\udfff]", "\ufffd", path)
     raw = os.path.join(cwd, os.path.expanduser(path))
     lexical = Path(os.path.normpath(raw))
     # Where does the write land? Claude Code's tools normalise the text first (`..` removed
