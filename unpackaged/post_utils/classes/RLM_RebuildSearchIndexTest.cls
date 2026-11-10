@@ -262,12 +262,12 @@ private class RLM_RebuildSearchIndexTest {
         Assert.areEqual(
             'FULL',
             body.get('buildType'),
-            'Known gap: the request\'s buildType is not forwarded yet; update this test when it is'
+            'Known gap: the request\'s buildType is not forwarded yet; update this test when it is fixed'
         );
         Assert.areEqual(
             'IMMEDIATE',
             ((Map<String, Object>) body.get('snapshot')).get('activationType'),
-            'Known gap: the request\'s activationType is not forwarded yet; update this test when it is'
+            'Known gap: the request\'s activationType is not forwarded yet; update this test when it is fixed'
         );
     }
 

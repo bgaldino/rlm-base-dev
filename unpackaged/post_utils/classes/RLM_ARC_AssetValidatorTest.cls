@@ -1,8 +1,8 @@
 /**
  * Tests for RLM_ARC_AssetValidator: which assets are flagged usage-based or derived-price,
  * how a request is widened through AssetRelationship in both directions, the
- * action-specific blocked messages, and that a call uses a constant 6 SOQL queries regardless
- * of request count.
+ * action-specific blocked messages, and that the query count does not grow with the number of
+ * requests (6 when any asset is blocked, 5 when none is, 0 with no ids).
  *
  * Not covered:
  *  - the ramped branch. AssetStatePeriod.RampIdentifier is not createable (the platform
@@ -201,9 +201,11 @@ private class RLM_ARC_AssetValidatorTest {
 
         Test.startTest();
         RLM_ARC_AssetValidator.Result res = validateOne(new List<Id>{ clean.Id, noProduct.Id });
+        Integer queries = Limits.getQueries();
         Test.stopTest();
 
         assertUnblocked(res);
+        Assert.areEqual(5, queries, 'With nothing blocked, the blocked-asset display query is skipped');
     }
 
     @IsTest
@@ -446,6 +448,6 @@ private class RLM_ARC_AssetValidatorTest {
 
         // relationships, ramp periods, assets, usage resources, price book entries, blocked assets
         Assert.areEqual(6, singleRequestQueries, 'One request uses 6 queries');
-        Assert.areEqual(6, bulkQueries, 'Four requests use the same constant 6 queries regardless of request count');
+        Assert.areEqual(6, bulkQueries, 'Four requests use the same 6 queries as one; the count does not grow with requests');
     }
 }

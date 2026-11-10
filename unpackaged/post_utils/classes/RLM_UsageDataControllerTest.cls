@@ -156,7 +156,8 @@ private class RLM_UsageDataControllerTest {
     /**
      * The controller strips fields the running user cannot read, so row assertions on these
      * fields (and the related names used as link labels) only hold when the runner can read
-     * them. End users get them from RLM_UsageDatatables.
+     * them: by an explicit grant from the usage permission sets (RLM_UsageDatatables for end
+     * users), or because the field is required (Name, Status), which needs no grant.
      */
     private static void assertJournalFieldsReadable() {
         Map<String, Schema.SObjectField> fields = Schema.SObjectType.TransactionJournal.fields.getMap();
@@ -165,8 +166,8 @@ private class RLM_UsageDataControllerTest {
         }) {
             Assert.isTrue(
                 fields.get(fieldName).getDescribe().isAccessible(),
-                'PRECONDITION: the running user must read TransactionJournal.' + fieldName +
-                ' (granted to end users by RLM_UsageDatatables), or stripInaccessible removes it'
+                'PRECONDITION: TransactionJournal.' + fieldName + ' must be readable by the running user ' +
+                '(explicit grant via the usage permission sets, or a required field), or stripInaccessible removes it'
             );
         }
         Map<String, Schema.SObjectField> relatedNames = new Map<String, Schema.SObjectField>{
@@ -177,8 +178,8 @@ private class RLM_UsageDataControllerTest {
         for (String label : relatedNames.keySet()) {
             Assert.isTrue(
                 relatedNames.get(label).getDescribe().isAccessible(),
-                'PRECONDITION: the running user must read ' + label +
-                ' (granted to end users by RLM_UsageDatatables), or the lookup label is stripped'
+                'PRECONDITION: ' + label + ' must be readable by the running user ' +
+                '(explicit grant via the usage permission sets, or a required field), or the lookup label is stripped'
             );
         }
     }
@@ -320,6 +321,7 @@ private class RLM_UsageDataControllerTest {
             journals.add(buildJournal(accId, busy.Id, ur.Id, uom.Id, 1));
         }
         insert journals;
+        journals = null; // release the inserted list so the measured call has the heap to itself
 
         Test.startTest();
         Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
@@ -446,12 +448,15 @@ private class RLM_UsageDataControllerTest {
         // Real fields that are not allowed filters for their object. CreatedById would widen the
         // scope beyond one Account or Asset; the others are simply not offered as filters. Each
         // exists on its object, so the allowlist (not the field-exists check) is what rejects it.
-        Assert.isTrue(Schema.SObjectType.TransactionJournal.fields.getMap().containsKey('CreatedById'), 'PRECONDITION');
-        Assert.isTrue(Schema.SObjectType.TransactionJournal.fields.getMap().containsKey('UsageResourceId'), 'PRECONDITION');
-        Assert.isTrue(Schema.SObjectType.UsageSummary.fields.getMap().containsKey('Status'), 'PRECONDITION');
+        Assert.isTrue(Schema.SObjectType.TransactionJournal.fields.getMap().containsKey('CreatedById'),
+            'PRECONDITION: TransactionJournal.CreatedById exists');
+        Assert.isTrue(Schema.SObjectType.TransactionJournal.fields.getMap().containsKey('UsageResourceId'),
+            'PRECONDITION: TransactionJournal.UsageResourceId exists');
+        Assert.isTrue(Schema.SObjectType.UsageSummary.fields.getMap().containsKey('Status'),
+            'PRECONDITION: UsageSummary.Status exists');
         Assert.isTrue(
             Schema.SObjectType.UsageBillingPeriodItem.fields.getMap().containsKey('UsageEntitlementBucketId'),
-            'PRECONDITION'
+            'PRECONDITION: UsageBillingPeriodItem.UsageEntitlementBucketId exists'
         );
 
         Test.startTest();
