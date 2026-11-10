@@ -29,7 +29,7 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
     @IsTest
     static void estimatedRequest_withCodesAndDates_buildsSalesOrder() {
         Datetime effective = Datetime.newInstanceGmt(2026, 1, 15, 12, 0, 0);
-        Datetime lineEffective = Datetime.newInstanceGmt(2026, 1, 20, 0, 0, 0);
+        Datetime lineEffective = Datetime.newInstanceGmt(2026, 1, 20, 12, 0, 0);
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated,
             'DOC-100',
@@ -129,7 +129,7 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
     }
 
     @IsTest
-    static void request_withoutCommitOrCodes_omitsThoseFields() {
+    static void request_withoutCommitCodesOrAccountId_omitsFieldsAndUsesCustomerCode() {
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, null, RLM_TaxTestFactory.lines(100));
         request.customerDetails = new commercetax.TaxCustomerDetailsRequest('', 'CUST-EMPTY-ACCOUNT', null, null);

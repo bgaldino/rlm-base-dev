@@ -11,6 +11,10 @@
  * "...[status=Committed,taxTransactionType=Credit,...]"), so it depends on that undocumented
  * format. Accepted risk: if a release changes it, responseStringForm_matchesHelperPremise names
  * the cause; every String-form assertion fails with it.
+ *
+ * The same accepted risk covers how the commercetax setters reject input: the tests expect
+ * setAmountDetails(null) to throw an exception named commercetax.TaxApiException, and
+ * setTaxTransactionType(null) to throw. A release that changes either fails those tests.
  */
 @IsTest
 public with sharing class RLM_TaxTestFactory {
