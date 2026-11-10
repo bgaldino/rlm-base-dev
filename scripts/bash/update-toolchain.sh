@@ -12,7 +12,8 @@
 #      it's an older patch that does
 #   3. Node — latest patch of the major line pinned in .nvmrc (via nvm:
 #      Homebrew's, or nvm's own installer's), carrying npm globals forward
-#   4. sf CLI — npm install -g when npm-installed, else `sf update`
+#   4. sf CLI — the one that runs: npm install -g for an npm global, else
+#      `sf update`; other copies on PATH are named, not updated
 #   5. CCI — pipx (reinstall is required after any Python patch bump), then
 #      robot/requirements.txt re-injected (CCI's own pins downgrade selenium).
 #      pipx's own scripts are rewritten for the new patch, and other pipx apps
@@ -195,18 +196,54 @@ fi
 log "Node: now on $NEW_NODE"
 
 # ── 4. sf CLI ───────────────────────────────────────────────────────────────
-# sf lives in nvm's npm globals, and `sf update` refuses npm-based installs
-# ("not updatable") while still exiting 0, so update it through npm.
-if [ -d "$(npm root -g)/@salesforce/cli" ]; then
+# Update the `sf` that runs (the first on PATH), through the tool that installed
+# it. Routing on whether an npm copy merely exists updated that copy even when a
+# standalone install ran first, and then logged the standalone's unchanged
+# version as "now". An npm install needs npm: `sf update` refuses it ("not
+# updatable") while still exiting 0. `-ef` compares the files, so the npm bin
+# symlink matches however PATH spells its directory (bash 3.2 has it).
+RUN_SF="$(command -v sf 2>/dev/null || true)"
+# `|| true`: a plain assignment from a failing npm would end the script here
+# under `set -e`. With no prefix there is no npm copy to match, so NPM_SF stays
+# empty rather than becoming `/bin/sf` (on Linux often the same file as a
+# system /usr/bin/sf).
+NPM_PREFIX="$(npm prefix -g 2>/dev/null || true)"
+NPM_SF=""
+if [ -n "$NPM_PREFIX" ]; then NPM_SF="$NPM_PREFIX/bin/sf"; fi
+if [ -z "$RUN_SF" ]; then
+  warn "sf not found on PATH for $NEW_NODE — installing"
+  npm install -g @salesforce/cli@latest || fail_later "sf CLI install failed — try: npm install -g @salesforce/cli@latest"
+elif [ -n "$NPM_SF" ] && [ "$RUN_SF" -ef "$NPM_SF" ]; then
   log "sf CLI: npm install -g @salesforce/cli@latest (was $(sf --version 2>/dev/null | head -1 | cut -d' ' -f1))"
   npm install -g @salesforce/cli@latest || fail_later "sf CLI update failed — try: npm install -g @salesforce/cli@latest"
   log "sf CLI: now $(sf --version 2>/dev/null | head -1 | cut -d' ' -f1)"
-elif command -v sf >/dev/null 2>&1; then
-  log "sf CLI: installer-based install at $(command -v sf) — sf update"
-  sf update || fail_later "sf update failed"
 else
-  warn "sf not found on PATH for $NEW_NODE — installing"
-  npm install -g @salesforce/cli@latest
+  log "sf CLI: installer-based install at $RUN_SF — sf update"
+  sf update || fail_later "sf update failed"
+fi
+# Name every other `sf` on PATH: no update above reaches it, so it drifts in
+# version, and it runs instead whenever PATH puts it first (validate_setup WARNs
+# about the same). Listed once each by file, not by spelling, so a directory
+# PATH repeats, or reaches through a symlink, still counts once.
+OTHER_SF=""   # one path per line
+RUN_SF="$(command -v sf 2>/dev/null || true)"
+while IFS= read -r p; do
+  [ -n "$p" ] || continue
+  if [ -n "$RUN_SF" ] && [ "$p" -ef "$RUN_SF" ]; then continue; fi
+  SEEN=0
+  while IFS= read -r q; do
+    if [ -n "$q" ] && [ "$p" -ef "$q" ]; then SEEN=1; fi
+  done <<LISTED
+$OTHER_SF
+LISTED
+  if [ "$SEEN" = 0 ]; then OTHER_SF="$OTHER_SF$p
+"; fi
+done <<FOUND
+$(type -ap sf 2>/dev/null || true)
+FOUND
+if [ -n "$OTHER_SF" ]; then
+  OTHER_SHOWN="$(printf '%s' "$OTHER_SF" | tr '\n' ' ')"
+  warn "sf CLI: other copies on PATH were not updated: ${OTHER_SHOWN% } — keep one (dev-environment-setup.md, Troubleshooting → More than one \`sf\` install)"
 fi
 
 # ── 5. CCI (pipx) ───────────────────────────────────────────────────────────

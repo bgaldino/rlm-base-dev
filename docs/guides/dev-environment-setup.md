@@ -479,9 +479,10 @@ The script handles:
    installed. nvm comes from Homebrew (`brew --prefix nvm`) or, failing that,
    nvm's own installer (`$NVM_DIR/nvm.sh`, or `$XDG_CONFIG_HOME/nvm/nvm.sh`);
    `.envrc` finds it the same way
-4. `npm install -g @salesforce/cli@latest` — `sf` is an npm global under nvm's
-   Node, and `sf update` refuses npm-based installs (it falls back to `sf update`
-   only for an installer-based `sf`)
+4. Updates the `sf` that runs (the first on PATH): `npm install -g @salesforce/cli@latest`
+   when that is nvm's npm global, since `sf update` refuses npm-based installs, or
+   `sf update` for an installer-based `sf`. It then names any other `sf` on PATH,
+   which no update reaches (see Troubleshooting → More than one `sf` install)
 5. `pipx reinstall cumulusci --python <new patch>` (if Python patch bumped, or
    CCI's venv isn't running that patch) **or** `pipx upgrade cumulusci` —
    required because patch upgrades break the venv's python symlink. The script
@@ -1066,7 +1067,8 @@ the standalone installer) reaches only the install it targets, so the two can dr
 version. Plugins are shared between them (see below). A standalone install also bundles its own
 Node, so `sf --version` can report a Node that isn't the one `.nvmrc` pins.
 `cci task run validate_setup` names the `sf` that runs, with its path and install method, and
-WARNs when another one is later on PATH. To see them yourself:
+WARNs when another one is later on PATH. `scripts/bash/update-toolchain.sh` updates only the one
+that runs and names the others it left alone. To see them yourself:
 
 ```bash
 which -a sf sfdx
