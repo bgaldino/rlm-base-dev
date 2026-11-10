@@ -3,6 +3,8 @@ private class RLM_QuoteModelUtilityTest {
 
     private static final Date START_DATE = Date.newInstance(2026, 3, 5);
     private static final Date END_DATE = Date.newInstance(2027, 3, 4);
+    private static final String LOCAL_TIME_AS_UTC =
+        'Known gap: local time is labelled UTC (Z); update this test when it is fixed';
 
     private class QuoteFixture {
         Quote quote;
@@ -148,7 +150,7 @@ private class RLM_QuoteModelUtilityTest {
         Assert.areEqual(q.CurrencyIsoCode, txn.CurrencyIsoCode, 'The quote currency is carried');
         Assert.areEqual(
             q.CreatedDate.format('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''), txn.EffectiveDate,
-'Known gap: local time is labelled UTC (Z); update this test when it is fixed (quote creation time as the effective date)'
+            LOCAL_TIME_AS_UTC + ' (quote creation time as the effective date)'
         );
         Assert.areEqual(stored.size(), txn.SalesTransactionItem.size(), 'Every quote line becomes one transaction item');
 
@@ -161,8 +163,14 @@ private class RLM_QuoteModelUtilityTest {
             Assert.areEqual(String.valueOf(line.ListPrice), item.InputUnitPrice, 'The list price is the input price');
             Assert.areEqual('12', item.ItemSubscriptionTerm, 'The subscription term is carried');
             Assert.areEqual('PriceBook', item.ItemPricingSource, 'Items are priced from the price book');
-            Assert.areEqual('2026-03-05T00:00:00.000Z', item.EffectiveFrom, 'Known gap: local time is labelled UTC (Z); update this test when it is fixed (start date at the start of the day)');
-            Assert.areEqual('2027-03-04T23:59:59.000Z', item.EffectiveTo, 'Known gap: local time is labelled UTC (Z); update this test when it is fixed (end date at the end of the day)');
+            Assert.areEqual(
+                '2026-03-05T00:00:00.000Z', item.EffectiveFrom,
+                LOCAL_TIME_AS_UTC + ' (start date at the start of the day)'
+            );
+            Assert.areEqual(
+                '2027-03-04T23:59:59.000Z', item.EffectiveTo,
+                LOCAL_TIME_AS_UTC + ' (end date at the end of the day)'
+            );
             Assert.areEqual('5', item.StartProrationPeriodDay, 'The proration day is the start day');
             Assert.areEqual('false', item.AllowPartialProrationPeriods, 'With no proration policy, partial periods are not allowed');
             Assert.isTrue(item.SalesTransactionItemAttribute.isEmpty(), 'No attributes on a plain line');
@@ -174,7 +182,10 @@ private class RLM_QuoteModelUtilityTest {
     static void sellingModelIsCarriedOnTheItem() {
         QuoteFixture f = buildQuote(1, true, false);
         QuoteLineItem stored = [SELECT ProductSellingModelId, ProrationPolicyId FROM QuoteLineItem WHERE Id = :f.lines[0].Id];
-        Assert.areEqual(f.sellingModel.Id, stored.ProductSellingModelId, 'PRECONDITION: the line takes its selling model from the price book entry');
+        Assert.areEqual(
+            f.sellingModel.Id, stored.ProductSellingModelId,
+            'PRECONDITION: the line takes its selling model from the price book entry'
+        );
         // The selling model option's proration policy is not copied onto a line inserted by DML.
         Assert.isNull(stored.ProrationPolicyId, 'PRECONDITION: the line has no proration policy');
 
@@ -236,7 +247,10 @@ private class RLM_QuoteModelUtilityTest {
                 itemFor(txn, childLineId).SalesTrxnItemRelationship;
             Assert.areEqual(1, rels.size(), 'Each child line carries its one relationship');
             RLM_QuoteModelUtility.SalesTransactionItemRelationshipModel rel = rels[0];
-            Assert.areEqual(expectedInclusive.get(childLineId), rel.InclusivePrice, 'Bundle pricing maps to InclusivePrice for ' + childLineId);
+            Assert.areEqual(
+                expectedInclusive.get(childLineId), rel.InclusivePrice,
+                'Bundle pricing maps to InclusivePrice for ' + childLineId
+            );
             Assert.areEqual(String.valueOf(childLineId), rel.SalesTrnItemRelationshipParent, 'The relationship hangs off the child line');
             Assert.areEqual(String.valueOf(parentProductId), rel.MainItemProduct, 'The bundle parent product is the main item');
             Assert.areEqual(String.valueOf(parentProductId), rel.RootItemProduct, 'The bundle parent product is the root item');
@@ -317,7 +331,13 @@ private class RLM_QuoteModelUtilityTest {
     static void dateConversionsSpanTheWholeDay() {
         Date d = Date.newInstance(2026, 11, 9);
 
-        Assert.areEqual('2026-11-09T00:00:00.000Z', RLM_QuoteModelUtility.convertStartDate(d), 'Known gap: local time is labelled UTC (Z); update this test when it is fixed (start of day)');
-        Assert.areEqual('2026-11-09T23:59:59.000Z', RLM_QuoteModelUtility.convertEndDate(d), 'Known gap: local time is labelled UTC (Z); update this test when it is fixed (end of day)');
+        Assert.areEqual(
+            '2026-11-09T00:00:00.000Z', RLM_QuoteModelUtility.convertStartDate(d),
+            LOCAL_TIME_AS_UTC + ' (start of day)'
+        );
+        Assert.areEqual(
+            '2026-11-09T23:59:59.000Z', RLM_QuoteModelUtility.convertEndDate(d),
+            LOCAL_TIME_AS_UTC + ' (end of day)'
+        );
     }
 }
