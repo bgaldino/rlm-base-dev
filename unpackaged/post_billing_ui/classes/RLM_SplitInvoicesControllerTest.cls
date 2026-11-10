@@ -47,4 +47,149 @@ private class RLM_SplitInvoicesControllerTest {
             'Account name should resolve by id.');
         System.assertEquals(0, result.arrangementNames.size(), 'Null arrangement ids resolve to an empty map.');
     }
+
+    // Contacts resolve by name; a list of blank ids resolves to nothing without a query; and an
+    // object with no Name field (Case) yields an empty map instead of failing the other lists.
+    @isTest
+    static void getRelatedNames_resolvesContactsSkipsBlanksAndToleratesNamelessObjects() {
+        Account acc = new Account(Name = 'RLM Split Invoices Contact Test');
+        insert acc;
+        Contact con = new Contact(FirstName = 'Ana', LastName = 'Rivera', AccountId = acc.Id);
+        insert con;
+        Case c = new Case(AccountId = acc.Id, Subject = 'RLM split invoices case');
+        insert c;
+
+        Test.startTest();
+        RLM_SplitInvoicesController.RelatedNamesResult result =
+            RLM_SplitInvoicesController.getRelatedNames(
+                new List<String>{ acc.Id },
+                new List<String>{ '', null },
+                new List<String>{ c.Id },
+                new List<String>{ con.Id });
+        Test.stopTest();
+
+        Assert.areEqual('RLM Split Invoices Contact Test', result.accountNames.get(acc.Id),
+            'The account still resolves when another list cannot.');
+        Assert.areEqual('Ana Rivera', result.contactNames.get(con.Id), 'The contact resolves to its full name.');
+        Assert.isTrue(result.arrangementNames.isEmpty(), 'Blank ids resolve to an empty map.');
+        Assert.isTrue(result.profileNames.isEmpty(),
+            'An object without a Name field resolves to an empty map rather than an error.');
+    }
+
+    // InvoiceRow maps a queried invoice, including the names on its three lookups. Invoices
+    // are not insertable, so the row is built from an invoice deserialized with its
+    // relationships, the shape the correlation query returns.
+    @isTest
+    static void invoiceRow_mapsFieldsAndLookupNames() {
+        Id invoiceId = fakeId('Invoice', 1);
+        Id accountId = fakeId('Account', 1);
+        Id arrangementId = fakeId('BillingArrangement', 1);
+        Id profileId = fakeId('BillingAccount', 1);
+        Date invoiceDate = Date.newInstance(2026, 1, 15);
+        SObject inv = invoiceFromJson(new Map<String, Object>{
+            'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
+            'Id' => invoiceId,
+            'DocumentNumber' => 'INV-0001',
+            'InvoiceDate' => invoiceDate,
+            'Balance' => 250,
+            'Status' => 'Posted',
+            'BillingAccountId' => accountId,
+            'BillingAccount' => related('Account', accountId, 'RLM Split Account'),
+            'BillingArrangementId' => arrangementId,
+            'BillingArrangement' => related('BillingArrangement', arrangementId, 'RLM Split Arrangement'),
+            'BillingProfileId' => profileId,
+            'BillingProfile' => related('BillingAccount', profileId, 'RLM Split Profile'),
+            'BillingArrangementVerNumber' => 3
+        });
+
+        Test.startTest();
+        RLM_SplitInvoicesController.InvoiceRow row = new RLM_SplitInvoicesController.InvoiceRow(inv);
+        Test.stopTest();
+
+        Assert.areEqual(String.valueOf(invoiceId), String.valueOf(row.Id), 'Invoice id.');
+        Assert.areEqual('INV-0001', row.DocumentNumber, 'Document number.');
+        Assert.areEqual(invoiceDate, row.InvoiceDate, 'Invoice date.');
+        Assert.areEqual(250, row.Balance, 'Balance.');
+        Assert.areEqual('Posted', row.Status, 'Status.');
+        Assert.areEqual(String.valueOf(accountId), row.billingAccountId, 'Billing account id.');
+        Assert.areEqual('RLM Split Account', row.billingAccountName, 'Billing account name.');
+        Assert.areEqual(String.valueOf(arrangementId), row.billingArrangementId, 'Billing arrangement id.');
+        Assert.areEqual('RLM Split Arrangement', row.billingArrangementName, 'Billing arrangement name.');
+        Assert.areEqual(String.valueOf(profileId), row.billingProfileId, 'Billing profile id.');
+        Assert.areEqual('RLM Split Profile', row.billingProfileName, 'Billing profile name.');
+        Assert.areEqual('3', row.billingArrangementVerNumber, 'The version number is shown as text.');
+    }
+
+    // An invoice with no lookups set leaves every id and name null rather than failing.
+    @isTest
+    static void invoiceRow_withoutLookups_leavesIdsAndNamesNull() {
+        SObject inv = invoiceFromJson(new Map<String, Object>{
+            'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
+            'Id' => fakeId('Invoice', 2),
+            'Status' => 'Draft'
+        });
+
+        Test.startTest();
+        RLM_SplitInvoicesController.InvoiceRow row = new RLM_SplitInvoicesController.InvoiceRow(inv);
+        Test.stopTest();
+
+        Assert.areEqual('Draft', row.Status, 'Status.');
+        Assert.isNull(row.billingAccountId, 'No billing account id.');
+        Assert.isNull(row.billingAccountName, 'No billing account name.');
+        Assert.isNull(row.billingArrangementId, 'No billing arrangement id.');
+        Assert.isNull(row.billingArrangementName, 'No billing arrangement name.');
+        Assert.isNull(row.billingProfileId, 'No billing profile id.');
+        Assert.isNull(row.billingProfileName, 'No billing profile name.');
+        Assert.isNull(row.billingArrangementVerNumber, 'No version number.');
+    }
+
+    // A user who cannot read invoices gets a handled error from the correlation list, and an
+    // empty billing info (both of its queries fail and are skipped) rather than an exception.
+    @isTest
+    static void userWithoutInvoiceAccess_getsAHandledErrorAndEmptyInfo() {
+        // Minimum Access with no license or permission set: no billing object is readable.
+        User u = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Id fakeInvoice = fakeId('Invoice', 3);
+        Boolean premise = false;
+        Boolean listThrew = false;
+        RLM_SplitInvoicesController.CurrentInvoiceBillingInfo info;
+        Test.startTest();
+        System.runAs(u) {
+            try {
+                Database.query('SELECT Id FROM Invoice LIMIT 1', AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                premise = true;
+            }
+            try {
+                RLM_SplitInvoicesController.getInvoicesByCorrelation('RLM-NO-ACCESS');
+            } catch (AuraHandledException e) {
+                listThrew = true;
+            }
+            info = RLM_SplitInvoicesController.getCurrentInvoiceBillingInfo(fakeInvoice);
+        }
+        Test.stopTest();
+        Assert.isTrue(premise, 'Premise: this user must be unable to read Invoice.');
+        Assert.isTrue(listThrew, 'An unreadable invoice query must surface as an AuraHandledException.');
+        Assert.isNotNull(info, 'Billing info is still returned.');
+        Assert.isNull(info.billingArrangementName, 'No arrangement name for a user who cannot read invoices.');
+        Assert.isNull(info.billingArrangementVerNumber, 'No version number for a user who cannot read invoices.');
+    }
+
+    private static Id fakeId(String objectName, Integer n) {
+        String prefix = Schema.getGlobalDescribe().get(objectName).getDescribe().getKeyPrefix();
+        return Id.valueOf(prefix + String.valueOf(n).leftPad(12, '0'));
+    }
+
+    private static Map<String, Object> related(String objectName, Id recordId, String name) {
+        return new Map<String, Object>{
+            'attributes' => new Map<String, Object>{ 'type' => objectName },
+            'Id' => recordId,
+            'Name' => name
+        };
+    }
+
+    // Read-only fields and relationships cannot be set on a constructed sObject; JSON can.
+    private static SObject invoiceFromJson(Map<String, Object> fields) {
+        return (SObject) JSON.deserialize(JSON.serialize(fields), Invoice.class);
+    }
 }

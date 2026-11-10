@@ -23,4 +23,17 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         System.assertNotEquals(null, rows, 'A non-null list should always be returned.');
         System.assertEquals(0, rows.size(), 'No tax rows exist for a non-existent invoice.');
     }
+
+    // Each aggregate row becomes one TaxSummaryRow carrying the tax name, its total and the
+    // currency it is in, which is what the LWC renders per tax.
+    @isTest
+    static void taxSummaryRow_carriesNameTotalAndCurrency() {
+        Test.startTest();
+        RLM_InvoiceTaxSummaryController.TaxSummaryRow row =
+            new RLM_InvoiceTaxSummaryController.TaxSummaryRow('State Sales Tax', 12.50, 'EUR');
+        Test.stopTest();
+        Assert.areEqual('State Sales Tax', row.taxName, 'The tax name is kept.');
+        Assert.areEqual(12.50, row.totalTaxAmount, 'The tax total is kept.');
+        Assert.areEqual('EUR', row.currencyIsoCode, 'The currency of the total is kept.');
+    }
 }

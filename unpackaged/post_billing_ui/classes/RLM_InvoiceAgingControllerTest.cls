@@ -30,4 +30,33 @@ private class RLM_InvoiceAgingControllerTest {
         }
         Test.stopTest();
     }
+
+    // A user who cannot read invoices gets a handled error, not a raw QueryException. The
+    // premise is checked first, so a platform change that opens Invoice to this user fails
+    // here as a broken premise rather than as a controller regression.
+    @isTest
+    static void getInvoiceAgingData_userWithoutInvoiceAccess_throwsAHandledError() {
+        Account acc = new Account(Name = 'RLM Invoice Aging Access Test');
+        insert acc;
+        // Minimum Access with no license or permission set: no billing object is readable.
+        User u = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Boolean premise = false;
+        Boolean threw = false;
+        Test.startTest();
+        System.runAs(u) {
+            try {
+                Database.query('SELECT Id FROM Invoice LIMIT 1', AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                premise = true;
+            }
+            try {
+                RLM_InvoiceAgingController.getInvoiceAgingData(acc.Id);
+            } catch (AuraHandledException e) {
+                threw = true;
+            }
+        }
+        Test.stopTest();
+        Assert.isTrue(premise, 'Premise: this user must be unable to read Invoice.');
+        Assert.isTrue(threw, 'An unreadable invoice query must surface as an AuraHandledException.');
+    }
 }

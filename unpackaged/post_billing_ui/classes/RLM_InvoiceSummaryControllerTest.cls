@@ -62,6 +62,35 @@ private class RLM_InvoiceSummaryControllerTest {
         System.assertEquals(today.addDays(10), data.periodEnd, 'Latest due date.');
     }
 
+    // In a multi-currency org each balance is converted into the target currency before it is
+    // bucketed and totalled.
+    @isTest
+    static void classifyInvoices_multiCurrency_convertsEachBalanceBeforeBucketing() {
+        Date today = Date.today();
+        List<SObject> invoices = new List<SObject>{
+            synthInvoice(100, today.addDays(-5), 'EUR'), // overdue: 100 EUR @0.5 -> 200 USD
+            synthInvoice(30, today.addDays(5), 'USD')    // current: already USD
+        };
+
+        RLM_InvoiceSummaryController.InvoiceSummaryData data =
+            new RLM_InvoiceSummaryController.InvoiceSummaryData();
+        data.totalDue = 0; data.openInvoices = 0;
+        data.overdueAmount = 0; data.overdueCount = 0;
+        data.currentAmount = 0; data.currentCount = 0;
+
+        Test.startTest();
+        RLM_InvoiceSummaryController.classifyInvoices(
+            invoices, data, today, true, 'USD', new Map<String, Decimal>{ 'USD' => 1, 'EUR' => 0.5 });
+        Test.stopTest();
+
+        Assert.areEqual(230, data.totalDue, '200 USD converted from EUR plus 30 USD.');
+        Assert.areEqual(200, data.overdueAmount, 'The overdue EUR invoice is converted before bucketing.');
+        Assert.areEqual(1, data.overdueCount, 'One overdue invoice.');
+        Assert.areEqual(30, data.currentAmount, 'The USD invoice is current and unconverted.');
+        Assert.areEqual(1, data.currentCount, 'One current invoice.');
+        Assert.areEqual(2, data.totalInvoices, 'Both invoices are counted.');
+    }
+
     @isTest
     static void convertCurrency_coversIdentityAndCrossRate() {
         Map<String, Decimal> rates = new Map<String, Decimal>{ 'USD' => 1, 'EUR' => 0.5 };
@@ -74,6 +103,86 @@ private class RLM_InvoiceSummaryControllerTest {
         System.assertEquals(200,
             RLM_InvoiceSummaryController.convertCurrency(100, 'EUR', 'USD', rates),
             '100 EUR @0.5 -> 200 USD @1.0.');
+    }
+
+    // Disputes are counted through the account's open cases. Dispute is Apex-createable with
+    // an account, a case and a received date. A dispute with an amount counts toward the
+    // disputed total; one without an amount is skipped, not counted as zero.
+    @isTest
+    static void getInvoiceSummary_disputesOnOpenCases_areSummed() {
+        if (!available(new List<String>{ 'Dispute' })) {
+            // Billing disputes are not provisioned in this org variant.
+            return;
+        }
+        Account acc = new Account(Name = 'RLM Invoice Summary Dispute Test');
+        insert acc;
+        Case amountCase = new Case(AccountId = acc.Id, Subject = 'RLM disputed amount case');
+        Case emptyCase = new Case(AccountId = acc.Id, Subject = 'RLM dispute without an amount');
+        insert new List<Case>{ amountCase, emptyCase };
+
+        SObject withAmount = newDispute(acc.Id, amountCase.Id, 40);
+        newDispute(acc.Id, emptyCase.Id, null);
+        Decimal disputed = (Decimal) Database.query(
+            'SELECT DisputedAmount FROM Dispute WHERE Id = \'' + withAmount.Id + '\''
+        )[0].get('DisputedAmount');
+        Assert.areEqual(40, disputed, 'Premise: the dispute must carry its disputed amount.');
+
+        Test.startTest();
+        RLM_InvoiceSummaryController.InvoiceSummaryData data =
+            RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        Test.stopTest();
+
+        Assert.areEqual(1, data.disputeCount, 'Only the dispute with an amount is counted.');
+        Assert.areEqual(40, data.disputeAmount, 'The disputed amount is summed in the user\'s currency.');
+        Assert.areEqual(0, data.totalDue, 'Disputes do not add to the amount due.');
+    }
+
+    // Promise to pay: a payment schedule item under a collection plan item of the account's
+    // collection plan counts, at its requested amount, while it is not processed or canceled.
+    @isTest
+    static void getInvoiceSummary_promiseToPayItem_isSummed() {
+        if (!available(new List<String>{ 'CollectionPlan', 'CollectionPlanItem' })) {
+            // Collections are not provisioned in this org variant.
+            return;
+        }
+        Assert.isTrue(RLM_InvoiceSummaryController.canReadCollectionPlans(),
+            'Premise: the running user can read collection plans, so the promise-to-pay query runs.');
+        Account acc = new Account(Name = 'RLM Invoice Summary Promise Test');
+        insert acc;
+        // No CollectionPlanReason: with one, RLM_Create_Case_for_Collection raises a case
+        // from org data a unit test cannot see. No UsageType either: a Billing plan's items
+        // must each link an invoice, and invoices cannot be created in a test. The
+        // promise-to-pay query follows the plan chain whatever the plan's usage type.
+        SObject plan = newRecord('CollectionPlan', new Map<String, Object>{
+            'AccountId' => acc.Id
+        });
+        SObject planItem = newRecord('CollectionPlanItem', new Map<String, Object>{
+            'CollectionPlanId' => plan.Id
+        });
+        PaymentSchedule promise = new PaymentSchedule(
+            ReferenceEntityId = plan.Id,
+            Type = 'PromiseToPay',
+            UsageType = 'CollectionPlan',
+            Status = 'Draft',
+            TotalRequestedAmount = 75
+        );
+        promise.put('CollectionPlanItemId', planItem.Id);
+        insert promise;
+        insert new PaymentScheduleItem(
+            PaymentScheduleId = promise.Id,
+            PaymentAccountId = acc.Id,
+            RequestedAmount = 75,
+            TargetPaymentProcessingDate = Date.today().addDays(7),
+            Status = 'Draft'
+        );
+
+        Test.startTest();
+        RLM_InvoiceSummaryController.InvoiceSummaryData data =
+            RLM_InvoiceSummaryController.getInvoiceSummary(acc.Id);
+        Test.stopTest();
+
+        Assert.areEqual(1, data.promiseToPayCount, 'The draft promise-to-pay item is counted.');
+        Assert.areEqual(75, data.promiseToPayAmount, 'The promise to pay is the item\'s requested amount.');
     }
 
     private static Integer seq = 0;
@@ -90,6 +199,10 @@ private class RLM_InvoiceSummaryControllerTest {
     // Invoice fields aren't writeable on a constructed sObject; build via JSON to set
     // Balance and DueDate for the classification logic.
     private static SObject synthInvoice(Decimal balance, Date dueDate) {
+        return synthInvoice(balance, dueDate, null);
+    }
+
+    private static SObject synthInvoice(Decimal balance, Date dueDate, String currencyCode) {
         Map<String, Object> m = new Map<String, Object>{
             'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
             'Id'         => mintInvoiceId(),
@@ -98,7 +211,52 @@ private class RLM_InvoiceSummaryControllerTest {
         if (dueDate != null) {
             m.put('DueDate', dueDate);
         }
+        if (currencyCode != null) {
+            m.put('CurrencyIsoCode', currencyCode);
+        }
         return (SObject) JSON.deserialize(JSON.serialize(m), Invoice.class);
+    }
+
+    // Collections and dispute objects are created by name, as the controller queries them.
+    private static Boolean available(List<String> objectNames) {
+        Map<String, Schema.SObjectType> types = Schema.getGlobalDescribe();
+        for (String objectName : objectNames) {
+            if (!types.containsKey(objectName)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static SObject newRecord(String objectName, Map<String, Object> values) {
+        SObject record = Schema.getGlobalDescribe().get(objectName).newSObject();
+        for (String field : values.keySet()) {
+            record.put(field, values.get(field));
+        }
+        insert record;
+        return record;
+    }
+
+    // Sets the disputed amount on the dispute when the field is createable there; otherwise
+    // the amount comes from a dispute item, which the dispute totals.
+    private static SObject newDispute(Id accountId, Id caseId, Decimal amount) {
+        SObject dispute = Schema.getGlobalDescribe().get('Dispute').newSObject();
+        dispute.put('AccountId', accountId);
+        dispute.put('CaseId', caseId);
+        dispute.put('ReceivedDate', Date.today());
+        Schema.SObjectField disputedField = Schema.getGlobalDescribe().get('Dispute')
+            .getDescribe().fields.getMap().get('DisputedAmount');
+        Boolean onHeader = disputedField != null && disputedField.getDescribe().isCreateable();
+        if (amount != null && onHeader) {
+            dispute.put('DisputedAmount', amount);
+        }
+        insert dispute;
+        if (amount != null && !onHeader) {
+            newRecord('DisputeItem', new Map<String, Object>{
+                'DisputeId' => dispute.Id, 'TransactionDate' => Date.today(), 'DisputedAmount' => amount
+            });
+        }
+        return dispute;
     }
 
     // A billing role without collections can't read the collection plan link that the
