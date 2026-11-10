@@ -1,7 +1,8 @@
 /**
  * Tests for RLM_UsageOrchestrationController.startOrchestration: a named flow is started and
- * returns the started token (when that flow is active in the org), and a flow name that
- * cannot be resolved into an interview reaches the LWC as an AuraHandledException.
+ * returns the started token (when the flow's latest version is its active version), and a
+ * flow name that cannot be resolved into an interview reaches the LWC as an
+ * AuraHandledException.
  *
  * Not covered:
  *  - the blank-name fallback to RLM_OrchestrateUsageManagement. Starting that flow inside a
@@ -24,13 +25,14 @@ private with sharing class RLM_UsageOrchestrationControllerTest {
      *
      * Flows deploy INACTIVE to production and TSO orgs unless "Deploy processes and flows as
      * active" is on, which this repo does not enable. The named-flow test therefore checks
-     * FlowDefinitionView first and skips visibly (a WARN debug line) when the flow is inactive,
-     * rather than failing that org's deploy. Scratch org builds activate it.
+     * FlowDefinitionView first and skips visibly (a WARN debug line) unless the flow's latest
+     * version is its active version, rather than failing that org's deploy. Scratch org builds
+     * activate it.
      */
     private static final String NO_OP_FLOW = 'RLM_RenewalCoveredAssets';
 
     @IsTest
-    static void testStartOrchestration_NamedFlow_Starts_whenTheFlowIsActive() {
+    static void testStartOrchestration_NamedFlow_Starts_whenTheLatestVersionIsActive() {
         // The assertions assume the repo's version of the flow, so require that the latest
         // version is the active one, not just that some version is active.
         List<FlowDefinitionView> flows = [
@@ -42,7 +44,10 @@ private with sharing class RLM_UsageOrchestrationControllerTest {
         if (!latestIsActive) {
             System.debug(
                 LoggingLevel.WARN,
-                'SKIPPED: ' + NO_OP_FLOW + ' is not active (flows deploy inactive in production unless Deploy-as-active is on)'
+                'SKIPPED: the latest version of ' + NO_OP_FLOW + ' is not its active version (active=' +
+                (flows.isEmpty() ? null : flows[0].ActiveVersionId) + ', latest=' +
+                (flows.isEmpty() ? null : flows[0].LatestVersionId) +
+                '); flows deploy inactive in production unless Deploy-as-active is on'
             );
             return;
         }

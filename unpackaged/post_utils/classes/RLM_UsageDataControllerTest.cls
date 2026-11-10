@@ -177,35 +177,49 @@ private class RLM_UsageDataControllerTest {
     }
 
     /**
-     * The controller selects every TransactionJournal field set member and filters on AccountId,
-     * and it reads the related names used as link labels, so all of them must be readable by the
-     * running user (for example via RLM_UsageDatatables, or because the field is required, as
-     * Name and Status are). Otherwise the query fails or the value is stripped. The field list
-     * comes from the field set, so it cannot drift from what the controller selects.
+     * Asserts that every field the controller's query touches for this object is readable by
+     * the running user (for example via RLM_UsageDatatables, or because the field is required,
+     * as Name and Status are): the filter fields, every RLM_UsageDatatable field set member, and
+     * for each reference member with a relationship name, the related object's name field used
+     * as the link label. The related name field is found the way the controller finds it: the
+     * isNameField() field of getReferenceTo()[0], falling back to Name. Derived from the field
+     * set and describe, so it cannot drift from what the controller selects.
      */
-    private static void assertJournalFieldsReadable() {
-        Map<String, Schema.SObjectField> fields = Schema.SObjectType.TransactionJournal.fields.getMap();
-        List<String> selected = new List<String>{ 'AccountId' };
-        for (Schema.FieldSetMember member : SObjectType.TransactionJournal.fieldSets.getMap().get(FIELD_SET).getFields()) {
-            selected.add(member.getFieldPath());
+    private static void assertFieldSetReadable(Schema.SObjectType type, List<String> filterFields) {
+        Schema.DescribeSObjectResult objDescribe = type.getDescribe();
+        String objName = objDescribe.getName();
+        Map<String, Schema.SObjectField> fields = objDescribe.fields.getMap();
+        Map<String, Schema.SObjectField> touched = new Map<String, Schema.SObjectField>();
+        for (String filterField : filterFields) {
+            touched.put(objName + '.' + filterField, fields.get(filterField));
         }
-        for (String fieldName : selected) {
-            Assert.isTrue(
-                fields.get(fieldName).getDescribe().isAccessible(),
-                'PRECONDITION: TransactionJournal.' + fieldName + ' must be readable by the running user ' +
-                '(for example via RLM_UsageDatatables)'
-            );
+        for (Schema.FieldSetMember member : objDescribe.fieldSets.getMap().get(FIELD_SET).getFields()) {
+            String path = member.getFieldPath();
+            Schema.DescribeFieldResult fieldDescribe = fields.get(path).getDescribe();
+            touched.put(objName + '.' + path, fields.get(path));
+            if (fieldDescribe.isNameField()
+                || member.getType() != Schema.DisplayType.REFERENCE
+                || fieldDescribe.getRelationshipName() == null
+                || fieldDescribe.getReferenceTo().isEmpty()) {
+                continue;
+            }
+            Schema.DescribeSObjectResult refDescribe = fieldDescribe.getReferenceTo()[0].getDescribe();
+            Map<String, Schema.SObjectField> refFields = refDescribe.fields.getMap();
+            Schema.SObjectField nameField = refFields.get('Name');
+            for (Schema.SObjectField candidate : refFields.values()) {
+                if (candidate.getDescribe().isNameField()) {
+                    nameField = candidate;
+                    break;
+                }
+            }
+            Assert.isNotNull(nameField, 'PRECONDITION: ' + refDescribe.getName() + ' has a name field for the link label');
+            touched.put(refDescribe.getName() + '.' + nameField.getDescribe().getName(), nameField);
         }
-        Map<String, Schema.SObjectField> relatedNames = new Map<String, Schema.SObjectField>{
-            'UsageResource.Name' => UsageResource.Name,
-            'UnitOfMeasure.Name' => UnitOfMeasure.Name,
-            'Asset.Name' => Asset.Name
-        };
-        for (String label : relatedNames.keySet()) {
+        for (String label : touched.keySet()) {
+            Assert.isNotNull(touched.get(label), 'PRECONDITION: ' + label + ' exists');
             Assert.isTrue(
-                relatedNames.get(label).getDescribe().isAccessible(),
-                'PRECONDITION: ' + label + ' must be readable by the running user ' +
-                '(for example via RLM_UsageDatatables)'
+                touched.get(label).getDescribe().isAccessible(),
+                'PRECONDITION: ' + label + ' must be readable by the running user (for example via RLM_UsageDatatables)'
             );
         }
     }
@@ -258,7 +272,7 @@ private class RLM_UsageDataControllerTest {
         Id accId = accountId(ACCOUNT_NAME);
 
         System.runAs(runningUserHoldingUsageDatatables()) {
-            assertJournalFieldsReadable();
+            assertFieldSetReadable(TransactionJournal.SObjectType, new List<String>{ 'AccountId' });
 
             Test.startTest();
             Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
@@ -302,7 +316,7 @@ private class RLM_UsageDataControllerTest {
         ];
 
         System.runAs(runningUserHoldingUsageDatatables()) {
-            assertJournalFieldsReadable();
+            assertFieldSetReadable(TransactionJournal.SObjectType, new List<String>{ 'AccountId' });
 
             Test.startTest();
             Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
@@ -335,7 +349,7 @@ private class RLM_UsageDataControllerTest {
         Asset two = assetNamed(ASSET_TWO);
 
         System.runAs(runningUserHoldingUsageDatatables()) {
-            assertJournalFieldsReadable();
+            assertFieldSetReadable(TransactionJournal.SObjectType, new List<String>{ 'ReferenceRecordId' });
 
             Test.startTest();
             Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
@@ -355,7 +369,7 @@ private class RLM_UsageDataControllerTest {
         Id emptyAccId = accountId(EMPTY_ACCOUNT_NAME);
 
         System.runAs(runningUserHoldingUsageDatatables()) {
-            assertJournalFieldsReadable();
+            assertFieldSetReadable(TransactionJournal.SObjectType, new List<String>{ 'AccountId' });
 
             Test.startTest();
             Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
@@ -387,7 +401,7 @@ private class RLM_UsageDataControllerTest {
         // Measured on a live org: the 2001-row call leaves about 1.27 MB on the heap (synchronous limit 6 MB).
 
         System.runAs(runningUserHoldingUsageDatatables()) {
-            assertJournalFieldsReadable();
+            assertFieldSetReadable(TransactionJournal.SObjectType, new List<String>{ 'ReferenceRecordId' });
 
             Test.startTest();
             Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
@@ -418,6 +432,8 @@ private class RLM_UsageDataControllerTest {
         );
 
         System.runAs(runningUserHoldingUsageDatatables()) {
+            assertFieldSetReadable(UsageSummary.SObjectType, new List<String>{ 'AssetId', 'AccountId' });
+
             Test.startTest();
             Map<String, Object> byAsset = RLM_UsageDataController.getFieldSetData(
                 one.Id, 'AssetId', 'UsageSummary', FIELD_SET
@@ -449,6 +465,8 @@ private class RLM_UsageDataControllerTest {
         Asset one = assetNamed(ASSET_ONE);
 
         System.runAs(runningUserHoldingUsageDatatables()) {
+            assertFieldSetReadable(UsageBillingPeriodItem.SObjectType, new List<String>{ 'AssetId' });
+
             Test.startTest();
             Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
                 one.Id, 'AssetId', 'UsageBillingPeriodItem', FIELD_SET
@@ -498,7 +516,8 @@ private class RLM_UsageDataControllerTest {
      * ReferenceRecordId is on the controller's UsageSummary filter allowlist but is not a field
      * of UsageSummary, so only the field-exists check can reject it. Without that check the
      * dynamic query would fail with a QueryException instead of an AuraHandledException.
-     * This relies on that dead allowlist entry: if it is removed from the controller, repoint
+     * This relies on that dead allowlist entry, which is documented here, not pinned: removing
+     * it from the controller would not fail this test's PRECONDITION. If it is removed, repoint
      * this test at another allowlisted-but-missing field or remove it.
      */
     @IsTest
