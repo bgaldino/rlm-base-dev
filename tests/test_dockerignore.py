@@ -179,13 +179,25 @@ def reincluded_paths(text):
     return [line.strip()[1:].strip() for line in text.splitlines() if line.strip().startswith("!")]
 
 
+def _diverges(pattern, path):
+    """True when a literal segment of `pattern` differs from `path` at the same depth, so the
+    pattern cannot match `path` or anything under it. A wildcard segment, or a pattern that
+    continues below `path`, might."""
+    for pat_seg, path_seg in zip(pattern.split("/"), path.split("/")):
+        if any(c in pat_seg for c in "*?["):
+            return False
+        if pat_seg != path_seg:
+            return True
+    return False
+
+
 def misplaced_reincludes(text):
     """(re-include, earlier exclusion) pairs where the `!` line comes after a rule it can override.
 
     Docker applies the last matching pattern, so a `!R` line wins over every earlier exclusion
     inside R's subtree. The only exclusions allowed before it are the one it carves R out of
-    (which matches R itself, like `.claude/*` for `!.claude/hooks`) and ones anchored under a
-    different top-level name, which cannot match anything under R.
+    (which matches R itself, like `.claude/*` for `!.claude/hooks`) and ones whose literal path
+    leaves R's before reaching it (`.git`, `.claude/launch.json`), which cannot match under R.
     """
     rules, bad = [], []
     for line in text.splitlines():
@@ -194,13 +206,11 @@ def misplaced_reincludes(text):
             continue
         if line.startswith("!"):
             target = line[1:].strip().lstrip("/")
-            top = target.split("/")[0]
             for earlier in rules:
                 if excluded(load_dockerignore(earlier), target):
                     continue  # the rule this line carves the path out of
-                first = earlier.lstrip("/").split("/")[0]
-                if first != top and not any(c in first for c in "*?["):
-                    continue  # anchored under another top-level name
+                if _diverges(earlier.lstrip("/"), target):
+                    continue  # a literal segment leaves the re-included path
                 bad.append((line, earlier))
         else:
             rules.append(line)
@@ -301,11 +311,15 @@ class DockerignoreTest(unittest.TestCase):
     def test_not_mirrored_entries_really_are_covered(self):
         samples = [p for paths in NOT_MIRRORED.values() for p in paths]
         self.assertTrue(all(NOT_MIRRORED.values()), "every NOT_MIRRORED entry needs a sample")
-        # The samples must be paths git ignores, or they prove nothing about the pattern.
-        ignored = subprocess.run(["git", "check-ignore", "--no-index", "--stdin"], cwd=REPO,
-                                 input="\n".join(samples) + "\n", capture_output=True,
-                                 text=True).stdout.split()
-        self.assertEqual(sorted(set(samples) - set(ignored)), [], "samples git does not ignore")
+        # The samples must be paths the repo's .gitignore ignores, or they prove nothing about the
+        # pattern. `-v` names the source, so a workstation's core.excludesFile or
+        # .git/info/exclude cannot stand in for it.
+        out = subprocess.run(["git", "check-ignore", "--no-index", "-v", "--stdin"], cwd=REPO,
+                             input="\n".join(samples) + "\n", capture_output=True,
+                             text=True).stdout
+        ignored = {path for source, _, path in (ln.partition("\t") for ln in out.splitlines())
+                   if source.split(":")[0] == ".gitignore"}
+        self.assertEqual(sorted(set(samples) - ignored), [], "samples .gitignore does not ignore")
         leaked = [p for p in samples if not excluded(PATTERNS, p)]
         self.assertEqual(leaked, [], "listed as covered, but copied into the image")
 
@@ -319,6 +333,10 @@ class DockerignoreTest(unittest.TestCase):
                          [("!x/keep", "**/.env")])
         self.assertEqual(misplaced_reincludes("x/*\nx/keep/logs\n!x/keep\n"),
                          [("!x/keep", "x/keep/logs")])
+        # A literal sibling under the same parent cannot reach the re-included subtree.
+        self.assertEqual(misplaced_reincludes("x/*\nx/other.json\n!x/keep\n"), [])
+        self.assertEqual(misplaced_reincludes("x/*\nx/*/logs\n!x/keep\n"),
+                         [("!x/keep", "x/*/logs")])
 
     def test_an_unterminated_bracket_names_the_pattern(self):
         with self.assertRaisesRegex(ValueError, "unterminated.*'a\\[b'"):
