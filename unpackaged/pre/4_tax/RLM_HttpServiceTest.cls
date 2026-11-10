@@ -95,7 +95,7 @@ private with sharing class RLM_HttpServiceTest {
         Test.stopTest();
 
         Assert.areEqual(1, mock.requests.size(), 'The POST is still sent.');
-        // An unset HttpRequest body reads back as ''; the whitespace must not have been set.
+        // An unset HttpRequest body reads back as null or ''; the whitespace must not have been set.
         String body = mock.requests[0].getBody();
         Assert.isTrue(body == null || body == '', 'A whitespace-only body is not set on the request: [' + body + ']');
     }

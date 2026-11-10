@@ -120,7 +120,7 @@ private with sharing class RLM_MockTaxAdapterTest {
         request.sellerDetails = new commercetax.TaxSellerDetailsRequest('testSellerCode');
         request.transactionDate = RLM_TaxTestFactory.DATE_2001;
         request.taxTransactionType = commercetax.TaxTransactionType.Credit;
-        request.currencyIsoCode = 'EUR';
+        request.currencyIsoCode = 'XTS';
 
         Test.startTest();
         commercetax.TaxEngineResponse response = process(request);
@@ -132,7 +132,7 @@ private with sharing class RLM_MockTaxAdapterTest {
         // A 2001 date can only come from the request (the default is now).
         RLM_TaxTestFactory.assertResponseFieldMatches(response, 'transactionDate', RLM_TaxTestFactory.YEAR_2001,
             'The request transaction date is echoed.');
-        RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'EUR', 'An explicit currency is echoed.');
+        RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'XTS', 'An explicit currency is echoed.');
         RLM_TaxTestFactory.assertResponseField(response, 'description', 'SellerCode fetched from TaxEngine entity',
             'The testSellerCode seller gets its own description.');
     }

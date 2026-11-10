@@ -109,7 +109,7 @@ private with sharing class RLM_MockAppAdapterTest {
         withDocumentCode.isCommit = true;
         withDocumentCode.transactionDate = RLM_TaxTestFactory.DATE_2001;
         withDocumentCode.taxTransactionType = commercetax.TaxTransactionType.Credit;
-        withDocumentCode.currencyIsoCode = 'EUR';
+        withDocumentCode.currencyIsoCode = 'XTS';
 
         commercetax.CalculateTaxRequest emptyDocumentCode = requestFor('simulateEmptyDocumentCode');
         emptyDocumentCode.isCommit = false;
@@ -144,7 +144,7 @@ private with sharing class RLM_MockAppAdapterTest {
         RLM_TaxTestFactory.assertResponseField(responses[0], 'documentCode', 'DOC-APP-1', 'An explicit document code is echoed.');
         RLM_TaxTestFactory.assertResponseField(responses[0], 'status', 'Committed', 'isCommit=true is Committed.');
         RLM_TaxTestFactory.assertResponseField(responses[0], 'taxTransactionType', 'Credit', 'The transaction type is echoed.');
-        RLM_TaxTestFactory.assertResponseField(responses[0], 'currencyIsoCode', 'EUR', 'An explicit currency is echoed.');
+        RLM_TaxTestFactory.assertResponseField(responses[0], 'currencyIsoCode', 'XTS', 'An explicit currency is echoed.');
         // A 2001 date can only come from the request (the defaults are now): the transaction date
         // and line 1's effective date are echoed.
         RLM_TaxTestFactory.assertResponseFieldMatches(responses[0], 'transactionDate', RLM_TaxTestFactory.YEAR_2001,

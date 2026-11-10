@@ -22,7 +22,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
             commercetax.CalculateTaxType.Estimated, 'DOC-CALC-1',
             new List<commercetax.TaxLineItemRequest>{ requestLine });
         request.referenceEntityId = 'REF-CALC-1';
-        request.currencyIsoCode = 'EUR';
+        request.currencyIsoCode = 'XTS';
         request.taxTransactionType = commercetax.TaxTransactionType.Debit;
 
         Test.startTest();
@@ -64,7 +64,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
             'Response tax codes come from the engine payload, not the request.');
         // From the request.
         RLM_TaxTestFactory.assertResponseField(response, 'referenceEntityId', 'REF-CALC-1', 'The request reference entity is echoed.');
-        RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'EUR', 'The request currency is echoed.');
+        RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'XTS', 'The request currency is echoed.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Debit', 'The request transaction type is echoed.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxType', 'Estimated', 'The request tax type is echoed.');
 

@@ -15,7 +15,7 @@
  * The same accepted risk covers how the commercetax setters reject input: the tests expect
  * setAmountDetails(null) to throw an exception named commercetax.TaxApiException, and
  * setTaxTransactionType(null) to throw System.NullPointerException. A release that changes
- * either fails those tests.
+ * either fails those tests, and setterNullInput_matchesHelperPremise names the cause.
  */
 @IsTest
 public with sharing class RLM_TaxTestFactory {
@@ -122,7 +122,7 @@ public with sharing class RLM_TaxTestFactory {
 
     /** Appended to assertions that rely on how the commercetax setters reject null input. */
     public static final String SETTER_PREMISE_HINT =
-        ' (If RLM_TaxTestFactory.responseStringForm_matchesHelperPremise also fails, the platform setter'
+        ' (If RLM_TaxTestFactory.setterNullInput_matchesHelperPremise also fails, the platform setter'
         + ' behaviour changed, not the production code.)';
 
     /**
@@ -226,23 +226,32 @@ public with sharing class RLM_TaxTestFactory {
         assertResponseFieldMatches(response, 'transactionDate', YEAR_2001, 'A date prints with its year.');
         assertResponseFieldCount(error, 'errorCode', '', 1, 'ErrorResponse prints a null error code as empty.');
         assertResponseFieldCount(error, 'errorMessage', 'm', 1, 'ErrorResponse prints its message.');
+    }
 
-        // Setter premises: how the platform rejects null input.
+    /**
+     * Premise for the tests that rely on how the commercetax setters reject null input. If a release
+     * changes it, this test names the cause.
+     */
+    @IsTest
+    static void setterNullInput_matchesHelperPremise() {
         Exception typeError;
+        Exception amountError;
+        Test.startTest();
         try {
             new commercetax.CalculateTaxResponse().setTaxTransactionType(null);
         } catch (Exception e) {
             typeError = e;
         }
-        Assert.isNotNull(typeError, 'setTaxTransactionType(null) throws.');
-        Assert.areEqual('System.NullPointerException', typeError.getTypeName(),
-            'setTaxTransactionType(null) throws a NullPointerException: ' + typeError);
-        Exception amountError;
         try {
             new commercetax.LineItemResponse().setAmountDetails(null);
         } catch (Exception e) {
             amountError = e;
         }
+        Test.stopTest();
+
+        Assert.isNotNull(typeError, 'setTaxTransactionType(null) throws.');
+        Assert.areEqual('System.NullPointerException', typeError.getTypeName(),
+            'setTaxTransactionType(null) throws a NullPointerException: ' + typeError);
         Assert.isNotNull(amountError, 'setAmountDetails(null) throws.');
         Assert.areEqual('commercetax.TaxApiException', amountError.getTypeName(),
             'setAmountDetails(null) throws a TaxApiException: ' + amountError);

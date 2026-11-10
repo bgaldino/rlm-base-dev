@@ -132,7 +132,7 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
     }
 
     @IsTest
-    static void request_withoutCommitCodesOrAccountId_omitsFieldsAndUsesCustomerCode() {
+    static void request_withoutCommitOrCodesAndBlankAccountId_omitsFieldsAndUsesCustomerCode() {
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, null, RLM_TaxTestFactory.lines(100));
         request.customerDetails = new commercetax.TaxCustomerDetailsRequest('', 'CUST-EMPTY-ACCOUNT', null, null);
