@@ -24,6 +24,36 @@ private class RLM_InvoiceTaxSummaryControllerTest {
         System.assertEquals(0, rows.size(), 'No tax rows exist for a non-existent invoice.');
     }
 
+    // The positive path as a billing operations user rather than the deploying admin
+    // (RLM_BillingUI is assigned only after this bundle deploys): the user can run the tax
+    // query's exact field list in USER_MODE, and an unknown invoice returns an empty list.
+    @isTest
+    static void getTaxSummaryByInvoice_billingOperationsUser_runsTheQuery() {
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        Id fakeInvoice = Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000000');
+        String readError;
+        List<RLM_InvoiceTaxSummaryController.TaxSummaryRow> rows;
+        Test.startTest();
+        System.runAs(u) {
+            try {
+                Database.query(
+                    'SELECT TaxName, TaxAmount, CurrencyIsoCode FROM InvoiceLineTax '
+                    + 'WHERE InvoiceLine.InvoiceId != null LIMIT 1',
+                    AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                readError = e.getMessage();
+            }
+            Assert.isNull(readError,
+                'PRECONDITION: a billing operations user can run the tax query\'s fields: ' + readError);
+            rows = RLM_InvoiceTaxSummaryController.getTaxSummaryByInvoice(fakeInvoice);
+        }
+        Test.stopTest();
+        Assert.isNotNull(rows, 'The tax summary list is returned.');
+        Assert.areEqual(0, rows.size(), 'No tax rows exist for a non-existent invoice.');
+    }
+
     // Coverage-only check of the TaxSummaryRow constructor: it keeps each argument in its own
     // field. (The aggregate mapping that calls it needs InvoiceLineTax rows, whose required
     // InvoiceLine cannot be created in a test, so it is not covered here.)

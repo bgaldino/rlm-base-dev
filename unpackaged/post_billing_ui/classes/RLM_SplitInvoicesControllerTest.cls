@@ -162,6 +162,7 @@ private class RLM_SplitInvoicesControllerTest {
         Id fakeInvoice = fakeId('Invoice', 3);
         Boolean premise = false;
         Boolean listThrew = false;
+        RLM_SplitInvoicesController.CurrentInvoiceBillingInfo info;
         Test.startTest();
         System.runAs(u) {
             try {
@@ -174,13 +175,46 @@ private class RLM_SplitInvoicesControllerTest {
             } catch (AuraHandledException e) {
                 listThrew = true;
             }
-            // Coverage only: getCurrentInvoiceBillingInfo catches every exception, so nothing
-            // about it is asserted here.
-            RLM_SplitInvoicesController.getCurrentInvoiceBillingInfo(fakeInvoice);
+            // getCurrentInvoiceBillingInfo catches every exception, so for this user it returns
+            // an empty info rather than throwing.
+            info = RLM_SplitInvoicesController.getCurrentInvoiceBillingInfo(fakeInvoice);
         }
         Test.stopTest();
         Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read Invoice.');
         Assert.isTrue(listThrew, 'An unreadable invoice query must surface as an AuraHandledException.');
+        Assert.isNull(info.billingArrangementName, 'The no-access user gets no arrangement name.');
+        Assert.isNull(info.billingArrangementVerNumber, 'The no-access user gets no version number.');
+    }
+
+    // The positive path as a billing operations user rather than the deploying admin
+    // (RLM_BillingUI is assigned only after this bundle deploys): the user can run the
+    // correlation query's exact field list in USER_MODE, and an unknown correlation id returns
+    // an empty list without throwing.
+    @isTest
+    static void getInvoicesByCorrelation_billingOperationsUser_runsTheQuery() {
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        String readError;
+        List<RLM_SplitInvoicesController.InvoiceRow> rows;
+        Test.startTest();
+        System.runAs(u) {
+            try {
+                Database.query(
+                    'SELECT Id, DocumentNumber, InvoiceDate, Balance, Status, CorrelationIdentifier, '
+                    + 'BillingAccountId, BillingAccount.Name, BillingArrangementId, BillingArrangement.Name, '
+                    + 'BillingProfileId, BillingProfile.Name, BillingArrangementVerNumber FROM Invoice LIMIT 1',
+                    AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                readError = e.getMessage();
+            }
+            Assert.isNull(readError,
+                'PRECONDITION: a billing operations user can run the correlation query\'s fields: ' + readError);
+            rows = RLM_SplitInvoicesController.getInvoicesByCorrelation('RLM-NO-SUCH-CORRELATION');
+        }
+        Test.stopTest();
+        Assert.isNotNull(rows, 'The correlation list is returned.');
+        Assert.areEqual(0, rows.size(), 'An unknown correlation id yields an empty list.');
     }
 
     private static Id fakeId(String objectName, Integer n) {

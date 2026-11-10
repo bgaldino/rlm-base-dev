@@ -14,8 +14,9 @@ private class RLM_OnAccountBillingControllerTest {
     // zero balances and clean status flags. Most reads (the aggregate balances and the
     // partially-paid, written-off, dispute and collection reads) are swallowed into zeros when
     // they fail, so this does not prove they run; the four Invoice counts and the account
-    // currency read would throw instead. getBillingSummary_billingOperationsUser_runsEachReadButCollectionPlans
-    // is the proof that the reads run.
+    // currency read would throw instead. See
+    // getBillingSummary_billingOperationsUser_canRunEachSummaryReadButCollectionPlans: the probes
+    // there show this role can run the reads.
     @isTest
     static void getBillingSummary_accountWithNoBilling_returnsZeroBalances() {
         Account acc = new Account(Name = 'RLM On-Account Billing Test');
@@ -94,7 +95,7 @@ private class RLM_OnAccountBillingControllerTest {
         // to standard), skip visibly rather than fail the deploy over that optional feature.
         Map<String, Decimal> adminDated = datedRates(AccessLevel.SYSTEM_MODE);
         if ((adminDated.containsKey(foreign) || adminDated.containsKey(corporate)) && datedRatesAs(u).isEmpty()) {
-            System.debug(LoggingLevel.WARN, 'SKIPPED: DatedConversionRate is not readable for the billing user');
+            System.debug(LoggingLevel.WARN, SKIP_DATED_RATES_UNREADABLE);
             return;
         }
         Map<String, Decimal> effective = userRatesMatchingAdmin(u, adminRates, new List<String>{ foreign, corporate });
@@ -199,7 +200,7 @@ private class RLM_OnAccountBillingControllerTest {
     // Collection plans are the exception: this role cannot read them, and the summary shows
     // "not in collections" instead of failing.
     @isTest
-    static void getBillingSummary_billingOperationsUser_runsEachReadButCollectionPlans() {
+    static void getBillingSummary_billingOperationsUser_canRunEachSummaryReadButCollectionPlans() {
         User u = billingOperationsUser();
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Role Test', null);
         // A collection plan on the account, so "not in collections" for this role comes from its
@@ -258,6 +259,8 @@ private class RLM_OnAccountBillingControllerTest {
     private static final String SKIP_NO_SECOND_CURRENCY =
         'SKIPPED: no second active currency with a different rate (a pricing data plan (qb, q3 or mfg) adds them).';
 
+    private static final String SKIP_DATED_RATES_UNREADABLE =
+        'SKIPPED: DatedConversionRate is not readable for the billing user';
     private static final String SKIP_RATE_TOO_CLOSE =
         'SKIPPED: the second currency\'s rate is too close to the corporate rate to tell conversion apart';
 
