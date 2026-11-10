@@ -4,12 +4,14 @@
  * Invoice is createable=false, so no unit test can hold an invoice: the invoice loops
  * (cards aging, critical follow-ups, high-value delinquents and the worklist fallbacks)
  * can only be verified live. What a test can build -- payments, payment schedule items,
- * collection plans, tasks, cases and debit memos -- is built here, and every card is
- * asserted against it. Records are created in admin context. Two tests then run as other
+ * collection plans, tasks, cases and debit memos -- is built here, and the cards, worklist,
+ * plans, progress and tasks are asserted against it where a test can tell the result apart.
+ * Records are created in admin context. Two tests then run as other
  * users: a collections specialist, who reads their own plan, and a user with no access, who
  * gets empty sections. The specialist takes a seat of the Billing and the Billing Advanced
  * licenses for the test, as RLM_BillingUITestUsers documents, so it fails on the license in an
- * org whose seats are all assigned; the no-access user takes no seat.
+ * org whose seats are all assigned; the no-access user takes a Salesforce user licence but no
+ * Billing seat.
  */
 @isTest
 private class RLM_CollectionsDashboardControllerTest {
@@ -97,12 +99,12 @@ private class RLM_CollectionsDashboardControllerTest {
 
         // The summary always returns all four buckets in fixed order.
         System.assertEquals(4, unfiltered.size(), 'Failed/Ready/Draft/Processing buckets are always present.');
-        System.assertEquals(150, unfiltered.get('Draft').totalRequestedAmount,
+        assertAmount(150, unfiltered.get('Draft').totalRequestedAmount,
             'Two Draft items of 100 + 50 sum to 150.');
         System.assertEquals(2, unfiltered.get('Draft').itemCount, 'Two Draft items counted.');
-        System.assertEquals(0, unfiltered.get('Failed').totalRequestedAmount, 'No Failed items seeded.');
+        assertAmount(0, unfiltered.get('Failed').totalRequestedAmount, 'No Failed items seeded.');
 
-        System.assertEquals(150, byAccount.get('Draft').totalRequestedAmount,
+        assertAmount(150, byAccount.get('Draft').totalRequestedAmount,
             'Account-filtered Draft sum matches (both items belong to the account).');
         System.assertEquals(2, byAccount.get('Draft').itemCount, 'Account-filtered Draft count matches.');
     }
@@ -169,15 +171,12 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(corporate.IsoCode, currencies[1].get('value'), 'The corporate currency follows the sentinel.');
     }
 
-    // A Sale payment with a balance is an unapplied payment: it lowers the total balance and
-    // the total outstanding, and it is filtered by account and currency like every card.
-    // The card sums are ungrouped SUMs, so the test runs only where the running user's currency
-    // is the corporate one (see userCurrencyIsCorporate).
+    // A Sale payment with a balance is an unapplied payment: it is counted, it lowers the total
+    // balance and the total outstanding, and it is filtered by account and currency like every
+    // card. The amount checks compare ungrouped SUMs, so they run only where the running user's
+    // currency is the corporate one (see userCurrencyIsCorporate); the rest always runs.
     @isTest
-    static void getDashboardCards_unappliedPaymentOffsetsTheBalance_whenTheUserCurrencyIsCorporate() {
-        if (!userCurrencyIsCorporate()) {
-            return;
-        }
+    static void getDashboardCards_unappliedPaymentOffsetsTheBalance() {
         Account payer = newAccount('RLM CD Payer');
         Account other = newAccount('RLM CD Other');
         String paymentCurrency = corporateCurrency();
@@ -204,19 +203,14 @@ private class RLM_CollectionsDashboardControllerTest {
             RLM_CollectionsDashboardController.getDashboardCards(payer.Id, otherCurrency);
         Test.stopTest();
 
-        assertAmount(expected, unfiltered.unappliedPaymentBalance, 'The payment balance is unapplied.');
         Assert.areEqual(expectedCount, unfiltered.unappliedPaymentCount, 'The payment is counted when it has a balance.');
         assertAmount(0, unfiltered.unappliedCredits, 'A Sale payment is not counted as a credit.');
-        assertAmount(-expected, unfiltered.totalBalance, 'Total balance = invoices + debit memos - credits - payments.');
-        assertAmount(-expected, unfiltered.totalOutstanding, 'Total outstanding = invoices - unapplied payments.');
 
         List<String> labels = new List<String>{ 'Unpaid Invoices', 'Debit Memos', 'Unapplied Credits', 'Unapplied Payments' };
         Assert.areEqual(labels.size(), unfiltered.totalBalanceBreakdown.size(), 'One breakdown row per balance component.');
         for (Integer i = 0; i < labels.size(); i++) {
             Assert.areEqual(labels[i], unfiltered.totalBalanceBreakdown[i].get('label'), 'Breakdown order, row ' + i);
         }
-        assertAmount(-expected, (Decimal) unfiltered.totalBalanceBreakdown[3].get('amount'),
-            'Unapplied payments are shown as a reduction.');
 
         List<String> agingKeys = new List<String>{ 'current', '1-30', '31-60', '61-90', '90+' };
         // Bucket and invoice amounts are not asserted: no invoice can exist in a unit test, so
@@ -226,17 +220,29 @@ private class RLM_CollectionsDashboardControllerTest {
             Assert.areEqual(agingKeys[i], unfiltered.agingBuckets[i].get('key'), 'Aging bucket order, bucket ' + i);
         }
 
-        assertAmount(expected, payerInCurrency.unappliedPaymentBalance,
+        Assert.areEqual(1, payerInCurrency.unappliedPaymentCount,
             'The payer\'s own payment, in its own currency, is kept by both filters.');
         assertAmount(0, otherAccount.unappliedPaymentBalance, 'Another account\'s payment is filtered out.');
         Assert.areEqual(0, otherAccount.unappliedPaymentCount, 'Another account\'s payment is not counted.');
         assertAmount(0, payerElsewhere.unappliedPaymentBalance,
             'A payment in ' + paymentCurrency + ' is filtered out under ' + otherCurrency + '.');
         Assert.areEqual(0, payerElsewhere.unappliedPaymentCount, 'Nor counted under another currency.');
+
+        if (userCurrencyIsCorporate()) {
+            assertAmount(expected, unfiltered.unappliedPaymentBalance, 'The payment balance is unapplied.');
+            assertAmount(-expected, unfiltered.totalBalance, 'Total balance = invoices + debit memos - credits - payments.');
+            assertAmount(-expected, unfiltered.totalOutstanding, 'Total outstanding = invoices - unapplied payments.');
+            assertAmount(-expected, (Decimal) unfiltered.totalBalanceBreakdown[3].get('amount'),
+                'Unapplied payments are shown as a reduction.');
+            assertAmount(expected, payerInCurrency.unappliedPaymentBalance,
+                'The payer\'s own payment balance passes both filters.');
+        }
     }
 
     // The unapplied-credits card sums payments of Type 'Credit' or 'Credit Memo', but neither is
-    // a Payment.Type value, so the card cannot show a credit.
+    // a Payment.Type value, so the card cannot show a credit. This pins the cause only: it does
+    // not call the controller, so it will not detect a fix. A test cannot seed what a fixed card
+    // might count instead (a CreditMemo's BillingAccountId and Status are not createable).
     @isTest
     static void unappliedCredits_filterOnTypesPaymentDoesNotHave() {
         Set<String> paymentTypes = new Set<String>();
@@ -253,17 +259,12 @@ private class RLM_CollectionsDashboardControllerTest {
     // A Draft debit memo is not owed: only a posted memo not yet on a posted invoice counts.
     // The memo has a total and is on the filtered account, so its Draft status is what keeps it
     // out. A unit test cannot post one (its lines need a tax treatment), so the posted sum is
-    // live-only. The control query is an ungrouped SUM, so the test runs only where the running
-    // user's currency is the corporate one (see userCurrencyIsCorporate).
+    // live-only.
     @isTest
-    static void getDashboardCards_draftDebitMemoIsNotOwed_whenTheUserCurrencyIsCorporate() {
-        if (!userCurrencyIsCorporate()) {
-            return;
-        }
+    static void getDashboardCards_draftDebitMemoIsNotOwed() {
         Account a = newAccount('RLM CD Debit Memo');
         SObject memo = newRecord('DebitMemo', new Map<String, Object>{
-            'AccountId' => a.Id, 'Status' => 'Draft', 'InvoiceGenerationStatus' => 'None',
-            'CurrencyIsoCode' => corporateCurrency()
+            'AccountId' => a.Id, 'Status' => 'Draft', 'InvoiceGenerationStatus' => 'None'
         });
         newRecord('DebitMemoLine', new Map<String, Object>{
             'Name' => 'RLM CD Debit Memo Line', 'DebitMemoId' => memo.Id, 'ChargeAmount' => 10
@@ -274,16 +275,15 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isTrue(memoTotal != null && memoTotal > 0,
             'PRECONDITION: the Draft memo totals its line. Got ' + memoTotal);
         Assert.areEqual('Draft', saved.get('Status'), 'PRECONDITION: the memo is Draft.');
-        // The controller's debit memo query without its Status clause, also in user mode: it
-        // finds the memo, so the controller's zero comes from the Status filter, not from a
-        // query error it swallowed.
+        // The controller's debit memo clauses, in user mode, with Status = 'Draft' in place of
+        // 'Posted': the query runs and finds the memo, so the fields are readable and the
+        // controller's zero comes from its Status filter, not from a query error it swallowed.
         Id aId = a.Id;
-        List<AggregateResult> control = Database.query(
-            'SELECT SUM(TotalAmount) s FROM DebitMemo WHERE TotalAmount != null'
+        Integer control = Database.countQuery(
+            'SELECT COUNT() FROM DebitMemo WHERE TotalAmount != null AND Status = \'Draft\''
             + ' AND InvoiceGenerationStatus != \'Posted Invoice Generated\' AND AccountId = :aId',
             AccessLevel.USER_MODE);
-        assertAmount(memoTotal, (Decimal) control[0].get('s'),
-            'PRECONDITION: without the Status filter, the controller\'s query finds the memo.');
+        Assert.areEqual(1, control, 'PRECONDITION: with Status = Draft, the controller\'s query finds the memo.');
 
         Test.startTest();
         RLM_CollectionsDashboardController.CollectionsDashboardData cards =

@@ -45,10 +45,9 @@ private class RLM_DisputeDetailsControllerTest {
         System.assert(true, 'Null/empty input short-circuits without error.');
     }
 
-    // Exercises the DisputeItem field-discovery + query path with a non-existent item id. Whatever
-    // the org's DisputeItem gating (object/field present or absent), the contract is the same: a
-    // fake id matches no record, so the method must never persist an update. Asserting zero DML
-    // rows is deterministic across both the clean-no-op and graceful-AuraHandledException outcomes.
+    // Exercises the DisputeItem field-discovery + query path with a non-existent item id: a fake
+    // id matches no record, so the method must never persist an update. DisputeItem and its
+    // ApprovedAmount are required by this bundle (RLM_BillingUIAccessTest checks them).
     @isTest
     static void saveApprovedAmounts_unknownItem_persistsNothing() {
         List<Map<String, Object>> items = new List<Map<String, Object>>{
@@ -60,7 +59,7 @@ private class RLM_DisputeDetailsControllerTest {
         try {
             RLM_DisputeDetailsController.saveApprovedAmounts(items);
         } catch (AuraHandledException e) {
-            // Acceptable: DisputeItem object or its Approved Amount field is gated/absent here.
+            // Either outcome persists nothing; the zero-DML assertion below is the contract.
         }
         Integer rowsAfter = Limits.getDmlRows();
         Test.stopTest();
@@ -101,6 +100,9 @@ private class RLM_DisputeDetailsControllerTest {
         List<Map<String, Object>> items = new List<Map<String, Object>>{
             new Map<String, Object>{ 'id' => String.valueOf(itemIds[0]), 'approvedAmount' => String.valueOf(tooLarge) }
         };
+        // Control: a valid amount on the same item saves.
+        saveAmount(itemIds[0], 20);
+        assertAmount(20, approvedAmount(itemIds[0]), 'PRECONDITION: a valid amount saves on this item.');
 
         Boolean rejected = false;
         Test.startTest();
@@ -115,13 +117,12 @@ private class RLM_DisputeDetailsControllerTest {
         Test.stopTest();
 
         Assert.isTrue(rejected, 'An amount of ' + tooLarge + ' is past the field\'s range and is reported to the page.');
-        assertAmount(5, approvedAmount(itemIds[0]), 'The rejected save leaves the approved amount unchanged.');
+        assertAmount(20, approvedAmount(itemIds[0]), 'The rejected save leaves the approved amount unchanged.');
     }
 
     // A user who cannot query DisputeItem cannot approve an amount: whichever check stops them
     // (no DisputeItem, no approved-amount field, or the user-mode query), the page gets an
-    // AuraHandledException and the record is unchanged. The admin saves an identical item in
-    // saveApprovedAmounts_writesTheApprovedAmount.
+    // AuraHandledException and the record is unchanged. The admin saves the same item first.
     @isTest
     static void saveApprovedAmounts_userWithoutDisputeAccess_isRejected() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
@@ -129,6 +130,9 @@ private class RLM_DisputeDetailsControllerTest {
         List<Map<String, Object>> items = new List<Map<String, Object>>{
             new Map<String, Object>{ 'id' => String.valueOf(itemIds[0]), 'approvedAmount' => 40 }
         };
+        // Control: the admin saves a valid amount on the same item.
+        saveAmount(itemIds[0], 20);
+        assertAmount(20, approvedAmount(itemIds[0]), 'PRECONDITION: the admin saves an amount on this item.');
 
         Boolean rejected = false;
         Boolean canQuery = true;
@@ -149,11 +153,12 @@ private class RLM_DisputeDetailsControllerTest {
 
         Assert.isFalse(canQuery, 'PRECONDITION: the user cannot query DisputeItem in user mode.');
         Assert.isTrue(rejected, 'A user without dispute access is refused.');
-        assertAmount(5, approvedAmount(itemIds[0]), 'The refused save leaves the approved amount unchanged.');
+        assertAmount(20, approvedAmount(itemIds[0]), 'The refused save leaves the approved amount unchanged.');
     }
 
     // One dispute on its own case, with the given number of items, each approved at the given
-    // amount. Created by name, as RLM_AccountUtilitiesTest does.
+    // amount. Created by name, as RLM_AccountUtilitiesTest does; Dispute and DisputeItem are
+    // required by this bundle (RLM_BillingUIAccessTest checks DisputeItem.ApprovedAmount).
     private static List<Id> newDisputeItems(Integer count, Decimal approved) {
         Account a = new Account(Name = 'RLM Dispute Details Test');
         insert a;
@@ -179,6 +184,12 @@ private class RLM_DisputeDetailsControllerTest {
             ids.add(item.Id);
         }
         return ids;
+    }
+
+    private static void saveAmount(Id itemId, Decimal amount) {
+        RLM_DisputeDetailsController.saveApprovedAmounts(new List<Map<String, Object>>{
+            new Map<String, Object>{ 'id' => String.valueOf(itemId), 'approvedAmount' => amount }
+        });
     }
 
     private static Decimal approvedAmount(Id itemId) {

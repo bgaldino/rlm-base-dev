@@ -55,16 +55,11 @@ private class RLM_BillingCaseMetricsControllerTest {
     }
 
     // Dispute is createable, so the dispute aggregates count real open disputes and sum their
-    // amounts. SUM(DisputedAmount) is ungrouped, so the test runs only where the running user's
-    // currency is the corporate one, and the disputes are created in it.
+    // amounts. SUM(DisputedAmount) is ungrouped, so the total is checked only where the running
+    // user's currency is the corporate one (the disputes are created in it); the count always is.
     @isTest
-    static void getMetrics_countsOpenDisputesAndSumsTheirAmounts_whenTheUserCurrencyIsCorporate() {
+    static void getMetrics_countsOpenDisputesAndSumsTheirAmounts() {
         String corporate = [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
-        if (UserInfo.getDefaultCurrency() != corporate) {
-            System.debug(LoggingLevel.WARN, 'SKIPPED: ungrouped currency aggregate depends on the running '
-                + 'user\'s currency matching the corporate currency');
-            return;
-        }
         Account a = new Account(Name = 'RLM Case Metrics Disputes');
         insert a;
         List<Decimal> amounts = new List<Decimal>{ 100, 50 };
@@ -93,8 +88,18 @@ private class RLM_BillingCaseMetricsControllerTest {
         Assert.isNull(RLM_BillingCaseMetricsController.lastDisputeQueryError,
             'Dispute query failed: ' + RLM_BillingCaseMetricsController.lastDisputeQueryError);
         Assert.areEqual(2, (Integer) result.get('openDisputes'), 'Both new disputes are open.');
-        Decimal total = (Decimal) result.get('totalDisputedAmount');
-        Assert.isTrue(total == 150, 'The open disputes total 100 + 50. Got ' + total);
+        if (UserInfo.getDefaultCurrency() == corporate) {
+            assertAmount(150, (Decimal) result.get('totalDisputedAmount'), 'The open disputes total 100 + 50.');
+        } else {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: ungrouped currency aggregate depends on the running '
+                + 'user\'s currency matching the corporate currency');
+        }
+    }
+
+    // Compares amounts by value, so 150 and 150.00 match.
+    private static void assertAmount(Decimal expected, Decimal actual, String message) {
+        Assert.isTrue(actual != null && actual == expected,
+            message + ' Expected ' + expected + ', got ' + actual + '.');
     }
 
     // A user who cannot query Dispute does not see the admin's open dispute: the dispute seeded
@@ -142,8 +147,7 @@ private class RLM_BillingCaseMetricsControllerTest {
             return;
         }
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
-        Case openCase = new Case(Subject = 'RLM Billing Case Metrics unreadable', Status = 'New');
-        openCase.put('Type', 'Billing');
+        Case openCase = new Case(Subject = 'RLM Billing Case Metrics unreadable', Status = 'New', Type = 'Billing');
         insert openCase;
         Assert.areEqual(1, (Integer) RLM_BillingCaseMetricsController.getMetrics().get('openBillingCases'),
             'PRECONDITION: the admin counts the open billing case.');
