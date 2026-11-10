@@ -114,7 +114,8 @@ Every `cci` command rolls `~/.cumulusci/logs` over and keeps 5 backups, includin
 procedure runs. Copy a log you are debugging before starting.
 
 Review with the user, including the aliases and config keys printed under each logout and the
-value each alias, default and deploy job reaches (`name -> value`):
+stored value of each alias, default and deploy job (`name -> value`; a value can be another alias,
+and the orgs each one reaches are under `targets` in the plan file):
 
 | Output | Meaning |
 |--------|---------|
@@ -198,7 +199,8 @@ Nothing is lost then (see the partial copies below); audit and apply again to fi
 is a dated folder in the user's Trash, or with no Trash, beside the real CLI state, which in the
 Docker image is the `rlm-state` volume; `--quarantine <dir>` chooses another folder, which must be
 outside the project, `~/.sf` and `~/.sfdx` (through links too), and must not hold any of them, since
-emptying it would delete them (exit 2).
+emptying it would delete them (exit 2). Files go into that folder as given, so choose a new or empty
+one rather than a folder that holds your own files.
 
 It then runs targeted `sf org logout` per user, `sf alias unset -- <alias>` per alias, and `sf config
 unset target-org` (with `--global` for the global scope) for each planned default. It tracks the
