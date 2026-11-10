@@ -183,17 +183,18 @@ reviewed one: its project, every removal, each logout's org and the aliases and 
 clears, and the value and orgs each alias, default, deploy job and file reaches. It does not run
 `cci`. A plan file it cannot read stops the run with exit 1 before any query; an unreadable state
 folder stops it with exit 1 before anything changes. Before any logout, if the plan moves files, it
-checks each one: write access to its folder and, for a directory, to it and every folder inside it
-(a rename rewrites the directory's `..`; a move across volumes copies it, then deletes each folder;
-a `sudo sf` can take that access away), and for project files that git answers and does not track
-them. With deploy jobs planned it checks `~/.sf` the same way, since the cache is rewritten there.
-It also checks the quarantine (no linked root or folder, no file where a folder belongs) and moves a
-temp file in from one of those folders. If any check fails it exits 1, naming each file. These
-checks cannot foresee everything: a disk that fills during a copy across volumes still fails after
-the logouts, as described below. The quarantine is a dated folder in the user's Trash, or with no
-Trash, beside the real CLI state, which in the Docker image is the `rlm-state` volume; `--quarantine
-<dir>` chooses another folder, which must be outside the project, `~/.sf` and `~/.sfdx` (through
-links too), and must not hold any of them, since emptying it would delete them (exit 2).
+checks what a rename needs: write access to each item's folder and to a moved directory itself (a
+`sudo sf` can take either away), and for project files that git answers and does not track them.
+With deploy jobs planned it checks `~/.sf` the same way, since the cache is rewritten there. It also
+checks the quarantine (no linked root or folder, no file where a folder belongs) and moves a temp
+file in from one of those folders. If any check fails it exits 1, naming each file. These checks
+catch the common causes, not every one: a move across volumes copies, then deletes, so a file it
+cannot read, a folder inside that it cannot write or a full disk still fails after the logouts.
+Nothing is lost then (see the partial copies below); audit and apply again to finish. The quarantine
+is a dated folder in the user's Trash, or with no Trash, beside the real CLI state, which in the
+Docker image is the `rlm-state` volume; `--quarantine <dir>` chooses another folder, which must be
+outside the project, `~/.sf` and `~/.sfdx` (through links too), and must not hold any of them, since
+emptying it would delete them (exit 2).
 
 It then runs targeted `sf org logout` per user, `sf alias unset -- <alias>` per alias, and `sf config
 unset target-org` (with `--global` for the global scope) for each planned default. It tracks the

@@ -958,16 +958,12 @@ def check_quarantine(quarantine, source):
 
 def move_blocker(run, path, project):
     """Why `path` cannot leave or be replaced in its folder, or None. apply asks this of every
-    planned item and of the deploy cache before any logout, and again at the move. Moving a
-    directory rewrites its `..` entry, so it needs write access on the directory itself too, which
-    a `sudo sf` can take away; across volumes the move copies it and then deletes every folder in
-    it, so each of those needs write access as well. Links are left to the audit, which plans none."""
-    folders, unreadable = [path.parent], []
-    if is_dir(path):
-        folders += [Path(top) for top, _, _ in os.walk(str(path), onerror=unreadable.append)]
-    if unreadable:
-        return "cannot read {}".format(unreadable[0].filename)
-    for folder in folders:
+    planned item and of the deploy cache before any logout, and again at the move. It checks what a
+    rename needs: write access on the folder, and on a moved directory itself, whose `..` the rename
+    rewrites (a `sudo sf` can take either away). A move across volumes copies, then deletes, and can
+    still fail on what is inside; nothing is lost then (see move_path). Links are left to the audit,
+    which plans none."""
+    for folder in [path.parent] + ([path] if is_dir(path) else []):
         if not os.access(str(folder), os.W_OK | os.X_OK):
             return "no write access to {}".format(folder)
     if project in path.parents:
