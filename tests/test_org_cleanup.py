@@ -566,6 +566,29 @@ class Names(Base):
             plan = self.plan(cli)
         self.assertEqual(plan["remove"]["aliases"], ["r"])  # SOQL matches the username in any case
 
+    def link_alias_store(self):
+        shared = self.home.parent / "shared-alias.json"  # a store other homes may share
+        shared.write_text(json.dumps({"orgs": {}}))
+        (self.home / ".sfdx" / "alias.json").symlink_to(shared)
+        return shared
+
+    def test_a_linked_alias_store_is_never_written_through(self):
+        self.link_alias_store()
+        cli = FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")], {"stale": "gone@x.invalid"})
+        plan = self.plan(cli)
+        self.assertEqual(plan["remove"]["aliases"], [])
+        self.assertIn("is a link", plan["report"]["protected"]["stale"])
+        self.assertIn(str(self.home / ".sfdx" / "alias.json"), plan["report"]["symlinks_left_alone"])
+
+    def test_no_logout_clears_aliases_through_a_linked_alias_store(self):
+        self.link_alias_store()
+        self.add_auth("rep@x.invalid", DEAD_ORG)
+        self.add_auth("other@x.invalid", "00DCC0000000001")
+        rows = [row(DEAD_ORG), row("00DCC0000000001")]
+        plan = self.plan(FakeCli(self.home, rows, {"r": "rep@x.invalid"}))
+        self.assertEqual(plan["remove"]["logout"], ["other@x.invalid"])  # it clears no alias
+        self.assertIn("a link sf writes through", plan["report"]["protected"]["rep@x.invalid"])
+
     def test_a_name_kept_in_doubt_is_reported_with_why(self):
         # A renamed file holds rep's login on a live org, so which login "rep@x.invalid" opens is unclear.
         (self.home / ".sfdx" / "old@x.invalid.json").write_text(

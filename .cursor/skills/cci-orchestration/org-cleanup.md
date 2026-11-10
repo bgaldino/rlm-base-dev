@@ -126,7 +126,7 @@ and the orgs each one reaches are under `targets` in the plan file):
 | `protected` | Names kept, each with every reason that applies (listed below the table). Stop on these; resolve each by hand. |
 | `conflicting_evidence` | Hub rows that disagree, or show `Active` past the date, for a login, an org whose index, tracking or `fileResponses` is local, or a username that an alias, default, deploy-cache entry, environment default or tracking folder names. Kept. |
 | `logins_with_no_refresh_token` | An access-token-only login that is not linked (a linked one is under `protected`): it stops working when its session expires (JWT logins re-sign and are not listed). It is not on the plan, which does not mean its org is live. Report it; log out only with explicit approval. |
-| `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. An auth file that does not parse is listed whether or not it is a link, since sf reads through links. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned; so is a linked manifest in it, and its entry is not planned. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
+| `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. An auth file that does not parse is listed whether or not it is a link, since sf reads through links. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned; so is a linked manifest in it, and its entry is not planned. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. A linked `~/.sfdx/alias.json` is listed too: sf writes through it, so no alias is unset and no logout that would clear an alias runs (both are under `protected`). |
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
 | `names_in_doubt` | Aliases, defaults, environment defaults, deploy-cache targets, tracking names and CCI usernames kept because the tool cannot tell which login they open (an alias shadows a login's name, a renamed or unread login file holds that username, names that differ only by case or Unicode form), each with why. Resolve the cause by hand, then re-audit. |
 | `dangling_aliases`, `dangling_defaults` | Reach no login and no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset -- <name>` (the `--` keeps a name such as `-ap` from being read as `--all --no-prompt`), or `sf config unset target-org` (see the note below the table). |
@@ -151,9 +151,10 @@ and the orgs each one reaches are under `targets` in the plan file):
   differ only by case or Unicode form.
 - A login on a gone org that is not logged out because an alias has its name; because logout
   would clear an alias whose name would then mean another login; because logout would rewrite a
-  config scope the tool cannot model; because its name starts with `-` and a letter sf reads as
+  config scope the tool cannot model, or clear aliases in a linked `~/.sfdx/alias.json`; because its name starts with `-` and a letter sf reads as
   its own flag (`-a`, `-c`, `-o`, `-p`, `-u`); or because a username-less login file stops every
   logout.
+- A stale alias while `~/.sfdx/alias.json` is a link (sf would unset it through the link).
 - An alias that has a login's name (sf resolves that name to the alias), an alias holding `@`
   whose name has characters this Python's Unicode tables do not know, or an alias whose name is
   not valid UTF-8 (sf would read it as another name). The tool never unsets these.

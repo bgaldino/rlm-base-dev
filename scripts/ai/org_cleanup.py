@@ -609,6 +609,12 @@ def survey(run, home, project, today, predict=True, env=None):
     for path in entries:
         (responses if is_dir(path) and ORG_ID.fullmatch(path.name) else unrecognized_responses).append(path)
     symlinks = list(dict.fromkeys(symlinks + response_symlinks))  # a linked .sfdx shows up in both
+    # sf writes the alias store with writeFile, which follows a link: an unset there would rewrite a
+    # store other homes may share, so nothing writes it (as for a linked config scope or cache).
+    alias_store = home / ".sfdx" / "alias.json"
+    alias_store_linked = is_link(alias_store)
+    if alias_store_linked:
+        symlinks.append(alias_store)
 
     cache_path = home / ".sf" / "deploy-cache.json"
     if is_link(cache_path):  # a shared cache: read nothing through the link, rewrite nothing
@@ -702,6 +708,8 @@ def survey(run, home, project, today, predict=True, env=None):
         for alias in effects(name)["aliases"]:
             if fold(alias) != fold(name) and login_for(alias) is not None:
                 return "logout clears its alias {}, and that name would then mean another login".format(alias)
+        if alias_store_linked and effects(name)["aliases"]:
+            return "logout clears aliases in ~/.sfdx/alias.json, a link sf writes through"
         rewrites = unmodelled_scopes(state, set(effects(name)["config"]))
         if rewrites:
             return "logout rewrites the {} config, which the tool cannot model: {}".format(*rewrites[0])
@@ -768,7 +776,10 @@ def survey(run, home, project, today, predict=True, env=None):
             protect(alias, "this alias has a login's name, so sf resolves that name to the alias, not the login; "
                            "the tool never unsets it")
         elif judge(alias) == "stale":
-            remove_aliases.append(alias)
+            if alias_store_linked:
+                protect(alias, "~/.sfdx/alias.json is a link, and sf would unset it through the link")
+            else:
+                remove_aliases.append(alias)
 
     defaults, stale_values = [], []
     for scope_name, scope in sorted(scopes.items()):
