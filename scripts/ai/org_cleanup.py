@@ -612,6 +612,10 @@ def survey(run, home, project, today, predict=True, env=None):
     manifest_linked = is_link(manifest_dir)
     if manifest_linked:  # its files are not ours to move, so no deploy job is planned
         symlinks.append(manifest_dir)
+    # Nor is a job whose own manifest is a link: apply would refuse the move after the logout.
+    linked_manifests = set() if manifest_linked else {
+        job for job in deploy_raw if plain_job_id(job) and is_link(manifest_dir / (job + ".xml"))}
+    symlinks += [manifest_dir / (job + ".xml") for job in sorted(linked_manifests)]
     # sf drops a cache entry when its 3-day TTL lapses but leaves the manifest; nothing names it now
     orphan_manifests = [] if manifest_linked or not cache_known else sorted(
         p.name for p in listing(manifest_dir) if p.suffix == ".xml" and p.stem not in deploy_cache)
@@ -766,7 +770,8 @@ def survey(run, home, project, today, predict=True, env=None):
 
     jobs = [] if manifest_linked else sorted(
         job for job, value in deploy_raw.items()
-        if isinstance(value, str) and value and plain_job_id(job) and judge(value) == "stale")
+        if isinstance(value, str) and value and plain_job_id(job) and job not in linked_manifests
+        and judge(value) == "stale")
     remove = {
         "logout": sorted(stale_logins),
         "aliases": remove_aliases,
@@ -951,9 +956,10 @@ def check_quarantine(quarantine, home):
 
 
 def move_blocker(run, path, project):
-    """Why `path` cannot leave its folder, or None. apply asks this of every planned item before
-    any logout, and again at the move. Moving a directory rewrites its `..` entry, so it needs write
-    access on the directory itself too, which a `sudo sf` can take away."""
+    """Why `path` cannot leave or be replaced in its folder, or None. apply asks this of every
+    planned item and of the deploy cache before any logout, and again at the move. Moving a
+    directory rewrites its `..` entry, so it needs write access on the directory itself too, which
+    a `sudo sf` can take away. Links are left to the audit, which plans none."""
     for folder in [path.parent] + ([path] if is_dir(path) else []):
         if not os.access(str(folder), os.W_OK | os.X_OK):
             return "no write access to {}".format(folder)
@@ -983,9 +989,11 @@ def move_to_quarantine(run, path, roots, quarantine, project):
             if is_link(folder):
                 return "the quarantine folder {} is a symlink".format(folder)
         dest.parent.mkdir(parents=True, exist_ok=True)
-        move_path(str(path), str(free_name(dest)))
+        dest = free_name(dest)
+        move_path(str(path), str(dest))
     except OSError as error:
         return "could not move it to {}: {}".format(dest.parent, reason(error))
+    print("Moved {} -> {}".format(path, dest))  # the quarantine is shared, so say where each item came from
     return None
 
 
@@ -1441,16 +1449,19 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
     moves = any(plan["remove"][key] for key in FILE_KEYS + ("deploy_jobs",))
     if moves:
         items = [Path(item) for key in FILE_KEYS for item in plan["remove"][key]]
-        items += [home / ".sf" / "manifestCache" / (job + ".xml") for job in plan["remove"]["deploy_jobs"]
-                  if plain_job_id(job)]
+        if plan["remove"]["deploy_jobs"]:  # the cache is replaced in its folder, the manifests moved
+            items.append(home / ".sf" / "deploy-cache.json")
+            items += [home / ".sf" / "manifestCache" / (job + ".xml") for job in plan["remove"]["deploy_jobs"]
+                      if plain_job_id(job)]
         stuck = []
-        for item in items:  # a missing or linked item is refused at the move, without a logout to undo
-            why = None if lstat_or_none(item) is None or is_link(item) else move_blocker(run, item, project)
+        for item in items:  # a missing item has nothing to move
+            why = None if lstat_or_none(item) is None else move_blocker(run, item, project)
             if why:
                 stuck.append("{} ({})".format(item, why))
         if stuck:
-            print("Stopped before any logout; nothing was changed. These files cannot be moved: {}. Fix "
-                  "their ownership or git, then apply again.".format("; ".join(stuck)), file=sys.stderr)
+            print("Stopped before any logout; nothing was changed. These files cannot be moved or rewritten: "
+                  "{}. Fix their ownership or git, then apply again.".format("; ".join(stuck)),
+                  file=sys.stderr)
             return 1
         why = check_quarantine(quarantine, home)
         if why:

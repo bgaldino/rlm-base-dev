@@ -118,7 +118,7 @@ value each alias, default and deploy job reaches (`name -> value`):
 | `protected` | Names kept, each with every reason that applies (listed below the table). Stop on these; resolve each by hand. |
 | `conflicting_evidence` | Hub rows that disagree, or show `Active` past the date, for a login, an org whose index, tracking or `fileResponses` is local, or a username that an alias, default, deploy-cache entry, environment default or tracking folder names. Kept. |
 | `logins_with_no_refresh_token` | An access-token-only login that is not linked (a linked one is under `protected`): it stops working when its session expires (JWT logins re-sign and are not listed). It is not on the plan, which does not mean its org is live. Report it; log out only with explicit approval. |
-| `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. An auth file that does not parse is listed whether or not it is a link, since sf reads through links. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
+| `unreadable_auth_files`, `symlinks_left_alone` | Left alone. Report them. An auth file that does not parse is listed whether or not it is a link, since sf reads through links. A link counts at the entry, at `orgs` or `fileResponses`, or at the project's `.sf` or `.sfdx` above them: nothing under a linked folder is moved. A linked `~/.sf/manifestCache` is listed too, and then no deploy-cache entry is planned; so is a linked manifest in it, and its entry is not planned. A linked `~/.sf/deploy-cache.json` is listed and never read or rewritten through the link. |
 | `unrecognized_file_responses` | An entry under `fileResponses` that is not an org-ID directory. It has no org to check, so it stays. Report it. |
 | `dangling_aliases`, `dangling_defaults` | Reach no login and no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset -- <name>` (the `--` keeps a name such as `-ap` from being read as `--all --no-prompt`), or `sf config unset target-org` (see the note below the table). |
 | `usernames_not_queried` | Usernames an alias, default, deploy-cache entry or tracking folder names that no hub query can carry (a quote, a backslash, or text sf would read as another name). Never judged, so never planned. Report them. |
@@ -185,7 +185,8 @@ clears, and the value and orgs each alias, default, deploy job and file reaches.
 query; an unreadable state folder stops it with exit 1 before anything changes. Before any
 logout, if the plan moves files, it checks each one as the move will: write access to its folder,
 and to a moved directory itself (a `sudo sf` can take either away), and for project files that git
-answers and does not track them. It also checks the quarantine (no linked root or folder, no file
+answers and does not track them. With deploy jobs planned it checks `~/.sf` the same way, since
+the cache is rewritten there. It also checks the quarantine (no linked root or folder, no file
 where a folder belongs) and moves a temp file in. If any check fails it exits 1, naming each file. The quarantine is a
 dated folder in the user's Trash, or with no Trash, beside the real CLI state, which in the Docker
 image is the `rlm-state` volume; `--quarantine <dir>` chooses another folder, which must be
@@ -207,8 +208,9 @@ every write, only as present):
   a failure. Anything else it changed is recorded, and the run stops before the next command.
 
 It moves user indexes, tracking directories, `fileResponses` directories, and matched deploy-cache
-manifests to the quarantine. It refuses symlinks, paths outside the state roots, and project files
-tracked by git (home state is not checked against git).
+manifests to the quarantine, printing each as `Moved <source> -> <destination>`: one quarantine can
+hold items from several projects, so a name in it can carry a `.1` suffix. It refuses symlinks, paths
+outside the state roots, and project files tracked by git (home state is not checked against git).
 
 If a logout fails, every item that reaches that login or another login on its orgs stays: aliases,
 defaults, files and deploy-cache entries. `sf` clears the user's aliases and config keys before it

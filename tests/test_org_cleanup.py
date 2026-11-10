@@ -2854,6 +2854,34 @@ class PathsAndManifests(Base):
         self.assertIn("{} (no write access to {})".format(self.manifest, manifests), self.stderr.getvalue())
         self.assertEqual(self.logouts(cli), [])
 
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can write anywhere")
+    def test_a_cache_folder_that_cannot_be_rewritten_stops_the_run_before_any_logout(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        sf_dir = self.home / ".sf"
+        sf_dir.chmod(0o500)
+        self.addCleanup(sf_dir.chmod, 0o755)
+        self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertIn("deploy-cache.json (no write access to {})".format(sf_dir), self.stderr.getvalue())
+        self.assertEqual(self.logouts(cli), [])
+        self.assertIn("job1", self.read_cache())
+
+    def test_a_linked_manifest_is_left_alone_and_its_job_not_planned(self):
+        rows = self.setup_stale_org()
+        elsewhere = self.home.parent / "elsewhere.xml"
+        elsewhere.write_text("<x/>")
+        self.manifest.unlink()
+        self.manifest.symlink_to(elsewhere)
+        plan = self.plan(FakeCli(self.home, rows))
+        self.assertEqual(plan["remove"]["deploy_jobs"], [])
+        self.assertIn(str(self.manifest), plan["report"]["symlinks_left_alone"])
+
+    def test_each_move_names_where_the_item_went(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        self.assertEqual(self.apply(cli, self.audit_file(cli)), 0)
+        self.assertIn("Moved {} -> {}".format(self.index, self.quarantine / ".sfdx" / self.index.name),
+                      self.stdout.getvalue())
+
     @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX only")
     def test_the_plan_is_never_written_into_a_fifo(self):
         fifo = self.home.parent / "plan.fifo"
