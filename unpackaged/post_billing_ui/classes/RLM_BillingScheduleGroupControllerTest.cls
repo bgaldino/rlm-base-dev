@@ -7,7 +7,8 @@ private class RLM_BillingScheduleGroupControllerTest {
     // Billing permission set license seat, the refused-access test (a plain Minimum Access
     // user with no permission set license) does not.
     // A billing role can run the BSG query, so an account with no BSGs, and a null account id,
-    // must come back as empty lists.
+    // must come back as empty lists. Beyond RLM_BillingUIAccessTest, it shows the real
+    // controller call succeeds for the role and returns the expected (empty list) shape.
     @isTest
     static void getBillingScheduleGroups_billingRole_accountWithNoBsgs_returnsEmptyList() {
         Account acc = new Account(Name = 'RLM BSG Controller Role Test');

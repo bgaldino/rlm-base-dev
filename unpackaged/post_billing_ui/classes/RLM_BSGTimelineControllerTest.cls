@@ -7,7 +7,8 @@ private class RLM_BSGTimelineControllerTest {
 
     // BillingScheduleGroup records are system-managed and not insertable in Apex tests.
     // getBillingScheduleGroupData / getConsolidatedTimeline raise AuraHandledException when the
-    // BSG cannot be found; getMilestoneChartData degrades to an empty list. The refused-access
+    // BSG cannot be found; getMilestoneChartData degrades to an empty list. The admin-run
+    // unknown-id tests reach "not found or refused" (indistinguishable when run as the admin). The refused-access
     // test runs as a plain Minimum Access user with no permission set license (no Billing PSL
     // seat); billing-role read coverage for the controller's fields is in
     // RLM_BillingUIAccessTest (billingOperationsCanRunItsControllerReads).

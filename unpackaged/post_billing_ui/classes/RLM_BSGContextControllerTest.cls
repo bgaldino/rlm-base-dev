@@ -4,7 +4,8 @@ private class RLM_BSGContextControllerTest {
     // Tests for RLM_BSGContextController. BillingScheduleGroup, BillingSchedule and
     // BsgRelationship cannot be inserted in Apex tests, so getBSGContext is covered only on
     // the paths that need no BSG: a malformed or null id, an id matching no BSG, and a BSG
-    // query the user may not run.
+    // query the user may not run. The admin-run unknown-id tests reach "not found or refused"
+    // (indistinguishable when run as the admin).
     // The bundle assembly (appendComponentsDfs) is covered with in-memory BSGs; the
     // charge-type / frequency helpers are called directly with plain inputs.
     // The refused-access test runs as a plain Minimum Access user with no permission set

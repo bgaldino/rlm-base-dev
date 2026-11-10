@@ -45,10 +45,10 @@
  * and the service's own comment), but the create path never checks totalPrice, so a null
  * total is accepted. See createViaAPI_nullTotalPrice_isAccepted.
  *
- * Known gap: getTaxTreatments/getLegalEntities have no Status filter, so Draft/Inactive
- * records are offered. The TaxTreatment half is pinned by
- * getTaxTreatments_returnsAllSortedByName (Draft treatments are returned); the LegalEntity
- * half is documented, not pinned.
+ * Known gap (pinned): getTaxTreatments/getLegalEntities have no Status filter, so
+ * Draft/Inactive records are offered. getTaxTreatments_returnsAllSortedByName pins the
+ * TaxTreatment half (Draft treatments are returned) and getLegalEntities_returnsAllSortedByName
+ * pins the LegalEntity half (an Inactive legal entity is returned).
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {
@@ -244,6 +244,8 @@ private class RLM_BillingScheduleGroupServiceTest {
 
     // Product2 has no record sharing, so this proves a billing role can run the USER_MODE
     // product query (object read plus Name/IsActive/Family) without depending on OWD.
+    // Beyond RLM_BillingUIAccessTest, it shows the real service call succeeds for the role and
+    // returns the expected option shape.
     @isTest
     static void getProducts_asBillingRole_returnsTheProducts() {
         Product2 prod = new Product2(Name = 'BSG Role Software', Family = 'Software', IsActive = true);
@@ -267,18 +269,23 @@ private class RLM_BillingScheduleGroupServiceTest {
     static void getLegalEntities_returnsAllSortedByName() {
         LegalEntity zulu = new LegalEntity(Name = 'BSG LE Zulu', Status = 'Active');
         LegalEntity alpha = new LegalEntity(Name = 'BSG LE Alpha', Status = 'Active');
-        insert new List<LegalEntity>{ zulu, alpha };
+        LegalEntity mike = new LegalEntity(Name = 'BSG LE Mike', Status = 'Inactive');
+        insert new List<LegalEntity>{ zulu, alpha, mike };
 
         Test.startTest();
         List<RLM_BillingScheduleGroupService.LegalEntityOption> options =
             RLM_BillingScheduleGroupService.getLegalEntities();
         Test.stopTest();
 
-        Assert.areEqual(2, options.size(), 'Both inserted legal entities are returned.');
+        Assert.areEqual(3, options.size(),
+            'Known gap: Inactive legal entities are offered (no Status filter); update this test when '
+            + 'a filter lands.');
         Assert.areEqual(alpha.Id, options[0].id, 'Options are sorted by name.');
         Assert.areEqual('BSG LE Alpha', options[0].name);
-        Assert.areEqual(zulu.Id, options[1].id);
-        Assert.areEqual('BSG LE Zulu', options[1].name);
+        Assert.areEqual(mike.Id, options[1].id);
+        Assert.areEqual('BSG LE Mike', options[1].name);
+        Assert.areEqual(zulu.Id, options[2].id);
+        Assert.areEqual('BSG LE Zulu', options[2].name);
     }
 
     @isTest
@@ -428,8 +435,9 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         Assert.isFalse(rejected,
-            'Known gap: a Termed schedule with no end date is sent without EndDate__std, which the '
-            + 'standard action requires; update this test when a guard lands.');
+            'Known gap: a Termed create with no end date is accepted (the builder then omits '
+            + 'EndDate__std; see buildTransactionDetailsJson_termedWithoutEndDate_omitsEndDate); '
+            + 'update this test when a guard lands.');
     }
 
     @isTest
