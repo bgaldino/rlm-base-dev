@@ -45,8 +45,10 @@
  * and the service's own comment), but the create path never checks totalPrice, so a null
  * total is accepted. See createViaAPI_nullTotalPrice_isAccepted.
  *
- * Known gap (documented, not pinned; unverified): getTaxTreatments/getLegalEntities have no
- * Status filter, so Draft/Inactive records are offered.
+ * Known gap: getTaxTreatments/getLegalEntities have no Status filter, so Draft/Inactive
+ * records are offered. The TaxTreatment half is pinned by
+ * getTaxTreatments_returnsAllSortedByName (Draft treatments are returned); the LegalEntity
+ * half is documented, not pinned.
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {
@@ -295,7 +297,9 @@ private class RLM_BillingScheduleGroupServiceTest {
             RLM_BillingScheduleGroupService.getTaxTreatments();
         Test.stopTest();
 
-        Assert.areEqual(2, options.size(), 'Both inserted tax treatments (Draft) are returned.');
+        Assert.areEqual(2, options.size(),
+            'Known gap: Draft tax treatments are offered (no Status filter); update this test when '
+            + 'a filter lands. Both inserted tax treatments (Draft) are returned.');
         Assert.areEqual(ttFirst.Id, options[0].id, 'Options are sorted by name.');
         Assert.areEqual('BSG TT First', options[0].name);
         Assert.areEqual(ttSecond.Id, options[1].id);

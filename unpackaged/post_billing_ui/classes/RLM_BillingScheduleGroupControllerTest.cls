@@ -27,8 +27,8 @@ private class RLM_BillingScheduleGroupControllerTest {
 
         Assert.isNotNull(result, 'A billing role gets a list, not an error.');
         Assert.isTrue(result.isEmpty(), 'An account with no BSGs yields an empty list.');
-        Assert.isNotNull(nullAccountResult, 'The query runs for a null account id (no BSGs can exist in tests).');
-        Assert.isTrue(nullAccountResult.isEmpty(), 'The query runs for a null account id (no BSGs can exist in tests).');
+        Assert.isNotNull(nullAccountResult, 'A null account id returns a list, not null or an error.');
+        Assert.isTrue(nullAccountResult.isEmpty(), 'A null account id yields an empty list (no BSGs can exist in tests).');
     }
 
     // A Minimum Access user with no permission sets cannot read BillingScheduleGroup. The
