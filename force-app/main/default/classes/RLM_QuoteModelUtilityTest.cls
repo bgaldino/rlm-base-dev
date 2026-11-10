@@ -315,6 +315,18 @@ private class RLM_QuoteModelUtilityTest {
     }
 
     @IsTest
+    static void emptyInputThrows() {
+        try {
+            RLM_QuoteModelUtility.CreateQuoteContextString(new List<Id>());
+            Assert.fail(
+                'Known gap: an empty input list throws a raw ListException; update this test when it is fixed'
+            );
+        } catch (ListException e) {
+            Assert.isTrue(e.getMessage().contains('out of bounds'), 'No quote is found to index: ' + e.getMessage());
+        }
+    }
+
+    @IsTest
     static void getQuoteFailsForAnUnknownQuote() {
         Id missingQuoteId = Quote.SObjectType.getDescribe().getKeyPrefix() + '000000000001';
 

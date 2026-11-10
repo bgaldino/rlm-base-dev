@@ -75,19 +75,19 @@ private class RLM_QuoteItemTriggerTest {
 
     /**
      * Gives the asset a recent action and an action a month older (olderStatus); latestFirst sets
-     * which is inserted first. The recent action has three sources, newest first: one with no
-     * status (the trigger has to skip it), one with latestStatus, and an older one with a stale
-     * status (the trigger has to prefer the newer source).
+     * which is inserted first. The recent action has three sources, inserted stale first but dated
+     * newest first: one with no status (the trigger has to skip it), one with latestStatus, and an
+     * older one with a stale status. Insert order or an ascending sort would pick the stale one.
      */
     private static void seedAssetHistory(Id assetId, Boolean latestFirst, String latestStatus, String olderStatus) {
         for (Boolean insertLatest : latestFirst ? new List<Boolean>{ true, false } : new List<Boolean>{ false, true }) {
             if (insertLatest) {
                 AssetAction latest = assetAction(assetId, Datetime.now().addDays(-1));
                 List<AssetActionSource> sources = actionSources(
-                    latest.Id, new List<String>{ latestStatus, '{"node":"stale"}', null }
+                    latest.Id, new List<String>{ '{"node":"stale"}', latestStatus, null }
                 );
-                Test.setCreatedDate(sources[0].Id, Datetime.now().addHours(-1));
-                Test.setCreatedDate(sources[1].Id, Datetime.now().addDays(-2));
+                Test.setCreatedDate(sources[0].Id, Datetime.now().addDays(-2));
+                Test.setCreatedDate(sources[1].Id, Datetime.now().addHours(-1));
                 Test.setCreatedDate(sources[2].Id, Datetime.now().addMinutes(-10));
             } else {
                 AssetAction older = assetAction(assetId, Datetime.now().addDays(-30));

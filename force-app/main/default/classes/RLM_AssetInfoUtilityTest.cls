@@ -4,6 +4,10 @@
  * model even when its price book entry had one (a quote line on the same entry did get it). So the
  * fixture uses a plain price book entry, and new assets take the default renewal path.
  *
+ * Activating the contract fires the RLM_Contract_Activation_Refresh_Pricing_Tables flow. Its three
+ * refreshDecisionTable calls were verified on a live 264 org to run cleanly in test context (each
+ * returns Queued; the fault path is never taken).
+ *
  * Production gaps are pinned below with "Known gap:" assertions.
  */
 @IsTest
