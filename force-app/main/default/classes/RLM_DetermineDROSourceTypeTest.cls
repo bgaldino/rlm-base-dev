@@ -56,6 +56,24 @@ private class RLM_DetermineDROSourceTypeTest {
     }
 
     @IsTest
+    static void onlyTheFirstInputIsRead() {
+        RLM_DetermineDROSourceType.droSourceInfo first = new RLM_DetermineDROSourceType.droSourceInfo();
+        first.recordId = fakeId(OrderItem.SObjectType, 1);
+        RLM_DetermineDROSourceType.droSourceInfo second = new RLM_DetermineDROSourceType.droSourceInfo();
+        second.recordId = fakeId(Order.SObjectType, 2);
+
+        List<String> result = RLM_DetermineDROSourceType.returnDROSourceObjectType(
+            new List<RLM_DetermineDROSourceType.droSourceInfo>{ first, second }
+        );
+
+        Assert.areEqual(
+            1, result.size(),
+            'Known gap: only the first of several inputs is read, so a bulk call gets one output; update this test when it is fixed'
+        );
+        Assert.areEqual('OrderItem', result[0], 'The output is for the first input');
+    }
+
+    @IsTest
     static void malformedRecordIdThrows() {
         RLM_DetermineDROSourceType.droSourceInfo info = new RLM_DetermineDROSourceType.droSourceInfo();
         info.recordId = 'not-an-id';

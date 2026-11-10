@@ -13,7 +13,8 @@ private class RLM_QuoteModelUtilityTest {
 
     /**
      * A draft quote with one line per product. With a selling model, every product is priced
-     * under a monthly term-defined model whose option carries a proration policy.
+     * under a monthly term-defined model whose option carries a proration policy. That policy is
+     * not copied onto a line inserted by DML (the tests assert so), so it never reaches the context.
      */
     private static QuoteFixture buildQuote(Integer lineCount, Boolean withSellingModel, Boolean firstIsBundle) {
         Account acct = new Account(Name = 'RLM QMU Account');
@@ -137,17 +138,17 @@ private class RLM_QuoteModelUtilityTest {
         }
 
         Test.startTest();
-        String json = contextFor(f.quote.Id);
+        String context = contextFor(f.quote.Id);
         Test.stopTest();
 
-        Assert.isFalse(json.contains('null'), 'Every null is blanked for the context service');
-        RLM_QuoteModelUtility.SalesTransactionModel txn = parse(json);
+        Assert.isFalse(context.contains('null'), 'Every null is blanked for the context service');
+        RLM_QuoteModelUtility.SalesTransactionModel txn = parse(context);
         Assert.areEqual(String.valueOf(f.quote.Id), txn.SalesTransactionSource, 'The quote is the transaction source');
         Assert.areEqual(String.valueOf(Test.getStandardPricebookId()), txn.PriceBooks, 'The quote price book is carried');
         Assert.areEqual(q.CurrencyIsoCode, txn.CurrencyIsoCode, 'The quote currency is carried');
         Assert.areEqual(
             q.CreatedDate.format('yyyy-MM-dd\'T\'HH:mm:ss.SSS\'Z\''), txn.EffectiveDate,
-            'The quote creation time is the effective date'
+'Known gap: local time is labelled UTC (Z); update this test when it is fixed (quote creation time as the effective date)'
         );
         Assert.areEqual(stored.size(), txn.SalesTransactionItem.size(), 'Every quote line becomes one transaction item');
 
@@ -160,8 +161,8 @@ private class RLM_QuoteModelUtilityTest {
             Assert.areEqual(String.valueOf(line.ListPrice), item.InputUnitPrice, 'The list price is the input price');
             Assert.areEqual('12', item.ItemSubscriptionTerm, 'The subscription term is carried');
             Assert.areEqual('PriceBook', item.ItemPricingSource, 'Items are priced from the price book');
-            Assert.areEqual('2026-03-05T00:00:00.000Z', item.EffectiveFrom, 'Start date is the start of the day');
-            Assert.areEqual('2027-03-04T23:59:59.000Z', item.EffectiveTo, 'End date is the end of the day');
+            Assert.areEqual('2026-03-05T00:00:00.000Z', item.EffectiveFrom, 'Known gap: local time is labelled UTC (Z); update this test when it is fixed (start date at the start of the day)');
+            Assert.areEqual('2027-03-04T23:59:59.000Z', item.EffectiveTo, 'Known gap: local time is labelled UTC (Z); update this test when it is fixed (end date at the end of the day)');
             Assert.areEqual('5', item.StartProrationPeriodDay, 'The proration day is the start day');
             Assert.areEqual('false', item.AllowPartialProrationPeriods, 'With no proration policy, partial periods are not allowed');
             Assert.isTrue(item.SalesTransactionItemAttribute.isEmpty(), 'No attributes on a plain line');
@@ -251,14 +252,14 @@ private class RLM_QuoteModelUtilityTest {
 
         Test.startTest();
         Integer queriesBefore = Limits.getQueries();
-        String json = contextFor(f.quote.Id);
+        String context = contextFor(f.quote.Id);
         Integer queriesUsed = Limits.getQueries() - queriesBefore;
         Test.stopTest();
 
         // Quote, lines, attributes, relationships: four queries regardless of line count, so a
         // large quote cannot hit the SOQL limit that per-line child queries used to.
         Assert.areEqual(4, queriesUsed, 'Child objects are queried once per quote, not per line');
-        RLM_QuoteModelUtility.SalesTransactionModel txn = parse(json);
+        RLM_QuoteModelUtility.SalesTransactionModel txn = parse(context);
         Assert.areEqual(150, txn.SalesTransactionItem.size(), 'Every line of a large quote is mapped');
         for (QuoteLineItem line : f.lines) {
             itemFor(txn, line.Id);
@@ -273,8 +274,27 @@ private class RLM_QuoteModelUtilityTest {
             RLM_QuoteModelUtility.getQuote(new List<Id>{ missingQuoteId });
             Assert.fail('getQuote must not return a quote for an unknown id');
         } catch (ListException e) {
-            Assert.isTrue(e.getMessage().contains('out of bounds'), 'No row is found for the id: ' + e.getMessage());
+            Assert.isTrue(
+                e.getMessage().contains('out of bounds'),
+                'Known gap: getQuote throws a raw ListException for an unknown id; update this test when it is fixed. '
+                    + e.getMessage()
+            );
         }
+    }
+
+    @IsTest
+    static void onlyOneQuoteIsConvertedPerCall() {
+        QuoteFixture first = buildQuote(1, false, false);
+        QuoteFixture second = buildQuote(1, false, false);
+        Set<String> quoteIds = new Set<String>{ String.valueOf(first.quote.Id), String.valueOf(second.quote.Id) };
+
+        List<String> result = RLM_QuoteModelUtility.CreateQuoteContextString(new List<Id>{ first.quote.Id, second.quote.Id });
+
+        Assert.areEqual(
+            1, result.size(),
+            'Known gap: getQuote reads LIMIT 1, so only one of several quote ids is converted; update this test when it is fixed'
+        );
+        Assert.isTrue(quoteIds.contains(parse(result[0]).SalesTransactionSource), 'The context is for one of the requested quotes');
     }
 
     @IsTest
@@ -297,7 +317,7 @@ private class RLM_QuoteModelUtilityTest {
     static void dateConversionsSpanTheWholeDay() {
         Date d = Date.newInstance(2026, 11, 9);
 
-        Assert.areEqual('2026-11-09T00:00:00.000Z', RLM_QuoteModelUtility.convertStartDate(d), 'Start of day');
-        Assert.areEqual('2026-11-09T23:59:59.000Z', RLM_QuoteModelUtility.convertEndDate(d), 'End of day');
+        Assert.areEqual('2026-11-09T00:00:00.000Z', RLM_QuoteModelUtility.convertStartDate(d), 'Known gap: local time is labelled UTC (Z); update this test when it is fixed (start of day)');
+        Assert.areEqual('2026-11-09T23:59:59.000Z', RLM_QuoteModelUtility.convertEndDate(d), 'Known gap: local time is labelled UTC (Z); update this test when it is fixed (end of day)');
     }
 }

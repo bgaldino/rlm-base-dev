@@ -1,10 +1,10 @@
 /**
- * Known gaps, asserted as they stand:
- * - The OneTime exclusion is not exercised. OrderItem.ProductSellingModelId cannot be set by DML,
- *   and an order item inserted by an Apex test stays without a selling model even when its price
- *   book entry has one (a quote line on the same entry does get it). So every line here counts
- *   as a subscription line, and each fixture asserts that as a PRECONDITION.
- * - subscriptionItemCount is the size of a LIMIT 1 subquery, so it is never more than 1.
+ * Not covered: the OneTime exclusion. OrderItem.ProductSellingModelId cannot be set by DML, and
+ * an order item inserted by an Apex test stays without a selling model even when its price book
+ * entry has one (a quote line on the same entry does get it). So every line here counts as a
+ * subscription line, and each fixture asserts that as a PRECONDITION.
+ *
+ * Production gaps are pinned below with "Known gap:" assertions.
  */
 @IsTest
 private class RLM_OrderItemContractingUtilityTest {
@@ -96,7 +96,10 @@ private class RLM_OrderItemContractingUtilityTest {
         Assert.areEqual(Date.newInstance(2026, 12, 31), r.outEndDate, 'The latest end date is used');
         // Jan 1 -> Dec 31 is 11 whole months; the end day (31) is past the start day (1), so it rounds up.
         Assert.areEqual(12, r.outContractTerm, 'A partial final month counts as a month');
-        Assert.areEqual(1, r.subscriptionItemCount, 'Two items, but the LIMIT 1 subquery caps the count at 1 (known gap)');
+        Assert.areEqual(
+            1, r.subscriptionItemCount,
+            'Known gap: two items, but the LIMIT 1 subquery caps subscriptionItemCount at 1; update this test when it is fixed'
+        );
     }
 
     @IsTest
@@ -134,10 +137,7 @@ private class RLM_OrderItemContractingUtilityTest {
         insert o;
         List<OrderAction> actions = new List<OrderAction>();
         for (String actionType : new List<String>{ 'Add', 'Add', 'Amend', 'Renew' }) {
-            OrderAction action = new OrderAction();
-            action.put('OrderId', o.Id);
-            action.put('Type', actionType);
-            actions.add(action);
+            actions.add(new OrderAction(OrderId = o.Id, Type = actionType));
         }
         insert actions;
 
@@ -181,15 +181,20 @@ private class RLM_OrderItemContractingUtilityTest {
         }
     }
 
+    /** Queries the order the way the utility does: with sharing. */
+    private with sharing class SharingProbe {
+        Integer visibleOrders(Id orderId) {
+            return [SELECT COUNT() FROM Order WHERE Id = :orderId];
+        }
+    }
+
     @IsTest
-    static void userWithoutOrderFieldAccessGetsNoResults() {
+    static void userWithoutOrderAccessGetsNoResults() {
         Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
         insert o;
         Assert.areEqual(1, run(new List<Id>{ o.Id }).size(), 'PRECONDITION: an admin gets a result for this order');
         User noAccess = minimumAccessUser();
 
-        // The field-access check runs before any query, so whether this user could see the order
-        // record under sharing does not affect the result.
         List<RLM_OrderItemContractingUtility.OrderInfoResults> results;
         Test.startTest();
         System.runAs(noAccess) {
@@ -197,11 +202,19 @@ private class RLM_OrderItemContractingUtilityTest {
                 Schema.SObjectType.Order.fields.EffectiveDate.isAccessible(),
                 'PRECONDITION: the user cannot read Order.EffectiveDate'
             );
+            // The user cannot query Order at all, so an empty result (rather than an exception)
+            // can only come from the utility's access check, not from record sharing.
+            try {
+                new SharingProbe().visibleOrders(o.Id);
+                Assert.fail('PRECONDITION: a with-sharing Order query must be denied to this user');
+            } catch (System.SecurityException e) {
+                Assert.isTrue(e.getMessage().contains('Order'), 'PRECONDITION: Order access is denied: ' + e.getMessage());
+            }
             results = run(new List<Id>{ o.Id });
         }
         Test.stopTest();
 
-        Assert.isTrue(results.isEmpty(), 'Without read access to the order fields nothing is computed');
+        Assert.isTrue(results.isEmpty(), 'Without access to the order fields the utility returns no result');
     }
 
     /** A Minimum Access user: no object access to Order, OrderItem or OrderAction. */

@@ -68,7 +68,7 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             RLM_DFOTenantProvisioningCallout.executeCallout('guid-1', oi.Id, '', new Map<String, Object>());
         Test.stopTest();
 
-        Assert.areEqual(true, responseOf(result).get('isSuccess'), 'A successful callout reports success');
+        Assert.areEqual(true, responseOf(result).get('isSuccess'), 'Known gap: success is reported whatever the HTTP status; update this test when it is fixed');
         Assert.areEqual(1, mock.callCount, 'Exactly one tenant callout is made');
         Assert.areEqual('POST', mock.lastRequest.getMethod(), 'Tenant creation is a POST');
         Assert.areEqual(ENDPOINT, mock.lastRequest.getEndpoint(), 'The RLM named credential endpoint is used');
@@ -92,7 +92,7 @@ private class RLM_DFOTenantProvisioningCalloutTest {
         Assert.areEqual(1, mock.callCount, 'The callout was attempted once');
         Assert.areEqual(
             true, responseOf(result).get('isSuccess'),
-            'Success is reported whatever the HTTP status (known gap: the status is not passed back)'
+            'Known gap: success is reported whatever the HTTP status; update this test when it is fixed'
         );
     }
 
@@ -108,7 +108,7 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             );
         Test.stopTest();
 
-        Assert.areEqual(true, responseOf(result).get('isSuccess'), 'An unsupported source still returns a response');
+        Assert.areEqual(true, responseOf(result).get('isSuccess'), 'Known gap: success is reported whatever the HTTP status; update this test when it is fixed (no callout made)');
         Assert.areEqual(0, mock.callCount, 'Only order items and fulfillment lines trigger a callout');
     }
 
@@ -124,7 +124,11 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             );
             Assert.fail('A fulfillment line with no order item source relation must fail');
         } catch (QueryException e) {
-            Assert.isTrue(e.getMessage().contains('no rows'), 'No source relation is found: ' + e.getMessage());
+            Assert.isTrue(
+                e.getMessage().contains('no rows'),
+                'Known gap: a fulfillment line without an order item source throws a raw QueryException; '
+                    + 'update this test when it is fixed. ' + e.getMessage()
+            );
         }
         Test.stopTest();
 

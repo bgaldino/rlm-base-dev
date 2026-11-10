@@ -1,18 +1,23 @@
 /**
- * Not covered here:
- * - Term-defined and evergreen renewal terms. OrderItem.ProductSellingModelId cannot be set by
- *   DML, and an order item inserted by an Apex test stays without a selling model even when its
- *   price book entry has one (a quote line on the same entry does get it). So new assets always
- *   take the default renewal path; the fixture asserts the missing selling model as a PRECONDITION.
- * - Contract-based renewal for changed assets. The utility keys its asset-contract map by the
- *   relationship id but looks it up by asset id, so that branch never runs.
+ * Not covered: term-defined and evergreen renewal terms. OrderItem.ProductSellingModelId cannot be
+ * set by DML, and an order item inserted by an Apex test stays without a selling model even when
+ * its price book entry has one (a quote line on the same entry does get it). So new assets always
+ * take the default renewal path; createLines asserts the missing selling model as a PRECONDITION.
+ *
+ * Production gaps are pinned below with "Known gap:" assertions.
  */
 @IsTest
 private class RLM_AssetInfoUtilityTest {
 
-    // Starting values on every asset, chosen to differ from what the utility writes.
-    private static final Integer SEEDED_TERM = 6;
-    private static final String SEEDED_UNIT = 'Months';
+    // Starting values, chosen to differ from what the path under test can write. The renewal term
+    // differs from every branch. RenewalTermUnit and PricingSource have only two values each, so
+    // they are seeded per path: a new asset always gets LastTransaction; a changed asset can only
+    // get Months / PriceBookListPrice (the contract branch).
+    private static final Integer SEEDED_TERM = 7;
+    private static final String NEW_ASSET_UNIT = 'Months';
+    private static final String NEW_ASSET_SOURCE = 'PriceBookListPrice';
+    private static final String CHANGED_ASSET_UNIT = 'Annual';
+    private static final String CHANGED_ASSET_SOURCE = 'LastTransaction';
 
     /** One order line and the asset the platform reported for it. */
     private class Line {
@@ -61,15 +66,17 @@ private class RLM_AssetInfoUtilityTest {
             Pricebook2Id = Test.getStandardPricebookId()
         );
         insert ctx.order;
-        OrderAction action = new OrderAction();
-        action.put('OrderId', ctx.order.Id);
-        action.put('Type', actionType);
+        OrderAction action = new OrderAction(OrderId = ctx.order.Id, Type = actionType);
         insert action;
         ctx.orderActionId = action.Id;
         return ctx;
     }
 
-    private static List<Line> createLines(OrderContext ctx, Integer count, String seededPricingSource) {
+    private static Boolean isNew(OrderContext ctx) {
+        return ctx.actionType == 'Add';
+    }
+
+    private static List<Line> createLines(OrderContext ctx, Integer count) {
         List<OrderItem> items = new List<OrderItem>();
         List<Asset> assets = new List<Asset>();
         for (Integer i = 0; i < count; i++) {
@@ -84,7 +91,7 @@ private class RLM_AssetInfoUtilityTest {
                 EndDate = Date.newInstance(2026, 12, 31),
                 BillingFrequency2 = 'Monthly'
             );
-            if (ctx.actionType != 'Add') {
+            if (!isNew(ctx)) {
                 // A change to an existing asset must state the quantity it starts from.
                 item.StartQuantity = 1;
             }
@@ -93,9 +100,11 @@ private class RLM_AssetInfoUtilityTest {
                 Name = 'RLM Asset Info ' + i,
                 AccountId = ctx.accountId,
                 Product2Id = ctx.pbe.Product2Id,
+                // Only a lifecycle-managed asset can be related to a contract.
+                HasLifecycleManagement = true,
                 RenewalTerm = SEEDED_TERM,
-                RenewalTermUnit = SEEDED_UNIT,
-                PricingSource = seededPricingSource
+                RenewalTermUnit = isNew(ctx) ? NEW_ASSET_UNIT : CHANGED_ASSET_UNIT,
+                PricingSource = isNew(ctx) ? NEW_ASSET_SOURCE : CHANGED_ASSET_SOURCE
             ));
         }
         insert items;
@@ -109,6 +118,9 @@ private class RLM_AssetInfoUtilityTest {
             l.orderItemId = items[i].Id;
             l.assetId = assets[i].Id;
             lines.add(l);
+        }
+        for (Asset a : [SELECT RenewalTerm, RenewalTermUnit, PricingSource FROM Asset WHERE Id IN :assets]) {
+            assertSeeded(ctx, a, 'PRECONDITION: seeded values are stored');
         }
         return lines;
     }
@@ -144,11 +156,22 @@ private class RLM_AssetInfoUtilityTest {
         return [SELECT RenewalTerm, RenewalTermUnit, PricingSource FROM Asset WHERE Id = :assetId];
     }
 
-    private static void assertSeeded(Id assetId, String pricingSource) {
+    /** Asserts the asset still holds the values createLines seeded for this path. */
+    private static void assertUnchanged(OrderContext ctx, Id assetId, String message) {
+        assertSeeded(ctx, reload(assetId), message);
+    }
+
+    private static void assertSeeded(OrderContext ctx, Asset a, String message) {
+        Assert.areEqual(SEEDED_TERM, a.RenewalTerm.intValue(), message + ' (renewal term)');
+        Assert.areEqual(isNew(ctx) ? NEW_ASSET_UNIT : CHANGED_ASSET_UNIT, a.RenewalTermUnit, message + ' (renewal unit)');
+        Assert.areEqual(isNew(ctx) ? NEW_ASSET_SOURCE : CHANGED_ASSET_SOURCE, a.PricingSource, message + ' (pricing source)');
+    }
+
+    private static void assertDefaultRenewal(Id assetId) {
         Asset a = reload(assetId);
-        Assert.areEqual(SEEDED_TERM, a.RenewalTerm.intValue(), 'PRECONDITION: seeded renewal term is stored');
-        Assert.areEqual(SEEDED_UNIT, a.RenewalTermUnit, 'PRECONDITION: seeded renewal unit is stored');
-        Assert.areEqual(pricingSource, a.PricingSource, 'PRECONDITION: seeded pricing source is stored');
+        Assert.areEqual(1, a.RenewalTerm.intValue(), 'Default renewal term is 1');
+        Assert.areEqual('Annual', a.RenewalTermUnit, 'Default renewal unit is Annual');
+        Assert.areEqual('LastTransaction', a.PricingSource, 'New assets renew at the last transaction price');
     }
 
     @IsTest
@@ -162,51 +185,90 @@ private class RLM_AssetInfoUtilityTest {
 
     @IsTest
     static void newAssetWithoutSellingModelRenewsForOneYear() {
-        OrderContext ctx = newOrder('Add');
-        List<Line> lines = createLines(ctx, 2, 'PriceBookListPrice');
-        for (Line l : lines) {
-            assertSeeded(l.assetId, 'PriceBookListPrice');
-        }
+        List<Line> lines = createLines(newOrder('Add'), 2);
 
         Test.startTest();
         run(lines);
         Test.stopTest();
 
         for (Line l : lines) {
-            Asset a = reload(l.assetId);
-            Assert.areEqual(1, a.RenewalTerm.intValue(), 'Default renewal term is 1');
-            Assert.areEqual('Annual', a.RenewalTermUnit, 'Default renewal unit is Annual');
-            Assert.areEqual('LastTransaction', a.PricingSource, 'New assets renew at the last transaction price');
+            assertDefaultRenewal(l.assetId);
         }
     }
 
     @IsTest
     static void changedAssetWithoutContractIsLeftAsIs() {
         OrderContext ctx = newOrder('Amend');
-        Line l = createLines(ctx, 1, 'PriceBookListPrice')[0];
-        assertSeeded(l.assetId, 'PriceBookListPrice');
+        Line l = createLines(ctx, 1)[0];
 
         Test.startTest();
         run(new List<Line>{ l });
         Test.stopTest();
 
-        // A new asset on the same path would become 1 / Annual / LastTransaction.
-        assertSeeded(l.assetId, 'PriceBookListPrice');
+        assertUnchanged(ctx, l.assetId, 'Without a contract a changed asset keeps its values');
+    }
+
+    @IsTest
+    static void changedAssetWithContractIsNotStamped() {
+        OrderContext ctx = newOrder('Amend');
+        Line l = createLines(ctx, 1)[0];
+        Contract c = new Contract(
+            AccountId = ctx.accountId, StartDate = Date.newInstance(2026, 1, 1), ContractTerm = 24, Status = 'Draft'
+        );
+        insert c;
+        // An asset can only be related to an active, Revenue Lifecycle Management contract.
+        insert new AppUsageAssignment(RecordId = c.Id, AppUsageType = 'RevenueLifecycleManagement');
+        c.Status = 'Activated';
+        update c;
+        insert new AssetContractRelationship(AssetId = l.assetId, ContractId = c.Id, StartDate = Datetime.now());
+        Assert.areEqual(
+            1, [SELECT COUNT() FROM AssetContractRelationship WHERE AssetId = :l.assetId],
+            'PRECONDITION: the asset is related to the contract'
+        );
+
+        Test.startTest();
+        run(new List<Line>{ l });
+        Test.stopTest();
+
+        assertUnchanged(
+            ctx, l.assetId,
+            'Known gap: acrMap is keyed by relationship Id but looked up by AssetId, so the contract term is '
+                + 'never applied; update this test when it is fixed'
+        );
+    }
+
+    @IsTest
+    static void onlyTheFirstEventIsProcessed() {
+        List<Line> lines = createLines(newOrder('Add'), 2);
+        List<CreateAssetOrderEvent> events = new List<CreateAssetOrderEvent>{
+            buildEvent(new List<Line>{ lines[0] }),
+            buildEvent(new List<Line>{ lines[1] })
+        };
+
+        Test.startTest();
+        RLM_AssetInfoUtility.calculateAssetRenewInfo(events);
+        Test.stopTest();
+
+        assertDefaultRenewal(lines[0].assetId);
+        Asset second = reload(lines[1].assetId);
+        Assert.areEqual(
+            SEEDED_TERM, second.RenewalTerm.intValue(),
+            'Known gap: only the first event in the batch is processed; update this test when it is fixed'
+        );
     }
 
     @IsTest
     static void bulkEventUpdatesEveryAsset() {
-        OrderContext ctx = newOrder('Add');
-        List<Line> lines = createLines(ctx, 200, 'PriceBookListPrice');
-        Set<Id> assetIds = new Set<Id>();
-        for (Line l : lines) {
-            assetIds.add(l.assetId);
-        }
+        List<Line> lines = createLines(newOrder('Add'), 200);
 
         Test.startTest();
         run(lines);
         Test.stopTest();
 
+        Set<Id> assetIds = new Set<Id>();
+        for (Line l : lines) {
+            assetIds.add(l.assetId);
+        }
         List<Asset> assets = [SELECT RenewalTerm, RenewalTermUnit, PricingSource FROM Asset WHERE Id IN :assetIds];
         Assert.areEqual(200, assets.size(), 'All assets are present');
         for (Asset a : assets) {
