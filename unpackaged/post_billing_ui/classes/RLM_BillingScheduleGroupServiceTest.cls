@@ -423,11 +423,11 @@ private class RLM_BillingScheduleGroupServiceTest {
         Id ttId = fakeId(TaxTreatment.SObjectType);
         Id prodId = fakeId(Product2.SObjectType);
 
-        // Quantity, unit price and total are deliberately inconsistent (3 x 12.5 != 450): the
-        // builder passes each through as given and must not derive one from the others.
+        // Quantity, unit price and total are deliberately inconsistent: 3 x 12.5 x 12 months =
+        // 450, so 451 cannot be derived. The builder passes each through as given.
         Map<String, Object> txn = onlyTransaction(RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
             accId, baId, 'Month', 3, fakeId(LegalEntity.SObjectType), ttId,
-            'EUR', 12.5, 450, 'Lisbon', prodId, 'Widget Pro',
+            'EUR', 12.5, 451, 'Lisbon', prodId, 'Widget Pro',
             Date.newInstance(2026, 4, 7), 7, 4, 'Termed', Date.newInstance(2027, 4, 6)
         ));
 
@@ -446,10 +446,12 @@ private class RLM_BillingScheduleGroupServiceTest {
         added.removeAll(expectedKeys);
         Set<String> missing = new Set<String>(expectedKeys);
         missing.removeAll(txn.keySet());
-        Assert.isTrue(added.isEmpty() && missing.isEmpty(),
+        Assert.isTrue(added.isEmpty(),
             'Known gap: the payload omits legalEntityId, billingTerm and billing type timing, and sends no '
-            + 'bill-to contact, payment term or shipping address (see class header); added=' + added
-            + ', missing=' + missing + '. Update this test and the header when either changes.');
+            + 'bill-to contact, payment term or shipping address (see class header). New keys ' + added
+            + ': a fix to the known gap may have landed; update this test and the header.');
+        Assert.isTrue(missing.isEmpty(),
+            'A required payload key was removed (regression): ' + missing);
 
         Assert.isTrue(String.valueOf(txn.get('TransactionId__std')).startsWith('txn_'), 'Generated transaction id.');
         Assert.areEqual('TermDefined', txn.get('SellingModelType__std'), 'Termed maps to TermDefined.');
@@ -462,7 +464,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual(4, txn.get('BillingStartMonth__std'));
         Assert.areEqual(Decimal.valueOf('12.5'), toDecimal(txn.get('UnitPrice__std')));
         Assert.areEqual(Decimal.valueOf('3'), toDecimal(txn.get('Quantity__std')));
-        Assert.areEqual(Decimal.valueOf('450'), toDecimal(txn.get('TotalPrice__std')));
+        Assert.areEqual(Decimal.valueOf('451'), toDecimal(txn.get('TotalPrice__std')));
         Assert.areEqual(String.valueOf(ttId), txn.get('TaxTreatmentId__std'));
         Assert.areEqual(String.valueOf(accId), txn.get('AccountId__std'));
         Assert.areEqual(String.valueOf(baId), txn.get('BillingProfileId__std'),
