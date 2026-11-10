@@ -142,9 +142,13 @@ def validate_selection(
             )
         resolved = resolve_type_from_name(metadata_name)
         if resolved is None:
+            hint = (
+                f" Use the full file name, e.g. '{metadata_name}{FLEXIPAGE_SUFFIX}'."
+                if "." not in metadata_name else ""
+            )
             raise UxOptionError(
                 f"Cannot determine metadata type from filename: '{metadata_name}'. "
-                f"Expected a name ending in one of: {list(SUFFIX_TO_TYPE.keys())}"
+                f"Expected a name ending in one of: {list(SUFFIX_TO_TYPE.keys())}.{hint}"
             )
         if metadata_type != "all" and metadata_type != resolved:
             raise UxOptionError(

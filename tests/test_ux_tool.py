@@ -1386,3 +1386,135 @@ def test_cci_task_applies_the_same_gates(tmp_path, custom, expect_prm_pages, exp
     assert all((pages / p).exists() == expect_prm_pages for p in PRM_PRICING_PAGES)
     quote = (pages / QUOTE_PAGE).read_text(encoding="utf-8")
     assert all((ref in quote) == expect_approvals for ref in APPROVALS_REFS)
+
+
+# ── writeback keeps a patch file's formatting (todo 230) ────────────────────
+
+_COMMENTED_PATCH = '''\
+feature: demo
+feature_flag: demo
+# Header comment that explains the whole patch.
+patches:
+  - type: insert_action
+    after: "Edit"
+    actions:
+      # Why this action is gated.
+      - name: "Order.First"
+        visibility:
+          - field: "Record.Status"
+            operator: "EQUAL"
+            value: "Draft"
+
+  # The second entry's own comment.
+  - type: add_facet_field
+    facet: "System Information"
+    after: "Description"
+    fields:
+      - "Field_A__c"
+      - "Field_B__c"
+  - type: insert_after_xml
+    anchor: "<name>x</name>"
+    xml: |
+                <visibilityRule>
+                    <booleanFilter>1</booleanFilter>
+                </visibilityRule>
+'''
+
+
+def _rewrite(text, refreshed):
+    from scripts.ux._writeback import rewrite_patch_entries
+    import yaml
+    data = yaml.safe_load(text)
+    expected = dict(data, patches=[p for p in refreshed if p is not None])
+    return rewrite_patch_entries(text, copy.deepcopy(data["patches"]), refreshed, expected)
+
+
+def _entries(text):
+    import yaml
+    return copy.deepcopy(yaml.safe_load(text)["patches"])
+
+
+def test_rewrite_drops_an_entry_with_its_own_comment_and_nothing_else():
+    entries = _entries(_COMMENTED_PATCH)
+    out = _rewrite(_COMMENTED_PATCH, [entries[0], None, entries[2]])
+    start = _COMMENTED_PATCH.index("  # The second entry's own comment.")
+    end = _COMMENTED_PATCH.index("  - type: insert_after_xml")
+    assert out == _COMMENTED_PATCH[:start] + _COMMENTED_PATCH[end:]
+
+
+def test_rewrite_changes_only_the_changed_list_item():
+    entries = _entries(_COMMENTED_PATCH)
+    entries[1]["fields"] = ["Field_A__c"]
+    out = _rewrite(_COMMENTED_PATCH, entries)
+    assert out == _COMMENTED_PATCH.replace('      - "Field_B__c"\n', "")
+
+
+def test_rewrite_keeps_unchanged_keys_verbatim_inside_a_changed_entry():
+    # The xml block is indented further than YAML needs; a re-render would re-indent it
+    # all. Only `anchor` changes, so the xml lines must come through byte for byte.
+    entries = _entries(_COMMENTED_PATCH)
+    entries[2]["anchor"] = "<name>y</name>"
+    out = _rewrite(_COMMENTED_PATCH, entries)
+    assert out == _COMMENTED_PATCH.replace('anchor: "<name>x</name>"', 'anchor: "<name>y</name>"')
+
+
+def test_rewrite_keeps_comments_in_unchanged_keys_and_follows_the_files_quoting():
+    entries = _entries(_COMMENTED_PATCH)
+    entries[0]["after"] = "Delete"
+    out = _rewrite(_COMMENTED_PATCH, entries)
+    # `after` is quoted in this file, so the new value is too; the actions comment survives.
+    assert out == _COMMENTED_PATCH.replace('after: "Edit"', 'after: "Delete"')
+
+
+def test_rewrite_renders_a_new_key_in_the_files_style():
+    entries = _entries(_COMMENTED_PATCH)
+    entries[1]["label"] = "x"
+    out = _rewrite(_COMMENTED_PATCH, entries)
+    assert out == _COMMENTED_PATCH.replace(
+        '      - "Field_B__c"\n', '      - "Field_B__c"\n    label: x\n')
+
+
+def test_rewrite_returns_none_for_an_unrecognised_layout():
+    flow = "feature: demo\npatches: [{type: insert_action, after: Edit}]\n"
+    import yaml
+    entries = yaml.safe_load(flow)["patches"]
+    from scripts.ux._writeback import rewrite_patch_entries
+    assert rewrite_patch_entries(flow, entries, [dict(entries[0], after="X")],
+                                 {"feature": "demo", "patches": [dict(entries[0], after="X")]}) is None
+
+
+def test_writeback_apply_diffs_only_the_dropped_field(repo_copy):
+    """The todo 230 repro: the org drops one approval field from the Quote page, and
+    `writeback --apply` must change only that list item in the commented patch file."""
+    root, out = repo_copy
+    page = out / "flexipages" / "RLM_Quote_Record_Page.flexipage-meta.xml"
+    tree = ET.parse(str(page))
+    ns = {"m": "http://soap.sforce.com/2006/04/metadata"}
+    removed = 0
+    for parent in tree.getroot().iter():
+        for item in list(parent.findall("m:itemInstances", ns)):
+            field = item.find("m:fieldInstance/m:fieldItem", ns)
+            if field is not None and field.text == "Record.RLM_Approval_Status__c":
+                parent.remove(item)
+                removed += 1
+    assert removed, "fixture changed: the approval status field is not on the assembled Quote page"
+    ET.register_namespace("", ns["m"])
+    tree.write(str(page), xml_declaration=True, encoding="UTF-8")
+
+    patch = root / "templates" / "flexipages" / "patches" / "approvals" / "RLM_Quote_Record_Page.yml"
+    original = patch.read_text(encoding="utf-8")
+    assert '      - "RLM_Approval_Status__c"\n' in original and original.lstrip().startswith("feature")
+    assert ux_tool.main([
+        "writeback", "--repo-root", str(root), "--output-path", str(out),
+        "--name", "RLM_Quote_Record_Page.flexipage-meta.xml", "--apply",
+    ]) == 0
+    assert patch.read_text(encoding="utf-8") == original.replace('      - "RLM_Approval_Status__c"\n', "")
+
+
+def test_a_bare_page_name_is_refused_with_the_file_name_to_use():
+    from scripts.ux._assemble import validate_selection
+    with pytest.raises(UxOptionError, match=r"Use the full file name, e\.g\. 'RLM_Case_Record_Page\.flexipage-meta\.xml'"):
+        validate_selection("all", "RLM_Case_Record_Page")
+    with pytest.raises(UxOptionError) as err:  # a name with a suffix gets no guessed hint
+        validate_selection("all", "RLM_Case_Record_Page.txt")
+    assert "Use the full file name" not in str(err.value)
