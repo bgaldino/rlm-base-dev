@@ -232,6 +232,10 @@ class Classification(unittest.TestCase):
             ([row("x"), row("x", "Active", "2026-12-01")], "conflict"),
             ([row("x", "Deleted", "2026-12-01"), row("x", "Active", "2026-12-01")], "conflict"),
             ([row("x", "Error", None)], "unknown"),  # a date that is not text is no evidence
+            ([row("x", "Error", "")], "unknown"),  # nor is one that is not a date
+            ([row("x", "Error", "2026-1-5")], "unknown"),
+            ([{"ExpirationDate": "2026-11-05"}], "unknown"),  # a row without a status is no evidence
+            ([row("x", "Error", "2026-11-05"), {"ExpirationDate": "2026-11-05"}], "unknown"),
         ]
         for rows, expected in cases:
             self.assertEqual(oc.classify(rows, TODAY), expected, rows)
@@ -584,11 +588,11 @@ class Names(Base):
 
     def test_deploy_job_follows_its_target(self):
         cache = {"job1": {"target-org": "gone@x.invalid"}, "job2": {"target-org": "unknown@x.invalid"},
-                 "job3": {"target-org": 5}}
+                 "job3": {"target-org": 5}, "job4": "gone@x.invalid"}
         (self.home / ".sf" / "deploy-cache.json").write_text(json.dumps(cache))
         plan = self.plan(FakeCli(self.home, [row("00DBB0000000001", user="gone@x.invalid")]))
         self.assertEqual(plan["remove"]["deploy_jobs"], ["job1"])
-        self.assertEqual(plan["report"]["unsafe_deploy_cache_keys"], ["job3"])
+        self.assertEqual(plan["report"]["unsafe_deploy_cache_keys"], ["job3", "job4"])  # job4 is no object
 
     def test_an_unsafe_deploy_cache_key_is_reported_not_planned(self):
         cache = {"../../foo": {"target-org": "gone@x.invalid"}, "job1": {"target-org": "gone@x.invalid"}}
@@ -1523,14 +1527,15 @@ class Quarantine(Base):
 class DeployCache(Base):
     setup_stale_org = Apply.setup_stale_org
 
-    def test_a_refused_manifest_keeps_its_cache_entry(self):
+    def test_a_refused_manifest_stays_without_its_cache_entry(self):
         cli = FakeCli(self.home, self.setup_stale_org())
         plan_file = self.audit_file(cli)
         with Quarantine.refuse_rename_of(self, self.manifest):
             self.assertEqual(self.apply(cli, plan_file), 1)
-        self.assertIn("job1", self.read_cache())
+        self.assertNotIn("job1", self.read_cache())  # the cache is written first
         self.assertTrue(self.manifest.exists())
-
+        self.assertIn(str(self.manifest), self.stdout.getvalue())
+        self.assertIn("job1.xml", self.plan(cli)["report"]["manifests_without_cache_entry"])
     def test_a_failed_cache_write_is_reported_and_leaves_the_cache_intact(self):
         cli = FakeCli(self.home, self.setup_stale_org())
         before = self.read_cache()
@@ -1766,14 +1771,29 @@ class ModelEdges(Base):
         self.assertEqual(self.apply(cli, plan_file), 1)
         self.assertEqual(self.unsets(cli), [])
 
-    def test_an_interrupt_during_the_deploy_cache_step_still_counts_the_moved_manifest(self):
+    def test_an_interrupt_while_the_cache_is_written_moves_no_manifest(self):
         cli = FakeCli(self.home, self.setup_stale_org())
         plan_file = self.audit_file(cli)
         with mock.patch.object(oc, "replace_json", side_effect=KeyboardInterrupt):
             self.assertEqual(self.apply(cli, plan_file), 130)
-        self.assertIn("'manifests': 1", self.stdout.getvalue())
-        self.assertIn("Residual files moved", self.stdout.getvalue())
+        self.assertIn("'manifests': 0", self.stdout.getvalue())
+        self.assertIn("job1", self.read_cache())
+        self.assertTrue(self.manifest.exists())
 
+    def test_an_interrupt_while_manifests_move_still_counts_the_rewritten_cache(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        real = oc.move_to_quarantine
+
+        def interrupted(*args, **kwargs):
+            if str(args[1]).endswith(".xml"):
+                raise KeyboardInterrupt
+            return real(*args, **kwargs)
+
+        with mock.patch.object(oc, "move_to_quarantine", side_effect=interrupted):
+            self.assertEqual(self.apply(cli, plan_file), 130)
+        self.assertIn("'deploy_jobs': 1", self.stdout.getvalue())
+        self.assertNotIn("job1", self.read_cache())
     def test_a_logout_that_removed_someone_else_instead_names_them(self):
         rows = self.setup_stale_org()
         self.add_auth("live@x.invalid", LIVE_ORG)
@@ -2793,47 +2813,14 @@ class PathsAndManifests(Base):
         self.assertNotIn("job1", self.read_cache())
         self.assertTrue(lock.is_dir())  # the tool never takes or removes sf's lock
 
-    def test_a_lock_sf_takes_while_manifests_move_leaves_the_cache_and_names_the_jobs(self):
-        cli = FakeCli(self.home, self.setup_stale_org())
-        plan_file = self.audit_file(cli)
-        lock, real = self.home / ".sf" / "deploy-cache.json.lock", oc.move_to_quarantine
-
-        def sf_starts_writing(*args, **kwargs):
-            if str(args[1]).endswith(".xml"):
-                lock.mkdir()
-            return real(*args, **kwargs)
-
-        with mock.patch.object(oc, "move_to_quarantine", side_effect=sf_starts_writing):
-            self.assertEqual(self.apply(cli, plan_file), 1)
-        self.assertIn("job1", self.read_cache())  # not written while sf holds its lock
-        self.assertTrue(lock.is_dir())
-        self.assertIn("not written: an sf command holds its lock or changed it meanwhile", self.stdout.getvalue())
-        self.assertIn("job1 (manifest is in the quarantine, but its cache entry was kept)", self.stdout.getvalue())
-
-    def test_a_cache_that_cannot_be_written_names_the_jobs_whose_manifests_moved(self):
+    def test_a_cache_that_cannot_be_written_keeps_every_entry_and_manifest(self):
         cli = FakeCli(self.home, self.setup_stale_org())
         plan_file = self.audit_file(cli)
         with mock.patch.object(oc, "replace_json", side_effect=OSError(errno.ENOSPC, "No space left on device")):
             self.assertEqual(self.apply(cli, plan_file), 1)
-        self.assertIn("job1 (manifest is in the quarantine, but its cache entry was kept)", self.stdout.getvalue())
-
-    def test_a_cache_sf_changed_since_it_was_read_is_left_alone(self):
-        cli = FakeCli(self.home, self.setup_stale_org())
-        plan_file = self.audit_file(cli)
-        cache_file, real = self.home / ".sf" / "deploy-cache.json", oc.move_to_quarantine
-
-        def sf_writes_meanwhile(*args, **kwargs):
-            if str(args[1]).endswith(".xml"):  # an sf deploy took the lock, added its job, released it
-                cache = json.loads(cache_file.read_text())
-                cache["0AfNEW000000001"] = {"target-org": HUB}
-                cache_file.write_text(json.dumps(cache))
-            return real(*args, **kwargs)
-
-        with mock.patch.object(oc, "move_to_quarantine", side_effect=sf_writes_meanwhile):
-            self.assertEqual(self.apply(cli, plan_file), 1)
-        self.assertIn("0AfNEW000000001", self.read_cache())
-        self.assertIn("changed it meanwhile", self.stdout.getvalue())
-
+        self.assertIn("could not write: No space left on device", self.stdout.getvalue())
+        self.assertIn("job1", self.read_cache())
+        self.assertTrue(self.manifest.exists())
     @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can write anywhere")
     def test_a_folder_files_cannot_leave_stops_the_run_before_any_logout(self):
         cli = FakeCli(self.home, self.setup_stale_org())

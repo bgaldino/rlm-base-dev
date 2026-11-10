@@ -94,7 +94,7 @@ username. Only a removable class goes on the plan:
 | `Active`, not past expiration | active | Preserved |
 | `Active` with a past date, or different statuses across rows | conflict | Preserved, reported |
 | Not `Active` and not past expiration (such as `New` or `Error` with a future date) | unknown | Preserved |
-| No row, or the hub did not answer | unknown | Preserved |
+| No row, the hub did not answer, or a row without a status or with an expiration that is not a `YYYY-MM-DD` date | unknown | Preserved |
 
 An expiration date of today is not past. Dev Hubs and sandboxes are never logged out, and a
 login on a removable org is logged out only if nothing in `protected` keeps it.
@@ -123,7 +123,7 @@ value each alias, default and deploy job reaches (`name -> value`):
 | `dangling_aliases`, `dangling_defaults` | Reach no login and no username, so no hub row can list them. Left alone. Report them; with the user's approval use `sf alias unset -- <name>` (the `--` keeps a name such as `-ap` from being read as `--all --no-prompt`), or `sf config unset target-org` (see the note below the table). |
 | `usernames_not_queried` | Usernames an alias, default, deploy-cache entry or tracking folder names that no hub query can carry (a quote, a backslash, or text sf would read as another name). Never judged, so never planned. Report them. |
 | `manifests_without_cache_entry` | Files in `~/.sf/manifestCache` that no deploy-cache entry names: sf drops an entry when its 3-day TTL lapses and leaves the manifest. Not moved. Report them. |
-| `unsafe_deploy_cache_keys`, `unreadable_deploy_cache` | Deploy-cache keys that are not plain file names (such as `../x`, or too long to name a file), or entries whose target is not text; or a deploy cache that does not parse, so no entry in it is planned. Never planned. Report them. |
+| `unsafe_deploy_cache_keys`, `unreadable_deploy_cache` | Deploy-cache keys that are not plain file names (such as `../x`, or too long to name a file), or entries that are not objects or whose target is not text; or a deploy cache that does not parse, so no entry in it is planned. Never planned. Report them. |
 | `unmodelled_config` | Config scopes the tool cannot model, with the reason: a file that does not parse, is a link (sf writes through it; the tool reads it to decide which logouts to refuse) or is not a regular file; files that disagree; a key outside those sf and its bundled plugins define (a user-installed plugin may define it; if nothing does, sf cannot unset it and its next write turns it into `org-instance-url`); a legacy key in `.sf/config.json`; a default that is not text; interoperability turned off; or a linked project `.sf`/`.sfdx`. The tool never writes such a scope and refuses any logout that would. Report it; the user fixes the files, then re-audit. |
 | `stale_config_values` | A stale default the tool does not unset: a `target-dev-hub`, or a value in an unmodelled scope. With the user's approval unset it by hand (see the note below the table). |
 | `env_defaults` | `SF_TARGET_ORG`/`SFDX_DEFAULTUSERNAME` (and the dev hub pair) override both scopes. Reported with how the tool judges the value; the tool never changes the environment. |
@@ -172,10 +172,11 @@ Do not run `apply` while another `sf` or `cci` process is running: an sf command
 removed deploy-cache entries back. sf writes the cache under its own lock
 (`deploy-cache.json.lock`, refreshed while held; one not refreshed for 10 seconds is abandoned).
 `apply` does not take it. If an sf command holds it when `apply` starts and deploy jobs are planned,
-`apply` stops before any logout (exit 1). Just before the write it checks again, and re-reads the
-cache: if an sf command holds the lock or has changed the cache since `apply` read it, the cache is
-left as it is and each job whose manifest already moved to the quarantine is named. A write sf makes
-in the instant between that check and the rewrite is not seen.
+`apply` stops before any logout (exit 1). It checks again just before the deploy-cache step, and
+leaves the cache alone if the lock is held. A write sf makes in the moment between that check and the
+rewrite is not seen. The cache is rewritten first and the manifests moved after it, so a cache that
+cannot be written leaves every entry and manifest in place; a manifest that then cannot move stays
+without its entry, as sf leaves one whose entry lapsed, and the next audit lists it.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
 reviewed one: its project, every removal, each logout's org and the aliases and config keys it

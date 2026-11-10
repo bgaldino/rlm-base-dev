@@ -48,6 +48,7 @@ import unicodedata
 from pathlib import Path
 
 ORG_ID = re.compile(r"00D[0-9A-Za-z]{12}(?:[0-9A-Za-z]{3})?")  # always used with fullmatch
+DATE = re.compile(r"\d{4}-\d{2}-\d{2}")  # ScratchOrgInfo.ExpirationDate; always used with fullmatch
 # JavaScript's whitespace (its \s and String.trim), spelled out: Python's \s and str.strip() cover
 # a different set. The names sf lists as logins in ~/.sfdx (@salesforce/core orgAccessor.getFileRegex).
 JS_SPACE_CHARS = ("\t\n\x0b\x0c\r \u00a0\u1680" + "".join(map(chr, range(0x2000, 0x200b)))
@@ -463,8 +464,8 @@ def query_hubs(run, hubs, field, values):
 
 def classify(rows, today):
     """Lifecycle class from hub rows: deleted, expired, active, conflict, or unknown."""
-    if not rows:
-        return "unknown"
+    if not rows or not all(isinstance(row.get("Status"), str) for row in rows):
+        return "unknown"  # a row without a status is not evidence of anything
     statuses = {row.get("Status") for row in rows}
     if len(statuses) > 1:
         return "conflict"
@@ -474,7 +475,7 @@ def classify(rows, today):
 
     def past(row):
         date = row.get("ExpirationDate")
-        return isinstance(date, str) and date < today
+        return isinstance(date, str) and DATE.fullmatch(date) is not None and date < today
 
     if status == "Active":
         return "conflict" if any(map(past, rows)) else "active"
@@ -604,7 +605,9 @@ def survey(run, home, project, today, predict=True, env=None):
     deploy_cache = deploy_cache if isinstance(deploy_cache, dict) else {}
     # sf stores the username a deploy ran against, and resolves it through an alias again when it
     # reads the entry (deploy report/resume), so a target is judged like any other name.
-    deploy_raw = {job: entry.get("target-org") for job, entry in deploy_cache.items() if isinstance(entry, dict)}
+    # An entry that is not an object has no target, so it is reported with the other unsafe ones.
+    deploy_raw = {job: entry.get("target-org") if isinstance(entry, dict) else None
+                  for job, entry in deploy_cache.items()}
     manifest_dir = home / ".sf" / "manifestCache"
     manifest_linked = is_link(manifest_dir)
     if manifest_linked:  # its files are not ours to move, so no deploy job is planned
@@ -1005,9 +1008,9 @@ def replace_json(path, data):
 def remove_deploy_jobs(run, jobs, home, quarantine, project, failures, done=None):
     """Drop named cache entries, keeping every other key. Returns (entries, manifests moved).
 
-    An entry stays if its manifest could not be moved. If the cache cannot be written, every entry
-    stays and is reported, while manifests already moved remain in the quarantine. Each move is
-    counted into `done` as it happens, so an interruption still reports it.
+    The cache is rewritten first; if it cannot be, every entry and manifest stays. A manifest that
+    then cannot move stays without its entry and is reported. Each step is counted into `done` as
+    it happens, so an interruption still reports it.
     """
     done = {} if done is None else done
     if not jobs:  # no cache file is normal, and only a failure if something had to change in it
@@ -1019,7 +1022,7 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures, done=None
             failures.append((str(linked), "symlink"))
             return 0, 0
     # sf writes the cache under its own lock. The tool does not take it: it leaves the cache to an
-    # sf command that holds it, here and again just before the write.
+    # sf command that holds it, and rewrites it straight after this check.
     if lock_held(cache_lock(home)):
         failures.append((str(path), "not modified: an sf command holds its lock"))
         return 0, 0
@@ -1042,60 +1045,51 @@ def lock_held(lock):
 
 
 def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done):
-    """remove_deploy_jobs' work: move each job's manifest, then rewrite the cache without its entry.
-    If the cache is not written in the end, each job whose manifest already moved is named."""
+    """remove_deploy_jobs' work: rewrite the cache without the jobs' entries, then move their
+    manifests. A manifest that cannot move stays without an entry, as sf leaves one whose entry
+    lapsed, and the next audit lists it under manifests_without_cache_entry."""
     cache = read_json(path, None)
     if not isinstance(cache, dict):
         failures.append(("deploy-cache", "unreadable"))
         return 0, 0
-    original = dict(cache)  # what an sf write in the meantime would change
-    try:  # checked before any manifest moves, with the write's own encoder
+    try:  # checked before anything changes, with the write's own encoder
         json.dumps(cache, indent=4, allow_nan=False)
     except (ValueError, RecursionError):
         failures.append(("deploy-cache", "holds a value this tool cannot write back; not modified"))
         return 0, 0
-    removed, moved, moved_jobs = 0, 0, []
-
-    def kept_entries():  # their manifests are in the quarantine, their entries still in the cache
-        for job in moved_jobs:
-            failures.append((job, "manifest is in the quarantine, but its cache entry was kept"))
-
+    gone = []
     for job in jobs:
         if not plain_job_id(job):
             failures.append((job, "cache key is not a plain job id; its manifest was not looked for"))
-            continue
+        elif job in cache:
+            del cache[job]
+            gone.append(job)
+        elif lstat_or_none(manifests / (job + ".xml")) is not None:
+            failures.append((job, "no longer in the deploy cache; its manifest was left in place"))
+    if not gone:
+        return 0, 0
+    try:
+        replace_json(path, cache)
+    except OSError as error:
+        failures.append((str(path), "could not write: {}".format(reason(error))))
+        return 0, 0
+    except BaseException:
+        if read_json(path, None) == cache:  # interrupted after the rewrite landed
+            done["deploy_jobs"] = done.get("deploy_jobs", 0) + len(gone)
+        raise
+    done["deploy_jobs"] = done.get("deploy_jobs", 0) + len(gone)
+    moved = 0
+    for job in gone:
         manifest = manifests / (job + ".xml")
-        if job not in cache:
-            if lstat_or_none(manifest) is not None:
-                failures.append((job, "no longer in the deploy cache; its manifest was left in place"))
+        if lstat_or_none(manifest) is None:
             continue
-        if lstat_or_none(manifest) is not None:
-            why = move_to_quarantine(run, manifest, [manifests], quarantine, project)
-            if why:
-                failures.append((str(manifest), why))
-                continue
-            moved += 1
-            moved_jobs.append(job)
-            done["manifests"] = done.get("manifests", 0) + 1
-        del cache[job]
-        removed += 1
-    if removed and (lock_held(path.with_name(path.name + ".lock")) or read_json(path, None) != original):
-        failures.append((str(path), "not written: an sf command holds its lock or changed it meanwhile"))
-        kept_entries()
-        return 0, moved
-    if removed:
-        try:
-            replace_json(path, cache)
-        except OSError as error:
-            failures.append((str(path), "could not write: {}".format(reason(error))))
-            kept_entries()
-            return 0, moved
-        except BaseException:
-            if read_json(path, None) == cache:  # interrupted after the rewrite landed
-                done["deploy_jobs"] = done.get("deploy_jobs", 0) + removed
-            raise
-    done["deploy_jobs"] = done.get("deploy_jobs", 0) + removed
-    return removed, moved
+        why = move_to_quarantine(run, manifest, [manifests], quarantine, project)
+        if why:
+            failures.append((str(manifest), why))
+            continue
+        moved += 1
+        done["manifests"] = done.get("manifests", 0) + 1
+    return len(gone), moved
 
 
 class Unexpected(Exception):
