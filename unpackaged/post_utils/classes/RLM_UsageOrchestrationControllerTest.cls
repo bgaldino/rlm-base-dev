@@ -32,7 +32,7 @@ private with sharing class RLM_UsageOrchestrationControllerTest {
     private static final String NO_OP_FLOW = 'RLM_RenewalCoveredAssets';
 
     @IsTest
-    static void testStartOrchestration_NamedFlow_Starts_whenTheLatestVersionIsActive() {
+    static void testStartOrchestration_NamedFlow_Starts_WhenLatestVersionIsActive() {
         // The assertions assume the repo's version of the flow, so require that the latest
         // version is the active one, not just that some version is active.
         List<FlowDefinitionView> flows = [

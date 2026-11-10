@@ -24,6 +24,8 @@
  *  - the text-column fallback for a reference field with no relationship name. Every
  *    reference field in the shipped field sets, including the polymorphic ReferenceRecordId
  *    and GrantBindingTargetId, has a relationship name, so no member reaches it.
+ *  - the controller's Security.stripInaccessible path. The query needs every selected field
+ *    to be readable, so stripping never removes anything in these tests.
  */
 @IsTest
 private class RLM_UsageDataControllerTest {
@@ -176,6 +178,14 @@ private class RLM_UsageDataControllerTest {
         Assert.areEqual('_self', typeAttributes.get('target'), col.get('fieldName') + ' opens in the same tab');
     }
 
+    /** The object's RLM_UsageDatatable field set, failing as a PRECONDITION when it is missing. */
+    private static Schema.FieldSet usageFieldSet(Schema.SObjectType type) {
+        Schema.DescribeSObjectResult objDescribe = type.getDescribe();
+        Schema.FieldSet fs = objDescribe.fieldSets.getMap().get(FIELD_SET);
+        Assert.isNotNull(fs, 'PRECONDITION: ' + objDescribe.getName() + ' has the ' + FIELD_SET + ' field set');
+        return fs;
+    }
+
     /**
      * Asserts that every field the controller's query touches for this object is readable by
      * the running user (for example via RLM_UsageDatatables, or because the field is required,
@@ -185,14 +195,6 @@ private class RLM_UsageDataControllerTest {
      * isNameField() field of getReferenceTo()[0], falling back to Name. Derived from the field
      * set and describe, so it cannot drift from what the controller selects.
      */
-    /** The object's RLM_UsageDatatable field set, failing as a PRECONDITION when it is missing. */
-    private static Schema.FieldSet usageFieldSet(Schema.SObjectType type) {
-        Schema.DescribeSObjectResult objDescribe = type.getDescribe();
-        Schema.FieldSet fs = objDescribe.fieldSets.getMap().get(FIELD_SET);
-        Assert.isNotNull(fs, 'PRECONDITION: ' + objDescribe.getName() + ' has the ' + FIELD_SET + ' field set');
-        return fs;
-    }
-
     private static void assertFieldSetReadable(Schema.SObjectType type, List<String> filterFields) {
         Schema.DescribeSObjectResult objDescribe = type.getDescribe();
         String objName = objDescribe.getName();
@@ -305,11 +307,11 @@ private class RLM_UsageDataControllerTest {
             assertUrlColumn(column(columns, 'QuantityUnitOfMeasureId__url'), 'QuantityUnitOfMeasureId__name');
             assertUrlColumn(column(columns, 'ReferenceRecordId__url'), 'ReferenceRecordId__name');
 
-            // Plain fields are typed from their display type.
-            Assert.areEqual('date', column(columns, 'ActivityDate').get('type'), 'DATETIME maps to date');
-            Assert.areEqual('date', column(columns, 'StartDate').get('type'), 'DATETIME maps to date');
-            Assert.areEqual('number', column(columns, 'Quantity').get('type'), 'DOUBLE maps to number');
-            Assert.areEqual('text', column(columns, 'Status').get('type'), 'PICKLIST maps to text');
+            // Plain fields render with these column types.
+            Assert.areEqual('date', column(columns, 'ActivityDate').get('type'), 'ActivityDate renders as a date column');
+            Assert.areEqual('date', column(columns, 'StartDate').get('type'), 'StartDate renders as a date column');
+            Assert.areEqual('number', column(columns, 'Quantity').get('type'), 'Quantity renders as a number column');
+            Assert.areEqual('text', column(columns, 'Status').get('type'), 'Status renders as a text column');
             Assert.areEqual(true, column(columns, 'Quantity').get('sortable'), 'Plain columns are sortable');
             Assert.isNotNull(column(columns, 'Quantity').get('label'), 'Plain columns carry the field label');
         }
@@ -463,7 +465,7 @@ private class RLM_UsageDataControllerTest {
             assertUrlColumn(column(columns, 'AssetId__url'), 'AssetId__name');
             assertUrlColumn(column(columns, 'LiableSummaryId__url'), 'LiableSummaryId__name');
             assertUrlColumn(column(columns, 'UsageEntitlementAccountId__url'), 'UsageEntitlementAccountId__name');
-            Assert.areEqual('number', column(columns, 'ConsumptionUnits').get('type'), 'Consumption units are numeric');
+            Assert.areEqual('number', column(columns, 'ConsumptionUnits').get('type'), 'ConsumptionUnits renders as a number column');
 
             Assert.isTrue(recordsOf(byAsset).isEmpty(), 'Tests create no usage summaries');
             Assert.isTrue(recordsOf(byAccount).isEmpty(), 'AccountId is accepted as a UsageSummary filter');
@@ -493,7 +495,7 @@ private class RLM_UsageDataControllerTest {
             assertUrlColumn(column(columns, 'AssetId__url'), 'AssetId__name');
             assertUrlColumn(column(columns, 'UsageEntitlementBucketId__url'), 'UsageEntitlementBucketId__name');
             assertUrlColumn(column(columns, 'GrantBindingTargetId__url'), 'GrantBindingTargetId__name');
-            Assert.areEqual('currency', column(columns, 'OverageAmount').get('type'), 'Currency maps to currency');
+            Assert.areEqual('currency', column(columns, 'OverageAmount').get('type'), 'OverageAmount renders as a currency column');
             Assert.isTrue(recordsOf(result).isEmpty(), 'Tests create no billing period items');
             Assert.areEqual(false, result.get('truncated'), 'An empty result is not truncated');
         }
