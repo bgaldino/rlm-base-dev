@@ -5,7 +5,8 @@ private with sharing class RLM_JsonSuccessParserTest {
     // summary, message) also carries an unmapped scalar, an unmapped object or array
     // (consumeObject) and a null on an unmapped field, followed by at least one mapped field
     // (lines, details, rateType, taxRegionId, exemption, source) whose value must still be parsed.
-    // Nulls on mapped fields (the VALUE_NULL skip) are checked in parse_nullMappedFields_stayNull.
+    // Nulls on mapped fields (the VALUE_NULL skip) are checked at every level in
+    // parse_nullMappedFields_stayNull.
     private static final String FULL_TRANSACTION = '{'
         + '"id": 123456,'
         + '"code": "DOC-PARSE-1",'
@@ -267,7 +268,11 @@ private with sharing class RLM_JsonSuccessParserTest {
         Test.startTest();
         RLM_JsonSuccessParser parsed = RLM_JsonSuccessParser.parse(
             '{"referenceCode": null, "totalAmount": null, "code": "after-nulls",'
-            + ' "lines": [{"lineNumber": null, "lineAmount": null, "taxCode": "after-nulls"}]}');
+            + ' "lines": [{"lineNumber": null, "lineAmount": null, "taxCode": "after-nulls",'
+            + ' "details": [{"jurisName": null, "taxableAmount": null, "taxName": "after-nulls"}]}],'
+            + ' "addresses": [{"city": null, "taxRegionId": null, "postalCode": "after-nulls"}],'
+            + ' "summary": [{"jurisName": null, "taxable": null, "taxName": "after-nulls"}],'
+            + ' "messages": [{"summary": null, "source": "after-nulls"}]}');
         Test.stopTest();
 
         Assert.isNull(parsed.referenceCode, 'A null String field stays null.');
@@ -277,6 +282,26 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.isNull(parsed.lines[0].lineNumber, 'A null String line field stays null.');
         Assert.isNull(parsed.lines[0].lineAmount, 'A null Integer line field stays null.');
         Assert.areEqual('after-nulls', parsed.lines[0].taxCode, 'Line parsing continues after the nulls.');
+
+        RLM_JsonSuccessParser.Details detail = parsed.lines[0].details[0];
+        Assert.isNull(detail.jurisName, 'A null String detail field stays null.');
+        Assert.isNull(detail.taxableAmount, 'A null Integer detail field stays null.');
+        Assert.areEqual('after-nulls', detail.taxName, 'Detail parsing continues after the nulls.');
+
+        RLM_JsonSuccessParser.Addresses address = parsed.addresses[0];
+        Assert.isNull(address.city, 'A null String address field stays null.');
+        Assert.isNull(address.taxRegionId, 'A null Integer address field stays null.');
+        Assert.areEqual('after-nulls', address.postalCode, 'Address parsing continues after the nulls.');
+
+        RLM_JsonSuccessParser.Summary summary = parsed.summary[0];
+        Assert.isNull(summary.jurisName, 'A null String summary field stays null.');
+        Assert.isNull(summary.taxable, 'A null Integer summary field stays null.');
+        Assert.areEqual('after-nulls', summary.taxName, 'Summary parsing continues after the nulls.');
+
+        // Messages map String fields only.
+        RLM_JsonSuccessParser.Messages message = parsed.messages[0];
+        Assert.isNull(message.summary, 'A null String message field stays null.');
+        Assert.areEqual('after-nulls', message.source, 'Message parsing continues after the nulls.');
     }
 
     @IsTest

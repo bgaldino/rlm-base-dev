@@ -5,7 +5,7 @@
  * the response type and its String form; the error-response branch cannot be reached from a test.
  * Setters in getTax that no assertion covers (every other setter call is asserted): header
  * referenceDocumentCode, exemptAmount, effectiveDate and transactionDate; imposition subType and
- * type; jurisdiction country, region, stateAssignedNumber, id and level; detail taxAuthorityTypeId,
+ * type, and the setImposition call; jurisdiction country, region, stateAssignedNumber, id and level; detail taxAuthorityTypeId,
  * taxId and taxRegionId (set from the detail's region code); line effectiveDate, isTaxable (set
  * twice), exemptAmount, productCode and quantity. The detail-level exemptAmount and exemptReason
  * are unreachable: the canned payload's detail exempt amounts are all 0.
@@ -170,8 +170,6 @@ private with sharing class RLM_CalculateTaxServiceTest {
 
     @IsTest
     static void getTax_nullLineList_rethrows() {
-        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
-        Test.setMock(HttpCalloutMock.class, mock);
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, 'DOC-NULL-LINES', null);
 

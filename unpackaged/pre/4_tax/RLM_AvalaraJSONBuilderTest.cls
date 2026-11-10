@@ -132,6 +132,23 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
     }
 
     @IsTest
+    static void request_withAccountAndCustomerCode_usesTheCustomerCode() {
+        Account customer = new Account(Name = 'Avalara Builder Named Account');
+        insert customer;
+        commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
+            commercetax.CalculateTaxType.Estimated, 'DOC-EXPLICIT', RLM_TaxTestFactory.lines(100));
+        request.customerDetails = new commercetax.TaxCustomerDetailsRequest(
+            String.valueOf(customer.Id), 'CUST-EXPLICIT', null, null);
+
+        Test.startTest();
+        Map<String, Object> body = build(request);
+        Test.stopTest();
+
+        Assert.areEqual('CUST-EXPLICIT', body.get('customerCode'),
+            'An explicit customer code wins over the account name.');
+    }
+
+    @IsTest
     static void request_withoutCommitOrCodesAndBlankAccountId_omitsFieldsAndUsesCustomerCode() {
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, null, RLM_TaxTestFactory.lines(100));
