@@ -7,11 +7,12 @@
  * UsageSummary and UsageBillingPeriodItem rows are produced by usage orchestration, so those
  * objects are exercised for their column definitions and an empty result only.
  *
- * Every test that reaches the controller's query runs as the current user holding
- * RLM_UsageDatatables (shipped in this bundle), assigned in-test when missing. It is the repo's
- * only grant for several fields the query selects, and the build assigns it only after this
- * bundle deploys. Without those grants the query fails with "No such column" even when it
- * would return no rows. The rejection tests fail before any query and need no grant.
+ * Every test that reaches the controller's query needs the fields it selects to be readable by
+ * the running user (for example via RLM_UsageDatatables, shipped in this bundle). The build
+ * assigns that set only after this bundle deploys, so @TestSetup assigns it to the running
+ * user when missing. Without read access the query fails with "No such column" even when it
+ * would return no rows. The runner is the deploying user, so these tests do not show that the
+ * set alone is enough. The rejection tests fail before any query and need no access.
  *
  * Not covered:
  *  - the null-lookup branch of the flattener. Describe reports every lookup in the
@@ -96,6 +97,16 @@ private class RLM_UsageDataControllerTest {
             buildJournal(acc.Id, one.Id, ur.Id, uom.Id, 25),
             buildJournal(acc.Id, two.Id, ur.Id, uom.Id, 7)
         };
+
+        // After the non-setup DML, in its own runAs context to avoid mixed DML: one assignment
+        // per test class run, rather than one per test method.
+        Id me = UserInfo.getUserId();
+        Id setId = usageDatatablesSetId();
+        if ([SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :me AND PermissionSetId = :setId] == 0) {
+            System.runAs(new User(Id = me)) {
+                insert new PermissionSetAssignment(AssigneeId = me, PermissionSetId = setId);
+            }
+        }
     }
 
     // ─── Fixtures ───────────────────────────────────────────────────────
@@ -164,10 +175,10 @@ private class RLM_UsageDataControllerTest {
     }
 
     /**
-     * The controller selects these fields (and the related names used as link labels), so the
-     * runner must be able to read them: by the RLM_UsageDatatables grant assigned in-test, or
-     * because the field is required (Name, Status), which needs no grant. Otherwise the query
-     * fails or the value is stripped.
+     * The controller selects these fields (and the related names used as link labels), so they
+     * must be readable by the running user (for example via RLM_UsageDatatables, or because the
+     * field is required, as Name and Status are). Otherwise the query fails or the value is
+     * stripped.
      */
     private static void assertJournalFieldsReadable() {
         Map<String, Schema.SObjectField> fields = Schema.SObjectType.TransactionJournal.fields.getMap();
@@ -177,7 +188,7 @@ private class RLM_UsageDataControllerTest {
             Assert.isTrue(
                 fields.get(fieldName).getDescribe().isAccessible(),
                 'PRECONDITION: TransactionJournal.' + fieldName + ' must be readable by the running user ' +
-                '(RLM_UsageDatatables, assigned in this test, or a required field)'
+                '(for example via RLM_UsageDatatables)'
             );
         }
         Map<String, Schema.SObjectField> relatedNames = new Map<String, Schema.SObjectField>{
@@ -189,37 +200,30 @@ private class RLM_UsageDataControllerTest {
             Assert.isTrue(
                 relatedNames.get(label).getDescribe().isAccessible(),
                 'PRECONDITION: ' + label + ' must be readable by the running user ' +
-                '(RLM_UsageDatatables, assigned in this test, or a required field)'
+                '(for example via RLM_UsageDatatables)'
             );
         }
     }
 
-    /**
-     * The running user, holding RLM_UsageDatatables: the permission set this controller's users
-     * hold, and the repo's only grant for several fields the controller selects. The build
-     * assigns that set only after this bundle deploys, so a first deploy's test run cannot rely
-     * on the deploying user holding it; the set is assigned here when missing. Without those
-     * field grants the controller's dynamic query fails with "No such column", even when it
-     * would return no rows, so every test that reaches the query runs as this user. Pass the
-     * result to System.runAs so the assignment is in effect.
-     */
-    private static User usageDatatablesUser() {
+    private static Id usageDatatablesSetId() {
         List<PermissionSet> sets = [SELECT Id FROM PermissionSet WHERE Name = 'RLM_UsageDatatables' LIMIT 1];
         Assert.isFalse(sets.isEmpty(), 'PRECONDITION: RLM_UsageDatatables ships in this bundle');
+        return sets[0].Id;
+    }
+
+    /**
+     * The running user, for System.runAs: a fresh context so the RLM_UsageDatatables assignment
+     * made in @TestSetup is in effect. Every test that reaches the controller's query runs as
+     * this user. Read-only: it only checks that the assignment is there.
+     */
+    private static User usageDatatablesUser() {
         Id me = UserInfo.getUserId();
-        Id setId = sets[0].Id;
-        if ([SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :me AND PermissionSetId = :setId] == 0) {
-            Database.SaveResult saved;
-            System.runAs(new User(Id = me)) {
-                saved = Database.insert(new PermissionSetAssignment(AssigneeId = me, PermissionSetId = setId), false);
-            }
-            if (!saved.isSuccess()) {
-                Assert.fail(
-                    'PRECONDITION: RLM_UsageDatatables could not be assigned to the running user: ' +
-                    saved.getErrors()[0].getStatusCode() + ' ' + saved.getErrors()[0].getMessage()
-                );
-            }
-        }
+        Id setId = usageDatatablesSetId();
+        Assert.areEqual(
+            1,
+            [SELECT COUNT() FROM PermissionSetAssignment WHERE AssigneeId = :me AND PermissionSetId = :setId],
+            'PRECONDITION: the running user holds RLM_UsageDatatables (assigned in @TestSetup when missing)'
+        );
         return new User(Id = me);
     }
 
@@ -375,7 +379,7 @@ private class RLM_UsageDataControllerTest {
         }
         insert journals;
         journals = null; // release the inserted list so the measured call has the heap to itself
-        // Measured on a live org: the 2001-row call leaves about 1.27 MB on the heap (limit 10 MB).
+        // Measured on a live org: the 2001-row call leaves about 1.27 MB on the heap (synchronous limit 6 MB).
 
         System.runAs(usageDatatablesUser()) {
             assertJournalFieldsReadable();
@@ -396,6 +400,17 @@ private class RLM_UsageDataControllerTest {
     @IsTest
     static void usageSummaryColumnsResolveNonStandardNameFields() {
         Asset one = assetNamed(ASSET_ONE);
+        // LiableSummaryId points at UsageBillingPeriodItem, whose name field is an autonumber
+        // other than Name; the query below must resolve it or it throws.
+        Assert.areEqual(
+            new List<Schema.SObjectType>{ UsageBillingPeriodItem.SObjectType },
+            UsageSummary.LiableSummaryId.getDescribe().getReferenceTo(),
+            'PRECONDITION: UsageSummary.LiableSummaryId references only UsageBillingPeriodItem'
+        );
+        Assert.isFalse(
+            Schema.SObjectType.UsageBillingPeriodItem.fields.getMap().containsKey('Name'),
+            'PRECONDITION: UsageBillingPeriodItem has no Name field, so a Name fallback would fail the query'
+        );
 
         System.runAs(usageDatatablesUser()) {
             Test.startTest();
@@ -415,17 +430,6 @@ private class RLM_UsageDataControllerTest {
             );
             assertUrlColumn(column(columns, 'Name__url'), 'Name');
             assertUrlColumn(column(columns, 'AssetId__url'), 'AssetId__name');
-            // LiableSummaryId points at UsageBillingPeriodItem, whose name field is an autonumber
-            // other than Name; the query must have resolved it or it would have thrown.
-            Assert.areEqual(
-                new List<Schema.SObjectType>{ UsageBillingPeriodItem.SObjectType },
-                UsageSummary.LiableSummaryId.getDescribe().getReferenceTo(),
-                'PRECONDITION: UsageSummary.LiableSummaryId references only UsageBillingPeriodItem'
-            );
-            Assert.isFalse(
-                Schema.SObjectType.UsageBillingPeriodItem.fields.getMap().containsKey('Name'),
-                'PRECONDITION: UsageBillingPeriodItem has no Name field, so a Name fallback would fail the query'
-            );
             assertUrlColumn(column(columns, 'LiableSummaryId__url'), 'LiableSummaryId__name');
             assertUrlColumn(column(columns, 'UsageEntitlementAccountId__url'), 'UsageEntitlementAccountId__name');
             Assert.areEqual('number', column(columns, 'ConsumptionUnits').get('type'), 'Consumption units are numeric');

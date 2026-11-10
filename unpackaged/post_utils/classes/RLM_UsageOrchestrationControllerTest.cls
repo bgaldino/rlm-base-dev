@@ -51,12 +51,12 @@ private with sharing class RLM_UsageOrchestrationControllerTest {
         Assert.areEqual(
             0,
             queries,
-            'PRECONDITION: ' + NO_OP_FLOW + ' must end without reading anything when started with no inputs'
+            'DEPENDENCY: ' + NO_OP_FLOW + ' must end without reading anything when started with no inputs'
         );
         Assert.areEqual(
             0,
             dmlStatements,
-            'PRECONDITION: ' + NO_OP_FLOW + ' must end without writing anything when started with no inputs'
+            'DEPENDENCY: ' + NO_OP_FLOW + ' must end without writing anything when started with no inputs'
         );
         Assert.areEqual('started', token, 'Starting a valid flow returns the started token');
     }

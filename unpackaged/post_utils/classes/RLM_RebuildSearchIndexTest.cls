@@ -2,6 +2,9 @@
  * Tests for RLM_RebuildSearchIndex: the PCM index deploy callout, its request shape, and
  * how each response (success with and without index details, HTTP error, unparseable body,
  * transport failure) maps onto the LWC result map and the invocable result.
+ *
+ * Not covered: getApiSessionId's non-test path (Page.RLM_SessionId.getContent()), which
+ * Test.isRunningTest() makes unreachable.
  */
 @IsTest
 private class RLM_RebuildSearchIndexTest {
