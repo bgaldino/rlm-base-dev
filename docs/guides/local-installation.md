@@ -394,7 +394,7 @@ Node LTS refreshes, sf/CCI/SFDMU upgrades) are handled by a single script:
 scripts/bash/update-toolchain.sh
 ```
 
-It walks `brew update` → keep `openssl@3` installed on request → `brew upgrade --formula` (casks are yours to upgrade) → latest patch in your pinned Python line (stopping if it can't import `ssl`) → the newest patch of the Node line in `.nvmrc` → `sf` via `npm install -g`, or `sf update` for an installer-based `sf` → CCI reinstall/upgrade → Robot pins re-injected → `sf plugins update` → gate interpreter `.venv` refresh (if it exists) → `cci task run validate_setup`. Major-line pins: Python's (3.13) is at the top of the script, Node's (24) is `.nvmrc`.
+It walks `brew update` → keep `openssl@3` installed on request → `brew upgrade --formula` (casks are yours to upgrade) → latest patch in your pinned Python line (stopping if it can't import `ssl`) → the newest patch of the Node line in `.nvmrc` → the `sf` that runs, via `npm install -g` for an npm install or `sf update` for an installer-based one (other copies on PATH are named, not updated) → CCI reinstall/upgrade → Robot pins re-injected → `sf plugins update` → gate interpreter `.venv` refresh (if it exists) → `cci task run validate_setup`. Major-line pins: Python's (3.13) is at the top of the script, Node's (24) is `.nvmrc`.
 
 For the full architecture — shell config responsibilities, the per-project `.envrc` pattern via [direnv](https://direnv.net/), troubleshooting, and instructions for replicating on a new workstation — see [`docs/guides/dev-environment-setup.md`](dev-environment-setup.md).
 
@@ -482,7 +482,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
      ```
      If you use a project virtual environment: `python -m pip install --upgrade -r robot/requirements.txt` inside the venv. Use the [venv validation command](#step-11--verify-the-full-setup) with pipx auto-fixes disabled. If you previously installed these globally, uninstall first: `python3 -m pip uninstall -y robotframework-seleniumlibrary robotframework selenium webdriver-manager`.
 
-     > **selenium 4.10+ required:** The `executable_path` argument was removed from the Chrome WebDriver in selenium 4.10. The `robot/requirements.txt` pins `selenium>=4.51.0,<5`. If selenium is older than that pin, update the requirements in the environment running CCI. Validator auto-upgrade targets pipx only; venv users should run `python -m pip install --upgrade -r robot/requirements.txt` inside the venv.
+     > **selenium 4.10+ required:** The `executable_path` argument was removed from the Chrome WebDriver in selenium 4.10. `robot/requirements.txt` sets a newer selenium minimum than that (see the file for the current pin). If selenium is older than that pin, update the requirements in the environment running CCI. Validator auto-upgrade targets pipx only; venv users should run `python -m pip install --upgrade -r robot/requirements.txt` inside the venv.
 
    2. **Chrome or Chromium** — Robot tasks run headless by default and require Chrome or Chromium. (Use `BROWSER=firefox` to run with Firefox instead.)
      - **macOS:** Install [Google Chrome](https://www.google.com/chrome/) or `brew install chromium`
