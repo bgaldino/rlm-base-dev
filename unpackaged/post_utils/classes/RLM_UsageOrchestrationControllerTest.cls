@@ -31,10 +31,15 @@ private with sharing class RLM_UsageOrchestrationControllerTest {
 
     @IsTest
     static void testStartOrchestration_NamedFlow_Starts_whenTheFlowIsActive() {
-        Integer activeFlows = [
-            SELECT COUNT() FROM FlowDefinitionView WHERE ApiName = :NO_OP_FLOW AND IsActive = true
+        // The assertions assume the repo's version of the flow, so require that the latest
+        // version is the active one, not just that some version is active.
+        List<FlowDefinitionView> flows = [
+            SELECT ActiveVersionId, LatestVersionId FROM FlowDefinitionView WHERE ApiName = :NO_OP_FLOW LIMIT 1
         ];
-        if (activeFlows == 0) {
+        Boolean latestIsActive = !flows.isEmpty()
+            && flows[0].ActiveVersionId != null
+            && flows[0].ActiveVersionId == flows[0].LatestVersionId;
+        if (!latestIsActive) {
             System.debug(
                 LoggingLevel.WARN,
                 'SKIPPED: ' + NO_OP_FLOW + ' is not active (flows deploy inactive in production unless Deploy-as-active is on)'

@@ -12,7 +12,9 @@
  * assigns that set only after this bundle deploys, so @TestSetup assigns it to the running
  * user when missing. Without read access the query fails with "No such column" even when it
  * would return no rows. The runner is the deploying user, so these tests do not show that the
- * set alone is enough. The rejection tests fail before any query and need no access.
+ * set alone is enough. The rejection tests fail before any query and do not use the
+ * assignment, though a failed @TestSetup assignment still fails them along with the rest of
+ * the class.
  *
  * Not covered:
  *  - the null-lookup branch of the flattener. Describe reports every lookup in the
@@ -175,16 +177,19 @@ private class RLM_UsageDataControllerTest {
     }
 
     /**
-     * The controller selects these fields (and the related names used as link labels), so they
-     * must be readable by the running user (for example via RLM_UsageDatatables, or because the
-     * field is required, as Name and Status are). Otherwise the query fails or the value is
-     * stripped.
+     * The controller selects every TransactionJournal field set member and filters on AccountId,
+     * and it reads the related names used as link labels, so all of them must be readable by the
+     * running user (for example via RLM_UsageDatatables, or because the field is required, as
+     * Name and Status are). Otherwise the query fails or the value is stripped. The field list
+     * comes from the field set, so it cannot drift from what the controller selects.
      */
     private static void assertJournalFieldsReadable() {
         Map<String, Schema.SObjectField> fields = Schema.SObjectType.TransactionJournal.fields.getMap();
-        for (String fieldName : new List<String>{
-            'Name', 'Quantity', 'Status', 'UsageResourceId', 'QuantityUnitOfMeasureId', 'ReferenceRecordId'
-        }) {
+        List<String> selected = new List<String>{ 'AccountId' };
+        for (Schema.FieldSetMember member : SObjectType.TransactionJournal.fieldSets.getMap().get(FIELD_SET).getFields()) {
+            selected.add(member.getFieldPath());
+        }
+        for (String fieldName : selected) {
             Assert.isTrue(
                 fields.get(fieldName).getDescribe().isAccessible(),
                 'PRECONDITION: TransactionJournal.' + fieldName + ' must be readable by the running user ' +
@@ -216,7 +221,7 @@ private class RLM_UsageDataControllerTest {
      * made in @TestSetup is in effect. Every test that reaches the controller's query runs as
      * this user. Read-only: it only checks that the assignment is there.
      */
-    private static User usageDatatablesUser() {
+    private static User runningUserHoldingUsageDatatables() {
         Id me = UserInfo.getUserId();
         Id setId = usageDatatablesSetId();
         Assert.areEqual(
@@ -252,7 +257,7 @@ private class RLM_UsageDataControllerTest {
     static void transactionJournalColumnsFollowTheFieldSet() {
         Id accId = accountId(ACCOUNT_NAME);
 
-        System.runAs(usageDatatablesUser()) {
+        System.runAs(runningUserHoldingUsageDatatables()) {
             assertJournalFieldsReadable();
 
             Test.startTest();
@@ -296,7 +301,7 @@ private class RLM_UsageDataControllerTest {
             SELECT Id, Name FROM TransactionJournal WHERE ReferenceRecordId = :one.Id AND Quantity = 150 LIMIT 1
         ];
 
-        System.runAs(usageDatatablesUser()) {
+        System.runAs(runningUserHoldingUsageDatatables()) {
             assertJournalFieldsReadable();
 
             Test.startTest();
@@ -329,7 +334,7 @@ private class RLM_UsageDataControllerTest {
     static void transactionJournalsAreScopedToTheFilterRecord() {
         Asset two = assetNamed(ASSET_TWO);
 
-        System.runAs(usageDatatablesUser()) {
+        System.runAs(runningUserHoldingUsageDatatables()) {
             assertJournalFieldsReadable();
 
             Test.startTest();
@@ -349,7 +354,7 @@ private class RLM_UsageDataControllerTest {
     static void accountWithoutJournalsReturnsColumnsAndNoRows() {
         Id emptyAccId = accountId(EMPTY_ACCOUNT_NAME);
 
-        System.runAs(usageDatatablesUser()) {
+        System.runAs(runningUserHoldingUsageDatatables()) {
             assertJournalFieldsReadable();
 
             Test.startTest();
@@ -381,7 +386,7 @@ private class RLM_UsageDataControllerTest {
         journals = null; // release the inserted list so the measured call has the heap to itself
         // Measured on a live org: the 2001-row call leaves about 1.27 MB on the heap (synchronous limit 6 MB).
 
-        System.runAs(usageDatatablesUser()) {
+        System.runAs(runningUserHoldingUsageDatatables()) {
             assertJournalFieldsReadable();
 
             Test.startTest();
@@ -412,7 +417,7 @@ private class RLM_UsageDataControllerTest {
             'PRECONDITION: UsageBillingPeriodItem has no Name field, so a Name fallback would fail the query'
         );
 
-        System.runAs(usageDatatablesUser()) {
+        System.runAs(runningUserHoldingUsageDatatables()) {
             Test.startTest();
             Map<String, Object> byAsset = RLM_UsageDataController.getFieldSetData(
                 one.Id, 'AssetId', 'UsageSummary', FIELD_SET
@@ -443,7 +448,7 @@ private class RLM_UsageDataControllerTest {
     static void usageBillingPeriodItemColumnsUseItsAutonumberNameField() {
         Asset one = assetNamed(ASSET_ONE);
 
-        System.runAs(usageDatatablesUser()) {
+        System.runAs(runningUserHoldingUsageDatatables()) {
             Test.startTest();
             Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
                 one.Id, 'AssetId', 'UsageBillingPeriodItem', FIELD_SET
