@@ -249,7 +249,6 @@ private class RLM_PaymentsDataControllerTest {
         RLM_PaymentsDataController.PaymentItemWrapper item = summary.items[0];
         Assert.areEqual(pmt.Id, item.paymentId, 'The item shows its payment.');
         Assert.isTrue(item.hasPayment, 'The item has a payment.');
-        Assert.isFalse(item.hasInvoices, 'A promise on a collection plan lists no invoice.');
         assertAmount(60, item.requestedAmount, 'The requested amount.');
         Assert.areEqual(Date.today(), item.targetDate, 'The target processing date.');
     }

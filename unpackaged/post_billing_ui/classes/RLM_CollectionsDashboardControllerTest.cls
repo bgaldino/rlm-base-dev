@@ -7,7 +7,9 @@
  * collection plans, tasks, cases and debit memos -- is built here, and every card is
  * asserted against it. Records are created in admin context. Two tests then run as other
  * users: a collections specialist, who reads their own plan, and a user with no access, who
- * gets empty sections.
+ * gets empty sections. The specialist takes a seat of the Billing and the Billing Advanced
+ * licenses for the test, as RLM_BillingUITestUsers documents, so it fails on the license in an
+ * org whose seats are all assigned; the no-access user takes no seat.
  */
 @isTest
 private class RLM_CollectionsDashboardControllerTest {
@@ -71,16 +73,18 @@ private class RLM_CollectionsDashboardControllerTest {
     // PaymentScheduleItem is Apex-createable (unlike Invoice/BillingScheduleGroup), so the
     // promise-summary aggregation can be exercised with real data. Two Draft items under a Draft
     // schedule drive the SUM(RequestedAmount)/COUNT(Id) GROUP BY Status path and the account filter.
+    // A grouped SUM comes back in the corporate currency, so the items are created in it.
     @isTest
     static void getPaymentPromiseSummary_withSeededItems_aggregatesByStatus() {
         Account acc = new Account(Name = 'RLM Promise Summary Test');
         insert acc;
-        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 150);
+        String corporate = corporateCurrency();
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 150, CurrencyIsoCode = corporate);
         insert ps;
         insert new List<PaymentScheduleItem>{
-            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = corporate,
                 RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft'),
-            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id, CurrencyIsoCode = corporate,
                 RequestedAmount = 50, TargetPaymentProcessingDate = Date.today(), Status = 'Draft')
         };
 
@@ -108,26 +112,28 @@ private class RLM_CollectionsDashboardControllerTest {
     @isTest
     static void getPaymentPromiseSummary_appliesTheCurrencyFilter() {
         Account acc = newAccount('RLM CD Promise Currency');
-        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100);
+        // A grouped SUM comes back in the corporate currency, so the item is created in it.
+        String itemCurrency = corporateCurrency();
+        String otherCurrency = anotherCurrency(itemCurrency);
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100, CurrencyIsoCode = itemCurrency);
         insert ps;
         PaymentScheduleItem psi = new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
-            RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+            CurrencyIsoCode = itemCurrency, RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(),
+            Status = 'Draft');
         insert psi;
-        String userCurrency = UserInfo.getDefaultCurrency();
-        String otherCurrency = anotherCurrency(userCurrency);
-        Assert.areEqual(userCurrency, [SELECT CurrencyIsoCode FROM PaymentScheduleItem WHERE Id = :psi.Id].CurrencyIsoCode,
-            'PRECONDITION: the item is in the user\'s currency.');
+        Assert.areEqual(itemCurrency, [SELECT CurrencyIsoCode FROM PaymentScheduleItem WHERE Id = :psi.Id].CurrencyIsoCode,
+            'PRECONDITION: the item is in the corporate currency.');
 
         Test.startTest();
         Map<String, RLM_CollectionsDashboardController.PaymentPromiseBucket> sameCurrency =
-            bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(acc.Id, userCurrency));
+            bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(acc.Id, itemCurrency));
         Map<String, RLM_CollectionsDashboardController.PaymentPromiseBucket> elsewhere =
             bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(acc.Id, otherCurrency));
         Test.stopTest();
 
         assertAmount(100, sameCurrency.get('Draft').totalRequestedAmount,
-            'The item is in the user\'s currency, so that filter keeps it.');
-        Assert.areEqual(1, sameCurrency.get('Draft').itemCount, 'One Draft item in the user\'s currency.');
+            'The item is in ' + itemCurrency + ', so that filter keeps it.');
+        Assert.areEqual(1, sameCurrency.get('Draft').itemCount, 'One Draft item in ' + itemCurrency + '.');
         Assert.areEqual(4, elsewhere.size(), 'All four buckets are returned even when nothing matches.');
         assertAmount(0, elsewhere.get('Draft').totalRequestedAmount,
             'Another currency (' + otherCurrency + ') leaves the item out.');
@@ -168,24 +174,26 @@ private class RLM_CollectionsDashboardControllerTest {
     static void getDashboardCards_unappliedPaymentOffsetsTheBalance() {
         Account payer = newAccount('RLM CD Payer');
         Account other = newAccount('RLM CD Other');
+        // The card sums are ungrouped SUMs; the payment is in the corporate currency anyway, so
+        // its balance reads the same however the platform converts an aggregate.
+        String paymentCurrency = corporateCurrency();
         Payment p = new Payment(AccountId = payer.Id, Amount = 250, Status = 'Processed',
-            Type = 'Sale', ProcessingMode = 'External');
+            Type = 'Sale', ProcessingMode = 'External', CurrencyIsoCode = paymentCurrency);
         insert p;
         // Balance is maintained by the platform; only a positive balance is unapplied.
         Decimal expected = [SELECT Balance FROM Payment WHERE Id = :p.Id].Balance;
         Assert.isTrue(expected != null && expected > 0,
             'PRECONDITION: a new processed payment carries its amount as a balance. Got ' + expected);
         Integer expectedCount = 1;
-        String userCurrency = UserInfo.getDefaultCurrency();
-        String otherCurrency = anotherCurrency(userCurrency);
-        Assert.areEqual(userCurrency, [SELECT CurrencyIsoCode FROM Payment WHERE Id = :p.Id].CurrencyIsoCode,
-            'PRECONDITION: the payment is in the user\'s currency.');
+        String otherCurrency = anotherCurrency(paymentCurrency);
+        Assert.areEqual(paymentCurrency, [SELECT CurrencyIsoCode FROM Payment WHERE Id = :p.Id].CurrencyIsoCode,
+            'PRECONDITION: the payment is in the corporate currency.');
 
         Test.startTest();
         RLM_CollectionsDashboardController.CollectionsDashboardData unfiltered =
             RLM_CollectionsDashboardController.getDashboardCards(null, null);
         RLM_CollectionsDashboardController.CollectionsDashboardData payerInCurrency =
-            RLM_CollectionsDashboardController.getDashboardCards(payer.Id, userCurrency);
+            RLM_CollectionsDashboardController.getDashboardCards(payer.Id, paymentCurrency);
         RLM_CollectionsDashboardController.CollectionsDashboardData otherAccount =
             RLM_CollectionsDashboardController.getDashboardCards(other.Id, null);
         RLM_CollectionsDashboardController.CollectionsDashboardData payerElsewhere =
@@ -215,11 +223,11 @@ private class RLM_CollectionsDashboardControllerTest {
         }
 
         assertAmount(expected, payerInCurrency.unappliedPaymentBalance,
-            'The payer\'s own payment, in the user\'s currency, is kept by both filters.');
+            'The payer\'s own payment, in its own currency, is kept by both filters.');
         assertAmount(0, otherAccount.unappliedPaymentBalance, 'Another account\'s payment is filtered out.');
         Assert.areEqual(0, otherAccount.unappliedPaymentCount, 'Another account\'s payment is not counted.');
         assertAmount(0, payerElsewhere.unappliedPaymentBalance,
-            'A payment in the user\'s currency is filtered out under ' + otherCurrency + '.');
+            'A payment in ' + paymentCurrency + ' is filtered out under ' + otherCurrency + '.');
         Assert.areEqual(0, payerElsewhere.unappliedPaymentCount, 'Nor counted under another currency.');
     }
 
@@ -230,8 +238,10 @@ private class RLM_CollectionsDashboardControllerTest {
     @isTest
     static void getDashboardCards_draftDebitMemoIsNotOwed() {
         Account a = newAccount('RLM CD Debit Memo');
+        // In the corporate currency, so the control query's SUM reads the memo's own total.
         SObject memo = newRecord('DebitMemo', new Map<String, Object>{
-            'AccountId' => a.Id, 'Status' => 'Draft', 'InvoiceGenerationStatus' => 'None'
+            'AccountId' => a.Id, 'Status' => 'Draft', 'InvoiceGenerationStatus' => 'None',
+            'CurrencyIsoCode' => corporateCurrency()
         });
         newRecord('DebitMemoLine', new Map<String, Object>{
             'Name' => 'RLM CD Debit Memo Line', 'DebitMemoId' => memo.Id, 'ChargeAmount' => 10
@@ -269,9 +279,10 @@ private class RLM_CollectionsDashboardControllerTest {
     // the other two sections hold their placeholder rows.
     @isTest
     static void getWorklist_openCasesListTheirAccountsAsDisputed() {
+        // Inserted out of name order, so only the name ordering makes A the placeholder's account.
+        Account c = newAccount('RLM CD Worklist C');
         Account a = newAccount('RLM CD Worklist A');
         Account b = newAccount('RLM CD Worklist B');
-        Account c = newAccount('RLM CD Worklist C');
         String longDescription = 'x'.repeat(250);
         Case caseA = new Case(AccountId = a.Id, Subject = 'Invoice disputed', Description = longDescription,
             Reason = firstActivePicklistValue(Case.Reason));
@@ -403,9 +414,11 @@ private class RLM_CollectionsDashboardControllerTest {
         insert new List<CollectionPlan>{ planA, planB };
         Task taskA = new Task(WhatId = planA.Id, Subject = 'Call about the plan', ActivityDate = Date.today().addDays(1));
         Task taskB = new Task(WhatId = planB.Id, Subject = 'Send a reminder', ActivityDate = Date.today());
-        // The later-dated task is inserted last, so only the ORDER BY can put it first.
+        // Task A is due later but inserted last and back-dated, so neither insertion order nor
+        // CreatedDate puts it first: only the ActivityDate ordering does.
         insert taskB;
         insert taskA;
+        Test.setCreatedDate(taskA.Id, Datetime.now().addDays(-3));
 
         Test.startTest();
         List<RLM_CollectionsDashboardController.CpTaskItem> forA =
@@ -490,7 +503,8 @@ private class RLM_CollectionsDashboardControllerTest {
     }
 
     // The collections persona reads its own plan through the USER_MODE queries. A permission
-    // gap would show as an empty list, since both methods swallow their query errors.
+    // gap would show as an empty list, since both methods swallow their query errors. The user
+    // takes a Billing and a Billing Advanced seat for the test.
     @isTest
     static void collectionsSpecialist_readsTheirPlanInUserMode() {
         User specialist = RLM_BillingUITestUsers.create(
@@ -595,6 +609,12 @@ private class RLM_CollectionsDashboardControllerTest {
         }
         insert record;
         return record;
+    }
+
+    // Aggregate SUMs of currency fields come back in the corporate currency, so records whose
+    // amounts are summed are created in it.
+    private static String corporateCurrency() {
+        return [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
     }
 
     // An active currency other than the given one; a code no record can carry if there is none.
