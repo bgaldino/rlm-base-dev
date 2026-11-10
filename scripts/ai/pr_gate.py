@@ -410,6 +410,21 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="dockerignore",
+        cmd=["python", "tests/test_dockerignore.py"],
+        # A locally built image copies the working tree, so a git-ignored folder missing from
+        # .dockerignore is baked into it (todo 357). The suite
+        # compares the two ignore files, and checks every tracked file still reaches the build
+        # context, so a file force-added under an excluded path selects it too: the excluded
+        # trees below, plus the suffixes .dockerignore excludes at any depth. That walk over
+        # every tracked file is why it carries a suffix selector.
+        triggers=[".dockerignore", ".gitignore", "tests/test_dockerignore.py",
+                  ".agents/", ".claude/", ".cursor/", "datasets/", "docs/", "extracted/",
+                  "force-app/", "robot/", "scripts/", "unpackaged/", "core.code-workspace"],
+        suffixes=[".bak", ".mcp.json", ".log", ".pyc", ".pyo", ".key", ".pem"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="doc_build_steps",
         cmd=["python", "tests/test_doc_build_steps.py"],
         # The suite walks every .md in the repo, so any .md must be able to select it.

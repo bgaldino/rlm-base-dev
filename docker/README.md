@@ -261,7 +261,7 @@ Compose, uncomment the `../:/work` line in [`compose.yaml`](compose.yaml).
 | [`test/smoke.sh`](test/smoke.sh) | Non-destructive regression suite (28 checks): toolchain, state wiring (both paths), org-aware read-only checks, safe-error guards, launcher, and the `up`/`exec`/`down` lifecycle. Run `docker/test/smoke.sh` after changes. |
 | [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) | Cursor / VS Code Dev Container definition (image, `/work` mount, extensions). |
 | [`.github/workflows/docker-publish.yml`](../.github/workflows/docker-publish.yml) | Opt-in CI to build + push the image to GHCR. |
-| `.dockerignore` (repo root) | Keeps secrets, caches, and large runtime outputs out of the baked snapshot. |
+| `.dockerignore` (repo root) | Keeps secrets, caches, large runtime outputs, and git-ignored local state out of the baked snapshot, so a local build bakes what a CI checkout would. `tests/test_dockerignore.py` fails when a new `.gitignore` entry is neither mirrored nor explained. |
 
 The persistent-workspace lifecycle (`up`/`attach`/`down`) keeps a named
 container alive via the entrypoint's `serve` mode (`exec sleep infinity`), so

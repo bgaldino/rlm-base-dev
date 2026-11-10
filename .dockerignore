@@ -50,5 +50,70 @@ datasets/dx
 
 # Logs and scratch
 *.log
+logs
 tmp
 scratch
+
+# ---------------------------------------------------------------------------
+# Local-only, git-ignored state (mirrors .gitignore). The published image is
+# built from a CI checkout, which never contains these; a local build
+# (`docker/rlm setup`, the devcontainer) uses the working tree as its context,
+# so each one has to be excluded here as well or it is baked into the image.
+# Docker matches from the context root and a bare path excludes its whole
+# subtree; a trailing `/**` would still leave the empty directory behind.
+# tests/test_dockerignore.py checks this section against a sample of each.
+# ---------------------------------------------------------------------------
+
+# Local-only clones and notes that must never leave the workstation
+.agents/artifacts
+docs/analysis/*-core-code-*.md
+.cursor/plans
+core.code-workspace
+
+# Agent session state. Only the tracked .claude files belong in the image;
+# worktrees/ alone holds full repo copies, settings.local.json is per user.
+.claude/*
+!.claude/skill-manifest.yml
+!.claude/commands
+!.claude/skills
+!.claude/settings.json
+!.claude/hooks
+.loop
+.rescan_tmp
+scripts/build_harness/tui/settings.local.json
+
+# Per-workstation connector configs (instance URL, consumer key, maybe secret)
+.mcp.json
+**/.mcp.json
+.mcp-state
+force-app/main/default/connectedApps
+
+# Org data pulled down by extracts, SFDMU runs and drift captures
+extracted
+datasets/**/source
+datasets/**/target
+datasets/**/CSVIssuesReport.csv
+datasets/**/MissingParentRecordsReport.csv
+datasets/sfdmu/test
+datasets/sfdmu/reconcile
+datasets/sfdmu/extractions
+sfdmu/logs
+scripts/permsets.txt
+scripts/psl.csv
+scripts/txn_data_harness/out
+robot/rlm-base/results
+unpackaged/post_ux/drift_report.json
+unpackaged/post_ux/retrieve_scope.json
+retrieved_rlm_bundle
+tmp-metadata
+**/*.bak
+docs/erds/erd-data.json.bak*
+docs/erds/orphan-candidates*.md
+
+# Vendor reference PDFs kept on disk only (snapshots under docs/salesforce/ replace them)
+docs/salesforce/*/revenue-cloud-*.pdf
+docs/salesforce/*/salesforce-release-notes-*.pdf
+docs/salesforce/260/solution-overview-spring-26-billing.pdf
+docs/salesforce/260/solution-overview-spring-26.pdf
+docs/salesforce/262/solution-overview-summer-26-billing.pdf
+docs/salesforce/262/solution-overview-summer-26-rca.pdf
