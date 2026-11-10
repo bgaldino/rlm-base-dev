@@ -169,6 +169,13 @@ try:
         ok, out = audit(root, CITED, create_private=True)
         check("a missing check_private_refs.py degrades to a printed note, not a crash",
               ok is True and "could not be loaded" in out, out)
+    def _broken():
+        raise SyntaxError("invalid syntax (check_private_refs.py, line 1)")
+    skill_manifest._private_refs = _broken
+    with TemporaryDirectory() as root:
+        ok, out = audit(root, CITED, create_private=True)
+        check("a check_private_refs.py that fails at import degrades the same way",
+              ok is True and "could not be loaded" in out, out)
 finally:
     skill_manifest._private_refs = _real_loader
 
@@ -296,7 +303,7 @@ print("\n" + "=" * 100)
 if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
-EXPECTED = 37
+EXPECTED = 38
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

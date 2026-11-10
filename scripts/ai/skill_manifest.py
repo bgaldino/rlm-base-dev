@@ -859,13 +859,16 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
     advisories: list[str] = []
     try:
         refs = _private_refs()
-    except (OSError, ImportError, AttributeError) as exc:  # a partial copy of scripts/ai/
+    except Exception as exc:  # noqa: BLE001  missing, or broken at import: degrade, never crash
         refs = None
         advisories.append(f"private-path shape and MOVED.tsv checks skipped: "
                           f"check_private_refs.py could not be loaded ({exc})")
 
     advised: set[str] = set()
     moved: list[str] = []
+    tree = root / LOCAL_ONLY_ROOT
+    tree_present = tree.is_dir()
+    rows: list[tuple[str, str]] | None = None  # MOVED.tsv, read once, on first need
 
     def private_advisory(where: str, rel: str) -> bool:
         """Record shape and moved-path advisories for a private-tree path, once per path (a
@@ -877,11 +880,13 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
         advised.add(rel)
         if first and refs.classify(rel) == "top-level":
             advisories.append(f"{where}: {rel} cites the private tree's top level")
-        tree = root / LOCAL_ONLY_ROOT
         rest = rel[len(LOCAL_ONLY_ROOT):].strip("/")
-        if "{" in rel or not tree.is_dir() or refs.exists_in(tree, rest):
+        if refs.PLACEHOLDER.search(rest) or not tree_present or refs.exists_in(tree, rest):
             return False
-        new = refs.resolve_moved(tree, rest)
+        nonlocal rows
+        if rows is None:
+            rows = refs.moved_rows(tree)
+        new = refs.resolve_moved(tree, rest, rows)
         if new and first:
             advisories.append(f"{where}: {rel} moved; rewrite to {LOCAL_ONLY_ROOT}/{new}")
             moved.append(rel)
@@ -903,7 +908,7 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
         """
         if not rel.startswith(LOCAL_ONLY_PREFIXES):
             return True
-        return (root / LOCAL_ONLY_ROOT).is_dir()
+        return tree_present
 
     declared = {s.get("id") for s in section.get("skills", []) or []}
     for entry in section.get("skills", []) or []:
@@ -957,11 +962,11 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
               f"{LOCAL_ONLY_ROOT} tree, which is absent here — not audited:")
         for item in unauditable:
             print(f"          - {item}")
-    resolved = "all auditable paths resolve" if unauditable else "all paths resolve"
+    summary = "all auditable paths resolve" if unauditable else "all paths resolve"
     if moved:  # resolved only through MOVED.tsv: say so, rather than claim they resolve
-        resolved += f", {len(moved)} only through MOVED.tsv"
+        summary += f", {len(moved)} only through MOVED.tsv"
     print(f"  [OK    ] foundations manifest matches the working tree "
-          f"({len(declared)} skills declared, {resolved})")
+          f"({len(declared)} skills declared, {summary})")
     return True
 
 

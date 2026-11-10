@@ -7,14 +7,15 @@ alwaysApply: true
 
 AI-generated analysis, investigation, audit, research, handoff and scratch documents
 are **private working output**. They go in `.agents/artifacts/`, a separate private
-git repository that this repo gitignores (`.gitignore` → `.agents/artifacts/`). They
+git repository that this repo gitignores (with any `.agents/artifacts*` copy). They
 are never committed here.
 
 ## If `.agents/artifacts/` does not exist
 
 You are not working with the private repository. Do **not** create it, and do not put
 working documents anywhere tracked. Use `$TMPDIR` for scratch, or say in your reply
-where the content should live. Public contributors use issues and pull requests.
+where the content should live. Public contributors use issues and pull requests;
+maintainers with access clone it there instead (`todo-tracker` skill → *First run*).
 
 ## Where inside it (first match wins)
 

@@ -136,10 +136,17 @@ def cmd_prepare(args):
         "batch_coverage": sum(r["count"] for r in next_batch),
         "objects": next_batch,
     }
-    # Default output dir lives under .agents/ (intentionally untracked); create
-    # parents so this works on fresh clones where the directory doesn't exist
-    # yet. Override via --output-dir for CI or alternate staging.
-    out_dir = Path(args.output_dir) if args.output_dir else ARTIFACTS
+    # The default output dir is inside the private .agents/artifacts/ clone, which must never be
+    # created here (.cursor/rules/analysis-artifacts.mdc): without the clone, say so and ask for
+    # --output-dir rather than make a stand-in that blocks a later clone. An explicit
+    # --output-dir is created as given.
+    if args.output_dir:
+        out_dir = Path(args.output_dir)
+    elif ARTIFACTS.parent.is_dir():
+        out_dir = ARTIFACTS
+    else:
+        sys.exit(f"{ARTIFACTS.parent.relative_to(REPO)}/ (the private repository) is not cloned "
+                 f"here; pass --output-dir, for example a folder under $TMPDIR")
     out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"orphan-fields-batch{args.batch}-input.json"
     with open(out_path, "w") as f:
@@ -316,9 +323,9 @@ def main():
                              f"missing-file is non-fatal for prepare).")
     p_prep.add_argument("--output-dir",
                         help=f"Directory to write the batch input JSON into "
-                             f"(default: {ARTIFACTS.relative_to(REPO)}/; the "
-                             f"directory is auto-created so fresh clones work "
-                             f"without mkdir-ing it first).")
+                             f"(default: {ARTIFACTS.relative_to(REPO)}/ when the private "
+                             f"clone is present; required without it, e.g. a folder "
+                             f"under $TMPDIR).")
     p_prep.set_defaults(func=cmd_prepare)
 
     p_apply = sub.add_parser("apply", help="Apply removals from current ownership JSON")

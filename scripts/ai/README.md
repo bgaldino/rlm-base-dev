@@ -93,8 +93,11 @@ python scripts/ai/skill_manifest.py --list-skills foundations
 exemption: `.agents/artifacts/` is a separate **private** repo that the main one gitignores,
 and the analysis-artifacts rule requires generated working documents to live there, so
 tracked files legitimately cite paths inside it. Those references are audited normally when
-the private tree is present — a typo on a workstation still fails — and **reported as
-unaudited**, with the run passing, when it is absent. Without that split, `--check` failed on
+the private tree is present — a typo on a workstation still fails, unless the private tree's
+`MOVED.tsv` says where the path went, which passes with a `[WARN]` naming the rewrite and is
+counted in the summary — and **reported as unaudited**, with the run passing, when it is
+absent. Citations shaped as the private tree's top level also draw a `[WARN]`
+(`check_private_refs.py` gates the same shape once todo 358's citation rewrite lands). Without that split, `--check` failed on
 every fresh clone and in CI while passing on the one workstation holding the clone, which is
 what made it unfit to be a gating check. Covered by `tests/test_skill_manifest_audit.py`.
 

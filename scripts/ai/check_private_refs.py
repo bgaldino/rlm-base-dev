@@ -8,9 +8,10 @@ clone and CI never have the tree, so citations can rot unseen: of 16 paths cited
 
 Three checks, in order:
 
-(a) Leak guard — GATING. No tracked path may contain a `.agents/artifacts` segment, at the root or
-    nested, sibling backups such as `.agents/artifacts.old/` and case variants included (only the
-    repo-root `.agents/artifacts/` is gitignored), or contain `-core-code-`.
+(a) Leak guard — GATING. No tracked path may contain a `.agents/` segment followed by a name
+    starting with `artifacts` (any case), at the root or nested: the clone, sibling backups such
+    as `.agents/artifacts.old/` and case variants are all private copies, and `.gitignore`
+    ignores them all, so only a forced add tracks one. Nor may a path contain `-core-code-`.
 (b) Shape. Every `.agents/artifacts/<x>` literal in tracked text must be the bare directory, a
     template or glob, or start with a private tier (PRIVATE_TIERS). A top-level-shaped citation
     is a warning until SHAPE_GATING is switched on, once the citations are rewritten (todo 358,
@@ -21,12 +22,13 @@ Three checks, in order:
 
 `tests/` is not scanned for (b)/(c): fixtures there cite misplaced paths on purpose.
 
-Exit 0 when (a) passes (and, once gating, (b)); 1 otherwise; 2 when git itself fails, so a
-tool error never reads as a verdict. Stdlib only.
+Exit 0 when (a) passes (and, once gating, (b)); 1 otherwise; 2 when the check cannot run (git
+fails), so a tool error never reads as a verdict. Stdlib only.
 """
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -35,9 +37,12 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 ROOT = ".agents/artifacts"
 
-# First path segment a citation into the private tree may start with. The private repository's
-# README and tools/check_layout.py are authoritative for its layout; this is the public subset.
-PRIVATE_TIERS = ("todos", "topics", "archive", "memory", "reports", "inbox", "todo-audit", "tools")
+# First path segment a citation into the private tree may start with: its tiers, then the root
+# files its top level also allows. The private repository's README and tools/check_layout.py are
+# authoritative; tests/test_check_private_refs.py keeps this equal to the guard hook's
+# ARTIFACTS_ROOT, the other public copy.
+PRIVATE_TIERS = ("todos", "topics", "archive", "memory", "reports", "inbox", "todo-audit", "tools",
+                 "README.md", "MOVED.tsv", ".gitignore", ".ignore", ".githooks")
 
 SHAPE_GATING = False  # todo 358 PR-B turns this on after rewriting the citations below it
 
@@ -48,9 +53,13 @@ EXEMPT = {
     ".cursor/rules/analysis-artifacts.mdc": "shows a top-level path as the ❌ example",
 }
 
-# A path ends at whitespace, quoting or bracketing punctuation, a URL anchor/query, or Markdown
-# emphasis (`**` wrapped around a citation), which would otherwise read as a glob and be skipped.
-LITERAL = re.compile(r"\.agents/artifacts(?![\w.-])(/[^\s`'\"()\[\]<>|,;#?*]*)?")
+# A path ends at whitespace, quoting or bracketing punctuation (typographic dashes and quotes
+# included), a URL anchor/query, or Markdown emphasis (`**` wrapped around a citation), which
+# would otherwise read as a glob and be skipped.
+LITERAL = re.compile(r"\.agents/artifacts(?![\w.-])(/[^\s`'\"()\[\]<>|,;#?*\u2013\u2014\u2018\u2019\u201c\u201d\u2026]*)?")
+# What follows a path in prose but is not part of it: a `:12` or `:12:3` location, then sentence
+# punctuation or `_italics_`.
+TRAILER = re.compile(r"(?::\d+){0,2}[.:_]*$")
 
 
 def tracked() -> list[str]:
@@ -86,23 +95,23 @@ def classify(rel: str) -> str:
 
 
 def exists_in(tree: Path, rest: str) -> bool:
-    """Whether `rest` exists under `tree`; False rather than raising for a path the OS rejects
-    (a name past NAME_MAX, a NUL), which a citation in prose can easily be."""
-    try:
-        return (tree / rest).exists()
-    except (OSError, ValueError):
-        return False
+    """Whether `rest` exists under `tree`; os.path.exists() answers False rather than raising
+    for a path the OS rejects (a name past NAME_MAX, a NUL), which a citation in prose can be."""
+    return os.path.exists(tree / rest)
 
 
 def moved_rows(tree: Path) -> list[tuple[str, str]]:
-    path = tree / "MOVED.tsv"
+    """MOVED.tsv's (old prefix, new prefix) rows, longest first; none if it cannot be read.
+    errors="replace": a stray non-UTF-8 byte spoils that row's match, not the whole run."""
+    try:
+        text = (tree / "MOVED.tsv").read_text(encoding="utf-8", errors="replace")
+    except (OSError, ValueError):
+        return []
     rows = []
-    if exists_in(tree, "MOVED.tsv") and path.is_file():
-        # errors="replace": a stray non-UTF-8 byte spoils that row's match, not the whole run.
-        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-            cols = line.split("\t")
-            if len(cols) == 4 and not line.startswith(("#", "old_prefix\t")):
-                rows.append((cols[0].rstrip("/"), cols[1].rstrip("/")))
+    for line in text.splitlines():
+        cols = line.split("\t")
+        if len(cols) == 4 and not line.startswith(("#", "old_prefix\t")):
+            rows.append((cols[0].rstrip("/"), cols[1].rstrip("/")))
     return sorted(rows, key=lambda r: -len(r[0]))
 
 
@@ -129,12 +138,16 @@ def citations(paths: list[str]):
         try:
             if full.is_symlink() or not full.is_file():
                 continue
-            text = full.read_text(encoding="utf-8")
-        except (UnicodeDecodeError, OSError):
+            # errors="replace": git grep -I already judged it text, and one stray byte must
+            # not hide every citation in the file.
+            text = full.read_text(encoding="utf-8", errors="replace")
+        except OSError:
             continue
-        for n, line in enumerate(text.splitlines(), 1):
+        # split("\n"), not splitlines(): the line numbers must be git's, and splitlines() also
+        # breaks at \f, \v, \x1c-\x1e, \x85 and U+2028/9.
+        for n, line in enumerate(text.split("\n"), 1):
             for m in LITERAL.finditer(line):
-                yield rel, n, m.group(0).rstrip(".:_")  # sentence end, `_italics_`
+                yield rel, n, TRAILER.sub("", m.group(0))
 
 
 def main(argv: list[str]) -> int:
@@ -143,7 +156,7 @@ def main(argv: list[str]) -> int:
     try:
         return _check()
     except (subprocess.CalledProcessError, RuntimeError, OSError) as exc:
-        print(f"check_private_refs: cannot list tracked files: {exc}", file=sys.stderr)
+        print(f"check_private_refs: cannot run: {exc}", file=sys.stderr)
         return 2
 
 

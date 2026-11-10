@@ -15,7 +15,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-for _var in [v for v in os.environ if v.startswith("GIT_")]:
+# The shared scrub (tests/test_claude_hooks.py): drop what would aim git at another repository or
+# inject config, and keep the ceiling and discovery variables, which only narrow where git looks.
+for _var in [v for v in os.environ
+             if v in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+                      "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
+                      "GIT_NAMESPACE", "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT")
+             or v.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))]:
     os.environ.pop(_var)
 
 REPO = Path(__file__).resolve().parents[1]
@@ -146,6 +152,22 @@ class Shape(Fixture):
         self.write("docs/a.md", ".agents/artifacts/feature-gaps.md\n")
         self.assertEqual(self.run_check().returncode, 1)
 
+    def test_a_citing_file_with_a_stray_byte_is_still_scanned(self):
+        (self.root / "docs").mkdir()
+        (self.root / "docs" / "latin1.md").write_bytes(
+            b"caf\xe9 notes\n.agents/artifacts/feature-gaps.md\n")
+        proc = self.run_check()
+        self.assertIn("docs/latin1.md:2: .agents/artifacts/feature-gaps.md", proc.stdout)
+
+    def test_locations_and_typographic_punctuation_end_a_citation(self):
+        self.write("docs/a.md", "a\fb\n.agents/artifacts/stray.md:12:3 and "
+                   ".agents/artifacts/other.md\u2014then\n")
+        proc = self.run_check()
+        # Line 2 as git counts it: a form feed is not a line break.
+        self.assertIn("docs/a.md:2: .agents/artifacts/stray.md cites", proc.stdout)
+        self.assertIn("docs/a.md:2: .agents/artifacts/other.md cites", proc.stdout)
+        self.assertNotIn(":12", proc.stdout)
+
     def test_classify(self):
         self.assertEqual(refs.classify(".agents/artifacts"), "bare")
         self.assertEqual(refs.classify(".agents/artifacts/"), "bare")
@@ -156,6 +178,17 @@ class Shape(Fixture):
         # A concrete top-level name with a placeholder inside is still top-level.
         self.assertEqual(refs.classify(".agents/artifacts/x-{release}.md"), "top-level")
         self.assertEqual(refs.classify(".agents/artifacts/collections/x.md"), "top-level")
+        # The private repository's own root files are not misplaced documents.
+        self.assertEqual(refs.classify(".agents/artifacts/README.md"), "tier")
+        self.assertEqual(refs.classify(".agents/artifacts/MOVED.tsv"), "tier")
+
+    def test_the_tier_list_matches_the_guard_hook(self):
+        # Two public copies of the private layout; they must not drift apart.
+        hook_spec = importlib.util.spec_from_file_location(
+            "pre_tool_guard_for_refs", REPO / ".claude" / "hooks" / "pre_tool_guard.py")
+        hook = importlib.util.module_from_spec(hook_spec)
+        hook_spec.loader.exec_module(hook)
+        self.assertEqual(set(refs.PRIVATE_TIERS), set(hook.ARTIFACTS_ROOT))
 
 
 class Resolution(Fixture):
@@ -196,6 +229,19 @@ class Resolution(Fixture):
         self.assertEqual(refs.resolve_moved(self.tree, "collections/gaps.md"),
                          "topics/collections/gaps.md")
         self.assertFalse(refs.exists_in(self.tree, "a\x00b"))
+
+    def test_an_unreadable_moved_tsv_warns_instead_of_failing_the_run(self):
+        if hasattr(os, "geteuid") and os.geteuid() == 0:
+            self.skipTest("root ignores file permissions")
+        self.write("docs/a.md", ".agents/artifacts/topics/nope.md\n")
+        (self.tree / "MOVED.tsv").chmod(0)
+        try:
+            proc = self.run_check()
+            self.assertEqual(refs.moved_rows(self.tree), [])
+        finally:
+            (self.tree / "MOVED.tsv").chmod(0o644)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("MOVED.tsv has no row for it", proc.stdout)
 
     def test_resolve_moved_chains_rows(self):
         (self.tree / "MOVED.tsv").write_text(

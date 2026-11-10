@@ -588,6 +588,16 @@ def _guard_module():
     return guard
 
 
+def verdict(case, proc):
+    """allow, ask or deny, from a PreToolUse hook run: exit 2 denies, JSON on stdout asks."""
+    if proc.returncode == 2:
+        return "deny"
+    case.assertEqual(proc.returncode, 0, proc.stderr)
+    if proc.stdout.strip():
+        return json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"]
+    return "allow"
+
+
 def _skip_as_root(case):
     """A permission fixture (chmod 0) does not stop root, so the test has nothing to show."""
     if hasattr(os, "geteuid") and os.geteuid() == 0:
@@ -620,13 +630,7 @@ class ArtifactsPlacement(unittest.TestCase):
         normalised (`backfillObservableInput`), unless `raw` sends the text as typed."""
         cwd = cwd or self.tmp
         path = rel if raw else os.path.normpath(os.path.join(str(cwd), os.path.expanduser(rel)))
-        proc = self.run_write(path, cwd=cwd, tool=tool)
-        if proc.returncode == 2:
-            return "deny"
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        if proc.stdout.strip():
-            return json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"]
-        return "allow"
+        return verdict(self, self.run_write(path, cwd=cwd, tool=tool))
 
     def test_a_new_top_level_file_or_folder_is_denied(self):
         self.assertEqual(self.decide(".agents/artifacts/feature-gaps.md"), "deny")
@@ -643,10 +647,22 @@ class ArtifactsPlacement(unittest.TestCase):
     def test_archive_writes_ask(self):
         self.assertEqual(self.decide(".agents/artifacts/archive/2026/x/HANDOFF.md"), "ask")
 
-    def test_writes_inside_the_clones_git_dir_ask(self):
-        # Its hooks run the layout check that backs this rule up for Bash writes.
-        self.assertEqual(self.decide(".agents/artifacts/.git/hooks/pre-commit"), "ask")
-        self.assertEqual(self.decide(".agents/artifacts/.git/config"), "ask")
+    def test_writes_to_the_clones_own_tooling_ask(self):
+        # Its git dir (core.hooksPath lives in its config), the hooks it runs and the layout
+        # check they call back this rule up for Bash writes; any of them can switch that off.
+        for rel in (".git/hooks/pre-commit", ".git/config", ".githooks/pre-commit",
+                    "tools/check_layout.py"):
+            self.assertEqual(self.decide(f".agents/artifacts/{rel}"), "ask", rel)
+
+    def test_a_missing_archive_still_asks(self):
+        # git keeps no empty folder, so a clone may have no archive/ yet.
+        shutil.rmtree(self.tree / "archive")
+        self.assertEqual(self.decide(".agents/artifacts/archive/2026/x/HANDOFF.md"), "ask")
+
+    def test_a_path_naming_a_file_by_inode_asks(self):
+        # macOS volfs reaches any folder by inode, with no name in the path to judge.
+        for raw in ("/.vol/16777230/21547618/newtop.md", "/.file/id=6571367.21547618/x.md"):
+            self.assertEqual(self.decide(raw, raw=True), "ask", raw)
 
     def test_sibling_directories_are_denied(self):
         self.assertEqual(self.decide(".agents/artifacts.old/notes.md"), "deny")
@@ -675,10 +691,6 @@ class ArtifactsPlacement(unittest.TestCase):
         proc = self.run_write(str(self.tmp / "lnk" / ".." / "x.md"))
         self.assertIn("not the absolute, normalised path", proc.stdout)
 
-    def test_paths_resolve_through_dot_dot_and_relative_cwd(self):
-        self.assertEqual(self.decide("topics/../stray.md", cwd=self.tree), "deny")
-        self.assertEqual(self.decide("../stray.md", cwd=self.tree / "inbox"), "deny")
-
     def test_symlinks_are_judged_by_where_the_write_lands(self):
         public = self.tmp / "docs" / "analysis"
         public.mkdir(parents=True)
@@ -704,6 +716,47 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide(".agents/artifacts/inbox/2026-11-09-a.md"), "allow")
         self.assertEqual(self.decide(".agents/artifacts/stray.md"), "deny")
 
+    def test_a_clone_linked_from_outside_the_session_is_recognised(self):
+        # A worktree session (its own project dir, no clone) writing into the main checkout's
+        # clone, which is a link to a folder of another name: judged as the clone, not refused.
+        store = self.tmp / "store" / "rlm-base-artifacts"
+        store.parent.mkdir()
+        shutil.move(str(self.tree), str(store))
+        self.tree.symlink_to(store, target_is_directory=True)
+        (self.tmp / "docs").mkdir()
+        (self.tmp / "docs" / "L").symlink_to(Path("..", ".agents", "artifacts"),
+                                             target_is_directory=True)
+        with tempfile.TemporaryDirectory() as wt:
+            (Path(wt) / ".git").write_text("gitdir: elsewhere\n")
+            for path, expected in (
+                    (self.tree / "inbox" / "2026-11-10-a.md", "allow"),
+                    (self.tree / "newtop.md", "deny"),
+                    (self.tree / "archive" / "2026" / "x" / "a.md", "ask"),
+                    (self.tmp / "docs" / "L" / "newtop.md", "deny"),
+                    (self.tmp / "docs" / "L" / ".git" / "config", "ask")):
+                proc = self.run_write(str(path), cwd=wt, env={"CLAUDE_PROJECT_DIR": wt})
+                self.assertEqual(verdict(self, proc), expected, path)
+
+    def test_a_clone_below_the_repository_root_is_not_the_tree(self):
+        nested = self.tmp / "docs" / ".agents" / "artifacts"
+        (nested / ".git").mkdir(parents=True)
+        (nested / "topics").mkdir()
+        proc = self.run_write(str(nested / "topics" / "x.md"))
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("below the repository root", proc.stderr)
+
+    def test_a_sibling_reached_through_a_link_gets_the_spelling_reason(self):
+        sib = self.tmp / ".agents" / "artifacts.old"
+        (sib / ".git").mkdir(parents=True)
+        (self.tmp / "docs").mkdir()
+        (self.tmp / "docs" / "old").symlink_to(sib, target_is_directory=True)
+        (self.tmp / "docs" / "bak").symlink_to(self.tmp / ".agents" / "artifacts-bak",
+                                               target_is_directory=True)  # dangling
+        for rel in ("docs/old/inbox/a.md", "docs/bak/a.md"):
+            proc = self.run_write(str(self.tmp / rel))
+            self.assertEqual(proc.returncode, 2, rel)
+            self.assertIn("is not `.agents/artifacts` exactly", proc.stderr, rel)
+
     def test_a_link_to_an_ancestor_is_not_the_clone(self):
         # `.agents/artifacts -> ..` points at the public repo, which has a `.git`: treating it as
         # the clone would let a write spelled inside the private tree land in the public one.
@@ -725,11 +778,12 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide(".Agents/artifacts/x.md"), "deny")
 
     def test_notebook_edits_get_the_same_rule(self):
-        for name, code in (("nb.ipynb", 2), ("inbox/nb.ipynb", 0)):
+        for name, expected in (("nb.ipynb", "deny"), ("inbox/nb.ipynb", "allow"),
+                               ("archive/2026/x/nb.ipynb", "ask")):
             proc = run_hook(GUARD, {"tool_name": "NotebookEdit", "cwd": str(self.tmp),
                                     "tool_input": {"notebook_path": str(self.tree / name),
                                                    "new_source": "x"}})
-            self.assertEqual(proc.returncode, code, proc.stderr)
+            self.assertEqual(verdict(self, proc), expected, name)
 
     def test_a_nested_tree_name_is_judged_against_the_real_tree(self):
         self.assertEqual(self.decide(".agents/artifacts/topics/collections/.agents/artifacts/a.md"),
@@ -790,8 +844,6 @@ class ArtifactsPlacement(unittest.TestCase):
         (self.tree / "topics" / "pub").symlink_to(self.tmp / "docs", target_is_directory=True)
         self.assertEqual(self.decide(".agents/artifacts/topics/pub/secret.md"), "deny")
         self.assertEqual(self.decide("tlink/topics/pub/secret.md"), "deny")
-        # A spelled `..` out of the tree is normalised away: it is just a public path.
-        self.assertEqual(self.decide(".agents/artifacts/../README.md"), "allow")
 
     def test_a_symlinked_clone_is_guarded_at_its_real_location_too(self):
         clone = self.tmp / "store" / "rlm-artifacts"
@@ -824,7 +876,8 @@ class ArtifactsPlacement(unittest.TestCase):
         start = time.monotonic()
         # Too deep to walk (no real path is): asked about, quickly, rather than guessed.
         self.assertEqual(self.decide("/".join(["a"] * 600) + "/x.md"), "ask")
-        self.assertEqual(self.decide("/".join(["a"] * 400) + "/x.md"), "allow")
+        # Short enough to stay under PATH_MAX after a long $TMPDIR (macOS allows 1024 bytes).
+        self.assertEqual(self.decide("/".join(["a"] * 200) + "/x.md"), "allow")
         self.assertLess(time.monotonic() - start, 5.0)
 
     def test_a_public_folder_named_like_the_tree_is_not_private(self):
@@ -832,7 +885,7 @@ class ArtifactsPlacement(unittest.TestCase):
         public.mkdir(parents=True)  # no .git: not the clone, and not gitignored
         proc = self.run_write(str(public / "x.md"))
         self.assertEqual(proc.returncode, 2)
-        self.assertIn("would surface in the public repo", proc.stderr)
+        self.assertIn("below the repository root", proc.stderr)
 
     def test_a_plain_repo_root_folder_is_not_the_clone(self):
         # The repo-root folder IS gitignored, so the reason is that nothing versions it.
@@ -843,7 +896,7 @@ class ArtifactsPlacement(unittest.TestCase):
                                   cwd=other)
         self.assertEqual(proc.returncode, 2)
         self.assertIn("not the private clone (a git repository of its own)", proc.stderr)
-        self.assertNotIn("would surface in the public repo", proc.stderr)
+        self.assertNotIn("below the repository root", proc.stderr)
 
     def test_link_hops_are_bounded(self):
         import time
@@ -884,6 +937,7 @@ class ArtifactsPlacement(unittest.TestCase):
         other = self.tmp / "elsewhere" / ".agents" / "artifacts"
         (other / ".git").mkdir(parents=True)
         (other / "topics").mkdir()
+        (self.tmp / "elsewhere" / ".git").mkdir()  # its own repository root
         (self.tree / "topics" / "T2").symlink_to(other, target_is_directory=True)
         self.assertEqual(self.decide(".agents/artifacts/topics/T2/topics/a.md"), "deny")
         # Entering a clone from outside through a link is not an escape.
@@ -1007,10 +1061,12 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertIn("RuntimeError", reason)
 
     def test_the_depth_cap_is_what_stops_a_deep_walk(self):
-        # Checked on the walk directly, so the OS's own path-length error cannot stand in for it.
+        # Checked on the rule directly, so the OS's own path-length error cannot stand in for it.
         guard = _guard_module()
         deep = "/" + "/".join(["a"] * (guard.MAX_JUDGED_COMPONENTS + 1))
-        self.assertIn("deeper than", guard._resolution_steps(deep))
+        decision, reason = guard._artifacts_decision(deep, "/")
+        self.assertEqual(decision, "ask")
+        self.assertIn("deeper than", reason)
         self.assertIsInstance(guard._resolution_steps("/" + "/".join(["a"] * 10)), guard._Walk)
 
     def test_a_link_from_a_nested_clone_back_into_its_outer_clone_is_allowed(self):
@@ -1027,7 +1083,8 @@ class ArtifactsPlacement(unittest.TestCase):
             proc = self.run_write(str(Path(other) / ".agents" / "artifacts" / "inbox" / "a.md"),
                                   cwd=other)
         self.assertEqual(proc.returncode, 2)
-        self.assertIn("not cloned here", proc.stderr)
+        self.assertIn("not cloned in this checkout", proc.stderr)
+        self.assertIn("Maintainers clone it here", proc.stderr)
         self.assertIn("$TMPDIR", proc.stderr)
 
     def test_placement_is_decided_before_the_current_file_is_read(self):
@@ -1047,6 +1104,18 @@ class ArtifactsPlacement(unittest.TestCase):
         import time
         start = time.monotonic()
         self.assertEqual(self.decide(str(fifo), tool="Edit"), "allow")
+        self.assertLess(time.monotonic() - start, 5.0)
+
+    def test_an_unreadable_plan_never_blocks_or_crashes_the_hook(self):
+        # Rule 2 reads the current plan; a FIFO would block that read past the hook's timeout and
+        # a lone surrogate would crash it, and either would let the archive ask go unasked.
+        datasets = self.tree / "archive" / "2026" / "x" / "datasets"
+        datasets.mkdir(parents=True)
+        os.mkfifo(str(datasets / "export.json"))
+        import time
+        start = time.monotonic()
+        self.assertEqual(self.decide(str(datasets / "export.json"), tool="Edit"), "ask")
+        self.assertEqual(self.decide(str(datasets / "p\ud800.json")), "ask")
         self.assertLess(time.monotonic() - start, 5.0)
 
     def test_an_archived_plan_edit_gives_both_reasons(self):
