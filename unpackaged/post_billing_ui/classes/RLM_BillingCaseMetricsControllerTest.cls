@@ -55,10 +55,12 @@ private class RLM_BillingCaseMetricsControllerTest {
     }
 
     // Dispute is createable, so the dispute aggregates count real open disputes and sum their
-    // amounts. SUM(DisputedAmount) is ungrouped, so the total is checked only where the running
-    // user's currency is the corporate one (the disputes are created in it); the count always is.
+    // amounts, read by a Billing Operations user who owns them (see billingUser). SUM is
+    // ungrouped, so the total is checked only where that user's currency is the corporate one
+    // (the disputes are created in it); the count always is.
     @isTest
     static void getMetrics_countsOpenDisputesAndSumsTheirAmounts() {
+        User reader = billingUser();
         String corporate = [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1].IsoCode;
         Account a = new Account(Name = 'RLM Case Metrics Disputes');
         insert a;
@@ -73,6 +75,7 @@ private class RLM_BillingCaseMetricsControllerTest {
         for (Integer i = 0; i < amounts.size(); i++) {
             SObject d = Schema.getGlobalDescribe().get('Dispute').newSObject();
             d.put('CurrencyIsoCode', corporate);
+            d.put('OwnerId', reader.Id);
             d.put('AccountId', a.Id);
             d.put('CaseId', disputeCases[i].Id);
             d.put('ReceivedDate', Date.today());
@@ -81,19 +84,33 @@ private class RLM_BillingCaseMetricsControllerTest {
         }
         insert disputes;
 
+        Map<String, Object> result;
+        String readerCurrency;
         Test.startTest();
-        Map<String, Object> result = RLM_BillingCaseMetricsController.getMetrics();
+        System.runAs(reader) {
+            result = RLM_BillingCaseMetricsController.getMetrics();
+            readerCurrency = UserInfo.getDefaultCurrency();
+        }
         Test.stopTest();
 
         Assert.isNull(RLM_BillingCaseMetricsController.lastDisputeQueryError,
             'Dispute query failed: ' + RLM_BillingCaseMetricsController.lastDisputeQueryError);
         Assert.areEqual(2, (Integer) result.get('openDisputes'), 'Both new disputes are open.');
-        if (UserInfo.getDefaultCurrency() == corporate) {
+        if (readerCurrency == corporate) {
             assertAmount(150, (Decimal) result.get('totalDisputedAmount'), 'The open disputes total 100 + 50.');
         } else {
             System.debug(LoggingLevel.WARN, 'SKIPPED: ungrouped currency aggregate depends on the running '
                 + 'user\'s currency matching the corporate currency');
         }
+    }
+
+    // Dispute reads run as a Billing Operations user holding RLM_BillingUI rather than the
+    // deploying admin: the admin's Dispute field access comes from RLM_RCB, which a build only
+    // recalculates after this bundle deploys. The user takes a Billing seat for the test.
+    private static User billingUser() {
+        return RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
     }
 
     // Compares amounts by value, so 150 and 150.00 match.
@@ -102,11 +119,13 @@ private class RLM_BillingCaseMetricsControllerTest {
             message + ' Expected ' + expected + ', got ' + actual + '.');
     }
 
-    // A user who cannot query Dispute does not see the admin's open dispute: the dispute seeded
-    // here is counted for the admin, so the zero this user gets comes from access.
+    // A user who cannot query Dispute does not see an open dispute: the dispute seeded here is
+    // counted for the Billing Operations user who owns it, so the zero this user gets comes from
+    // access.
     @isTest
     static void getMetrics_userWhoCannotReadDisputes_doesNotCountTheDispute() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        User reader = billingUser();
         Account a = new Account(Name = 'RLM Case Metrics unreadable');
         insert a;
         Case disputeCase = new Case(AccountId = a.Id, Subject = 'RLM Case Metrics unreadable dispute');
@@ -115,9 +134,12 @@ private class RLM_BillingCaseMetricsControllerTest {
         dispute.put('AccountId', a.Id);
         dispute.put('CaseId', disputeCase.Id);
         dispute.put('ReceivedDate', Date.today());
+        dispute.put('OwnerId', reader.Id);
         insert dispute;
-        Assert.areEqual(1, (Integer) RLM_BillingCaseMetricsController.getMetrics().get('openDisputes'),
-            'PRECONDITION: the admin counts the open dispute.');
+        System.runAs(reader) {
+            Assert.areEqual(1, (Integer) RLM_BillingCaseMetricsController.getMetrics().get('openDisputes'),
+                'PRECONDITION: the billing user counts the open dispute.');
+        }
 
         Boolean canQuery = true;
         Map<String, Object> result;
@@ -133,7 +155,7 @@ private class RLM_BillingCaseMetricsControllerTest {
         Test.stopTest();
 
         Assert.isFalse(canQuery, 'PRECONDITION: the user cannot query Dispute in user mode.');
-        Assert.areEqual(0, (Integer) result.get('openDisputes'), 'The admin\'s open dispute is not counted.');
+        Assert.areEqual(0, (Integer) result.get('openDisputes'), 'The open dispute is not counted.');
     }
 
     // A user who cannot query Case does not see the admin's open billing case, and gets a zero

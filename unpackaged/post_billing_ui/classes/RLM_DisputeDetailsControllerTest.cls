@@ -70,17 +70,20 @@ private class RLM_DisputeDetailsControllerTest {
 
     // Dispute and DisputeItem are createable (Invoice and InvoiceLine are not), so the save
     // path runs against real dispute items: the approved amount is written, and a blank
-    // amount saves as zero.
+    // amount saves as zero. The saves run as a Billing Operations user (see billingUser).
     @isTest
     static void saveApprovedAmounts_writesTheApprovedAmount() {
-        List<Id> itemIds = newDisputeItems(2, 5);
+        User approver = billingUser();
+        List<Id> itemIds = newDisputeItems(2, 5, approver.Id);
         List<Map<String, Object>> items = new List<Map<String, Object>>{
             new Map<String, Object>{ 'id' => String.valueOf(itemIds[0]), 'approvedAmount' => 40 },
             new Map<String, Object>{ 'id' => String.valueOf(itemIds[1]), 'approvedAmount' => null }
         };
 
         Test.startTest();
-        RLM_DisputeDetailsController.saveApprovedAmounts(items);
+        System.runAs(approver) {
+            RLM_DisputeDetailsController.saveApprovedAmounts(items);
+        }
         Test.stopTest();
 
         assertAmount(40, approvedAmount(itemIds[0]), 'The approved amount is saved.');
@@ -91,28 +94,37 @@ private class RLM_DisputeDetailsControllerTest {
     // it was. The amount is one past what the field can hold, read from its describe.
     @isTest
     static void saveApprovedAmounts_rejectedSave_throwsAndKeepsTheAmount() {
-        List<Id> itemIds = newDisputeItems(1, 5);
-        Schema.DescribeFieldResult approvedField = Schema.getGlobalDescribe().get('DisputeItem').getDescribe()
-            .fields.getMap().get('ApprovedAmount').getDescribe();
-        Integer integerDigits = approvedField.getPrecision() - approvedField.getScale();
+        User approver = billingUser();
+        List<Id> itemIds = newDisputeItems(1, 5, approver.Id);
+        // Described as the approver, who can see the field.
+        Integer integerDigits;
+        System.runAs(approver) {
+            Schema.DescribeFieldResult approvedField = Schema.getGlobalDescribe().get('DisputeItem').getDescribe()
+                .fields.getMap().get('ApprovedAmount').getDescribe();
+            integerDigits = approvedField.getPrecision() - approvedField.getScale();
+        }
         Assert.isTrue(integerDigits > 0, 'PRECONDITION: ApprovedAmount has a bounded precision. Got ' + integerDigits);
         Decimal tooLarge = Decimal.valueOf(10).pow(integerDigits);
         List<Map<String, Object>> items = new List<Map<String, Object>>{
             new Map<String, Object>{ 'id' => String.valueOf(itemIds[0]), 'approvedAmount' => String.valueOf(tooLarge) }
         };
-        // Control: a valid amount on the same item saves.
-        saveAmount(itemIds[0], 20);
+        // Control: the same user saves a valid amount on the same item.
+        System.runAs(approver) {
+            saveAmount(itemIds[0], 20);
+        }
         assertAmount(20, approvedAmount(itemIds[0]), 'PRECONDITION: a valid amount saves on this item.');
 
         Boolean rejected = false;
         Test.startTest();
-        try {
-            RLM_DisputeDetailsController.saveApprovedAmounts(items);
-        } catch (AuraHandledException e) {
-            // The controller builds its message without setMessage, so in a test getMessage()
-            // returns only 'Script-thrown exception'; the describe-derived amount is the premise
-            // that ties the failure to the save.
-            rejected = true;
+        System.runAs(approver) {
+            try {
+                RLM_DisputeDetailsController.saveApprovedAmounts(items);
+            } catch (AuraHandledException e) {
+                // The controller builds its message without setMessage, so in a test getMessage()
+                // returns only 'Script-thrown exception'; the describe-derived amount is the
+                // premise that ties the failure to the save.
+                rejected = true;
+            }
         }
         Test.stopTest();
 
@@ -122,17 +134,21 @@ private class RLM_DisputeDetailsControllerTest {
 
     // A user who cannot query DisputeItem cannot approve an amount: whichever check stops them
     // (no DisputeItem, no approved-amount field, or the user-mode query), the page gets an
-    // AuraHandledException and the record is unchanged. The admin saves the same item first.
+    // AuraHandledException and the record is unchanged. A Billing Operations user saves the same
+    // item first.
     @isTest
     static void saveApprovedAmounts_userWithoutDisputeAccess_isRejected() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
-        List<Id> itemIds = newDisputeItems(1, 5);
+        User approver = billingUser();
+        List<Id> itemIds = newDisputeItems(1, 5, approver.Id);
         List<Map<String, Object>> items = new List<Map<String, Object>>{
             new Map<String, Object>{ 'id' => String.valueOf(itemIds[0]), 'approvedAmount' => 40 }
         };
-        // Control: the admin saves a valid amount on the same item.
-        saveAmount(itemIds[0], 20);
-        assertAmount(20, approvedAmount(itemIds[0]), 'PRECONDITION: the admin saves an amount on this item.');
+        // Control: the Billing Operations user saves a valid amount on the same item.
+        System.runAs(approver) {
+            saveAmount(itemIds[0], 20);
+        }
+        assertAmount(20, approvedAmount(itemIds[0]), 'PRECONDITION: a billing user saves an amount on this item.');
 
         Boolean rejected = false;
         Boolean canQuery = true;
@@ -156,10 +172,20 @@ private class RLM_DisputeDetailsControllerTest {
         assertAmount(20, approvedAmount(itemIds[0]), 'The refused save leaves the approved amount unchanged.');
     }
 
-    // One dispute on its own case, with the given number of items, each approved at the given
-    // amount. Created by name, as RLM_AccountUtilitiesTest does; Dispute and DisputeItem are
-    // required by this bundle (RLM_BillingUIAccessTest checks DisputeItem.ApprovedAmount).
-    private static List<Id> newDisputeItems(Integer count, Decimal approved) {
+    // The saves run as a Billing Operations user holding RLM_BillingUI rather than the deploying
+    // admin: the admin's DisputeItem.ApprovedAmount access comes from RLM_RCB, which a build only
+    // recalculates after this bundle deploys. The user takes a Billing seat for the test.
+    private static User billingUser() {
+        return RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+    }
+
+    // One dispute on its own case, owned by the given user (Dispute is private), with the given
+    // number of items, each approved at the given amount. Created by name, as
+    // RLM_AccountUtilitiesTest does; Dispute and DisputeItem are required by this bundle
+    // (RLM_BillingUIAccessTest checks DisputeItem.ApprovedAmount).
+    private static List<Id> newDisputeItems(Integer count, Decimal approved, Id ownerId) {
         Account a = new Account(Name = 'RLM Dispute Details Test');
         insert a;
         Case disputeCase = new Case(AccountId = a.Id, Subject = 'RLM Dispute Details case');
@@ -168,6 +194,7 @@ private class RLM_DisputeDetailsControllerTest {
         dispute.put('AccountId', a.Id);
         dispute.put('CaseId', disputeCase.Id);
         dispute.put('ReceivedDate', Date.today());
+        dispute.put('OwnerId', ownerId);
         insert dispute;
         List<SObject> items = new List<SObject>();
         for (Integer i = 0; i < count; i++) {
