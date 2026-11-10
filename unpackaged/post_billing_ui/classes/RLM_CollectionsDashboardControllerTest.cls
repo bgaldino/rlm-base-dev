@@ -12,6 +12,11 @@
  * licenses for the test, as RLM_BillingUITestUsers documents, so it fails on the license in an
  * org whose seats are all assigned; the no-access user takes a Salesforce user licence but no
  * Billing seat.
+ *
+ * Documented, not pinned: the unapplied-credits card filters Payment.Type on 'Credit' and
+ * 'Credit Memo', which are not Payment.Type values, so it is always zero. No record a test can
+ * create exercises that filter, so no test here would notice a fix; see
+ * unappliedCredits_filterOnTypesPaymentDoesNotHave for the type check.
  */
 @isTest
 private class RLM_CollectionsDashboardControllerTest {
@@ -148,14 +153,13 @@ private class RLM_CollectionsDashboardControllerTest {
         Account zeta = newAccount('RLM CD Zeta');
         Account alpha = newAccount('RLM CD Alpha');
         // The controller lists CurrencyType, so this module only deploys to a multi-currency org.
-        CurrencyType corporate = [SELECT IsoCode FROM CurrencyType WHERE IsCorporate = true LIMIT 1];
+        String corporate = corporateCurrency();
         Integer activeCurrencies = [SELECT COUNT() FROM CurrencyType WHERE IsActive = true];
 
         Test.startTest();
         List<Map<String, String>> accounts = RLM_CollectionsDashboardController.getAccountOptions();
         List<Map<String, String>> currencies = RLM_CollectionsDashboardController.getCurrencyOptions();
         Test.stopTest();
-
 
         Assert.areEqual(3, accounts.size(), 'The sentinel plus the two accounts.');
         Assert.areEqual('', accounts[0].get('value'), 'The sentinel has a blank value.');
@@ -166,15 +170,16 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Assert.areEqual(activeCurrencies + 1, currencies.size(), 'The sentinel plus every active currency.');
         Assert.areEqual('All Currencies', currencies[0].get('label'), 'The sentinel comes first.');
-        Assert.areEqual(corporate.IsoCode, currencies[1].get('value'), 'The corporate currency follows the sentinel.');
+        Assert.areEqual(corporate, currencies[1].get('value'), 'The corporate currency follows the sentinel.');
     }
 
-    // A Sale payment with a balance is an unapplied payment: it is counted, it lowers the total
-    // balance and the total outstanding, and it is filtered by account and currency like every
-    // card. The amount checks compare ungrouped SUMs, so they run only where the running user's
-    // currency is the corporate one (see userCurrencyIsCorporate); the rest always runs.
+    // A Sale payment with a balance is an unapplied payment: it is counted and filtered by account
+    // and currency like every card (always checked). The balance checks -- the unapplied balance,
+    // the lower total balance and total outstanding, and the filtered balances -- compare ungrouped
+    // SUMs, so they run only when the running user's currency is the corporate one (see
+    // userCurrencyIsCorporate), and are skipped with a warning otherwise.
     @isTest
-    static void getDashboardCards_unappliedPaymentOffsetsTheBalance() {
+    static void getDashboardCards_unappliedPaymentIsCountedAndFiltered_balancesWhenTheUserCurrencyIsCorporate() {
         Account payer = newAccount('RLM CD Payer');
         Account other = newAccount('RLM CD Other');
         String paymentCurrency = corporateCurrency();
@@ -237,10 +242,10 @@ private class RLM_CollectionsDashboardControllerTest {
         }
     }
 
-    // The unapplied-credits card sums payments of Type 'Credit' or 'Credit Memo', but neither is
-    // a Payment.Type value, so the card cannot show a credit. This pins the cause only: it does
-    // not call the controller, so it will not detect a fix. A test cannot seed what a fixed card
-    // might count instead (a CreditMemo's BillingAccountId and Status are not createable).
+    // The type check behind the documented unapplied-credits gap (see the class header): neither
+    // 'Credit' nor 'Credit Memo' is a Payment.Type value. It does not call the controller, so it
+    // will not detect a fix; a test cannot seed what a fixed card might count instead (a
+    // CreditMemo's BillingAccountId and Status are not createable).
     @isTest
     static void unappliedCredits_filterOnTypesPaymentDoesNotHave() {
         Set<String> paymentTypes = new Set<String>();
@@ -249,9 +254,8 @@ private class RLM_CollectionsDashboardControllerTest {
         }
         Assert.isFalse(paymentTypes.isEmpty(), 'PRECONDITION: Payment.Type lists its values.');
         Assert.isFalse(paymentTypes.contains('Credit') || paymentTypes.contains('Credit Memo'),
-            'Known gap: the unapplied-credits card filters Payment.Type on Credit and Credit Memo, which '
-            + 'are not Payment types (' + paymentTypes + '), so it is always zero; update this test when '
-            + 'it is fixed.');
+            'PRECONDITION: the unapplied-credits card filters Payment.Type on Credit and Credit Memo, '
+            + 'which are not Payment types here (' + paymentTypes + ').');
     }
 
     // A Draft debit memo is not owed: only a posted memo not yet on a posted invoice counts.
@@ -357,6 +361,10 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Assert.areEqual(1, onlyB.disputedInvoices.size(), 'The account filter keeps only that account\'s case.');
         Assert.areEqual(b.Id, onlyB.disputedInvoices[0].accountId, 'The filtered row is account B.');
+        Assert.areEqual(1, onlyB.highValueDelinquents.size(), 'The filtered worklist has its placeholder row.');
+        Assert.areEqual(a.Id, onlyB.highValueDelinquents[0].accountId,
+            'Known gap: the placeholder row ignores the account filter and uses the first account by '
+            + 'name. Update this test when it is fixed.');
     }
 
     // The placeholders borrow an account, so with no account at all there are none.
@@ -459,8 +467,10 @@ private class RLM_CollectionsDashboardControllerTest {
     }
 
     // A user who cannot read the billing objects gets empty sections, not an error: each one
-    // catches its own failure. The same records give the admin a populated dashboard, so the
-    // empties come from access, not from missing data.
+    // catches its own failure. The same records give the admin a populated dashboard. The empty
+    // cards, promise buckets and placeholders need the user-mode queries to throw (a readable,
+    // empty result would still build them); the case, task and plan empties could also come from
+    // sharing.
     @isTest
     static void allSections_forAUserWhoCannotReadThem_degradeToEmpty() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
@@ -514,12 +524,12 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.isTrue(cards.totalBalanceBreakdown.isEmpty(),
             'An unreadable Invoice returns the cards before any breakdown is built.');
         Assert.isTrue(cards.agingBuckets.isEmpty(), 'Nor any aging bucket.');
-        Assert.isTrue(worklist.disputedInvoices.isEmpty(), 'The open case is unreadable.');
-        Assert.isTrue(worklist.highValueDelinquents.isEmpty(), 'No placeholder for an unreadable account.');
-        Assert.isTrue(worklist.criticalFollowUpInvoices.isEmpty(), 'No placeholder for an unreadable account.');
+        Assert.isTrue(worklist.disputedInvoices.isEmpty(), 'The open case is not listed (access or sharing).');
+        Assert.isTrue(worklist.highValueDelinquents.isEmpty(), 'An unreadable Account adds no placeholder.');
+        Assert.isTrue(worklist.criticalFollowUpInvoices.isEmpty(), 'An unreadable Account adds no placeholder.');
         Assert.isTrue(promises.isEmpty(), 'An unreadable schedule item returns no buckets.');
-        Assert.isTrue(tasks.isEmpty(), 'An unreadable plan yields no tasks.');
-        Assert.areEqual(0, progress.totalPlans, 'An unreadable plan is not measured.');
+        Assert.isTrue(tasks.isEmpty(), 'The plan\'s task is not listed (access or sharing).');
+        Assert.areEqual(0, progress.totalPlans, 'The plan is not measured (access or sharing).');
     }
 
     // The collections persona reads its own plan through the USER_MODE queries. A permission

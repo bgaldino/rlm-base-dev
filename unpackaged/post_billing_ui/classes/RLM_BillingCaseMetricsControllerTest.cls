@@ -121,8 +121,9 @@ private class RLM_BillingCaseMetricsControllerTest {
     }
 
     // A user who cannot query Dispute does not see an open dispute: the dispute seeded here is
-    // counted for the Billing Operations user who owns it, so the zero this user gets comes from
-    // access.
+    // counted for the Billing Operations user who owns it, and the controller's dispute query is
+    // refused for this user (it records the error), so the zero comes from that refusal rather
+    // than from sharing.
     @isTest
     static void getMetrics_userWhoCannotReadDisputes_doesNotCountTheDispute() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
@@ -144,6 +145,7 @@ private class RLM_BillingCaseMetricsControllerTest {
 
         Boolean canQuery = true;
         Map<String, Object> result;
+        RLM_BillingCaseMetricsController.lastDisputeQueryError = null;
         Test.startTest();
         System.runAs(noAccess) {
             try {
@@ -156,11 +158,14 @@ private class RLM_BillingCaseMetricsControllerTest {
         Test.stopTest();
 
         Assert.isFalse(canQuery, 'PRECONDITION: the user cannot query Dispute in user mode.');
+        Assert.isNotNull(RLM_BillingCaseMetricsController.lastDisputeQueryError,
+            'The controller\'s user-mode dispute query was refused for this user.');
         Assert.areEqual(0, (Integer) result.get('openDisputes'), 'The open dispute is not counted.');
     }
 
-    // A user who cannot query Case does not see the admin's open billing case, and gets a zero
-    // rather than an error. It needs a 'Billing' Case Type, which the CaseType value set this
+    // A user who cannot query Case does not see the admin's open billing case (through access or
+    // sharing; the controller records no error for the case count), and gets a zero rather than
+    // an error. It needs a 'Billing' Case Type, which the CaseType value set this
     // repo ships does not include; without one the test is skipped with a warning.
     @isTest
     static void getMetrics_userWhoCannotReadCases_doesNotCountABillingCase_whenTheBillingTypeExists() {

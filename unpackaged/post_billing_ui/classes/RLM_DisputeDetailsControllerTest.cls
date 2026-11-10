@@ -45,30 +45,32 @@ private class RLM_DisputeDetailsControllerTest {
         System.assert(true, 'Null/empty input short-circuits without error.');
     }
 
-    // Exercises the DisputeItem field-discovery + query path with a non-existent item id: a fake
-    // id matches no record, so the save completes without error and updates nothing. Run as a
-    // Billing Operations user (see billingUser), who can see the approved-amount field, so the
-    // no-match path is what runs. DisputeItem and its ApprovedAmount are required by this bundle
-    // (RLM_BillingUIAccessTest checks them).
+    // A save naming a real item and an unknown one saves the real item and skips the unknown
+    // one without reporting it. Run as a Billing Operations user (see billingUser). DisputeItem
+    // and its ApprovedAmount are required by this bundle (RLM_BillingUIAccessTest checks them).
     @isTest
-    static void saveApprovedAmounts_unknownItem_persistsNothing() {
+    static void saveApprovedAmounts_withAnUnknownItem_savesTheKnownOneAndSkipsTheOther() {
         User approver = billingUser();
+        List<Id> itemIds = newDisputeItems(1, 5, approver.Id);
         List<Map<String, Object>> items = new List<Map<String, Object>>{
+            new Map<String, Object>{ 'id' => String.valueOf(itemIds[0]), 'approvedAmount' => 30 },
             new Map<String, Object>{ 'id' => disputeItemFakeId(), 'approvedAmount' => 10 }
         };
 
-        Integer rowsBefore;
-        Integer rowsAfter;
+        Exception caught;
         Test.startTest();
         System.runAs(approver) {
-            rowsBefore = Limits.getDmlRows();
-            RLM_DisputeDetailsController.saveApprovedAmounts(items);
-            rowsAfter = Limits.getDmlRows();
+            try {
+                RLM_DisputeDetailsController.saveApprovedAmounts(items);
+            } catch (Exception e) {
+                caught = e;
+            }
         }
         Test.stopTest();
 
-        System.assertEquals(rowsBefore, rowsAfter,
-            'A non-existent DisputeItem id must never cause a record to be updated.');
+        assertAmount(30, approvedAmount(itemIds[0]), 'The known item\'s approved amount is saved.');
+        Assert.isNull(caught, 'Known gap: an unmatched item id is skipped and the save reports success. '
+            + 'Update this test when it is fixed.');
     }
 
     // Dispute and DisputeItem are createable (Invoice and InvoiceLine are not), so the save
@@ -233,14 +235,9 @@ private class RLM_DisputeDetailsControllerTest {
             message + ' Expected ' + expected + ', got ' + actual + '.');
     }
 
+    // A well-formed DisputeItem id that matches no record. DisputeItem is required by this bundle.
     private static Id disputeItemFakeId() {
-        if (Schema.getGlobalDescribe().containsKey('DisputeItem')) {
-            String prefix = Schema.getGlobalDescribe().get('DisputeItem').getDescribe().getKeyPrefix();
-            if (String.isNotBlank(prefix)) {
-                return Id.valueOf(prefix + '000000000000');
-            }
-        }
-        // DisputeItem absent or prefix-less: any well-formed id drives the object-not-found path.
-        return fakeId(Account.SObjectType);
+        String prefix = Schema.getGlobalDescribe().get('DisputeItem').getDescribe().getKeyPrefix();
+        return Id.valueOf(prefix + '000000000000');
     }
 }
