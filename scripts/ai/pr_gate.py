@@ -160,20 +160,30 @@ def repo_config_bytes():
 
 
 # The shared config is also written by every *other* worktree of this repository: another session's
-# `git push -u` or `git switch -c <name> origin/<name>` adds a `[branch "<name>"]` section mid-run, and
-# that failed an innocent check twice during PR 702. Such a section is told apart from a fixture leak
-# by its branch: another worktree's branch has a real `refs/heads/<name>` here, while a fixture's
-# (`feature`, `preview/next` and the like) exists only in its throwaway repo. Only that case is
-# tolerated, and only for `branch.<name>.*` entries; any other change still fails. The one gap is a
-# fixture name that is also a real branch here (`main`): a leak confined to that branch's tracking keys
-# would pass as another worktree's, which is the price of not failing on every concurrent `push -u`.
+# `git push -u`, or a branch it creates from a remote-tracking ref, adds a `[branch "<name>"]` section
+# mid-run, and that failed an innocent check twice during PR 702. Such a change is excused only when
+# all three of these hold, because a fixture leak cannot meet them by itself:
+# - It is in the shared config. config.worktree belongs to this worktree alone, so a change there is
+#   always this run's own.
+# - <name> is checked out in a worktree other than this one. The first version asked only that
+#   refs/heads/<name> exist, and a leak satisfies that unaided: `git branch --track X origin/main`
+#   creates the ref and its section in one command. A leaked `push -u` or `checkout -b X origin/X`
+#   acts on this worktree's own branch, which is not excused either.
+# - Every changed entry is a tracking key (TRACKING_KEYS), and each `remote` value is "." or a remote
+#   the config defines. `pushRemote`, `mergeOptions` or a URL as `remote` would redirect later pushes
+#   or merges in every worktree, so they fail even for another worktree's branch.
+# Still failed, and pinned by tests: a section removed or renamed away from a branch that nothing has
+# checked out any more (another session's `git branch -D` or `-m`). The gap left is a leak that runs
+# as another worktree (an inherited GIT_DIR, or a cwd inside one): it is that worktree, as far as git
+# can tell.
 #
 # Both snapshots are read by git itself (`git config --file <snapshot> --null --list`), not by a parser
-# here. A hand-rolled one disagreed with git four ways in one review cycle of PR 705 (a backslash
-# continuation, a section opened on a header's own line, splitlines() breaking on \f and U+2028, and a
-# ref list split the same way), and each let a line git reads as user.* pass as a branch's. `--file`
-# reads that file alone: no `-c`, no GIT_CONFIG_* variables, and no includes, which it lists as plain
-# `include.path` entries. A snapshot git cannot parse excuses nothing.
+# here: a hand-rolled one disagreed with git repeatedly in PR 705's reviews (a backslash continuation, a
+# section opened on a header's own line, splitlines() breaking on \f and U+2028), each time letting a
+# line git reads as user.* pass as a branch's. `--file` reads that file alone: no `-c`, no GIT_CONFIG_*
+# variables, and no includes, which it lists as plain `include.path` entries. A snapshot git cannot
+# parse, or that cannot be handed to git at all, excuses nothing.
+TRACKING_KEYS = {"remote", "merge", "rebase"}
 
 # Notes about another worktree's `[branch]` sections, collected by run() and printed by main() whatever
 # the check's verdict: a passing check's output is otherwise never shown.
@@ -183,16 +193,22 @@ CONFIG_NOTES = []
 def config_entries(data):
     """git's own reading of one config snapshot, as [(key, value)] in file order: the key with its
     section and variable lowercased and its subsection verbatim, the value None for a bare boolean.
-    [] for a missing or empty file; None when git rejects it. The snapshot goes to a private (0700)
-    temporary directory for the length of one git call, since a config can hold credentials."""
+    [] for a missing or empty file; None when git rejects it or cannot be given it. The snapshot goes
+    to a private (0700) temporary directory for the length of one git call, since a config can hold
+    credentials."""
     if not data:
         return []
-    with tempfile.TemporaryDirectory() as tmp:
-        path = os.path.join(tmp, "config")
-        with open(path, "wb") as fh:
-            fh.write(data)
-        out = git(["config", "--file", path, "--null", "--list"], "config --list of a snapshot",
-                  raw=True, fatal=False)
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "config")
+            with open(path, "wb") as fh:
+                fh.write(data)
+            out = git(["config", "--file", path, "--null", "--list"], "config --list of a snapshot",
+                      raw=True, fatal=False)
+    except OSError:
+        # No usable temporary directory (removed, full): fail closed with the diff, as for a
+        # snapshot git rejects, rather than escape as a traceback whose exit 1 reads as a verdict.
+        return None
     if out is None:
         return None
     entries = []
@@ -216,68 +232,95 @@ def without(entries, branches):
     return [entry for entry in entries if branch_of(entry[0]) not in branches]
 
 
-def local_branches():
-    """Every `refs/heads/` name in this repository, short form — what a `[branch]` subsection names.
-    Split on "\\n" only: a ref name cannot hold a control character, but it can hold U+2028, which
-    splitlines() would cut into a fabricated shorter ref (Copilot, PR 705). Read as bytes and decoded
-    exactly as config_entries() decodes git's reading of the config, so the two compare like for like
-    under any locale. Empty when the refs cannot be listed, which excuses nothing rather than stopping
-    the gate and losing the diff of what changed."""
-    out = git(["for-each-ref", "--format=%(refname)", "refs/heads/"], "for-each-ref refs/heads/",
-              raw=True, fatal=False)
+def shown(text):
+    """`text` (decoded with surrogateescape) made printable: each undecodable byte as `\\xNN`, so two
+    non-UTF-8 values stay distinct on screen and print() cannot raise on a lone surrogate."""
+    return text.encode("utf-8", "surrogateescape").decode("utf-8", "backslashreplace")
+
+
+def other_worktree_branches():
+    """The branches checked out in a worktree other than this one, short form, decoded exactly as
+    config_entries() decodes keys so the two compare like for like. Read from `git worktree list
+    --porcelain -z`, which reports each worktree's branch as its HEAD file stores it, so a section
+    `push -u` wrote matches it byte for byte. Empty when the list cannot be read, which excuses
+    nothing rather than stopping the gate and losing the diff of what changed."""
+    out = git(["worktree", "list", "--porcelain", "-z"], "worktree list", raw=True, fatal=False)
     if out is None:
         return set()
-    refs = out.decode("utf-8", "surrogateescape").split("\n")
-    return {ref[len("refs/heads/"):] for ref in refs if ref.startswith("refs/heads/")}
+    here = os.path.realpath(REPO_ROOT)
+    branches, path = set(), None
+    for field in out.decode("utf-8", "surrogateescape").split("\0"):
+        if field.startswith("worktree "):
+            path = field[len("worktree "):]
+        elif (field.startswith("branch refs/heads/") and path is not None
+              and os.path.realpath(path) != here):
+            branches.add(field[len("branch refs/heads/"):])
+    return branches
+
+
+def tracking_only(entries, name, remotes):
+    """True when every `branch.<name>.*` entry is a tracking key and each `remote` is "." or one of
+    `remotes`."""
+    for key, value in entries:
+        if branch_of(key) != name:
+            continue
+        variable = key.rpartition(".")[2]
+        if variable not in TRACKING_KEYS or (variable == "remote" and value != "."
+                                             and value not in remotes):
+            return False
+    return True
 
 
 def config_change_note(before, after):
     """(note, fails) for the repository config files' change during a check: ("", False) when none
-    changed. A change confined to `branch.X.*` entries where `refs/heads/X` exists at the end of the
-    run is another worktree's bookkeeping: noted, not failed. Anything else fails, with the diff."""
+    changed. A change in the shared config confined to tracking keys of branches checked out in other
+    worktrees is their bookkeeping: noted, not failed. Anything else fails, with the diff of every
+    changed file. The shared config is the first of repo_config_paths(); `before` keeps that order."""
     changed = [path for path in before if after.get(path) != before[path]]
     if not changed:
         return "", False
-    entries = {path: (config_entries(before[path]), config_entries(after.get(path))) for path in changed}
-    moved = {}
-    for path, (old, new) in entries.items():
-        if old is None or new is None:
-            moved[path] = set()
-            continue
-        names = {branch_of(key) for key, _ in old + new} - {None}
-        moved[path] = {name for name in names
-                       if [e for e in old if branch_of(e[0]) == name]
-                       != [e for e in new if branch_of(e[0]) == name]}
-    # git is asked only when a branch's entries actually moved, so a clean run spawns nothing extra.
-    real = local_branches() if any(moved.values()) else set()
-    foreign, failing = set(), []
-    for path, (old, new) in entries.items():
-        ours = moved[path] & real
-        # A file fails unless a real branch's entries account for its change. That includes bytes
-        # that changed while git reads the same entries (a comment, quoting, blank lines): with
-        # nothing excused in that file, they are shown and failed rather than passed unexamined.
-        if not ours or old is None or new is None or without(old, ours) != without(new, ours):
-            failing.append(path)
-        foreign |= ours
+    shared, foreign = next(iter(before)), set()
+    old = new = None
+    if shared in changed:
+        old, new = config_entries(before[shared]), config_entries(after.get(shared))
+    if old is not None and new is not None:
+        groups = [{}, {}]
+        for group, entries in zip(groups, (old, new)):
+            for entry in entries:
+                group.setdefault(branch_of(entry[0]), []).append(entry)
+        moved = {name for name in set(groups[0]) | set(groups[1])
+                 if name is not None and groups[0].get(name) != groups[1].get(name)}
+        if moved:
+            # A remote's name may hold dots, so it is everything between `remote.` and `.url`.
+            remotes = {key[len("remote."):-len(".url")] for key, _ in new
+                       if key.startswith("remote.") and key.endswith(".url")}
+            foreign = {name for name in moved & other_worktree_branches()
+                       if tracking_only(old, name, remotes) and tracking_only(new, name, remotes)}
+    # The shared file passes only when the excused branches account for all of its change; that
+    # includes bytes git reads as no entries at all (a comment, quoting), which fail rather than pass
+    # unexamined. Every other file fails on any change.
+    failing = [path for path in changed
+               if path != shared or not foreign or without(old, foreign) != without(new, foreign)]
+    named = ", ".join(shown(name) for name in sorted(foreign))
     if not failing:
-        return ("\nnote: another worktree changed the shared git config's [branch] section(s) for "
-                + ", ".join(sorted(foreign)) + " while this check ran (each a real local branch, so"
-                " not a fixture leak). Branch tracking writes them: push with `git push origin <branch>`"
-                " rather than `-u`, and branch from a remote-tracking ref with `--no-track`.\n", False)
+        return ("\nnote: another worktree changed the shared git config's [branch] tracking entries for "
+                + named + " while this check ran (each checked out in another worktree, so not a fixture"
+                " leak). Branch tracking writes them: push with `git push origin <branch>` rather than"
+                " `-u`, and branch from a remote-tracking ref with `--no-track`.\n", False)
     diffs = []
-    for path in failing:
+    for path in changed:
         name = os.path.basename(path)
-        # `backslashreplace` shows each undecodable byte as `\xNN`, so two non-UTF-8 values stay
-        # distinct on screen, where "replace" printed both as U+FFFD.
-        shown = [(data or b"").decode("utf-8", "backslashreplace")
-                 for data in (before[path], after.get(path))]
-        diffs += difflib.unified_diff(shown[0].split("\n"), shown[1].split("\n"),
+        text = [shown((data or b"").decode("utf-8", "surrogateescape"))
+                for data in (before[path], after.get(path))]
+        diffs += difflib.unified_diff(text[0].split("\n"), text[1].split("\n"),
                                       f"{name} before", f"{name} after", lineterm="")
     return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in failing) + ")"
             " changed while this check ran. A fixture git command may have reached the real"
-            " repository (or something else wrote it meanwhile). Only branch.<name>.* entries for a real"
-            " local branch are excused as another worktree's; this change is not. Restore it by hand;"
-            " the change is not reverted for you.\n" + "\n".join(diffs) + "\n", True)
+            " repository (or something else wrote it meanwhile). Only tracking entries of a branch"
+            " checked out in another worktree are excused; this change is not. Restore it by hand;"
+            " the change is not reverted for you."
+            + (f" (The [branch] change for {named} in the diff below is another worktree's.)"
+               if foreign else "") + "\n" + "\n".join(diffs) + "\n", True)
 
 
 # name, command, path prefixes that select it, extra pip deps, gating, note.
@@ -1024,11 +1067,13 @@ def changed_files(base):
 
 
 def git(args, purpose, raw=False, fatal=True):
-    """Run git from the repo root and return stdout, or die — never return a verdict. `raw` returns
-    stdout as bytes, for a caller that has to decode it the same way as bytes it read elsewhere.
-    `fatal=False` returns None on a non-zero exit instead, for a caller whose answer to a git failure
-    is to fail closed (the config guard) rather than to stop the gate; None is never mistaken for an
-    empty answer, which is the confusion dying here exists to prevent.
+    """Run git from the repo root and return stdout, or die — never return a verdict. stdout is
+    decoded with surrogateescape, so a path that is not UTF-8 survives rather than raising; `raw`
+    returns the bytes instead, for a caller that has to decode them the same way as bytes it read
+    elsewhere. `fatal=False` returns None instead of dying, on a spawn failure or a non-zero exit,
+    for a caller whose answer to a git failure is to fail closed (the config guard) rather than to
+    stop the gate and lose its diff; None is never mistaken for an empty answer, which is the
+    confusion dying here exists to prevent.
 
     Centralised after the same two guards had to be added to each call site separately and were
     not: `run()` grew an `OSError` guard while this path kept only `FileNotFoundError`, so a git
@@ -1038,15 +1083,16 @@ def git(args, purpose, raw=False, fatal=True):
     failed command is indistinguishable from a clean tree.
     """
     try:
-        out = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, text=not raw)
+        out = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True)
     except OSError as exc:
+        if not fatal:
+            return None
         die(f"could not run git ({purpose}): {exc}")
     if out.returncode != 0 and not fatal:
         return None
     if out.returncode != 0:
-        die(f"git {purpose} failed: "
-            f"{(out.stderr.decode('utf-8', 'replace') if raw else out.stderr).strip()}")
-    return out.stdout
+        die(f"git {purpose} failed: {out.stderr.decode('utf-8', 'replace').strip()}")
+    return out.stdout if raw else out.stdout.decode("utf-8", "surrogateescape")
 
 
 def selects(check, files):
@@ -1129,7 +1175,9 @@ def run(cmd):
     started = time.time()
     try:
         # Bounded, so one hung check cannot burn the whole CI job's budget with no output.
-        proc = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True,
+        # errors="replace": a check that prints a non-UTF-8 byte still gets its verdict, where strict
+        # decoding raised UnicodeDecodeError, a traceback whose exit 1 reads as one.
+        proc = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True, errors="replace",
                               timeout=CHECK_TIMEOUT)
     except subprocess.TimeoutExpired:
         # A timeout stays a check failure, not a tool error: a check that hangs is a property

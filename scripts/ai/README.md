@@ -520,7 +520,10 @@ remain at every call site that bypasses `run()` — `changed_files()` caught onl
 
 Adding a guard per call site is what failed twice, so git now has one door: **`git(args,
 purpose)`** dies on a spawn failure and on a non-zero exit, and a test refuses a raw
-`subprocess.run` in any function other than the three that own a guard. A **timeout** deliberately
+`subprocess.run` in any function other than the three that own a guard. The one exception is
+`fatal=False`, which returns `None` on either failure instead. It exists for the config guard,
+which fails a changed config closed (with its diff) when git cannot read a snapshot or list the
+worktrees. `None` is never mistaken for an empty answer. A **timeout** deliberately
 stays a check failure: a check that hangs is a property of the change under test, unlike an
 interpreter that will not start.
 
@@ -613,7 +616,7 @@ file (about 3), and `agent_tooling`. The third, `dockerignore`, added since, tak
 one ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
 `harness_suites`) reports it rather than counting it, and its total is lower.
 
-Verified by `tests/test_pr_gate.py` (787 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (809 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
