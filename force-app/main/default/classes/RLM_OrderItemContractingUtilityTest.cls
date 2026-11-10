@@ -98,7 +98,8 @@ private class RLM_OrderItemContractingUtilityTest {
         Assert.areEqual(12, r.outContractTerm, 'A partial final month counts as a month');
         Assert.areEqual(
             1, r.subscriptionItemCount,
-            'Known gap: two items, but the LIMIT 1 subquery caps subscriptionItemCount at 1; update this test when it is fixed'
+            'Known gap: two items, but the LIMIT 1 subquery caps subscriptionItemCount at 1; '
+                + 'update this test when it is fixed'
         );
     }
 
@@ -118,7 +119,8 @@ private class RLM_OrderItemContractingUtilityTest {
         assertNoSellingModel(new Set<Id>{ before.Id, sameDay.Id, after.Id });
 
         Test.startTest();
-        List<RLM_OrderItemContractingUtility.OrderInfoResults> results = run(new List<Id>{ before.Id, sameDay.Id, after.Id });
+        List<RLM_OrderItemContractingUtility.OrderInfoResults> results =
+            run(new List<Id>{ before.Id, sameDay.Id, after.Id });
         Test.stopTest();
 
         Assert.areEqual(3, results.size(), 'One result per order');
@@ -126,9 +128,15 @@ private class RLM_OrderItemContractingUtilityTest {
         for (RLM_OrderItemContractingUtility.OrderInfoResults r : results) {
             termByEndDate.put(r.outEndDate, r.outContractTerm);
         }
-        Assert.areEqual(12, termByEndDate.get(Date.newInstance(2027, 1, 14)), 'End day 14 before start day 15: no round-up');
-        Assert.areEqual(12, termByEndDate.get(Date.newInstance(2027, 1, 15)), 'End day equal to start day: no round-up');
-        Assert.areEqual(13, termByEndDate.get(Date.newInstance(2027, 1, 20)), 'End day 20 past start day 15: rounds up');
+        Assert.areEqual(
+            12, termByEndDate.get(Date.newInstance(2027, 1, 14)), 'End day 14 before start day 15: no round-up'
+        );
+        Assert.areEqual(
+            12, termByEndDate.get(Date.newInstance(2027, 1, 15)), 'End day equal to start day: no round-up'
+        );
+        Assert.areEqual(
+            13, termByEndDate.get(Date.newInstance(2027, 1, 20)), 'End day 20 past start day 15: rounds up'
+        );
     }
 
     @IsTest
@@ -208,7 +216,9 @@ private class RLM_OrderItemContractingUtilityTest {
                 new SharingProbe().visibleOrders(o.Id);
                 Assert.fail('PRECONDITION: a with-sharing Order query must be denied to this user');
             } catch (System.SecurityException e) {
-                Assert.isTrue(e.getMessage().contains('Order'), 'PRECONDITION: Order access is denied: ' + e.getMessage());
+                Assert.isTrue(
+                    e.getMessage().contains('Order'), 'PRECONDITION: Order access is denied: ' + e.getMessage()
+                );
             }
             results = run(new List<Id>{ o.Id });
         }

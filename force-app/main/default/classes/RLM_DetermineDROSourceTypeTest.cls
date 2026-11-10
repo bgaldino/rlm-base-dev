@@ -68,7 +68,8 @@ private class RLM_DetermineDROSourceTypeTest {
 
         Assert.areEqual(
             1, result.size(),
-            'Known gap: only the first of several inputs is read, so a bulk call gets one output; update this test when it is fixed'
+            'Known gap: only the first of several inputs is read, so a bulk call gets one output; '
+                + 'update this test when it is fixed'
         );
         Assert.areEqual('OrderItem', result[0], 'The output is for the first input');
     }

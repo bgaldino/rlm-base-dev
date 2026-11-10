@@ -65,7 +65,9 @@ private class RLM_QuoteItemTriggerTest {
     private static void actionSources(Id assetActionId, List<String> statuses) {
         List<AssetActionSource> sources = new List<AssetActionSource>();
         for (String status : statuses) {
-            sources.add(new AssetActionSource(AssetActionId = assetActionId, RLM_ConstraintEngineNodeStatus__c = status));
+            sources.add(new AssetActionSource(
+                AssetActionId = assetActionId, RLM_ConstraintEngineNodeStatus__c = status
+            ));
         }
         insert sources;
     }

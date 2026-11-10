@@ -68,7 +68,10 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             RLM_DFOTenantProvisioningCallout.executeCallout('guid-1', oi.Id, '', new Map<String, Object>());
         Test.stopTest();
 
-        Assert.areEqual(true, responseOf(result).get('isSuccess'), 'Known gap: success is reported whatever the HTTP status; update this test when it is fixed');
+        Assert.areEqual(
+            true, responseOf(result).get('isSuccess'),
+            'Known gap: success is reported whatever the HTTP status; update this test when it is fixed'
+        );
         Assert.areEqual(1, mock.callCount, 'Exactly one tenant callout is made');
         Assert.areEqual('POST', mock.lastRequest.getMethod(), 'Tenant creation is a POST');
         Assert.areEqual(ENDPOINT, mock.lastRequest.getEndpoint(), 'The RLM named credential endpoint is used');
@@ -108,7 +111,11 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             );
         Test.stopTest();
 
-        Assert.areEqual(true, responseOf(result).get('isSuccess'), 'Known gap: success is reported whatever the HTTP status; update this test when it is fixed (no callout made)');
+        Assert.areEqual(
+            true, responseOf(result).get('isSuccess'),
+            'Known gap: success is reported whatever the HTTP status; update this test when it is fixed '
+                + '(no callout made)'
+        );
         Assert.areEqual(0, mock.callCount, 'Only order items and fulfillment lines trigger a callout');
     }
 

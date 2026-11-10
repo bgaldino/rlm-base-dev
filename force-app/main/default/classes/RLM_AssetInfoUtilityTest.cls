@@ -163,8 +163,12 @@ private class RLM_AssetInfoUtilityTest {
 
     private static void assertSeeded(OrderContext ctx, Asset a, String message) {
         Assert.areEqual(SEEDED_TERM, a.RenewalTerm.intValue(), message + ' (renewal term)');
-        Assert.areEqual(isNew(ctx) ? NEW_ASSET_UNIT : CHANGED_ASSET_UNIT, a.RenewalTermUnit, message + ' (renewal unit)');
-        Assert.areEqual(isNew(ctx) ? NEW_ASSET_SOURCE : CHANGED_ASSET_SOURCE, a.PricingSource, message + ' (pricing source)');
+        Assert.areEqual(
+            isNew(ctx) ? NEW_ASSET_UNIT : CHANGED_ASSET_UNIT, a.RenewalTermUnit, message + ' (renewal unit)'
+        );
+        Assert.areEqual(
+            isNew(ctx) ? NEW_ASSET_SOURCE : CHANGED_ASSET_SOURCE, a.PricingSource, message + ' (pricing source)'
+        );
     }
 
     private static void assertDefaultRenewal(Id assetId) {
