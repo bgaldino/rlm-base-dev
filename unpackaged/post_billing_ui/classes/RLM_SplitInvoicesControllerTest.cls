@@ -49,7 +49,8 @@ private class RLM_SplitInvoicesControllerTest {
     }
 
     // With a list of an object that has no Name field (Case; the id need not exist), the call
-    // does not throw, and the contact list after it still resolves by name.
+    // does not throw, and the contact list still resolves by name. Nothing is asserted on the
+    // Case (profile) list: with a fake id it is empty whatever the controller does.
     @isTest
     static void getRelatedNames_resolvesContactsAndToleratesNamelessObjects() {
         Account acc = new Account(Name = 'RLM Split Invoices Contact Test');
@@ -68,7 +69,7 @@ private class RLM_SplitInvoicesControllerTest {
         Assert.areEqual('RLM Split Invoices Contact Test', result.accountNames.get(acc.Id),
             'The account resolves by name.');
         Assert.areEqual(contactName, result.contactNames.get(con.Id),
-            'The contact list, after the Case list, still resolves to its full name.');
+            'The contact list still resolves to its full name.');
     }
 
     // A list holding only blank ids resolves to an empty map without running a query.
