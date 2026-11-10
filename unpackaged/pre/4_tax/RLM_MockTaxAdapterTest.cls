@@ -94,7 +94,7 @@ private with sharing class RLM_MockTaxAdapterTest {
         RLM_TaxTestFactory.assertResponseField(response, 'status', 'Uncommitted', 'isCommit=false is Uncommitted.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Debit',
             'A missing transaction type defaults to Debit.');
-        RLM_TaxTestFactory.assertResponseFieldMatches(response, 'transactionDate', RLM_TaxTestFactory.NOT_NULL,
+        RLM_TaxTestFactory.assertResponseFieldMatches(response, 'transactionDate', RLM_TaxTestFactory.ANY_YEAR,
             'A missing transaction date is filled in (the adapter uses now).');
         RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'USD', 'A null currency defaults to USD.');
         RLM_TaxTestFactory.assertResponseField(response, 'description', 'description',

@@ -15,7 +15,7 @@ private with sharing class RLM_AvalaraAdapterTest {
 
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class,
             'A CalculateTax request is answered by RLM_CalculateTaxService.');
-        // The document code comes from the service's parsed engine payload, not from the request.
+        // The response document code equals the canned engine payload's, not the request's DOC-AVA-1.
         RLM_TaxTestFactory.assertResponseField(response, 'documentCode', 'testDocCode1231245984',
             'The response is the one RLM_CalculateTaxService builds.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Credit',

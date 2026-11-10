@@ -8,7 +8,8 @@
  * type, and the setImposition call; jurisdiction country, region, stateAssignedNumber, id and level; detail taxAuthorityTypeId,
  * taxId and taxRegionId (set from the detail's region code); line effectiveDate, isTaxable (set
  * twice), exemptAmount, productCode and quantity. The detail-level exemptAmount and exemptReason
- * are unreachable: the canned payload's detail exempt amounts are all 0.
+ * are unreachable: the canned payload's detail exempt amounts are all 0. The Committed status
+ * branch is unreachable too: the canned payload's status is always Temporary.
  */
 @IsTest
 private with sharing class RLM_CalculateTaxServiceTest {
@@ -38,7 +39,8 @@ private with sharing class RLM_CalculateTaxServiceTest {
         Assert.isNotNull(response, 'A request with lines should produce a response.');
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class,
             'A success payload (no "error") maps to a CalculateTaxResponse, not an ErrorResponse.');
-        // From the parsed (canned) engine payload: code, id, status "Temporary", one P0000000 line.
+        // These compare the response with values only the canned engine payload holds: code, id,
+        // status "Temporary" (printed as Uncommitted), one P0000000 line.
         RLM_TaxTestFactory.assertResponseField(response, 'documentCode', 'testDocCode1231245984',
             'The document code is taken from the parsed engine response.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionId', '0', 'The engine transaction id is mapped.');
@@ -53,8 +55,8 @@ private with sharing class RLM_CalculateTaxServiceTest {
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'rate', '0.065', 2,
             'Known gap: detail rates accumulate across a line\'s details instead of each detail keeping '
             + 'its own rate (KING reports 0.065, not 0). Update this test when it is fixed.');
-        // Amounts from the engine payload: line and header total 232 with tax 23.43; the WASHINGTON
-        // detail taxes 15.08 and KING 0, each on 232.
+        // These compare the response amounts with the canned payload's: line and header total 232
+        // with tax 23.43; the WASHINGTON detail taxes 15.08 and KING 0, each on 232.
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmount', '232.0', 2, 'Header and line total amount.');
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxAmount', '23.43', 2, 'Header and line tax amount.');
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmountWithTax', '255.43', 2,
@@ -68,7 +70,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
             'Response lines come from the engine payload, not the request.');
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'taxCode', 'PC040100', 0,
             'Response tax codes come from the engine payload, not the request.');
-        // From the request.
+        // These compare the response with values only the request holds.
         RLM_TaxTestFactory.assertResponseField(response, 'referenceEntityId', 'REF-CALC-1', 'The request reference entity is echoed.');
         RLM_TaxTestFactory.assertResponseField(response, 'currencyIsoCode', 'XTS', 'The request currency is echoed.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Debit', 'The request transaction type is echoed.');
@@ -110,7 +112,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class, 'Actual tax also maps to a CalculateTaxResponse.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxTransactionType', 'Credit', 'The request transaction type is echoed.');
         RLM_TaxTestFactory.assertResponseField(response, 'taxType', 'Actual', 'The request tax type is echoed.');
-        // The status comes from the engine payload, not from isCommit: the test payload is Temporary.
+        // The response status matches the canned payload's Temporary, not the request's isCommit=true.
         RLM_TaxTestFactory.assertResponseField(response, 'status', 'Uncommitted', 'The engine status drives the response status.');
 
         Assert.areEqual(1, mock.requests.size(), 'Exactly one Avalara callout should be sent.');

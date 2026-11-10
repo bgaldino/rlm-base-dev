@@ -21,7 +21,7 @@ private with sharing class RLM_JsonSuccessParserTest {
         + '"totalExempt": 50,'
         + '"totalTax": 72.5,'
         + '"totalTaxable": 950,'
-        + '"totalTaxCalculated": 72.5,'
+        + '"totalTaxCalculated": 72.75,'
         + '"adjustmentReason": "NotAdjusted",'
         + '"locked": false,'
         + '"version": 2,'
@@ -41,10 +41,10 @@ private with sharing class RLM_JsonSuccessParserTest {
         +     '"isItemTaxable": true,'
         +     '"lineAmount": 1000,'
         +     '"quantity": 2,'
-        +     '"reportingDate": "2026-01-16",'
+        +     '"reportingDate": "2026-01-17",'
         +     '"tax": 72.5,'
         +     '"taxableAmount": 950,'
-        +     '"taxCalculated": 72.5,'
+        +     '"taxCalculated": 71.25,'
         +     '"taxCode": "P0000000",'
         +     '"taxDate": "2026-01-16",'
         +     '"taxIncluded": false,'
@@ -64,14 +64,14 @@ private with sharing class RLM_JsonSuccessParserTest {
         +         '"jurisName": "CALIFORNIA",'
         +         '"stateAssignedNo": "38",'
         +         '"jurisType": "STA",'
-        +         '"nonTaxableAmount": 0,'
+        +         '"nonTaxableAmount": 5,'
         +         '"rate": 0.0725,'
         +         '"tax": 72.5,'
         +         '"taxableAmount": 950,'
         +         '"taxType": "Sales",'
         +         '"taxName": "CA STATE TAX",'
         +         '"taxAuthorityTypeId": 45,'
-        +         '"taxCalculated": 72.5,'
+        +         '"taxCalculated": 71.75,'
         +         '"jurisdictionType": "State",'
         +         '"liabilityType": {"code": "Seller"},'
         +         '"unitOfBasis": null,'
@@ -110,7 +110,7 @@ private with sharing class RLM_JsonSuccessParserTest {
         +     '"taxable": 232,'
         +     '"rate": 0.065,'
         +     '"tax": 15.08,'
-        +     '"taxCalculated": 15.08,'
+        +     '"taxCalculated": 15.09,'
         +     '"nonTaxable": 0,'
         +     '"taxSubType": "S",'
         +     '"rateTypeCode": {"value": "G"},'
@@ -154,7 +154,7 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.areEqual(50, parsed.totalExempt, 'totalExempt');
         assertClose(72.5, parsed.totalTax, 'totalTax');
         Assert.areEqual(950, parsed.totalTaxable, 'totalTaxable');
-        assertClose(72.5, parsed.totalTaxCalculated, 'totalTaxCalculated');
+        assertClose(72.75, parsed.totalTaxCalculated, 'totalTaxCalculated');
         Assert.areEqual('NotAdjusted', parsed.adjustmentReason, 'adjustmentReason');
         Assert.areEqual(false, parsed.locked, 'locked');
         Assert.areEqual(2, parsed.version, 'version');
@@ -182,10 +182,10 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.areEqual(true, line.isItemTaxable, 'line.isItemTaxable');
         Assert.areEqual(1000, line.lineAmount, 'line.lineAmount');
         assertClose(2, line.quantity, 'line.quantity');
-        Assert.areEqual('2026-01-16', line.reportingDate, 'line.reportingDate');
+        Assert.areEqual('2026-01-17', line.reportingDate, 'line.reportingDate');
         assertClose(72.5, line.tax, 'line.tax');
         Assert.areEqual(950, line.taxableAmount, 'line.taxableAmount');
-        assertClose(72.5, line.taxCalculated, 'line.taxCalculated');
+        assertClose(71.25, line.taxCalculated, 'line.taxCalculated');
         Assert.areEqual('P0000000', line.taxCode, 'line.taxCode');
         Assert.areEqual('2026-01-16', line.taxDate, 'line.taxDate');
         Assert.areEqual(false, line.taxIncluded, 'line.taxIncluded');
@@ -203,14 +203,14 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.areEqual('CALIFORNIA', detail.jurisName, 'detail.jurisName');
         Assert.areEqual('38', detail.stateAssignedNo, 'detail.stateAssignedNo');
         Assert.areEqual('STA', detail.jurisType, 'detail.jurisType');
-        Assert.areEqual(0, detail.nonTaxableAmount, 'detail.nonTaxableAmount');
+        Assert.areEqual(5, detail.nonTaxableAmount, 'detail.nonTaxableAmount');
         assertClose(0.0725, detail.rate, 'detail.rate');
         assertClose(72.5, detail.tax, 'detail.tax');
         Assert.areEqual(950, detail.taxableAmount, 'detail.taxableAmount');
         Assert.areEqual('Sales', detail.taxType, 'detail.taxType');
         Assert.areEqual('CA STATE TAX', detail.taxName, 'detail.taxName');
         Assert.areEqual(45, detail.taxAuthorityTypeId, 'detail.taxAuthorityTypeId');
-        assertClose(72.5, detail.taxCalculated, 'detail.taxCalculated');
+        assertClose(71.75, detail.taxCalculated, 'detail.taxCalculated');
         Assert.areEqual('General', detail.rateType, 'detail.rateType');
 
         RLM_JsonSuccessParser.Details sparse = line.details[1];
@@ -251,7 +251,7 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.areEqual(232, summary.taxable, 'summary.taxable');
         assertClose(0.065, summary.rate, 'summary.rate');
         assertClose(15.08, summary.tax, 'summary.tax');
-        assertClose(15.08, summary.taxCalculated, 'summary.taxCalculated');
+        assertClose(15.09, summary.taxCalculated, 'summary.taxCalculated');
         Assert.areEqual(0, summary.nonTaxable, 'summary.nonTaxable');
         Assert.areEqual(7, summary.exemption, 'summary.exemption follows the skipped entries.');
 

@@ -61,17 +61,22 @@ private with sharing class RLM_AvalaraJSONBuilderTest {
         Map<String, Object> shipFrom = asMap(addresses.get('ShipFrom'));
         Assert.areEqual('1 Market St', shipFrom.get('line1'), 'ShipFrom.line1 is the street.');
         Assert.areEqual('1 Market St', shipFrom.get('line2'),
-            'Known gap: line2 repeats the street instead of a second address line. Update this test when it is fixed.');
+            'Known gap: ShipFrom line2 repeats the street instead of a second address line. Update this test when it is fixed.');
         Assert.areEqual('San Francisco', shipFrom.get('city'), 'ShipFrom.city');
         Assert.areEqual('CA', shipFrom.get('region'), 'ShipFrom.region is the state.');
         Assert.areEqual('US', shipFrom.get('country'), 'ShipFrom.country');
         Assert.areEqual('94105', shipFrom.get('postalCode'), 'ShipFrom.postalCode');
         Map<String, Object> shipTo = asMap(addresses.get('ShipTo'));
+        Assert.areEqual('255 S King St', shipTo.get('line2'),
+            'Known gap: ShipTo line2 repeats the street instead of a second address line. Update this test when it is fixed.');
         Assert.areEqual('Seattle', shipTo.get('city'), 'ShipTo.city');
         Assert.areEqual('WA', shipTo.get('region'), 'ShipTo.region');
         Map<String, Object> origin = asMap(addresses.get('pointOfOrderOrigin'));
         Assert.areEqual('Austin', origin.get('city'), 'The Sold To address is the point of order origin.');
         Assert.areEqual('78701', origin.get('postalCode'), 'pointOfOrderOrigin.postalCode');
+        Assert.areEqual('100 Congress Ave', origin.get('line2'),
+            'Known gap: pointOfOrderOrigin line2 repeats the street instead of a second address line. '
+            + 'Update this test when it is fixed.');
         String payload = JSON.serialize(body);
         Assert.isFalse(payload.contains('Denver'), 'The Bill To address is not sent.');
         Assert.isFalse(payload.contains('Chicago'), 'The tax engine address is not sent.');

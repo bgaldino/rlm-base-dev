@@ -178,7 +178,7 @@ private with sharing class RLM_MockAppAdapterTest {
             'Without a document code the reference entity id becomes the document code.');
         RLM_TaxTestFactory.assertResponseField(responses[2], 'taxTransactionType', 'Debit',
             'A missing transaction type defaults to Debit.');
-        RLM_TaxTestFactory.assertResponseFieldMatches(responses[2], 'transactionDate', RLM_TaxTestFactory.NOT_NULL,
+        RLM_TaxTestFactory.assertResponseFieldMatches(responses[2], 'transactionDate', RLM_TaxTestFactory.ANY_YEAR,
             'A missing transaction date is filled in (the adapter uses now).');
         RLM_TaxTestFactory.assertResponseField(responses[2], 'currencyIsoCode', 'USD', 'A null currency defaults to USD.');
 

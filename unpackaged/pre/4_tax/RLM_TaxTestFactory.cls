@@ -106,7 +106,7 @@ public with sharing class RLM_TaxTestFactory {
     /**
      * Asserts at least one field=<value> entry whose value matches valueRegex. Dates print like
      * "Fri Jun 15 12:00:00 GMT 2001" in the runner's time zone, so match a mid-year noon date by
-     * its year (YEAR_2001) and a defaulted one by NOT_NULL.
+     * its year (YEAR_2001) and a defaulted one by ANY_YEAR.
      */
     public static void assertResponseFieldMatches(Object response, String field, String valueRegex, String message) {
         assertResponseFieldMatches(response, field, valueRegex, message, PREMISE_HINT);
@@ -124,8 +124,8 @@ public with sharing class RLM_TaxTestFactory {
 
     /** A date value of 2001 (see DATE_2001). */
     public static final String YEAR_2001 = '[^,\\]]*\\b2001\\b[^,\\]]*';
-    /** Any value other than the platform's "<null>" marker. */
-    public static final String NOT_NULL = '(?!<null>)[^,\\]]+';
+    /** A printed date with any four-digit year (a defaulted "now" date). */
+    public static final String ANY_YEAR = '[^,\\]]*\\b\\d{4}\\b[^,\\]]*';
     /** Mid-year noon GMT: the year cannot shift in any time zone. */
     public static final Datetime DATE_2001 = Datetime.newInstanceGmt(2001, 6, 15, 12, 0, 0);
 
