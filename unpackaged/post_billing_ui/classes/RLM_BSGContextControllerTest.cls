@@ -7,9 +7,9 @@ private class RLM_BSGContextControllerTest {
     // query the user may not run.
     // The bundle assembly (appendComponentsDfs) is covered with in-memory BSGs; the
     // charge-type / frequency helpers are called directly with plain inputs.
-    // Each System.runAs test creates its user through RLM_BillingUITestUsers; the billing-role
-    // test takes a Billing permission set license seat, the refused-access test (a plain
-    // Minimum Access user with no permission set license) does not.
+    // The refused-access test runs as a plain Minimum Access user with no permission set
+    // license (no Billing PSL seat); billing-role read coverage for the controller's fields is
+    // in RLM_BillingUIAccessTest (billingOperationsCanRunItsControllerReads).
     //
     // Known gap (documented, not pinned; needs BSG records): getBSGContext reads
     // bsBilledAmount and bsPendingAmount from one arbitrary BillingSchedule of the group
@@ -189,44 +189,6 @@ private class RLM_BSGContextControllerTest {
         Assert.isNull(ctx.milestonePlan);
         Assert.isNull(ctx.bundle);
         Assert.isNull(ctx.usage);
-        Assert.isNull(ctx.arrangement);
-    }
-
-    // A billing role can read the fields the controller's BSG query selects, and gets the
-    // standard view for an id with no BSG. The controller hides a refusal (its catch also
-    // returns the standard view), so the premise, a copy of its query, is the evidence.
-    @isTest
-    static void billingRole_canReadTheControllersGroupFields() {
-        User u = RLM_BillingUITestUsers.create(
-            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
-            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
-        Id bsgId = fakeBsgId();
-        String refused;
-        RLM_BSGContextController.BSGContext ctx;
-
-        Test.startTest();
-        System.runAs(u) {
-            try {
-                // This copy is the only access evidence: a drift from the controller's SELECT
-                // would not fail the test. Keep it in step with the BSG query in
-                // RLM_BSGContextController.getBSGContext, and with READS in
-                // RLM_BillingUIAccessTest, which asserts the billing role can read these fields.
-                Database.query(
-                    'SELECT Id, BillingScheduleGroupNumber, ProductName, Product2Id, BillingType, BillingMethod, '
-                    + 'BillingTermUnit, BillingTerm, AnchorProdtBillingSchdGrpId, BindingInstanceId, '
-                    + 'BillingArrangementId, TotalBilledAmount, EndDate FROM BillingScheduleGroup LIMIT 1',
-                    AccessLevel.USER_MODE);
-            } catch (QueryException e) {
-                refused = e.getMessage();
-            }
-            ctx = RLM_BSGContextController.getBSGContext(bsgId);
-        }
-        Test.stopTest();
-
-        Assert.isNull(refused, 'PRECONDITION: a billing role can run the controller\'s BSG query: ' + refused);
-        Assert.areEqual('standard', ctx.viewType, 'An id with no BSG resolves to the standard view.');
-        Assert.isNull(ctx.bsgNumber);
-        Assert.isNull(ctx.bsBilledAmount, 'No billed amount without a BSG.');
         Assert.isNull(ctx.arrangement);
     }
 

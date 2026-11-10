@@ -44,6 +44,9 @@
  * Known gap (pinned): TotalPrice__std is required for every selling model (developer guide,
  * and the service's own comment), but the create path never checks totalPrice, so a null
  * total is accepted. See createViaAPI_nullTotalPrice_isAccepted.
+ *
+ * Known gap (documented, not pinned; unverified): getTaxTreatments/getLegalEntities have no
+ * Status filter, so Draft/Inactive records are offered.
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {
@@ -269,7 +272,7 @@ private class RLM_BillingScheduleGroupServiceTest {
             RLM_BillingScheduleGroupService.getLegalEntities();
         Test.stopTest();
 
-        Assert.areEqual(2, options.size(), 'Every legal entity is offered.');
+        Assert.areEqual(2, options.size(), 'Both inserted legal entities are returned.');
         Assert.areEqual(alpha.Id, options[0].id, 'Options are sorted by name.');
         Assert.areEqual('BSG LE Alpha', options[0].name);
         Assert.areEqual(zulu.Id, options[1].id);
@@ -292,7 +295,7 @@ private class RLM_BillingScheduleGroupServiceTest {
             RLM_BillingScheduleGroupService.getTaxTreatments();
         Test.stopTest();
 
-        Assert.areEqual(2, options.size(), 'Every tax treatment is offered.');
+        Assert.areEqual(2, options.size(), 'Both inserted tax treatments (Draft) are returned.');
         Assert.areEqual(ttFirst.Id, options[0].id, 'Options are sorted by name.');
         Assert.areEqual('BSG TT First', options[0].name);
         Assert.areEqual(ttSecond.Id, options[1].id);

@@ -6,18 +6,8 @@ private class RLM_BillingScheduleGroupControllerTest {
     // test creates its user through RLM_BillingUITestUsers; the billing-role test takes a
     // Billing permission set license seat, the refused-access test (a plain Minimum Access
     // user with no permission set license) does not.
-    @isTest
-    static void getBillingScheduleGroups_nullAccount_returnsEmptyList() {
-        Test.startTest();
-        List<RLM_BillingScheduleGroupController.BsgWrapper> result =
-            RLM_BillingScheduleGroupController.getBillingScheduleGroups(null);
-        Test.stopTest();
-        System.assertNotEquals(null, result, 'A non-null list should always be returned.');
-        System.assertEquals(0, result.size(), 'A null account id yields no billing schedule groups.');
-    }
-
-    // A billing role can run the BSG query, so an account with no BSGs must come back as an
-    // empty list.
+    // A billing role can run the BSG query, so an account with no BSGs, and a null account id,
+    // must come back as empty lists.
     @isTest
     static void getBillingScheduleGroups_billingRole_accountWithNoBsgs_returnsEmptyList() {
         Account acc = new Account(Name = 'RLM BSG Controller Role Test');
@@ -27,14 +17,18 @@ private class RLM_BillingScheduleGroupControllerTest {
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
 
         List<RLM_BillingScheduleGroupController.BsgWrapper> result;
+        List<RLM_BillingScheduleGroupController.BsgWrapper> nullAccountResult;
         Test.startTest();
         System.runAs(u) {
             result = RLM_BillingScheduleGroupController.getBillingScheduleGroups(acc.Id);
+            nullAccountResult = RLM_BillingScheduleGroupController.getBillingScheduleGroups(null);
         }
         Test.stopTest();
 
         Assert.isNotNull(result, 'A billing role gets a list, not an error.');
         Assert.isTrue(result.isEmpty(), 'An account with no BSGs yields an empty list.');
+        Assert.isNotNull(nullAccountResult, 'The query runs for a null account id (no BSGs can exist in tests).');
+        Assert.isTrue(nullAccountResult.isEmpty(), 'The query runs for a null account id (no BSGs can exist in tests).');
     }
 
     // A Minimum Access user with no permission sets cannot read BillingScheduleGroup. The

@@ -7,10 +7,10 @@ private class RLM_BSGTimelineControllerTest {
 
     // BillingScheduleGroup records are system-managed and not insertable in Apex tests.
     // getBillingScheduleGroupData / getConsolidatedTimeline raise AuraHandledException when the
-    // BSG cannot be found; getMilestoneChartData degrades to an empty list. Each System.runAs
-    // test creates its user through RLM_BillingUITestUsers; the billing-role test takes a
-    // Billing permission set license seat, the refused-access test (a plain Minimum Access
-    // user with no permission set license) does not.
+    // BSG cannot be found; getMilestoneChartData degrades to an empty list. The refused-access
+    // test runs as a plain Minimum Access user with no permission set license (no Billing PSL
+    // seat); billing-role read coverage for the controller's fields is in
+    // RLM_BillingUIAccessTest (billingOperationsCanRunItsControllerReads).
     //
     // Known gap (documented, not pinned): getBillingScheduleGroupData throws its not-found
     // AuraHandledException inside a try and rewraps it with e.getMessage(). On a Release 264
@@ -138,47 +138,5 @@ private class RLM_BSGTimelineControllerTest {
         Assert.isTrue(timelineThrew, 'The timeline surfaces the refused read as an AuraHandledException.');
         Assert.isNotNull(items, 'Milestone data degrades to a list, never null.');
         Assert.isTrue(items.isEmpty(), 'A refused milestone query yields no milestones.');
-    }
-
-    // A billing role can read the fields the controller's group query selects, and gets
-    // "not found" (AuraHandledException) for an id with no BSG. The controller hides a refusal
-    // (it wraps a refused query in the same AuraHandledException), so the premise, a copy of
-    // its query, is the evidence. That query is the only one reached: with no BSG the method
-    // throws before its schedule, suspension and milestone reads.
-    @isTest
-    static void billingRole_canReadTheControllersGroupFields() {
-        User u = RLM_BillingUITestUsers.create(
-            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
-            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
-        String bsgId = fakeBsgId();
-        String refused;
-        Boolean dataThrew = false;
-
-        Test.startTest();
-        System.runAs(u) {
-            try {
-                // This copy is the only access evidence: a drift from the controller's SELECT
-                // would not fail the test. Keep it in step with the BillingScheduleGroup query in
-                // RLM_BSGTimelineController.getBillingScheduleGroupData, and with READS in
-                // RLM_BillingUIAccessTest, which asserts the billing role can read these fields.
-                Database.query(
-                    'SELECT Id, BillingScheduleGroupNumber, ProductName, BillingAccountId, BillingAccount.Name, '
-                    + 'CurrencyIsoCode, TotalBilledAmount, TotalPendingAmount, BillingTerm, BillingTermUnit, '
-                    + 'BillDayOfMonth, CancellationDate, StartDate, EndDate '
-                    + 'FROM BillingScheduleGroup LIMIT 1',
-                    AccessLevel.USER_MODE);
-            } catch (QueryException e) {
-                refused = e.getMessage();
-            }
-            try {
-                RLM_BSGTimelineController.getBillingScheduleGroupData(bsgId);
-            } catch (AuraHandledException e) {
-                dataThrew = true;
-            }
-        }
-        Test.stopTest();
-
-        Assert.isNull(refused, 'PRECONDITION: a billing role can run the group query: ' + refused);
-        Assert.isTrue(dataThrew, 'An unknown BSG is "not found" for a billing role.');
     }
 }
