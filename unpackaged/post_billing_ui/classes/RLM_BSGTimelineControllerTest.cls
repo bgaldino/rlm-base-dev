@@ -86,8 +86,9 @@ private class RLM_BSGTimelineControllerTest {
 
     // ─── Access paths (USER_MODE) ───────────────────────────────────────────
 
-    // A Billing-licensed user with only RLM_BillingUI cannot read BillingScheduleGroup, nor
-    // the milestone link on BillingSchedule (both need a billing role's user permissions).
+    // A Billing-licensed user with only RLM_BillingUI cannot read BillingScheduleGroup, and
+    // the milestone link on BillingSchedule is absent or unreadable for them (both need a
+    // billing role's user permissions).
     // The group/timeline reads must fail as AuraHandledException (never a raw QueryException
     // to the LWC), and the milestone chart must swallow its refused query and return an empty
     // list. An admin would see the same results from the "no record" paths, so the two
@@ -132,7 +133,7 @@ private class RLM_BSGTimelineControllerTest {
 
         Assert.isTrue(bsgRefused, 'PRECONDITION: this user must be unable to read BillingScheduleGroup.');
         Assert.isTrue(milestoneRefused,
-            'PRECONDITION: this user must be unable to read BillingSchedule.BillingMilestonePlanId.');
+            'PRECONDITION: BillingSchedule.BillingMilestonePlanId must be absent or unreadable for this user.');
         Assert.isTrue(dataThrew, 'A refused read surfaces as an AuraHandledException.');
         Assert.isTrue(timelineThrew, 'The timeline surfaces the refused read as an AuraHandledException.');
         Assert.isNotNull(items, 'Milestone data degrades to a list, never null.');

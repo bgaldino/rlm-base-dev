@@ -5,7 +5,10 @@
  * these tests: the create-via-API path is covered through the @TestVisible mock seam
  * (mockActionOutputs) plus direct coverage of the pure payload-build and result-parse
  * helpers, so the real invoke and its failed-result handling stay uncovered. Validation
- * guards are covered by asserting AuraHandledException on bad input. The System.runAs
+ * guards are covered by asserting AuraHandledException on bad input. The create tests do
+ * not observe the payload passed to the action, so the argument wiring from
+ * createBillingScheduleGroupAndScheduleViaAPI into buildTransactionDetailsJson is unverified
+ * (capturing it needs a production seam). The System.runAs
  * test creates its user through RLM_BillingUITestUsers, which takes a Billing permission
  * set license seat.
  *
@@ -71,8 +74,8 @@ private class RLM_BillingScheduleGroupServiceTest {
         insert ba;
 
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{
-            'requestId' => '16PWt000005Dsir',
-            'statusUrl' => '/services/data/v68.0/sobjects/AsyncOperationTracker/16PWt000005DsirMAC'
+            'requestId' => 'REQ-PLACEHOLDER',
+            'statusUrl' => '/services/data/v68.0/sobjects/AsyncOperationTracker/REQ-PLACEHOLDER'
         };
 
         Test.startTest();
@@ -85,20 +88,20 @@ private class RLM_BillingScheduleGroupServiceTest {
             );
         Test.stopTest();
 
-        System.assertEquals('16PWt000005Dsir', r.requestId, 'requestId surfaced from action output');
+        Assert.areEqual('REQ-PLACEHOLDER', r.requestId, 'requestId surfaced from action output');
     }
 
     @isTest
     static void invokeAndParse_viaMockSeam() {
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{
-            'requestId' => '16PWt000005Dsir',
-            'statusUrl' => '/services/data/v68.0/sobjects/AsyncOperationTracker/16PWt000005DsirMAC'
+            'requestId' => 'REQ-PLACEHOLDER',
+            'statusUrl' => '/services/data/v68.0/sobjects/AsyncOperationTracker/REQ-PLACEHOLDER'
         };
         Map<String, Object> out =
             RLM_BillingScheduleGroupService.invokeStandaloneBillingScheduleCreate('{"Transaction":[]}');
         RLM_BillingScheduleGroupService.CreateResult r =
             RLM_BillingScheduleGroupService.parseCreateResult(out);
-        System.assertEquals('16PWt000005Dsir', r.requestId);
+        Assert.areEqual('REQ-PLACEHOLDER', r.requestId);
         System.assert(r.statusUrl.contains('AsyncOperationTracker'), 'statusUrl mapped');
         System.assertNotEquals(null, r.apiResponse, 'apiResponse serialized');
     }
@@ -183,6 +186,8 @@ private class RLM_BillingScheduleGroupServiceTest {
         BillingAccount ba = new BillingAccount(Name = 'BSG Junction BA');
         insert ba;
         insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = ba.Id);
+        Assert.isNull([SELECT AccountId FROM BillingAccount WHERE Id = :ba.Id].AccountId,
+            'PRECONDITION: inserting the junction row does not set BillingAccount.AccountId.');
 
         Test.startTest();
         RLM_BillingScheduleGroupService.AccountInfo info =
@@ -295,11 +300,12 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.isTrue(prods.isEmpty(), 'No products -> empty list, not null.');
     }
 
-    // The term-unit options mirror the BillingSchedule picklist. Billing orgs ship both fields
-    // with values, so that is a precondition here; the hard-coded fallback lists are for orgs
-    // without them and are not exercised.
+    // The expected options are built from the same BillingSchedule describe the service reads,
+    // so these tests prove the describe source is used (labels, values and order) rather than
+    // the hard-coded fallback, which is not exercised. Billing orgs ship both fields with
+    // values; each test also checks one shipped value is offered.
     @isTest
-    static void billingTermUnitOptions_mirrorTheBillingSchedulePicklist() {
+    static void billingTermUnitOptions_comeFromTheBillingSchedulePicklist() {
         List<String> expected = picklistLabelsAndValues('BillingTermUnit');
         Test.startTest();
         List<RLM_BillingScheduleGroupService.PicklistOption> options =
@@ -307,10 +313,11 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         assertOptions(expected, options);
+        Assert.isTrue(optionValues(options).contains('Month'), 'The shipped Month unit is offered: ' + expected);
     }
 
     @isTest
-    static void pricingTermUnitOptions_mirrorTheBillingSchedulePicklist() {
+    static void pricingTermUnitOptions_comeFromTheBillingSchedulePicklist() {
         List<String> expected = picklistLabelsAndValues('PricingTermUnit');
         Test.startTest();
         List<RLM_BillingScheduleGroupService.PicklistOption> options =
@@ -318,6 +325,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         assertOptions(expected, options);
+        Assert.isTrue(optionValues(options).contains('Months'), 'The shipped Months unit is offered: ' + expected);
     }
 
     // ---- createBillingScheduleGroupAndScheduleViaAPI ----
@@ -408,23 +416,26 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual('REQ-1', echoed.get('requestId'), 'apiResponse is the serialized action output.');
     }
 
-    // A billing account with no AccountId resolves its account through AccountBillingAccount,
-    // so the create goes ahead. The orphan test below is the same input without the junction
-    // row, which is rejected; together they show the junction row is what resolves it.
+    // A billing account with no AccountId but an AccountBillingAccount row is accepted. The
+    // orphan test below is the same input without the junction row, which is rejected, so the
+    // junction row is what lets the create through. The mock does not capture the payload, so
+    // which account id is sent is not observed.
     @isTest
-    static void createViaAPI_billingAccountLinkedThroughJunction_resolvesTheAccount() {
+    static void createViaAPI_billingAccountLinkedThroughJunction_isAccepted() {
         Account a = new Account(Name = 'BSG Junction Create Acct');
         insert a;
         BillingAccount ba = new BillingAccount(Name = 'BSG Junction Create BA');
         insert ba;
         insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = ba.Id);
+        Assert.isNull([SELECT AccountId FROM BillingAccount WHERE Id = :ba.Id].AccountId,
+            'PRECONDITION: inserting the junction row does not set BillingAccount.AccountId.');
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-JN' };
 
         Test.startTest();
         RLM_BillingScheduleGroupService.CreateResult r = new CreateArgs(ba.Id).call();
         Test.stopTest();
 
-        Assert.areEqual('REQ-JN', r.requestId, 'The account is resolved through the junction row.');
+        Assert.areEqual('REQ-JN', r.requestId, 'A billing account linked through the junction row is accepted.');
     }
 
     // A billing account with no AccountId resolves its account through AccountBillingAccount;
@@ -682,6 +693,14 @@ private class RLM_BillingScheduleGroupServiceTest {
         }
         Assert.isFalse(entries.isEmpty(), 'PRECONDITION: BillingSchedule.' + fieldApi + ' has picklist values.');
         return entries;
+    }
+
+    private static Set<String> optionValues(List<RLM_BillingScheduleGroupService.PicklistOption> options) {
+        Set<String> values = new Set<String>();
+        for (RLM_BillingScheduleGroupService.PicklistOption o : options) {
+            values.add(o.value);
+        }
+        return values;
     }
 
     private static void assertOptions(List<String> expected,
