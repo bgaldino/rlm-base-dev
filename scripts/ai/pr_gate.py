@@ -167,7 +167,10 @@ def repo_config_bytes():
 # - refs/heads/<name> exists;
 # - every entry that changed is a bookkeeping key (BOOKKEEPING_KEYS);
 # - afterwards, every `remote` the branch has is a remote the same file defines (has a url for), and
-#   every `merge` is refs/heads/<name> itself, as `push -u` and `switch -c X origin/X` write them.
+#   every `merge` is refs/heads/<name> itself, as `push -u` and `switch -c X origin/X` write them; a
+#   branch left with a remote but no merge fails when that remote has a non-glob fetch refspec, since
+#   `git pull` then merges the first refspec's fixed branch. A file holding an include or includeIf excuses nothing, since an include inserts its
+#   entries where it stands and moving a branch's lines across it changes which value wins.
 # The last point is judged on the branch's state after the change, not on the entries that changed: a
 # `merge` naming another branch, left from before or added now, makes `git pull` merge it and
 # `git push` under push.default=upstream push there (`feat -> trunk`), and a URL or `.` as `remote`
@@ -253,6 +256,10 @@ def excused_branches(old, new, real):
     """The branches whose entries moved between `old` and `new` and meet the rule above: real
     (in `real`), changed only in bookkeeping keys, and left tracking only themselves on a defined
     remote."""
+    # An include inserts its entries where it stands, so moving a branch's lines across one changes
+    # which value wins without changing the branch's own entries: a file with one excuses nothing.
+    if any(key == "include.path" or key.startswith("includeif.") for key, _ in old + new):
+        return set()
     groups = [{}, {}]
     for group, entries in zip(groups, (old, new)):
         for entry in entries:
@@ -260,6 +267,10 @@ def excused_branches(old, new, real):
     # A remote's name may hold dots, so it is everything between `remote.` and `.url`.
     remotes = {key[len("remote."):-len(".url")] for key, _ in new
                if key.startswith("remote.") and key.endswith(".url")}
+    fetches = {}
+    for key, value in new:
+        if key.startswith("remote.") and key.endswith(".fetch"):
+            fetches.setdefault(key[len("remote."):-len(".fetch")], []).append(value or "")
     excused = set()
     for name in (set(groups[0]) | set(groups[1])) & real:
         was, now = groups[0].get(name, []), groups[1].get(name, [])
@@ -270,6 +281,11 @@ def excused_branches(old, new, real):
         if ([entry for entry in was if entry[0].rpartition(".")[2] not in BOOKKEEPING_KEYS]
                 == [entry for entry in now if entry[0].rpartition(".")[2] not in BOOKKEEPING_KEYS]
                 and all(value in remotes for key, value in now if key.endswith(".remote"))
+                # With no merge, `git pull` merges the remote's first refspec: a fixed branch unless
+                # every refspec is a glob.
+                and (any(key.endswith(".merge") for key, _ in now)
+                     or all("*" in spec for key, value in now if key.endswith(".remote")
+                            for spec in fetches.get(value, ())))
                 and all(value == f"refs/heads/{name}" for key, value in now if key.endswith(".merge"))):
             excused.add(name)
     return excused

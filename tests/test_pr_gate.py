@@ -4951,7 +4951,7 @@ VERDICT_REGIONS = {
     # Pinned when the excuse for `[branch]` bookkeeping entries moved here from a one-line byte
     # comparison in run(): about sixty lines that call git now decide whether a config change fails.
     # It reads git's own answers (config --list, for-each-ref), the same on every host.
-    "the config guard": ("8b4496f6f250", "whether a check's config change fails it"),
+    "the config guard": ("e8ab35427705", "whether a check's config change fails it"),
     "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
@@ -5482,6 +5482,17 @@ try:
         {branch_config: pristine + b'[branch "other-session/work"]\n\tremote = origin\n'
                                    b'\tmerge = refs/heads/other-session/work\n'},
         {branch_config: pristine})
+    # A remote with a fixed refspec, left without its merge, makes `git pull` merge that branch; and a
+    # file with an include excuses nothing, since moving lines across it changes which value wins.
+    fixed = pristine + (b'[remote "pinned"]\n\turl = https://example.invalid/p.git\n'
+                        b'\tfetch = +refs/heads/base:refs/remotes/pinned/base\n'
+                        b'[branch "other-session/work"]\n\tremote = pinned\n')
+    branch_cases["merge-removed"] = pr_gate.config_change_note(
+        {branch_config: fixed + b'\tmerge = refs/heads/other-session/work\n'}, {branch_config: fixed})
+    included = pristine + b'[include]\n\tpath = elsewhere.cfg\n'
+    branch_cases["with-include"] = pr_gate.config_change_note(
+        {branch_config: included},
+        {branch_config: included + b'[branch "other-session/work"]\n\tvscode-merge-base = origin/main\n'})
     # Reordering a repeated non-bookkeeping key changes which value git uses, beside tracking added.
     two_push = '[branch "other-session/work"]\n\tpushRemote = {}\n\tpushRemote = {}\n'
     branch_cases["reordered-pushremote"] = pr_gate.config_change_note(
@@ -5597,7 +5608,9 @@ for label, what in (("pushremote", "a pushRemote"), ("mergeoptions", "a mergeOpt
                     ("dot-remote", "`remote = .`, which pushes to a local branch"),
                     ("stale-merge", "a remote added to a branch whose merge names another"),
                     ("reordered-url", "a reordered remote that leaves a URL in use"),
-                    ("reordered-pushremote", "a reordered repeated pushRemote")):
+                    ("reordered-pushremote", "a reordered repeated pushRemote"),
+                    ("merge-removed", "a merge removed while a remote with a fixed refspec stays"),
+                    ("with-include", "bookkeeping in a file holding an include")):
     check(f"{what} for a real branch still fails: it redirects later pushes, pulls or merges",
           branch_cases[label][1] is True, branch_cases[label])
 check("a pushurl-only remote does not vouch for a branch's remote",
@@ -5824,7 +5837,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 826
+EXPECTED = 828
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
