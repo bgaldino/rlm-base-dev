@@ -236,6 +236,17 @@ NOT_MIRRORED = {
 }
 
 
+def tracked_files():
+    """Every tracked path. No skip when git is unavailable: a skipped suite exits 0, and the gate
+    would book a pass for a check that verified nothing."""
+    out = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, check=True,
+                         capture_output=True, text=True).stdout
+    files = [f for f in out.split("\0") if f]
+    if not files:
+        raise AssertionError("git ls-files listed no tracked files")
+    return files
+
+
 def _gitignore_patterns():
     for line in read(".gitignore").splitlines():
         line = line.strip()
@@ -288,12 +299,7 @@ class DockerignoreTest(unittest.TestCase):
             self.assertFalse(excluded(PATTERNS, path), path)
 
     def test_every_tracked_file_is_copied(self):
-        # No skip when git is unavailable: a skipped suite exits 0, and the gate would book a
-        # pass for a check that verified nothing.
-        files = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, check=True,
-                               capture_output=True, text=True).stdout.split("\0")
-        self.assertTrue([f for f in files if f], "git ls-files listed no tracked files")
-        dropped = [f for f in files if f and f not in TRACKED_EXCLUDED_FILES
+        dropped = [f for f in tracked_files() if f not in TRACKED_EXCLUDED_FILES
                    and not f.startswith(TRACKED_EXCLUDED_DIRS) and excluded(PATTERNS, f)]
         self.assertEqual(dropped, [], "tracked files left out of the build context")
 
@@ -308,9 +314,7 @@ class DockerignoreTest(unittest.TestCase):
         # The mirror check reads only the root .gitignore. A nested one would ignore paths it
         # never compares with .dockerignore, so its arrival has to fail here until it is mirrored
         # (with its directory prefixed) and this test and _gitignore_patterns are extended.
-        tracked = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, check=True,
-                                 capture_output=True, text=True).stdout.split("\0")
-        nested = [f for f in tracked if f.endswith("/.gitignore")]
+        nested = [f for f in tracked_files() if f.endswith("/.gitignore")]
         self.assertEqual(nested, [], "nested .gitignore files are not mirrored by this suite")
 
     def test_not_mirrored_has_no_stale_entries(self):
