@@ -40,17 +40,30 @@ PRIVATE_TIERS = ("todos", "topics", "archive", "memory", "reports", "inbox", "to
 
 SHAPE_GATING = False  # todo 358 PR-B turns this on after rewriting the citations below it
 
+PLACEHOLDER = re.compile(r"\{[^}]*\}|<[^>]*>|\$\{?\w+\}?|\*+")
+
 # Files whose citations are deliberate examples of a wrong path, with the reason.
 EXEMPT = {
     ".cursor/rules/analysis-artifacts.mdc": "shows a top-level path as the ❌ example",
 }
 
-LITERAL = re.compile(r"\.agents/artifacts(?![\w.-])(/[^\s`'\"()\[\]<>|,;]*)?")
+# A path ends at whitespace, quoting or bracketing punctuation, a URL anchor/query, or Markdown
+# emphasis (`**` wrapped around a citation), which would otherwise read as a glob and be skipped.
+LITERAL = re.compile(r"\.agents/artifacts(?![\w.-])(/[^\s`'\"()\[\]<>|,;#?*]*)?")
 
 
 def tracked() -> list[str]:
     out = subprocess.run(["git", "ls-files", "-z"], cwd=REPO, capture_output=True, check=True).stdout
     return [p for p in out.decode("utf-8", "replace").split("\0") if p]
+
+
+def citing() -> list[str]:
+    """Tracked text files that mention the private tree, found by one native `git grep` pass
+    rather than by reading every tracked file. Exit 1 means no match; anything else raises."""
+    proc = subprocess.run(["git", "grep", "-lIzF", ROOT], cwd=REPO, capture_output=True)
+    if proc.returncode not in (0, 1):
+        raise RuntimeError(proc.stderr.decode("utf-8", "replace").strip() or "git grep failed")
+    return [p for p in proc.stdout.decode("utf-8", "replace").split("\0") if p]
 
 
 def classify(rel: str) -> str:
@@ -59,9 +72,13 @@ def classify(rel: str) -> str:
     rest = rest.strip("/").rstrip(".:")
     if not rest:
         return "bare"
-    if any(c in rest for c in "{}*$<>"):
-        return "template"
-    return "tier" if rest.split("/", 1)[0] in PRIVATE_TIERS else "top-level"
+    first = rest.split("/", 1)[0]
+    if first in PRIVATE_TIERS:
+        return "tier"
+    # Only a first segment that IS a placeholder (`{tier}`, `$DIR`, `**`) makes a template; a
+    # concrete top-level name with a placeholder inside it (`x-{release}.md`) is still a
+    # top-level citation.
+    return "template" if PLACEHOLDER.fullmatch(first) else "top-level"
 
 
 def moved_rows(tree: Path) -> list[tuple[str, str]]:
@@ -96,16 +113,14 @@ def citations(paths: list[str]):
             continue
         full = REPO / rel
         try:
-            if full.is_symlink() or not full.is_file() or full.stat().st_size > 2_000_000:
+            if full.is_symlink() or not full.is_file():
                 continue
             text = full.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
             continue
-        if ROOT not in text:
-            continue
         for n, line in enumerate(text.splitlines(), 1):
             for m in LITERAL.finditer(line):
-                yield rel, n, m.group(0).rstrip(".:")
+                yield rel, n, m.group(0).rstrip(".:_")  # sentence end, `_italics_`
 
 
 def main(argv: list[str]) -> int:
@@ -117,7 +132,9 @@ def main(argv: list[str]) -> int:
     warnings: list[str] = []
 
     for p in paths:  # (a)
-        if p.startswith(ROOT) or "-core-code-" in p:
+        # casefold(): `.agents/Artifacts/` is the tree on a case-insensitive disk but an
+        # un-ignored, trackable directory on a case-sensitive one such as CI.
+        if p.casefold().startswith(ROOT) or "-core-code-" in p.casefold():
             errors.append(f"{p}: private content is tracked in the public repo; remove it "
                           f"(git rm --cached) and keep it in the private tree")
 
@@ -125,7 +142,7 @@ def main(argv: list[str]) -> int:
     present = tree.is_dir()
     rows = moved_rows(tree) if present else []
     shaped = 0
-    for rel, n, lit in citations(paths):  # (b) and (c)
+    for rel, n, lit in citations(citing()):  # (b) and (c)
         kind = classify(lit)
         if kind in ("bare", "template"):
             continue
@@ -135,7 +152,7 @@ def main(argv: list[str]) -> int:
             msg = (f"{rel}:{n}: {lit} cites the private tree's top level; cite a path under "
                    f"{', '.join(PRIVATE_TIERS[:4])}, …")
             (errors if SHAPE_GATING else warnings).append(msg)
-        if present and not (tree / rest).exists():
+        if present and not PLACEHOLDER.search(rest) and not (tree / rest).exists():
             new = resolve_moved(tree, rest, rows)
             if new:
                 warnings.append(f"{rel}:{n}: {lit} moved; rewrite to {ROOT}/{new}")

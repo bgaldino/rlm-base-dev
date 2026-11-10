@@ -155,6 +155,18 @@ with TemporaryDirectory() as root:
     check("a tier-shaped citation draws no shape warning",
           ok is True and "top level" not in out, out)
 
+_real_loader = skill_manifest._private_refs
+def _missing():
+    raise FileNotFoundError("check_private_refs.py")
+skill_manifest._private_refs = _missing
+try:
+    with TemporaryDirectory() as root:
+        ok, out = audit(root, CITED, create_private=True)
+        check("a missing check_private_refs.py degrades to a printed note, not a crash",
+              ok is True and "could not be loaded" in out, out)
+finally:
+    skill_manifest._private_refs = _real_loader
+
 check("the exempt prefix is anchored with a separator",
       skill_manifest.LOCAL_ONLY_PREFIXES == (".agents/artifacts/",),
       skill_manifest.LOCAL_ONLY_PREFIXES)
@@ -279,7 +291,7 @@ print("\n" + "=" * 100)
 if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
-EXPECTED = 34
+EXPECTED = 35
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

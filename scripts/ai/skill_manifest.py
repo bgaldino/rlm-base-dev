@@ -857,12 +857,17 @@ def _audit_foundations(manifest: dict[str, Any]) -> bool:
 
     unauditable: list[str] = []
     advisories: list[str] = []
-    refs = _private_refs()
+    try:
+        refs = _private_refs()
+    except (OSError, ImportError, AttributeError) as exc:  # a partial copy of scripts/ai/
+        refs = None
+        advisories.append(f"private-path shape and MOVED.tsv checks skipped: "
+                          f"check_private_refs.py could not be loaded ({exc})")
 
     def private_advisory(where: str, rel: str) -> bool:
         """Record shape and moved-path advisories for a private-tree path. True when the path
         is missing but MOVED.tsv says where it went, so it is reported rather than failed."""
-        if not rel.startswith(LOCAL_ONLY_PREFIXES):
+        if refs is None or not rel.startswith(LOCAL_ONLY_PREFIXES):
             return False
         if refs.classify(rel) == "top-level":
             advisories.append(f"{where}: {rel} cites the private tree's top level")

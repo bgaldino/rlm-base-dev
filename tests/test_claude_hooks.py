@@ -644,12 +644,108 @@ class ArtifactsPlacement(unittest.TestCase):
         self.assertEqual(self.decide(".agents/artifacts/topics/old/notes.md"), "ask")
         self.assertEqual(self.decide(".agents/artifacts/topics/inner/2026-11-09-a.md"), "allow")
 
+    def test_a_dot_dot_after_a_symlink_is_resolved_after_the_link(self):
+        public = self.tmp / "docs" / "analysis"
+        public.mkdir(parents=True)
+        (self.tree / "topics" / "shared").symlink_to(public, target_is_directory=True)
+        # Lexically this is topics/private-notes.md; on disk it is docs/private-notes.md.
+        self.assertEqual(self.decide(".agents/artifacts/topics/shared/../private-notes.md"), "deny")
+        # A `..` that does not cross a link still resolves inside the tree.
+        self.assertEqual(self.decide(".agents/artifacts/topics/collections/../collections/a.md"),
+                         "allow")
+
+    def test_a_public_link_into_the_tree_gets_the_tree_rules(self):
+        (self.tmp / "docs").mkdir()
+        (self.tmp / "docs" / "priv").symlink_to(self.tree, target_is_directory=True)
+        self.assertEqual(self.decide("docs/priv/stray.md"), "deny")
+        self.assertEqual(self.decide("docs/priv/archive/2026/x/a.md"), "ask")
+        self.assertEqual(self.decide("docs/priv/inbox/2026-11-09-a.md"), "allow")
+
     def test_a_symlinked_tree_itself_is_followed(self):
         real = self.tmp / "elsewhere"
         shutil.move(str(self.tree), str(real))
         self.tree.symlink_to(real, target_is_directory=True)
         self.assertEqual(self.decide(".agents/artifacts/inbox/2026-11-09-a.md"), "allow")
         self.assertEqual(self.decide(".agents/artifacts/stray.md"), "deny")
+
+    def test_case_variants_are_denied_whatever_the_disk(self):
+        self.assertEqual(self.decide(".agents/Artifacts/stray.md"), "deny")
+        self.assertEqual(self.decide(".Agents/artifacts/inbox/2026-11-09-a.md"), "deny")
+
+    def test_notebook_edits_get_the_same_rule(self):
+        proc = run_hook(GUARD, {"tool_name": "NotebookEdit", "cwd": str(self.tmp),
+                                "tool_input": {"notebook_path": ".agents/artifacts/nb.ipynb",
+                                               "new_source": "x"}})
+        self.assertEqual(proc.returncode, 2, proc.stderr)
+        proc = run_hook(GUARD, {"tool_name": "NotebookEdit", "cwd": str(self.tmp),
+                                "tool_input": {"notebook_path": ".agents/artifacts/inbox/nb.ipynb",
+                                               "new_source": "x"}})
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+
+    def test_a_nested_tree_name_is_judged_against_the_real_tree(self):
+        self.assertEqual(self.decide(".agents/artifacts/topics/collections/.agents/artifacts/a.md"),
+                         "allow")
+        self.assertEqual(self.decide(".agents/artifacts/stray/.agents/artifacts/a.md"), "deny")
+
+    def test_archive_is_recognised_by_identity_not_spelling(self):
+        insensitive = (self.tree / "ARCHIVE").exists()  # True on a case-insensitive disk
+        for rel in ("ARCHIVE/2026/x/a.md", "Archive/new.md", "topics/../ARCHIVE/2026/x/a.md"):
+            # Where ARCHIVE *is* archive/ it must ask; elsewhere it is a new top-level folder.
+            self.assertEqual(self.decide(f".agents/artifacts/{rel}"),
+                             "ask" if insensitive else "deny", rel)
+
+    def test_a_unicode_case_fold_spelling_is_denied(self):
+        self.assertEqual(self.decide(".agents/artifact\u017f/newtop.md"), "deny")
+
+    def test_a_nested_tree_under_archive_still_asks(self):
+        nested = self.tree / "archive" / "snap" / ".agents" / "artifacts" / "inbox"
+        nested.mkdir(parents=True)
+        self.assertEqual(
+            self.decide(".agents/artifacts/archive/snap/.agents/artifacts/inbox/x.md"), "ask")
+
+    def test_a_link_to_a_nested_tree_under_archive_still_asks(self):
+        (self.tree / "archive" / "snap" / ".agents" / "artifacts" / "inbox").mkdir(parents=True)
+        (self.tmp / "docs").mkdir()
+        (self.tmp / "docs" / "snaplink").symlink_to(self.tree / "archive" / "snap",
+                                                    target_is_directory=True)
+        (self.tmp / "docs" / "arch").symlink_to(self.tree / "archive", target_is_directory=True)
+        self.assertEqual(self.decide("docs/snaplink/.agents/artifacts/inbox/x.md"), "ask")
+        self.assertEqual(self.decide("docs/arch/snap/.agents/artifacts/inbox/x.md"), "ask")
+
+    def test_paths_the_os_cannot_stat_do_not_crash_the_hook(self):
+        self.assertEqual(self.decide("docs/" + "a" * 300 + "/x.md"), "allow")
+        locked = self.tmp / "locked"
+        (locked / "sub").mkdir(parents=True)
+        locked.chmod(0)
+        try:
+            self.assertEqual(self.decide("locked/sub/x.md"), "allow")
+        finally:
+            locked.chmod(0o755)
+
+    def test_entering_by_one_link_and_leaving_by_another_is_an_escape(self):
+        (self.tmp / "docs").mkdir()
+        (self.tmp / "tlink").symlink_to(self.tree, target_is_directory=True)
+        (self.tree / "topics" / "pub").symlink_to(self.tmp / "docs", target_is_directory=True)
+        self.assertEqual(self.decide(".agents/artifacts/topics/pub/secret.md"), "deny")
+        self.assertEqual(self.decide("tlink/topics/pub/secret.md"), "deny")
+        # A spelled `..` out of the tree is not a link escape: it is just a public path.
+        self.assertEqual(self.decide(".agents/artifacts/../README.md"), "allow")
+
+    def test_a_symlinked_clone_is_guarded_at_its_real_location_too(self):
+        clone = self.tmp / "clone"
+        shutil.move(str(self.tree), str(clone))
+        self.tree.symlink_to(clone, target_is_directory=True)
+        self.assertEqual(self.decide(".agents/artifacts/new.md"), "deny")
+        self.assertEqual(self.decide(str(clone / "new.md")), "deny")
+        self.assertEqual(self.decide(str(clone / "archive" / "2026" / "x" / "a.md")), "ask")
+        self.assertEqual(self.decide(str(clone / "inbox" / "2026-11-09-a.md")), "allow")
+
+    def test_a_nul_byte_does_not_crash_the_rule(self):
+        # NotebookEdit reaches rule 4 directly (Write first goes through the older text_change).
+        proc = run_hook(GUARD, {"tool_name": "NotebookEdit", "cwd": str(self.tmp),
+                                "tool_input": {"notebook_path": ".agents/artifacts/a\x00b.ipynb",
+                                               "new_source": "x"}})
+        self.assertEqual((proc.returncode, proc.stdout), (0, ""), proc.stderr)
 
     def test_public_agents_files_are_untouched(self):
         self.assertEqual(self.decide(".agents/README.md"), "allow")

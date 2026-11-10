@@ -37,14 +37,17 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    `$LOOP_RUN_DIR/STOP` refuses every tool call of that one run (a remote cancel of one run);
    `<main checkout>/.loop/STOP` refuses every loop agent on the workstation (`make stop`).
    Either takes effect at the agent's next tool call; neither aborts a tool already running.
-4. Private artifacts placement (`.cursor/rules/analysis-artifacts.mdc`). A Write, Edit or
-   MultiEdit is denied when it would create a new top-level entry in `.agents/artifacts/`
+4. Private artifacts placement (`.cursor/rules/analysis-artifacts.mdc`). A Write, Edit,
+   MultiEdit or NotebookEdit is denied when it would create a new top-level entry in `.agents/artifacts/`
    (anything not in ARTIFACTS_ROOT and not already on disk), write into a sibling such as
-   `.agents/artifacts.old/` (not gitignored, so it would surface in the public repo), or
+   `.agents/artifacts.old/` or a case variant (not gitignored everywhere, so it would surface
+   in the public repo), or
    create `.agents/artifacts/` where the private clone is absent. It asks before a write
    under `.agents/artifacts/archive/` (frozen history). Existing top-level folders still
    accept writes until the private repo's reorg moves them. Symlinks are resolved first, so a
-   write is judged by where it lands: one that escapes the tree through a link is denied.
+   write is judged by where it lands: one that escapes the tree through a link is denied. The
+   tree and its top-level entries are matched by file identity (samefile), never by spelling,
+   so case and Unicode case-fold variants on a case-insensitive disk get the same rules.
 
 What this guard does not catch, and what backs it up:
 - Commands hidden in `$(...)`, `bash -c`, `eval`, `env -S '…'`, `xargs` or `find -exec`, a
@@ -594,42 +597,123 @@ ARTIFACTS_HINT = ("file it under topics/<slug>/, todos/attachments/<id>/ or "
                   "inbox/<yyyy-mm-dd>-<name> (.cursor/rules/analysis-artifacts.mdc)")
 
 
+def _spelled_hits(p: Path) -> List[str]:
+    """How each `.agents/artifacts*` segment pair in `p` is spelled. Matched with casefold(),
+    so a case or Unicode case-fold variant (which a case-insensitive disk treats as the tree)
+    is found and can be refused for not being spelled exactly."""
+    parts = p.parts
+    return [parts[i] + "/" + parts[i + 1] for i in range(len(parts) - 1)
+            if parts[i].casefold() == ".agents"
+            and parts[i + 1].casefold().startswith("artifacts")]
+
+
+def _same(a: Path, b: Path) -> bool:
+    try:
+        return os.path.samefile(a, b)
+    except OSError:
+        return False
+
+
+def _within(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def _private_tree(real: Path) -> Optional[Path]:
+    """The OUTERMOST existing ancestor of `real` that IS a `.agents/artifacts` directory, by
+    file identity rather than spelling, so no case or Unicode variant is mistaken for another
+    folder, and a nested tree inside the private one is judged by the outer tree's rules."""
+    for depth in range(2, len(real.parts) + 1):
+        d = Path(*real.parts[:depth])
+        if d.parent == d or not d.is_dir():
+            continue
+        if _same(d, d.parent / "artifacts") and _same(d.parent, d.parent.parent / ".agents"):
+            return d
+    return None
+
+
+def _resolution_steps(raw: str) -> List[Tuple[str, Path]]:
+    """(component, where the path has got to) after each component, resolved the way the OS
+    resolves it: each prefix is realpath()-ed, so a symlink is followed before any later `..`
+    applies, and every place the path passes through is known, not just where it ends."""
+    parts = Path(raw).parts
+    cur = Path(parts[0])
+    steps = []
+    for comp in parts[1:]:
+        cur = Path(os.path.realpath(cur / comp))
+        steps.append((comp, cur))
+    return steps
+
+
 def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
+    """Rule 4. A path the OS cannot even stat (too long, an unreadable directory, a NUL byte)
+    is allowed here: the write itself fails the same way, and a crash would skip later rules."""
+    try:
+        return _artifacts_decision(path, cwd)
+    except (OSError, ValueError):
+        return "allow", ""
+
+
+def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     if not path:
         return "allow", ""
-    full = Path(os.path.normpath(os.path.join(cwd, os.path.expanduser(path))))
-    parts = full.parts
-    hits = [i for i in range(len(parts) - 1)
-            if parts[i] == ".agents" and parts[i + 1].startswith("artifacts")]
-    if not hits:
+    raw = os.path.join(cwd, os.path.expanduser(path))
+    lexical = Path(os.path.normpath(raw))
+    # 1. The spelling the agent asked for: a sibling (`artifacts.old`) is not gitignored, and a
+    #    case or Unicode variant is the tree on a case-insensitive disk but an un-ignored
+    #    sibling on a case-sensitive one.
+    steps = _resolution_steps(raw)
+    real = steps[-1][1] if steps else lexical
+    for name in _spelled_hits(lexical) + _spelled_hits(real):
+        if name != ".agents/artifacts":
+            return "deny", (f"`{name}` is not `.agents/artifacts` exactly, so it is not "
+                            "gitignored everywhere and would surface in the public repo; write "
+                            "inside `.agents/artifacts/` itself, and keep backups outside the "
+                            "repository")
+    # 2. Every private tree this write could involve, as resolved directories: the project's
+    #    and cwd's own (so a write addressed to a symlinked clone's real location is caught),
+    #    the spelled one, and any found by identity anywhere along the resolution.
+    spelled_trees = [Path(*lexical.parts[:i + 2]) for i in range(len(lexical.parts) - 1)
+                     if lexical.parts[i:i + 2] == (".agents", "artifacts")]
+    roots = [Path(b) / ".agents" / "artifacts"
+             for b in (os.environ.get("CLAUDE_PROJECT_DIR"), cwd) if b] + spelled_trees
+    trees = {Path(os.path.realpath(t)) for t in roots if t.is_dir()}
+    trees |= {t for t in (_private_tree(cur) for _, cur in steps) if t is not None}
+
+    def containing(p: Path) -> List[Path]:
+        return [t for t in trees if _within(p, t)]
+
+    final = containing(real)
+    if not final:
+        # 3. Inside a tree at some step, outside it at the next, by a link rather than a
+        #    spelled `..`: the write escapes the tree.
+        for (_, prev), (comp, cur) in zip(steps, steps[1:]):
+            if comp != ".." and containing(prev) and not containing(cur):
+                return "deny", (f"`{path}` resolves through a symlink to `{real}`, outside "
+                                "the private `.agents/artifacts/` tree; write inside the tree "
+                                "itself")
+        if spelled_trees and not any(t.is_dir() for t in spelled_trees):
+            return "deny", ("`.agents/artifacts/` (the private repository) is not cloned here; "
+                            "do not create it. Use $TMPDIR for scratch, or say where the "
+                            "content should live")
         return "allow", ""
-    i = hits[-1]
-    tree = Path(*parts[:i + 2])
-    if parts[i + 1] != "artifacts":
-        return "deny", (f"`{parts[i + 1]}` sits beside `.agents/artifacts/` and is not "
-                        "gitignored, so it would surface in the public repo; keep backups "
-                        "outside the repository and write inside `.agents/artifacts/` itself")
-    if not tree.is_dir():
-        return "deny", ("`.agents/artifacts/` (the private repository) is not cloned here; "
-                        "do not create it. Use $TMPDIR for scratch, or say where the content "
-                        "should live")
-    if len(parts) == i + 2:
-        return "allow", ""
-    # Judge where the write lands, not how it is spelled: a symlinked folder inside the tree
-    # could point at a tracked public path, or at archive/ under another name.
-    real_tree = Path(os.path.realpath(tree))
-    real = Path(os.path.realpath(full))
-    try:
-        rest = real.relative_to(real_tree).parts
-    except ValueError:
-        return "deny", (f"`{path}` resolves through a symlink to `{real}`, outside the private "
-                        "`.agents/artifacts/` tree; write inside the tree itself")
+    # 4. Where it lands, under the OUTERMOST containing tree, entries matched by identity.
+    tree = min(final, key=lambda t: len(t.parts))
+    rest = real.relative_to(tree).parts
     if not rest:
         return "allow", ""
-    if rest[0] not in ARTIFACTS_ROOT and not (real_tree / rest[0]).exists():
-        return "deny", (f"`{rest[0]}` would be a new top-level entry of `.agents/artifacts/`, "
-                        f"whose top level is closed; {ARTIFACTS_HINT}")
-    if rest[0] == "archive" and len(rest) > 1:
+    entry = tree / rest[0]
+    canonical = next((n for n in ARTIFACTS_ROOT if _same(entry, tree / n)), None)
+    if canonical is None:
+        if rest[0] in ARTIFACTS_ROOT:
+            canonical = rest[0]
+        elif not entry.exists():
+            return "deny", (f"`{rest[0]}` would be a new top-level entry of `.agents/artifacts/`, "
+                            f"whose top level is closed; {ARTIFACTS_HINT}")
+    if canonical == "archive" and len(rest) > 1:
         return "ask", ("this writes under `.agents/artifacts/archive/`, which is frozen history "
                        "(moves and per-entry READMEs only). Confirm it is a deliberate archive "
                        "edit")
@@ -820,6 +904,8 @@ def decide(event: dict) -> Tuple[str, str]:
                     if decision[0] == "ask":
                         worst = decision
         return worst
+    if tool == "NotebookEdit":
+        return artifacts_decision(tool_input.get("notebook_path") or "", cwd)
     change = text_change(tool, tool_input)
     if change:
         placement = artifacts_decision(change[0], cwd)

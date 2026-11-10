@@ -85,11 +85,32 @@ class Shape(Fixture):
     def test_tier_bare_and_template_citations_pass_quietly(self):
         self.write("docs/a.md", "`.agents/artifacts/` and .agents/artifacts and "
                    ".agents/artifacts/topics/x/README.md and .agents/artifacts/todos/<id>/ and "
-                   ".agents/artifacts/qb-canvas-{release}-source.md and .agents/artifacts/**\n")
+                   ".agents/artifacts/{tier}/x.md and .agents/artifacts/**\n")
         proc = self.run_check()
         self.assertEqual(proc.returncode, 0)
         self.assertNotIn("[WARN", proc.stdout)
         self.assertIn("2 citation(s)", proc.stdout)  # topics/x/README.md and todos/ (cut at <id>)
+
+    def test_anchors_and_queries_end_a_citation(self):
+        self.write("docs/a.md", "[s](.agents/artifacts/topics/x/README.md#status) "
+                   ".agents/artifacts/inbox/a.md?raw=1\n")
+        proc = self.run_check()
+        self.assertNotIn("#status", proc.stdout)
+        self.assertNotIn("?raw", proc.stdout)
+        self.assertIn("2 citation(s)", proc.stdout)
+
+    def test_markdown_emphasis_does_not_hide_or_mangle_a_citation(self):
+        self.write("docs/a.md", "See **.agents/artifacts/stray.md** and _.agents/artifacts/other.md_\n")
+        proc = self.run_check()
+        self.assertIn(".agents/artifacts/stray.md cites the private tree's top level", proc.stdout)
+        self.assertIn(".agents/artifacts/other.md cites the private tree's top level", proc.stdout)
+        self.assertNotIn("other.md_", proc.stdout)
+
+    def test_case_variants_of_the_tree_fail_the_leak_guard(self):
+        self.write(".Agents/artifacts/notes.md", "private\n")
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 1, proc.stdout)
+        self.assertIn("private content is tracked", proc.stdout)
 
     def test_lookalike_siblings_are_not_citations(self):
         self.write("docs/a.md", "a decoy at .agents/artifacts-notes/x.md and .agents/artifacts.old/\n")
@@ -111,7 +132,10 @@ class Shape(Fixture):
         self.assertEqual(refs.classify(".agents/artifacts/"), "bare")
         self.assertEqual(refs.classify(".agents/artifacts/inbox/2026-11-09-x.md"), "tier")
         self.assertEqual(refs.classify(".agents/artifacts/todos/attachments/358/"), "tier")
-        self.assertEqual(refs.classify(".agents/artifacts/x-{release}.md"), "template")
+        self.assertEqual(refs.classify(".agents/artifacts/{tier}/x.md"), "template")
+        self.assertEqual(refs.classify(".agents/artifacts/$DIR/x.md"), "template")
+        # A concrete top-level name with a placeholder inside is still top-level.
+        self.assertEqual(refs.classify(".agents/artifacts/x-{release}.md"), "top-level")
         self.assertEqual(refs.classify(".agents/artifacts/collections/x.md"), "top-level")
 
 
