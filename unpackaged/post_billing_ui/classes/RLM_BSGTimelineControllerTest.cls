@@ -46,10 +46,11 @@ private class RLM_BSGTimelineControllerTest {
 
     // ─── Malformed input ────────────────────────────────────────────────────
 
-    // A string that is not an id fails the bind; every entry point must still answer the LWC
-    // the way it answers for a missing record.
+    // A string that is not an id: the two group reads must throw AuraHandledException (not a
+    // raw platform exception) and the milestone read must return an empty list. Runs as the
+    // test user, so it does not show which branch inside each method ran.
     @isTest
-    static void malformedId_isHandledLikeAMissingRecord() {
+    static void malformedId_throwsHandledExceptionsAndReturnsNoMilestones() {
         Boolean dataThrew = false;
         Boolean timelineThrew = false;
         List<RLM_BSGTimelineController.MilestoneChartItem> items;
@@ -68,8 +69,8 @@ private class RLM_BSGTimelineControllerTest {
         items = RLM_BSGTimelineController.getMilestoneChartData('not-an-id');
         Test.stopTest();
 
-        Assert.isTrue(dataThrew, 'A malformed id is reported as an AuraHandledException.');
-        Assert.isTrue(timelineThrew, 'The timeline wraps the same failure as an AuraHandledException.');
+        Assert.isTrue(dataThrew, 'A malformed id surfaces as an AuraHandledException.');
+        Assert.isTrue(timelineThrew, 'The timeline surfaces a malformed id as an AuraHandledException.');
         Assert.isNotNull(items, 'Milestone data degrades to a list, never null.');
         Assert.isTrue(items.isEmpty(), 'A malformed id has no milestones.');
     }
@@ -129,37 +130,34 @@ private class RLM_BSGTimelineControllerTest {
         Assert.isTrue(items.isEmpty(), 'A refused milestone query yields no milestones.');
     }
 
-    // A billing role can select and filter on every field the timeline's queries use,
-    // including the milestone extension's dynamic ones, so an unknown id is "not found"
-    // rather than "refused". The suspension fields get their own query because the
-    // controller reads them separately, inside a try/catch.
+    // A billing role gets "not found" (AuraHandledException) for an id with no BSG. The
+    // controller's result cannot show whether the not-found throw or a refused query ran, so
+    // the premise is the evidence: the role can run copies of the controller's group and
+    // schedule queries. The suspension and milestone reads are left out: the controller
+    // tolerates their absence (try/catch), and RLM_BillingUIAccessTest already requires them.
     @isTest
-    static void billingRole_canRunTheTimelineQueries() {
+    static void billingRole_canRunTheGroupAndScheduleQueries_unknownIdIsNotFound() {
         User u = RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
         String bsgId = fakeBsgId();
         List<String> refused = new List<String>();
         Boolean dataThrew = false;
-        List<RLM_BSGTimelineController.MilestoneChartItem> items;
 
         Test.startTest();
         System.runAs(u) {
+            // Keep in step with the two static queries in
+            // RLM_BSGTimelineController.getBillingScheduleGroupData (SELECT, WHERE and ORDER BY fields).
             for (String soql : new List<String>{
                 'SELECT Id, BillingScheduleGroupNumber, ProductName, BillingAccountId, BillingAccount.Name, '
                     + 'CurrencyIsoCode, TotalBilledAmount, TotalPendingAmount, BillingTerm, BillingTermUnit, '
                     + 'BillDayOfMonth, CancellationDate, StartDate, EndDate '
                     + 'FROM BillingScheduleGroup LIMIT 1',
-                'SELECT BillingSuspensionDate, BillingResumptionDate FROM BillingScheduleGroup LIMIT 1',
                 'SELECT Id, BillingScheduleNumber, Category, Status, Quantity, BilledAmount, PendingAmount, '
                     + 'TotalAmount, BillingPeriodAmount, UnitPrice, BillingScheduleStartDate, '
                     + 'BillingScheduleEndDate, NextBillingDate, BillingMethod, BillingType, BillingTerm, '
-                    + 'BillingTermUnit, BillingMilestonePlanId, BillingScheduleGroupId, CreatedDate '
-                    + 'FROM BillingSchedule LIMIT 1',
-                'SELECT Id, ReferenceItemAmount FROM BillingMilestonePlan LIMIT 1',
-                'SELECT Id, Name, MilestoneAmount, Percentage, Status, MilestoneAccomplishmentDate, '
-                    + 'IsMilestoneAccomplished, MilestoneType, BillingMilestonePlanId '
-                    + 'FROM BillingMilestonePlanItem LIMIT 1'
+                    + 'BillingTermUnit, BillingScheduleGroupId, CreatedDate '
+                    + 'FROM BillingSchedule LIMIT 1'
             }) {
                 try {
                     Database.query(soql, AccessLevel.USER_MODE);
@@ -172,12 +170,11 @@ private class RLM_BSGTimelineControllerTest {
             } catch (AuraHandledException e) {
                 dataThrew = true;
             }
-            items = RLM_BSGTimelineController.getMilestoneChartData(bsgId);
         }
         Test.stopTest();
 
-        Assert.isTrue(refused.isEmpty(), 'PRECONDITION: a billing role can run the timeline queries: ' + refused);
-        Assert.isTrue(dataThrew, 'An unknown BSG is still "not found" for a billing role.');
-        Assert.isTrue(items.isEmpty(), 'An unknown BSG has no milestone plan.');
+        Assert.isTrue(refused.isEmpty(),
+            'PRECONDITION: a billing role can run the group and schedule queries: ' + refused);
+        Assert.isTrue(dataThrew, 'An unknown BSG is "not found" for a billing role.');
     }
 }

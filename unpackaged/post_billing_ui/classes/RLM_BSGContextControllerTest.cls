@@ -1,9 +1,11 @@
 @isTest
 private class RLM_BSGContextControllerTest {
 
-    // BillingScheduleGroup is system-managed and not insertable in Apex tests, so coverage
-    // exercises the id-validation and "no matching record" paths, which always run and are
-    // exactly the branches hardened in M1 (Id.valueOf guard + empty-list guard + try/catch).
+    // Tests for RLM_BSGContextController. BillingScheduleGroup, BillingSchedule and
+    // BsgRelationship cannot be inserted in Apex tests, so getBSGContext is covered only on
+    // the paths that need no BSG: a malformed or null id, an id matching no BSG, and a BSG
+    // query the user may not run. The bundle assembly (appendComponentsDfs) and the
+    // charge-type / frequency helpers are covered directly with in-memory BSGs.
     private static Id fakeBsgId() {
         return Id.valueOf(
             BillingScheduleGroup.SObjectType.getDescribe().getKeyPrefix() + '000000000000'
@@ -68,7 +70,7 @@ private class RLM_BSGContextControllerTest {
         System.assertEquals('1 ', RLM_BSGContextController.formatFrequency(null, null));
     }
 
-    // ─── M3 BFS-assembly coverage (the rewritten collectChildComponents path) ──
+    // ─── Bundle assembly (appendComponentsDfs) ──────────────────────────────
 
     // Builds a two-level bundle entirely in memory and verifies appendComponentsDfs emits
     // the flat list in depth-first display order with siblings sorted by ProductName, and
@@ -177,10 +179,11 @@ private class RLM_BSGContextControllerTest {
         Assert.isNull(ctx.arrangement);
     }
 
-    // The other side: a billing role can run the BSG query, so an unknown id reaches the
-    // "no matching record" return (not the catch) and still resolves to the standard view.
+    // A billing role gets the standard view for an id with no BSG. The controller's result
+    // cannot show whether the "no matching record" return or the catch ran, so the premise is
+    // the evidence: the role can run a copy of the controller's BSG query.
     @isTest
-    static void getBSGContext_billingRole_unknownId_returnsEmptyStandard() {
+    static void getBSGContext_billingRole_unknownId_returnsStandard() {
         User u = RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
@@ -191,6 +194,7 @@ private class RLM_BSGContextControllerTest {
         Test.startTest();
         System.runAs(u) {
             try {
+                // Keep in step with the BSG query in RLM_BSGContextController.getBSGContext.
                 Database.query(
                     'SELECT Id, BillingScheduleGroupNumber, ProductName, Product2Id, BillingType, BillingMethod, '
                     + 'BillingTermUnit, BillingTerm, AnchorProdtBillingSchdGrpId, BindingInstanceId, '
@@ -206,10 +210,11 @@ private class RLM_BSGContextControllerTest {
         Assert.isTrue(canQuery, 'PRECONDITION: a billing role can run the controller\'s BSG query.');
         Assert.areEqual('standard', ctx.viewType, 'An id with no BSG resolves to the standard view.');
         Assert.isNull(ctx.bsgNumber);
-        Assert.isNull(ctx.bsBilledAmount, 'No schedules were read.');
+        Assert.isNull(ctx.bsBilledAmount, 'No billed amount without a BSG.');
         Assert.isNull(ctx.arrangement);
     }
 
+    // Runs as the test user, so it does not show which branch produced the standard view.
     @isTest
     static void getBSGContext_idOfAnotherObject_returnsStandard() {
         Account acc = new Account(Name = 'RLM BSG Context Cross Type');
@@ -219,7 +224,7 @@ private class RLM_BSGContextControllerTest {
         RLM_BSGContextController.BSGContext ctx = RLM_BSGContextController.getBSGContext(acc.Id);
         Test.stopTest();
 
-        Assert.areEqual('standard', ctx.viewType, 'A valid id of another object matches no BSG.');
+        Assert.areEqual('standard', ctx.viewType, 'A valid id of another object resolves to the standard view.');
         Assert.isNull(ctx.bundle);
         Assert.isNull(ctx.usage);
     }
