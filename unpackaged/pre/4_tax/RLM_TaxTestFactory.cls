@@ -16,9 +16,11 @@
  * setAmountDetails(null) to throw an exception named commercetax.TaxApiException, and
  * setTaxTransactionType(null) to throw System.NullPointerException. A release that changes
  * either fails those tests, and setterNullInput_matchesHelperPremise names the cause. That test
- * covers both directions: the setters above reject null, while CalculateTaxResponse
- * setReferenceDocumentCode and setReferenceEntityId, LineItemResponse setLineNumber, and
- * AddressesResponse setShipFrom, setShipTO and setSoldTo accept it (the mock adapters rely on that).
+ * covers both directions. It holds every commercetax setter that RLM_MockAppAdapter,
+ * RLM_MockTaxAdapter or RLM_CalculateTaxService calls with null in these tests: the two above
+ * reject null, and these accept it: CalculateTaxResponse setReferenceDocumentCode and
+ * setReferenceEntityId; LineItemResponse setLineNumber and setAddresses; AddressesResponse
+ * setShipFrom, setShipTO and setSoldTo; TaxDetailsResponse setImposition and setJurisdiction.
  */
 @IsTest
 public with sharing class RLM_TaxTestFactory {
@@ -271,6 +273,21 @@ public with sharing class RLM_TaxTestFactory {
             new commercetax.AddressesResponse().setSoldTo(null);
         } catch (Exception e) {
             acceptErrors.put('setSoldTo', e);
+        }
+        try {
+            new commercetax.LineItemResponse().setAddresses(null);
+        } catch (Exception e) {
+            acceptErrors.put('LineItemResponse.setAddresses', e);
+        }
+        try {
+            new commercetax.TaxDetailsResponse().setImposition(null);
+        } catch (Exception e) {
+            acceptErrors.put('TaxDetailsResponse.setImposition', e);
+        }
+        try {
+            new commercetax.TaxDetailsResponse().setJurisdiction(null);
+        } catch (Exception e) {
+            acceptErrors.put('TaxDetailsResponse.setJurisdiction', e);
         }
         try {
             new commercetax.CalculateTaxResponse().setTaxTransactionType(null);

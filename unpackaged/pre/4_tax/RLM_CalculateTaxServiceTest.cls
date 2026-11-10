@@ -3,9 +3,12 @@
  * Test.isRunningTest() — parses its own canned success response instead of the callout body.
  * So the request side is asserted through the recorded callout, the response side through
  * the response type and its String form; the error-response branch cannot be reached from a test.
- * Mapped fields deliberately not asserted: the effective and transaction dates, imposition type and
- * subType, jurisdiction id, level, country and region, taxAuthorityTypeId, taxId, taxRegionId (set
- * from the detail's region code), productCode and quantity.
+ * Setters in getTax that no assertion covers (every other setter call is asserted): header
+ * referenceDocumentCode, exemptAmount, effectiveDate and transactionDate; imposition subType and
+ * type; jurisdiction country, region, stateAssignedNumber, id and level; detail taxAuthorityTypeId,
+ * taxId and taxRegionId (set from the detail's region code); line effectiveDate, isTaxable (set
+ * twice), exemptAmount, productCode and quantity. The detail-level exemptAmount and exemptReason
+ * are unreachable: the canned payload's detail exempt amounts are all 0.
  */
 @IsTest
 private with sharing class RLM_CalculateTaxServiceTest {

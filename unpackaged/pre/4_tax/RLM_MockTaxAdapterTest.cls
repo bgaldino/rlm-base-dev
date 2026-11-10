@@ -180,11 +180,11 @@ private with sharing class RLM_MockTaxAdapterTest {
         Assert.isInstanceOfType(response, commercetax.CalculateTaxResponse.class, 'A calculated response is returned.');
         // Two request lines, one tax detail each; the header addresses are still set.
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'addresses', '<null>', 2,
-            'Both lines leave their addresses null.');
+            'Both lines leave their addresses null.' + RLM_TaxTestFactory.SETTER_PREMISE_HINT);
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'imposition', '<null>', 2,
-            'Both tax details leave imposition null.');
+            'Both tax details leave imposition null.' + RLM_TaxTestFactory.SETTER_PREMISE_HINT);
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'jurisdiction', '<null>', 2,
-            'Both tax details leave jurisdiction null.');
+            'Both tax details leave jurisdiction null.' + RLM_TaxTestFactory.SETTER_PREMISE_HINT);
     }
 
     @IsTest
