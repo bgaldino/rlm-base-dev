@@ -11,9 +11,11 @@ private class RLM_OnAccountBillingControllerTest {
     }
 
     // Checks that, as the admin, the summary for an account with no billing records returns
-    // zero balances and clean status flags. Failed reads are swallowed into zeros here, so this
-    // does not prove the reads run; getBillingSummary_billingOperationsUser_canRunEachSummaryRead
-    // does.
+    // zero balances and clean status flags. Most reads (the aggregate balances and the
+    // partially-paid, written-off, dispute and collection reads) are swallowed into zeros when
+    // they fail, so this does not prove they run; the four Invoice counts and the account
+    // currency read would throw instead. getBillingSummary_billingOperationsUser_runsEachReadButCollectionPlans
+    // is the proof that the reads run.
     @isTest
     static void getBillingSummary_accountWithNoBilling_returnsZeroBalances() {
         Account acc = new Account(Name = 'RLM On-Account Billing Test');
@@ -37,7 +39,8 @@ private class RLM_OnAccountBillingControllerTest {
 
     // Payment, unlike invoices, is Apex-createable. A processed payment in the corporate
     // currency, on an account in the corporate currency, is summed as is and lowers the net
-    // balance by its balance. (A non-corporate account currency is covered below.)
+    // balance by its balance. (A non-corporate account currency is covered below, when one is
+    // active.)
     // The positive paths here run as a billing operations user, not the deploying admin:
     // RLM_BillingUI is assigned only after this bundle deploys. That user is read-only, so the
     // admin creates the records: the account is owned by the user, and a payment (which has no
@@ -84,6 +87,14 @@ private class RLM_OnAccountBillingControllerTest {
             return;
         }
         User u = billingOperationsUser();
+        // Dated rates exist only with advanced currency management. If the admin reads dated
+        // rates for these codes but the billing user cannot read the table (its rates fall back
+        // to standard), skip visibly rather than fail the deploy over that optional feature.
+        Map<String, Decimal> adminDated = datedRates(AccessLevel.SYSTEM_MODE);
+        if ((adminDated.containsKey(foreign) || adminDated.containsKey(corporate)) && datedRatesAs(u).isEmpty()) {
+            System.debug(LoggingLevel.WARN, 'SKIPPED: DatedConversionRate is not readable for the billing user');
+            return;
+        }
         Map<String, Decimal> effective = userRatesMatchingAdmin(u, adminRates, new List<String>{ foreign, corporate });
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing FX Test', foreign);
         Payment pmt = newProcessedPayment(acc.Id, 1000, corporate);
@@ -139,7 +150,10 @@ private class RLM_OnAccountBillingControllerTest {
         Decimal actual = (Decimal) result.get('paymentBalance');
         Assert.areEqual(foreign, (String) result.get('currencyIsoCode'),
             'PRECONDITION: the summary is labelled in the account\'s (non-corporate) currency.');
-        Assert.isTrue(Math.abs(actual - corporateSum) < 0.01,
+        // SUM() rounds the corporate total to the corporate currency's decimal places.
+        Integer decimalPlaces = [SELECT DecimalPlaces FROM CurrencyType WHERE IsoCode = :corporate LIMIT 1].DecimalPlaces;
+        Decimal tolerance = Math.max(0.01, 0.5 * Math.pow(10, -decimalPlaces));
+        Assert.isTrue(Math.abs(actual - corporateSum) < tolerance,
             'Known gap: correctConversion returns the corporate-converted SUM when the account and payment '
             + 'share a non-corporate currency; update this test when it is fixed. Expected ~' + corporateSum
             + ' (100 ' + foreign + ' in ' + corporate + '), got ' + actual + ' ' + foreign);
@@ -179,7 +193,7 @@ private class RLM_OnAccountBillingControllerTest {
     // Collection plans are the exception: this role cannot read them, and the summary shows
     // "not in collections" instead of failing.
     @isTest
-    static void getBillingSummary_billingOperationsUser_canRunEachSummaryRead() {
+    static void getBillingSummary_billingOperationsUser_runsEachReadButCollectionPlans() {
         User u = billingOperationsUser();
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Role Test', null);
         // A collection plan on the account, so "not in collections" for this role comes from its
@@ -344,8 +358,11 @@ private class RLM_OnAccountBillingControllerTest {
 
     // Dated rates for today if there are any, else the standard rates, read at the given level.
     private static Map<String, Decimal> effectiveRates(AccessLevel level) {
+        Map<String, Decimal> dated = datedRates(level);
+        if (!dated.isEmpty()) {
+            return dated;
+        }
         Map<String, Decimal> standard = new Map<String, Decimal>();
-        Map<String, Decimal> dated = new Map<String, Decimal>();
         try {
             for (SObject ct : Database.query(
                 'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true', level
@@ -355,6 +372,13 @@ private class RLM_OnAccountBillingControllerTest {
         } catch (QueryException e) {
             System.debug(LoggingLevel.INFO, 'Standard rates unreadable: ' + e.getMessage());
         }
+        return standard;
+    }
+
+    // Today's dated rates read at the given level; empty without advanced currency management
+    // or when the table is unreadable.
+    private static Map<String, Decimal> datedRates(AccessLevel level) {
+        Map<String, Decimal> dated = new Map<String, Decimal>();
         try {
             for (SObject dcr : Database.query(
                 'SELECT IsoCode, ConversionRate FROM DatedConversionRate '
@@ -365,7 +389,16 @@ private class RLM_OnAccountBillingControllerTest {
         } catch (QueryException e) {
             System.debug(LoggingLevel.INFO, 'Dated rates unreadable: ' + e.getMessage());
         }
-        return dated.isEmpty() ? standard : dated;
+        return dated;
+    }
+
+    // Today's dated rates as the given user reads them in USER_MODE.
+    private static Map<String, Decimal> datedRatesAs(User u) {
+        Map<String, Decimal> dated;
+        System.runAs(u) {
+            dated = datedRates(AccessLevel.USER_MODE);
+        }
+        return dated;
     }
 
     // Returns the error a USER_MODE query raises for the running user, or null if it runs.

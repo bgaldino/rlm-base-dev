@@ -159,7 +159,8 @@ private class RLM_InvoiceSummaryControllerTest {
     // PaymentSchedule.CollectionPlanItemId is not named in this bundle's metadata, and the
     // controller only reads it by name behind a field check, so it is set by name here, after
     // a precondition that the field exists. Besides it, the payment schedule sets its required
-    // Status and TotalRequestedAmount, plus OwnerId and CurrencyIsoCode (see below).
+    // Status and TotalRequestedAmount, plus OwnerId and CurrencyIsoCode. The schedule and its
+    // item use the user's default currency, so the controller's conversion is an identity.
     // It runs as a collections user, not the deploying admin (RLM_BillingUI is assigned after
     // this bundle deploys). The admin creates the account, collection plan and payment schedule
     // owned by that user; the payment schedule item has no owner to set, so its visibility to

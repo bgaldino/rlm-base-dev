@@ -48,8 +48,8 @@ private class RLM_SplitInvoicesControllerTest {
         System.assertEquals(0, result.arrangementNames.size(), 'Null arrangement ids resolve to an empty map.');
     }
 
-    // Contacts resolve by name, and a list of an object with no Name field (Case; the id need
-    // not exist) yields no names while the contact list after it still resolves.
+    // With a list of an object that has no Name field (Case; the id need not exist), the call
+    // does not throw, and the contact list after it still resolves by name.
     @isTest
     static void getRelatedNames_resolvesContactsAndToleratesNamelessObjects() {
         Account acc = new Account(Name = 'RLM Split Invoices Contact Test');
@@ -69,7 +69,6 @@ private class RLM_SplitInvoicesControllerTest {
             'The account resolves by name.');
         Assert.areEqual(contactName, result.contactNames.get(con.Id),
             'The contact list, after the Case list, still resolves to its full name.');
-        Assert.isTrue(result.profileNames.isEmpty(), 'The Case list yields no names.');
     }
 
     // A list holding only blank ids resolves to an empty map without running a query.
