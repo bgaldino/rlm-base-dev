@@ -1372,7 +1372,7 @@ class Quarantine(Base):
         self.assertTrue(self.index.exists())
         self.assertIn("before any logout", self.stderr.getvalue())
         self.assertFalse(self.quarantine.exists())
-        self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
+        self.assertEqual(list(self.home.rglob(".org-cleanup-probe-*")), [])
 
     @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can write anywhere")
     def test_an_unwritable_home_does_not_fail_the_quarantine_check(self):
@@ -1383,13 +1383,11 @@ class Quarantine(Base):
         self.assertEqual(self.apply(cli, plan_file), 0)
         self.assertFalse(self.index.exists())
 
-    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can write anywhere")
-    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can read anywhere")
     def test_a_quarantine_path_that_cannot_be_examined_is_reported_not_raised(self):
         with mock.patch.object(oc.os, "lstat", side_effect=PermissionError(13, "Denied")):
             self.assertEqual(oc.check_quarantine(self.quarantine, self.home), "Denied")
         self.assertFalse(self.quarantine.exists())
-        self.assertEqual(list(self.home.glob(".org-cleanup-probe-*")), [])
+        self.assertEqual(list(self.home.rglob(".org-cleanup-probe-*")), [])
 
     def test_the_quarantine_check_is_skipped_when_nothing_needs_moving(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)

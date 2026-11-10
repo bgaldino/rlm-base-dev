@@ -1009,6 +1009,8 @@ def replace_json(path, data):
             if hasattr(os, "fchmod"):  # POSIX; Windows Python before 3.13 has none
                 os.fchmod(out.fileno(), mode)
             out.write(json.dumps(data, indent=4, allow_nan=False))  # the encoder remove_deploy_jobs checks with
+            out.flush()
+            os.fsync(out.fileno())  # so a crash cannot leave sf an empty or cut-short cache
         os.replace(temp, str(path))
     except BaseException:
         if os.path.lexists(temp):
