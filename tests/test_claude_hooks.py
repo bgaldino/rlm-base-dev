@@ -716,6 +716,8 @@ class ArtifactsPlacement(unittest.TestCase):
     def test_case_variants_are_denied_whatever_the_disk(self):
         self.assertEqual(self.decide(".agents/Artifacts/stray.md"), "deny")
         self.assertEqual(self.decide(".Agents/artifacts/inbox/2026-11-09-a.md"), "deny")
+        # A real tier behind the variant: on a case-insensitive disk only the spelling refuses it.
+        self.assertEqual(self.decide(".agents/Artifacts/inbox/2026-11-09-a.md"), "deny")
 
     def test_a_unicode_case_fold_spelling_is_denied(self):
         # U+017F casefolds to "s": caught by the casefold() match, not by a plain lower().

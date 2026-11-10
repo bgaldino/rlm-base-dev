@@ -180,8 +180,8 @@ def _check() -> int:
             if new:
                 warnings.append(f"{rel}:{n}: {lit} moved; rewrite to {ROOT}/{new}")
             else:
-                warnings.append(f"{rel}:{n}: {lit} does not exist in the private tree "
-                                f"(python {ROOT}/tools/where.py {rest})")
+                warnings.append(f"{rel}:{n}: {lit} is not at that path and MOVED.tsv has no "
+                                f"row for it; find it with python {ROOT}/tools/where.py {rest}")
 
     for w in warnings:
         print(f"  [WARN ] {w}")

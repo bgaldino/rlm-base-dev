@@ -181,7 +181,7 @@ class Resolution(Fixture):
         proc = self.run_check()
         self.assertEqual(proc.returncode, 0, proc.stdout)
         self.assertIn("moved; rewrite to .agents/artifacts/topics/collections/gaps.md", proc.stdout)
-        self.assertIn("topics/nope.md does not exist", proc.stdout)
+        self.assertIn("topics/nope.md is not at that path and MOVED.tsv has no row", proc.stdout)
         self.assertNotIn("a.md:2", proc.stdout)
         self.assertIn("resolved against the private tree", proc.stdout)
 
@@ -192,7 +192,7 @@ class Resolution(Fixture):
             b"collections/\ttopics/collections/\tW3\t2026-11-09\n")
         proc = self.run_check()
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
-        self.assertIn("does not exist", proc.stdout)
+        self.assertIn("MOVED.tsv has no row for it", proc.stdout)
         self.assertEqual(refs.resolve_moved(self.tree, "collections/gaps.md"),
                          "topics/collections/gaps.md")
         self.assertFalse(refs.exists_in(self.tree, "a\x00b"))

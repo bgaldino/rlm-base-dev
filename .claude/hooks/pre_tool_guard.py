@@ -781,6 +781,9 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     if not typed.is_absolute() or ".." in typed.parts:
         return "ask", (f"`{path}` is not the absolute, normalised path Claude Code writes, so the "
                        "private-tree check cannot tell where it lands; confirm it")
+    if len(typed.parts) > MAX_JUDGED_COMPONENTS:  # bounds the spelling scan below too
+        return "ask", (f"the private-tree check cannot walk this path: it is deeper than "
+                       f"{MAX_JUDGED_COMPONENTS} components; confirm where it lands")
     # The spelling the agent asked for: a sibling (`artifacts.old`) is not gitignored, and a
     # case or Unicode variant is the tree on a case-insensitive disk but an un-ignored sibling
     # on a case-sensitive one. Only inside a git work tree can either reach a commit.
