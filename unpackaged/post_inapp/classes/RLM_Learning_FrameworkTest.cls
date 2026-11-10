@@ -333,12 +333,13 @@ private class RLM_Learning_FrameworkTest {
   // ---- Data helpers -------------------------------------------------------------
   //
   // Fixture reads and writes on the learning objects are explicitly system mode
-  // (WITH SYSTEM_MODE / "as system"). Observed on an API 68.0 org: with these
-  // statements written plainly and the runner not holding RLM_Learning, 14 of
-  // 29 tests failed, every one in a fixture statement, with "No such column
-  // 'RLM_Learning_Header__c' on entity 'RLM_Learning_Section__c'" or
-  // "Operation failed due to fields being inaccessible on Sobject
-  // RLM_Learning_Block__c". Only the calls under test run with the grant.
+  // (WITH SYSTEM_MODE / "as system"). Observed once on an API 68.0 org, in an
+  // earlier version of this class: with these statements written plainly and
+  // the runner not holding RLM_Learning, about half the tests failed, every one
+  // in a fixture statement, with "No such column 'RLM_Learning_Header__c' on
+  // entity 'RLM_Learning_Section__c'" or "Operation failed due to fields being
+  // inaccessible on Sobject RLM_Learning_Block__c". Only the calls under test
+  // run with the grant.
 
   static Id rtId(String sobj, String dev) {
     return [
