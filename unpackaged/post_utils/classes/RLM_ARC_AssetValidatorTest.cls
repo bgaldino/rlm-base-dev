@@ -370,7 +370,7 @@ private with sharing class RLM_ARC_AssetValidatorTest {
         Assert.areEqual(new List<Id>{ child.Id }, res.usageBasedAssetIds, 'The related asset is the one flagged');
         Assert.areEqual(1, res.blockedAssets.size(), 'Only the related asset is blocked');
         Assert.areEqual(child.Id, res.blockedAssets[0].Id, 'The blocked asset is the related one');
-        Assert.isNotNull(res.rollbackBlockedMessage, 'The related usage asset blocks rollback');
+        Assert.isNotNull(res.rollbackBlockedMessage, 'A rollback-blocked message is set for the related usage asset');
     }
 
     @IsTest

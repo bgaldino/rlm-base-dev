@@ -172,7 +172,7 @@ private with sharing class RLM_UsageDataControllerTest {
         Assert.areEqual('url', col.get('type'), col.get('fieldName') + ' renders as a link');
         Assert.areEqual(true, col.get('sortable'), col.get('fieldName') + ' is sortable');
         Map<String, Object> typeAttributes = (Map<String, Object>) col.get('typeAttributes');
-        Assert.isNotNull(typeAttributes, col.get('fieldName') + ' carries typeAttributes');
+        Assert.isNotNull(typeAttributes, col.get('fieldName') + ' has a typeAttributes map');
         Map<String, Object> label = (Map<String, Object>) typeAttributes.get('label');
         Assert.areEqual(labelField, label.get('fieldName'), col.get('fieldName') + ' link text field');
         Assert.areEqual('_self', typeAttributes.get('target'), col.get('fieldName') + ' opens in the same tab');
@@ -360,6 +360,7 @@ private with sharing class RLM_UsageDataControllerTest {
             Assert.areEqual('/' + ur.Id, row.get('UsageResourceId__url'), 'The lookup links to the related record');
             Assert.areEqual(RESOURCE_NAME, row.get('UsageResourceId__name'), 'The lookup label is the related name');
             Assert.areEqual(uom.Id, row.get('QuantityUnitOfMeasureId'), 'The raw unit of measure id is kept');
+            Assert.areEqual('/' + uom.Id, row.get('QuantityUnitOfMeasureId__url'), 'The unit of measure links to its record');
             Assert.areEqual(UOM_NAME, row.get('QuantityUnitOfMeasureId__name'), 'The unit of measure label is its name');
             Assert.areEqual(one.Id, row.get('ReferenceRecordId'), 'The polymorphic asset id is kept');
             Assert.areEqual('/' + one.Id, row.get('ReferenceRecordId__url'), 'The asset reference links to the asset');
@@ -413,7 +414,9 @@ private with sharing class RLM_UsageDataControllerTest {
     /**
      * Pins current behaviour: a null recordId is not rejected. The query then filters on
      * AccountId = null, but no journal can carry a null AccountId (insert rejects it), so the
-     * rows such a filter would match cannot be seeded and are not observed here.
+     * rows such a filter would match cannot be seeded and are not observed here. The real risk
+     * is AssetId = null on UsageSummary and UsageBillingPeriodItem, where a null recordId
+     * returns asset-less rows across accounts.
      */
     @IsTest
     static void nullRecordIdIsNotRejected() {
@@ -421,15 +424,21 @@ private with sharing class RLM_UsageDataControllerTest {
             assertFieldSetReadable(TransactionJournal.SObjectType, new List<String>{ 'AccountId' });
 
             Test.startTest();
-            Map<String, Object> result = RLM_UsageDataController.getFieldSetData(
-                null, 'AccountId', 'TransactionJournal', FIELD_SET
-            );
+            Map<String, Object> result;
+            try {
+                result = RLM_UsageDataController.getFieldSetData(null, 'AccountId', 'TransactionJournal', FIELD_SET);
+            } catch (AuraHandledException e) {
+                Assert.fail('Known gap fixed: a null recordId is now rejected; update this test');
+            }
+            Integer queries = Limits.getQueries();
             Test.stopTest();
 
-            Assert.isNotNull(
-                result,
-                'Known gap: a null recordId is not rejected; update this test when it is rejected'
+            Assert.areEqual(
+                1,
+                queries,
+                'Known gap: a null recordId still runs the query; update this test when it is rejected'
             );
+            Assert.isNotNull(result, 'A result map is returned for a null recordId');
             Assert.isTrue(recordsOf(result).isEmpty(), 'No journal has a null AccountId, so nothing matches');
         }
     }

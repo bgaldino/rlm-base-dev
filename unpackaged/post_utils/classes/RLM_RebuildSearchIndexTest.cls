@@ -1,7 +1,9 @@
 /**
  * Tests for RLM_RebuildSearchIndex: the PCM index deploy callout, its request shape, and
  * how each response (success with and without index details, HTTP error, unparseable body,
- * transport failure) maps onto the LWC result map and the invocable result.
+ * transport failure) maps onto the LWC result map and the invocable result. The unparseable
+ * success body is tested on the LWC path only; the invocable reports it through the same
+ * catch as a transport failure, which is tested.
  *
  * Known gap: the invocable sends one identical FULL deploy per request, not one per batch.
  * Known gap: the buildType and activationType inputs are not forwarded; FULL/IMMEDIATE is
@@ -107,7 +109,7 @@ private with sharing class RLM_RebuildSearchIndexTest {
         Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(sent.getBody());
         Assert.areEqual('FULL', body.get('buildType'), 'A full build is requested');
         Map<String, Object> snapshot = (Map<String, Object>) body.get('snapshot');
-        Assert.isNotNull(snapshot, 'The request carries a snapshot block');
+        Assert.isNotNull(snapshot, 'The request body has a snapshot object');
         Assert.areEqual('IMMEDIATE', snapshot.get('activationType'), 'The snapshot activates immediately');
     }
 
