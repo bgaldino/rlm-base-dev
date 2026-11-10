@@ -111,8 +111,9 @@ scratch
 **/tmp-metadata
 **/.rescan_tmp
 
-# Local-only clones and notes that must never leave the workstation
-.agents/artifacts
+# Local-only clones and notes that must never leave the workstation (the private artifacts clone and
+# any sibling or case-variant copy of it at any depth, as .gitignore has it)
+**/.[aA][gG][eE][nN][tT][sS]/[aA][rR][tT][iI][fF][aA][cC][tT][sS]*
 docs/analysis/*-core-code-*.md
 .cursor/plans
 agents256*

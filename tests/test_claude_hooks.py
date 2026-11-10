@@ -75,14 +75,8 @@ class PushGuard(unittest.TestCase):
 
     def decision(self, command, branch="feature"):
         sh(self.work, "git", "checkout", "-q", branch)
-        proc = run_hook(GUARD, {"tool_name": "Bash", "tool_input": {"command": command},
-                                "cwd": str(self.work)})
-        if proc.returncode == 2:
-            return "deny"
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        if proc.stdout.strip():
-            return json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"]
-        return "allow"
+        return verdict(self, run_hook(GUARD, {"tool_name": "Bash", "cwd": str(self.work),
+                                               "tool_input": {"command": command}}))
 
     def test_protected_targets_are_denied_however_spelled(self):
         for command in ("git push origin main", "git push origin HEAD:main",
@@ -485,11 +479,8 @@ class PushGuard(unittest.TestCase):
 
 class SfdmuGuard(unittest.TestCase):
     def decision(self, tool, tool_input):
-        proc = run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input, "cwd": str(REPO)})
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        if proc.stdout.strip():
-            return json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"]
-        return "allow"
+        return verdict(self, run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input,
+                                               "cwd": str(REPO)}))
 
     def edit(self, old, new, path="datasets/sfdmu/qb/en-US/qb-pricing/export.json"):
         return self.decision("Edit", {"file_path": str(REPO / path), "old_string": old,
@@ -578,6 +569,434 @@ class SfdmuGuard(unittest.TestCase):
                 self.assertIn(edit["old_string"], before)
             self.assertEqual(self.decision("MultiEdit", {"file_path": str(path),
                                                          "edits": edits}), "ask")
+
+
+def _guard_module():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("pre_tool_guard_under_test", GUARD)
+    guard = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(guard)
+    return guard
+
+
+def verdict(case, proc, judged=True):
+    """allow, ask or deny, from a PreToolUse hook run: exit 2 denies, JSON on stdout asks. A
+    guard error also asks (main() fails closed), so unless `judged` is False an ask that says
+    the guard could not judge the call fails the test instead of passing as a verdict."""
+    if proc.returncode == 2:
+        return "deny"
+    case.assertEqual(proc.returncode, 0, proc.stderr)
+    if proc.stdout.strip():
+        out = json.loads(proc.stdout)["hookSpecificOutput"]
+        if judged:
+            case.assertNotIn("could not judge", out["permissionDecisionReason"])
+        return out["permissionDecision"]
+    return "allow"
+
+
+def _outside_any_repo(case, path):
+    """Skip when `path` sits inside a git work tree (a $TMPDIR inside a checkout), since the
+    case needs a folder no repository contains."""
+    for d in (Path(path), *Path(path).parents):
+        if (d / ".git").exists():
+            case.skipTest(f"{path} is inside a git work tree ({d})")
+
+
+class ArtifactsPlacement(unittest.TestCase):
+    """Rule 4: the private tree's top level is closed, its archive and tooling ask, and a
+    misnamed, misplaced or missing tree is refused. Judged on the path as spelled. Table cases
+    run in-process; the hook's own protocol (exit codes, stdin) is exercised by run_write."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.guard = _guard_module()
+        cls.guard.stop_file = lambda cwd: None  # loop-agent stop files are KillSwitch's subject
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        (self.tmp / ".git").mkdir()  # the public repository: misnamed folders here get committed
+        self.tree = self.tmp / ".agents" / "artifacts"
+        for d in ("topics/collections", "inbox", "todos/attachments", "archive/2026/x",
+                  "verification", "tools", ".githooks", ".git/hooks"):
+            (self.tree / d).mkdir(parents=True)  # .git: the private clone is a repo of its own
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def run_write(self, path, cwd=None, tool="Write", env=None):
+        tool_input = {"file_path": path, "content": "x\n"}
+        if tool == "Edit":
+            tool_input = {"file_path": path, "old_string": "a", "new_string": "b"}
+        return run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input,
+                                "cwd": str(cwd or self.tmp)}, env=env)
+
+    def event(self, tool, tool_input, cwd=None, judged=True):
+        """The decision for one event, through the hook process."""
+        return verdict(self, run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input,
+                                              "cwd": str(cwd or self.tmp)}), judged)
+
+    def decide(self, rel, tool="Write", cwd=None, raw=False):
+        """The decision for `rel`, sent the way Claude Code sends it: absolute, `~` expanded and
+        normalised (`backfillObservableInput`), unless `raw` sends the text as typed."""
+        cwd = cwd or self.tmp
+        path = rel if raw else os.path.normpath(os.path.join(str(cwd), os.path.expanduser(rel)))
+        tool_input = {"file_path": path, "content": "x\n"}
+        if tool == "Edit":
+            tool_input = {"file_path": path, "old_string": "a", "new_string": "b"}
+        return self.guard.decide({"tool_name": tool, "tool_input": tool_input,
+                                  "cwd": str(cwd)})[0]
+
+    def test_a_new_top_level_file_or_folder_is_denied(self):
+        self.assertEqual(self.decide(".agents/artifacts/feature-gaps.md"), "deny")
+        self.assertEqual(self.decide(str(self.tree / "new-topic" / "notes.md")), "deny")
+        self.assertEqual(self.decide(".agents/artifacts/stray/.agents/artifacts/a.md"), "deny")
+        proc = self.run_write(str(self.tree / "feature-gaps.md"))
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("an existing topics/<slug>/", proc.stderr)  # no invented topic
+        self.assertIn("do not invent a topic", proc.stderr)
+
+    def test_tier_paths_and_existing_folders_are_allowed(self):
+        for rel in ("topics/collections/gaps.md", "inbox/2026-11-09-gaps.md",
+                    "todos/attachments/358/evidence.md", "README.md", "MOVED.tsv",
+                    "verification/344/ledger.md"):
+            self.assertEqual(self.decide(f".agents/artifacts/{rel}"), "allow", rel)
+        self.assertEqual(self.decide(".agents/artifacts/topics/collections/a.md", tool="Edit"),
+                         "allow")
+
+    def test_archive_writes_ask(self):
+        self.assertEqual(self.decide(".agents/artifacts/archive/2026/x/HANDOFF.md"), "ask")
+
+    def test_a_missing_archive_still_asks(self):
+        # git keeps no empty folder, so a clone may have no archive/ yet.
+        shutil.rmtree(self.tree / "archive")
+        self.assertEqual(self.decide(".agents/artifacts/archive/2026/x/HANDOFF.md"), "ask")
+
+    def test_writes_to_the_clones_own_tooling_ask(self):
+        # Its git dir, the hooks it runs and the layout check they call back this rule up for
+        # Bash writes; any of them can switch that off.
+        for rel in (".git/hooks/pre-commit", ".git/config", ".githooks/pre-commit",
+                    "tools/check_layout.py"):
+            self.assertEqual(self.decide(f".agents/artifacts/{rel}"), "ask", rel)
+
+    def test_a_case_variant_is_the_entry_only_where_the_disk_says_so(self):
+        # Where the disk resolves ARCHIVE/ to archive/ it asks as archive/; on a case-sensitive
+        # disk it would be a new top-level entry, and is refused like one.
+        insensitive = (self.tree / "ARCHIVE").exists()
+        for rel in ("ARCHIVE/2026/x/a.md", "Archive/new.md", "Tools/check_layout.py",
+                    ".GIT/config", ".GitHooks/pre-commit"):
+            self.assertEqual(self.decide(f".agents/artifacts/{rel}"),
+                             "ask" if insensitive else "deny", rel)
+        shutil.rmtree(self.tree / "archive")  # a variant of a missing entry is a new entry
+        self.assertEqual(self.decide(".agents/artifacts/Archive/new.md"), "deny")
+
+    def test_existing_entries_keep_their_names_on_a_case_sensitive_disk(self):
+        # Folding is only for classifying an entry as tooling or archive: an existing README.md
+        # or legacy folder is still itself, not a new `readme.md`.
+        from unittest import mock
+        (self.tree / "README.md").write_text("x")
+        (self.tree / "MOVED.tsv").write_text("x")
+        (self.tree / "Legacy-Notes").mkdir()
+
+        def exact(path):  # lexists as a case-sensitive disk answers it
+            path = Path(path)
+            return path.parent.is_dir() and path.name in os.listdir(path.parent)
+
+        with mock.patch.object(self.guard.os.path, "lexists", exact):
+            for rel, expected in (("README.md", "allow"), ("MOVED.tsv", "allow"),
+                                  ("Legacy-Notes/a.md", "allow"), ("legacy-notes/a.md", "deny"),
+                                  ("ARCHIVE/a.md", "deny"), ("archive/2026/x/a.md", "ask")):
+                self.assertEqual(self.decide(f".agents/artifacts/{rel}"), expected, rel)
+        for rel in ("README.md", "MOVED.tsv", "Legacy-Notes/a.md"):  # and on this disk
+            self.assertEqual(self.decide(f".agents/artifacts/{rel}"), "allow", rel)
+
+    def test_sibling_and_variant_spellings_are_denied(self):
+        for rel in (".agents/artifacts.old/notes.md", ".agents/artifacts-backup/notes.md",
+                    ".agents/Artifacts/stray.md", ".Agents/artifacts/inbox/2026-11-09-a.md",
+                    # A real tier behind the variant: on a case-insensitive disk only the
+                    # spelling refuses it.
+                    ".agents/Artifacts/inbox/2026-11-09-a.md",
+                    # U+017F casefolds to "s": caught by casefold(), not by lower().
+                    ".agents/artifactſ/newtop.md", ".agentſ/artifacts/newtop.md"):
+            self.assertEqual(self.decide(rel), "deny", rel)
+        proc = self.run_write(str(self.tmp / ".agents" / "artifacts.old" / "a.md"))
+        self.assertIn("is not `.agents/artifacts` exactly", proc.stderr)
+
+    def test_a_variant_folder_above_the_repository_is_not_judged(self):
+        # Only pairs inside the work tree count: a checkout that happens to live under a folder
+        # named like a sibling is judged by its own `.agents/artifacts`.
+        _outside_any_repo(self, self.tmp.parent)
+        outer = self.tmp / "scratch" / ".agents" / "artifacts.old" / "proj"
+        (outer / ".git").mkdir(parents=True)
+        (outer / ".agents" / "artifacts" / ".git").mkdir(parents=True)
+        (outer / ".agents" / "artifacts" / "inbox").mkdir()
+        shutil.rmtree(self.tmp / ".git")  # the fixture root must not be the repository here
+        self.assertEqual(self.decide(str(outer / ".agents" / "artifacts" / "inbox" / "a.md")),
+                         "allow")
+        self.assertEqual(self.decide(str(outer / ".agents" / "artifacts" / "newtop.md")), "deny")
+
+    def test_spelling_rules_apply_only_inside_a_git_work_tree(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            _outside_any_repo(self, scratch)
+            for rel in (".agents/artifacts.old/notes.md", ".agents/Artifacts/x.md",
+                        ".agents/artifacts/x.md"):
+                self.assertEqual(self.decide(rel, cwd=scratch), "allow", rel)
+
+    def test_public_agents_files_are_untouched(self):
+        self.assertEqual(self.decide(".agents/README.md"), "allow")
+        self.assertEqual(self.decide(".agents/skills/x/SKILL.md"), "allow")
+        self.assertEqual(self.decide("code/artifacts/new.md"), "allow")  # not under `.agents`
+
+    def test_an_absent_clone_is_not_created_and_says_how_to_get_one(self):
+        with tempfile.TemporaryDirectory() as other:
+            (Path(other) / ".git").write_text("gitdir: elsewhere\n")  # a worktree's .git file
+            proc = self.run_write(str(Path(other) / ".agents" / "artifacts" / "inbox" / "a.md"),
+                                  cwd=other)
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("not cloned in this checkout", proc.stderr)
+        self.assertIn("Maintainers clone it here", proc.stderr)
+        self.assertIn("$TMPDIR", proc.stderr)
+
+    def test_a_plain_repo_root_folder_is_not_the_clone(self):
+        shutil.rmtree(self.tree / ".git")
+        proc = self.run_write(str(self.tree / "inbox" / "a.md"))
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("not the private clone (a git repository of its own)", proc.stderr)
+        (self.tree / ".git").symlink_to(self.tmp / "nowhere")  # a dangling `.git` is no clone
+        self.assertEqual(self.decide(str(self.tree / "inbox" / "a.md")), "deny")
+
+    def test_a_tree_below_the_repository_root_is_not_the_clone(self):
+        for nested in (self.tmp / "pub" / ".agents" / "artifacts",
+                       self.tmp / "docs" / ".agents" / "artifacts"):
+            (nested / "topics").mkdir(parents=True)
+        (self.tmp / "docs" / ".agents" / "artifacts" / ".git").mkdir()  # even with its own repo
+        for nested in ("pub", "docs"):
+            proc = self.run_write(str(self.tmp / nested / ".agents" / "artifacts" / "topics" / "x.md"))
+            self.assertEqual(proc.returncode, 2, nested)
+            self.assertIn("below the repository root", proc.stderr)
+
+    def test_a_tree_nested_inside_the_clone_is_just_a_folder_of_it(self):
+        inner = self.tree / "topics" / "x" / ".agents" / "artifacts"
+        (inner / ".git").mkdir(parents=True)
+        # Outer rules: topics/ is a tier, so this is allowed; inner rules would call newtop.md a
+        # new top-level entry.
+        self.assertEqual(self.decide(".agents/artifacts/topics/x/.agents/artifacts/newtop.md"),
+                         "allow")
+        self.assertEqual(self.decide(".agents/artifacts/topics/collections/.agents/artifacts/a.md"),
+                         "allow")
+
+    def test_a_symlinked_clone_is_judged_where_it_is_spelled(self):
+        # The clone linked to a folder of another name: judged by the path that spells it.
+        store = self.tmp / "store" / "rlm-base-artifacts"
+        store.parent.mkdir()
+        shutil.move(str(self.tree), str(store))
+        self.tree.symlink_to(store, target_is_directory=True)
+        for path, expected in ((self.tree / "inbox" / "2026-11-10-a.md", "allow"),
+                               (self.tree / "newtop.md", "deny"),
+                               (self.tree / "archive" / "2026" / "x" / "a.md", "ask")):
+            self.assertEqual(self.decide(str(path)), expected, path)
+
+    def test_a_link_inside_the_clone_that_leads_out_of_it_asks(self):
+        # The end state is judged: a write spelled inside the clone that a link lands in the
+        # public checkout asks; a link that stays inside the clone changes nothing.
+        public = self.tmp / "docs" / "analysis"
+        public.mkdir(parents=True)
+        (self.tree / "topics" / "shared").symlink_to(public, target_is_directory=True)
+        (self.tree / "topics" / "alias").symlink_to(self.tree / "inbox", target_is_directory=True)
+        for rel, expected in (("topics/shared/private-notes.md", "ask"),
+                              ("topics/shared/new/x.md", "ask"),
+                              ("topics/alias/2026-11-10-a.md", "allow"),
+                              ("newtop.md", "deny")):
+            self.assertEqual(self.decide(f".agents/artifacts/{rel}"), expected, rel)
+        proc = self.run_write(str(self.tree / "topics" / "shared" / "x.md"))
+        self.assertEqual(verdict(self, proc), "ask")
+        self.assertIn("a link resolves it outside the private clone", proc.stdout)
+
+    def test_a_relative_or_unnormalised_path_is_resolved_as_claude_code_would(self):
+        for raw, expected in ((".agents/artifacts/inbox/a.md", "allow"),
+                              (".agents/artifacts/newtop.md", "deny"),
+                              (str(self.tmp / "lnk/../.agents/artifacts/newtop.md"), "deny"),
+                              ("~/x.md", "allow")):
+            self.assertEqual(self.decide(raw, raw=True), expected, raw)
+        # A relative cwd is resolved too, rather than leaving the path relative (fail-open).
+        self.assertEqual(self.guard.resolve_path("x/y.md", ""), os.path.abspath("x/y.md"))
+
+    def test_the_depth_cap_asks_and_a_deep_scan_stays_fast(self):
+        import time
+        cap = self.guard.MAX_JUDGED_COMPONENTS
+        self.assertEqual(self.decide("/".join(["a"] * (cap + 1)) + "/x.md"), "ask")
+        # The worst case under the cap: a pair at every other part and no repository to stop
+        # the scan early. The pair count leaves room for $TMPDIR's own depth.
+        with tempfile.TemporaryDirectory() as scratch:
+            _outside_any_repo(self, scratch)
+            pairs = (cap - len(Path(scratch).parts) - 1) // 2
+            deep = os.path.join(scratch, *([".agents", "artifacts.old"] * pairs), "x.md")
+            start = time.monotonic()
+            self.assertEqual(self.guard.artifacts_decision(deep, scratch)[0], "allow")
+            self.assertLess(time.monotonic() - start, 1.0)
+
+    def test_notebook_edits_get_the_same_rule(self):
+        for name, expected in (("nb.ipynb", "deny"), ("inbox/nb.ipynb", "allow"),
+                               ("archive/2026/x/nb.ipynb", "ask")):
+            self.assertEqual(self.event("NotebookEdit", {"notebook_path": str(self.tree / name),
+                                                         "new_source": "x"}), expected, name)
+
+    def test_unusual_characters_are_judged_like_any_other(self):
+        for name, expected in (("a\x00b.ipynb", "deny"), ("\udcff.md", "deny"),
+                               ("topics/\udcff/x.md", "allow")):
+            proc = self.run_write(str(self.tree) + "/" + name)
+            self.assertEqual(verdict(self, proc), expected, name)
+            self.assertNotIn("Traceback", proc.stderr, name)
+
+    def test_an_unreadable_event_asks_instead_of_failing_open(self):
+        for stdin in ("not json", "[1, 2]"):
+            proc = subprocess.run([sys.executable, str(GUARD)], input=stdin, capture_output=True,
+                                  text=True, timeout=60)
+            self.assertIn('"ask"', proc.stdout, stdin)
+        for tool in ("Write", "NotebookEdit"):  # tool_input not an object
+            self.assertEqual(self.event(tool, "x", judged=False), "ask", tool)
+        # Decoded as UTF-8 whatever the locale: a cp1252 pipe must not skip the rules. The raw
+        # bytes matter (json.dumps would escape the character to ASCII).
+        event = json.dumps({"tool_name": "Write", "cwd": str(self.tmp), "tool_input": {
+            "file_path": str(self.tree / "newtop.md"), "content": "\u274c done"}},
+            ensure_ascii=False).encode("utf-8")
+        proc = subprocess.run([sys.executable, str(GUARD)], input=event, capture_output=True,
+                              env={**os.environ, "PYTHONIOENCODING": "cp1252"}, timeout=60)
+        self.assertEqual(proc.returncode, 2, proc.stderr)
+
+    def test_an_error_inside_a_rule_asks(self):
+        import contextlib
+        import io
+        from unittest import mock
+        guard = _guard_module()
+
+        def boom(*args, **kwargs):
+            raise RuntimeError("boom")
+
+        guard.decide = boom
+        stdin = io.TextIOWrapper(io.BytesIO(b"{}"))
+        with mock.patch.object(sys, "stdin", stdin), \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(guard.main(), 0)
+        self.assertIn('"ask"', out.getvalue())
+        self.assertIn("RuntimeError", out.getvalue())
+
+    def test_an_error_in_one_command_never_hides_a_later_push_deny(self):
+        guard = _guard_module()
+        guard.stop_file = lambda cwd: None
+        real = guard.git_push
+
+        def flaky(argv, cwd, env=None, depth=0):
+            if argv[:1] == ["boom"]:
+                raise RuntimeError("boom")
+            return real(argv, cwd, env, depth)
+
+        guard.git_push = flaky
+        event = {"tool_name": "Bash", "cwd": str(self.tmp),
+                 "tool_input": {"command": "boom && git push origin HEAD:main"}}
+        self.assertEqual(guard.decide(event)[0], "deny")
+        event["tool_input"]["command"] = "boom"
+        self.assertEqual(guard.decide(event)[0], "ask")
+        # A NUL in an argument fails the git call, not the scan.
+        self.assertIsNone(guard.git(str(self.tmp), "config", "--get", "alias.a\x00b"))
+
+    def test_only_sfdmu_plans_are_read(self):
+        guard = _guard_module()
+        guard.stop_file = lambda cwd: None
+
+        def never(path):
+            raise AssertionError(f"read {path}")
+
+        guard.current_text = never
+        event = {"tool_name": "Edit", "cwd": str(self.tmp),
+                 "tool_input": {"file_path": str(self.tree / "inbox" / "a.md"),
+                                "old_string": "a", "new_string": "b"}}
+        self.assertEqual(guard.decide(event), ("allow", ""))
+
+    def test_the_plan_reader_never_blocks_and_says_when_it_cannot_judge(self):
+        datasets = self.tmp / "datasets" / "p"
+        datasets.mkdir(parents=True)
+        self.assertEqual(self.guard.current_text(str(datasets / "missing.json")), "")
+        (datasets / "crlf.json").write_bytes(b"a\r\nb\rc\n")
+        self.assertEqual(self.guard.current_text(str(datasets / "crlf.json")), "a\nb\nc\n")
+        os.mkfifo(str(datasets / "fifo.json"))
+        (datasets / "big.json").write_text("x" * (self.guard.MAX_PLAN_BYTES + 1))
+        (datasets / "latin1.json").write_bytes(b"caf\xe9")
+        import time
+        start = time.monotonic()
+        for name in ("fifo.json", "big.json", "latin1.json", "p\ud800.json", "a\x00b.json"):
+            with self.assertRaises(self.guard.Unreadable, msg=name):
+                self.guard.current_text(str(datasets / name))
+        self.assertLess(time.monotonic() - start, 5.0)
+
+    def test_a_plan_that_cannot_be_read_asks(self):
+        plan = self.tmp / "datasets" / "sfdmu" / "big" / "export.json"
+        plan.parent.mkdir(parents=True)
+        pad = " " * self.guard.MAX_PLAN_BYTES
+        plan.write_text('{"objects": [{"query": "SELECT Id FROM Account", '
+                        '"operation": "Upsert"}]}' + pad)
+        # Over the cap, the current plan is not compared as if it were empty: it asks.
+        self.assertEqual(self.event("Write", {"file_path": str(plan), "content": (
+            '{"objects": [{"query": "SELECT Id FROM Account", "operation": "Insert"}]}')}),
+            "ask")
+        # Nor is a result past the cap compared by the weaker snippet regex: a replay predicted
+        # past it, or Write content past it in bytes (not characters), asks.
+        plan.write_text('{"objects": [{"query": "SELECT Id FROM Account", '
+                        '"operation": "Upsert"}]}')
+        cap = self.guard.MAX_PLAN_BYTES
+        for tool, tool_input in (
+                ("Edit", {"old_string": " ", "new_string": " " * (cap // 4), "replace_all": True}),
+                ("Write", {"content": "\u00e9" * (cap // 2 + 1)})):
+            with self.assertRaises(self.guard.Unreadable, msg=tool):
+                self.guard.text_change(tool, tool_input, str(plan))
+            self.assertEqual(self.event(tool, {"file_path": str(plan), **tool_input}), "ask", tool)
+
+    def test_a_placement_deny_stands_on_a_plan_path(self):
+        plan = self.tmp / ".agents" / "artifacts.old" / "datasets" / "export.json"
+        plan.parent.mkdir(parents=True)
+        plan.write_text('{"objects": [{"query": "SELECT Id FROM Account", '
+                        '"operation": "Upsert"}]}')
+        self.assertEqual(self.event("Edit", {"file_path": str(plan), "old_string": '"Upsert"',
+                                             "new_string": '"Insert"'}), "deny")
+
+    def test_a_relative_plan_path_is_still_judged(self):
+        plan = self.tmp / "datasets" / "sfdmu" / "p" / "export.json"
+        plan.parent.mkdir(parents=True)
+        plan.write_text('{"objects": [{"query": "SELECT Id FROM Account", '
+                        '"operation": "Upsert"}]}')
+        self.assertEqual(self.event("Edit", {"file_path": "export.json", "old_string": '"Upsert"',
+                                             "new_string": '"Insert"'}, cwd=plan.parent), "ask")
+
+    def test_a_crlf_plan_is_compared_as_claude_code_edits_it(self):
+        # Claude Code matches edits against LF text; the plan on disk may be CRLF.
+        plan = self.tmp / "datasets" / "sfdmu" / "p" / "export.json"
+        plan.parent.mkdir(parents=True)
+        plan.write_bytes(b'{"objects": [\r\n  {"query": "SELECT Id FROM Account",\r\n'
+                         b'   "operation": "Upsert"}\r\n]}\r\n')
+        self.assertEqual(self.event("Edit", {
+            "file_path": str(plan),
+            "old_string": '"SELECT Id FROM Account",\n   "operation": "Upsert"',
+            "new_string": '"SELECT Id FROM Account",\n   "operation": "insert"'}), "ask")
+
+    def test_malformed_input_after_placement_asks(self):
+        plan = self.tree / "archive" / "2026" / "x" / "datasets" / "export.json"
+        plan.parent.mkdir(parents=True)
+        for tool, tool_input in (("MultiEdit", {"file_path": str(plan), "edits": [None]}),
+                                 ("Edit", {"file_path": str(plan), "old_string": 5,
+                                           "new_string": "x"})):
+            proc = run_hook(GUARD, {"tool_name": tool, "cwd": str(self.tmp),
+                                    "tool_input": tool_input})
+            self.assertEqual(verdict(self, proc, judged=False), "ask", tool)  # main() fails closed
+
+    def test_an_archived_plan_edit_gives_both_reasons(self):
+        plan = self.tree / "archive" / "2026" / "x" / "datasets" / "export.json"
+        plan.parent.mkdir(parents=True)
+        plan.write_text('{"objects": [{"query": "SELECT Id FROM Account", '
+                        '"operation": "Upsert"}]}')
+        proc = run_hook(GUARD, {"tool_name": "Edit", "cwd": str(self.tmp),
+                                "tool_input": {"file_path": str(plan), "old_string": '"Upsert"',
+                                               "new_string": '"Insert"'}})
+        self.assertIn("frozen history", proc.stdout)
+        self.assertIn("Upsert to Insert", proc.stdout)
 
 
 class KillSwitch(unittest.TestCase):

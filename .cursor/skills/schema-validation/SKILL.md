@@ -241,11 +241,13 @@ The 262-patch source is the canonical truth for what fields exist on a Revenue C
 Use `scripts/erd/orphan_batch_helper.py` to iterate through orphan classification:
 
 ```bash
-# Prepare next batch input (top 20 by orphan count)
+# Prepare next batch input (top 20 by orphan count); written under the system temp folder
+# unless --output-dir says otherwise.
 python scripts/erd/orphan_batch_helper.py prepare --batch 4 --size 20
 
 # Dispatch researcher with the input JSON, merge findings into
-# .agents/artifacts/orphan-fields/orphan-field-ownership.json, then:
+# .agents/artifacts/orphan-fields/orphan-field-ownership.json (in the private clone; without it,
+# keep the file elsewhere and pass --ownership-json <path> to apply), then:
 python scripts/erd/orphan_batch_helper.py apply --batch 4
 
 # Re-validate and produce the next orphan report. --orgs is REQUIRED, has no default,

@@ -282,7 +282,7 @@ class LaunchChecks(unittest.TestCase):
 
     def test_example_and_optional_links_do_not_fail(self):
         self.write("README.md", '''[external](https://example.com/not-fetched) [anchor](#not-checked)
-[private](.agents/artifacts/not-present.md)
+[private](.agents/artifacts/inbox/not-present.md)
 <!-- [comment](missing.md) -->
 `[code](missing.md)`
 ~~~md
