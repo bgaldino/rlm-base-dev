@@ -48,7 +48,9 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
      top-level entry of the clone (not in ARTIFACTS_ROOT, not already on disk).
    - Ask: a write under the clone's `archive/` (frozen history) or into its own tooling
      (ARTIFACTS_TOOLING: `.git/`, `.githooks/`, `tools/`), or a case variant of either that
-     the disk resolves to the existing entry; and any event or path the guard fails to judge.
+     the disk resolves to the existing entry; a write a link inside the clone resolves to a
+     location outside it (the one check that follows links, on the final location only); and
+     any event or path the guard fails to judge.
    Existing top-level entries keep accepting writes until the reorg moves them.
 
 What this guard does not catch, and what backs it up:
@@ -69,7 +71,7 @@ What this guard does not catch, and what backs it up:
   and its admin bypass applies to pull-request merges only, so a direct push with the
   owner's credentials is rejected. This guard refuses it earlier and says why.
 - Artifacts writes made through Bash (`>`, `cp`, `mv`, a script) rather than Edit/Write, and
-  writes whose path does not spell `.agents/artifacts`: a link inside or into the clone, a
+  writes whose path does not spell `.agents/artifacts`: a link into the clone, a
   linked clone addressed at its real location, a clone link that points at another checkout
   or at a directory above it (`-> ..`), an inode path (macOS `/.vol`) or a hard link. Rule 4 catches the misplaced write an agent
   spells out; the private repository's pre-commit hook (`tools/check_layout.py`, once enabled as
@@ -703,7 +705,15 @@ def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
         return "deny", (f"`{tree}` is not the private clone (a git repository of its own), so "
                         "nothing written there is versioned; replace it with a clone "
                         "(todo-tracker skill, First run), or use $TMPDIR for scratch")
-    return _placement(parts[i + 2:], tree)
+    placement = _placement(parts[i + 2:], tree)
+    # Where the write finally lands, links resolved: a link inside the clone can lead out of it,
+    # into the public checkout. Only the end state is judged, so it asks rather than refuses.
+    clone = os.path.realpath(tree)
+    if placement[0] != "deny" and os.path.commonpath([os.path.realpath(resolved), clone]) != clone:
+        reason = ("this path is spelled inside `.agents/artifacts/` but a link resolves it outside "
+                  "the private clone, so the file would not be private. Confirm where it lands")
+        return "ask", reason + (f". Also: {placement[1]}" if placement[0] == "ask" else "")
+    return placement
 
 
 def _placement(rest: Tuple[str, ...], tree: Path) -> Tuple[str, str]:

@@ -795,6 +795,22 @@ class ArtifactsPlacement(unittest.TestCase):
                                (self.tree / "archive" / "2026" / "x" / "a.md", "ask")):
             self.assertEqual(self.decide(str(path)), expected, path)
 
+    def test_a_link_inside_the_clone_that_leads_out_of_it_asks(self):
+        # The end state is judged: a write spelled inside the clone that a link lands in the
+        # public checkout asks; a link that stays inside the clone changes nothing.
+        public = self.tmp / "docs" / "analysis"
+        public.mkdir(parents=True)
+        (self.tree / "topics" / "shared").symlink_to(public, target_is_directory=True)
+        (self.tree / "topics" / "alias").symlink_to(self.tree / "inbox", target_is_directory=True)
+        for rel, expected in (("topics/shared/private-notes.md", "ask"),
+                              ("topics/shared/new/x.md", "ask"),
+                              ("topics/alias/2026-11-10-a.md", "allow"),
+                              ("newtop.md", "deny")):
+            self.assertEqual(self.decide(f".agents/artifacts/{rel}"), expected, rel)
+        proc = self.run_write(str(self.tree / "topics" / "shared" / "x.md"))
+        self.assertEqual(verdict(self, proc), "ask")
+        self.assertIn("a link resolves it outside the private clone", proc.stdout)
+
     def test_a_relative_or_unnormalised_path_is_resolved_as_claude_code_would(self):
         for raw, expected in ((".agents/artifacts/inbox/a.md", "allow"),
                               (".agents/artifacts/newtop.md", "deny"),
