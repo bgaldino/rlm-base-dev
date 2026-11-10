@@ -89,4 +89,117 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
             results[0].errorMessage
         );
     }
+
+    // ── Not covered: the Place Sales Transaction path ───────────────────────
+    //
+    // The PST path (and the post-save readback) needs QuoteLineItemAttribute
+    // rows on the line. An Apex test cannot create them: ordinary DML is
+    // refused ("use insertAsync() or insertImmediate()"), insertAsync is
+    // refused for this object, and insertImmediate reports success but the row
+    // is never queryable. That path is therefore not unit-tested; the
+    // no-matching-attributes branch is covered above.
+
+    // ── Input guards ─────────────────────────────────────────────────────────
+
+    @isTest
+    static void saveReturnsNoResultsForNullOrEmptyInput() {
+        Test.startTest();
+        List<RLM_AI_ProductAttributeSaveService.SaveOutput> fromNull =
+            RLM_AI_ProductAttributeSaveService.saveAttributeSelections(null);
+        List<RLM_AI_ProductAttributeSaveService.SaveOutput> fromEmpty =
+            RLM_AI_ProductAttributeSaveService.saveAttributeSelections(
+                new List<RLM_AI_ProductAttributeSaveService.SaveInput>()
+            );
+        Test.stopTest();
+
+        Assert.areEqual(0, fromNull.size(), 'A null input list returns no results.');
+        Assert.areEqual(0, fromEmpty.size(), 'An empty input list returns no results.');
+    }
+
+    @isTest
+    static void saveGuidesUserWhenAnInputEntryIsNull() {
+        Test.startTest();
+        List<RLM_AI_ProductAttributeSaveService.SaveOutput> results =
+            RLM_AI_ProductAttributeSaveService.saveAttributeSelections(
+                new List<RLM_AI_ProductAttributeSaveService.SaveInput>{ null }
+            );
+        Test.stopTest();
+
+        Assert.areEqual(1, results.size(), 'A null entry still yields one result.');
+        Assert.isFalse(results[0].isSuccess);
+        Assert.isFalse(results[0].isValid);
+        Assert.areEqual('[]', results[0].validationErrorsJson);
+        Assert.areEqual(
+            'Select a quote and quote line item before saving product configuration.',
+            results[0].errorMessage
+        );
+    }
+
+    @isTest
+    static void saveGuidesUserWhenQuoteIdIsNotAQuote() {
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
+            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('RLM Save Wrong Quote Type');
+        Account notAQuote = new Account(Name = 'RLM Save Not A Quote');
+        insert notAQuote;
+
+        RLM_AI_ProductAttributeSaveService.SaveInput input =
+            new RLM_AI_ProductAttributeSaveService.SaveInput();
+        input.quoteId = String.valueOf(notAQuote.Id);
+        input.quoteLineItemId = String.valueOf(fixture.quoteLineItemId);
+        input.attributeSelectionsJson = '{}';
+
+        Test.startTest();
+        RLM_AI_ProductAttributeSaveService.SaveOutput out = saveOne(input);
+        Test.stopTest();
+
+        Assert.isFalse(out.isSuccess, 'A valid Id of another object is not a quote.');
+        Assert.isFalse(out.isValid);
+        Assert.areEqual('Select a valid quote before saving product configuration.', out.errorMessage);
+    }
+
+    @isTest
+    static void saveGuidesUserWhenQuoteLineIdIsInvalid() {
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
+            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('RLM Save Bad Line Id');
+
+        RLM_AI_ProductAttributeSaveService.SaveInput malformed =
+            new RLM_AI_ProductAttributeSaveService.SaveInput();
+        malformed.quoteId = String.valueOf(fixture.quoteId);
+        malformed.quoteLineItemId = 'not-a-quote-line-id';
+        malformed.attributeSelectionsJson = '{}';
+
+        // A well-formed Id of the wrong object (the quote itself) is also rejected.
+        RLM_AI_ProductAttributeSaveService.SaveInput wrongObject =
+            new RLM_AI_ProductAttributeSaveService.SaveInput();
+        wrongObject.quoteId = String.valueOf(fixture.quoteId);
+        wrongObject.quoteLineItemId = String.valueOf(fixture.quoteId);
+        wrongObject.attributeSelectionsJson = '{}';
+
+        Test.startTest();
+        List<RLM_AI_ProductAttributeSaveService.SaveOutput> results =
+            RLM_AI_ProductAttributeSaveService.saveAttributeSelections(
+                new List<RLM_AI_ProductAttributeSaveService.SaveInput>{ malformed, wrongObject }
+            );
+        Test.stopTest();
+
+        Assert.areEqual(2, results.size(), 'One result per input.');
+        for (RLM_AI_ProductAttributeSaveService.SaveOutput out : results) {
+            Assert.isFalse(out.isSuccess);
+            Assert.isFalse(out.isValid);
+            Assert.areEqual(
+                'Select a valid quote line item before saving product configuration.',
+                out.errorMessage
+            );
+        }
+    }
+
+    private static RLM_AI_ProductAttributeSaveService.SaveOutput saveOne(
+            RLM_AI_ProductAttributeSaveService.SaveInput input) {
+        List<RLM_AI_ProductAttributeSaveService.SaveOutput> results =
+            RLM_AI_ProductAttributeSaveService.saveAttributeSelections(
+                new List<RLM_AI_ProductAttributeSaveService.SaveInput>{ input }
+            );
+        Assert.areEqual(1, results.size(), 'One input yields one result.');
+        return results[0];
+    }
 }
