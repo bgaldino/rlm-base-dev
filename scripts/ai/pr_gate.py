@@ -239,13 +239,13 @@ def local_branches():
     """Every `refs/heads/` name in this repository, short form: what a `[branch]` subsection names.
     Split on "\\n" only: a ref name cannot hold a control character, but it can hold U+2028, which
     splitlines() would cut into a fabricated shorter ref (Copilot, PR 705). Decoded exactly as
-    config_entries() decodes git's reading of the config, so the two compare like for like. Empty
+    config_entries() decodes git's reading of the config, so the two compare like for like. None
     when the refs cannot be listed, which excuses nothing rather than stopping the gate and losing
     the diff of what changed."""
     out = git(["for-each-ref", "--format=%(refname)", "refs/heads/"], "for-each-ref refs/heads/",
               fatal=False)
     if out is None:
-        return set()
+        return None
     return {ref[len("refs/heads/"):] for ref in out.split("\n") if ref.startswith("refs/heads/")}
 
 
@@ -282,7 +282,8 @@ def config_change_note(before, after):
     if not changed:
         return "", False
     real = local_branches()
-    excused, failing, unread = set(), [], False
+    excused, failing, unread = set(), [], real is None
+    real = real or set()
     for path in changed:
         old, new = config_entries(before[path]), config_entries(after.get(path))
         unread |= old is None or new is None
@@ -309,8 +310,8 @@ def config_change_note(before, after):
             " repository (or something else wrote it meanwhile). Only [branch] bookkeeping is excused"
             " (a real local branch's tracking of its own name on a defined remote, or an editor's"
             " note), and this change is not that"
-            + (": git could not read a snapshot of it, so nothing in that file could be excused"
-               if unread else "")
+            + (": git could not read a snapshot of it or list the local branches, so nothing could be"
+               " excused" if unread else "")
             + ". Restore it by hand; the change is not reverted for you."
             + (f" (The [branch] bookkeeping for {named} in the diff below is excused.)" if excused
                else "") + "\n" + "\n".join(diffs) + "\n", True)

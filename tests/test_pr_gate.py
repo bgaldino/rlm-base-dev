@@ -4951,7 +4951,7 @@ VERDICT_REGIONS = {
     # Pinned when the excuse for `[branch]` bookkeeping entries moved here from a one-line byte
     # comparison in run(): about sixty lines that call git now decide whether a config change fails.
     # It reads git's own answers (config --list, for-each-ref), the same on every host.
-    "the config guard": ("6b5f6f10c4c9", "whether a check's config change fails it"),
+    "the config guard": ("b7b40bc669e6", "whether a check's config change fails it"),
     "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
@@ -5696,8 +5696,19 @@ try:
 finally:
     pr_gate.REPO_ROOT = prior_root
     os.rmdir(unlistable)
-check("git(fatal=False) returns None on failure, and refs that cannot be listed excuse nothing",
-      soft is None and unlisted == set(), (soft, unlisted))
+check("git(fatal=False) returns None on failure, and so do refs that cannot be listed",
+      soft is None and unlisted is None, (soft, unlisted))
+# Refs that cannot be listed excuse nothing, and the failure says why rather than blaming the change.
+real_branches = pr_gate.local_branches
+pr_gate.local_branches = lambda: None
+try:
+    unlisted_note, unlisted_fails = pr_gate.config_change_note(
+        {"config": b'[remote "o"]\n\turl = x\n'},
+        {"config": b'[remote "o"]\n\turl = x\n[branch "work"]\n\tremote = o\n'})
+finally:
+    pr_gate.local_branches = real_branches
+check("a branch's tracking fails when the refs cannot be listed, saying git could not list them",
+      unlisted_fails and "list the local branches" in unlisted_note, unlisted_note)
 check("git(fatal=False) returns None when git cannot even be spawned, rather than dying",
       unspawned is None, unspawned)
 check("git() without fatal=False still dies with exit 2 and a readable message, not a bytes repr",
@@ -5806,7 +5817,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 824
+EXPECTED = 825
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
