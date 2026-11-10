@@ -471,10 +471,11 @@ def rewrite_patch_entries(
     """Edit only the changed entries of patch file ``text`` in place.
 
     ``refreshed[n]`` is the new value of ``old[n]``, or None to drop it. An
-    unchanged entry keeps its exact text, a dropped one goes with the comments
-    directly above it, and a changed one is re-rendered in place under those
-    comments. The rest of the file is untouched, so a writeback's diff shows
-    only what changed. Return None when the file's layout is not recognised or
+    unchanged entry keeps its exact text, and a dropped one goes with the
+    comments directly above it. A changed one keeps those comments and the
+    exact lines of every key whose value did not change; only its changed or new
+    keys are rendered (see ``_changed_entry``). The rest of the file is untouched,
+    so a writeback's diff shows only what changed. Return None when the file's layout is not recognised or
     the result would not load as ``expected``; the caller then rewrites it whole.
     """
     lines = text.splitlines(keepends=True)
