@@ -587,7 +587,7 @@ class ArtifactsPlacement(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.tree = self.tmp / ".agents" / "artifacts"
         for d in ("topics/collections", "inbox", "todos/attachments", "archive/2026/x",
-                  "verification"):
+                  "verification", ".git"):  # .git: the private clone is a repo of its own
             (self.tree / d).mkdir(parents=True)
 
     def tearDown(self):
@@ -745,7 +745,9 @@ class ArtifactsPlacement(unittest.TestCase):
         proc = run_hook(GUARD, {"tool_name": "NotebookEdit", "cwd": str(self.tmp),
                                 "tool_input": {"notebook_path": ".agents/artifacts/a\x00b.ipynb",
                                                "new_source": "x"}})
-        self.assertEqual((proc.returncode, proc.stdout), (0, ""), proc.stderr)
+        # Judged, not crashed: a NUL-named top-level entry is a new one, so it is denied.
+        self.assertEqual(proc.returncode, 2, proc.stderr)
+        self.assertNotIn("Traceback", proc.stderr)
 
     def test_both_landings_are_judged_and_the_stricter_wins(self):
         # Claude Code normalises `..` before writing; the OS follows a link before `..`.
@@ -780,6 +782,35 @@ class ArtifactsPlacement(unittest.TestCase):
         import time
         start = time.monotonic()
         self.assertEqual(self.decide("/".join(["a"] * 600) + "/x.md"), "allow")
+        self.assertLess(time.monotonic() - start, 5.0)
+
+    def test_an_unstatable_component_on_one_reading_does_not_excuse_the_other(self):
+        long = "L" * 300
+        self.assertEqual(self.decide(f"{long}/../.agents/artifacts/newtop.md"), "deny")
+        self.assertEqual(self.decide(f"{long}/../.agents/artifacts/archive/2026/x/a.md"), "ask")
+        locked = self.tmp / "locked"
+        (locked / "sub").mkdir(parents=True)
+        locked.chmod(0)
+        try:
+            self.assertEqual(self.decide("locked/sub/../../.agents/artifacts/newtop.md"), "deny")
+        finally:
+            locked.chmod(0o755)
+        with tempfile.TemporaryDirectory() as other:
+            self.assertEqual(self.decide(f"{long}/../.agents/artifacts/inbox/a.md", cwd=other),
+                             "deny")
+
+    def test_a_public_folder_named_like_the_tree_is_not_private(self):
+        public = self.tmp / "pub" / ".agents" / "artifacts" / "topics"
+        public.mkdir(parents=True)  # no .git: not the clone, and not gitignored
+        self.assertEqual(self.decide("pub/.agents/artifacts/topics/x.md"), "deny")
+
+    def test_long_dot_dot_chains_stay_fast(self):
+        import time
+        deep = "/".join(f"d{i}" for i in range(200))
+        (self.tmp / deep).mkdir(parents=True)
+        path = deep + "/" + "x/.." * 1000 + "/" + "/".join([".."] * 200) + "/.agents/artifacts/newtop.md"
+        start = time.monotonic()
+        self.assertEqual(self.decide(path), "deny")
         self.assertLess(time.monotonic() - start, 5.0)
 
     def test_public_agents_files_are_untouched(self):

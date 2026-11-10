@@ -8,9 +8,9 @@ clone and CI never have the tree, so citations can rot unseen: of 16 paths cited
 
 Three checks, in order:
 
-(a) Leak guard — GATING. No tracked path may start with `.agents/artifacts` (sibling backups such
-    as `.agents/artifacts.old/` included, which `.gitignore` does not cover) or contain
-    `-core-code-`.
+(a) Leak guard — GATING. No tracked path may contain a `.agents/artifacts` segment, at the root or
+    nested, sibling backups such as `.agents/artifacts.old/` and case variants included (only the
+    repo-root `.agents/artifacts/` is gitignored), or contain `-core-code-`.
 (b) Shape. Every `.agents/artifacts/<x>` literal in tracked text must be the bare directory, a
     template or glob, or start with a private tier (PRIVATE_TIERS). A top-level-shaped citation
     is a warning until SHAPE_GATING is switched on, once the citations are rewritten (todo 358,
@@ -134,7 +134,9 @@ def main(argv: list[str]) -> int:
     for p in paths:  # (a)
         # casefold(): `.agents/Artifacts/` is the tree on a case-insensitive disk but an
         # un-ignored, trackable directory on a case-sensitive one such as CI.
-        if p.casefold().startswith(ROOT) or "-core-code-" in p.casefold():
+        # Anywhere in the path: only the repo-root `.agents/artifacts/` is gitignored, so a
+        # nested one is exactly the copy that gets committed by accident.
+        if ("/" + p.casefold()).find("/" + ROOT) != -1 or "-core-code-" in p.casefold():
             errors.append(f"{p}: private content is tracked in the public repo; remove it "
                           f"(git rm --cached) and keep it in the private tree")
 

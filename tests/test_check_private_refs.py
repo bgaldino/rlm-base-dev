@@ -106,6 +106,12 @@ class Shape(Fixture):
         self.assertIn(".agents/artifacts/other.md cites the private tree's top level", proc.stdout)
         self.assertNotIn("other.md_", proc.stdout)
 
+    def test_a_nested_tree_folder_fails_the_leak_guard(self):
+        self.write("docs/.agents/artifacts/notes.md", "private\n")
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 1, proc.stdout)
+        self.assertIn("docs/.agents/artifacts/notes.md: private content is tracked", proc.stdout)
+
     def test_case_variants_of_the_tree_fail_the_leak_guard(self):
         self.write(".Agents/artifacts/notes.md", "private\n")
         proc = self.run_check()

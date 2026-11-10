@@ -50,7 +50,9 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    Spelled inside the tree but landing outside it, or leaving the tree through a link, is an
    escape and is denied. The tree and its top-level entries are matched by file identity
    (samefile), never by spelling, so case and Unicode case-fold variants on a case-insensitive
-   disk get the same rules; the outermost containing tree's rules apply.
+   disk get the same rules; the outermost containing tree's rules apply. Only the private clone
+   counts as the tree (a directory with its own `.git`): a same-named public folder deeper in
+   the repo is not gitignored, so writes into it are refused like any other new tree.
 
 What this guard does not catch, and what backs it up:
 - Commands hidden in `$(...)`, `bash -c`, `eval`, `env -S '…'`, `xargs` or `find -exec`, a
@@ -613,8 +615,30 @@ def _spelled_hits(p: Path) -> List[str]:
 def _same(a: Path, b: Path) -> bool:
     try:
         return os.path.samefile(a, b)
-    except OSError:
+    except (OSError, ValueError):
         return False
+
+
+def _isdir(p: Path) -> bool:
+    """is_dir() that answers False rather than raising on a path the OS cannot stat."""
+    try:
+        return p.is_dir()
+    except (OSError, ValueError):
+        return False
+
+
+def _exists(p: Path) -> bool:
+    try:
+        return p.exists()
+    except (OSError, ValueError):
+        return False
+
+
+def _is_clone(d: Path) -> bool:
+    """A `.agents/artifacts` directory that is the private clone: a repository of its own.
+    Only the repo-root `.agents/artifacts/` is gitignored, so a same-named public folder
+    deeper in the tree (no `.git`) would be committed, and gets no exemption here."""
+    return _isdir(d) and _exists(d / ".git")
 
 
 def _within(path: Path, root: Path) -> bool:
@@ -632,7 +656,7 @@ def _is_tree(d: Path) -> bool:
     """Whether `d` IS a `.agents/artifacts` directory, by file identity (cached per run)."""
     key = str(d)
     if key not in _TREE_CACHE:
-        _TREE_CACHE[key] = (d.parent != d and d.is_dir()
+        _TREE_CACHE[key] = (d.parent != d and _is_clone(d)
                             and _same(d, d.parent / "artifacts")
                             and _same(d.parent, d.parent.parent / ".agents"))
     return _TREE_CACHE[key]
@@ -642,10 +666,10 @@ def _private_tree(real: Path) -> Optional[Path]:
     """The OUTERMOST ancestor of `real` that IS a `.agents/artifacts` directory, by file
     identity rather than spelling, so no case or Unicode variant is mistaken for another
     folder, and a nested tree inside the private one is judged by the outer tree's rules."""
-    for depth in range(2, len(real.parts) + 1):
-        if _is_tree(Path(*real.parts[:depth])):
-            return Path(*real.parts[:depth])
-    return None
+    for d in reversed(real.parents):
+        if _is_tree(d):
+            return d
+    return real if _is_tree(real) else None
 
 
 def _resolution_steps(raw: str) -> List[Tuple[str, Path]]:
@@ -660,7 +684,7 @@ def _resolution_steps(raw: str) -> List[Tuple[str, Path]]:
             cur = cur.parent
         else:
             nxt = cur / comp
-            cur = Path(os.path.realpath(nxt)) if os.path.islink(nxt) else nxt
+            cur = Path(os.path.realpath(nxt)) if os.path.islink(nxt) else nxt  # islink: no raise
         steps.append((comp, cur))
     return steps
 
@@ -705,14 +729,18 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
                      if lexical.parts[i:i + 2] == (".agents", "artifacts")]
     roots = [Path(b) / ".agents" / "artifacts"
              for b in (os.environ.get("CLAUDE_PROJECT_DIR"), cwd) if b] + spelled_trees
-    trees = {Path(os.path.realpath(t)) for t in roots if t.is_dir()}
+    trees = {Path(os.path.realpath(t)) for t in roots if _is_clone(t)}
     for steps in readings:
         tree_here: Optional[Path] = None
         prev: Optional[Path] = None
         for _, cur in steps:
-            # Appending a component keeps the tree found so far; a jump (link, `..`) rescans.
+            # Invariant: tree_here is the outermost tree among cur's ancestors. Appending a
+            # component can only add cur itself; climbing (`..`) can only drop trees below cur;
+            # only a link jump needs a rescan, so `..` chains stay linear.
             if prev is not None and cur.parent == prev:
                 tree_here = tree_here or (cur if _is_tree(cur) else None)
+            elif prev is not None and _within(prev, cur):
+                tree_here = tree_here if tree_here is not None and _within(cur, tree_here) else None
             else:
                 tree_here = _private_tree(cur)
             if tree_here is not None:
@@ -722,7 +750,7 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     def containing(p: Path) -> List[Path]:
         return [t for t in trees if _within(p, t)]
 
-    spelled_inside = any(_within(lexical, t) for t in spelled_trees if t.is_dir())
+    spelled_inside = any(_within(lexical, t) for t in spelled_trees if _is_clone(t))
     escape = ("deny", (f"`{path}` resolves through a symlink outside the private "
                        "`.agents/artifacts/` tree; write to a plain path inside the tree "
                        "itself"))
@@ -734,7 +762,7 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
             # Spelled inside the tree but landing outside it, or inside a tree at one step and
             # outside at the next by a link (not a spelled `..`): either way it escapes. A
             # spelled tree that does not exist anywhere it could land would be created.
-            if spelled_trees and not any(t.is_dir() for t in spelled_trees):
+            if spelled_trees and not any(_is_clone(t) for t in spelled_trees):
                 decision = ("deny", ("`.agents/artifacts/` (the private repository) is not "
                                      "cloned here; do not create it. Use $TMPDIR for scratch, "
                                      "or say where the content should live"))
@@ -759,7 +787,7 @@ def _placement(real: Path, tree: Path) -> Tuple[str, str]:
     if canonical is None:
         if rest[0] in ARTIFACTS_ROOT:
             canonical = rest[0]
-        elif not entry.exists():
+        elif not _exists(entry):
             return "deny", (f"`{rest[0]}` would be a new top-level entry of `.agents/artifacts/`, "
                             f"whose top level is closed; {ARTIFACTS_HINT}")
     if canonical == "archive" and len(rest) > 1:
