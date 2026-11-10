@@ -110,8 +110,12 @@ re-sign that branch's commits too and add them to your PR.
 base=main            # or preview/<n>, release/<n>: the branch your PR targets
 git fetch upstream
 git rebase --exec 'git commit --amend --no-edit --no-verify -S' "$(git merge-base HEAD "upstream/$base")"
-git push --force-with-lease
+git push --force-with-lease origin HEAD
 ```
+
+The push names `origin` and `HEAD` because a branch pushed without `-u` (step 7) has no upstream, so
+a bare `git push --force-with-lease` stops with "has no upstream branch". The lease still checks
+against `origin/<branch>`, so it refuses if someone else pushed there meanwhile.
 
 This rewrites your branch as a straight line. If you merged the base branch into it, redo that as a
 rebase instead.
