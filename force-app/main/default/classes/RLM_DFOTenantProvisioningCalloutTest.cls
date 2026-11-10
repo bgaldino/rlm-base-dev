@@ -1,3 +1,8 @@
+/**
+ * Not covered: the fulfillment-line success path (FulfillmentLineSourceRel to its order item, then
+ * the tenant callout). It needs a fulfillment order, its lines and their source relations, which is
+ * too heavy a fixture for a unit test; only the missing-relation failure is tested here.
+ */
 @IsTest
 private class RLM_DFOTenantProvisioningCalloutTest {
 

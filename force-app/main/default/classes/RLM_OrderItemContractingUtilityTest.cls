@@ -198,12 +198,7 @@ private class RLM_OrderItemContractingUtilityTest {
         );
         User noAccess = minimumAccessUser();
         if (noAccess == null) {
-            System.debug(
-                LoggingLevel.WARN,
-                'SKIPPED: no profile named \'Minimum Access - Salesforce\' (English name; standard profile '
-                    + 'names can be translated), or no free Salesforce seat, in this org'
-            );
-            return;
+            return; // minimumAccessUser() logged the reason as a SKIPPED warning
         }
 
         List<RLM_OrderItemContractingUtility.OrderInfoResults> results;
@@ -238,6 +233,11 @@ private class RLM_OrderItemContractingUtilityTest {
     private static User minimumAccessUser() {
         List<Profile> profiles = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
         if (profiles.isEmpty()) {
+            System.debug(
+                LoggingLevel.WARN,
+                'SKIPPED: no profile named \'Minimum Access - Salesforce\' (English name; standard profile '
+                    + 'names can be translated) in this org'
+            );
             return null;
         }
         Profile minimal = profiles[0];
@@ -260,6 +260,7 @@ private class RLM_OrderItemContractingUtilityTest {
             }
         } catch (DmlException e) {
             if (e.getDmlType(0) == StatusCode.LICENSE_LIMIT_EXCEEDED) {
+                System.debug(LoggingLevel.WARN, 'SKIPPED: no free Salesforce seat for a test user in this org');
                 return null;
             }
             throw e;
