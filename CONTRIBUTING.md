@@ -306,8 +306,11 @@ current without pushing to any `main` branch — which
 
 ```sh
 git fetch upstream
-git checkout -b my-next-feature upstream/main
+git checkout --no-track -b my-next-feature upstream/main
 ```
+
+`--no-track` keeps the new branch from tracking `upstream/main`: that tracking entry would otherwise
+be written into the shared `.git/config`, the same write step 7 avoids.
 
 Nothing in this workflow reads your fork's own `main`, so it can stay as it is.
 If you would rather keep it current, use your fork's **Sync fork** button on

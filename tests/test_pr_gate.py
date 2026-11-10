@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from contextlib import contextmanager, redirect_stdout
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "scripts", "ai"))
@@ -5411,6 +5411,20 @@ try:
         branch_cases[label] = pr_gate.config_change_note(
             {branch_config: template.format("old@example.com").encode()},
             {branch_config: template.format("new@example.com").encode()})
+    # The rule is "refs/heads/X exists at the end of the run", so a section removed for a branch that
+    # is gone (another session's `git branch -D`) still fails: pinned, so loosening it is deliberate.
+    branch_cases["removed"] = pr_gate.config_change_note(
+        {branch_config: b'[core]\n[branch "deleted/elsewhere"]\n\tremote = origin\n'},
+        {branch_config: b'[core]\n'})
+    # One file's excused [branch] change must not carry another file's unexplained change with it.
+    branch_cases["split"] = pr_gate.config_change_note(
+        {branch_config: b"[core]\n", branch_config + ".worktree": b"[core]\n"},
+        {branch_config: b'[core]\n[branch "other-session/work"]\n\tremote = origin\n',
+         branch_config + ".worktree": b"# a comment git reads as nothing\n[core]\n"})
+    # CRLF is git's to read, not ours: a real branch's section written with CRLF is still excused.
+    branch_cases["crlf"] = pr_gate.config_change_note(
+        {branch_config: b'[core]\r\n'},
+        {branch_config: b'[core]\r\n[branch "other-session/work"]\r\n\tremote = origin\r\n'})
 finally:
     pr_gate.REPO_ROOT = prior_root
     pr_gate.CONFIG_NOTES.clear()
@@ -5441,8 +5455,47 @@ check("a user.email change still fails",
       branch_cases["user"])
 check("a user.email change alongside an excused [branch] section still fails",
       branch_cases["real+user"][0] == 1 and not branch_cases["real+user"][2], branch_cases["real+user"])
-check("config_sections reads an escaped branch name back as the ref it names",
-      [n for n, _ in pr_gate.config_sections('[core]\n[branch "a\\\\b"]\n')] == [None, None, "a\\b"])
+check("a section removed for a branch that no longer exists still fails",
+      branch_cases["removed"][1] is True, branch_cases["removed"])
+check("a CRLF config is read by git, so a real branch's section written with CRLF is still excused",
+      branch_cases["crlf"][1] is False and "other-session/work" in branch_cases["crlf"][0],
+      branch_cases["crlf"])
+# git is the parser: an escaped subsection comes back as the ref it names, a dotted branch name keeps
+# its dots, and a global `branch.*` setting is not mistaken for a branch's.
+check("git's reading of an escaped, dotted branch section names the ref it belongs to",
+      pr_gate.config_entries(b'[branch "a\\\\b.c"]\n\tremote = o\n') == [("branch.a\\b.c.remote", "o")]
+      and pr_gate.branch_of("branch.a\\b.c.remote") == "a\\b.c"
+      and pr_gate.branch_of("branch.autosetupmerge") is None,
+      pr_gate.config_entries(b'[branch "a\\\\b.c"]\n\tremote = o\n'))
+check("a snapshot git cannot parse excuses nothing and fails",
+      pr_gate.config_change_note({"c": b"[core]\n"}, {"c": b"[core]\n[user\n"})[1] is True)
+check("a change git reads as no change at all (a comment) is shown and failed, not passed unexamined",
+      pr_gate.config_change_note({"c": b"[core]\n"}, {"c": b"# note\n[core]\n"})[1] is True)
+check("...even when another file's change is excused in the same run",
+      branch_cases["split"][1] is True and "worktree" in branch_cases["split"][0], branch_cases["split"])
+# git(fatal=False) answers a failure with None, never an empty string; raw mode still dies with text.
+unlistable = tempfile.mkdtemp()
+prior_root = pr_gate.REPO_ROOT
+raw_err = io.StringIO()
+try:
+    pr_gate.REPO_ROOT = unlistable
+    with outside_any_repo(unlistable):
+        soft = pr_gate.git(["rev-parse", "HEAD"], "probe", raw=True, fatal=False)
+        unlisted = pr_gate.local_branches()
+        try:
+            with redirect_stderr(raw_err):
+                pr_gate.git(["rev-parse", "HEAD"], "probe", raw=True)
+            raw_code = 0
+        except SystemExit as exc:
+            raw_code = exc.code
+finally:
+    pr_gate.REPO_ROOT = prior_root
+    os.rmdir(unlistable)
+check("git(fatal=False) returns None on failure, and refs that cannot be listed excuse nothing",
+      soft is None and unlisted == set(), (soft, unlisted))
+check("git(raw=True) still dies with exit 2 and a readable message, not a bytes repr",
+      raw_code == 2 and "b'" not in raw_err.getvalue() and "probe failed" in raw_err.getvalue(),
+      (raw_code, raw_err.getvalue()))
 # Classification is lossless: decoded with "replace", two distinct non-UTF-8 names both became U+FFFD,
 # compared equal, and the change passed as an empty branch note (Copilot, PR 705).
 latin_note, latin_fails = pr_gate.config_change_note(
@@ -5530,7 +5583,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 780
+EXPECTED = 787
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

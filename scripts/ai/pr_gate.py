@@ -65,10 +65,10 @@ interpreter on that missing-dependency path and nowhere else.
 import argparse
 import difflib
 import os
-import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -164,100 +164,119 @@ def repo_config_bytes():
 # that failed an innocent check twice during PR 702. Such a section is told apart from a fixture leak
 # by its branch: another worktree's branch has a real `refs/heads/<name>` here, while a fixture's
 # (`feature`, `preview/next` and the like) exists only in its throwaway repo. Only that case is
-# tolerated, and only for the `[branch]` section itself; any other change still fails. The one gap is a
+# tolerated, and only for `branch.<name>.*` entries; any other change still fails. The one gap is a
 # fixture name that is also a real branch here (`main`): a leak confined to that branch's tracking keys
 # would pass as another worktree's, which is the price of not failing on every concurrent `push -u`.
-# The parse has to agree with git's, or a line git reads as user.* can be filed under a branch. So:
-# lines end at "\n" only (str.splitlines also breaks on \f, \u2028 and others, which git keeps inside a
-# value); whitespace is ASCII, as git's isspace is; and a `[branch "X"]` header counts only when nothing
-# but a comment follows it, since git opens another section on the same line: `[branch "main"][user]
-# email = x` sets user.email. A header line with anything else after it is read as a non-branch one.
-_SECTION_HEADER = re.compile(r"\s*\[", re.ASCII)
-_BRANCH_HEADER = re.compile(r'\s*\[branch\s+"((?:[^"\\\n]|\\.)*)"\]\s*(?:[#;][^\n]*)?$',
-                            re.IGNORECASE | re.ASCII)
-# A value ending in a backslash continues onto the next line, so a line that looks like a header may
-# still be part of the previous section's value: `name = Alice\` then `[branch "main"]` then
-# `email = ...` sets user.email. config_sections() reads physical lines, so a file with any line
-# ending in a backslash (Copilot, PR 705) is excused nothing and keeps the strict behaviour.
-_CONTINUATION = re.compile(r"\\\r?$", re.MULTILINE)
+#
+# Both snapshots are read by git itself (`git config --file <snapshot> --null --list`), not by a parser
+# here. A hand-rolled one disagreed with git four ways in one review cycle of PR 705 (a backslash
+# continuation, a section opened on a header's own line, splitlines() breaking on \f and U+2028, and a
+# ref list split the same way), and each let a line git reads as user.* pass as a branch's. `--file`
+# reads that file alone: no `-c`, no GIT_CONFIG_* variables, and no includes, which it lists as plain
+# `include.path` entries. A snapshot git cannot parse excuses nothing.
 
 # Notes about another worktree's `[branch]` sections, collected by run() and printed by main() whatever
 # the check's verdict: a passing check's output is otherwise never shown.
 CONFIG_NOTES = []
 
 
-def config_sections(text):
-    """A git config's text as [(branch name or None, block text)]: one block per section header, plus
-    a leading one for any lines before the first. A `[branch "X"]` block carries X (unescaped)."""
-    blocks = [[None, []]]
-    for line in re.findall(r"[^\n]*\n|[^\n]+$", text):
-        if _SECTION_HEADER.match(line):
-            header = _BRANCH_HEADER.match(line)
-            name = re.sub(r"\\(.)", r"\1", header.group(1)) if header else None
-            blocks.append([name, []])
-        blocks[-1][1].append(line)
-    return [(name, "".join(lines)) for name, lines in blocks]
+def config_entries(data):
+    """git's own reading of one config snapshot, as [(key, value)] in file order: the key with its
+    section and variable lowercased and its subsection verbatim, the value None for a bare boolean.
+    [] for a missing or empty file; None when git rejects it. The snapshot goes to a private (0700)
+    temporary directory for the length of one git call, since a config can hold credentials."""
+    if not data:
+        return []
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "config")
+        with open(path, "wb") as fh:
+            fh.write(data)
+        out = git(["config", "--file", path, "--null", "--list"], "config --list of a snapshot",
+                  raw=True, fatal=False)
+    if out is None:
+        return None
+    entries = []
+    for record in out.decode("utf-8", "surrogateescape").split("\0")[:-1]:
+        key, newline, value = record.partition("\n")
+        entries.append((key, value if newline else None))
+    return entries
+
+
+def branch_of(key):
+    """X for a `branch.X.<variable>` key, else None (`branch.autosetupmerge` has no subsection). X is
+    everything between the first dot and the last: a variable name holds no dot, a branch name may."""
+    if not key.startswith("branch."):
+        return None
+    name, dot, _ = key[len("branch."):].rpartition(".")
+    return name if dot else None
+
+
+def without(entries, branches):
+    """`entries` less every `branch.X.*` entry whose X is in `branches`, order kept."""
+    return [entry for entry in entries if branch_of(entry[0]) not in branches]
 
 
 def local_branches():
-    """Every `refs/heads/` name in this repository, short form — what a `[branch]` header names.
+    """Every `refs/heads/` name in this repository, short form — what a `[branch]` subsection names.
     Split on "\\n" only: a ref name cannot hold a control character, but it can hold U+2028, which
     splitlines() would cut into a fabricated shorter ref (Copilot, PR 705). Read as bytes and decoded
-    exactly as config_change_note() decodes the config, so the two sides compare like for like under
-    any locale, and a ref name that is not UTF-8 cannot raise UnicodeDecodeError mid-run."""
+    exactly as config_entries() decodes git's reading of the config, so the two compare like for like
+    under any locale. Empty when the refs cannot be listed, which excuses nothing rather than stopping
+    the gate and losing the diff of what changed."""
     out = git(["for-each-ref", "--format=%(refname)", "refs/heads/"], "for-each-ref refs/heads/",
-              raw=True).decode("utf-8", "surrogateescape")
-    return {ref[len("refs/heads/"):] for ref in out.split("\n") if ref.startswith("refs/heads/")}
+              raw=True, fatal=False)
+    if out is None:
+        return set()
+    refs = out.decode("utf-8", "surrogateescape").split("\n")
+    return {ref[len("refs/heads/"):] for ref in refs if ref.startswith("refs/heads/")}
 
 
 def config_change_note(before, after):
     """(note, fails) for the repository config files' change during a check: ("", False) when none
-    changed. A change confined to `[branch "X"]` sections where `refs/heads/X` exists at the end of
-    the run is another worktree's bookkeeping: noted, not failed. Anything else fails, with the diff."""
+    changed. A change confined to `branch.X.*` entries where `refs/heads/X` exists at the end of the
+    run is another worktree's bookkeeping: noted, not failed. Anything else fails, with the diff."""
     changed = [path for path in before if after.get(path) != before[path]]
     if not changed:
         return "", False
-    # Lossless: `surrogateescape` keeps each undecodable byte distinct, where "replace" folded them all
-    # into U+FFFD, so `user.name` going from b"Andr\xe9" to b"Andr\xe4" compared equal and passed.
-    texts = {path: ((before[path] or b"").decode("utf-8", "surrogateescape"),
-                    (after.get(path) or b"").decode("utf-8", "surrogateescape")) for path in changed}
-    branches = {}
-    for path, (old, new) in texts.items():
-        old_blocks, new_blocks = config_sections(old), config_sections(new)
-        names = {name for name, _ in old_blocks + new_blocks if name is not None}
-        branches[path] = {name for name in names
-                          if [b for n, b in old_blocks if n == name]
-                          != [b for n, b in new_blocks if n == name]}
-    # git is asked only when a `[branch]` section actually moved, so a clean run spawns nothing extra.
-    real = local_branches() if any(branches.values()) else set()
+    entries = {path: (config_entries(before[path]), config_entries(after.get(path))) for path in changed}
+    moved = {}
+    for path, (old, new) in entries.items():
+        if old is None or new is None:
+            moved[path] = set()
+            continue
+        names = {branch_of(key) for key, _ in old + new} - {None}
+        moved[path] = {name for name in names
+                       if [e for e in old if branch_of(e[0]) == name]
+                       != [e for e in new if branch_of(e[0]) == name]}
+    # git is asked only when a branch's entries actually moved, so a clean run spawns nothing extra.
+    real = local_branches() if any(moved.values()) else set()
     foreign, failing = set(), []
-    for path, (old, new) in texts.items():
-        ours = set() if _CONTINUATION.search(old + "\n" + new) else branches[path] & real
-        foreign |= ours
-        if ([block for name, block in config_sections(old) if name not in ours]
-                != [block for name, block in config_sections(new) if name not in ours]):
+    for path, (old, new) in entries.items():
+        ours = moved[path] & real
+        # A file fails unless a real branch's entries account for its change. That includes bytes
+        # that changed while git reads the same entries (a comment, quoting, blank lines): with
+        # nothing excused in that file, they are shown and failed rather than passed unexamined.
+        if not ours or old is None or new is None or without(old, ours) != without(new, ours):
             failing.append(path)
-    # `not foreign` too: with lossless decoding every change lands in some block, so this cannot
-    # trigger today; it keeps a future parsing gap from passing as an empty note.
-    if not failing and foreign:
+        foreign |= ours
+    if not failing:
         return ("\nnote: another worktree changed the shared git config's [branch] section(s) for "
                 + ", ".join(sorted(foreign)) + " while this check ran (each a real local branch, so"
-                " not a fixture leak; push with `git push origin <branch>`, not `-u`, to avoid it).\n",
-                False)
-    failing = failing or changed
+                " not a fixture leak). Branch tracking writes them: push with `git push origin <branch>`"
+                " rather than `-u`, and branch from a remote-tracking ref with `--no-track`.\n", False)
     diffs = []
     for path in failing:
         name = os.path.basename(path)
-        # The escaped surrogates above cannot be printed; `backslashreplace` shows each undecodable
-        # byte as `\xNN`, so two non-UTF-8 values stay distinct in the diff as well as the verdict.
-        shown = [texts[path][i].encode("utf-8", "surrogateescape").decode("utf-8", "backslashreplace")
-                 for i in (0, 1)]
+        # `backslashreplace` shows each undecodable byte as `\xNN`, so two non-UTF-8 values stay
+        # distinct on screen, where "replace" printed both as U+FFFD.
+        shown = [(data or b"").decode("utf-8", "backslashreplace")
+                 for data in (before[path], after.get(path))]
         diffs += difflib.unified_diff(shown[0].split("\n"), shown[1].split("\n"),
                                       f"{name} before", f"{name} after", lineterm="")
     return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in failing) + ")"
             " changed while this check ran. A fixture git command may have reached the real"
-            " repository (or something else wrote it meanwhile). Only a [branch] section for a real"
-            " local branch is excused as another worktree's; this change is not. Restore it by hand;"
+            " repository (or something else wrote it meanwhile). Only branch.<name>.* entries for a real"
+            " local branch are excused as another worktree's; this change is not. Restore it by hand;"
             " the change is not reverted for you.\n" + "\n".join(diffs) + "\n", True)
 
 
@@ -1004,9 +1023,12 @@ def changed_files(base):
     return sorted(set(files))
 
 
-def git(args, purpose, raw=False):
+def git(args, purpose, raw=False, fatal=True):
     """Run git from the repo root and return stdout, or die — never return a verdict. `raw` returns
     stdout as bytes, for a caller that has to decode it the same way as bytes it read elsewhere.
+    `fatal=False` returns None on a non-zero exit instead, for a caller whose answer to a git failure
+    is to fail closed (the config guard) rather than to stop the gate; None is never mistaken for an
+    empty answer, which is the confusion dying here exists to prevent.
 
     Centralised after the same two guards had to be added to each call site separately and were
     not: `run()` grew an `OSError` guard while this path kept only `FileNotFoundError`, so a git
@@ -1019,6 +1041,8 @@ def git(args, purpose, raw=False):
         out = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, text=not raw)
     except OSError as exc:
         die(f"could not run git ({purpose}): {exc}")
+    if out.returncode != 0 and not fatal:
+        return None
     if out.returncode != 0:
         die(f"git {purpose} failed: "
             f"{(out.stderr.decode('utf-8', 'replace') if raw else out.stderr).strip()}")
