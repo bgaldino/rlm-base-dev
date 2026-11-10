@@ -159,6 +159,23 @@ class Shape(Fixture):
         proc = self.run_check()
         self.assertIn("docs/latin1.md:2: .agents/artifacts/feature-gaps.md", proc.stdout)
 
+    def test_a_lone_carriage_return_does_not_shift_line_numbers(self):
+        self.write("docs/a.md", "a\rb\n.agents/artifacts/stray.md\n")
+        self.assertIn("docs/a.md:2: .agents/artifacts/stray.md", self.run_check().stdout)
+
+    def test_gitignore_ignores_exactly_what_the_leak_guard_flags(self):
+        # `.gitignore`, the guard hook and check (a) each define a private copy; keep them one set.
+        shutil.copy(REPO / ".gitignore", self.root / ".gitignore")
+        samples = {".agents/artifacts/x.md": True, ".agents/artifacts.old/x.md": True,
+                   ".agents/Artifacts/x.md": True, "docs/.agents/artifacts/x.md": True,
+                   ".Agents/artifacts-bak/x.md": True, ".agents/artifact/x.md": False,
+                   ".agents/README.md": False, "docs/artifacts/x.md": False}
+        for path, private in samples.items():
+            ignored = subprocess.run(["git", "check-ignore", "-q", "--no-index", path],
+                                     cwd=self.root).returncode == 0
+            flagged = refs.is_private_path(path)
+            self.assertEqual((ignored, flagged), (private, private), path)
+
     def test_locations_and_typographic_punctuation_end_a_citation(self):
         self.write("docs/a.md", "a\fb\n.agents/artifacts/stray.md:12:3 and "
                    ".agents/artifacts/other.md\u2014then\n")
@@ -197,6 +214,7 @@ class Resolution(Fixture):
     def setUp(self):
         super().setUp()
         self.tree = self.root / ".agents" / "artifacts"
+        (self.tree / ".git").mkdir(parents=True)  # the clone is a repository of its own
         (self.tree / "topics" / "collections").mkdir(parents=True)
         (self.tree / "topics" / "collections" / "gaps.md").write_text("x")
         (self.tree / "MOVED.tsv").write_text(
@@ -242,6 +260,21 @@ class Resolution(Fixture):
             (self.tree / "MOVED.tsv").chmod(0o644)
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn("MOVED.tsv has no row for it", proc.stdout)
+
+    def test_a_plain_folder_is_not_the_private_tree(self):
+        # A stand-in left by an old `mkdir -p`: nothing is resolved against it.
+        shutil.rmtree(self.tree / ".git")
+        self.write("docs/a.md", ".agents/artifacts/topics/nope.md\n")
+        proc = self.run_check()
+        self.assertIn("not resolved (private tree absent)", proc.stdout)
+        self.assertNotIn("MOVED.tsv has no row", proc.stdout)
+
+    def test_a_glob_citation_is_not_resolved_as_a_path(self):
+        self.write("docs/a.md", "see .agents/artifacts/topics/collections/2026-*-notes.md and "
+                   "**.agents/artifacts/topics/nope.md**\n")
+        proc = self.run_check()
+        self.assertNotIn("2026-", proc.stdout)  # the glob draws no warning
+        self.assertIn("topics/nope.md is not at that path", proc.stdout)  # bold is not a glob
 
     def test_resolve_moved_chains_rows(self):
         (self.tree / "MOVED.tsv").write_text(

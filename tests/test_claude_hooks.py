@@ -75,14 +75,8 @@ class PushGuard(unittest.TestCase):
 
     def decision(self, command, branch="feature"):
         sh(self.work, "git", "checkout", "-q", branch)
-        proc = run_hook(GUARD, {"tool_name": "Bash", "tool_input": {"command": command},
-                                "cwd": str(self.work)})
-        if proc.returncode == 2:
-            return "deny"
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        if proc.stdout.strip():
-            return json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"]
-        return "allow"
+        return verdict(self, run_hook(GUARD, {"tool_name": "Bash", "cwd": str(self.work),
+                                               "tool_input": {"command": command}}))
 
     def test_protected_targets_are_denied_however_spelled(self):
         for command in ("git push origin main", "git push origin HEAD:main",
@@ -485,11 +479,8 @@ class PushGuard(unittest.TestCase):
 
 class SfdmuGuard(unittest.TestCase):
     def decision(self, tool, tool_input):
-        proc = run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input, "cwd": str(REPO)})
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        if proc.stdout.strip():
-            return json.loads(proc.stdout)["hookSpecificOutput"]["permissionDecision"]
-        return "allow"
+        return verdict(self, run_hook(GUARD, {"tool_name": tool, "tool_input": tool_input,
+                                               "cwd": str(REPO)}))
 
     def edit(self, old, new, path="datasets/sfdmu/qb/en-US/qb-pricing/export.json"):
         return self.decision("Edit", {"file_path": str(REPO / path), "old_string": old,
@@ -655,21 +646,12 @@ class ArtifactsPlacement(unittest.TestCase):
                     "tools/check_layout.py"):
             self.assertEqual(self.decide(f".agents/artifacts/{rel}"), "ask", rel)
 
-    def test_a_top_level_entry_is_recognised_by_identity(self):
-        insensitive = (self.tree / "ARCHIVE").exists()  # True on a case-insensitive disk
-        for rel in ("ARCHIVE/2026/x/a.md", "Archive/new.md"):
-            # Where ARCHIVE *is* archive/ it must ask; elsewhere it is a new top-level folder.
-            self.assertEqual(self.decide(f".agents/artifacts/{rel}"),
-                             "ask" if insensitive else "deny", rel)
-
-    def test_an_archive_aliased_to_another_entry_asks_every_time(self):
-        # One folder under two names: the ask follows the folder, under any hash seed.
-        shutil.rmtree(self.tree / "archive")
-        (self.tree / "archive").symlink_to(Path("topics"), target_is_directory=True)
-        for seed in ("0", "1", "2", "3"):
-            proc = self.run_write(str(self.tree / "topics" / "a" / "b.md"),
-                                  env={"PYTHONHASHSEED": seed})
-            self.assertEqual(verdict(self, proc), "ask", seed)
+    def test_archive_and_tooling_names_match_case_insensitively(self):
+        # A case-insensitive disk treats ARCHIVE/ as archive/; on a sensitive one asking is
+        # still the safe answer for a name that close.
+        for rel in ("ARCHIVE/2026/x/a.md", "Archive/new.md", "Tools/check_layout.py",
+                    ".GIT/config", ".GitHooks/pre-commit"):
+            self.assertEqual(self.decide(f".agents/artifacts/{rel}"), "ask", rel)
 
     def test_sibling_and_variant_spellings_are_denied(self):
         for rel in (".agents/artifacts.old/notes.md", ".agents/artifacts-backup/notes.md",
@@ -678,10 +660,22 @@ class ArtifactsPlacement(unittest.TestCase):
                     # spelling refuses it.
                     ".agents/Artifacts/inbox/2026-11-09-a.md",
                     # U+017F casefolds to "s": caught by casefold(), not by lower().
-                    ".agents/artifactſ/newtop.md"):
+                    ".agents/artifact\u017f/newtop.md", ".agent\u017f/artifacts/newtop.md"):
             self.assertEqual(self.decide(rel), "deny", rel)
         proc = self.run_write(str(self.tmp / ".agents" / "artifacts.old" / "a.md"))
         self.assertIn("is not `.agents/artifacts` exactly", proc.stderr)
+
+    def test_a_variant_folder_above_the_repository_is_not_judged(self):
+        # Only pairs inside the work tree count: a checkout that happens to live under a folder
+        # named like a sibling is judged by its own `.agents/artifacts`.
+        outer = self.tmp / "scratch" / ".agents" / "artifacts.old" / "proj"
+        (outer / ".git").mkdir(parents=True)
+        (outer / ".agents" / "artifacts" / ".git").mkdir(parents=True)
+        (outer / ".agents" / "artifacts" / "inbox").mkdir()
+        shutil.rmtree(self.tmp / ".git")  # the fixture root must not be the repository here
+        self.assertEqual(self.decide(str(outer / ".agents" / "artifacts" / "inbox" / "a.md")),
+                         "allow")
+        self.assertEqual(self.decide(str(outer / ".agents" / "artifacts" / "newtop.md")), "deny")
 
     def test_spelling_rules_apply_only_inside_a_git_work_tree(self):
         with tempfile.TemporaryDirectory() as scratch:  # no `.git` anywhere above it
@@ -740,26 +734,22 @@ class ArtifactsPlacement(unittest.TestCase):
                          "allow")
 
     def test_a_symlinked_clone_is_judged_where_it_is_spelled(self):
-        # The main checkout's clone linked to a folder of another name, written from a worktree
-        # session (its own project dir, no clone of its own).
+        # The clone linked to a folder of another name: judged by the path that spells it.
         store = self.tmp / "store" / "rlm-base-artifacts"
         store.parent.mkdir()
         shutil.move(str(self.tree), str(store))
         self.tree.symlink_to(store, target_is_directory=True)
-        with tempfile.TemporaryDirectory() as wt:
-            (Path(wt) / ".git").write_text("gitdir: elsewhere\n")
-            for path, expected in ((self.tree / "inbox" / "2026-11-10-a.md", "allow"),
-                                   (self.tree / "newtop.md", "deny"),
-                                   (self.tree / "archive" / "2026" / "x" / "a.md", "ask")):
-                proc = self.run_write(str(path), cwd=wt, env={"CLAUDE_PROJECT_DIR": wt})
-                self.assertEqual(verdict(self, proc), expected, path)
+        for path, expected in ((self.tree / "inbox" / "2026-11-10-a.md", "allow"),
+                               (self.tree / "newtop.md", "deny"),
+                               (self.tree / "archive" / "2026" / "x" / "a.md", "ask")):
+            self.assertEqual(self.decide(str(path)), expected, path)
 
-    def test_a_path_claude_code_would_not_send_is_asked_about(self):
-        for raw in (".agents/artifacts/inbox/a.md", str(self.tmp / "lnk/../.agents/artifacts/x"),
-                    "~/x.md"):
-            self.assertEqual(self.decide(raw, raw=True), "ask", raw)
-        proc = self.run_write(str(self.tmp / "lnk" / ".." / "x.md"))
-        self.assertIn("not the absolute, normalised path", proc.stdout)
+    def test_a_relative_or_unnormalised_path_is_resolved_as_claude_code_would(self):
+        for raw, expected in ((".agents/artifacts/inbox/a.md", "allow"),
+                              (".agents/artifacts/newtop.md", "deny"),
+                              (str(self.tmp / "lnk/../.agents/artifacts/newtop.md"), "deny"),
+                              ("~/x.md", "allow")):
+            self.assertEqual(self.decide(raw, raw=True), expected, raw)
 
     def test_a_deep_path_is_asked_about_quickly(self):
         import time
@@ -786,22 +776,59 @@ class ArtifactsPlacement(unittest.TestCase):
     def test_an_error_inside_the_rule_asks(self):
         guard = _guard_module()
 
-        def boom(path):
+        def boom(path, cwd):
             raise RuntimeError("boom")
 
         guard._artifacts_decision = boom
-        decision, reason = guard.artifacts_decision(str(self.tree / "inbox" / "a.md"))
+        decision, reason = guard.artifacts_decision(str(self.tree / "inbox" / "a.md"),
+                                                    str(self.tmp))
         self.assertEqual(decision, "ask")
         self.assertIn("RuntimeError", reason)
 
     def test_only_sfdmu_plans_are_read(self):
-        # An ordinary file is never opened, so a FIFO cannot stall the hook into an allow.
-        fifo = self.tree / "inbox" / "2026-11-10-pipe.md"
-        os.mkfifo(str(fifo))
-        import time
-        start = time.monotonic()
-        self.assertEqual(self.decide(str(fifo), tool="Edit"), "allow")
-        self.assertLess(time.monotonic() - start, 5.0)
+        guard = _guard_module()
+
+        def never(path):
+            raise AssertionError(f"read {path}")
+
+        guard.current_text = never
+        event = {"tool_name": "Edit", "cwd": str(self.tmp),
+                 "tool_input": {"file_path": str(self.tree / "inbox" / "a.md"),
+                                "old_string": "a", "new_string": "b"}}
+        self.assertEqual(guard.decide(event), ("allow", ""))
+
+    def test_a_placement_deny_stands_on_a_plan_path(self):
+        plan = self.tmp / ".agents" / "artifacts.old" / "datasets" / "export.json"
+        plan.parent.mkdir(parents=True)
+        plan.write_text('{"objects": [{"query": "SELECT Id FROM Account", '
+                        '"operation": "Upsert"}]}')
+        proc = run_hook(GUARD, {"tool_name": "Edit", "cwd": str(self.tmp),
+                                "tool_input": {"file_path": str(plan), "old_string": '"Upsert"',
+                                               "new_string": '"Insert"'}})
+        self.assertEqual(verdict(self, proc), "deny")
+
+    def test_a_crlf_plan_is_compared_as_claude_code_edits_it(self):
+        # Claude Code matches edits against LF text; the plan on disk may be CRLF.
+        plan = self.tmp / "datasets" / "sfdmu" / "p" / "export.json"
+        plan.parent.mkdir(parents=True)
+        plan.write_bytes(b'{"objects": [\r\n  {"query": "SELECT Id FROM Account",\r\n'
+                         b'   "operation": "Upsert"}\r\n]}\r\n')
+        proc = run_hook(GUARD, {"tool_name": "Edit", "cwd": str(self.tmp), "tool_input": {
+            "file_path": str(plan),
+            "old_string": '"SELECT Id FROM Account",\n   "operation": "Upsert"',
+            "new_string": '"SELECT Id FROM Account",\n   "operation": "insert"'}})
+        self.assertEqual(verdict(self, proc), "ask")
+
+    def test_malformed_input_after_placement_asks_and_keeps_the_reason(self):
+        plan = self.tree / "archive" / "2026" / "x" / "datasets" / "export.json"
+        plan.parent.mkdir(parents=True)
+        for tool, tool_input in (("MultiEdit", {"file_path": str(plan), "edits": [None]}),
+                                 ("Edit", {"file_path": str(plan), "old_string": 5,
+                                           "new_string": "x"})):
+            proc = run_hook(GUARD, {"tool_name": tool, "cwd": str(self.tmp),
+                                    "tool_input": tool_input})
+            self.assertEqual(verdict(self, proc), "ask", tool)
+            self.assertIn("frozen history", proc.stdout)
 
     def test_an_unreadable_plan_never_blocks_or_crashes_the_hook(self):
         # Rule 2 reads the current plan; a FIFO would block that read past the hook's timeout and

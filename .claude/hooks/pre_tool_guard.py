@@ -38,18 +38,18 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    `<main checkout>/.loop/STOP` refuses every loop agent on the workstation (`make stop`).
    Either takes effect at the agent's next tool call; neither aborts a tool already running.
 4. Private artifacts placement (`.cursor/rules/analysis-artifacts.mdc`), for Write, Edit,
-   MultiEdit and NotebookEdit, judged on the path as Claude Code hands it to hooks (absolute,
-   `~` expanded, `..` removed). The private tree is `.agents/artifacts/` at a work-tree root, a
-   clone with its own `.git` (or a link to one).
+   MultiEdit and NotebookEdit, judged on the path as spelled (absolute and normalised, as Claude
+   Code hands it to hooks; anything else is resolved the same way). The private tree is
+   `.agents/artifacts/` at a work-tree root, a clone with its own `.git` (or a link to one), and
+   everything under it, nested `.agents/` folders included, is just part of it.
    - Deny, inside a git work tree: a name under `.agents/` that starts with `artifacts` but is
      not exactly `artifacts` (siblings such as `artifacts.old`, case or Unicode variants); a
      `.agents/artifacts` below the repository root, not cloned, or not a clone; and a new
      top-level entry of the clone (not in ARTIFACTS_ROOT, not already on disk).
    - Ask: a write under the clone's `archive/` (frozen history) or into its own tooling
-     (ARTIFACTS_TOOLING: `.git/`, `.githooks/`, `tools/`); a path that is not absolute and
-     normalised, which Claude Code never sends, or deeper than MAX_JUDGED_COMPONENTS; and any
-     path the rule fails to judge.
-   Existing top-level folders keep accepting writes until the reorg moves them.
+     (ARTIFACTS_TOOLING: `.git/`, `.githooks/`, `tools/`), names matched case-insensitively;
+     and any path the rule fails to judge.
+   Existing top-level entries keep accepting writes until the reorg moves them.
 
 What this guard does not catch, and what backs it up:
 - Commands hidden in `$(...)`, `bash -c`, `eval`, `env -S '…'`, `xargs` or `find -exec`, a
@@ -69,11 +69,11 @@ What this guard does not catch, and what backs it up:
   and its admin bypass applies to pull-request merges only, so a direct push with the
   owner's credentials is rejected. This guard refuses it earlier and says why.
 - Artifacts writes made through Bash (`>`, `cp`, `mv`, a script) rather than Edit/Write, and
-  writes whose path does not spell where they land: links inside or into the clone are not
-  followed, nor are inode paths (macOS `/.vol`) or hard links. Rule 4 catches the misplaced
-  write an agent spells out; the private repository's pre-commit hook (`tools/check_layout.py`)
-  is the backstop for layout, and `.gitignore` ignores every `.agents/artifacts*` path, so a copy
-  is not staged by accident.
+  writes whose path does not spell `.agents/artifacts`: a link inside or into the clone, a
+  linked clone addressed at its real location, an inode path (macOS `/.vol`) or a hard link.
+  Rule 4 catches the misplaced write an agent spells out; the private repository's pre-commit
+  hook (`tools/check_layout.py`) is the backstop for layout, and `.gitignore` ignores every
+  `.agents/artifacts*` path, so a copy is not staged by accident.
 - SFDMU edits made through Bash (`sed -i`, a script) rather than Edit/Write. No diff-level
   check for destructive operations exists in `pr_gate.py` yet; adding one is planned with the
   defect registry work, and until then a person reviewing the diff is the only backstop.
@@ -500,11 +500,14 @@ def push_decision(push: Push) -> Tuple[str, str]:
     return "allow", ""
 
 
-MAX_PLAN_BYTES = 16 << 20  # far above any SFDMU plan; a larger file is compared by snippet
+# Over ten times the largest SFDMU plan in the repo; a larger file is compared by snippet. It
+# bounds the parse as well as the read, which together must stay well inside the hook's timeout.
+MAX_PLAN_BYTES = 1 << 20
 
 
 def current_text(path: str) -> str:
-    """The text of `path` if it is a regular UTF-8 file of at most MAX_PLAN_BYTES, else "".
+    """The text of `path` if it is a regular UTF-8 file of at most MAX_PLAN_BYTES, else "", with
+    line endings read as read_text() reads them (Claude Code matches edits against LF text).
     Never blocks and never raises: a FIFO or device would hold the hook past its timeout, and an
     exception would crash it, either of which lets the tool call through unchecked."""
     try:
@@ -515,14 +518,11 @@ def current_text(path: str) -> str:
         st = os.fstat(fd)
         if not stat.S_ISREG(st.st_mode) or st.st_size > MAX_PLAN_BYTES:
             return ""
-        chunks, size = [], 0
-        while size <= MAX_PLAN_BYTES:
-            chunk = os.read(fd, 1 << 20)
-            if not chunk:
-                return b"".join(chunks).decode("utf-8")
-            chunks.append(chunk)
-            size += len(chunk)
-        return ""
+        with os.fdopen(fd, "rb", closefd=False) as f:
+            data = f.read(MAX_PLAN_BYTES + 1)
+        if len(data) > MAX_PLAN_BYTES:
+            return ""
+        return data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
     except (OSError, ValueError):  # UnicodeDecodeError is a ValueError
         return ""
     finally:
@@ -588,8 +588,6 @@ def is_sfdmu_plan(path: str) -> bool:
 
 def sfdmu_decision(path: str, before: str, after: Optional[str], old: str,
                    new: str) -> Tuple[str, str]:
-    if not is_sfdmu_plan(path):
-        return "allow", ""
     was = destructive_objects(before) if before else {}
     now = destructive_objects(after) if after is not None else None
     # A document that parses but declares no objects isn't a plan the parsers understand, so
@@ -634,38 +632,27 @@ ARTIFACTS_ROOT = frozenset({
 ARTIFACTS_TOOLING = (".git", ".githooks", "tools")
 ARTIFACTS_HINT = ("file it under topics/<slug>/, todos/attachments/<id>/ or "
                   "inbox/<yyyy-mm-dd>-<name> (.cursor/rules/analysis-artifacts.mdc)")
-# No real path is this deep; beyond it the rule asks rather than spend the hook's timeout.
+# An implementation limit, not part of the contract: no writable path is this deep, and it keeps
+# every scan below short.
 MAX_JUDGED_COMPONENTS = 512
 
 
-def _same(a: Path, b: Path) -> bool:
-    try:
-        return os.path.samefile(a, b)
-    except (OSError, ValueError):
-        return False
-
-
-def artifacts_decision(path: str) -> Tuple[str, str]:
+def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     """Rule 4. Any unexpected error asks rather than escaping: a crashed hook is a non-blocking
     error to Claude Code, which would let the call through unchecked."""
     try:
-        return _artifacts_decision(path)
+        return _artifacts_decision(path, cwd)
     except Exception as exc:  # never crash the hook into an allow
         return "ask", (f"the private-tree check could not judge this path "
                        f"({type(exc).__name__}); confirm where it lands")
 
 
-def _artifacts_decision(path: str) -> Tuple[str, str]:
+def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     if not path:
         return "allow", ""
-    # Claude Code (Node) writes a lone UTF-16 surrogate as U+FFFD; judge that name.
-    typed = Path(re.sub("[\ud800-\udfff]", "�", path))
-    # Claude Code hands hooks the path it will write: absolute, `~` expanded, `..` removed.
-    # Anything else did not come from it (or a later version changed that); not guessed at.
-    if not typed.is_absolute() or ".." in typed.parts:
-        return "ask", (f"`{path}` is not the absolute, normalised path Claude Code writes, so the "
-                       "private-tree check cannot tell where it lands; confirm it")
-    parts = typed.parts
+    # Claude Code already hands hooks an absolute, `~`-expanded, normalised path; resolve anything
+    # else the same way, lexically (links are not followed: see the module docstring).
+    parts = Path(os.path.normpath(os.path.join(cwd, os.path.expanduser(path)))).parts
     if len(parts) > MAX_JUDGED_COMPONENTS:
         return "ask", (f"`{path}` is deeper than {MAX_JUDGED_COMPONENTS} components, so the "
                        "private-tree check does not judge it; confirm where it lands")
@@ -675,14 +662,18 @@ def _artifacts_decision(path: str) -> Tuple[str, str]:
              and parts[i + 1].casefold().startswith("artifacts")]
     if not pairs:
         return "allow", ""
-    # Only inside a git work tree can a misplaced folder reach a commit: from the shallowest
-    # directory with a `.git`, every pair at or below it counts.
-    repo = next((k for k in range(1, pairs[-1] + 1) if os.path.lexists(
-        os.path.join(*parts[:k], ".git"))), None)
-    pairs = [i for i in pairs if repo is not None and i >= repo]
-    if not pairs:
+    # Only inside a git work tree can a misplaced folder reach a commit: find the shallowest
+    # directory with a `.git` (each prefix built from the last, so the scan stays linear).
+    repo, prefix = None, parts[0]
+    for k in range(1, pairs[-1] + 1):
+        if k > 1:
+            prefix = os.path.join(prefix, parts[k - 1])
+        if os.path.exists(os.path.join(prefix, ".git")):
+            repo = k
+            break
+    if repo is None:
         return "allow", ""
-    i = pairs[0]  # the outermost: a tree nested inside the clone is just a folder of it
+    i = next(i for i in pairs if i >= repo)  # the outermost: a tree inside the clone is a folder
     name = parts[i] + "/" + parts[i + 1]
     if name != ".agents/artifacts":
         return "deny", (f"`{name}` is not `.agents/artifacts` exactly, so it is not the private "
@@ -690,7 +681,7 @@ def _artifacts_decision(path: str) -> Tuple[str, str]:
                         "publish it. Write inside `.agents/artifacts/` itself, and keep backups "
                         "outside the repository")
     tree = Path(*parts[:i + 2])
-    if not os.path.lexists(tree.parent.parent / ".git"):
+    if not os.path.exists(tree.parent.parent / ".git"):
         return "deny", (f"`{tree}` is below the repository root; only the repo-root "
                         "`.agents/artifacts/` is the private tree, so nothing written there is "
                         "versioned with it")
@@ -699,30 +690,36 @@ def _artifacts_decision(path: str) -> Tuple[str, str]:
                         "checkout; do not create it. Maintainers clone it here (todo-tracker "
                         "skill, First run); otherwise use $TMPDIR for scratch, or say where the "
                         "content should live")
-    # A clone is a repository of its own, and not one of its own ancestors (`-> ..` would make
-    # the public repo "the clone").
-    if not os.path.lexists(tree / ".git") or any(_same(tree, a) for a in tree.parents):
+    if not os.path.exists(tree / ".git") or _is_an_ancestor(tree, parts[:i + 1], repo):
         return "deny", (f"`{tree}` is not the private clone (a git repository of its own), so "
                         "nothing written there is versioned; replace it with a clone "
                         "(todo-tracker skill, First run), or use $TMPDIR for scratch")
     return _placement(parts[i + 2:], tree)
 
 
+def _is_an_ancestor(tree: Path, above: Tuple[str, ...], repo: int) -> bool:
+    """Whether `tree` resolves to one of the directories from the repository root down to its
+    own parent (`.agents/artifacts -> ..` would make the public repo "the clone"). Shallower
+    ones cannot be it: they have no `.git`, and the clone does."""
+    try:
+        me = os.stat(tree)
+        return any(os.path.samestat(me, os.stat(os.path.join(*above[:k])))
+                   for k in range(repo, len(above) + 1))
+    except (OSError, ValueError):
+        return True  # cannot tell: not treated as the clone
+
+
 def _placement(rest: Tuple[str, ...], tree: Path) -> Tuple[str, str]:
-    """Where a write lands in the clone. A top-level entry is matched by name or by file
-    identity, so a case variant or an alias of one is treated as that entry."""
+    """Where a write lands in the clone, by the top-level entry it names. Names match
+    case-insensitively, since the disk may treat `ARCHIVE/` as `archive/`."""
     if not rest:
         return "allow", ""
     top = rest[0]
-
-    def entry(name: str) -> bool:
-        return top == name or _same(tree / top, tree / name)
-
-    if any(entry(name) for name in ARTIFACTS_TOOLING):
+    if top.casefold() in ARTIFACTS_TOOLING:
         return "ask", ("this changes the private repository's own tooling (`.git/`, `.githooks/` "
                        "or `tools/`), which runs its pre-commit layout check. Confirm it is "
                        "deliberate")
-    if entry("archive"):
+    if top.casefold() == "archive":
         return "ask", ("this writes under `.agents/artifacts/archive/`, which is frozen history "
                        "(moves and per-entry READMEs only). Confirm it is a deliberate archive "
                        "edit")
@@ -917,16 +914,21 @@ def decide(event: dict) -> Tuple[str, str]:
                         worst = decision
         return worst
     if tool == "NotebookEdit":
-        return artifacts_decision(tool_input.get("notebook_path") or "")
+        return artifacts_decision(tool_input.get("notebook_path") or "", cwd)
     if tool not in ("Write", "Edit", "MultiEdit"):
         return "allow", ""
     path = tool_input.get("file_path") or ""
-    placement = artifacts_decision(path)
+    placement = artifacts_decision(path, cwd)
     # The current file is read only for an SFDMU plan, the one case rule 2 judges, and only by
     # current_text(), which cannot block or raise.
-    if placement[0] == "deny" or not is_sfdmu_plan(path):
-        return placement
-    sfdmu = sfdmu_decision(*text_change(tool, tool_input))
+    try:
+        if placement[0] == "deny" or not is_sfdmu_plan(path):
+            return placement
+        sfdmu = sfdmu_decision(*text_change(tool, tool_input))
+    except Exception as exc:  # malformed input: ask, keeping rule 4's reason, never crash
+        reason = placement[1] + ". Also: " if placement[0] == "ask" else ""
+        return "ask", (f"{reason}the SFDMU plan check could not judge this edit "
+                       f"({type(exc).__name__}); confirm it")
     if placement[0] == "ask" and sfdmu[0] == "ask":  # both reasons, not just the first
         return "ask", f"{placement[1]}. Also: {sfdmu[1]}"
     return sfdmu if sfdmu[0] != "allow" else placement

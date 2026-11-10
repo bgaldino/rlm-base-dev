@@ -36,8 +36,9 @@ that a pack or doc cites and that no longer exists has moved:
   agent working docs there. When unsure, treat a document as working output.
 - Citing private paths from tracked files: cite a path under a tier (`todos/`,
   `topics/`, `archive/`, `memory/`, `inbox/`, or the routine and tool areas `reports/`,
-  `todo-audit/`, `tools/`), never a top-level file.
-  `scripts/ai/check_private_refs.py` (a `pr_gate` check) flags top-level citations.
+  `todo-audit/`, `tools/`) or the private repository's own `README.md` or `MOVED.tsv`,
+  never another top-level entry. `scripts/ai/check_private_refs.py` (a `pr_gate` check)
+  flags top-level citations.
 - If a generated document is tracked in the public repo, move it into the private tree
   under the placement above, `git rm` it here, and update references.
 

@@ -42,8 +42,8 @@ The claim and closeout rules below apply when participating in this tracker.
 6. **A session task list is never the record.** Claude Code's task tool, a scratch file,
    a TODO comment — none of these outlive the session. The pack does.
 7. **File evidence inside a tier, never at the tracker's top level.** Evidence for one
-   pack goes in `todos/attachments/<id>/`; evidence shared by packs goes in
-   `topics/<slug>/` (placement rule: `.cursor/rules/analysis-artifacts.mdc`).
+   pack goes in `todos/attachments/<id>/`; evidence shared by packs goes in an existing
+   `topics/<slug>/`, else `inbox/` (placement rule: `.cursor/rules/analysis-artifacts.mdc`).
 8. **A path a pack cites that no longer resolves was moved.** Find it with
    `python .agents/artifacts/tools/where.py <path>`.
 

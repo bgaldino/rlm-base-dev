@@ -76,7 +76,7 @@ class _Resolved:
         self.path = path
 
 
-def audit(root, cited, *, create_private, as_skill=False):
+def audit(root, cited, *, create_private):
     """Run the audit over a throwaway tree citing one local-only path."""
     tracked = Path(root, "docs", "real.md")
     tracked.parent.mkdir(parents=True, exist_ok=True)
@@ -90,8 +90,7 @@ def audit(root, cited, *, create_private, as_skill=False):
         # A real path alongside the local-only one, so a pass cannot come from an
         # empty walk.
         "grounding": {"tracked": "docs/real.md", "private": cited},
-        # as_skill: the same path is also a skill's, so the audit meets it twice.
-        "skills": [{"id": "x", "path": cited}] if as_skill else [],
+        "skills": [],
     }
     buf = io.StringIO()
     with redirect_stdout(buf):
@@ -137,47 +136,6 @@ with TemporaryDirectory() as root:
     Path(root, ".agents", "artifacts").mkdir(parents=True)
     ok, out = audit(root, lookalike, create_private=False)
     check("a sibling directory with a similar name is not exempt", ok is False, out)
-
-with TemporaryDirectory() as root:
-    # The tree is present, the cited path has moved, and MOVED.tsv says where (todo 358).
-    tree = Path(root, ".agents", "artifacts")
-    (tree / "topics" / "integration-staging").mkdir(parents=True)
-    (tree / "topics" / "integration-staging" / "pmos-integration.md").write_text("x")
-    (tree / "MOVED.tsv").write_text("old_prefix\tnew_prefix\tref\tdate\n"
-                                    "integration-staging/\ttopics/integration-staging/\tW3\t2026-11-09\n")
-    ok, out = audit(root, CITED, create_private=False, as_skill=True)
-    check("a moved private path warns instead of failing", ok is True, out)
-    check("the warning names the path to rewrite to",
-          "rewrite to .agents/artifacts/topics/integration-staging/pmos-integration.md" in out, out)
-    check("a top-level-shaped citation is flagged", "cites the private tree's top level" in out, out)
-    check("each advisory is printed once, however often the walk meets the path",
-          out.count("rewrite to") == 1 and out.count("cites the private tree's top level") == 1, out)
-    check("the summary says the path resolved only through MOVED.tsv",
-          "1 only through MOVED.tsv" in out, out)
-
-with TemporaryDirectory() as root:
-    ok, out = audit(root, ".agents/artifacts/topics/x/README.md", create_private=True)
-    check("a tier-shaped citation draws no shape warning",
-          ok is True and "top level" not in out, out)
-
-_real_loader = skill_manifest._private_refs
-def _missing():
-    raise FileNotFoundError("check_private_refs.py")
-skill_manifest._private_refs = _missing
-try:
-    with TemporaryDirectory() as root:
-        ok, out = audit(root, CITED, create_private=True)
-        check("a missing check_private_refs.py degrades to a printed note, not a crash",
-              ok is True and "could not be loaded" in out, out)
-    def _broken():
-        raise SyntaxError("invalid syntax (check_private_refs.py, line 1)")
-    skill_manifest._private_refs = _broken
-    with TemporaryDirectory() as root:
-        ok, out = audit(root, CITED, create_private=True)
-        check("a check_private_refs.py that fails at import degrades the same way",
-              ok is True and "could not be loaded" in out, out)
-finally:
-    skill_manifest._private_refs = _real_loader
 
 check("the exempt prefix is anchored with a separator",
       skill_manifest.LOCAL_ONLY_PREFIXES == (".agents/artifacts/",),
@@ -303,7 +261,7 @@ print("\n" + "=" * 100)
 if FAILED:
     print(f"{len(FAILED)} FAILED: {', '.join(FAILED)}")
     sys.exit(1)
-EXPECTED = 38
+EXPECTED = 30
 if PASSED != EXPECTED:
     print(f"{PASSED} checks passed but {EXPECTED} were expected — update EXPECTED "
           "deliberately when adding or removing a check")

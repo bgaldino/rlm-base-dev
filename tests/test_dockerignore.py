@@ -95,6 +95,8 @@ PATTERNS = load_dockerignore(read(".dockerignore"))
 MUST_EXCLUDE = [
     ".agents/artifacts/todos/open/001-example.md",
     ".agents/artifacts/attachments/a.png",
+    ".agents/artifacts.old/notes.md",
+    "docs/.agents/Artifacts/notes.md",
     "docs/analysis/example-core-code-questions.md",
     ".cursor/plans/plan.md",
     "core.code-workspace",

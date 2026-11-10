@@ -3,8 +3,9 @@
 Helper for orphan ERD field cleanup batch workflow.
 
 Usage:
-  # Prepare next batch input from current orphan state
-  python scripts/erd/orphan_batch_helper.py prepare --batch 4 --size 20
+  # Prepare next batch input from current orphan state (--output-dir is required unless the
+  # private .agents/artifacts/ clone already holds the orphan-fields folder)
+  python scripts/erd/orphan_batch_helper.py prepare --batch 4 --size 20 --output-dir "$TMPDIR/orphans"
 
   # Apply ownership findings (after researcher returns batch JSON merged into orphan-field-ownership.json)
   python scripts/erd/orphan_batch_helper.py apply --orphan-report docs/erds/orphan-candidates-after-batch3.md
@@ -34,7 +35,8 @@ ERD_DATA = REPO / "docs" / "erds" / "erd-data.json"
 # accumulates iterative researcher findings during a cleanup campaign). The
 # default path is configurable via --ownership-json so this script works on
 # fresh clones and in CI without requiring the .agents/ artifacts to exist.
-ARTIFACTS = REPO / ".agents" / "artifacts" / "orphan-fields"
+# One literal, so the private_refs gate lists it with the other citations todo 358 rewrites.
+ARTIFACTS = REPO / ".agents/artifacts/orphan-fields"
 DEFAULT_OWNERSHIP_JSON = ARTIFACTS / "orphan-field-ownership.json"
 
 
@@ -136,18 +138,18 @@ def cmd_prepare(args):
         "batch_coverage": sum(r["count"] for r in next_batch),
         "objects": next_batch,
     }
-    # The default output dir is inside the private .agents/artifacts/ clone, which must never be
-    # created here (.cursor/rules/analysis-artifacts.mdc): without the clone, say so and ask for
-    # --output-dir rather than make a stand-in that blocks a later clone. An explicit
-    # --output-dir is created as given.
+    # The default output dir is a folder of the private .agents/artifacts/ clone. Neither the
+    # clone nor a top-level folder of it may be created here (.cursor/rules/analysis-artifacts.mdc),
+    # so the default is used only when it already exists in a real clone (one with its own
+    # `.git`); otherwise ask for --output-dir. An explicit --output-dir is created as given.
     if args.output_dir:
         out_dir = Path(args.output_dir)
-    elif ARTIFACTS.parent.is_dir():
+        out_dir.mkdir(parents=True, exist_ok=True)
+    elif ARTIFACTS.is_dir() and (ARTIFACTS.parent / ".git").exists():
         out_dir = ARTIFACTS
     else:
-        sys.exit(f"{ARTIFACTS.parent.relative_to(REPO)}/ (the private repository) is not cloned "
+        sys.exit(f"{ARTIFACTS.relative_to(REPO)}/ is not an existing folder of a private clone "
                  f"here; pass --output-dir, for example a folder under $TMPDIR")
-    out_dir.mkdir(parents=True, exist_ok=True)
     out_path = out_dir / f"orphan-fields-batch{args.batch}-input.json"
     with open(out_path, "w") as f:
         json.dump(output, f, indent=2)
@@ -324,7 +326,7 @@ def main():
     p_prep.add_argument("--output-dir",
                         help=f"Directory to write the batch input JSON into "
                              f"(default: {ARTIFACTS.relative_to(REPO)}/ when the private "
-                             f"clone is present; required without it, e.g. a folder "
+                             f"clone already has it; required otherwise, e.g. a folder "
                              f"under $TMPDIR).")
     p_prep.set_defaults(func=cmd_prepare)
 

@@ -60,6 +60,7 @@ LITERAL = re.compile(r"\.agents/artifacts(?![\w.-])(/[^\s`'\"()\[\]<>|,;#?*\u201
 # What follows a path in prose but is not part of it: a `:12` or `:12:3` location, then sentence
 # punctuation or `_italics_`.
 TRAILER = re.compile(r"(?::\d+){0,2}[.:_]*$")
+GLOB_TAIL = re.compile(r"\*+[\w./-]")
 
 
 def tracked() -> list[str]:
@@ -81,8 +82,7 @@ def citing() -> list[str]:
 
 def classify(rel: str) -> str:
     """'bare', 'template', 'tier' or 'top-level' for a path that may start with `.agents/artifacts`."""
-    rest = rel[len(ROOT):] if rel.startswith(ROOT) else rel
-    rest = rest.strip("/").rstrip(".:")
+    rest = rel[len(ROOT):].strip("/")
     if not rest:
         return "bare"
     first = rest.split("/", 1)[0]
@@ -92,6 +92,20 @@ def classify(rel: str) -> str:
     # concrete top-level name with a placeholder inside it (`x-{release}.md`) is still a
     # top-level citation.
     return "template" if PLACEHOLDER.fullmatch(first) else "top-level"
+
+
+def is_private_path(path: str) -> bool:
+    """Whether a repository path is inside the private tree or a copy of it: a `.agents/` segment
+    followed by a name starting `artifacts`, any case, at any depth, as `.gitignore` has it. Any
+    such copy is ignored, so a tracked one was added on purpose (`git add -f`) or before the
+    rule."""
+    return ("/" + path.casefold()).find("/" + ROOT) != -1
+
+
+def clone_present(tree: Path) -> bool:
+    """Whether `tree` is the private clone: a directory with a `.git` of its own, as the guard
+    hook (rule 4) has it. A plain folder there is a stand-in, not the private tree."""
+    return tree.is_dir() and os.path.exists(tree / ".git")
 
 
 def exists_in(tree: Path, rest: str) -> bool:
@@ -138,16 +152,23 @@ def citations(paths: list[str]):
         try:
             if full.is_symlink() or not full.is_file():
                 continue
-            # errors="replace": git grep -I already judged it text, and one stray byte must
-            # not hide every citation in the file.
-            text = full.read_text(encoding="utf-8", errors="replace")
+            # Bytes, decoded with errors="replace": git grep -I already judged it text, one
+            # stray byte must not hide every citation, and no newline translation may move a
+            # line number off git's (read_text() would turn a lone \r into a line break).
+            text = full.read_bytes().decode("utf-8", "replace")
         except OSError:
             continue
-        # split("\n"), not splitlines(): the line numbers must be git's, and splitlines() also
-        # breaks at \f, \v, \x1c-\x1e, \x85 and U+2028/9.
+        # split("\n"), not splitlines(): splitlines() also breaks at \r, \f, \v, \x1c-\x1e,
+        # \x85 and U+2028/9.
         for n, line in enumerate(text.split("\n"), 1):
             for m in LITERAL.finditer(line):
-                yield rel, n, TRAILER.sub("", m.group(0))
+                lit = TRAILER.sub("", m.group(0))
+                # A glob (`inbox/2026-*-notes.md`): keep its `*`, so it reads as a template and
+                # is not resolved as if the text before the `*` were a path. Bold (`**x**`) is
+                # not a glob: what follows its stars is not part of a path.
+                if GLOB_TAIL.match(line, m.end()):
+                    lit += "*"
+                yield rel, n, lit
 
 
 def main(argv: list[str]) -> int:
@@ -166,16 +187,12 @@ def _check() -> int:
     warnings: list[str] = []
 
     for p in paths:  # (a)
-        # casefold(): `.agents/Artifacts/` is the tree on a case-insensitive disk but an
-        # un-ignored, trackable directory on a case-sensitive one such as CI.
-        # Anywhere in the path: only the repo-root `.agents/artifacts/` is gitignored, so a
-        # nested one is exactly the copy that gets committed by accident.
-        if ("/" + p.casefold()).find("/" + ROOT) != -1 or "-core-code-" in p.casefold():
+        if is_private_path(p) or "-core-code-" in p.casefold():
             errors.append(f"{p}: private content is tracked in the public repo; remove it "
                           f"(git rm --cached) and keep it in the private tree")
 
     tree = REPO / ROOT
-    present = tree.is_dir()
+    present = clone_present(tree)
     rows = moved_rows(tree) if present else []
     shaped = 0
     for rel, n, lit in citations(citing()):  # (b) and (c)
