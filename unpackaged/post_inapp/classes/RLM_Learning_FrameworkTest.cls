@@ -18,7 +18,7 @@
  *    whatever the runner holds.
  *  - A separate least-privilege "learner" is a user on the
  *    "Minimum Access - Salesforce" profile (looked up by its English name)
- *    holding only RLM_Learning. learnerCannotResequenceRowsItDoesNotOwn and
+ *    holding only RLM_Learning. knownGap_learnerCannotResequenceRowsItDoesNotOwn and
  *    userInformation_paths use it, and learnerProfileGrantsNoLearningObjectAccess
  *    checks its profile. In the Apex test context user inserts are not limited
  *    by free seats (observed on a Release 264 org: 22 Minimum Access users
@@ -26,8 +26,8 @@
  *    only in the tests that use it, so a failure to create it affects only
  *    those tests. When it cannot be created (no Minimum Access profile,
  *    RLM_Learning missing, LICENSE_LIMIT_EXCEEDED on the insert, or the
- *    learner holds permission sets beyond RLM_Learning),
- *    learnerCannotResequenceRowsItDoesNotOwn returns early with a WARN
+ *    learner does not hold exactly the RLM_Learning permission set),
+ *    knownGap_learnerCannotResequenceRowsItDoesNotOwn returns early with a WARN
  *    "SKIPPED" debug line and userInformation_paths calls getName as the
  *    runner instead. The sentinel skips its assignment check only when no
  *    learner user exists; for a learner with extra permission sets it still
@@ -42,7 +42,7 @@
  *  - Ownership. Re-sequencing a section deletes its junction rows, so a user
  *    who does not own them (for example a learner, for content an admin
  *    loaded) cannot re-sequence that section;
- *    learnerCannotResequenceRowsItDoesNotOwn pins this.
+ *    knownGap_learnerCannotResequenceRowsItDoesNotOwn pins this.
  *
  * Not covered here:
  *  - The learner's read access to Page, Section, Block, Icon and DynamicLink.
@@ -217,9 +217,9 @@ private class RLM_Learning_FrameworkTest {
 
   // The learner, created on first use in this test, or null (with a WARN
   // "SKIPPED" line) when it cannot be created.
-  // Also null (with a WARN) when the learner holds permission sets beyond
-  // RLM_Learning, for example through org automation, because it would no
-  // longer be least-privilege.
+  // Also null (with a WARN naming the sets it holds) when the learner does not
+  // hold exactly RLM_Learning, for example because org automation assigned
+  // more, since it would no longer be least-privilege.
   static User learner() {
     User found = findLearner();
     if (found == null) {
@@ -235,13 +235,19 @@ private class RLM_Learning_FrameworkTest {
       return null;
     }
     Id learnerId = found.Id;
-    Integer sets = [
-      SELECT COUNT()
+    Set<String> held = new Set<String>();
+    for (PermissionSetAssignment psa : [
+      SELECT PermissionSet.Name
       FROM PermissionSetAssignment
       WHERE AssigneeId = :learnerId AND PermissionSet.IsOwnedByProfile = FALSE
-    ];
-    if (sets != 1) {
-      System.debug(LoggingLevel.WARN, 'SKIPPED: the learner holds permission sets beyond RLM_Learning');
+    ]) {
+      held.add(psa.PermissionSet.Name);
+    }
+    if (held != new Set<String>{ 'RLM_Learning' }) {
+      System.debug(
+        LoggingLevel.WARN,
+        'SKIPPED: the learner does not hold exactly RLM_Learning; it holds ' + held
+      );
       return null;
     }
     return found;
@@ -1001,7 +1007,7 @@ private class RLM_Learning_FrameworkTest {
   // it. A learner therefore cannot re-sequence a section whose rows someone
   // else (here the runner, as an admin load would) created.
   @IsTest
-  static void learnerCannotResequenceRowsItDoesNotOwn() {
+  static void knownGap_learnerCannotResequenceRowsItDoesNotOwn() {
     User learnerUser = learner();
     if (learnerUser == null) {
       return; // skipped visibly: see learner()
@@ -1084,51 +1090,45 @@ private class RLM_Learning_FrameworkTest {
   }
 
   // Input guards that throw before any USER_MODE query, so they run as the
-  // runner, whatever the runner holds. Each call must throw, and all but the
-  // getSetupPageLink calls must throw without running a query. getSetupPageLink
-  // only queries custom metadata with no long-text fields, which
-  // Limits.getQueries() does not count, so for it the query check could never
-  // fail; those calls are plain must-throw checks.
+  // runner, whatever the runner holds. Each call must throw. Only the blank
+  // getDynamicLinkByIdentity call is also checked to throw without running a
+  // query: without its guard it would run a valid query, which
+  // Limits.getQueries() counts. The others are plain must-throw checks,
+  // because the query check could never fail for them:
+  //  - getObjectIdFromQuery and getRecordIdFromDynamicLinkType without their
+  //    guards would build a query that is rejected when parsed, and a live
+  //    check showed a parse-rejected Database.query does not increment
+  //    Limits.getQueries().
+  //  - getSetupPageLink only queries custom metadata with no long-text fields,
+  //    which Limits.getQueries() does not count.
   @IsTest
   static void dynamicLinkHelper_guards() {
     List<String> notThrown = new List<String>();
-    List<String> afterQuery = new List<String>();
-    Integer queries;
-    queries = Limits.getQueries();
+    Integer queries = Limits.getQueries();
+    Boolean blankIdentityQueried = false;
     try {
       RLM_Learning_DynamicLinkHelper.getDynamicLinkByIdentity('');
       notThrown.add('getDynamicLinkByIdentity(blank)');
     } catch (AuraHandledException e) {
-      if (Limits.getQueries() != queries) {
-        afterQuery.add('getDynamicLinkByIdentity(blank)');
-      }
+      blankIdentityQueried = Limits.getQueries() != queries;
     }
-    queries = Limits.getQueries();
     try {
       RLM_Learning_DynamicLinkHelper.getObjectIdFromQuery('', '');
       notThrown.add('getObjectIdFromQuery(blank object)');
     } catch (AuraHandledException e) {
-      if (Limits.getQueries() != queries) {
-        afterQuery.add('getObjectIdFromQuery(blank object)');
-      }
+      // expected
     }
-    queries = Limits.getQueries();
     try {
       RLM_Learning_DynamicLinkHelper.getObjectIdFromQuery('RLM_Learning_Page__c', '');
       notThrown.add('getObjectIdFromQuery(blank where)');
     } catch (AuraHandledException e) {
-      if (Limits.getQueries() != queries) {
-        afterQuery.add('getObjectIdFromQuery(blank where)');
-      }
+      // expected
     }
-    queries = Limits.getQueries();
     try {
       RLM_Learning_DynamicLinkHelper.getObjectIdFromQuery('Not_A_Real_Object__x', 'Id != null');
       notThrown.add('getObjectIdFromQuery(unknown object)');
     } catch (AuraHandledException e) {
-      if (Limits.getQueries() != queries) {
-        afterQuery.add('getObjectIdFromQuery(unknown object)');
-      }
+      // expected
     }
     try {
       RLM_Learning_DynamicLinkHelper.getSetupPageLink('', 'x');
@@ -1148,35 +1148,26 @@ private class RLM_Learning_FrameworkTest {
     } catch (AuraHandledException e) {
       // expected
     }
-    queries = Limits.getQueries();
     try {
       RLM_Learning_DynamicLinkHelper.getRecordIdFromDynamicLinkType('UnsupportedType', 'Id != null');
       notThrown.add('getRecordIdFromDynamicLinkType(unsupported type)');
     } catch (AuraHandledException e) {
-      if (Limits.getQueries() != queries) {
-        afterQuery.add('getRecordIdFromDynamicLinkType(unsupported type)');
-      }
+      // expected
     }
-    queries = Limits.getQueries();
     try {
       RLM_Learning_DynamicLinkHelper.getRecordIdFromDynamicLinkType('', 'Id != null');
       notThrown.add('getRecordIdFromDynamicLinkType(blank type)');
     } catch (AuraHandledException e) {
-      if (Limits.getQueries() != queries) {
-        afterQuery.add('getRecordIdFromDynamicLinkType(blank type)');
-      }
+      // expected
     }
-    queries = Limits.getQueries();
     try {
       RLM_Learning_DynamicLinkHelper.getRecordIdFromDynamicLinkType('FlowRecordPage', '');
       notThrown.add('getRecordIdFromDynamicLinkType(blank where)');
     } catch (AuraHandledException e) {
-      if (Limits.getQueries() != queries) {
-        afterQuery.add('getRecordIdFromDynamicLinkType(blank where)');
-      }
+      // expected
     }
     Assert.isTrue(notThrown.isEmpty(), 'these calls did not throw: ' + notThrown);
-    Assert.isTrue(afterQuery.isEmpty(), 'these calls threw only after running a query: ' + afterQuery);
+    Assert.isFalse(blankIdentityQueried, 'getDynamicLinkByIdentity(blank) threw only after running a query');
   }
 
   // An unknown identity reaches the USER_MODE query, so it runs with the grant.
@@ -1360,15 +1351,19 @@ private class RLM_Learning_FrameworkTest {
     Assert.isTrue(threw, 'expected an error for a malformed network id');
   }
 
-  // A well-formed Id with no site behind it is rejected in every org. When the
-  // org also has an Experience Cloud site with a login URL (the prm flag deploys
-  // the "rlm" site; the billing portal bundle deploys another), that site's
-  // base URL is exactly its login URL up to "/s/", which keeps a site path
-  // prefix such as "/partners", or scheme://host when the login URL has no
-  // "/s/" segment. Otherwise the trimming check is skipped visibly (a WARN
+  // A well-formed Id with no site behind it is rejected in every org. Then every
+  // site with a login URL (the prm flag deploys the "rlm" site; the billing
+  // portal and payments bundles deploy others) is checked against an
+  // independent oracle, its own UrlPathPrefix: the base URL must be a prefix of
+  // the login URL that keeps "/<UrlPathPrefix>", or be scheme://host for a site
+  // with no path prefix. With no site, the check is skipped visibly (a WARN
   // debug line).
+  //
+  // Known gap: for a site with a path prefix whose login URL has no "/s/"
+  // segment (for example a Visualforce site), getSiteUrl returns scheme://host
+  // and drops the prefix. That case is pinned below, not counted as passing.
   @IsTest
-  static void getSiteUrl_rejectsAMissingSite_andTrimsTheLoginPath_whenTheOrgHasASite() {
+  static void getSiteUrl_rejectsAMissingSite_andKeepsEachSitesPathPrefix_whenTheOrgHasASite() {
     Boolean missingRejected = false;
     try {
       RLM_Learning_DynamicLinkHelper.getSiteUrl('0DB000000000001');
@@ -1380,45 +1375,45 @@ private class RLM_Learning_FrameworkTest {
     // Network is exposed only with Digital Experiences, so it is queried
     // dynamically: a static reference would not compile without it.
     List<SObject> networks = Schema.getGlobalDescribe().containsKey('Network')
-      ? Database.query('SELECT Id FROM Network ORDER BY Name')
+      ? Database.query('SELECT Id, Name, UrlPathPrefix FROM Network ORDER BY Name')
       : new List<SObject>();
-    Id siteId = null;
-    String loginUrl = null;
-    for (SObject candidate : networks) {
+    Integer sitesChecked = 0;
+    for (SObject site : networks) {
+      String loginUrl;
       try {
-        loginUrl = Network.getLoginUrl(candidate.Id);
+        loginUrl = Network.getLoginUrl(site.Id);
       } catch (Exception e) {
-        loginUrl = null; // this network has no usable login URL; try the next
+        loginUrl = null; // this network has no usable login URL
       }
-      if (loginUrl != null) {
-        siteId = candidate.Id;
-        break;
+      if (loginUrl == null) {
+        continue;
+      }
+      sitesChecked++;
+      String prefix = (String) site.get('UrlPathPrefix');
+      String siteUrl = RLM_Learning_DynamicLinkHelper.getSiteUrl(site.Id);
+      String context = ' (site ' + site.get('Name') + ', site URL: ' + siteUrl + ', login URL: ' + loginUrl + ')';
+      Url parsed = new Url(loginUrl);
+      String schemeAndHost = parsed.getProtocol() + '://' + parsed.getHost();
+
+      Assert.isTrue(loginUrl.startsWith(siteUrl), 'the site URL is a prefix of the login URL' + context);
+      if (String.isBlank(prefix)) {
+        Assert.areEqual(schemeAndHost, siteUrl, 'a site with no path prefix is scheme://host' + context);
+      } else if (loginUrl.contains('/s/')) {
+        Assert.isTrue(siteUrl.endsWith('/' + prefix), 'the site URL keeps "/' + prefix + '"' + context);
+      } else {
+        Assert.areEqual(
+          schemeAndHost,
+          siteUrl,
+          'Known gap: getSiteUrl drops the path prefix "/' + prefix + '" of a site whose login URL ' +
+          'has no "/s/" segment; update this test when it is fixed.' + context
+        );
       }
     }
-    if (loginUrl == null) {
+    if (sitesChecked == 0) {
       System.debug(
         LoggingLevel.WARN,
         'SKIPPED: no Experience Cloud site in this org, or no site has a login URL; ' +
         'getSiteUrl trimming not verified'
-      );
-      return;
-    }
-
-    String siteUrl = RLM_Learning_DynamicLinkHelper.getSiteUrl(siteId);
-
-    Integer loginPathIndex = loginUrl.indexOf('/s/');
-    if (loginPathIndex > 0) {
-      Assert.areEqual(
-        loginUrl.substring(0, loginPathIndex),
-        siteUrl,
-        'the login URL up to "/s/", keeping any site path prefix (login URL: ' + loginUrl + ')'
-      );
-    } else {
-      Url parsed = new Url(loginUrl);
-      Assert.areEqual(
-        parsed.getProtocol() + '://' + parsed.getHost(),
-        siteUrl,
-        'scheme://host when the login URL has no "/s/" segment (login URL: ' + loginUrl + ')'
       );
     }
   }

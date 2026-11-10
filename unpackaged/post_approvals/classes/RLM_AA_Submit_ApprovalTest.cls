@@ -79,7 +79,7 @@ private class RLM_AA_Submit_ApprovalTest {
             Assert.fail('Known gap: only the first request is started; requests after it are ignored. '
                 + 'Update this test when it is fixed.');
         }
-        Assert.isNull(thrown, 'Known gap: only the first request is started; was it fixed? got '
+        Assert.isNull(thrown, 'Unexpected exception starting the batch (not the known gap): '
             + (thrown == null ? '' : thrown.getTypeName() + ': ' + thrown.getMessage()));
     }
 
@@ -100,9 +100,11 @@ private class RLM_AA_Submit_ApprovalTest {
             Assert.fail('Known gap: an empty request list throws a raw ListException (only the first '
                 + 'request is read); update this test when it is fixed.');
         }
+        // Type only: platform exception text is translated into the running
+        // user's language, so it is not checked.
         Assert.isTrue(
-            thrown instanceof ListException && thrown.getMessage().contains('out of bounds'),
-            'Known gap: an empty request list throws a raw ListException; was it fixed? got '
+            thrown instanceof ListException,
+            'Unexpected exception starting the batch (not the known gap): '
             + thrown.getTypeName() + ': ' + thrown.getMessage());
     }
 
