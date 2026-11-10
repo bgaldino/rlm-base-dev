@@ -37,7 +37,7 @@ ERD_DATA = REPO / "docs" / "erds" / "erd-data.json"
 # default path is configurable via --ownership-json so this script works on
 # fresh clones and in CI without requiring the .agents/ artifacts to exist.
 # One literal, so the private_refs gate lists it with the other citations todo 358 rewrites.
-ARTIFACTS = REPO / ".agents/artifacts/orphan-fields"
+ARTIFACTS = REPO / ".agents/artifacts/topics/orphan-fields"
 DEFAULT_OWNERSHIP_JSON = ARTIFACTS / "orphan-field-ownership.json"
 
 

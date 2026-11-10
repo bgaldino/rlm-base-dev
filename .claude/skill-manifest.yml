@@ -28,9 +28,9 @@
 #   - ensure both repos commit the same file (CI gate planned for Phase 6.3.5)
 #
 # References:
-#   - Schema doc: .agents/artifacts/ssot-comparison.md §6
-#   - Consolidation pattern: .agents/artifacts/skills-consolidation-plan.md §3
-#   - Validation status: .agents/artifacts/integration-claim-validation.md
+#   - Schema doc: .agents/artifacts/topics/pmos-integration/ssot-comparison.md §6
+#   - Consolidation pattern: .agents/artifacts/topics/skills/skills-consolidation-plan.md §3
+#   - Validation status: .agents/artifacts/topics/pmos-integration/integration-claim-validation.md
 
 manifest_version: 2
 generated_at: "2026-05-23T00:00:00Z"
@@ -508,7 +508,7 @@ foundations:
       class_path: tasks.check_pmos_prd.CheckPmosPrd  # NOT YET IMPLEMENTED
       purpose: "Validate PMOS PRD frontmatter against Foundations corpus"
       status: designed_not_built
-      see: .agents/artifacts/integration-staging/pmos-integration.md
+      see: .agents/artifacts/topics/integration-staging/pmos-integration.md
 
   # SFDMU shape registry
   sfdmu_shapes:
@@ -779,11 +779,11 @@ pmos:
 studio:
   cross_repo_decisions:
     - id: data_shape_consistency
-      see: .agents/artifacts/skills-consolidation-plan.md §5
+      see: .agents/artifacts/topics/skills/skills-consolidation-plan.md §5
       summary: "All orgs are built from Foundations data shapes (qb/q3/mfg+locale). Enablement materials MUST reference real built-org records, not fictional ones."
 
     - id: ssot_per_domain
-      see: .agents/artifacts/ssot-comparison.md
+      see: .agents/artifacts/topics/pmos-integration/ssot-comparison.md
       summary: "Foundations is canonical for Help mirror, APIs, schema. PMOS is canonical for PRDs, capability roadmap, PM frameworks. Cross-repo manifest is the wire."
 
   sibling_repos_known:

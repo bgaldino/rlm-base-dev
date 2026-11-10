@@ -1477,7 +1477,7 @@ forced this paragraph, which is what "changes only by updating `VERDICT_REGIONS`
 
 The corpus is kept for that reason — 147 mutations, 106 loosening probes, 47
 correct-edit assertions and 17 gate-script probes across six files — but **not in
-this repository**: it lives at `.agents/artifacts/sweeps/`, which `.gitignore` excludes, because this
+this repository**: it lives at `.agents/artifacts/topics/sweeps/`, which `.gitignore` excludes, because this
 project keeps agent working output out of the public tree and because these files mutate the very
 workflow CI runs. So that figure is a local result, reproducible from any checkout that carries the
 corpus and not from a fresh clone; promoting the corpus to a tracked harness under `tests/` is an open
