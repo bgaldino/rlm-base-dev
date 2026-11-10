@@ -75,9 +75,10 @@ private class RLM_AA_Submit_ApprovalTest {
         }
         Test.stopTest();
 
-        // Matches only the flow API name the platform passes through, never its
-        // translated wording.
-        if (thrown instanceof TypeException && thrown.getMessage().contains(MISSING_FLOW)) {
+        // Any exception naming the missing flow, whatever its type, means the
+        // second request was tried: the fix. Matches only the flow API name the
+        // platform passes through, never its translated wording.
+        if (thrown != null && thrown.getMessage() != null && thrown.getMessage().contains(MISSING_FLOW)) {
             Assert.fail('Known gap: only the first request is started; requests after it are ignored. '
                 + 'Update this test when it is fixed.');
         }
@@ -106,8 +107,6 @@ private class RLM_AA_Submit_ApprovalTest {
             Assert.fail('Known gap: an empty request list throws a raw ListException; it now '
                 + (thrown == null ? 'returns' : 'throws ' + thrown.getTypeName()) + '. Update this test.');
         }
-        Assert.isInstanceOfType(thrown, ListException.class,
-            'today an empty request list fails reading request 0');
     }
 
     // An unknown flow name cannot be started: the platform's TypeException

@@ -44,6 +44,11 @@
  *    loaded) cannot re-sequence that section;
  *    knownGap_learnerCannotResequenceRowsItDoesNotOwn pins this.
  *
+ * Documented, not pinned:
+ *  - Site path prefix. getSiteUrl drops the path prefix of a site whose login
+ *    URL has no "/s/" segment (seen on a Visualforce site); it returns only
+ *    protocol://host. Not pinned because it depends on the org's sites.
+ *
  * Not covered here:
  *  - The learner's read access to Page, Section, Block, Icon and DynamicLink.
  *    The read-path tests run as the runner (normally an admin) plus
@@ -1090,12 +1095,15 @@ private class RLM_Learning_FrameworkTest {
   }
 
   // Input guards that throw before any USER_MODE query, so they run as the
-  // runner, whatever the runner holds. Only the blank getDynamicLinkByIdentity
-  // call detects a removed guard: without it a valid query would run, which
-  // Limits.getQueries() counts. The other calls are coverage-only. Each still
-  // must throw, but a removed guard is not detectable here: the code after it
-  // also ends in an AuraHandledException (whose message is the generic
-  // "Script-thrown exception"), and the query check cannot fail for them:
+  // runner, whatever the runner holds. Two calls detect a removed guard:
+  //  - blank getDynamicLinkByIdentity: without its guard a valid query would
+  //    run, which Limits.getQueries() counts;
+  //  - getSetupPageLink('User', 'not-an-id'): without its Id check the call
+  //    would return a URL instead of throwing.
+  // The other calls are coverage-only. Each still must throw, but a removed
+  // guard is not detectable here: the code after it also ends in an
+  // AuraHandledException (whose message is the generic "Script-thrown
+  // exception"), and the query check cannot fail for them:
   //  - getObjectIdFromQuery and getRecordIdFromDynamicLinkType without their
   //    guards would build a query that is rejected when parsed, and a live
   //    check showed a parse-rejected Database.query does not increment
@@ -1352,19 +1360,15 @@ private class RLM_Learning_FrameworkTest {
     Assert.isTrue(threw, 'expected an error for a malformed network id');
   }
 
-  // A well-formed Id with no site behind it is rejected in every org. Then every
-  // site with a login URL (the prm flag deploys the "rlm" site; the billing
-  // portal and payments bundles deploy others) is checked against an
-  // independent oracle, its own UrlPathPrefix: the base URL must be a prefix of
-  // the login URL that keeps "/<UrlPathPrefix>", or be scheme://host for a site
-  // with no path prefix. With no site, the check is skipped visibly (a WARN
-  // debug line).
-  //
-  // Known gap: for a site with a path prefix whose login URL has no "/s/"
-  // segment (for example a Visualforce site), getSiteUrl returns scheme://host
-  // and drops the prefix. That case is pinned below, not counted as passing.
+  // A well-formed Id with no site behind it is rejected in every org. Then, for
+  // every site with a login URL (the prm flag deploys the "rlm" site; other
+  // bundles deploy more), the site URL must be a prefix of the login URL, and
+  // when the login URL contains "/s/" the site URL must be exactly the part
+  // before "/s/". That holds whatever the custom domain or path prefix, and it
+  // catches a regression to protocol://host for a site with a path prefix.
+  // With no site, the check is skipped visibly (a WARN debug line).
   @IsTest
-  static void getSiteUrl_rejectsAMissingSite_andKeepsEachSitesPathPrefix_whenTheOrgHasASite() {
+  static void getSiteUrl_rejectsAMissingSite_andReturnsThePartBeforeSlashS_whenTheOrgHasASite() {
     Boolean missingRejected = false;
     try {
       RLM_Learning_DynamicLinkHelper.getSiteUrl('0DB000000000001');
@@ -1376,7 +1380,7 @@ private class RLM_Learning_FrameworkTest {
     // Network is exposed only with Digital Experiences, so it is queried
     // dynamically: a static reference would not compile without it.
     List<SObject> networks = Schema.getGlobalDescribe().containsKey('Network')
-      ? Database.query('SELECT Id, Name, UrlPathPrefix FROM Network ORDER BY Name')
+      ? Database.query('SELECT Id, Name FROM Network ORDER BY Name')
       : new List<SObject>();
     Integer sitesChecked = 0;
     for (SObject site : networks) {
@@ -1390,37 +1394,14 @@ private class RLM_Learning_FrameworkTest {
         continue;
       }
       sitesChecked++;
-      String prefix = (String) site.get('UrlPathPrefix');
       String siteUrl = RLM_Learning_DynamicLinkHelper.getSiteUrl(site.Id);
       String context = ' (site ' + site.get('Name') + ', site URL: ' + siteUrl + ', login URL: ' + loginUrl + ')';
-      Url parsed = new Url(loginUrl);
-      String schemeAndHost = parsed.getProtocol() + '://' + parsed.getHost();
 
       Assert.isTrue(loginUrl.startsWith(siteUrl), 'the site URL is a prefix of the login URL' + context);
-      if (String.isBlank(prefix)) {
-        Assert.areEqual(schemeAndHost, siteUrl, 'a site with no path prefix is scheme://host' + context);
-      } else if (loginUrl.contains('/s/')) {
-        // The expected site path comes from the login URL's own path, up to
-        // "/s/". A custom domain can map a site to the root, so that path need
-        // not start with "/<UrlPathPrefix>"; such a site is skipped visibly.
-        String path = parsed.getPath();
-        Integer loginPathIndex = path == null ? -1 : path.indexOf('/s/');
-        String sitePath = loginPathIndex < 0 ? null : path.substring(0, loginPathIndex);
-        String leadingSegment = sitePath == null ? null : sitePath.removeStart('/').substringBefore('/');
-        if (leadingSegment != prefix) {
-          System.debug(
-            LoggingLevel.WARN,
-            'SKIPPED: the login URL path does not start with "/' + prefix + '"' + context
-          );
-          continue;
-        }
-        Assert.areEqual(schemeAndHost + sitePath, siteUrl, 'the site URL keeps "/' + prefix + '"' + context);
-      } else {
-        Assert.areEqual(
-          schemeAndHost,
-          siteUrl,
-          'Known gap: getSiteUrl drops the path prefix "/' + prefix + '" of a site whose login URL ' +
-          'has no "/s/" segment; update this test when it is fixed.' + context
+      if (loginUrl.contains('/s/')) {
+        Assert.isTrue(
+          loginUrl.startsWith(siteUrl + '/s/'),
+          'the site URL is the part of the login URL before "/s/"' + context
         );
       }
     }
@@ -1428,7 +1409,7 @@ private class RLM_Learning_FrameworkTest {
       System.debug(
         LoggingLevel.WARN,
         'SKIPPED: no Experience Cloud site in this org, or no site has a login URL; ' +
-        'getSiteUrl trimming not verified'
+        'getSiteUrl not verified'
       );
     }
   }

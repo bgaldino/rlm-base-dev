@@ -67,10 +67,14 @@ private class RLM_AI_AttributeResolverTest {
         Assert.areEqual('Type', picklistEntry.get('name'));
         Assert.areEqual('Picklist', picklistEntry.get('dataType'));
         Assert.areEqual(true, picklistEntry.get('isPriceImpacting'));
+        Assert.areEqual(true, picklistEntry.get('isRequired'));
+        Assert.areEqual('Type', picklistEntry.get('developerName'));
         Assert.areEqual(String.valueOf(numeric.attributeDefinitionId), numericEntry.get('attributeId'));
         Assert.areEqual('Quantity Tier', numericEntry.get('name'));
         Assert.areEqual('Number', numericEntry.get('dataType'));
         Assert.areEqual(false, numericEntry.get('isPriceImpacting'));
+        Assert.areEqual(false, numericEntry.get('isRequired'));
+        Assert.areEqual('QuantityTier', numericEntry.get('developerName'));
         Assert.areEqual('Flex', picklistEntry.get('currentValue'), 'Picklist current value present.');
         Assert.areEqual(new List<Object>{ 'Flex', 'Prod' }, picklistEntry.get('picklistValues'),
             'Picklist entry carries its valid values.');
