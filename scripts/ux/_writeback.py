@@ -377,8 +377,13 @@ def _entry_spans(lines: List[str]) -> Optional[Tuple[List[Tuple[int, int, int]],
     # key (or, after indented entries, about the file), not the last entry, so
     # it stays in the untouched rest of the file when that entry is dropped.
     if end < len(lines) or indent > 0:
-        while end - 1 > items[-1] and lines[end - 1].startswith("#"):
-            end -= 1
+        top = end
+        while top - 1 > items[-1] and not lines[top - 1].strip():
+            top -= 1  # blank lines between that block and the key
+        if top - 1 > items[-1] and lines[top - 1].startswith("#"):
+            while top - 1 > items[-1] and lines[top - 1].startswith("#"):
+                top -= 1
+            end = top
     spans = [
         (start, item, starts[n + 1] if n + 1 < len(starts) else end)
         for n, (start, item) in enumerate(zip(starts, items))
@@ -478,6 +483,9 @@ def _changed_entry(
         line = piece[key_line]
         piece[key_line] = line[:indent] + ("- " if n == 0 else "  ") + line[indent + 2:]
         out.extend(piece)
+    for key, (chunk, _) in by_key.items():
+        if key not in after and _has_comment(chunk):
+            notes.append(f"comments on the removed `{key}` of {describe_patch(before)} were not kept")
     return out
 
 

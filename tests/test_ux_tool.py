@@ -1612,3 +1612,24 @@ def test_a_comment_that_cannot_be_kept_is_named_not_dropped_silently():
     out = rewrite_patch_entries(text, _entries(text), entries,
                                 dict(yaml.safe_load(text), patches=entries), notes)
     assert out is not None and len(notes) == 1 and "were not kept" in notes[0]
+
+
+def test_a_blank_separated_comment_above_the_next_key_survives_dropping_the_last_entry():
+    text = ("feature: demo\npatches:\n  - type: a\n    after: \"X\"\n  - type: b\n    after: \"Y\"\n"
+            "# Controls activation.\n\nfeature_flag: demo\n")
+    entries = _entries(text)
+    assert _rewrite(text, [entries[0], None]) == text.replace('  - type: b\n    after: "Y"\n', "")
+
+
+def test_a_removed_keys_comment_is_named():
+    from scripts.ux._writeback import rewrite_patch_entries
+    import yaml
+    text = ('feature: demo\npatches:\n  - type: insert_action\n    after: "Edit"\n'
+            '    # Why the gate exists.\n    visibility:\n      - field: "Record.Status"\n')
+    entries = _entries(text)
+    del entries[0]["visibility"]
+    notes = []
+    out = rewrite_patch_entries(text, _entries(text), entries,
+                                dict(yaml.safe_load(text), patches=entries), notes)
+    assert out is not None and "visibility" not in out
+    assert len(notes) == 1 and "removed `visibility`" in notes[0]
