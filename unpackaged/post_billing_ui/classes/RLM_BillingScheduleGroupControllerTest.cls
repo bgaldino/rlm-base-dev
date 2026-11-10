@@ -2,7 +2,9 @@
 private class RLM_BillingScheduleGroupControllerTest {
 
     // BillingScheduleGroup records are system-managed and not insertable in Apex tests, so
-    // these tests drive the query down its empty and refused paths only.
+    // these tests drive the query down its empty and refused paths only. Each System.runAs
+    // test creates its user through RLM_BillingUITestUsers, which takes a Billing permission
+    // set license seat.
     @isTest
     static void getBillingScheduleGroups_nullAccount_returnsEmptyList() {
         Test.startTest();

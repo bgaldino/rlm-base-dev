@@ -7,7 +7,9 @@ private class RLM_BSGTimelineControllerTest {
 
     // BillingScheduleGroup records are system-managed and not insertable in Apex tests.
     // getBillingScheduleGroupData / getConsolidatedTimeline raise AuraHandledException when the
-    // BSG cannot be found; getMilestoneChartData degrades to an empty list.
+    // BSG cannot be found; getMilestoneChartData degrades to an empty list. Each System.runAs
+    // test creates its user through RLM_BillingUITestUsers, which takes a Billing permission
+    // set license seat.
     @isTest
     static void getBillingScheduleGroupData_unknownBsg_throws() {
         Boolean threw = false;
@@ -48,7 +50,7 @@ private class RLM_BSGTimelineControllerTest {
 
     // A string that is not an id: the two group reads must throw AuraHandledException (not a
     // raw platform exception) and the milestone read must return an empty list. Runs as the
-    // test user, so it does not show which branch inside each method ran.
+    // running user (no System.runAs), so it does not show which branch inside each method ran.
     @isTest
     static void malformedId_throwsHandledExceptionsAndReturnsNoMilestones() {
         Boolean dataThrew = false;
@@ -147,7 +149,8 @@ private class RLM_BSGTimelineControllerTest {
         Test.startTest();
         System.runAs(u) {
             // Keep in step with the two static queries in
-            // RLM_BSGTimelineController.getBillingScheduleGroupData (SELECT, WHERE and ORDER BY fields).
+            // RLM_BSGTimelineController.getBillingScheduleGroupData (SELECT, WHERE and ORDER BY
+            // fields), and with READS in RLM_BillingUIAccessTest, which grants these fields.
             for (String soql : new List<String>{
                 'SELECT Id, BillingScheduleGroupNumber, ProductName, BillingAccountId, BillingAccount.Name, '
                     + 'CurrencyIsoCode, TotalBilledAmount, TotalPendingAmount, BillingTerm, BillingTermUnit, '

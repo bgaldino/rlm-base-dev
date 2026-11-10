@@ -5,7 +5,9 @@ private class RLM_BSGContextControllerTest {
     // BsgRelationship cannot be inserted in Apex tests, so getBSGContext is covered only on
     // the paths that need no BSG: a malformed or null id, an id matching no BSG, and a BSG
     // query the user may not run. The bundle assembly (appendComponentsDfs) and the
-    // charge-type / frequency helpers are covered directly with in-memory BSGs.
+    // charge-type / frequency helpers are covered directly with in-memory BSGs. Each
+    // System.runAs test creates its user through RLM_BillingUITestUsers, which takes a
+    // Billing permission set license seat.
     private static Id fakeBsgId() {
         return Id.valueOf(
             BillingScheduleGroup.SObjectType.getDescribe().getKeyPrefix() + '000000000000'
@@ -53,21 +55,21 @@ private class RLM_BSGContextControllerTest {
 
     @isTest
     static void deriveChargeType_coversAllBranches() {
-        System.assertEquals('Usage',
-            RLM_BSGContextController.deriveChargeType('Usage', 'Months', null));
-        System.assertEquals('One-Time',
+        Assert.areEqual('Usage',
+            RLM_BSGContextController.deriveChargeType('Usage', 'Month', null));
+        Assert.areEqual('One-Time',
             RLM_BSGContextController.deriveChargeType('Subscription', 'OneTime', null));
-        System.assertEquals('Evergreen',
-            RLM_BSGContextController.deriveChargeType('Subscription', 'Months', null));
-        System.assertEquals('Termed Subscription',
-            RLM_BSGContextController.deriveChargeType('Subscription', 'Months', Date.today().addDays(30)));
+        Assert.areEqual('Evergreen',
+            RLM_BSGContextController.deriveChargeType('Subscription', 'Month', null));
+        Assert.areEqual('Termed Subscription',
+            RLM_BSGContextController.deriveChargeType('Subscription', 'Month', Date.today().addDays(30)));
     }
 
     @isTest
     static void formatFrequency_coversBranches() {
-        System.assertEquals('One-Time', RLM_BSGContextController.formatFrequency(1, 'OneTime'));
-        System.assertEquals('1 Months', RLM_BSGContextController.formatFrequency(1, 'Months'));
-        System.assertEquals('1 ', RLM_BSGContextController.formatFrequency(null, null));
+        Assert.areEqual('One-Time', RLM_BSGContextController.formatFrequency(1, 'OneTime'));
+        Assert.areEqual('1 Month', RLM_BSGContextController.formatFrequency(1, 'Month'));
+        Assert.areEqual('1 ', RLM_BSGContextController.formatFrequency(null, null));
     }
 
     // ─── Bundle assembly (appendComponentsDfs) ──────────────────────────────
@@ -194,7 +196,8 @@ private class RLM_BSGContextControllerTest {
         Test.startTest();
         System.runAs(u) {
             try {
-                // Keep in step with the BSG query in RLM_BSGContextController.getBSGContext.
+                // Keep in step with the BSG query in RLM_BSGContextController.getBSGContext
+                // (and with READS in RLM_BillingUIAccessTest, which grants these fields).
                 Database.query(
                     'SELECT Id, BillingScheduleGroupNumber, ProductName, Product2Id, BillingType, BillingMethod, '
                     + 'BillingTermUnit, BillingTerm, AnchorProdtBillingSchdGrpId, BindingInstanceId, '
@@ -214,7 +217,8 @@ private class RLM_BSGContextControllerTest {
         Assert.isNull(ctx.arrangement);
     }
 
-    // Runs as the test user, so it does not show which branch produced the standard view.
+    // Runs as the running user (no System.runAs), so it does not show which branch produced
+    // the standard view.
     @isTest
     static void getBSGContext_idOfAnotherObject_returnsStandard() {
         Account acc = new Account(Name = 'RLM BSG Context Cross Type');
@@ -246,11 +250,11 @@ private class RLM_BSGContextControllerTest {
 
     @isTest
     static void formatFrequency_usesTermAndUnit() {
-        Assert.areEqual('12 Months', RLM_BSGContextController.formatFrequency(12, 'Months'));
+        Assert.areEqual('12 Month', RLM_BSGContextController.formatFrequency(12, 'Month'));
         Assert.areEqual('One-Time', RLM_BSGContextController.formatFrequency(6, 'ONETIME'),
             'OneTime ignores the term and the case of the unit.');
         Assert.areEqual('3 ', RLM_BSGContextController.formatFrequency(3, null), 'A missing unit is blank.');
-        Assert.areEqual('1 Days', RLM_BSGContextController.formatFrequency(null, 'Days'), 'A missing term is 1.');
+        Assert.areEqual('1 Day', RLM_BSGContextController.formatFrequency(null, 'Day'), 'A missing term is 1.');
     }
 
     // ─── appendComponentsDfs: guards and edge shapes ────────────────────────
@@ -354,9 +358,9 @@ private class RLM_BSGContextControllerTest {
         Assert.isTrue(result[1].isCurrent, 'b was passed as the current record.');
     }
 
-    // Nesting is cut off below depth 5: a sixth level is never emitted.
+    // At most five levels are emitted: a sixth level is never emitted.
     @isTest
-    static void appendComponentsDfs_stopsBelowDepthFive() {
+    static void appendComponentsDfs_emitsAtMostFiveLevels() {
         Id mainId = mintBsgId();
         List<Id> chain = new List<Id>();
         for (Integer i = 0; i < 6; i++) {
@@ -395,10 +399,10 @@ private class RLM_BSGContextControllerTest {
         Id usage = mintBsgId();
         Id termed = mintBsgId();
         Map<String, Object> usageFields = new Map<String, Object>{
-            'BillingMethod' => 'Usage', 'BillingTermUnit' => 'Months', 'BillingTerm' => 1
+            'BillingMethod' => 'Usage', 'BillingTermUnit' => 'Month', 'BillingTerm' => 1
         };
         Map<String, Object> termedFields = new Map<String, Object>{
-            'BillingMethod' => 'Subscription', 'BillingTermUnit' => 'Months', 'BillingTerm' => 12,
+            'BillingMethod' => 'Subscription', 'BillingTermUnit' => 'Month', 'BillingTerm' => 12,
             'EndDate' => '2027-12-31'
         };
         List<RLM_BSGContextController.BundleComponentData> result =
@@ -418,10 +422,10 @@ private class RLM_BSGContextControllerTest {
         Assert.areEqual(2, result.size());
         Assert.areEqual('Metered', result[0].productName);
         Assert.areEqual('Usage', result[0].chargeType);
-        Assert.areEqual('1 Months', result[0].billingFrequency);
+        Assert.areEqual('1 Month', result[0].billingFrequency);
         Assert.areEqual('Subscription', result[1].productName);
         Assert.areEqual('Termed Subscription', result[1].chargeType, 'An end date makes it termed.');
-        Assert.areEqual('12 Months', result[1].billingFrequency);
+        Assert.areEqual('12 Month', result[1].billingFrequency);
     }
 
     // ─── Synthetic-record helpers ───────────────────────────────────────────
@@ -450,7 +454,7 @@ private class RLM_BSGContextControllerTest {
             'Id'              => id,
             'ProductName'     => productName,
             'BillingMethod'   => 'Subscription',
-            'BillingTermUnit' => 'Months',
+            'BillingTermUnit' => 'Month',
             'BillingTerm'     => 1
         };
         m.putAll(overrides);

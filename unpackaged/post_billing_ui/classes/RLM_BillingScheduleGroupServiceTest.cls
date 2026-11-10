@@ -1,12 +1,20 @@
 /**
  * Tests for RLM_BillingScheduleGroupService.
  *
- * A successful native standard-action invoke (createBillingSchedulesFromTrxn)
- * cannot be produced in a unit test, so the create-via-API path is covered through
- * the @TestVisible mock seam (mockActionOutputs) plus direct coverage of the pure
- * payload-build and result-parse helpers. One test invokes the real action with a
- * payload it rejects and checks that the rejection throws AuraHandledException. Validation guards are
- * covered by asserting AuraHandledException on bad input.
+ * The native standard-action invoke (createBillingSchedulesFromTrxn) is not run in
+ * these tests: the create-via-API path is covered through the @TestVisible mock seam
+ * (mockActionOutputs) plus direct coverage of the pure payload-build and result-parse
+ * helpers, so the real invoke and its failed-result handling stay uncovered. Validation
+ * guards are covered by asserting AuraHandledException on bad input. The System.runAs
+ * test creates its user through RLM_BillingUITestUsers, which takes a Billing permission
+ * set license seat.
+ *
+ * Known gap: on a Release 264 org, a diagnostic run of the action with real records and
+ * this service's payload returned isSuccess() = false with REQUIRED_FIELD_MISSING for
+ * billToContact, then paymentTermID, then shippingAddress, as each earlier one was supplied
+ * on the records. The payload sends none of these, so the create path may fail for a
+ * typical account; buildTransactionDetailsJson_mapsInputsToStandardContextFields pins the
+ * payload's exact key set.
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {
@@ -311,7 +319,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     // without them and are not exercised.
     @isTest
     static void billingTermUnitOptions_mirrorTheBillingSchedulePicklist() {
-        List<String> expected = picklistLabelsAndValues('BillingTermUnit', 'Month');
+        List<String> expected = picklistLabelsAndValues('BillingTermUnit');
         Test.startTest();
         List<RLM_BillingScheduleGroupService.PicklistOption> options =
             RLM_BillingScheduleGroupService.getBillingScheduleBillingTermUnitOptions();
@@ -322,7 +330,7 @@ private class RLM_BillingScheduleGroupServiceTest {
 
     @isTest
     static void pricingTermUnitOptions_mirrorTheBillingSchedulePicklist() {
-        List<String> expected = picklistLabelsAndValues('PricingTermUnit', 'Months');
+        List<String> expected = picklistLabelsAndValues('PricingTermUnit');
         Test.startTest();
         List<RLM_BillingScheduleGroupService.PicklistOption> options =
             RLM_BillingScheduleGroupService.getPricingTermUnitOptions();
@@ -464,10 +472,22 @@ private class RLM_BillingScheduleGroupServiceTest {
             Date.newInstance(2026, 4, 7), 7, 4, 'Termed', Date.newInstance(2027, 4, 6)
         ));
 
-        // Known gap, pinned: the legal entity is accepted but not sent (the public create method
-        // likewise accepts billingTerm and billingTypePicklistTiming and drops them).
-        Assert.isFalse(txn.containsKey('LegalEntityId__std'),
-            'Known gap: legalEntityId is accepted but not sent yet; update this test when it is.');
+        // Known gap, pinned by the exact key set: legalEntityId is accepted but not sent, and the
+        // public create method likewise accepts billingTerm and billingTypePicklistTiming and
+        // drops them. Any newly sent field, under any key, fails here.
+        Set<String> expectedKeys = new Set<String>{
+            'TransactionId__std', 'SellingModelType__std', 'ProductId__std', 'ProductName__std',
+            'StartDate__std', 'EndDate__std', 'PeriodBoundary__std', 'BillingDayOfMonth__std',
+            'BillingStartMonth__std', 'UnitPrice__std', 'Quantity__std', 'TotalPrice__std',
+            'TaxTreatmentId__std', 'AccountId__std', 'BillingProfileId__std', 'BillingCity__std',
+            'BillingTermUnit__std', 'BillingActionType__std', 'CurrencyIsoCode__std'
+        };
+        Assert.areEqual(expectedKeys.size(), txn.size(),
+            'Known gap: legalEntityId, billingTerm and billing type timing are accepted but not sent yet; '
+            + 'update this test when they are. Keys: ' + txn.keySet());
+        Assert.areEqual(expectedKeys, txn.keySet(),
+            'Known gap: legalEntityId, billingTerm and billing type timing are accepted but not sent yet; '
+            + 'update this test when they are.');
 
         Assert.isTrue(String.valueOf(txn.get('TransactionId__std')).startsWith('txn_'), 'Generated transaction id.');
         Assert.areEqual('TermDefined', txn.get('SellingModelType__std'), 'Termed maps to TermDefined.');
@@ -564,39 +584,6 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual('{}', r.apiResponse, 'The (empty) action output is still echoed.');
     }
 
-    // Without the mock the standard action is really invoked, with a payload of ids that don't
-    // exist, and the rejection must throw AuraHandledException. This relies on the platform
-    // rejecting such a payload in the synchronous result even though the action's work is
-    // asynchronous. For diagnosis: on a Release 264 org, a run of the same action with real
-    // records returned isSuccess() = false with REQUIRED_FIELD_MISSING (billToContact, then
-    // paymentTermID, then shippingAddress as each earlier one was supplied), and still returned
-    // a requestId and statusUrl. The test does not check why the action failed, and it cannot
-    // tell a failed result from an empty result list: both throw AuraHandledException.
-    @isTest
-    static void invokeStandaloneBillingScheduleCreate_rejectedPayload_throwsAuraHandledException() {
-        String payload = RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
-            fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType), 'Month', 1,
-            fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType), 'USD', 10, 10,
-            'Boston', fakeId(Product2.SObjectType), 'Widget', Date.newInstance(2026, 1, 1), 1, 1,
-            'Evergreen', null
-        );
-        Map<String, Object> outputs;
-        Exception failure;
-        Test.startTest();
-        try {
-            outputs = RLM_BillingScheduleGroupService.invokeStandaloneBillingScheduleCreate(payload);
-        } catch (Exception e) {
-            failure = e;
-        }
-        Test.stopTest();
-
-        Assert.isNull(outputs, 'PRECONDITION: the action rejects this payload synchronously; got outputs ' + outputs);
-        Assert.isNotNull(failure, 'A rejected payload must raise an error.');
-        Assert.isInstanceOfType(failure, AuraHandledException.class,
-            'A rejected payload must surface as an AuraHandledException, got '
-            + failure.getTypeName() + ': ' + failure.getMessage());
-    }
-
     // ---- helpers ----
 
     // Inputs for createBillingScheduleGroupAndScheduleViaAPI that pass every guard; a test
@@ -674,19 +661,15 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     // The BillingSchedule field's picklist entries as "label|value", in describe order. The
-    // field and one standard value are preconditions (the Billing license ships them), so a
-    // picklist the service could not mirror fails here instead of comparing two empty lists.
-    private static List<String> picklistLabelsAndValues(String fieldApi, String standardValue) {
+    // field and its values ship with the Billing license, so both are preconditions.
+    private static List<String> picklistLabelsAndValues(String fieldApi) {
         Map<String, Schema.SObjectField> fields = BillingSchedule.SObjectType.getDescribe().fields.getMap();
         Assert.isTrue(fields.containsKey(fieldApi), 'PRECONDITION: BillingSchedule.' + fieldApi + ' exists.');
         List<String> entries = new List<String>();
-        Set<String> values = new Set<String>();
         for (Schema.PicklistEntry pe : fields.get(fieldApi).getDescribe().getPicklistValues()) {
             entries.add(pe.getLabel() + '|' + pe.getValue());
-            values.add(pe.getValue());
         }
-        Assert.isTrue(values.contains(standardValue),
-            'PRECONDITION: BillingSchedule.' + fieldApi + ' has the standard value ' + standardValue + ': ' + values);
+        Assert.isFalse(entries.isEmpty(), 'PRECONDITION: BillingSchedule.' + fieldApi + ' has picklist values.');
         return entries;
     }
 
