@@ -65,6 +65,7 @@ interpreter on that missing-dependency path and nowhere else.
 import argparse
 import difflib
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -158,21 +159,81 @@ def repo_config_bytes():
     return out
 
 
+# The shared config is also written by every *other* worktree of this repository: another session's
+# `git push -u` or `git switch -c <name> origin/<name>` adds a `[branch "<name>"]` section mid-run, and
+# that failed an innocent check twice during PR 702. Such a section is told apart from a fixture leak
+# by its branch: another worktree's branch has a real `refs/heads/<name>` here, while a fixture's
+# (`feature`, `preview/next` and the like) exists only in its throwaway repo. Only that case is
+# tolerated, and only for the `[branch]` section itself; any other change still fails. The one gap is a
+# fixture name that is also a real branch here (`main`): a leak confined to that branch's tracking keys
+# would pass as another worktree's, which is the price of not failing on every concurrent `push -u`.
+_SECTION_HEADER = re.compile(r"\s*\[")
+_BRANCH_HEADER = re.compile(r'\s*\[\s*branch\s+"((?:[^"\\\n]|\\.)*)"\s*\]', re.IGNORECASE)
+
+# Notes about another worktree's `[branch]` sections, collected by run() and printed by main() whatever
+# the check's verdict: a passing check's output is otherwise never shown.
+CONFIG_NOTES = []
+
+
+def config_sections(text):
+    """A git config's text as [(branch name or None, block text)]: one block per section header, plus
+    a leading one for any lines before the first. A `[branch "X"]` block carries X (unescaped)."""
+    blocks = [[None, []]]
+    for line in text.splitlines(keepends=True):
+        if _SECTION_HEADER.match(line):
+            header = _BRANCH_HEADER.match(line)
+            name = re.sub(r"\\(.)", r"\1", header.group(1)) if header else None
+            blocks.append([name, []])
+        blocks[-1][1].append(line)
+    return [(name, "".join(lines)) for name, lines in blocks]
+
+
+def local_branches():
+    """Every `refs/heads/` name in this repository, short form — what a `[branch]` header names."""
+    out = git(["for-each-ref", "--format=%(refname)", "refs/heads/"], "for-each-ref refs/heads/")
+    return {ref[len("refs/heads/"):] for ref in out.splitlines() if ref.startswith("refs/heads/")}
+
+
 def config_change_note(before, after):
-    """A note for a check during which a repository config file changed, with the diffs, or ""."""
+    """(note, fails) for the repository config files' change during a check: ("", False) when none
+    changed. A change confined to `[branch "X"]` sections where `refs/heads/X` exists at the end of
+    the run is another worktree's bookkeeping: noted, not failed. Anything else fails, with the diff."""
     changed = [path for path in before if after.get(path) != before[path]]
     if not changed:
-        return ""
+        return "", False
+    texts = {path: ((before[path] or b"").decode("utf-8", "replace"),
+                    (after.get(path) or b"").decode("utf-8", "replace")) for path in changed}
+    branches = {}
+    for path, (old, new) in texts.items():
+        old_blocks, new_blocks = config_sections(old), config_sections(new)
+        names = {name for name, _ in old_blocks + new_blocks if name is not None}
+        branches[path] = {name for name in names
+                          if [b for n, b in old_blocks if n == name]
+                          != [b for n, b in new_blocks if n == name]}
+    # git is asked only when a `[branch]` section actually moved, so a clean run spawns nothing extra.
+    real = local_branches() if any(branches.values()) else set()
+    foreign, failing = set(), []
+    for path, (old, new) in texts.items():
+        ours = branches[path] & real
+        foreign |= ours
+        if ([block for name, block in config_sections(old) if name not in ours]
+                != [block for name, block in config_sections(new) if name not in ours]):
+            failing.append(path)
+    if not failing:
+        return ("\nnote: another worktree changed the shared git config's [branch] section(s) for "
+                + ", ".join(sorted(foreign)) + " while this check ran (each a real local branch, so"
+                " not a fixture leak; push with `git push origin <branch>`, not `-u`, to avoid it).\n",
+                False)
     diffs = []
-    for path in changed:
+    for path in failing:
         name = os.path.basename(path)
-        diffs += difflib.unified_diff((before[path] or b"").decode("utf-8", "replace").splitlines(),
-                                      (after.get(path) or b"").decode("utf-8", "replace").splitlines(),
+        diffs += difflib.unified_diff(texts[path][0].splitlines(), texts[path][1].splitlines(),
                                       f"{name} before", f"{name} after", lineterm="")
-    return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in changed) + ")"
+    return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in failing) + ")"
             " changed while this check ran. A fixture git command may have reached the real"
-            " repository (or something else wrote it meanwhile, such as `git push -u`). Restore it by"
-            " hand; the change is not reverted for you.\n" + "\n".join(diffs) + "\n")
+            " repository (or something else wrote it meanwhile). Only a [branch] section for a real"
+            " local branch is excused as another worktree's; this change is not. Restore it by hand;"
+            " the change is not reverted for you.\n" + "\n".join(diffs) + "\n", True)
 
 
 # name, command, path prefixes that select it, extra pip deps, gating, note.
@@ -993,6 +1054,16 @@ def have_module(name):
     return _IMPORTABLE[name]
 
 
+def config_drift(argv, before):
+    """(note, fails) for the config change since `before`; a non-failing note goes to CONFIG_NOTES
+    instead, since a passing check's output is never printed."""
+    note, fails = config_change_note(before, repo_config_bytes())
+    if note and not fails:
+        CONFIG_NOTES.append(f"{note.strip()} [during: {' '.join(argv)}]")
+        return "", False
+    return note, fails
+
+
 def run(cmd):
     """Run one command from the repo root, streaming nothing but returning everything."""
     argv = list(cmd)
@@ -1012,8 +1083,8 @@ def run(cmd):
     except subprocess.TimeoutExpired:
         # A timeout stays a check failure, not a tool error: a check that hangs is a property
         # of the change under test, unlike an interpreter that will not start.
-        return 1, (f"timed out after {CHECK_TIMEOUT}s: {' '.join(argv)}"
-                   + config_change_note(config_before, repo_config_bytes())), time.time() - started
+        note, _ = config_drift(argv, config_before)
+        return 1, f"timed out after {CHECK_TIMEOUT}s: {' '.join(argv)}" + note, time.time() - started
     except OSError as exc:
         die(f"could not run {argv[0]!r}: {exc}")
     # `subprocess` reports a child killed by a signal as *negative* (-9 for SIGKILL). Left negative
@@ -1029,9 +1100,10 @@ def run(cmd):
     code = 2 if proc.returncode < 0 else proc.returncode
     out = proc.stdout + proc.stderr
     # A check that rewrites the repository's config is a failure of that check, whatever it
-    # printed: the change outlives the run and silently alters every later commit.
-    note = config_change_note(config_before, repo_config_bytes())
-    if note:
+    # printed: the change outlives the run and silently alters every later commit. Another
+    # worktree's `[branch]` bookkeeping is the one exception, and config_drift() files it as a note.
+    note, fails = config_drift(argv, config_before)
+    if fails:
         code = max(code, 1)
         out += note
     return code, out, time.time() - started
@@ -1210,6 +1282,7 @@ def main(reexec=False):
     # *ranking* purpose (a signal kill no longer sorts below a clean run) and none of its contract
     # purpose, and the comment claimed both.
     results, failures, advisory_failures, tool_errors = [], [], [], []
+    CONFIG_NOTES.clear()
     for check in CHECKS:
         if check not in selected:
             results.append((check, "SKIPPED", "", 0.0))
@@ -1270,6 +1343,9 @@ def main(reexec=False):
                             + f"\n({len(lines) - ADVISORY_HEAD} later line(s) elided; run "
                               f"the check directly for the full report)")
             print(f"\n----- {check['name']} ({status}) -----\n{body}")
+
+    for note in CONFIG_NOTES:
+        print(f"\n{note.rstrip()}")
 
     if orphans:
         print(f"\n[FAIL       ] suites no check runs: {', '.join(orphans)}\n"

@@ -234,8 +234,12 @@ This repository uses [Conventional Commits](https://www.conventionalcommits.org/
 ## 7. Push Your Branch
 
 ```sh
-git push -u origin my-feature-name
+git push origin my-feature-name
 ```
+
+Name the branch rather than passing `-u`: `-u` writes tracking into the
+repository's shared `.git/config`, which every worktree and every
+`scripts/ai/pr_gate.py` run reads.
 
 GitHub will display a **Compare & pull request** button.
 
@@ -285,7 +289,7 @@ To update your PR:
 ```sh
 git add .
 git commit -m "fix: address review feedback"
-git push
+git push origin my-feature-name
 ```
 
 Your PR updates automatically.

@@ -4765,18 +4765,23 @@ def probe_path(trig, ext=".md"):
     return trig.rstrip("/") + "/probe_reaches_verdict" + ext if trig.endswith("/") else trig
 
 
-def gate_verdict_all(runner_code, only=None, checks=None):
+def gate_verdict_all(runner_code, only=None, checks=None, config_note=None):
     """Run `main()` with every selected runner returning `runner_code`, and report the exit code.
 
     Distinct from `gate_verdict` above, which fails one runner at a time to make the exit code an
     assertion about a single check's *booking*. This asks the other question — what the gate's exit code
     means — which needs the outcome uniform. `only` narrows the selection; `checks` replaces it outright,
-    for a synthetic check no live `CHECKS` entry can stand in for.
+    for a synthetic check no live `CHECKS` entry can stand in for. `config_note` has each runner file
+    a non-failing config note, as `run()` does for another worktree's `[branch]` section.
     """
     buf = io.StringIO()
     keep = [c for c in (checks if checks is not None else pr_gate.CHECKS) if only is None or only(c)]
     try:
-        pr_gate.run = lambda cmd: (runner_code, f"stub exit {runner_code}", 0.1)
+        def stub_run(cmd):
+            if config_note:
+                pr_gate.CONFIG_NOTES.append(config_note)
+            return runner_code, f"stub exit {runner_code}", 0.1
+        pr_gate.run = stub_run
         pr_gate.run_sequence = lambda cmds: (runner_code, f"stub exit {runner_code}", 0.1)
         # The drift check reads `git status` on the generated CCI references for its verdict. Left
         # real, it made "a clean run is still exit 0" fail whenever those files were dirty in the
@@ -4929,7 +4934,9 @@ VERDICT_REGIONS = {
     # region: (fingerprint, what it decides)
     # Repinned for todo 237: a check that leaves the repository's .git/config changed now fails (code
     # raised to at least 1, with a message). The comparison is a local file read, the same on every host.
-    "run()": ("30ce6447552c", "the exit code, stdout and duration of one command"),
+    # Repinned when another worktree's `[branch "X"]` section became a note rather than a failure: the
+    # excuse needs refs/heads/X to exist here (a `git for-each-ref`), which reads the same on every host.
+    "run()": ("e4d795090435", "the exit code, stdout and duration of one command"),
     "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
@@ -4937,7 +4944,9 @@ VERDICT_REGIONS = {
     # Repinned when the script entry point became `main(reexec=True)`: run by path, the gate re-runs
     # itself under the gate interpreter when this one lacks a selected check's dependency. The booking
     # loop and every return are untouched; CI installs the selection's deps, so it never re-runs.
-    "the booking loop and main()'s return": ("4b9962703135", "which verdicts reach the exit code"),
+    # Repinned when the loop began clearing, and main() printing, run()'s non-failing config notes.
+    # The bookings and every return are untouched.
+    "the booking loop and main()'s return": ("1223a68cd50e", "which verdicts reach the exit code"),
 }
 observed = {
     "run()": fingerprint(body_of(gate_src, "def run(", "the command runner")),
@@ -5343,6 +5352,71 @@ check("in a linked worktree the guard watches the main repository's config and i
       == [os.path.realpath(os.path.join(main_repo, ".git", "config")),
           os.path.realpath(os.path.join(linked_gitdir, "config.worktree"))], found)
 
+# Every worktree shares one .git/config, so another session's `git push -u` (or `git switch -c X
+# origin/X`) adds a `[branch "X"]` section mid-run and failed an innocent check twice in PR 702. That
+# is excused only when refs/heads/X is real here; a fixture's branch exists only in its throwaway
+# repo, so its leaked section still fails, as does any non-[branch] change alongside an excused one.
+branch_root = tempfile.mkdtemp()
+prior_root = pr_gate.REPO_ROOT
+branch_cases = {}
+try:
+    git(branch_root, "init", "-q", "-b", "base")
+    git(branch_root, "-c", "user.email=t@example.com", "-c", "user.name=t",
+        "commit", "-q", "--allow-empty", "-m", "seed")
+    git(branch_root, "branch", "other-session/work")
+    branch_config = os.path.join(branch_root, ".git", "config")
+    pr_gate.REPO_ROOT = branch_root
+    for label, text in (
+            ("real", '[branch "other-session/work"]\n\tremote = origin\n'
+                     '\tmerge = refs/heads/other-session/work\n'),
+            ("ghost", '[branch "preview/next"]\n\tremote = origin\n\tmerge = refs/heads/preview/next\n'),
+            ("user", '[user]\n\temail = t@example.com\n'),
+            ("real+user", '[branch "other-session/work"]\n\trebase = true\n'
+                          '[user]\n\temail = t@example.com\n')):
+        with open(branch_config, "rb") as fh:
+            pristine = fh.read()
+        pr_gate.CONFIG_NOTES.clear()
+        code, out, _ = pr_gate.run([sys.executable, "-c",
+                                    "import sys; open(sys.argv[1], 'a').write(sys.argv[2])",
+                                    branch_config, text])
+        branch_cases[label] = (code, out, list(pr_gate.CONFIG_NOTES))
+        with open(branch_config, "wb") as fh:
+            fh.write(pristine)
+    # Removal and change count as well as addition: the section written above, edited in place.
+    with open(branch_config, "a") as fh:
+        fh.write('[branch "other-session/work"]\n\tremote = origin\n')
+    pr_gate.CONFIG_NOTES.clear()
+    edit = ("import sys; p = sys.argv[1]; t = open(p).read();"
+            " open(p, 'w').write(t.replace('remote = origin', 'remote = upstream'))")
+    branch_cases["real-edit"] = (*pr_gate.run([sys.executable, "-c", edit, branch_config])[:2],
+                                 list(pr_gate.CONFIG_NOTES))
+finally:
+    pr_gate.REPO_ROOT = prior_root
+    pr_gate.CONFIG_NOTES.clear()
+    shutil.rmtree(branch_root, ignore_errors=True)
+real_code, real_out, real_notes = branch_cases["real"]
+check("a [branch] section another worktree adds for a real local branch passes, as a note naming it",
+      real_code == 0 and "config" not in real_out
+      and len(real_notes) == 1 and "other-session/work" in real_notes[0], branch_cases["real"])
+check("a [branch] section another worktree edits for a real local branch passes too",
+      branch_cases["real-edit"][0] == 0 and len(branch_cases["real-edit"][2]) == 1,
+      branch_cases["real-edit"])
+ghost_code, ghost_out, ghost_notes = branch_cases["ghost"]
+check("a [branch] section for a branch with no real ref (a leaked fixture's) still fails, with the diff",
+      ghost_code == 1 and '+[branch "preview/next"]' in ghost_out and not ghost_notes,
+      branch_cases["ghost"])
+check("a user.email change still fails",
+      branch_cases["user"][0] == 1 and "+\temail = t@example.com" in branch_cases["user"][1],
+      branch_cases["user"])
+check("a user.email change alongside an excused [branch] section still fails",
+      branch_cases["real+user"][0] == 1 and not branch_cases["real+user"][2], branch_cases["real+user"])
+check("config_sections reads an escaped branch name back as the ref it names",
+      [n for n, _ in pr_gate.config_sections('[core]\n[branch "a\\\\b"]\n')] == [None, None, "a\\b"])
+noted = gate_verdict_all(0, only=lambda c: c is pr_gate.CHECKS[0],
+                         config_note="note: probe-config-note [during: x]")
+check("main() prints another worktree's config note even though the check passed",
+      noted[0] == 0 and "probe-config-note" in noted[1], noted)
+
 # And the same class one layer *up*, which is where it was actually still open. `run()` normalises a
 # signal-killed child to 2 and its comment calls that "the definition of a tool error in this file's
 # 0/1/2 contract" — but the booking loop sent 1 and 2 down one branch, so an OOM-killed suite was
@@ -5418,7 +5492,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 768
+EXPECTED = 775
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
