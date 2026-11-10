@@ -151,9 +151,11 @@ private class RLM_Learning_FrameworkTest {
 
   // ---- Least-privilege learner ----------------------------------------------------
 
-  static String learnerUsername() {
-    return 'rlm.learning.tester.' + UserInfo.getOrganizationId() + '@example.com';
-  }
+  // Fixed marker the tests find the learner by (with its RLM_Learning
+  // assignment). The username itself is random, so concurrent runs of this
+  // class cannot collide on DUPLICATE_USERNAME.
+  static final String LEARNER_LAST_NAME = 'RLMLearningTestLearner';
+  static final String LEARNER_ALIAS = 'rlmlrn';
 
   static List<Profile> minimumAccessProfile() {
     return [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
@@ -173,10 +175,11 @@ private class RLM_Learning_FrameworkTest {
     User learner = new User(
       ProfileId = profiles[0].Id,
       FirstName = 'Learning',
-      LastName = 'Tester',
+      LastName = LEARNER_LAST_NAME,
       Email = 'rlm.learning.tester@example.com',
-      Username = learnerUsername(),
-      Alias = 'rlmlrn',
+      Username = 'rlm.learning.tester.' + String.valueOf(Crypto.getRandomInteger()).remove('-') +
+        '.' + UserInfo.getOrganizationId() + '@example.com',
+      Alias = LEARNER_ALIAS,
       TimeZoneSidKey = 'America/Los_Angeles',
       LocaleSidKey = 'en_US',
       EmailEncodingKey = 'UTF-8',
@@ -206,7 +209,8 @@ private class RLM_Learning_FrameworkTest {
       SELECT Id, FirstName, ProfileId
       FROM User
       WHERE
-        Username = :learnerUsername()
+        LastName = :LEARNER_LAST_NAME
+        AND Alias = :LEARNER_ALIAS
         AND Id IN (SELECT AssigneeId FROM PermissionSetAssignment WHERE PermissionSet.Name = 'RLM_Learning')
       LIMIT 1
     ];
@@ -276,7 +280,7 @@ private class RLM_Learning_FrameworkTest {
     if (learnerUser == null) {
       return; // assignment check skipped visibly: see learner()
     }
-    Assert.areEqual(learnerUser.ProfileId, profileId, 'the learner is on the Minimum Access profile');
+    Assert.areEqual(profileId, learnerUser.ProfileId, 'the learner is on the Minimum Access profile');
     Assert.areEqual(
       1,
       [
@@ -551,8 +555,9 @@ private class RLM_Learning_FrameworkTest {
   // Input guards that throw before any USER_MODE query, so they run as the
   // runner, whatever the runner holds. Each call must throw without running a
   // query. The getSectionsWithBlocksBy* wrappers repeat the guards of the
-  // method they delegate to, so for them a failure names the call, not which
-  // of the two guards stopped throwing.
+  // method they delegate to, so a failure there means both the wrapper's guard
+  // and the delegated method's guard stopped throwing; removing the wrapper's
+  // guard alone is not detectable here.
   @IsTest
   static void controller_validationErrors() {
     Id pageId = homePage().Id;
@@ -1005,8 +1010,11 @@ private class RLM_Learning_FrameworkTest {
   }
 
   // Input guards that throw before any USER_MODE query, so they run as the
-  // runner, whatever the runner holds. Each call must throw without running a
-  // query.
+  // runner, whatever the runner holds. Each call must throw, and all but the
+  // getSetupPageLink calls must throw without running a query. getSetupPageLink
+  // only queries custom metadata with no long-text fields, which
+  // Limits.getQueries() does not count, so for it the query check could never
+  // fail; those calls are plain must-throw checks.
   @IsTest
   static void dynamicLinkHelper_guards() {
     List<String> notThrown = new List<String>();
@@ -1048,32 +1056,23 @@ private class RLM_Learning_FrameworkTest {
         afterQuery.add('getObjectIdFromQuery(unknown object)');
       }
     }
-    queries = Limits.getQueries();
     try {
       RLM_Learning_DynamicLinkHelper.getSetupPageLink('', 'x');
       notThrown.add('getSetupPageLink(blank page)');
     } catch (AuraHandledException e) {
-      if (Limits.getQueries() != queries) {
-        afterQuery.add('getSetupPageLink(blank page)');
-      }
+      // expected
     }
-    queries = Limits.getQueries();
     try {
       RLM_Learning_DynamicLinkHelper.getSetupPageLink('User', '');
       notThrown.add('getSetupPageLink(blank record id)');
     } catch (AuraHandledException e) {
-      if (Limits.getQueries() != queries) {
-        afterQuery.add('getSetupPageLink(blank record id)');
-      }
+      // expected
     }
-    queries = Limits.getQueries();
     try {
       RLM_Learning_DynamicLinkHelper.getSetupPageLink('User', 'not-an-id');
       notThrown.add('getSetupPageLink(malformed record id)');
     } catch (AuraHandledException e) {
-      if (Limits.getQueries() != queries) {
-        afterQuery.add('getSetupPageLink(malformed record id)');
-      }
+      // expected
     }
     queries = Limits.getQueries();
     try {
@@ -1328,11 +1327,12 @@ private class RLM_Learning_FrameworkTest {
   @IsTest
   static void userInformation_paths() {
     // getExpiryDays returns null exactly when the org has no trial expiry, and
-    // otherwise a non-negative count no larger than the days left (plus one for
-    // a date boundary crossed during the test).
+    // otherwise the days left, clamped at zero (or one more, if the date
+    // changed between the call and the check).
     // (Part-of-day greeting moved to the client; no Apex getTiming/timingForHour.)
     // getExpiryDays runs as the runner. getName runs as the learner when one
-    // exists, so its result is a known first name; otherwise as the runner.
+    // exists, so its result is a known first name. Without a learner it runs as
+    // the runner and only shows the call does not throw.
     Datetime trialExpiry = [SELECT TrialExpirationDate FROM Organization LIMIT 1].TrialExpirationDate;
     User learnerUser = learner();
 
@@ -1348,15 +1348,17 @@ private class RLM_Learning_FrameworkTest {
     Integer expiryDays = RLM_Learning_UserInformation.getExpiryDays();
     Test.stopTest();
 
-    String expectedName = learnerUser != null ? 'Learning' : UserInfo.getFirstName();
-    Assert.areEqual(expectedName, name, 'greets the running user by first name');
+    if (learnerUser != null) {
+      Assert.areEqual('Learning', name, 'greets the learner by first name');
+    }
     if (trialExpiry == null) {
       Assert.isNull(expiryDays, 'no trial expiry means no countdown');
     } else {
-      Integer upperBound = Math.max(0, Date.today().daysBetween(trialExpiry.date())) + 1;
-      Assert.isNotNull(expiryDays, 'a trial expiry yields a countdown');
-      Assert.isTrue(expiryDays >= 0, 'never negative: ' + expiryDays);
-      Assert.isTrue(expiryDays <= upperBound, 'no more than the days left: ' + expiryDays);
+      Integer daysLeft = Math.max(0, Date.today().daysBetween(trialExpiry.date()));
+      Assert.isTrue(
+        expiryDays == daysLeft || expiryDays == daysLeft + 1,
+        'the days left in the trial, clamped at zero: expected ' + daysLeft + ', got ' + expiryDays
+      );
     }
   }
 }

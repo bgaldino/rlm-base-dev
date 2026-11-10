@@ -63,40 +63,47 @@ private class RLM_AA_Submit_ApprovalTest {
         if (!activeFlowAvailable()) {
             return;
         }
-        Boolean laterRequestStarted = false;
+        Exception thrown = null;
         Test.startTest();
         try {
             RLM_AA_Submit_Approval.callFlow(new List<RLM_AA_Submit_Approval.svcParameter>{
                 request(ACTIVE_FLOW),
                 request(MISSING_FLOW)
             });
-        } catch (TypeException caught) {
-            if (!caught.getMessage().contains(MISSING_FLOW)) {
-                throw caught;
-            }
-            laterRequestStarted = true;
+        } catch (Exception caught) {
+            thrown = caught;
         }
         Test.stopTest();
 
-        Assert.isFalse(laterRequestStarted,
-            'Known gap: only the first request is started; requests after it are ignored. '
-            + 'Update this test when it is fixed.');
+        if (thrown instanceof TypeException && thrown.getMessage().contains(MISSING_FLOW)) {
+            Assert.fail('Known gap: only the first request is started; requests after it are ignored. '
+                + 'Update this test when it is fixed.');
+        }
+        Assert.isNull(thrown, 'Known gap: only the first request is started; was it fixed? got '
+            + (thrown == null ? '' : thrown.getTypeName() + ': ' + thrown.getMessage()));
     }
 
     // Known gap: with no guard on the list, an empty request list fails reading
     // request 0. No flow is started.
     @IsTest
     static void knownGap_callFlowThrowsOnAnEmptyRequestList() {
+        Exception thrown = null;
         Test.startTest();
         try {
             RLM_AA_Submit_Approval.callFlow(new List<RLM_AA_Submit_Approval.svcParameter>());
-            Assert.fail('Known gap: an empty request list throws a raw ListException (only the first '
-                + 'request is read); update this test when it is fixed.');
-        } catch (ListException caught) {
-            Assert.isTrue(caught.getMessage().contains('out of bounds'),
-                'the failure is the read of request 0: ' + caught.getMessage());
+        } catch (Exception caught) {
+            thrown = caught;
         }
         Test.stopTest();
+
+        if (thrown == null) {
+            Assert.fail('Known gap: an empty request list throws a raw ListException (only the first '
+                + 'request is read); update this test when it is fixed.');
+        }
+        Assert.isTrue(
+            thrown instanceof ListException && thrown.getMessage().contains('out of bounds'),
+            'Known gap: an empty request list throws a raw ListException; was it fixed? got '
+            + thrown.getTypeName() + ': ' + thrown.getMessage());
     }
 
     // An unknown flow name cannot be started: the platform's TypeException
