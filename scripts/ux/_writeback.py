@@ -437,7 +437,7 @@ def _as_mapping(chunk: List[str], key_line: int, indent: int) -> Any:
     return yaml.safe_load(textwrap.dedent("".join(lines)))
 
 
-_BLOCK_HEADER = re.compile(r"(?:^|[:-])[ \t]+[|>][1-9+-]{0,2}[ \t]*$|^[ \t]*[|>][1-9+-]{0,2}[ \t]*$")
+_BLOCK_HEADER = re.compile(r"(?:^|[:-])[ \t]+[|>]([1-9+-]{0,2})[ \t]*$|^[ \t]*[|>]([1-9+-]{0,2})[ \t]*$")
 
 
 def _has_comment(lines: List[str]) -> bool:
@@ -447,14 +447,21 @@ def _has_comment(lines: List[str]) -> bool:
     never inside a quoted string (which may span lines) or a block scalar's
     content, so the hashes in an ``xml: |`` value or in ``"a # b"`` don't count.
     """
-    block_indent: Optional[int] = None  # inside a block scalar deeper than this column
+    block_parent: Optional[int] = None  # inside a block scalar owned by the node at this column
+    content: Optional[int] = None  # that scalar's content indent, once known
     quote: Optional[str] = None  # an open quoted scalar carried from an earlier line
     for raw in lines:
         text = raw.rstrip("\r\n")
-        if block_indent is not None:
-            if not text.strip() or _indent_of(text) > block_indent:
+        if block_parent is not None:
+            if not text.strip():
                 continue
-            block_indent = None
+            if content is None and _indent_of(text) > block_parent:
+                content = _indent_of(text)  # no indicator: the first content line sets it
+            if content is not None and _indent_of(text) >= content:
+                continue
+            # Less indented than the content (even if deeper than its key): the scalar
+            # has ended, and this line is YAML again, possibly a comment.
+            block_parent = content = None
         last = None  # the last non-blank character before position i on this line
         i = 0
         while i < len(text):
@@ -479,13 +486,17 @@ def _has_comment(lines: List[str]) -> bool:
             if c not in " \t":
                 last = c
             i += 1
-        if quote is None and _BLOCK_HEADER.search(text):
-            # The scalar's lines are those indented deeper than the node that owns it:
-            # its key, or for a bare ``- |`` item, the dash.
+        header = _BLOCK_HEADER.search(text) if quote is None else None
+        if header:
+            # The scalar belongs to its key, or for a bare ``- |`` item, the dash. Its
+            # content sits at that column plus an explicit indentation indicator (``|2``),
+            # or else at the indent of its first content line.
             col = _indent_of(text)
             while text[col:col + 2] == "- " and ":" in text[col + 2:]:
                 col += 2 + _indent_of(text[col + 2:])
-            block_indent = col
+            digits = [d for d in (header.group(1) or header.group(2) or "") if d.isdigit()]
+            block_parent = col
+            content = col + int(digits[0]) if digits else None
     return False
 
 

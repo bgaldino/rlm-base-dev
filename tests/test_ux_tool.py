@@ -1678,3 +1678,13 @@ def test_a_quoted_key_keeps_its_value_quoted_when_the_value_changes():
     out = _rewrite(text, entries)
     assert yaml.safe_load(out)["patches"][0]["after"] == "Delete"
     assert 'after: "Delete"' in out  # the value stays double-quoted, as the file writes it
+
+
+def test_a_comment_that_ends_a_block_scalar_is_seen_though_deeper_than_its_key():
+    from scripts.ux._writeback import _has_comment
+    # Shallower than the scalar's content, so YAML reads it as a comment, not xml.
+    assert _has_comment(['    xml: |2\n', '          <x/>\n', '     # trailing note\n'])
+    assert _has_comment(['    xml: |\n', '          <x/>\n', '      # trailing note\n'])
+    # At or below the content indent it is still part of the xml.
+    assert not _has_comment(['    xml: |2\n', '          <x/>\n', '      # content\n'])
+    assert not _has_comment(['    xml: |\n', '      <x>\n', '        # content\n', '      </x>\n'])
