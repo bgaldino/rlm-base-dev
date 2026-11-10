@@ -1633,3 +1633,30 @@ def test_a_removed_keys_comment_is_named():
                                 dict(yaml.safe_load(text), patches=entries), notes)
     assert out is not None and "visibility" not in out
     assert len(notes) == 1 and "removed `visibility`" in notes[0]
+
+
+def test_an_inline_comment_in_a_changed_value_is_named():
+    from scripts.ux._writeback import rewrite_patch_entries
+    import yaml
+    text = ('feature: demo\npatches:\n  - type: add_facet_field\n    fields:\n'
+            '      - "Field_A__c" # Keep for audit\n      - "Field_B__c"\n')
+    entries = _entries(text)
+    entries[0]["fields"] = ["Field_A__c"]
+    notes = []
+    out = rewrite_patch_entries(text, _entries(text), entries,
+                                dict(yaml.safe_load(text), patches=entries), notes)
+    assert out is not None and len(notes) == 1 and "`fields`" in notes[0]
+
+
+def test_a_hash_inside_a_string_or_block_scalar_is_not_a_comment():
+    from scripts.ux._writeback import rewrite_patch_entries
+    import yaml
+    text = ('feature: demo\npatches:\n  - type: insert_after_xml\n    anchor: "<a># not a comment</a>"\n'
+            '    xml: |\n      <b>\n        # content, not a comment\n      </b>\n')
+    entries = _entries(text)
+    entries[0]["anchor"] = "<a>changed</a>"
+    entries[0]["xml"] = "<c/>\n"
+    notes = []
+    out = rewrite_patch_entries(text, _entries(text), entries,
+                                dict(yaml.safe_load(text), patches=entries), notes)
+    assert out is not None and notes == []

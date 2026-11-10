@@ -435,8 +435,55 @@ def _as_mapping(chunk: List[str], key_line: int, indent: int) -> Any:
     return yaml.safe_load(textwrap.dedent("".join(lines)))
 
 
+_BLOCK_HEADER = re.compile(r"(?:^|[:-])[ \t]+[|>][1-9+-]{0,2}[ \t]*$|^[ \t]*[|>][1-9+-]{0,2}[ \t]*$")
+
+
 def _has_comment(lines: List[str]) -> bool:
-    return any(line.lstrip(" ").startswith("#") for line in lines)
+    """True when ``lines`` (part of a YAML block) hold a comment, whole-line or inline.
+
+    A ``#`` starts a comment only at the start of a line or after whitespace, and
+    never inside a quoted string (which may span lines) or a block scalar's
+    content, so the hashes in an ``xml: |`` value or in ``"a # b"`` don't count.
+    """
+    block_indent: Optional[int] = None  # inside a block scalar deeper than this column
+    quote: Optional[str] = None  # an open quoted scalar carried from an earlier line
+    for raw in lines:
+        text = raw.rstrip("\r\n")
+        if block_indent is not None:
+            if not text.strip() or _indent_of(text) > block_indent:
+                continue
+            block_indent = None
+        last = None  # the last non-blank character before position i on this line
+        i = 0
+        while i < len(text):
+            c = text[i]
+            if quote == '"':
+                if c == "\\":
+                    i += 2
+                    continue
+                if c == '"':
+                    quote = None
+            elif quote == "'":
+                if c == "'":
+                    if text[i + 1:i + 2] == "'":
+                        i += 2
+                        continue
+                    quote = None
+            elif c == "#" and (i == 0 or text[i - 1] in " \t"):
+                return True
+            elif c in "\"'" and last in (None, ":", "-", "[", "{", ","):
+                quote = c
+            if c not in " \t":
+                last = c
+            i += 1
+        if quote is None and _BLOCK_HEADER.search(text):
+            # The scalar's lines are those indented deeper than the node that owns it:
+            # its key, or for a bare ``- |`` item, the dash.
+            col = _indent_of(text)
+            while text[col:col + 2] == "- " and ":" in text[col + 2:]:
+                col += 2 + _indent_of(text[col + 2:])
+            block_indent = col
+    return False
 
 
 def _changed_entry(
