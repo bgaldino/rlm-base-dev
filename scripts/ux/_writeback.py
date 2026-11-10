@@ -234,9 +234,9 @@ def _refresh_patch_files(
         if edited is None:
             ctx.logger.warning(
                 f"{label}: layout not recognised, rewriting the whole file "
-                "(its comments and quoting are not kept)"
+                "(its comments are not kept)"
             )
-            _write_patch_yaml(patch_path, patch_data)
+            _write_patch_yaml(patch_path, patch_data, original)
         else:
             patch_path.write_text(edited, encoding="utf-8")
         ctx.logger.info(f"{label}: updated ({len(new_patches)} patches)")
@@ -265,8 +265,13 @@ def _quoted_repr(dumper, data):
     return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
 
 
-_PatchDumper.add_representer(_BlockStr, _block_repr)
-_PatchDumper.add_representer(_QuotedStr, _quoted_repr)
+class _FlushPatchDumper(yaml.SafeDumper):
+    """PyYAML's own layout, list items flush with their key, for files written that way."""
+
+
+for _dumper in (_PatchDumper, _FlushPatchDumper):
+    _dumper.add_representer(_BlockStr, _block_repr)
+    _dumper.add_representer(_QuotedStr, _quoted_repr)
 
 _QUOTED_KEY = re.compile(r'^[ \t]*(?:- )?([A-Za-z_][\w-]*):[ \t]+"', re.M)
 _QUOTED_ITEM = re.compile(r'^[ \t]*- "', re.M)
@@ -299,26 +304,19 @@ def _in_file_style(value: Any, text: str) -> Any:
     return style(value, None, False)
 
 
-def _with_block_strings(patch: Dict[str, Any]) -> Dict[str, Any]:
-    """A copy of ``patch`` whose multi-line ``xml``/``anchor`` values dump as block strings."""
-    out = dict(patch)
-    for key in ("xml", "anchor"):
-        if key in out and "\n" in str(out[key]):
-            out[key] = _BlockStr(out[key])
-    return out
-
-
-def _dump(data: Any) -> str:
+def _dump(data: Any, flush: bool = False) -> str:
+    """YAML for ``data``; ``flush`` writes list items flush with their key."""
     return yaml.dump(
-        data, Dumper=_PatchDumper, default_flow_style=False,
+        data, Dumper=_FlushPatchDumper if flush else _PatchDumper, default_flow_style=False,
         sort_keys=False, allow_unicode=True, width=120,
     )
 
 
-def _write_patch_yaml(path: Path, data: Dict[str, Any]) -> None:
-    """Write patch YAML, with multi-line ``xml``/``anchor`` values as block strings."""
+def _write_patch_yaml(path: Path, data: Dict[str, Any], text: str = "") -> None:
+    """Write a whole patch file: multi-line ``xml``/``anchor`` values as block
+    strings, other strings quoted the way ``text`` (the file it replaces) quotes them."""
     data = dict(data)
-    data["patches"] = [_with_block_strings(p) for p in data.get("patches", [])]
+    data["patches"] = [_in_file_style(p, text) for p in data.get("patches", [])]
     path.write_text(_dump(data), encoding="utf-8")
 
 
@@ -351,8 +349,10 @@ def _entry_spans(lines: List[str]) -> Optional[Tuple[List[Tuple[int, int, int]],
     end = len(lines)
     for i in range(key + 1, len(lines)):
         text = lines[i].rstrip("\n")
-        if text.strip() and not text.startswith((" ", "\t", "#")):
-            end = i  # the next top-level key
+        # A flush-left item (``- type:`` at column 0, PyYAML's default) is still
+        # the list; any other unindented line is the next top-level key.
+        if text.strip() and not text.startswith((" ", "\t", "#", "- ")):
+            end = i
             break
     first = next((i for i in range(key + 1, end) if lines[i].lstrip(" ").startswith("- ")), None)
     if first is None:
@@ -431,17 +431,21 @@ def _changed_entry(
     file's quoting. When the entry's keys cannot be told apart, the whole entry
     is rendered instead.
     """
-    whole = _indented(_dump([_in_file_style(after, text)]), indent)
+    flush = indent == 0  # the file writes its lists flush with their key
+
+    def whole() -> List[str]:
+        return _indented(_dump([_in_file_style(after, text)], flush), indent)
+
     chunks = _key_chunks(body, indent)
     if chunks is None or [k for k, _, _ in chunks] != list(before):
-        return whole
+        return whole()
     by_key = {}
     for key, chunk, key_line in chunks:
         try:
             if _as_mapping(chunk, key_line, indent) != {key: before[key]}:
-                return whole
+                return whole()
         except yaml.YAMLError:
-            return whole
+            return whole()
         by_key[key] = (chunk, key_line)
     out: List[str] = []
     for n, (key, value) in enumerate(after.items()):
@@ -450,7 +454,7 @@ def _changed_entry(
             piece = list(chunk)
         else:
             lead = by_key[key][0][: by_key[key][1]] if key in by_key else []
-            piece = lead + _indented(_dump(_in_file_style({key: value}, text)), indent + 2)
+            piece = lead + _indented(_dump(_in_file_style({key: value}, text), flush), indent + 2)
             key_line = len(lead)
         line = piece[key_line]
         piece[key_line] = line[:indent] + ("- " if n == 0 else "  ") + line[indent + 2:]

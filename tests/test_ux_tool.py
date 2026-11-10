@@ -1518,3 +1518,52 @@ def test_a_bare_page_name_is_refused_with_the_file_name_to_use():
     with pytest.raises(UxOptionError) as err:  # a name with a suffix gets no guessed hint
         validate_selection("all", "RLM_Case_Record_Page.txt")
     assert "Use the full file name" not in str(err.value)
+
+
+def test_rewrite_edits_a_flush_left_list_in_place():
+    # PyYAML's default dump (what writeback used to write) puts the items flush with `patches:`.
+    text = ("feature: demo\n# Kept.\npatches:\n- type: insert_action\n  after: Edit\n  actions:\n"
+            "  - a\n  - b\n- type: x\n  field: F\n")
+    entries = _entries(text)
+    assert _rewrite(text, [entries[0], None]) == text.replace("- type: x\n  field: F\n", "")
+    entries[0]["actions"] = ["a"]
+    assert _rewrite(text, entries) == text.replace("  - b\n", "")
+
+
+def test_writeback_falls_back_to_a_whole_rewrite_it_warns_about(repo_copy, caplog):
+    """A layout the in-place editor can't follow (flow style) is rewritten whole, with a
+    warning, as loadable YAML that keeps the file's quoting and block strings."""
+    import yaml
+    root, out = repo_copy
+    page = out / "flexipages" / "RLM_Quote_Record_Page.flexipage-meta.xml"
+    page.write_text(page.read_text(encoding="utf-8").replace(
+        "<fieldItem>Record.RLM_Approval_Status__c</fieldItem>", "<fieldItem>Record.Gone__c</fieldItem>"),
+        encoding="utf-8")
+    patch = root / "templates" / "flexipages" / "patches" / "approvals" / "RLM_Quote_Record_Page.yml"
+    data = yaml.safe_load(patch.read_text(encoding="utf-8"))
+    patch.write_text(yaml.dump(data, default_flow_style=True, sort_keys=False), encoding="utf-8")
+    with caplog.at_level(logging.WARNING):
+        assert ux_tool.main([
+            "writeback", "--repo-root", str(root), "--output-path", str(out),
+            "--name", "RLM_Quote_Record_Page.flexipage-meta.xml", "--apply",
+        ]) == 0
+    assert "layout not recognised, rewriting the whole file" in caplog.text
+    written = patch.read_text(encoding="utf-8")
+    loaded = yaml.safe_load(written)
+    facet = next(p for p in loaded["patches"] if p.get("after") == "Description")
+    assert "RLM_Approval_Status__c" not in facet["fields"]
+    assert "\n  - type:" in written  # block style, items indented like the hand-written files
+
+
+def test_a_whole_rewrite_keeps_the_files_quoting_and_block_strings(tmp_path):
+    from scripts.ux._writeback import _write_patch_yaml
+    import yaml
+    original = 'feature: demo\npatches:\n  - type: insert_after_xml\n    after: "Edit"\n'
+    data = {"feature": "demo", "patches": [
+        {"type": "insert_after_xml", "after": "Delete", "xml": "<a>\n  <b/>\n</a>"}]}
+    path = tmp_path / "p.yml"
+    _write_patch_yaml(path, data, original)
+    written = path.read_text(encoding="utf-8")
+    assert yaml.safe_load(written) == data
+    assert 'after: "Delete"' in written and "type: insert_after_xml" in written
+    assert "xml: |" in written
