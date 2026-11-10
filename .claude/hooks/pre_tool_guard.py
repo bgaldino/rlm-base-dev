@@ -642,11 +642,9 @@ def _is_clone(d: Path) -> bool:
 
 
 def _within(path: Path, root: Path) -> bool:
-    try:
-        path.relative_to(root)
-        return True
-    except ValueError:
-        return False
+    # Tuple prefix rather than relative_to(), which walks every parent on Python 3.12+.
+    a, b = path.parts, root.parts
+    return len(a) >= len(b) and a[:len(b)] == b
 
 
 _TREE_CACHE: Dict[str, bool] = {}
@@ -699,6 +697,9 @@ def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
 
 
 _RANK = {"allow": 0, "ask": 1, "deny": 2}
+# No real path is this deep; beyond it the rule asks rather than spend the hook's timeout (a
+# timed-out hook lets the tool call through unchecked).
+MAX_JUDGED_COMPONENTS = 512
 
 
 def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
@@ -706,6 +707,12 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
         return "allow", ""
     _TREE_CACHE.clear()
     raw = os.path.join(cwd, os.path.expanduser(path))
+    if len(Path(raw).parts) > MAX_JUDGED_COMPONENTS:
+        if ".agents" in raw.casefold():
+            return "ask", (f"this path has more than {MAX_JUDGED_COMPONENTS} components and "
+                           "mentions `.agents`, too deep for the private-tree check to judge; "
+                           "confirm where it lands")
+        return "allow", ""
     lexical = Path(os.path.normpath(raw))
     # Where does the write land? Claude Code's tools normalise the text first (`..` removed
     # lexically), then the OS follows links; a plain open() follows links before each `..`.
@@ -750,6 +757,10 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     def containing(p: Path) -> List[Path]:
         return [t for t in trees if _within(p, t)]
 
+    def outer(p: Path) -> Optional[Path]:
+        found = containing(p)
+        return min(found, key=lambda t: len(t.parts)) if found else None
+
     spelled_inside = any(_within(lexical, t) for t in spelled_trees if _is_clone(t))
     escape = ("deny", (f"`{path}` resolves through a symlink outside the private "
                        "`.agents/artifacts/` tree; write to a plain path inside the tree "
@@ -758,17 +769,26 @@ def _artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
     for steps, real in zip(readings, landings):
         decision = ("allow", "")
         final = containing(real)
-        if not final:
-            # Spelled inside the tree but landing outside it, or inside a tree at one step and
-            # outside at the next by a link (not a spelled `..`): either way it escapes. A
-            # spelled tree that does not exist anywhere it could land would be created.
+        # Leaving a clone through a link (not a spelled `..`) is an escape, including into a
+        # DIFFERENT clone: the step's outermost containing tree changes.
+        link_escape = any(comp != ".." and outer(a) is not None and outer(b) != outer(a)
+                          for (_, a), (comp, b) in zip(steps, steps[1:]))
+        if link_escape:
+            decision = escape
+        elif _spelled_hits(real) and not final:
+            # It lands in a `.agents/artifacts` that is not the clone (a public folder of that
+            # name, however the path got there): not gitignored, so it would be committed.
+            decision = ("deny", (f"`{path}` lands in `{real}`, a `.agents/artifacts` folder "
+                                 "that is not the private clone; it is not gitignored, so it "
+                                 "would surface in the public repo"))
+        elif not final:
+            # A spelled tree that is not the clone would be created; a path spelled inside the
+            # clone that lands outside every tree escapes it.
             if spelled_trees and not any(_is_clone(t) for t in spelled_trees):
                 decision = ("deny", ("`.agents/artifacts/` (the private repository) is not "
                                      "cloned here; do not create it. Use $TMPDIR for scratch, "
                                      "or say where the content should live"))
-            elif spelled_inside or any(
-                    comp != ".." and containing(a) and not containing(b)
-                    for (_, a), (comp, b) in zip(steps, steps[1:])):
+            elif spelled_inside:
                 decision = escape
         else:
             decision = _placement(real, min(final, key=lambda t: len(t.parts)))

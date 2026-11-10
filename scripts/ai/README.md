@@ -608,11 +608,13 @@ made the first version of three separate guards vacuous.
 
 A full `--all` run is 34 checks in about 100 seconds, of which the branch-scope *suite*
 (`tests/test_branch_scope.py`) is about 14. A typical docs-only selection is about 7 seconds, most
-of it the four checks that run on every change: `release_refs`, which reads every tracked text
-file (about 3), `agent_tooling`, `dockerignore` (under a second) and `private_refs`, a `git grep`
-of the private-tree citations (under a second). Measured 2026-10-11, with twenty-five checks then, on a workstation where every
+of it the two checks that then ran on every change: `release_refs`, which reads every tracked text
+file (about 3), and `agent_tooling`. Measured 2026-10-11, with twenty-five checks then, on a workstation where every
 one ran, because no optional dependency was missing; a machine blocked on one (`docgen_suite` or
 `harness_suites`) reports it rather than counting it, and its total is lower.
+
+The two always-run checks added since, `dockerignore` and `private_refs` (a `git grep` of the
+private-tree citations), each take under a second (measured 2026-11-10).
 
 Verified by `tests/test_pr_gate.py` (771 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which

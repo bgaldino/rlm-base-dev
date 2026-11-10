@@ -125,7 +125,6 @@ def citations(paths: list[str]):
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--quiet", action="store_true", help="print problems and the summary only")
     ap.parse_args(argv)
     paths = tracked()
     errors: list[str] = []

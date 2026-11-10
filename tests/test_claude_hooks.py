@@ -804,14 +804,44 @@ class ArtifactsPlacement(unittest.TestCase):
         public.mkdir(parents=True)  # no .git: not the clone, and not gitignored
         self.assertEqual(self.decide("pub/.agents/artifacts/topics/x.md"), "deny")
 
-    def test_long_dot_dot_chains_stay_fast(self):
+    def test_long_dot_dot_chains_are_judged_fast(self):
         import time
-        deep = "/".join(f"d{i}" for i in range(200))
+        deep = "/".join(f"d{i}" for i in range(100))
         (self.tmp / deep).mkdir(parents=True)
-        path = deep + "/" + "x/.." * 1000 + "/" + "/".join([".."] * 200) + "/.agents/artifacts/newtop.md"
+        # Under MAX_JUDGED_COMPONENTS: fully judged (lands at <tmp>/.agents/artifacts/newtop.md).
+        path = deep + "/" + "x/../" * 150 + "../" * 100 + ".agents/artifacts/newtop.md"
         start = time.monotonic()
         self.assertEqual(self.decide(path), "deny")
         self.assertLess(time.monotonic() - start, 5.0)
+
+    def test_paths_past_the_depth_cap_ask_instead_of_timing_out(self):
+        import time
+        start = time.monotonic()
+        path = ".agents/artifacts/" + "a/" * 3000 + "../" * 3000 + "new.md"
+        self.assertEqual(self.decide(path), "ask")
+        self.assertEqual(self.decide("a/" * 3000 + "x.md"), "allow")  # no `.agents`: not ours
+        self.assertLess(time.monotonic() - start, 5.0)
+
+    def test_a_link_to_a_public_tree_named_folder_is_denied(self):
+        (self.tmp / "pub" / ".agents" / "artifacts").mkdir(parents=True)  # no .git
+        (self.tmp / "docs").mkdir()
+        (self.tmp / "docs" / "L2").symlink_to(self.tmp / "pub" / ".agents" / "artifacts",
+                                              target_is_directory=True)
+        (self.tmp / "docs" / "L3").symlink_to(self.tmp / "pub" / ".agents",
+                                              target_is_directory=True)
+        self.assertEqual(self.decide("docs/L2/a.md"), "deny")
+        self.assertEqual(self.decide("docs/L3/artifacts/a.md"), "deny")
+
+    def test_leaving_through_a_link_into_another_clone_is_an_escape(self):
+        other = self.tmp / "elsewhere" / ".agents" / "artifacts"
+        (other / ".git").mkdir(parents=True)
+        (other / "topics").mkdir()
+        (self.tree / "topics" / "T2").symlink_to(other, target_is_directory=True)
+        self.assertEqual(self.decide(".agents/artifacts/topics/T2/topics/a.md"), "deny")
+        # Entering a clone from outside through a link is not an escape.
+        (self.tmp / "docs").mkdir()
+        (self.tmp / "docs" / "in").symlink_to(other, target_is_directory=True)
+        self.assertEqual(self.decide("docs/in/topics/a.md"), "allow")
 
     def test_public_agents_files_are_untouched(self):
         self.assertEqual(self.decide(".agents/README.md"), "allow")
