@@ -171,7 +171,9 @@ private class RLM_AI_AttributeResolverTest {
     // ── Fixture ──────────────────────────────────────────────────────────────
 
     private static final String TIER_DEV_NAME = 'RLMTest_Res_Tier';
-    private static final String CAPACITY_DEV_NAME = 'RLMTest_Res_Capacity';
+    // Sorts after TIER_DEV_NAME (and so does its Code), opposite to the Name
+    // order, so the name-order assertions cannot pass on DeveloperName or Code.
+    private static final String CAPACITY_DEV_NAME = 'RLMTest_Res_ZCapacity';
 
     private class Definitions {
         public AttributeDefinition tier;      // Picklist: Standard, Premium
@@ -199,8 +201,9 @@ private class RLM_AI_AttributeResolverTest {
             new AttributePicklistValue(
                 PicklistId = tierPicklist.Id,
                 Name = 'Premium',
-                Value = 'PREM',
-                Code = 'RLMTEST_RES_PREM',
+                // Value and Code sort after Standard's, opposite to the Name order.
+                Value = 'ZPREM',
+                Code = 'RLMTEST_RES_ZPREM',
                 Status = 'Active'
             )
         };

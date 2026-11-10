@@ -170,13 +170,14 @@ private class RLM_AI_ProductAttributeServiceTest {
             new AttributePicklistValue(PicklistId = tierPicklist.Id, Name = 'Standard',
                 Value = 'Standard', Code = 'RLMTEST_ATTR_STD', Status = 'Active'),
             new AttributePicklistValue(PicklistId = tierPicklist.Id, Name = 'Premium',
-                Value = 'PREM', Code = 'RLMTEST_ATTR_PREM', Status = 'Active')
+                Value = 'ZPREM', Code = 'RLMTEST_ATTR_ZPREM', Status = 'Active')
         };
 
         List<AttributeDefinition> defs = new List<AttributeDefinition>{
             definition('RLMTest Attr Tier', 'RLMTest_Attr_Tier', 'Picklist', tierPicklist.Id),
             definition('RLMTest Attr Notes', 'RLMTest_Attr_Notes', 'Text', null),
-            definition('RLMTest Attr Capacity', 'RLMTest_Attr_Capacity', 'Number', null),
+            // DeveloperName and Code sort after Tier's, opposite to the Name order.
+            definition('RLMTest Attr Capacity', 'RLMTest_Attr_ZCapacity', 'Number', null),
             definition('RLMTest Attr Enabled', 'RLMTest_Attr_Enabled', 'Checkbox', null)
         };
         insert defs;

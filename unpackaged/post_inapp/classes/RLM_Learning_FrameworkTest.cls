@@ -184,7 +184,9 @@ private class RLM_Learning_FrameworkTest {
       ProfileId = profiles[0].Id,
       FirstName = 'Learning',
       LastName = LEARNER_LAST_NAME,
-      Email = 'rlm.learning.tester@example.com',
+      // The runner's own address, so an Allowed Email Domains list cannot
+      // reject the insert; the username stays random.
+      Email = UserInfo.getUserEmail(),
       Username = 'rlm.learning.tester.' + String.valueOf(Crypto.getRandomInteger()).remove('-') +
         '.' + UserInfo.getOrganizationId() + '@example.com',
       Alias = LEARNER_ALIAS,
@@ -212,21 +214,34 @@ private class RLM_Learning_FrameworkTest {
 
   // The learner, created on first use in this test, or null (with a WARN
   // "SKIPPED" line) when it cannot be created.
+  // Also null (with a WARN) when the learner holds permission sets beyond
+  // RLM_Learning, for example through org automation, because it would no
+  // longer be least-privilege.
   static User learner() {
-    User existing = findLearner();
-    if (existing != null) {
-      return existing;
+    User found = findLearner();
+    if (found == null) {
+      createLearner();
+      found = findLearner();
     }
-    createLearner();
-    User created = findLearner();
-    if (created == null) {
+    if (found == null) {
       System.debug(
         LoggingLevel.WARN,
         'SKIPPED: least-privilege learner could not be created (no Minimum Access profile, ' +
         'RLM_Learning missing, or LICENSE_LIMIT_EXCEEDED on the user insert)'
       );
+      return null;
     }
-    return created;
+    Id learnerId = found.Id;
+    Integer sets = [
+      SELECT COUNT()
+      FROM PermissionSetAssignment
+      WHERE AssigneeId = :learnerId AND PermissionSet.IsOwnedByProfile = FALSE
+    ];
+    if (sets != 1) {
+      System.debug(LoggingLevel.WARN, 'SKIPPED: the learner holds permission sets beyond RLM_Learning');
+      return null;
+    }
+    return found;
   }
 
   // Found by its fixed markers only, so the sentinel can catch a learner that
@@ -292,7 +307,11 @@ private class RLM_Learning_FrameworkTest {
       'PRECONDITION: the learner profile grants no learning-object access; granted: ' + granted
     );
 
-    User learnerUser = learner();
+    // learner() creates the learner; it is read back with findLearner() so a
+    // learner missing its RLM_Learning assignment fails here rather than
+    // being skipped by learner()'s own assignment check.
+    learner();
+    User learnerUser = findLearner();
     if (learnerUser == null) {
       return; // assignment check skipped visibly: see learner()
     }
@@ -836,21 +855,25 @@ private class RLM_Learning_FrameworkTest {
   @IsTest
   static void updateSectionBlocks_onEmptySection() {
     User runner = runnerWithLearning();
+    Id populatedId = sectionByHeader('H').Id;
     Id emptyId = sectionByHeader('Empty').Id;
     Id blockId = testBlock().Id;
-    Integer afterEmptyList;
+    Integer beforeClearing;
+    Integer afterClearing;
     Integer afterAdd;
 
     Test.startTest();
     System.runAs(runner) {
-      RLM_Learning_SectionBlockSequence.updateSectionBlocks(emptyId, new List<String>());
-      afterEmptyList = RLM_Learning_SectionBlockSequence.getBlocksForSection(emptyId).size();
+      beforeClearing = RLM_Learning_SectionBlockSequence.getBlocksForSection(populatedId).size();
+      RLM_Learning_SectionBlockSequence.updateSectionBlocks(populatedId, new List<String>());
+      afterClearing = RLM_Learning_SectionBlockSequence.getBlocksForSection(populatedId).size();
       RLM_Learning_SectionBlockSequence.updateSectionBlocks(emptyId, new List<String>{ blockId });
       afterAdd = RLM_Learning_SectionBlockSequence.getBlocksForSection(emptyId).size();
     }
     Test.stopTest();
 
-    Assert.areEqual(0, afterEmptyList, 'an empty list leaves the section empty');
+    Assert.areEqual(1, beforeClearing, 'PRECONDITION: the section has a row before it is cleared.');
+    Assert.areEqual(0, afterClearing, 'an empty list removes every row from the section');
     Assert.areEqual(1, afterAdd, 'a block can be added to a section that had none');
   }
 
@@ -1372,6 +1395,8 @@ private class RLM_Learning_FrameworkTest {
 
     if (learnerUser != null) {
       Assert.areEqual('Learning', name, 'greets the learner by first name');
+    } else if (String.isBlank(UserInfo.getFirstName())) {
+      System.debug(LoggingLevel.WARN, 'SKIPPED: the runner has no first name; greeting not verified');
     } else {
       Assert.areEqual(UserInfo.getFirstName(), name, 'greets the runner by first name');
     }

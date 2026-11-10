@@ -87,8 +87,10 @@ private class RLM_DocumentGenerationMergeTest {
             'recordIds must contain at least one non-null Id');
         Test.stopTest();
 
+        String referenceObject = String.valueOf(quote.Id);
         Assert.areEqual(0,
-            [SELECT COUNT() FROM DocumentGenerationProcess WHERE Type = 'MergePDF'],
+            [SELECT COUNT() FROM DocumentGenerationProcess
+             WHERE Type = 'MergePDF' AND ReferenceObject = :referenceObject],
             'A rejected request must not create a merge process.');
     }
 
