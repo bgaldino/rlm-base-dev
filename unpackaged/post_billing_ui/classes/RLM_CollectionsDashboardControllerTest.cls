@@ -10,6 +10,8 @@
  * specialist, who reads their own plan; a user with no access, who gets empty sections; and the
  * same kind of no-access user, for whom getAccountOptions throws (a pinned gap). The specialist
  * holds the Billing and Billing Advanced permission set licenses; the no-access users hold none.
+ * The my-plans access path is not covered for the no-access user: it owns no plan, so its empty
+ * list cannot show a refusal.
  *
  * Documented, not pinned: the unapplied-credits card filters Payment.Type on 'Credit' and
  * 'Credit Memo', which are not Payment.Type values (Sale and Capture), so it is
@@ -558,8 +560,10 @@ private class RLM_CollectionsDashboardControllerTest {
                 RLM_CollectionsDashboardController.getAccountOptions();
                 Assert.fail('Known gap: getAccountOptions throws a raw QueryException for a user who cannot '
                     + 'read Account; it returned normally here. Update this test when it is fixed.');
-            } catch (QueryException e) {
-                Assert.isTrue(String.isNotBlank(e.getMessage()), 'The query was refused in user mode.');
+            } catch (Exception e) {
+                Assert.isInstanceOfType(e, QueryException.class, 'Known gap: getAccountOptions throws a raw '
+                    + 'QueryException for a user who cannot read Account; update this test when it is fixed. '
+                    + 'Got: ' + e);
             }
         }
         Test.stopTest();

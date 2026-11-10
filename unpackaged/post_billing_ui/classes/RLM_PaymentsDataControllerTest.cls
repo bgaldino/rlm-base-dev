@@ -217,9 +217,8 @@ private class RLM_PaymentsDataControllerTest {
         assertAmount(0, anyAccountElsewhere.totalRequestedAmount, 'Nothing requested in another currency.');
     }
 
-    // An item linked to a payment shows that payment and its own amounts, and a schedule
-    // referencing a collection plan lists no invoice. No invoice can exist in a unit test, so
-    // listing a real invoice is verified live only.
+    // An item linked to a payment shows that payment and its own amounts. No invoice can exist in
+    // a unit test, so the item lists none; listing a real invoice is verified live only.
     @isTest
     static void getPaymentScheduleItems_showsTheItemsPayment() {
         Account acc = new Account(Name = 'RLM PSI Payment Test');
@@ -253,8 +252,8 @@ private class RLM_PaymentsDataControllerTest {
         RLM_PaymentsDataController.PaymentItemWrapper item = summary.items[0];
         Assert.areEqual(pmt.Id, item.paymentId, 'The item shows its payment.');
         Assert.isTrue(item.hasPayment, 'The item has a payment.');
-        Assert.isFalse(item.hasInvoices, 'A schedule referencing a collection plan lists no invoice.');
-        Assert.isTrue(item.invoices.isEmpty(), 'A schedule referencing a collection plan lists no invoice.');
+        Assert.isFalse(item.hasInvoices, 'No invoice exists in a unit test, so the item lists none.');
+        Assert.isTrue(item.invoices.isEmpty(), 'No invoice exists in a unit test, so the item lists none.');
         assertAmount(60, item.requestedAmount, 'The requested amount.');
         Assert.areEqual(Date.today(), item.targetDate, 'The target processing date.');
     }
