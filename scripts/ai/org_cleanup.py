@@ -28,8 +28,8 @@ the user's call.
 Credentials are never printed or written: auth files are reduced to identity fields as soon
 as they are parsed, and a file this tool does not recognize is reported without being opened.
 
-Exit status: 0 success, 1 a step failed, 2 usage, wrong directory, or a plan or quarantine path
-inside the project or the CLI state, 3 the plan drifted, 130 interrupted. An audit with hub failures still exits 0: it prints
+Exit status: 0 success, 1 a step failed, 2 usage, wrong directory, a plan path inside the project
+or the CLI state, or a quarantine inside or holding one of them, 3 the plan drifted, 130 interrupted. An audit with hub failures still exits 0: it prints
 them, and the plan it writes is incomplete, not wrong. Stdlib only and Python 3.9-safe.
 """
 import argparse
@@ -1008,29 +1008,40 @@ def remove_deploy_jobs(run, jobs, home, quarantine, project, failures, done=None
     lock = cache_lock(home)
     try:
         mark = [take_lock(lock)]
+        ident = os.lstat(str(lock))[stat.ST_INO], os.lstat(str(lock))[stat.ST_DEV]
     except OSError as error:
         failures.append((str(path), "not modified: sf holds its lock (an sf command is writing it), or the "
                                     "lock could not be taken ({})".format(reason(error))))
         return 0, 0
 
-    def ours():  # proper-lockfile's rule: the lock is ours only while its time is the one we set
+    lost = []
+
+    def ours():  # proper-lockfile's rule, plus the folder's identity: the one we made, at the time we set
         info = lstat_or_none(lock)
-        return info is not None and info.st_mtime_ns == mark[0]
+        return info is not None and (info.st_ino, info.st_dev) == ident and info.st_mtime_ns == mark[0]
 
     def touch():
-        """Refresh the lock if it is still ours; False once an sf command has taken it over."""
-        if not ours():
+        """Refresh the lock if it is still ours; False, once and for all, when it is not."""
+        if lost or not ours():
+            lost.append(True)
             return False
-        mark[0] = refresh_lock(lock)
+        try:
+            mark[0] = refresh_lock(lock)
+        except OSError:
+            lost.append(True)
+            return False
+        if not ours():  # the refresh landed on a folder sf made in the meantime
+            lost.append(True)
+            return False
         return True
 
     try:
         return rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failures, done, touch)
     finally:
-        if ours():
+        if not lost and ours():
             os.rmdir(str(lock))
-        else:  # never remove a lock an sf command holds now
-            failures.append((str(lock), "an sf command took the lock over during the rewrite; left to it"))
+        elif not lost:  # never remove a lock an sf command holds now
+            failures.append((str(lock), "the lock was not ours when the rewrite ended; left in place"))
 
 
 LOCK_STALE_SECONDS = 10  # @salesforce/core lockOptions: proper-lockfile treats an older lock as abandoned
@@ -1079,7 +1090,7 @@ def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failur
     except (ValueError, RecursionError):
         failures.append(("deploy-cache", "holds a value this tool cannot write back; not modified"))
         return 0, 0
-    removed, moved = 0, 0
+    removed, moved, moved_jobs, taken = 0, 0, [], False
     for job in jobs:
         if not plain_job_id(job):
             failures.append((job, "cache key is not a plain job id; its manifest was not looked for"))
@@ -1090,8 +1101,7 @@ def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failur
                 failures.append((job, "no longer in the deploy cache; its manifest was left in place"))
             continue
         if not touch():
-            failures.append((str(path), "an sf command took the lock over; the rest was not changed"))
-            removed = 0
+            taken = True
             break
         if lstat_or_none(manifest) is not None:
             why = move_to_quarantine(run, manifest, [manifests], quarantine, project)
@@ -1099,11 +1109,14 @@ def rewrite_deploy_cache(run, jobs, path, manifests, quarantine, project, failur
                 failures.append((str(manifest), why))
                 continue
             moved += 1
+            moved_jobs.append(job)
             done["manifests"] = done.get("manifests", 0) + 1
         del cache[job]
         removed += 1
-    if removed and not touch():
-        failures.append((str(path), "an sf command took the lock over; the cache was not written"))
+    if taken or (removed and not touch()):
+        failures.append((str(path), "not written: an sf command took its lock over"))
+        for job in moved_jobs:
+            failures.append((job, "manifest is in the quarantine, but its cache entry was kept"))
         return 0, moved
     if removed:
         try:
@@ -1386,8 +1399,9 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
     do.add_argument("--plan", required=True)
     do.add_argument("--quarantine", help="where to move residual files")
     args = parser.parse_args(argv)
-    if args.command == "audit" and args.out is not None and not args.out.strip():
-        parser.error("--out needs a path")
+    for flag, value in (("--out", getattr(args, "out", None)), ("--quarantine", getattr(args, "quarantine", None))):
+        if value is not None and not value.strip():
+            parser.error("{} needs a path".format(flag))
 
     home = home or Path.home()
     project = project or Path.cwd()
@@ -1401,6 +1415,26 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
               "from the working directory.", file=sys.stderr)
         return 2
 
+    # Checked before any audit work. A plan holds usernames and org IDs; a quarantine inside a root
+    # leaves residue where it was, and one that holds a root takes it along when the user empties it.
+    roots = (project, home / ".sf", home / ".sfdx")
+    out = quarantine = None
+    if args.command == "audit" and args.out:
+        # The folder as the OS reaches it (links and ".." followed), checked and written as one path;
+        # the file itself may be a link, which write_private refuses.
+        out = Path(os.path.realpath(os.path.dirname(args.out) or ".")) / os.path.basename(args.out)
+        for root in roots:
+            if within(out.parent, root):
+                print("The plan holds usernames and org IDs: write it outside {}.".format(root), file=sys.stderr)
+                return 2
+    if args.command == "apply":
+        quarantine = Path(os.path.abspath(args.quarantine)) if args.quarantine else default_quarantine(home, today)
+        for root in roots:
+            if within(root, quarantine) or within(quarantine, root):
+                print("The quarantine must be outside {}, and must not hold it; nothing was changed.".format(root),
+                      file=sys.stderr)
+                return 2
+
     try:  # apply never asks cci: the prune prediction is for review only and is not compared
         plan, view = survey(run, home, project, today, predict=args.command == "audit", env=env)
     except RuntimeError as error:
@@ -1412,14 +1446,6 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
 
     if args.command == "audit":
         unwritten = None
-        # The folder as the OS reaches it (links and ".." followed), checked and written as one path;
-        # the file itself may be a link, which write_private refuses.
-        out = Path(os.path.realpath(os.path.dirname(args.out) or ".")) / os.path.basename(args.out) \
-            if args.out else None
-        for root in (project, home / ".sf", home / ".sfdx") if out else ():
-            if within(out.parent, root):
-                print("The plan holds usernames and org IDs: write it outside {}.".format(root), file=sys.stderr)
-                return 2
         if out:  # first, so a closed output pipe cannot lose the plan
             try:
                 write_private(out, json.dumps(plan, indent=1) + "\n")
@@ -1448,13 +1474,6 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
         if plan["hub_failures"]:
             print("Hubs or logins that gave no evidence now: {}".format(plan["hub_failures"]), file=sys.stderr)
         return 3
-    quarantine = Path(os.path.abspath(args.quarantine)) if args.quarantine else default_quarantine(home, today)
-    for root in (project, home / ".sf", home / ".sfdx"):
-        # A move inside a root leaves residue where it was; a quarantine that holds a root would take
-        # the root with it when the user empties it.
-        if within(root, quarantine) or within(quarantine, root):
-            print("The quarantine must be outside {}; nothing was changed.".format(root), file=sys.stderr)
-            return 2
     moves = any(plan["remove"][key] for key in FILE_KEYS + ("deploy_jobs",))
     if moves:
         why = check_quarantine(quarantine, home)

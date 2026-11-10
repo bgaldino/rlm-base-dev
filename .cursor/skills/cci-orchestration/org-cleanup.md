@@ -174,7 +174,10 @@ deploy jobs are planned, `apply` stops before any logout (exit 1); one held late
 as it is, reported. `apply` refreshes the lock before each manifest move and before the write,
 and checks it is still its own first, as sf does: a lock not refreshed for 10 seconds counts as
 abandoned and is taken over, so after a stall longer than that (a slow move across volumes, a
-suspended process), the cache is left to the sf command that took it and the rest is reported.
+suspended process), the cache is left to the sf command that took it, and each job whose manifest
+already moved is named. The lock only orders the writes: an sf command already running when
+`apply` rewrites the cache can write removed entries back, which is why `apply` must not run
+alongside one.
 
 `apply` re-derives the plan and exits 3 without changing anything if it differs from the
 reviewed one: its project, every removal, each logout's org and the aliases and config keys it
