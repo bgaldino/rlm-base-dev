@@ -4,13 +4,13 @@
  * The native standard-action invoke (createBillingSchedulesFromTrxn) is not run in
  * these tests: the create-via-API path is covered through the @TestVisible mock seam
  * (mockActionOutputs) plus direct coverage of the pure payload-build and result-parse
- * helpers, so the real invoke and its failed-result handling stay uncovered. Validation
- * guards are covered by asserting AuraHandledException on bad input. The create tests do
- * not observe the payload passed to the action, so the argument wiring from
- * createBillingScheduleGroupAndScheduleViaAPI into buildTransactionDetailsJson is unverified
- * (capturing it needs a production seam). The System.runAs
- * test creates its user through RLM_BillingUITestUsers, which takes a Billing permission
- * set license seat.
+ * helpers, so the real invoke and its failed-result handling stay uncovered.
+ * Validation guards are covered by asserting AuraHandledException on bad input.
+ * The create tests do not observe the payload passed to the action, so the argument wiring
+ * from createBillingScheduleGroupAndScheduleViaAPI into buildTransactionDetailsJson is
+ * unverified (capturing it needs a production seam).
+ * The System.runAs test creates its user through RLM_BillingUITestUsers, which takes a
+ * Billing permission set license seat.
  *
  * Known gap (documented from a diagnostic run, not asserted by a test): on a Release 264
  * org, a run of the action with real records and this service's payload returned
@@ -393,7 +393,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     @isTest
-    static void createViaAPI_mapsEveryActionOutput() {
+    static void createViaAPI_mapsSynchronousOutputs() {
         Id baId = insertBillingAccount('BSG Outputs');
         Id bsgId = fakeId(BillingScheduleGroup.SObjectType);
         Id bsId = fakeId(BillingSchedule.SObjectType);
@@ -441,8 +441,9 @@ private class RLM_BillingScheduleGroupServiceTest {
     // A billing account with no AccountId resolves its account through AccountBillingAccount;
     // with no junction row either, the create must refuse rather than send a null account.
     // The premises pin that it is that guard: the billing account is found (so not "not
-    // found"), its AccountId is null and no junction row exists. The other inputs are the
-    // defaults that pass every later guard (see createViaAPI_rejectsEachInvalidInput).
+    // found"), its AccountId is null and no junction row exists. A positive control with the
+    // same defaults and a billing account that has an Account is accepted, so the rejection
+    // comes from the missing account alone.
     @isTest
     static void createViaAPI_billingAccountWithoutAccount_throws() {
         BillingAccount orphan = new BillingAccount(Name = 'BSG Orphan BA');
@@ -459,10 +460,15 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.isNull(found[0].AccountId, 'PRECONDITION: the billing account has no AccountId.');
         Assert.areEqual(0, junctionRows, 'PRECONDITION: no AccountBillingAccount row links it to an account.');
 
+        Id controlBaId = insertBillingAccount('BSG Orphan Control');
+
         Test.startTest();
+        RLM_BillingScheduleGroupService.CreateResult control = new CreateArgs(controlBaId).call();
         Boolean threw = throwsAura(new CreateArgs(orphan.Id));
         Test.stopTest();
 
+        Assert.areEqual('REQ-NO', control.requestId,
+            'PRECONDITION: the same defaults with a billing account that has an Account are accepted.');
         Assert.isTrue(threw, 'A billing account with no resolvable account must be rejected.');
     }
 
