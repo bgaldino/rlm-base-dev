@@ -178,9 +178,9 @@ private class RLM_DisputeDetailsControllerTest {
         assertAmount(20, approvedAmount(itemIds[0]), 'The refused save leaves the approved amount unchanged.');
     }
 
-    // The saves run as a Billing Operations user holding RLM_BillingUI rather than the deploying
-    // admin: the admin's DisputeItem.ApprovedAmount access comes from RLM_RCB, which a build only
-    // recalculates after this bundle deploys. The user takes a Billing seat for the test.
+    // A Billing Operations user holding RLM_BillingUI and the Billing permission set license: the
+    // saves in these tests check that role's access to DisputeItem.ApprovedAmount, not the running
+    // admin's.
     private static User billingUser() {
         return RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },

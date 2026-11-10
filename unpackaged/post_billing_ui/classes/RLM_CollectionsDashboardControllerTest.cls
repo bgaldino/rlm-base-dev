@@ -8,10 +8,8 @@
  * plans, progress and tasks are asserted against it where a test can tell the result apart.
  * Records are created in admin context. Two tests then run as other
  * users: a collections specialist, who reads their own plan, and a user with no access, who
- * gets empty sections. The specialist takes a seat of the Billing and the Billing Advanced
- * licenses for the test, as RLM_BillingUITestUsers documents, so it fails on the license in an
- * org whose seats are all assigned; the no-access user takes a Salesforce user licence but no
- * Billing seat.
+ * gets empty sections. The specialist holds the Billing and Billing Advanced permission set
+ * licenses; the no-access user holds none.
  *
  * Documented, not pinned: the unapplied-credits card filters Payment.Type on 'Credit' and
  * 'Credit Memo', which are not Payment.Type values (Sale and Capture), so it is
@@ -502,6 +500,8 @@ private class RLM_CollectionsDashboardControllerTest {
             'PRECONDITION: the admin sees the plan\'s task.');
         Assert.areEqual(1, RLM_CollectionsDashboardController.getCollectionsProgress().totalPlans,
             'PRECONDITION: the admin measures the plan.');
+        Assert.areEqual(1, RLM_CollectionsDashboardController.getMyCollectionPlans().size(),
+            'PRECONDITION: the admin lists the plan they own.');
         Assert.areEqual(1, bucketsByStatus(RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null))
             .get('Draft').itemCount, 'PRECONDITION: the admin sees the schedule item.');
 
@@ -511,6 +511,7 @@ private class RLM_CollectionsDashboardControllerTest {
         List<RLM_CollectionsDashboardController.PaymentPromiseBucket> promises;
         List<RLM_CollectionsDashboardController.CpTaskItem> tasks;
         RLM_CollectionsDashboardController.CollectionsProgressData progress;
+        List<RLM_CollectionsDashboardController.MyCollectionPlanItem> myPlans;
         Test.startTest();
         System.runAs(noAccess) {
             for (String objectName : new List<String>{ 'Account', 'Case', 'CollectionPlan', 'Invoice', 'PaymentScheduleItem' }) {
@@ -523,10 +524,12 @@ private class RLM_CollectionsDashboardControllerTest {
             promises = RLM_CollectionsDashboardController.getPaymentPromiseSummary(null, null);
             tasks = RLM_CollectionsDashboardController.getCollectionPlanTasks(null);
             progress = RLM_CollectionsDashboardController.getCollectionsProgress();
+            myPlans = RLM_CollectionsDashboardController.getMyCollectionPlans();
         }
         Test.stopTest();
 
         Assert.isTrue(readable.isEmpty(), 'PRECONDITION: the user cannot query ' + readable + ' in user mode.');
+        Assert.isTrue(myPlans.isEmpty(), 'No plan is listed (access, or the user owns none).');
         Assert.isTrue(cards.totalBalanceBreakdown.isEmpty(),
             'An unreadable Invoice returns the cards before any breakdown is built.');
         Assert.isTrue(cards.agingBuckets.isEmpty(), 'Nor any aging bucket.');
@@ -538,9 +541,29 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(0, progress.totalPlans, 'The plan is not measured (access or sharing).');
     }
 
+    // getAccountOptions does not catch its Account query, so a user who cannot read Account gets
+    // a raw QueryException instead of the sentinel option the other lists fall back to.
+    @isTest
+    static void getAccountOptions_forAUserWhoCannotReadAccounts_throwsAQueryException() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        newAccount('RLM CD Account Options Unreadable');
+
+        Test.startTest();
+        System.runAs(noAccess) {
+            try {
+                RLM_CollectionsDashboardController.getAccountOptions();
+                Assert.fail('Known gap: getAccountOptions throws a raw QueryException for a user who cannot '
+                    + 'read Account; it returned normally here. Update this test when it is fixed.');
+            } catch (QueryException e) {
+                Assert.isTrue(String.isNotBlank(e.getMessage()), 'The query was refused in user mode.');
+            }
+        }
+        Test.stopTest();
+    }
+
     // The collections persona reads its own plan through the USER_MODE queries. A permission
     // gap would show as an empty list, since both methods swallow their query errors. The user
-    // takes a Billing and a Billing Advanced seat for the test.
+    // holds the Billing and Billing Advanced permission set licenses.
     @isTest
     static void collectionsSpecialist_readsTheirPlanInUserMode() {
         User specialist = RLM_BillingUITestUsers.create(

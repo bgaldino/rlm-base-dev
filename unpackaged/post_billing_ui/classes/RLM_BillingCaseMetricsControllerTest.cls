@@ -186,22 +186,21 @@ private class RLM_BillingCaseMetricsControllerTest {
     @isTest
     static void getMetrics_asBillingRole_runsTheDisputeQueries() {
         User u = billingUser();
-        // Each field gates part of the dispute logic: one the user can't see skips that part
-        // without an error, so all three are checked first.
-        // getMap() keys are lowercase.
+        // Each field gates part of the dispute logic: one missing from the user's describe skips
+        // that part without an error, so all three are checked first. getMap() keys are lowercase.
         Set<String> hidden = new Set<String>{ 'status', 'disputedamount', 'invoiceid' };
         System.runAs(u) {
             hidden.removeAll(Schema.getGlobalDescribe().get('Dispute').getDescribe().fields.getMap().keySet());
             RLM_BillingCaseMetricsController.getMetrics();
         }
-        Assert.isTrue(hidden.isEmpty(), 'Premise: Billing Operations can read Dispute fields, but not ' + hidden);
+        Assert.isTrue(hidden.isEmpty(), 'Premise: the Billing Operations user\'s describe lists Dispute status, '
+            + 'disputedamount and invoiceid; missing: ' + hidden);
         Assert.isNull(RLM_BillingCaseMetricsController.lastDisputeQueryError,
             'Dispute query failed: ' + RLM_BillingCaseMetricsController.lastDisputeQueryError);
     }
 
-    // Dispute reads run as a Billing Operations user holding RLM_BillingUI rather than the
-    // deploying admin: the admin's Dispute field access comes from RLM_RCB, which a build only
-    // recalculates after this bundle deploys. The user takes a Billing seat for the test.
+    // A Billing Operations user holding RLM_BillingUI and the Billing permission set license: the
+    // dispute reads in these tests check that role's access, not the running admin's.
     private static User billingUser() {
         return RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
