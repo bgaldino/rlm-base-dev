@@ -4939,10 +4939,10 @@ VERDICT_REGIONS = {
     # UnicodeDecodeError, a traceback whose exit 1 read as a verdict. What decides whether a config
     # change fails now lives in the config guard, pinned below.
     "run()": ("aba683f96950", "the exit code, stdout and duration of one command"),
-    # Pinned when the excuse for another worktree's `[branch]` entries moved here from a one-line byte
+    # Pinned when the excuse for `[branch]` bookkeeping entries moved here from a one-line byte
     # comparison in run(): about sixty lines that call git now decide whether a config change fails.
-    # It reads git's own answers (config --list, worktree list), the same on every host.
-    "the config guard": ("7fee6d0d937c", "whether a check's config change fails it"),
+    # It reads git's own answers (config --list, for-each-ref), the same on every host.
+    "the config guard": ("745997b8946e", "whether a check's config change fails it"),
     "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
@@ -4960,8 +4960,9 @@ observed = {
     "the config guard": fingerprint("".join(
         body_of(gate_src, marker, label) for marker, label in (
             ("def config_entries(", "the config reader"),
-            ("def other_worktree_branches(", "the worktree lister"),
-            ("def tracking_only(", "the tracking-key filter"),
+            ("def local_branches(", "the ref lister"),
+            ("def bookkeeping_only(", "the bookkeeping-key filter"),
+            ("def excused_branches(", "the branch excuser"),
             ("def config_change_note(", "the config verdict"),
             ("def config_drift(", "the config note filer")))),
     "the booking loop and main()'s return":
@@ -5366,13 +5367,11 @@ check("in a linked worktree the guard watches the main repository's config and i
           os.path.realpath(os.path.join(linked_gitdir, "config.worktree"))], found)
 
 # Every worktree shares one .git/config, so another session's `git push -u` (or `git switch -c X
-# origin/X`) adds a `[branch "X"]` section mid-run and failed an innocent check twice in PR 702. That
-# is excused only for a branch checked out in *another* worktree, only in the shared config, and only
-# for tracking keys naming a defined remote: a leak creates a ref nothing has checked out, or acts on
-# this worktree's own branch, so a leak's section still fails, as does anything alongside it.
-branch_parent = tempfile.mkdtemp()
-branch_root = os.path.join(branch_parent, "main")
-os.mkdir(branch_root)
+# origin/X`) adds a `[branch "X"]` section mid-run and failed an innocent check twice in PR 702. Who
+# wrote a change cannot be known, so what it does decides: [branch] bookkeeping of a real local branch
+# naming a defined remote is noted; anything that alters a commit, push or merge target fails, as does
+# anything changed alongside it, and a section for a branch with no ref.
+branch_root = tempfile.mkdtemp()
 prior_root = pr_gate.REPO_ROOT
 branch_cases = {}
 try:
@@ -5381,34 +5380,34 @@ try:
         "commit", "-q", "--allow-empty", "-m", "seed")
     git(branch_root, "remote", "add", "origin", "https://example.invalid/origin.git")
     git(branch_root, "remote", "add", "up.stream", "https://example.invalid/upstream.git")
-    git(branch_root, "worktree", "add", "-q", "-b", "other-session/work",
-        os.path.join(branch_parent, "other"))
-    # Checked out elsewhere, with U+2028 in its name: a line split there would fabricate a
-    # `preview/next` and excuse the leaked `[branch "preview/next"]` below (Copilot, PR 705).
-    git(branch_root, "worktree", "add", "-q", "-b", "preview/next suffix",
-        os.path.join(branch_parent, "preview"))
-    # A real ref nothing has checked out: what a leaked `git branch --track parked origin/main` makes.
-    git(branch_root, "branch", "parked")
+    git(branch_root, "branch", "other-session/work")
+    # A real ref whose name holds U+2028: splitlines() cut it into a fabricated `preview/next`, which
+    # then excused the leaked `[branch "preview/next"]` below (Copilot, PR 705).
+    git(branch_root, "branch", "preview/next\u2028suffix")
     branch_config = os.path.join(branch_root, ".git", "config")
     pr_gate.REPO_ROOT = branch_root
-    for label, text in (
-            ("real", '[branch "other-session/work"]\n\tremote = origin\n'
-                     '\tmerge = refs/heads/other-session/work\n'),
-            ("ghost", '[branch "preview/next"]\n\tremote = origin\n\tmerge = refs/heads/preview/next\n'),
-            ("user", '[user]\n\temail = t@example.com\n'),
-            ("real+user", '[branch "other-session/work"]\n\trebase = true\n'
-                          '[user]\n\temail = t@example.com\n')):
-        with open(branch_config, "rb") as fh:
-            pristine = fh.read()
+    with open(branch_config, "rb") as fh:
+        pristine = fh.read()
+    for label, argv in (
+            ("real", [sys.executable, "-c", "import sys; open(sys.argv[1], 'a').write(sys.argv[2])",
+                      branch_config, '[branch "other-session/work"]\n\tremote = origin\n'
+                                     '\tmerge = refs/heads/other-session/work\n']),
+            ("ghost", [sys.executable, "-c", "import sys; open(sys.argv[1], 'a').write(sys.argv[2])",
+                       branch_config,
+                       '[branch "preview/next"]\n\tremote = origin\n\tmerge = refs/heads/preview/next\n']),
+            ("user", [sys.executable, "-c", "import sys; open(sys.argv[1], 'a').write(sys.argv[2])",
+                      branch_config, '[user]\n\temail = t@example.com\n']),
+            ("real+user", [sys.executable, "-c", "import sys; open(sys.argv[1], 'a').write(sys.argv[2])",
+                           branch_config, '[branch "other-session/work"]\n\trebase = true\n'
+                                          '[user]\n\temail = t@example.com\n']),
+            # What a leaked fixture `git branch --track` does: the ref and its tracking in one step.
+            # It passes, as a note naming it: tracking entries alter no commit, push or merge target.
+            ("leaked-track", ["git", "-C", branch_root, "branch", "-q", "--track", "leaked", "base"])):
         pr_gate.CONFIG_NOTES.clear()
-        code, out, _ = pr_gate.run([sys.executable, "-c",
-                                    "import sys; open(sys.argv[1], 'a').write(sys.argv[2])",
-                                    branch_config, text])
+        code, out, _ = pr_gate.run(argv)
         branch_cases[label] = (code, out, list(pr_gate.CONFIG_NOTES))
         with open(branch_config, "wb") as fh:
             fh.write(pristine)
-    with open(branch_config, "rb") as fh:
-        pristine = fh.read()
     # Removal and change count as well as addition: the section written above, edited in place to
     # another defined remote (whose name holds a dot).
     with open(branch_config, "a") as fh:
@@ -5418,42 +5417,42 @@ try:
             " open(p, 'w').write(t.replace('remote = origin', 'remote = up.stream'))")
     branch_cases["real-edit"] = (*pr_gate.run([sys.executable, "-c", edit, branch_config])[:2],
                                  list(pr_gate.CONFIG_NOTES))
+    with open(branch_config, "wb") as fh:
+        fh.write(pristine)
 
     def added(section, base=pristine):
         """config_change_note for `section` appended to the shared config."""
         return pr_gate.config_change_note({branch_config: base}, {branch_config: base + section})
 
-    # The leak shapes that the first rule ("refs/heads/X exists") excused: a ref the leak itself
-    # created, and this worktree's own branch (a leaked `push -u` or `branch -u`).
-    branch_cases["parked"] = added(b'[branch "parked"]\n\tremote = origin\n\tmerge = refs/heads/main\n')
-    branch_cases["own"] = added(b'[branch "base"]\n\tremote = origin\n\tmerge = refs/heads/base\n')
-    # Keys that redirect later pushes or merges in every worktree fail even for another's branch.
+    # Keys that redirect later pushes or merges fail even for a real branch; the bookkeeping keys pass.
     for label, text in (("pushremote", '\tpushRemote = origin\n'),
                         ("mergeoptions", '\tmergeOptions = --strategy=ours\n'),
                         ("url-remote", '\tremote = https://evil.example/x.git\n'),
-                        ("dot-remote", '\tremote = .\n\tmerge = refs/heads/base\n')):
+                        ("undefined-remote", '\tremote = nowhere\n'),
+                        ("dot-remote", '\tremote = .\n\tmerge = refs/heads/base\n'),
+                        ("editor-notes", '\tvscode-merge-base = origin/main\n'
+                                         '\tgithub-pr-owner-number = o#r#1\n')):
         branch_cases[label] = added(f'[branch "other-session/work"]\n{text}'.encode())
+    # A remote defined by the same change is itself a non-branch change, so it cannot vouch for one.
+    branch_cases["new-remote"] = added(b'[remote "evil"]\n\turl = https://evil.example/x.git\n'
+                                       b'[branch "base"]\n\tremote = evil\n')
     # A non-branch value changed beside an excused section, rather than added.
     branch_cases["real+value"] = pr_gate.config_change_note(
         {branch_config: pristine + b'[user]\n\tname = a\n'},
         {branch_config: pristine + b'[user]\n\tname = b\n[branch "other-session/work"]\n\tremote = origin\n'})
     # The excusable section beside text git cannot parse: nothing is excused.
     branch_cases["unparseable"] = added(b'[branch "other-session/work"]\n\tremote = origin\n[user\n')
-    # config.worktree is this worktree's alone, so even another worktree's branch section fails there;
-    # and the shared file's excused half is still shown, not dropped from the report.
+    # One file's excused change must not carry another file's unexplained change with it, nor be
+    # dropped from the report when the other fails: both are diffed and the excused branch is named.
     worktree_config = branch_config + ".worktree"
-    branch_cases["worktree-file"] = pr_gate.config_change_note(
-        {branch_config: pristine, worktree_config: None},
-        {branch_config: pristine, worktree_config: b'[branch "other-session/work"]\n\tremote = origin\n'})
     branch_cases["split"] = pr_gate.config_change_note(
         {branch_config: pristine, worktree_config: b"[core]\n"},
         {branch_config: pristine + b'[branch "other-session/work"]\n\tremote = origin\n',
          worktree_config: b"[user]\n\tname = leak\n"})
 
     # A backslash continues a value, so the "[branch]" header below is still inside [user] and the
-    # email line sets user.email: a change to it must fail even though that branch is excusable. The
-    # control, without the backslash, sets a branch key, and fails only because `email` is not a
-    # tracking key, so the controls below use one that is.
+    # remote line sets user.remote: a change to it must fail. The control, without the backslash, is a
+    # real bookkeeping key and is excused.
     def continued_config(remote, cont):
         return {branch_config: pristine + ('[user]\n\tname = Alice' + cont
                                            + '\n[branch "other-session/work"]\n'
@@ -5465,63 +5464,66 @@ try:
     # 705, both confirmed with `git config --list`): a section opened on the [branch] header's own line,
     # and a form feed, which str.splitlines treats as a line break and git keeps inside a value.
     for label, template in (
-            ("same-line", '[branch "other-session/work"][user] email = {}\n'),
-            ("form-feed", '[user]\n\tname = A\f[branch "other-session/work"]\n\temail = {}\n')):
+            ("same-line", '[branch "other-session/work"][user] remote = {}\n'),
+            ("form-feed", '[user]\n\tname = A\f[branch "other-session/work"]\n\tremote = {}\n')):
         branch_cases[label] = pr_gate.config_change_note(
-            {branch_config: pristine + template.format("old@example.com").encode()},
-            {branch_config: pristine + template.format("new@example.com").encode()})
+            {branch_config: pristine + template.format("origin").encode()},
+            {branch_config: pristine + template.format("up.stream").encode()})
     # A section removed for a branch that is gone (another session's `git branch -D`), or renamed away
-    # by `git branch -m`, still fails: nothing has it checked out. Pinned, so loosening it is deliberate.
+    # by `git branch -m`, still fails: pinned by the owner's decision, so loosening it is deliberate.
     branch_cases["removed"] = pr_gate.config_change_note(
         {branch_config: pristine + b'[branch "deleted/elsewhere"]\n\tremote = origin\n'},
         {branch_config: pristine})
     branch_cases["renamed"] = pr_gate.config_change_note(
         {branch_config: pristine + b'[branch "renamed/away"]\n\tremote = origin\n'},
         {branch_config: pristine + b'[branch "other-session/work"]\n\tremote = origin\n'})
-    # CRLF is git's to read, not ours: another worktree's section written with CRLF is still excused.
+    # CRLF is git's to read, not ours: a real branch's section written with CRLF is still excused.
     branch_cases["crlf"] = pr_gate.config_change_note(
         {branch_config: b'[remote "origin"]\r\n\turl = x\r\n'},
         {branch_config: b'[remote "origin"]\r\n\turl = x\r\n[branch "other-session/work"]\r\n'
                         b'\tremote = origin\r\n'})
-    branch_cases["listed"] = pr_gate.other_worktree_branches()
+    branch_cases["listed"] = pr_gate.local_branches()
 finally:
     pr_gate.REPO_ROOT = prior_root
     pr_gate.CONFIG_NOTES.clear()
-    shutil.rmtree(branch_parent, ignore_errors=True)
+    shutil.rmtree(branch_root, ignore_errors=True)
 real_code, real_out, real_notes = branch_cases["real"]
-check("a [branch] section another worktree adds for its checked-out branch passes, as a note naming it",
+check("a [branch] tracking section added for a real local branch passes, as a note naming it",
       real_code == 0 and "config" not in real_out
       and len(real_notes) == 1 and "other-session/work" in real_notes[0], branch_cases["real"])
-check("a [branch] section another worktree edits for its branch passes too, to a dotted remote name",
+check("a [branch] section edited for a real local branch passes too, to a dotted remote name",
       branch_cases["real-edit"][0] == 0 and len(branch_cases["real-edit"][2]) == 1,
       branch_cases["real-edit"])
-check("the other worktrees' branches are listed whole, U+2028 included, and this worktree's is not",
-      branch_cases["listed"] == {"other-session/work", "preview/next suffix"}, branch_cases["listed"])
-check("a section for a ref the leak itself could have made (nothing has it checked out) still fails",
-      branch_cases["parked"][1] is True, branch_cases["parked"])
-check("a section for this worktree's own branch (a leaked `push -u`) still fails",
-      branch_cases["own"][1] is True, branch_cases["own"])
+check("a leaked `git branch --track` passes as a note naming the branch: its entries alter nothing "
+      "a commit, push or merge does, and the note still shows it happened",
+      branch_cases["leaked-track"][0] == 0 and len(branch_cases["leaked-track"][2]) == 1
+      and "leaked" in branch_cases["leaked-track"][2][0], branch_cases["leaked-track"])
+check("local branches are listed whole, U+2028 included",
+      {"base", "other-session/work", "preview/next\u2028suffix"} <= branch_cases["listed"]
+      and "preview/next" not in branch_cases["listed"] and "" not in branch_cases["listed"],
+      branch_cases["listed"])
 for label, what in (("pushremote", "a pushRemote"), ("mergeoptions", "a mergeOptions"),
-                    ("url-remote", "a URL as remote")):
-    check(f"{what} for another worktree's branch still fails: it redirects every worktree's pushes or "
-          "merges", branch_cases[label][1] is True, branch_cases[label])
-check("...while `remote = .` (tracking a local branch) is excused",
-      branch_cases["dot-remote"][1] is False and "other-session/work" in branch_cases["dot-remote"][0],
-      branch_cases["dot-remote"])
+                    ("url-remote", "a URL as remote"), ("undefined-remote", "an undefined remote"),
+                    ("new-remote", "a remote defined by the same change")):
+    check(f"{what} for a real branch still fails: it redirects later pushes or merges",
+          branch_cases[label][1] is True, branch_cases[label])
+for label, what in (("dot-remote", "`remote = .` (tracking a local branch)"),
+                    ("editor-notes", "an editor's vscode-merge-base or gh's github-pr-owner-number")):
+    check(f"...while {what} is excused",
+          branch_cases[label][1] is False and "other-session/work" in branch_cases[label][0],
+          branch_cases[label])
 check("a user.name value changed beside an excused section still fails",
       branch_cases["real+value"][1] is True, branch_cases["real+value"])
 check("an excusable section beside text git cannot parse excuses nothing",
       branch_cases["unparseable"][1] is True, branch_cases["unparseable"])
-check("another worktree's branch section in config.worktree fails: that file is this worktree's alone",
-      branch_cases["worktree-file"][1] is True, branch_cases["worktree-file"])
 split_note, split_fails = branch_cases["split"]
 check("a failing file does not hide the other file's excused change: both are diffed, and the excused "
-      "branch is named as another worktree's",
-      split_fails and "config.worktree" in split_note and '+[branch "other-session/work"]' in split_note
-      and "other-session/work in the diff below is another worktree's" in split_note, split_note)
+      "branch is named",
+      split_fails and "(config.worktree)" in split_note and '+[branch "other-session/work"]' in split_note
+      and "bookkeeping for other-session/work in the diff below is excused" in split_note, split_note)
 check("a line continuation that carries user.* past a [branch] header still fails",
       branch_cases["continued"][1] is True, branch_cases["continued"])
-check("...while the same text without the continuation is a real tracking key, excused as a note",
+check("...while the same text without the continuation is a real bookkeeping key, excused as a note",
       branch_cases["uncontinued"][1] is False and "other-session/work" in branch_cases["uncontinued"][0],
       branch_cases["uncontinued"])
 check("a section opened on a [branch] header's own line is not excused as that branch",
@@ -5529,8 +5531,8 @@ check("a section opened on a [branch] header's own line is not excused as that b
 check("a form feed inside a value does not split off a fake [branch] header",
       branch_cases["form-feed"][1] is True, branch_cases["form-feed"])
 ghost_code, ghost_out, ghost_notes = branch_cases["ghost"]
-check("a [branch] section for a branch no worktree has (a leaked fixture's) still fails, with the diff, "
-      "even beside a checked-out branch that extends its name past a U+2028",
+check("a [branch] section for a branch with no real ref (a leaked fixture's) still fails, with the diff, "
+      "even beside a real ref that extends its name past a U+2028",
       ghost_code == 1 and '+[branch "preview/next"]' in ghost_out and not ghost_notes,
       branch_cases["ghost"])
 check("a user.email change still fails",
@@ -5540,9 +5542,9 @@ check("a user.email change alongside an excused [branch] section still fails",
       branch_cases["real+user"][0] == 1 and not branch_cases["real+user"][2], branch_cases["real+user"])
 check("a section removed for a branch that no longer exists still fails",
       branch_cases["removed"][1] is True, branch_cases["removed"])
-check("a section renamed away from a branch nothing has checked out still fails",
+check("a section renamed away from a branch that no longer exists still fails",
       branch_cases["renamed"][1] is True, branch_cases["renamed"])
-check("a CRLF config is read by git, so another worktree's section written with CRLF is still excused",
+check("a CRLF config is read by git, so a real branch's section written with CRLF is still excused",
       branch_cases["crlf"][1] is False and "other-session/work" in branch_cases["crlf"][0],
       branch_cases["crlf"])
 # git is the parser: an escaped subsection comes back as the ref it names, a dotted branch name keeps
@@ -5584,7 +5586,7 @@ try:
     pr_gate.REPO_ROOT = unlistable
     with outside_any_repo(unlistable):
         soft = pr_gate.git(["rev-parse", "HEAD"], "probe", raw=True, fatal=False)
-        unlisted = pr_gate.other_worktree_branches()
+        unlisted = pr_gate.local_branches()
         try:
             with redirect_stderr(raw_err):
                 pr_gate.git(["rev-parse", "HEAD"], "probe", raw=True)
@@ -5597,7 +5599,7 @@ try:
 finally:
     pr_gate.REPO_ROOT = prior_root
     os.rmdir(unlistable)
-check("git(fatal=False) returns None on failure, and worktrees that cannot be listed excuse nothing",
+check("git(fatal=False) returns None on failure, and refs that cannot be listed excuse nothing",
       soft is None and unlisted == set(), (soft, unlisted))
 check("git(fatal=False) returns None when git cannot even be spawned, rather than dying",
       unspawned is None, unspawned)
@@ -5613,13 +5615,13 @@ check("a user.name change between two non-UTF-8 values still fails, with a print
       (latin_fails, latin_note[-200:]))
 # A branch name that is not UTF-8 is held with surrogates; the note shows it as \xNN, so printing it
 # under a strict UTF-8 stdout cannot raise.
-real_others = pr_gate.other_worktree_branches
-pr_gate.other_worktree_branches = lambda: {"caf\udcff"}
+real_branches = pr_gate.local_branches
+pr_gate.local_branches = lambda: {"caf\udcff"}
 try:
     odd_note, odd_fails = pr_gate.config_change_note(
         {"config": b"[core]\n"}, {"config": b'[core]\n[branch "caf\xff"]\n\tremote = .\n'})
 finally:
-    pr_gate.other_worktree_branches = real_others
+    pr_gate.local_branches = real_branches
 check("a non-UTF-8 branch name is excused and noted printably, as \\xNN",
       odd_fails is False and "caf\\xff" in odd_note and odd_note.encode("utf-8", "strict"),
       (odd_fails, odd_note))
@@ -5706,7 +5708,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 809
+EXPECTED = 811
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "

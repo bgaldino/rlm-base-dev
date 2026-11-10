@@ -161,21 +161,17 @@ def repo_config_bytes():
 
 # The shared config is also written by every *other* worktree of this repository: another session's
 # `git push -u`, or a branch it creates from a remote-tracking ref, adds a `[branch "<name>"]` section
-# mid-run, and that failed an innocent check twice during PR 702. Such a change is excused only when
-# all three of these hold, because a fixture leak cannot meet them by itself:
-# - It is in the shared config. config.worktree belongs to this worktree alone, so a change there is
-#   always this run's own.
-# - <name> is checked out in a worktree other than this one. The first version asked only that
-#   refs/heads/<name> exist, and a leak satisfies that unaided: `git branch --track X origin/main`
-#   creates the ref and its section in one command. A leaked `push -u` or `checkout -b X origin/X`
-#   acts on this worktree's own branch, which is not excused either.
-# - Every changed entry is a tracking key (TRACKING_KEYS), and each `remote` value is "." or a remote
-#   the config defines. `pushRemote`, `mergeOptions` or a URL as `remote` would redirect later pushes
-#   or merges in every worktree, so they fail even for another worktree's branch.
-# Still failed, and pinned by tests: a section removed or renamed away from a branch that nothing has
-# checked out any more (another session's `git branch -D` or `-m`). The gap left is a leak that runs
-# as another worktree (an inherited GIT_DIR, or a cwd inside one): it is that worktree, as far as git
-# can tell.
+# mid-run, and that failed an innocent check twice during PR 702. Who wrote a change cannot be known
+# from here (PR 705 tried to infer it from refs, then from worktrees, and a leaked fixture command met
+# each test in one step), so the guard judges what the change does instead. A change passes, as a
+# printed note, only when every changed entry is branch bookkeeping that alters no commit and no push
+# or merge target:
+# - a `branch.<name>.<key>` entry with <key> in BOOKKEEPING_KEYS, for a real refs/heads/<name>;
+# - whose `remote`, if any, is "." or a remote the same file defines.
+# `pushRemote`, `mergeOptions` or a URL as `remote` redirect later pushes or merges in every worktree,
+# and user.*, core.*, remote.* and the rest alter commits or fetches, so they fail, as does anything
+# changed alongside them. A section removed for a branch that no longer exists fails too (pinned by
+# tests, by the owner's decision): nothing can be said about a ref that is gone.
 #
 # Both snapshots are read by git itself (`git config --file <snapshot> --null --list`), not by a parser
 # here: a hand-rolled one disagreed with git repeatedly in PR 705's reviews (a backslash continuation, a
@@ -183,10 +179,14 @@ def repo_config_bytes():
 # line git reads as user.* pass as a branch's. `--file` reads that file alone: no `-c`, no GIT_CONFIG_*
 # variables, and no includes, which it lists as plain `include.path` entries. A snapshot git cannot
 # parse, or that cannot be handed to git at all, excuses nothing.
-TRACKING_KEYS = {"remote", "merge", "rebase"}
 
-# Notes about another worktree's `[branch]` sections, collected by run() and printed by main() whatever
-# the check's verdict: a passing check's output is otherwise never shown.
+# What `--track` and `push -u` write (remote, merge, and rebase under branch.autoSetupRebase), plus the
+# notes this repository's shared config already carries from editors and gh: VS Code and Cursor's
+# `vscode-merge-base` and gh's `github-pr-owner-number`.
+BOOKKEEPING_KEYS = {"remote", "merge", "rebase", "vscode-merge-base", "github-pr-owner-number"}
+
+# Notes about excused `[branch]` bookkeeping, collected by run() and printed by main() whatever the
+# check's verdict: a passing check's output is otherwise never shown.
 CONFIG_NOTES = []
 
 
@@ -238,75 +238,84 @@ def shown(text):
     return text.encode("utf-8", "surrogateescape").decode("utf-8", "backslashreplace")
 
 
-def other_worktree_branches():
-    """The branches checked out in a worktree other than this one, short form, decoded exactly as
-    config_entries() decodes keys so the two compare like for like. Read from `git worktree list
-    --porcelain -z`, which reports each worktree's branch as its HEAD file stores it, so a section
-    `push -u` wrote matches it byte for byte. Empty when the list cannot be read, which excuses
-    nothing rather than stopping the gate and losing the diff of what changed."""
-    out = git(["worktree", "list", "--porcelain", "-z"], "worktree list", raw=True, fatal=False)
+def local_branches():
+    """Every `refs/heads/` name in this repository, short form: what a `[branch]` subsection names.
+    Split on "\\n" only: a ref name cannot hold a control character, but it can hold U+2028, which
+    splitlines() would cut into a fabricated shorter ref (Copilot, PR 705). Read as bytes and decoded
+    exactly as config_entries() decodes git's reading of the config, so the two compare like for like
+    under any locale. Empty when the refs cannot be listed, which excuses nothing rather than stopping
+    the gate and losing the diff of what changed."""
+    out = git(["for-each-ref", "--format=%(refname)", "refs/heads/"], "for-each-ref refs/heads/",
+              raw=True, fatal=False)
     if out is None:
         return set()
-    here = os.path.realpath(REPO_ROOT)
-    branches, path = set(), None
-    for field in out.decode("utf-8", "surrogateescape").split("\0"):
-        if field.startswith("worktree "):
-            path = field[len("worktree "):]
-        elif (field.startswith("branch refs/heads/") and path is not None
-              and os.path.realpath(path) != here):
-            branches.add(field[len("branch refs/heads/"):])
-    return branches
+    refs = out.decode("utf-8", "surrogateescape").split("\n")
+    return {ref[len("refs/heads/"):] for ref in refs if ref.startswith("refs/heads/")}
 
 
-def tracking_only(entries, name, remotes):
-    """True when every `branch.<name>.*` entry is a tracking key and each `remote` is "." or one of
+def bookkeeping_only(entries, name, remotes):
+    """True when every `branch.<name>.*` entry is a bookkeeping key and each `remote` is "." or one of
     `remotes`."""
     for key, value in entries:
         if branch_of(key) != name:
             continue
         variable = key.rpartition(".")[2]
-        if variable not in TRACKING_KEYS or (variable == "remote" and value != "."
-                                             and value not in remotes):
+        if variable not in BOOKKEEPING_KEYS or (variable == "remote" and value != "."
+                                                and value not in remotes):
             return False
     return True
 
 
+def excused_branches(old, new, real):
+    """The branches whose entries moved between `old` and `new` and are excusable: real local
+    branches (`real()`, called only if one moved) whose entries on both sides are bookkeeping only."""
+    groups = [{}, {}]
+    for group, entries in zip(groups, (old, new)):
+        for entry in entries:
+            group.setdefault(branch_of(entry[0]), []).append(entry)
+    moved = {name for name in set(groups[0]) | set(groups[1])
+             if name is not None and groups[0].get(name) != groups[1].get(name)}
+    if not moved:
+        return set()
+    # A remote's name may hold dots, so it is everything between `remote.` and `.url`.
+    remotes = {key[len("remote."):-len(".url")] for key, _ in new
+               if key.startswith("remote.") and key.endswith(".url")}
+    return {name for name in moved & real() if bookkeeping_only(old + new, name, remotes)}
+
+
 def config_change_note(before, after):
     """(note, fails) for the repository config files' change during a check: ("", False) when none
-    changed. A change in the shared config confined to tracking keys of branches checked out in other
-    worktrees is their bookkeeping: noted, not failed. Anything else fails, with the diff of every
-    changed file. The shared config is the first of repo_config_paths(); `before` keeps that order."""
+    changed. A file whose change is confined to excusable `[branch]` bookkeeping (see the comment
+    above BOOKKEEPING_KEYS) is noted, not failed. Any other change fails, with the diff of every
+    changed file and the excused branches named."""
     changed = [path for path in before if after.get(path) != before[path]]
     if not changed:
         return "", False
-    shared, foreign = next(iter(before)), set()
-    old = new = None
-    if shared in changed:
-        old, new = config_entries(before[shared]), config_entries(after.get(shared))
-    if old is not None and new is not None:
-        groups = [{}, {}]
-        for group, entries in zip(groups, (old, new)):
-            for entry in entries:
-                group.setdefault(branch_of(entry[0]), []).append(entry)
-        moved = {name for name in set(groups[0]) | set(groups[1])
-                 if name is not None and groups[0].get(name) != groups[1].get(name)}
-        if moved:
-            # A remote's name may hold dots, so it is everything between `remote.` and `.url`.
-            remotes = {key[len("remote."):-len(".url")] for key, _ in new
-                       if key.startswith("remote.") and key.endswith(".url")}
-            foreign = {name for name in moved & other_worktree_branches()
-                       if tracking_only(old, name, remotes) and tracking_only(new, name, remotes)}
-    # The shared file passes only when the excused branches account for all of its change; that
-    # includes bytes git reads as no entries at all (a comment, quoting), which fail rather than pass
-    # unexamined. Every other file fails on any change.
-    failing = [path for path in changed
-               if path != shared or not foreign or without(old, foreign) != without(new, foreign)]
-    named = ", ".join(shown(name) for name in sorted(foreign))
+    refs = []
+
+    def real():
+        # Listed at most once, and only when a branch's entries actually moved.
+        if not refs:
+            refs.append(local_branches())
+        return refs[0]
+
+    excused, failing = set(), []
+    for path in changed:
+        old, new = config_entries(before[path]), config_entries(after.get(path))
+        ours = excused_branches(old, new, real) if old is not None and new is not None else set()
+        # A file passes only when its excused branches account for all of its change; that includes
+        # bytes git reads as no entries at all (a comment, quoting), which fail rather than pass
+        # unexamined.
+        if not ours or without(old, ours) != without(new, ours):
+            failing.append(path)
+        excused |= ours
+    named = ", ".join(shown(name) for name in sorted(excused))
     if not failing:
-        return ("\nnote: another worktree changed the shared git config's [branch] tracking entries for "
-                + named + " while this check ran (each checked out in another worktree, so not a fixture"
-                " leak). Branch tracking writes them: push with `git push origin <branch>` rather than"
-                " `-u`, and branch from a remote-tracking ref with `--no-track`.\n", False)
+        return ("\nnote: the repository's git config gained or changed [branch] bookkeeping for " + named
+                + " while this check ran: tracking or editor entries of a real local branch, which"
+                " change no commit, push or merge target. Usually another worktree's `git push -u` or"
+                " tracking checkout (push with `git push origin <branch>` and branch with `--no-track`"
+                " to avoid it); if this check runs git, it may be its fixture's. Left in place.\n", False)
     diffs = []
     for path in changed:
         name = os.path.basename(path)
@@ -316,11 +325,11 @@ def config_change_note(before, after):
                                       f"{name} before", f"{name} after", lineterm="")
     return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in failing) + ")"
             " changed while this check ran. A fixture git command may have reached the real"
-            " repository (or something else wrote it meanwhile). Only tracking entries of a branch"
-            " checked out in another worktree are excused; this change is not. Restore it by hand;"
-            " the change is not reverted for you."
-            + (f" (The [branch] change for {named} in the diff below is another worktree's.)"
-               if foreign else "") + "\n" + "\n".join(diffs) + "\n", True)
+            " repository (or something else wrote it meanwhile). Only [branch] bookkeeping (tracking"
+            " or editor entries of a real local branch, naming a defined remote) is excused; this"
+            " change is not. Restore it by hand; the change is not reverted for you."
+            + (f" (The [branch] bookkeeping for {named} in the diff below is excused.)" if excused
+               else "") + "\n" + "\n".join(diffs) + "\n", True)
 
 
 # name, command, path prefixes that select it, extra pip deps, gating, note.
