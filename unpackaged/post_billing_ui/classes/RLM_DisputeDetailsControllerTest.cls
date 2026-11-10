@@ -69,6 +69,118 @@ private class RLM_DisputeDetailsControllerTest {
             'A non-existent DisputeItem id must never cause a record to be updated.');
     }
 
+    // Dispute and DisputeItem are createable (Invoice and InvoiceLine are not), so the save
+    // path runs against real dispute items: the approved amount is written, and a blank
+    // amount saves as zero.
+    @isTest
+    static void saveApprovedAmounts_writesTheApprovedAmount() {
+        List<Id> itemIds = newDisputeItems(2, 5);
+        List<Map<String, Object>> items = new List<Map<String, Object>>{
+            new Map<String, Object>{ 'id' => String.valueOf(itemIds[0]), 'approvedAmount' => 40 },
+            new Map<String, Object>{ 'id' => String.valueOf(itemIds[1]), 'approvedAmount' => null }
+        };
+
+        Test.startTest();
+        RLM_DisputeDetailsController.saveApprovedAmounts(items);
+        Test.stopTest();
+
+        assertAmount(40, approvedAmount(itemIds[0]), 'The approved amount is saved.');
+        assertAmount(0, approvedAmount(itemIds[1]), 'A blank approved amount saves as zero.');
+    }
+
+    // A save the database rejects (an amount past the currency field's precision) surfaces as
+    // an AuraHandledException and leaves the record as it was.
+    @isTest
+    static void saveApprovedAmounts_rejectedSave_throwsAndKeepsTheAmount() {
+        List<Id> itemIds = newDisputeItems(1, 5);
+        List<Map<String, Object>> items = new List<Map<String, Object>>{
+            new Map<String, Object>{ 'id' => String.valueOf(itemIds[0]), 'approvedAmount' => '100000000000000000000' }
+        };
+
+        Boolean rejected = false;
+        Test.startTest();
+        try {
+            RLM_DisputeDetailsController.saveApprovedAmounts(items);
+        } catch (AuraHandledException e) {
+            rejected = true;
+        }
+        Test.stopTest();
+
+        Assert.isTrue(rejected, 'An amount the field cannot hold is reported to the page.');
+        assertAmount(5, approvedAmount(itemIds[0]), 'The rejected save leaves the approved amount unchanged.');
+    }
+
+    // A user without dispute access cannot approve an amount: whichever check stops them (no
+    // DisputeItem, no approved-amount field, or the user-mode query), the page gets an
+    // AuraHandledException and the record is unchanged.
+    @isTest
+    static void saveApprovedAmounts_userWithoutDisputeAccess_isRejected() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        List<Id> itemIds = newDisputeItems(1, 5);
+        List<Map<String, Object>> items = new List<Map<String, Object>>{
+            new Map<String, Object>{ 'id' => String.valueOf(itemIds[0]), 'approvedAmount' => 40 }
+        };
+
+        Boolean rejected = false;
+        Test.startTest();
+        System.runAs(noAccess) {
+            try {
+                RLM_DisputeDetailsController.saveApprovedAmounts(items);
+            } catch (AuraHandledException e) {
+                rejected = true;
+            }
+        }
+        Test.stopTest();
+
+        Assert.isTrue(rejected, 'A user without dispute access is refused.');
+        assertAmount(5, approvedAmount(itemIds[0]), 'The refused save leaves the approved amount unchanged.');
+    }
+
+    // One dispute on its own case, with the given number of items, each approved at the given
+    // amount. Created by name, as RLM_AccountUtilitiesTest does.
+    private static List<Id> newDisputeItems(Integer count, Decimal approved) {
+        Account a = new Account(Name = 'RLM Dispute Details Test');
+        insert a;
+        Case disputeCase = new Case(AccountId = a.Id, Subject = 'RLM Dispute Details case');
+        insert disputeCase;
+        SObject dispute = Schema.getGlobalDescribe().get('Dispute').newSObject();
+        dispute.put('AccountId', a.Id);
+        dispute.put('CaseId', disputeCase.Id);
+        dispute.put('ReceivedDate', Date.today());
+        insert dispute;
+        // A disputed amount above the approved one, where the field takes a value on insert.
+        Boolean disputedAmountCreateable = Schema.getGlobalDescribe().get('DisputeItem').getDescribe()
+            .fields.getMap().get('DisputedAmount').getDescribe().isCreateable();
+        List<SObject> items = new List<SObject>();
+        for (Integer i = 0; i < count; i++) {
+            SObject item = Schema.getGlobalDescribe().get('DisputeItem').newSObject();
+            item.put('DisputeId', dispute.Id);
+            item.put('TransactionDate', Date.today());
+            if (disputedAmountCreateable) {
+                item.put('DisputedAmount', (Decimal) 100);
+            }
+            item.put('ApprovedAmount', approved);
+            items.add(item);
+        }
+        insert items;
+        List<Id> ids = new List<Id>();
+        for (SObject item : items) {
+            ids.add(item.Id);
+        }
+        return ids;
+    }
+
+    private static Decimal approvedAmount(Id itemId) {
+        List<SObject> rows = Database.query('SELECT ApprovedAmount FROM DisputeItem WHERE Id = :itemId');
+        return (Decimal) rows[0].get('ApprovedAmount');
+    }
+
+    // Compares amounts by value, so 40 and 40.00 match.
+    private static void assertAmount(Decimal expected, Decimal actual, String message) {
+        Assert.isTrue(actual != null && actual == expected,
+            message + ' Expected ' + expected + ', got ' + actual + '.');
+    }
+
     private static Id disputeItemFakeId() {
         if (Schema.getGlobalDescribe().containsKey('DisputeItem')) {
             String prefix = Schema.getGlobalDescribe().get('DisputeItem').getDescribe().getKeyPrefix();

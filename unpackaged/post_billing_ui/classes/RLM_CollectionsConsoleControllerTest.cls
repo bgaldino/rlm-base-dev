@@ -57,6 +57,39 @@ private class RLM_CollectionsConsoleControllerTest {
         System.assertEquals(null, w2.ptpDate, 'No PTP -> null.');
     }
 
+    // An invoice without a billing account shows a blank account, and no related records
+    // leave the defaults: a dash for the dispute, a blank plan, no promise to pay.
+    @isTest
+    static void buildDelinquents_invoiceWithoutBillingAccount_usesDefaults() {
+        Id invId = mintId(Invoice.SObjectType);
+        Invoice inv = (Invoice) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+            'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
+            'Id' => invId,
+            'Balance' => 2500,
+            'DaysInvoiceOverdue' => 40
+        }), Invoice.class);
+
+        Test.startTest();
+        List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
+            RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>{ inv },
+                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>());
+        List<RLM_CollectionsConsoleController.DelinquentWrapper> none =
+            RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>(),
+                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>());
+        Test.stopTest();
+
+        Assert.areEqual(1, rows.size(), 'One row per invoice.');
+        Assert.areEqual(invId, rows[0].Id, 'The row is the invoice.');
+        Assert.areEqual('', rows[0].businessAccount, 'No billing account, blank name.');
+        Assert.isNull(rows[0].accountId, 'No billing account id.');
+        Assert.areEqual('-', rows[0].disputeReason, 'No dispute, a dash.');
+        Assert.areEqual('', rows[0].collectionPlanId, 'No plan, blank.');
+        Assert.isNull(rows[0].collectionPlanRecordId, 'No plan record.');
+        Assert.isNull(rows[0].ptpDate, 'No promise to pay.');
+        Assert.isTrue(rows[0].balance == 2500 && rows[0].invoiceBalance == 2500, 'Both balances are the invoice balance.');
+        Assert.isTrue(none.isEmpty(), 'No invoices, no rows.');
+    }
+
     private static Integer seq = 0;
 
     private static Id mintId(Schema.SObjectType t) {

@@ -51,6 +51,82 @@ private class RLM_BillingCaseMetricsControllerTest {
         return false;
     }
 
+    // Dispute is createable, so the dispute aggregates count real open disputes and sum their
+    // amounts. No dispute can name an invoice (Invoice is not createable), so none is counted.
+    @isTest
+    static void getMetrics_countsOpenDisputesAndSumsTheirAmounts() {
+        Account a = new Account(Name = 'RLM Case Metrics Disputes');
+        insert a;
+        List<Decimal> amounts = new List<Decimal>{ 100, 50 };
+        // One case per dispute: a dispute is raised from a case.
+        List<Case> disputeCases = new List<Case>();
+        for (Decimal amount : amounts) {
+            disputeCases.add(new Case(AccountId = a.Id, Subject = 'RLM Case Metrics dispute ' + amount));
+        }
+        insert disputeCases;
+        // The amount goes on the dispute when its field is createable; otherwise the dispute
+        // totals its items, so it goes on one item.
+        Boolean amountOnDispute = Schema.getGlobalDescribe().get('Dispute').getDescribe()
+            .fields.getMap().get('DisputedAmount').getDescribe().isCreateable();
+        List<SObject> disputes = new List<SObject>();
+        for (Integer i = 0; i < amounts.size(); i++) {
+            SObject d = Schema.getGlobalDescribe().get('Dispute').newSObject();
+            d.put('AccountId', a.Id);
+            d.put('CaseId', disputeCases[i].Id);
+            d.put('ReceivedDate', Date.today());
+            if (amountOnDispute) {
+                d.put('DisputedAmount', amounts[i]);
+            }
+            disputes.add(d);
+        }
+        insert disputes;
+        if (!amountOnDispute) {
+            List<SObject> items = new List<SObject>();
+            for (Integer i = 0; i < amounts.size(); i++) {
+                SObject item = Schema.getGlobalDescribe().get('DisputeItem').newSObject();
+                item.put('DisputeId', disputes[i].Id);
+                item.put('TransactionDate', Date.today());
+                item.put('DisputedAmount', amounts[i]);
+                items.add(item);
+            }
+            insert items;
+        }
+
+        Test.startTest();
+        Map<String, Object> result = RLM_BillingCaseMetricsController.getMetrics();
+        Test.stopTest();
+
+        Assert.isNull(RLM_BillingCaseMetricsController.lastDisputeQueryError,
+            'Dispute query failed: ' + RLM_BillingCaseMetricsController.lastDisputeQueryError);
+        Assert.areEqual(2, (Integer) result.get('openDisputes'), 'Both new disputes are open.');
+        Decimal total = (Decimal) result.get('totalDisputedAmount');
+        Assert.isTrue(total == 150, 'The open disputes total 100 + 50. Got ' + total);
+        Assert.areEqual(0, (Integer) result.get('disputedInvoices'), 'No dispute names an invoice.');
+    }
+
+    // A user who cannot read Case sees zero open billing cases rather than an error, even when
+    // one exists. Without Dispute access the dispute metrics stay at zero too.
+    @isTest
+    static void getMetrics_userWhoCannotReadCases_seesZero() {
+        User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Case openCase = new Case(Subject = 'RLM Billing Case Metrics unreadable', Status = 'New');
+        if (billingCaseTypeIsValid()) {
+            openCase.Type = 'Billing';
+        }
+        insert openCase;
+
+        Map<String, Object> result;
+        Test.startTest();
+        System.runAs(noAccess) {
+            result = RLM_BillingCaseMetricsController.getMetrics();
+        }
+        Test.stopTest();
+
+        Assert.areEqual(0, (Integer) result.get('openBillingCases'), 'An unreadable Case counts as none.');
+        Assert.areEqual(0, (Integer) result.get('openDisputes'), 'No readable disputes.');
+        Assert.areEqual(0, (Integer) result.get('disputedInvoices'), 'No readable disputed invoices.');
+    }
+
     // The dispute aggregates swallow their errors and show zero, so the zero-path test passes
     // whether or not they run. As a billing role, which can read Dispute, they must run clean.
     @isTest
