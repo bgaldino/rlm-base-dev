@@ -947,6 +947,20 @@ def check_quarantine(quarantine, home):
                 break
 
 
+def move_blocker(run, path, project):
+    """Why `path` cannot leave its folder, or None. apply asks this of every planned item before
+    any logout, and again at the move. Moving a directory rewrites its `..` entry, so it needs write
+    access on the directory itself too, which a `sudo sf` can take away."""
+    for folder in [path.parent] + ([path] if is_dir(path) else []):
+        if not os.access(str(folder), os.W_OK | os.X_OK):
+            return "no write access to {}".format(folder)
+    if project in path.parents:
+        code, out = run(["git", "-C", str(project), "ls-files", "--", str(path)])
+        if code != 0 or out.strip():
+            return "tracked by git, or git could not say"
+    return None
+
+
 def move_to_quarantine(run, path, roots, quarantine, project):
     """Move one allowlisted path, or return why it was refused."""
     if lstat_or_none(path) is None:
@@ -957,10 +971,9 @@ def move_to_quarantine(run, path, roots, quarantine, project):
         return "outside the expected state roots"
     if project in path.parents and linked_ancestor(path.parent):
         return "symlink"
-    if project in path.parents:
-        code, out = run(["git", "-C", str(project), "ls-files", "--", str(path)])
-        if code != 0 or out.strip():
-            return "tracked by git, or git could not say"
+    why = move_blocker(run, path, project)
+    if why:
+        return why
     dest = quarantine / path.parent.name / path.name
     try:
         for folder in (quarantine, dest.parent):  # a linked root or folder would redirect the move
@@ -969,7 +982,7 @@ def move_to_quarantine(run, path, roots, quarantine, project):
         dest.parent.mkdir(parents=True, exist_ok=True)
         move_path(str(path), str(free_name(dest)))
     except OSError as error:
-        return "could not move into {}: {}".format(dest.parent, reason(error))
+        return "could not move it to {}: {}".format(dest.parent, reason(error))
     return None
 
 
@@ -1355,7 +1368,8 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
     do.add_argument("--plan", required=True)
     do.add_argument("--quarantine", help="where to move residual files")
     args = parser.parse_args(argv)
-    for flag, value in (("--out", getattr(args, "out", None)), ("--quarantine", getattr(args, "quarantine", None))):
+    for flag in ("--out", "--plan", "--quarantine"):
+        value = getattr(args, flag[2:], None)
         if value is not None and not value.strip():
             parser.error("{} needs a path".format(flag))
 
@@ -1432,12 +1446,17 @@ def main(argv=None, run=run_command, home=None, project=None, today=None, env=No
         return 3
     moves = any(plan["remove"][key] for key in FILE_KEYS + ("deploy_jobs",))
     if moves:
-        sources = {Path(item).parent for key in FILE_KEYS for item in plan["remove"][key]}
-        sources |= {home / ".sf" / "manifestCache"} if plan["remove"]["deploy_jobs"] else set()
-        stuck = sorted(str(d) for d in sources if os.path.isdir(str(d)) and not os.access(str(d), os.W_OK | os.X_OK))
+        items = [Path(item) for key in FILE_KEYS for item in plan["remove"][key]]
+        items += [home / ".sf" / "manifestCache" / (job + ".xml") for job in plan["remove"]["deploy_jobs"]
+                  if plain_job_id(job)]
+        stuck = []
+        for item in items:  # a missing or linked item is refused at the move, without a logout to undo
+            why = None if lstat_or_none(item) is None or is_link(item) else move_blocker(run, item, project)
+            if why:
+                stuck.append("{} ({})".format(item, why))
         if stuck:
-            print("Stopped before any logout; nothing was changed. Files cannot be moved out of {} (no write "
-                  "access); fix their ownership, then apply again.".format(", ".join(stuck)), file=sys.stderr)
+            print("Stopped before any logout; nothing was changed. These files cannot be moved: {}. Fix "
+                  "their ownership or git, then apply again.".format("; ".join(stuck)), file=sys.stderr)
             return 1
         why = check_quarantine(quarantine, home)
         if why:

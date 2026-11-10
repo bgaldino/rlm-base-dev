@@ -1268,11 +1268,23 @@ class Apply(Base):
         cli.tracked.add(str(self.tracking))
         self.assertEqual(self.audit_then_apply(cli), 1)
         self.assertTrue(self.tracking.exists())
+        self.assertIn("{} (tracked by git".format(self.tracking), self.stderr.getvalue())
+        self.assertEqual(self.logouts(cli), [])
 
     def test_a_git_failure_refuses_the_move(self):
         cli = FakeCli(self.home, self.setup_stale_org())
-        cli.override = lambda cmd: (1, "") if cmd[0] == "git" else None
+        cli.override = lambda cmd: (128, "") if cmd[0] == "git" else None  # e.g. "dubious ownership"
         self.assertEqual(self.audit_then_apply(cli), 1)
+        self.assertTrue(self.tracking.exists())
+        self.assertIn("Stopped before any logout", self.stderr.getvalue())
+        self.assertIn("git could not say", self.stderr.getvalue())
+        self.assertEqual(self.logouts(cli), [])
+
+    def test_a_git_failure_at_the_move_is_still_refused(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        cli.override = lambda cmd: (1, "") if cmd[0] == "git" and cli.calls.count(cmd) > 1 else None
+        self.assertEqual(self.apply(cli, plan_file), 1)
         self.assertTrue(self.tracking.exists())
         self.assertIn("git could not say", self.stdout.getvalue())
 
@@ -1379,7 +1391,7 @@ class Quarantine(Base):
         with self.refuse_rename_of(self.index):
             self.assertEqual(self.apply(cli, plan_file), 1)
         self.assertTrue(self.index.exists())
-        self.assertIn("could not move into {}: Not permitted".format(self.quarantine / ".sfdx"), self.stdout.getvalue())
+        self.assertIn("could not move it to {}: Not permitted".format(self.quarantine / ".sfdx"), self.stdout.getvalue())
         self.assertIn("Residual files moved", self.stdout.getvalue())
         self.assertTrue((self.quarantine / "orgs" / self.tracking.name / "state").exists())
         self.assertEqual(self.read_cache(), {"job2": {"target-org": HUB, "keep": 1}})
@@ -1389,8 +1401,8 @@ class Quarantine(Base):
         (self.home / ".sf" / "deploy-cache.json").unlink()
         self.manifest.unlink()
         cli = FakeCli(self.home, rows)
-        cli.tracked.add(str(self.tracking))
         plan_file = self.audit_file(cli)
+        cli.override = lambda cmd: (1, "") if cmd[0] == "git" and cli.calls.count(cmd) > 1 else None
         with self.refuse_rename_of(self.index):
             self.assertEqual(self.apply(cli, plan_file), 1)
         self.assertNotIn("Residual files moved", self.stdout.getvalue())
@@ -2830,9 +2842,32 @@ class PathsAndManifests(Base):
         orgs.chmod(0o500)
         self.addCleanup(orgs.chmod, 0o755)
         self.assertEqual(self.apply(cli, plan_file), 1)
-        self.assertIn("cannot be moved out of", self.stderr.getvalue())
+        self.assertIn("no write access to {}".format(orgs), self.stderr.getvalue())
         self.assertEqual(self.logouts(cli), [])
 
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can write anywhere")
+    def test_a_directory_sudo_left_unwritable_stops_the_run_before_any_logout(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        self.tracking.chmod(0o555)  # moving a directory rewrites its "..", so it needs write access itself
+        self.addCleanup(self.tracking.chmod, 0o755)
+        self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertIn("{} (no write access to {})".format(self.tracking, self.tracking), self.stderr.getvalue())
+        self.assertEqual(self.logouts(cli), [])
+        self.assertTrue(self.tracking.exists())
+
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can write anywhere")
+    def test_a_manifest_folder_files_cannot_leave_stops_the_run_before_any_logout(self):
+        cli = FakeCli(self.home, self.setup_stale_org())
+        plan_file = self.audit_file(cli)
+        manifests = self.home / ".sf" / "manifestCache"
+        manifests.chmod(0o500)
+        self.addCleanup(manifests.chmod, 0o755)
+        self.assertEqual(self.apply(cli, plan_file), 1)
+        self.assertIn("{} (no write access to {})".format(self.manifest, manifests), self.stderr.getvalue())
+        self.assertEqual(self.logouts(cli), [])
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "POSIX only")
     def test_the_plan_is_never_written_into_a_fifo(self):
         fifo = self.home.parent / "plan.fifo"
         os.mkfifo(str(fifo))
@@ -2845,7 +2880,7 @@ class PathsAndManifests(Base):
         self.assertEqual(cli.calls, [])
 
     def test_an_empty_plan_or_quarantine_path_is_refused(self):
-        for argv in (["audit", "--out", ""], ["apply", "--plan", "p", "--quarantine", " "]):
+        for argv in (["audit", "--out", ""], ["apply", "--plan", "p", "--quarantine", " "], ["apply", "--plan", " "]):
             with self.assertRaises(SystemExit):
                 self.main(argv, FakeCli(self.home))
 
@@ -3094,7 +3129,8 @@ class FileResponses(Base):
         cli.tracked.add(str(dead))
         self.assertEqual(self.audit_then_apply(cli), 1)
         self.assertTrue(dead.exists())
-        self.assertIn("tracked by git", self.stdout.getvalue())
+        self.assertIn("tracked by git", self.stderr.getvalue())
+        self.assertEqual(self.logouts(cli), [])
 
     def test_a_failed_logout_keeps_that_orgs_responses(self):
         self.add_auth("rep@x.invalid", DEAD_ORG)

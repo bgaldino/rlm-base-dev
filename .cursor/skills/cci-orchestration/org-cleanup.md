@@ -182,9 +182,10 @@ reviewed one: its project, every removal, each logout's org and the aliases and 
 clears, and the value and orgs each alias, default, deploy job and file reaches. It does not run
 `cci`. A plan file it cannot read stops the run with exit 1 before any
 query; an unreadable state folder stops it with exit 1 before anything changes. Before any
-logout, if the plan moves files, it checks that it can move them out of their folders (write
-access, which a `sudo sf` can take away) and checks the quarantine (no linked root or folder, no file
-where a folder belongs) and moves a temp file in, and exits 1 if that fails. The quarantine is a
+logout, if the plan moves files, it checks each one as the move will: write access to its folder,
+and to a moved directory itself (a `sudo sf` can take either away), and for project files that git
+answers and does not track them. It also checks the quarantine (no linked root or folder, no file
+where a folder belongs) and moves a temp file in. If any check fails it exits 1, naming each file. The quarantine is a
 dated folder in the user's Trash, or with no Trash, beside the real CLI state, which in the Docker
 image is the `rlm-state` volume; `--quarantine <dir>` chooses another folder, which must be
 outside the project, `~/.sf` and `~/.sfdx` (through links too), and must not hold any of them,
