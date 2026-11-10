@@ -12,7 +12,7 @@ private class RLM_OnAccountBillingControllerTest {
 
     // Checks that, as the admin, the summary for an account with no billing records returns
     // zero balances and clean status flags. Failed reads are swallowed into zeros here, so this
-    // does not prove the reads run; getBillingSummary_billingOperationsUser_runsEveryBalanceQuery
+    // does not prove the reads run; getBillingSummary_billingOperationsUser_canRunEachSummaryRead
     // does.
     @isTest
     static void getBillingSummary_accountWithNoBilling_returnsZeroBalances() {
@@ -104,42 +104,9 @@ private class RLM_OnAccountBillingControllerTest {
             'The converted payment balance is subtracted from the net balance.');
     }
 
-    // A payment in another currency on a corporate-currency account: the controller first undoes
-    // SUM()'s standard-rate conversion (corporate total times the payment currency's standard
-    // rate), then converts at the effective rates. The currency is picked by standard rate, so
-    // the undo step multiplies by a rate other than 1. Same visible skip as above.
-    @isTest
-    static void getBillingSummary_foreignPaymentOnCorporateAccount_isConverted_whenASecondCurrencyIsActive() {
-        String corporate = corporateCurrency();
-        Map<String, Decimal> standardRates = activeRates();
-        String foreign = foreignCurrency(standardRates, corporate);
-        if (foreign == null) {
-            System.debug(LoggingLevel.WARN, SKIP_NO_SECOND_CURRENCY);
-            return;
-        }
-        Map<String, Decimal> adminRates = effectiveRates(AccessLevel.SYSTEM_MODE);
-        User u = billingOperationsUser();
-        Map<String, Decimal> effective = userRatesMatchingAdmin(u, adminRates, new List<String>{ foreign, corporate });
-        Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Foreign Payment Test', corporate);
-        Payment pmt = newProcessedPayment(acc.Id, 1000, foreign);
-        Decimal balance = [SELECT Balance FROM Payment WHERE Id = :pmt.Id].Balance;
-        Assert.areEqual(1000, balance, 'PRECONDITION: an unapplied processed payment\'s balance is its amount.');
-        // The controller's formula: SUM() gives the corporate total at the standard rate; it is
-        // multiplied back by the payment currency's standard rate, then divided by that
-        // currency's effective rate and multiplied by the account currency's.
-        Decimal corporateTotal = balance.divide(standardRates.get(foreign), 10, RoundingMode.HALF_UP);
-        Decimal expected = (corporateTotal * standardRates.get(foreign))
-            .divide(rateOf(effective, foreign), 10, RoundingMode.HALF_UP) * rateOf(effective, corporate);
-
-        Test.startTest();
-        Map<String, Object> result = paymentSummaryAs(u, acc.Id, pmt.Id);
-        Test.stopTest();
-
-        Decimal actual = (Decimal) result.get('paymentBalance');
-        Assert.areEqual(corporate, (String) result.get('currencyIsoCode'), 'The summary is in the account\'s currency.');
-        Assert.isTrue(Math.abs(actual - expected) < 0.01,
-            balance + ' ' + foreign + ' should convert to ~' + expected + ' ' + corporate + ', got ' + actual);
-    }
+    // The controller's standard-rate undo step (for a payment in a non-corporate currency) is
+    // only observable when dated rates differ from standard rates, which needs advanced
+    // currency management, so it is not tested here.
 
     // When the account and the payment share a non-corporate currency, correctConversion
     // returns early (the currencies match), so the corporate-converted SUM is shown as if it
@@ -205,12 +172,14 @@ private class RLM_OnAccountBillingControllerTest {
     // The aggregate balance reads, and the partially-paid, written-off, dispute and collections
     // reads, swallow a query the user may not run and report zero, so a zero proves nothing by
     // itself. For a billing operations user holding RLM_BillingUI this runs, in USER_MODE, a
-    // probe of each read the summary makes (account currency, standard and dated rates, and
-    // each object it sums or counts, with the fields it uses); those probes are the evidence
-    // that the summary's reads run for this role. Collection plans are the exception: this
-    // role cannot read them, and the summary shows "not in collections" instead of failing.
+    // probe of each read the summary makes (account currency, standard rates, and each object
+    // it sums or counts, with the fields it uses); those probes are the evidence that this role
+    // can run the summary's reads. Dated rates are left out: that table exists only with
+    // advanced currency management, and the controller treats an unreadable one as empty.
+    // Collection plans are the exception: this role cannot read them, and the summary shows
+    // "not in collections" instead of failing.
     @isTest
-    static void getBillingSummary_billingOperationsUser_runsEveryBalanceQuery() {
+    static void getBillingSummary_billingOperationsUser_canRunEachSummaryRead() {
         User u = billingOperationsUser();
         Account acc = newAccountOwnedBy(u, 'RLM On-Account Billing Role Test', null);
         // A collection plan on the account, so "not in collections" for this role comes from its
@@ -227,8 +196,6 @@ private class RLM_OnAccountBillingControllerTest {
             Map<String, String> probes = new Map<String, String>{
                 'Account' => 'SELECT Id, CurrencyIsoCode FROM Account LIMIT 1',
                 'CurrencyType' => 'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true LIMIT 1',
-                'DatedConversionRate' => 'SELECT IsoCode, ConversionRate FROM DatedConversionRate '
-                    + 'WHERE StartDate <= TODAY AND NextStartDate > TODAY LIMIT 1',
                 'Invoice' => 'SELECT Id, Balance, TotalAmountWithTax, DueDate, Status, BillingAccountId, CurrencyIsoCode FROM Invoice LIMIT 1',
                 'DebitMemo' => 'SELECT Id, TotalChargeAmount, AccountId, Status, InvoiceGenerationStatus, CurrencyIsoCode FROM DebitMemo LIMIT 1',
                 'CreditMemo' => 'SELECT Id, Balance, BillingAccountId, Status, CurrencyIsoCode FROM CreditMemo LIMIT 1',
@@ -341,7 +308,7 @@ private class RLM_OnAccountBillingControllerTest {
     // The effective rates as the given user reads them in USER_MODE: dated rates for today if
     // there are any, else the standard rates (the controller's rule). Only QueryException is
     // caught; an unreadable table changes the result, which userRatesMatchingAdmin then fails.
-    private static Map<String, Decimal> controllerRatesAs(User u) {
+    private static Map<String, Decimal> effectiveRatesAs(User u) {
         Map<String, Decimal> rates;
         System.runAs(u) {
             rates = effectiveRates(AccessLevel.USER_MODE);
@@ -349,16 +316,28 @@ private class RLM_OnAccountBillingControllerTest {
         return rates;
     }
 
-    // The billing user's effective rates, after asserting that for each given code they equal
-    // the admin's: a rate table the user cannot read (an empty map, or dated rates silently
-    // falling back to standard ones) then fails as a precondition.
+    // The billing user's effective rates, after asserting that for each given code both its
+    // effective rate and its standard (CurrencyType) rate equal the admin's: a rate table the
+    // user cannot read (an empty map, or dated rates silently falling back to standard ones)
+    // then fails as a precondition.
     private static Map<String, Decimal> userRatesMatchingAdmin(
         User u, Map<String, Decimal> adminRates, List<String> codes
     ) {
-        Map<String, Decimal> userRates = controllerRatesAs(u);
+        Map<String, Decimal> userRates = effectiveRatesAs(u);
+        Map<String, Decimal> adminStandard = activeRates();
+        Map<String, Decimal> userStandard = new Map<String, Decimal>();
+        System.runAs(u) {
+            for (SObject ct : Database.query(
+                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true', AccessLevel.USER_MODE
+            )) {
+                userStandard.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
+            }
+        }
         for (String code : codes) {
             Assert.areEqual(adminRates.get(code), userRates.get(code),
                 'PRECONDITION: the billing user reads the same effective rate for ' + code + ' as the admin.');
+            Assert.areEqual(adminStandard.get(code), userStandard.get(code),
+                'PRECONDITION: the billing user reads the same standard rate for ' + code + ' as the admin.');
         }
         return userRates;
     }

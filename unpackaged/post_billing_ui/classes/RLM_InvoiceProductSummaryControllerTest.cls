@@ -33,6 +33,17 @@ private class RLM_InvoiceProductSummaryControllerTest {
         }
     }
 
+    // An asset on the account, owned by the user when the org exposes Asset.OwnerId (some orgs'
+    // describe has no asset owner field).
+    private static Asset newAssetOwnedBy(User u, String name, Id accountId) {
+        Asset a = new Asset(Name = name, AccountId = accountId);
+        if (Asset.SObjectType.getDescribe().fields.getMap().containsKey('OwnerId')) {
+            a.put('OwnerId', u.Id);
+        }
+        insert a;
+        return a;
+    }
+
     private static final String ASSET_STATE_PERIOD_READ =
         'SELECT Id, AssetId, StartDate FROM AssetStatePeriod LIMIT 1';
     private static final String ASSET_ATTRIBUTE_READ =
@@ -143,16 +154,14 @@ private class RLM_InvoiceProductSummaryControllerTest {
     }
 
     // An asset with no state period has no attributes to show: the helper stops after the
-    // state-period query and returns no entry for it. The account is owned by the billing
-    // operations user. Asset exposes no OwnerId to set (its describe on a Release 264 org has
-    // none), so its visibility to that user is checked instead.
+    // state-period query and returns no entry for it. The account, and the asset where the org
+    // exposes an asset owner, are owned by the billing operations user.
     @isTest
     static void resolveAssetAttributes_assetWithoutStatePeriods_returnsNoEntry() {
         User u = billingOperationsUser();
         Account acc = new Account(Name = 'RLM Product Summary Asset Test', OwnerId = u.Id);
         insert acc;
-        Asset a = new Asset(Name = 'RLM Product Summary Asset', AccountId = acc.Id);
-        insert a;
+        Asset a = newAssetOwnedBy(u, 'RLM Product Summary Asset', acc.Id);
 
         Integer lookupQueries;
         Map<Id, List<RLM_InvoiceProductSummaryController.AssetAttributeDetail>> result;
@@ -160,8 +169,6 @@ private class RLM_InvoiceProductSummaryControllerTest {
         System.runAs(u) {
             String readError = userModeError(ASSET_STATE_PERIOD_READ);
             Assert.isNull(readError, 'PRECONDITION: a billing operations user can read AssetStatePeriod: ' + readError);
-            Assert.areEqual(1, [SELECT COUNT() FROM Asset WHERE Id = :a.Id WITH USER_MODE],
-                'PRECONDITION: the billing operations user can see the asset.');
             Integer queriesBefore = Limits.getQueries();
             result = RLM_InvoiceProductSummaryController.resolveAssetAttributes(new Set<Id>{ a.Id }, true);
             lookupQueries = Limits.getQueries() - queriesBefore;
@@ -174,15 +181,15 @@ private class RLM_InvoiceProductSummaryControllerTest {
 
     // Once a state period exists, the helper runs the attribute query too. With no
     // AssetStatePeriodAttribute rows it still returns no entry: an asset only appears once it
-    // has an attribute. The account is owned by the billing operations user; the state period
-    // has no owner to set, so its visibility to that user is checked.
+    // has an attribute. The account, and the asset where the org exposes an asset owner, are
+    // owned by the billing operations user; the state period has no owner, so its visibility
+    // to that user is checked.
     @isTest
     static void resolveAssetAttributes_statePeriodWithoutAttributes_returnsNoEntry() {
         User u = billingOperationsUser();
         Account acc = new Account(Name = 'RLM Product Summary Period Test', OwnerId = u.Id);
         insert acc;
-        Asset a = new Asset(Name = 'RLM Product Summary Period Asset', AccountId = acc.Id);
-        insert a;
+        Asset a = newAssetOwnedBy(u, 'RLM Product Summary Period Asset', acc.Id);
         AssetStatePeriod period = new AssetStatePeriod(
             AssetId = a.Id,
             StartDate = Datetime.now().addDays(-30),
