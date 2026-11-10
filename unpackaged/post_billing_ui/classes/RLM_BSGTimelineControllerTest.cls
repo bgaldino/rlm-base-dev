@@ -150,7 +150,7 @@ private class RLM_BSGTimelineControllerTest {
         System.runAs(u) {
             // Keep in step with the two static queries in
             // RLM_BSGTimelineController.getBillingScheduleGroupData (SELECT, WHERE and ORDER BY
-            // fields), and with READS in RLM_BillingUIAccessTest, which grants these fields.
+            // fields), and with READS in RLM_BillingUIAccessTest, which asserts the billing role can read these fields.
             for (String soql : new List<String>{
                 'SELECT Id, BillingScheduleGroupNumber, ProductName, BillingAccountId, BillingAccount.Name, '
                     + 'CurrencyIsoCode, TotalBilledAmount, TotalPendingAmount, BillingTerm, BillingTermUnit, '

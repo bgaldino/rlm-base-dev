@@ -17,6 +17,12 @@
  * buildTransactionDetailsJson_mapsInputsToStandardContextFields pins the payload's exact
  * key set, so it catches a fix only if the fix adds payload keys; prerequisites supplied on
  * records through the context mapping would not show there.
+ *
+ * Known gap (documented, not pinned): getAccountBillingInfo reads one arbitrary
+ * BillingAccount for the account (LIMIT 1 with no ORDER BY, ignoring
+ * IsDefaultBillingProfile) and never resolves accounts linked only through
+ * AccountBillingAccount. With more than one billing account the result is
+ * nondeterministic, so an assertion could not pin it reliably; the tests use at most one.
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {

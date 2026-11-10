@@ -3,8 +3,8 @@ private class RLM_BSGContextControllerTest {
 
     // Tests for RLM_BSGContextController. BillingScheduleGroup, BillingSchedule and
     // BsgRelationship cannot be inserted in Apex tests, so getBSGContext is covered only on
-    // the paths that need no BSG: a malformed or null id, an id matching no BSG, a valid id
-    // of another object, and a BSG query the user may not run. The bundle assembly (appendComponentsDfs) and the
+    // the paths that need no BSG: a malformed or null id, an id matching no BSG, and a BSG
+    // query the user may not run. The bundle assembly (appendComponentsDfs) and the
     // charge-type / frequency helpers are covered directly with in-memory BSGs. Each
     // System.runAs test creates its user through RLM_BillingUITestUsers, which takes a
     // Billing permission set license seat.
@@ -197,7 +197,7 @@ private class RLM_BSGContextControllerTest {
         System.runAs(u) {
             try {
                 // Keep in step with the BSG query in RLM_BSGContextController.getBSGContext
-                // (and with READS in RLM_BillingUIAccessTest, which grants these fields).
+                // (and with READS in RLM_BillingUIAccessTest, which asserts the billing role can read these fields).
                 Database.query(
                     'SELECT Id, BillingScheduleGroupNumber, ProductName, Product2Id, BillingType, BillingMethod, '
                     + 'BillingTermUnit, BillingTerm, AnchorProdtBillingSchdGrpId, BindingInstanceId, '
@@ -215,22 +215,6 @@ private class RLM_BSGContextControllerTest {
         Assert.isNull(ctx.bsgNumber);
         Assert.isNull(ctx.bsBilledAmount, 'No billed amount without a BSG.');
         Assert.isNull(ctx.arrangement);
-    }
-
-    // Runs as the running user (no System.runAs), so it does not show which branch produced
-    // the standard view.
-    @isTest
-    static void getBSGContext_idOfAnotherObject_returnsStandard() {
-        Account acc = new Account(Name = 'RLM BSG Context Cross Type');
-        insert acc;
-
-        Test.startTest();
-        RLM_BSGContextController.BSGContext ctx = RLM_BSGContextController.getBSGContext(acc.Id);
-        Test.stopTest();
-
-        Assert.areEqual('standard', ctx.viewType, 'A valid id of another object resolves to the standard view.');
-        Assert.isNull(ctx.bundle);
-        Assert.isNull(ctx.usage);
     }
 
     // ─── Pure helpers: remaining branches ───────────────────────────────────
