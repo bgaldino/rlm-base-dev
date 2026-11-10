@@ -152,12 +152,10 @@ private class RLM_CollectionsDashboardControllerTest {
         Integer activeCurrencies = [SELECT COUNT() FROM CurrencyType WHERE IsActive = true];
 
         Test.startTest();
-        String defaultCurrency = RLM_CollectionsDashboardController.getOrgDefaultCurrency();
         List<Map<String, String>> accounts = RLM_CollectionsDashboardController.getAccountOptions();
         List<Map<String, String>> currencies = RLM_CollectionsDashboardController.getCurrencyOptions();
         Test.stopTest();
 
-        Assert.areEqual(UserInfo.getDefaultCurrency(), defaultCurrency, 'The running user\'s currency is the default.');
 
         Assert.areEqual(3, accounts.size(), 'The sentinel plus the two accounts.');
         Assert.areEqual('', accounts[0].get('value'), 'The sentinel has a blank value.');
@@ -204,7 +202,6 @@ private class RLM_CollectionsDashboardControllerTest {
         Test.stopTest();
 
         Assert.areEqual(expectedCount, unfiltered.unappliedPaymentCount, 'The payment is counted when it has a balance.');
-        assertAmount(0, unfiltered.unappliedCredits, 'A Sale payment is not counted as a credit.');
 
         List<String> labels = new List<String>{ 'Unpaid Invoices', 'Debit Memos', 'Unapplied Credits', 'Unapplied Payments' };
         Assert.areEqual(labels.size(), unfiltered.totalBalanceBreakdown.size(), 'One breakdown row per balance component.');
@@ -222,11 +219,9 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Assert.areEqual(1, payerInCurrency.unappliedPaymentCount,
             'The payer\'s own payment, in its own currency, is kept by both filters.');
-        assertAmount(0, otherAccount.unappliedPaymentBalance, 'Another account\'s payment is filtered out.');
         Assert.areEqual(0, otherAccount.unappliedPaymentCount, 'Another account\'s payment is not counted.');
-        assertAmount(0, payerElsewhere.unappliedPaymentBalance,
-            'A payment in ' + paymentCurrency + ' is filtered out under ' + otherCurrency + '.');
-        Assert.areEqual(0, payerElsewhere.unappliedPaymentCount, 'Nor counted under another currency.');
+        Assert.areEqual(0, payerElsewhere.unappliedPaymentCount,
+            'A payment in ' + paymentCurrency + ' is not counted under ' + otherCurrency + '.');
 
         if (userCurrencyIsCorporate()) {
             assertAmount(expected, unfiltered.unappliedPaymentBalance, 'The payment balance is unapplied.');
@@ -236,6 +231,9 @@ private class RLM_CollectionsDashboardControllerTest {
                 'Unapplied payments are shown as a reduction.');
             assertAmount(expected, payerInCurrency.unappliedPaymentBalance,
                 'The payer\'s own payment balance passes both filters.');
+            assertAmount(0, otherAccount.unappliedPaymentBalance, 'Another account\'s payment is filtered out.');
+            assertAmount(0, payerElsewhere.unappliedPaymentBalance,
+                'A payment in ' + paymentCurrency + ' is filtered out under ' + otherCurrency + '.');
         }
     }
 

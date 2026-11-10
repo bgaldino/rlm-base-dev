@@ -1,8 +1,9 @@
 @isTest
 private class RLM_BillingCaseMetricsControllerTest {
 
-    // With no Cases or Disputes, every aggregate resolves to zero. Dispute is a license-gated
-    // extension; the controller degrades gracefully whether or not it is present in the org.
+    // With no Cases or Disputes, every aggregate resolves to zero. Dispute and its Status,
+    // DisputedAmount and InvoiceId fields are required by this bundle (RLM_BillingUIAccessTest
+    // checks them).
     @isTest
     static void getMetrics_noData_returnsZeroedKeys() {
         Test.startTest();

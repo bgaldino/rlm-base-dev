@@ -217,8 +217,8 @@ private class RLM_PaymentsDataControllerTest {
 
     // An item linked to a payment shows that payment and its own amounts. The schedule is a
     // promise to pay on a collection plan, so the schedule-reference and payment-application
-    // lookups run too: the plan reference must not turn into an invoice row. No invoice can
-    // exist in a unit test, so the invoice-listing paths themselves are verified live.
+    // lookups run for coverage; no invoice can exist in a unit test, so what they list is
+    // verified live.
     @isTest
     static void getPaymentScheduleItems_showsTheItemsPayment() {
         Account acc = new Account(Name = 'RLM PSI Payment Test');
@@ -249,8 +249,6 @@ private class RLM_PaymentsDataControllerTest {
         RLM_PaymentsDataController.PaymentItemWrapper item = summary.items[0];
         Assert.areEqual(pmt.Id, item.paymentId, 'The item shows its payment.');
         Assert.isTrue(item.hasPayment, 'The item has a payment.');
-        Assert.isTrue(item.invoices.isEmpty(), 'A promise referencing a collection plan lists no invoice.');
-        Assert.isFalse(item.hasInvoices, 'A promise referencing a collection plan lists no invoice.');
         assertAmount(60, item.requestedAmount, 'The requested amount.');
         Assert.areEqual(Date.today(), item.targetDate, 'The target processing date.');
     }

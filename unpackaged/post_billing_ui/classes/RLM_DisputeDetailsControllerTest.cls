@@ -46,22 +46,25 @@ private class RLM_DisputeDetailsControllerTest {
     }
 
     // Exercises the DisputeItem field-discovery + query path with a non-existent item id: a fake
-    // id matches no record, so the method must never persist an update. DisputeItem and its
-    // ApprovedAmount are required by this bundle (RLM_BillingUIAccessTest checks them).
+    // id matches no record, so the save completes without error and updates nothing. Run as a
+    // Billing Operations user (see billingUser), who can see the approved-amount field, so the
+    // no-match path is what runs. DisputeItem and its ApprovedAmount are required by this bundle
+    // (RLM_BillingUIAccessTest checks them).
     @isTest
     static void saveApprovedAmounts_unknownItem_persistsNothing() {
+        User approver = billingUser();
         List<Map<String, Object>> items = new List<Map<String, Object>>{
             new Map<String, Object>{ 'id' => disputeItemFakeId(), 'approvedAmount' => 10 }
         };
 
+        Integer rowsBefore;
+        Integer rowsAfter;
         Test.startTest();
-        Integer rowsBefore = Limits.getDmlRows();
-        try {
+        System.runAs(approver) {
+            rowsBefore = Limits.getDmlRows();
             RLM_DisputeDetailsController.saveApprovedAmounts(items);
-        } catch (AuraHandledException e) {
-            // Either outcome persists nothing; the zero-DML assertion below is the contract.
+            rowsAfter = Limits.getDmlRows();
         }
-        Integer rowsAfter = Limits.getDmlRows();
         Test.stopTest();
 
         System.assertEquals(rowsBefore, rowsAfter,
