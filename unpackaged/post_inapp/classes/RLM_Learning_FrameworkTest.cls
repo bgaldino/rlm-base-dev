@@ -8,17 +8,21 @@
  * empty-result guards.
  *
  * The controllers run their queries and DML in USER_MODE. Every call that
- * touches the learning objects runs as a least-privilege "learner" holding only
- * the RLM_Learning permission set, so those calls do not depend on the
- * permissions of whoever runs the suite, and they prove the permission set is
- * enough. The setup-page map (custom metadata), FlowDefinitionView, Network
- * and Organization lookups run as the runner: they touch no learning object,
- * and RLM_Learning grants no access to that metadata, so running them as the
- * learner would test the learner's profile rather than the feature.
+ * touches the learning objects runs as a least-privilege "learner" (Minimum
+ * Access profile) holding only the RLM_Learning permission set, so those calls
+ * do not depend on the permissions of whoever runs the suite, and they show the
+ * permission set is enough for content the learner owns.
  *
- * The learner also owns the test content (as a content author would): with a
- * Public Read/Write sharing model, only a record's owner can delete it, and
- * re-sequencing a section deletes its junction rows.
+ * Known gaps, not covered here:
+ *  - Ownership. The learner owns the test content: with a Public Read/Write
+ *    sharing model only a record's owner can delete it, and re-sequencing a
+ *    section deletes its junction rows. A learner who does not own the rows
+ *    (for example content an admin loaded) cannot re-sequence that section;
+ *    learnerCannotResequenceRowsItDoesNotOwn records this.
+ *  - Setup lookups. The setup-page map (custom metadata), FlowDefinitionView,
+ *    Network and Organization lookups run as the runner here. In production
+ *    they run as the learner, and RLM_Learning grants no custom-metadata-type
+ *    access, so the learner's access to them is not tested.
  */
 @IsTest
 private class RLM_Learning_FrameworkTest {
@@ -104,16 +108,10 @@ private class RLM_Learning_FrameworkTest {
     return 'rlm.learning.tester.' + UserInfo.getOrganizationId() + '@example.com';
   }
 
-  // A Minimum Access user (Standard User where that profile is absent) holding
-  // only the feature's permission set.
+  // A Minimum Access user holding only the feature's permission set. An org
+  // without the Minimum Access profile fails here, at the lookup.
   static User createLearner() {
-    Profile leastPrivileged = [
-      SELECT Id
-      FROM Profile
-      WHERE Name IN ('Minimum Access - Salesforce', 'Standard User')
-      ORDER BY Name ASC
-      LIMIT 1
-    ];
+    Profile leastPrivileged = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
     PermissionSet learning = [SELECT Id FROM PermissionSet WHERE Name = 'RLM_Learning' LIMIT 1];
     User learner = new User(
       ProfileId = leastPrivileged.Id,
@@ -135,24 +133,49 @@ private class RLM_Learning_FrameworkTest {
     return learner;
   }
 
+  // Every custom object the learning content is stored in.
+  static final List<String> LEARNING_OBJECTS = new List<String>{
+    'RLM_Learning_Block__c',
+    'RLM_Learning_DynamicLink__c',
+    'RLM_Learning_Icon__c',
+    'RLM_Learning_Page__c',
+    'RLM_Learning_Section__c',
+    'RLM_Learning_SectionBlock__c'
+  };
+
   // PRECONDITION for every learner test: the learner's profile grants no
-  // access to the learning objects, so what the learner can do comes from the
-  // RLM_Learning permission set.
+  // access to any learning object and cannot view or modify all data, so what
+  // the learner can do comes from the RLM_Learning permission set.
   @IsTest
   static void learnerProfileGrantsNoLearningObjectAccess() {
     User learnerUser = [SELECT Id, ProfileId FROM User WHERE Username = :learnerUsername() LIMIT 1];
-    Assert.areEqual(
-      0,
-      [
-        SELECT COUNT()
-        FROM ObjectPermissions
-        WHERE
-          Parent.IsOwnedByProfile = TRUE
-          AND Parent.ProfileId = :learnerUser.ProfileId
-          AND SobjectType = 'RLM_Learning_Block__c'
-          AND PermissionsRead = TRUE
-      ],
-      'PRECONDITION: the learner profile does not grant Read on RLM_Learning_Block__c.'
+    Profile profile = [
+      SELECT PermissionsViewAllData, PermissionsModifyAllData
+      FROM Profile
+      WHERE Id = :learnerUser.ProfileId
+    ];
+    Assert.isFalse(profile.PermissionsViewAllData, 'PRECONDITION: the learner profile cannot View All Data.');
+    Assert.isFalse(profile.PermissionsModifyAllData, 'PRECONDITION: the learner profile cannot Modify All Data.');
+
+    List<String> granted = new List<String>();
+    for (ObjectPermissions op : [
+      SELECT SobjectType, PermissionsRead, PermissionsCreate, PermissionsEdit, PermissionsDelete
+      FROM ObjectPermissions
+      WHERE
+        Parent.IsOwnedByProfile = TRUE
+        AND Parent.ProfileId = :learnerUser.ProfileId
+        AND SobjectType IN :LEARNING_OBJECTS
+    ]) {
+      if (op.PermissionsRead || op.PermissionsCreate || op.PermissionsEdit || op.PermissionsDelete) {
+        granted.add(
+          op.SobjectType + ' (R=' + op.PermissionsRead + ' C=' + op.PermissionsCreate +
+          ' E=' + op.PermissionsEdit + ' D=' + op.PermissionsDelete + ')'
+        );
+      }
+    }
+    Assert.isTrue(
+      granted.isEmpty(),
+      'PRECONDITION: the learner profile grants no learning-object access; granted: ' + granted
     );
     Assert.areEqual(
       1,
@@ -666,6 +689,46 @@ private class RLM_Learning_FrameworkTest {
     Assert.isTrue(a && b, 'blank sectionId and null blockIds should each throw');
   }
 
+  // Known gap: re-sequencing deletes the section's junction rows in USER_MODE,
+  // and with a Public Read/Write sharing model only a row's owner can delete
+  // it. A learner therefore cannot re-sequence a section whose rows someone
+  // else (here the runner, as an admin load would) created.
+  @IsTest
+  static void learnerCannotResequenceRowsItDoesNotOwn() {
+    Id emptyId = sectionByHeader('Empty').Id;
+    Id blockId = testBlock().Id;
+    User learnerUser = learner();
+    RLM_Learning_SectionBlock__c othersRow = new RLM_Learning_SectionBlock__c(
+      RLM_Learning_Section__c = emptyId,
+      RLM_Learning_Block__c = blockId,
+      RLM_Learning_Order_Sequence__c = 1
+    );
+    insert as system othersRow;
+    Assert.areNotEqual(
+      learnerUser.Id,
+      [SELECT OwnerId FROM RLM_Learning_SectionBlock__c WHERE Id = :othersRow.Id WITH SYSTEM_MODE].OwnerId,
+      'PRECONDITION: the learner does not own the existing row.'
+    );
+
+    Boolean threw = false;
+    Test.startTest();
+    System.runAs(learnerUser) {
+      try {
+        RLM_Learning_SectionBlockSequence.updateSectionBlocks(emptyId, new List<String>{ blockId });
+      } catch (AuraHandledException e) {
+        threw = true;
+      }
+    }
+    Test.stopTest();
+
+    Assert.isTrue(threw, 'Known gap: a learner cannot delete junction rows it does not own.');
+    Assert.areEqual(
+      1,
+      [SELECT COUNT() FROM RLM_Learning_SectionBlock__c WHERE RLM_Learning_Section__c = :emptyId WITH SYSTEM_MODE],
+      'the failed re-sequence leaves the existing row in place'
+    );
+  }
+
   @IsTest
   static void sectionBlockSequence_moreValidationErrors() {
     Id secId = sectionByHeader('H').Id;
@@ -796,24 +859,26 @@ private class RLM_Learning_FrameworkTest {
 
   @IsTest
   static void dynamicLinkHelper_branchCoverage() {
-    // Exercise the remaining dynamic-SOQL branches. Some query objects/features
-    // that may be absent in a scratch org; we only require the branch to execute
-    // (it either returns a list or surfaces as an AuraHandledException).
+    // Exercise the remaining dynamic-SOQL branches (FlowRecordPage is covered
+    // strictly elsewhere). Some of the queried objects depend on features that
+    // may be absent in an org, so each branch must either return a list or
+    // surface as an AuraHandledException; any other exception type is a
+    // regression and fails the test.
     for (
       String t : new List<String>{
         'SurveyRecordPage',
-        'FlowRecordPage',
         'DPERecordPage',
         'CommunityPage'
       }
     ) {
       try {
-        RLM_Learning_DynamicLinkHelper.getRecordIdFromDynamicLinkType(
+        List<SObject> rows = RLM_Learning_DynamicLinkHelper.getRecordIdFromDynamicLinkType(
           t,
           'Id != null'
         );
-      } catch (Exception e) {
-        // feature/data may be absent in a scratch org — branch still executed
+        Assert.isNotNull(rows, t + ' returns a list when its feature is present');
+      } catch (AuraHandledException e) {
+        // feature/data absent in this org: the branch still executed
       }
     }
     // The PermissionSet Setup_Page_Map record ships with this feature, so this resolves
@@ -833,11 +898,6 @@ private class RLM_Learning_FrameworkTest {
       setupUrl.contains('?noredirect=1'),
       'noredirect must not introduce a second "?": ' + setupUrl
     );
-    try {
-      RLM_Learning_DynamicLinkHelper.getSiteUrl('0DB000000000001AAA');
-    } catch (Exception e) {
-      // no such network is acceptable
-    }
   }
 
   @IsTest
@@ -920,12 +980,13 @@ private class RLM_Learning_FrameworkTest {
     Assert.isTrue(threw, 'expected an error for a malformed network id');
   }
 
-  // A well-formed Id with no site behind it is rejected in every org. Where the
-  // org also has an Experience Cloud site (only builds with a site feature
-  // enabled), that site's base URL is an absolute prefix of its login URL with
-  // the "/s/..." login path removed.
+  // A well-formed Id with no site behind it is rejected in every org. When the
+  // org also has an Experience Cloud site (the prm flag deploys the "rlm" site;
+  // the billing portal bundle deploys another), that site's base URL is an
+  // absolute prefix of its login URL with the "/s/..." login path removed.
+  // Without a site, the trimming check is skipped visibly (a WARN debug line).
   @IsTest
-  static void getSiteUrl_rejectsAMissingSite_andTrimsTheLoginPathOfAnExistingOne() {
+  static void getSiteUrl_rejectsAMissingSite_andTrimsTheLoginPath_whenTheOrgHasASite() {
     Boolean missingRejected = false;
     try {
       RLM_Learning_DynamicLinkHelper.getSiteUrl('0DB000000000001');
@@ -937,6 +998,10 @@ private class RLM_Learning_FrameworkTest {
     List<Network> networks = [SELECT Id FROM Network LIMIT 1];
     String loginUrl = networks.isEmpty() ? null : Network.getLoginUrl(networks[0].Id);
     if (loginUrl == null) {
+      System.debug(
+        LoggingLevel.WARN,
+        'SKIPPED: no Experience Cloud site in this org; getSiteUrl trimming not verified'
+      );
       return; // no site in this build: only the rejection above applies
     }
 

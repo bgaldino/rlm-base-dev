@@ -90,14 +90,16 @@ private class RLM_AI_ProductAttributeSaveServiceTest {
         );
     }
 
-    // ── Input guards ─────────────────────────────────────────────────────────
+    // ── Not covered: the Place Sales Transaction path ───────────────────────
     //
-    // The Place Sales Transaction path (and the post-save readback) needs
-    // QuoteLineItemAttribute rows on the line. An Apex test cannot create them:
-    // ordinary DML is refused ("use insertAsync() or insertImmediate()"),
-    // insertAsync is refused for this object, and insertImmediate reports
-    // success but the row is never queryable. That path is therefore not
-    // unit-tested; the no-matching-attributes branch is covered above.
+    // The PST path (and the post-save readback) needs QuoteLineItemAttribute
+    // rows on the line. An Apex test cannot create them: ordinary DML is
+    // refused ("use insertAsync() or insertImmediate()"), insertAsync is
+    // refused for this object, and insertImmediate reports success but the row
+    // is never queryable. That path is therefore not unit-tested; the
+    // no-matching-attributes branch is covered above.
+
+    // ── Input guards ─────────────────────────────────────────────────────────
 
     @isTest
     static void saveReturnsNoResultsForNullOrEmptyInput() {

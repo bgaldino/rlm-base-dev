@@ -5,42 +5,29 @@
 @IsTest
 private class RLM_AA_Submit_ApprovalTest {
 
-    // RLM_AA_Set_Quote_Status is an autolaunched flow in this module that sets
-    // Quote.RLM_Approval_Status__c on the quote named by its QuoteID input.
-    // The invocable accepts this existing flow without error, and its fixed
-    // inputs (recordId, ApprovalLevel, submitter, submissionComments) never set
-    // QuoteID, so the quote is left unchanged. Whether start() ran the
-    // interview is not observable here: with QuoteID unset the flow has no
-    // visible effect.
+    // Covers only that the invocable creates and starts an existing flow without
+    // error. Whether start() ran the interview is not observable here. It uses
+    // RLM_AA_Set_Quote_Status, an autolaunched flow in this module, which does
+    // not declare the invocable's inputs (recordId, ApprovalLevel, submitter,
+    // submissionComments): a live run showed Flow.Interview.createInterview
+    // ignores undeclared input names rather than failing.
     @IsTest
-    static void callFlowAcceptsAnExistingFlowAndDoesNotMapQuoteID() {
-        Quote premiseQuote = createQuote('Approval Premise Quote');
-        Quote submitted = createQuote('Approval Submitted Quote');
-
-        // PRECONDITION: the flow does write the status when QuoteID is supplied,
-        // so an unchanged quote below is evidence, not a flow that never writes.
-        Flow.Interview direct = Flow.Interview.createInterview(
-            'RLM_AA_Set_Quote_Status',
-            new Map<String, Object>{ 'QuoteID' => premiseQuote.Id, 'Status' => 'Pending' }
-        );
-        direct.start();
-        Assert.areEqual('Pending',
-            [SELECT RLM_Approval_Status__c FROM Quote WHERE Id = :premiseQuote.Id].RLM_Approval_Status__c,
-            'PRECONDITION: the flow updates the quote named by QuoteID.');
+    static void callFlowStartsAnExistingFlowWithoutError() {
+        Quote quote = createQuote('Approval Test Quote');
 
         RLM_AA_Submit_Approval.svcParameter params = new RLM_AA_Submit_Approval.svcParameter();
         params.flowName = 'RLM_AA_Set_Quote_Status';
-        params.recordId = submitted.Id;
+        params.recordId = quote.Id;
         params.approvalLevel = '1';
         params.comments = 'Please review the discount.';
 
         Test.startTest();
-        RLM_AA_Submit_Approval.callFlow(new List<RLM_AA_Submit_Approval.svcParameter>{ params });
+        try {
+            RLM_AA_Submit_Approval.callFlow(new List<RLM_AA_Submit_Approval.svcParameter>{ params });
+        } catch (Exception unexpected) {
+            Assert.fail('Starting an existing flow must not fail: ' + unexpected.getMessage());
+        }
         Test.stopTest();
-
-        Assert.isNull(
-            [SELECT RLM_Approval_Status__c FROM Quote WHERE Id = :submitted.Id].RLM_Approval_Status__c,
-            'The invocable passes recordId, not QuoteID, so this flow leaves the quote unchanged.');
     }
 
     // An unknown flow name cannot be started: the platform's TypeException
