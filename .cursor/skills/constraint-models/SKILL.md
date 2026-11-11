@@ -508,10 +508,10 @@ Before calling a constraint-model change done:
    solver's current model headlessly. To prove a specific change, make it observable (for
    example a `message(true, "<marker>", "warning")` rule) and look for it in the response's
    `messages`. A valid configuration returns `success: true`,
-   `solverStatus: "success"`, `errors: []` and leaves no `RevenueTransactionErrorLog` rows
-   on the quote; an invalid model returns `Model '…' is invalid`. A configuration the
-   rules reject can still return `success: true`, with its message only in the error log:
-   read both, as in
+   `solverStatus: "success"`, `errors: []`, and no `RevenueTransactionErrorLog` row on the
+   quote carries a rule's message; an invalid model returns `Model '…' is invalid`. A
+   configuration the rules reject can still return `success: true`, with its message only
+   in the error log: read both, as in
    [quantities-from-attributes.md → Reading a result](quantities-from-attributes.md#reading-a-result).
    Full recipe: [Runtime verification](../../../datasets/constraints/README.md#runtime-verification).
 

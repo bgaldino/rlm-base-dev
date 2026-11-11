@@ -49,8 +49,8 @@ Where the dev guide and the org disagree, this file follows the org and says so.
 7. **Test with configuration rules on,** and assert each expected rejection by its own
    message (see [Testing it headlessly](#testing-it-headlessly)).
 8. **Annotate each component type a rule sizes `@(split = false)`,** unless its lines must
-   carry different attribute values. Without it, the solver splits a line instead of
-   rejecting a hand edit. See [One line per component](#one-line-per-component-split--false).
+   carry different attribute values. Without it, a downward hand edit split the line
+   instead of being rejected `[Measured: M22]`. See [One line per component](#one-line-per-component-split--false).
 9. **Set `property maxRelationSize` when any relation can exceed 9,999.** That is the
    default cap on every relation, whatever its declared bounds `[Measured: M25]`
    `[Dev guide: cml_relationships]`.
@@ -136,8 +136,9 @@ keeps one instance and adds quantity to it; `true` makes every instance quantity
 | A hand edit of a sized line, up | Not measured | Rejected with the rule's message `[Measured: M23]` |
 | The same in the configurator UI | A default component split into two instances (1 + the rest) `[Measured: M24]` | One line per component at the rule's quantity, defaults kept, no warning; a changed answer resized each line `[Measured: M24]` |
 
-A split also draws a `bundlevalidation` group-range warning for each split group
-`[Measured: M22]`. "Rejected" means flagged, not undone: Place kept the edited quantity
+Where the PCM component groups had a quantity range, each split group drew a
+`bundlevalidation` group-range warning `[Measured: M22]`; don't rely on it to detect a
+split, assert the line count. "Rejected" means flagged, not undone: Place kept the edited quantity
 `[Measured: M23]`; read the message as in [Reading a result](#reading-a-result).
 
 Put the annotation on each leaf type that is a sized component (in the worked example,
@@ -430,7 +431,7 @@ in front of it (step 1 below).
 4. **Call `configure` with `executeConfigurationRules: true`,** then read the result as
    in [Reading a result](#reading-a-result).
 5. **Assert every component's quantity**, including the zeros, against a hand-computed
-   table (see the worked example), and assert one line per component. Pick answers on
+   table (see the worked example), and one line per `@(split = false)` component. Pick answers on
    each rounding boundary: exact multiples (`sites = 10`) and one past (`sites = 11`). Add
    the answers that produce the largest quantity, to test the 9,999 cap
    ([Raising the 9,999 cap](#raising-the-9999-cap-maxrelationsize)).
@@ -447,18 +448,20 @@ in front of it (step 1 below).
 
 ### Reading a result
 
-Read two places for every answer set, a few seconds after Place:
+For every answer set, check Place, then look for rule messages in two places, `configure`
+and the error log, a few seconds after Place:
 
 | Where | Seen for a rejected configuration | Require for a valid one |
 |---|---|---|
 | Place | `isSuccess: true`; it saved what it was sent `[Measured: M29]` | `isSuccess: true` |
 | `configure` | Usually `success: true`, `solverStatus: "error"`, `errors: []`, the rule's message in `messages` `[Measured: M29]` | `success: true`, `solverStatus: "success"`, `errors: []` `[Repo: .cursor/skills/constraint-models/SKILL.md]` |
-| `RevenueTransactionErrorLog` on the quote | A row with the rule's message in `ConfiguratorErrorMessage` `[Measured: M29]` | No rows |
+| `RevenueTransactionErrorLog` on the quote | A row with the rule's message in `ConfiguratorErrorMessage` `[Measured: M29]` | No row with a rule's message |
 
 `success: true` and `isSuccess: true` prove nothing about the rules. Once, the rule's
 message was only in the error log and `configure` returned `solverStatus: "success"`
-`[Measured: M29]`. An error log row made `createOrdersFromQuote` refuse the quote
-`[Measured: M31]`.
+`[Measured: M29]`. Bundle-validation rows can appear in the log too, and one made
+`createOrdersFromQuote` refuse the quote `[Measured: M29, M31]`; which of them block
+ordering is [open item 1](#open-items).
 
 ---
 
@@ -745,7 +748,7 @@ Each needs a live 264 org:
 6. Review notes use `Info`; nothing meant as advice uses `Warning` or `Error`.
 7. Headless test: placed with rules on and a `BillingFrequency` on every recurring line,
    answers that bind (checked against non-default values), every quantity asserted as one
-   line per component, every rejection asserted by the message of a rule it breaks, and
+   line per `@(split = false)` component, every rejection asserted by the message of a rule it breaks, and
    every result read as in [Reading a result](#reading-a-result). Then the parent
    skill's [Validation Checks](SKILL.md#validation-checks), including the configurator
    check that the deployed model is the one you changed.
