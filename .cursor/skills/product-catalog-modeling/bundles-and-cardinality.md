@@ -34,9 +34,10 @@ subscription that must renew or bill on its own model) is not settled by the rul
   bundle the row's parent selling model is None and it carries no component selling model;
   a configurable bundle's row carries no component selling model either. In both, children
   keep their own selling model options. [Help: `ind.product_catalog_add_components_to_a_static_product_bundle.htm`; `ind.product_catalog_product_relationships.htm`; [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles)]
-- **Help documents a run-time selling model choice only in the configurator.** Its Product
-  Header offers a product selling model selection for each product or option, and a static
-  bundle cannot be configured at run time. [Help: `ind.product_configurator_flow_product_header.htm`; `ind.product_catalog_create_bundled_products.htm`]
+- **For a bundle's children, the run-time selling model choice Help documents is in the
+  configurator.** Product Discovery's buying options offer one for the item being added;
+  the configurator's Product Header offers one for each product or option; and a static
+  bundle cannot be configured at run time. [Help: `ind.qocal_discover_and_configure_products.htm`; `ind.product_configurator_flow_product_header.htm`; `ind.product_catalog_create_bundled_products.htm`]
   No snapshot article says which selling model a static kit's Term Defined or Evergreen
   child is quoted on, or whether it then renews and bills on it: **Open — needs live
   verification.**
@@ -47,8 +48,8 @@ bundle**: fixed by cardinality instead of by `ConfigureDuringSale`.
 | Setting | Value | Help's effect |
 |---|---|---|
 | Root | `Type=Bundle`, `ConfigureDuringSale=Allowed` | Groups are mandatory; every child sits under one |
-| Each child | `IsComponentRequired` + `IsDefaultComponent` | Included and cannot be removed |
-| Each child's quantity | *Allow quantity changes* off (`IsQuantityEditable=false`); `QuantityScaleMethod` Constant (fixed) or Proportional (per root unit) | No min/max can be entered; Proportional keeps its ratio for the asset's life |
+| Each child | `IsComponentRequired` + `IsDefaultComponent` | Required in the bundle, and included by default |
+| Each child's quantity | *Allow quantity changes* off (`IsQuantityEditable=false`); `QuantityScaleMethod` Constant or Proportional | No min/max can be entered; Constant holds the design-time quantity, Proportional multiplies it by the root's quantity |
 | Each group | Min = max = its number of required children | Within what Validate Product Definition checks: required children ≤ max, products ≥ min |
 
 [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_bundled_product_validations.htm`]
