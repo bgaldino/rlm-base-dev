@@ -172,7 +172,8 @@ No `addVariables` and no `externalDependencies`: every reference is a standard t
 A disposable clone of `RLM_DefaultPricingProcedure` with the overlay above, priced through
 `runSalesforceHeadlessPricing` with the procedure named (see
 [`../runtime-and-observability.md`](../runtime-and-observability.md) → API-based verification).
-Product: a QuantumBit Term Annual product (price book list 12,000 USD); each line passes
+Products: a QuantumBit Term Annual product (price book list 12,000 USD) on lines 1, 2, 4 and 5, and
+an Evergreen product (list 420 USD) on line 3. Lines 1 to 4 pass
 `UnitPrice` 18,000 and `Discount` 7.85, which the shipped procedure uses as the input unit price and
 the percentage discount. 18,000 × (1 − 0.0785) = 16,587.00, the same pre-term net as 5% then 3%
 (18,000 × 0.95 × 0.97). Start 2026-11-10, quantity 1 [Measured: 2026-11-10, 264].
@@ -223,5 +224,6 @@ expressed the rule.
 - Which `SubscriptionTermUnit` the quote line editor writes for an annual Term Defined line was not
   measured; the filter accepts both `Months` and `Annual`. Check a real quote line before relying
   on one.
-- The amendment and renewal behavior (criterion 9) and the waterfall entry for the formula step
-  were not measured; the headless runs skipped the waterfall.
+- The amendment and renewal behavior (criterion 9) was not measured. The headless response did
+  carry a waterfall entry for the formula step (input `NetUnitPrice` 16,587 on line 1); how it
+  shows in the quote's waterfall UI was not checked.

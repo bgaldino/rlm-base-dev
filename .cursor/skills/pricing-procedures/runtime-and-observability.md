@@ -46,7 +46,8 @@ QuantumBit scratch org; worked example in
   Sent with `sf api request rest … --target-org <sf_alias>`, so no token handling.
 - `pricingProcedureId` accepts the procedure's **API name**; an inactive procedure fails with
   `Ensure that this procedure has at least one active version.`
-- `pricingData` that worked: an **object** (not an array) per node, **no record ids**,
+- `pricingData` that worked: a root `SalesTransaction` **object** (not an array) holding the
+  lines as an **array** of objects under `SalesTransactionItem`, **no `id` keys** on either node,
   `businessObjectType` `Quote` on the `SalesTransaction` node and `QuoteLineItem` on each
   `SalesTransactionItem`; keys are context **attribute** names (`Product`,
   `ProductSellingModel`, `PricebookEntry`, `Quantity`, `StartDate`, `EndDate`, `UnitPrice`,
@@ -54,7 +55,7 @@ QuantumBit scratch org; worked example in
   `SalesTransactionItemSource`, …). Values passed inline price the line without any record:
   `ListPrice` still came from the price book entry, and `UnitPrice` was used as the input unit price.
 - The dev guide sample's mapping (`businessObjectType` `SalesTransaction` with the definition's
-  `SalesTransaction` mapping) failed both ways tried (object shape without ids, array shape with ids):
+  `SalesTransaction` mapping) failed both ways tried (a root object without `id` keys, and a root array with `id` keys):
   `INTERNAL_ERROR: We couldn’t fetch the data for RLM_SalesTransactionContext context definition.
   Try again later or contact your Salesforce admin for help.` [Dev guide:
   `actions_obj_run_salesforce_headless_pricing.htm` shows that sample].
@@ -65,7 +66,10 @@ QuantumBit scratch org; worked example in
   in payload order). `pricingProcessStatus` was `Completed`. A line-level failure (for example a
   Term Defined line with no end date and no term: `END_DATE_MISSING`) shows only inside that
   line's `PriceWaterFall` value, while the call still reports `isSuccess: true`.
-- With `persistContext: false` nothing is written to the org, so it is safe on a shared org.
+- `isSkipWaterfall: true` still returned each line's `PriceWaterFall`, with per-step entries (the
+  formula step's included); the dev guide defines `true` as *generate* the waterfall, despite the name.
+- With `persistContext: false` and inline values, no context is stored and no quote record is
+  changed. The run is still recorded as a pricing API execution log (table below).
 
 | Capability | Enable / find | Notes |
 |---|---|---|
