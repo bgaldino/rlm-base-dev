@@ -48,11 +48,9 @@ Where the dev guide and the org disagree, this file follows the org and says so.
    can tell which rule rejected a configuration `[Dev guide: cml_logical_constraints]`.
 7. **Test with configuration rules on,** and assert each expected rejection by its own
    message (see [Testing it headlessly](#testing-it-headlessly)).
-8. **Annotate every component type a rule sizes `@(split = false)`.** Without it, a line
-   that is already on the quote below the rule's quantity is kept, and the solver adds a
-   second line for the remainder, so a hand edit below the rule's quantity isn't
-   rejected `[Measured: M22, M23]`. Leave it off a type whose lines must carry different
-   attribute values (see the section). See [One line per component](#one-line-per-component-split--false).
+8. **Annotate each component type a rule sizes `@(split = false)`,** unless its lines must
+   carry different attribute values. Without it, the solver splits a line instead of
+   rejecting a hand edit. See [One line per component](#one-line-per-component-split--false).
 9. **Set `property maxRelationSize` when any relation can exceed 9,999.** That is the
    default cap on every relation, whatever its declared bounds `[Measured: M25]`
    `[Dev guide: cml_relationships]`.
@@ -105,18 +103,13 @@ Where the dev guide and the org disagree, this file follows the org and says so.
 `relation[Type] == n` sets a **quantity**. The dev guide's `count()` example satisfies
 `warranties[Warranty] == 2` by adding one warranty product with quantity 2, not two
 products `[Dev guide: cml_relationship_variable_functions]`. The org did the same `[Measured: M14]`.
-When a line of that type was already on the quote below the rule's quantity, it kept that
-line and added a second for the rest, unless the type was `@(split = false)`
-`[Measured: M22, M23]`; see
+A line already on the quote can change that; see
 [One line per component](#one-line-per-component-split--false).
 
 **Check the component's PCM quantity settings.** With `IsQuantityEditable = false` on the
 component's `ProductRelatedComponent`, a CML-set quantity drew a `bundlevalidation`
-warning from `configure` `[Measured: M16]`. A hand edit of such a line is worse than a
-warning: Place returned `isSuccess: true` and saved the edit, and seconds later a
-`RevenueTransactionErrorLog` was written that made `createOrdersFromQuote` refuse the
-quote `[Measured: M31]`. Whether a CML-set quantity alone does the same is
-[open item 1](#open-items).
+warning `[Measured: M16]`, and a hand edit of that line wrote an error log that blocked
+the order `[Measured: M31]`.
 
 ### `sum()` and `total()` aren't the same
 
@@ -143,21 +136,14 @@ keeps one instance and adds quantity to it; `true` makes every instance quantity
 | A hand edit of a sized line, up | Not measured | Rejected with the rule's message `[Measured: M23]` |
 | The same in the configurator UI | A default component split into two instances (1 + the rest) `[Measured: M24]` | One line per component at the rule's quantity, defaults kept, no warning; a changed answer resized each line `[Measured: M24]` |
 
-Totals were right either way; the split is still a defect. Each extra line counted against
-its PCM component group: every group with a split line drew a `bundlevalidation` "number
-of child products … isn't in the specified range" warning `[Measured: M22]`. In a group
-ramp, later segments kept a stale split that broke the constraint with only that warning
-`[Measured: M24]`.
+A split also draws a `bundlevalidation` group-range warning for each split group
+`[Measured: M22]`. "Rejected" means flagged, not undone: Place kept the edited quantity
+`[Measured: M23]`; read the message as in [Reading a result](#reading-a-result).
 
-"Rejected" means the configuration is flagged, not that the edit is undone. Place saved
-the edited quantity; `configure`, the error log, or both carried the rule's message
-`[Measured: M23, M29]`. See [Testing it headlessly](#testing-it-headlessly) for where to
-read it.
-
-Use `@(split = false)` on each leaf type that is a sized component (in the worked example,
+Put the annotation on each leaf type that is a sized component (in the worked example,
 every type but the abstract `Support`). Leave it off a type whose lines must carry
-different attribute values, which needs several instances; `split = false` allows only
-one `[Dev guide: cml_annotation_example_split]`. Group ramps with `split = false` are
+different attribute values: `split = false` allows only one instance
+`[Dev guide: cml_annotation_example_split]`. Group ramps are
 [open item 15](#open-items).
 
 ---
@@ -209,19 +195,14 @@ The "only if the rep adds it" row takes the dev guide's form
 `[Dev guide: cml_annotation_example_sequence]`; the `mouse` example has the same form
 `[Dev guide: cml_best_practice_sequence_configurable]`. Those relations have a lower bound
 of 1; the row's bound of 0 lets the add-on be absent. The implication holds at 0 and at
-`sites`, so the rule alone doesn't require the add-on. With the add-on type
-`@(split = false)`, a rep's add at quantity 1 was raised to `sites`, a later change to
-`sites` resized it, and a hand edit to another quantity was rejected with the rule's
-message. Without the annotation, the add at 1 was kept and a second line added for the
-rest `[Measured: M22, M23, M24]`.
+`sites`, so the rule alone doesn't require the add-on. What happens when a rep adds it
+depends on `split`; see [One line per component](#one-line-per-component-split--false).
 
 `constraint()` makes the quantity a rule; `setdefault()` makes it a default. The Logical
 Constraints page says the engine never overrides a value the user selected, except through
 `exclude`, so a user value that breaks a `constraint` produces an error, not a correction
-`[Dev guide: cml_logical_constraints]`. On the org that held only for hand edits of a
-line on a `@(split = false)` type; a rep's add at quantity 1 of such a type was raised to
-the rule's quantity instead. Without the annotation, the solver kept a rep's lower
-quantity and met the rule by adding a second line, with no error `[Measured: M22, M23]`. Two other pages qualify that: the solver doesn't
+`[Dev guide: cml_logical_constraints]`. On the org, that depends on `split`; see
+[One line per component](#one-line-per-component-split--false). Two other pages qualify that: the solver doesn't
 override user input "unless no other solution exists" `[Dev guide: cml_cml_best_practices]`
 (*Sequence and Configurable*), and the engine changes a variable annotated `Peelable` true,
 when that finds a valid configuration, rather than reporting an error; the default is
@@ -446,46 +427,39 @@ in front of it (step 1 below).
    `FIELD_INTEGRITY_EXCEPTION`, "When the SellingModelType is Evergreen or Term-Defined,
    BillingFrequency can't be null", on the root line, which hides the rule. Valid
    configurations placed without it `[Measured: M32]`.
-4. **Call `configure` with `executeConfigurationRules: true`.** For a valid answer set,
-   require `success: true`, `solverStatus: "success"`, `errors: []`
-   `[Repo: .cursor/skills/constraint-models/SKILL.md]`; rejection sets are step 6. Check `solverStatus`, not only
-   `success`: a rejected configuration returned `success: true`, `solverStatus: "error"`,
-   `errors: []`, with the rule's message in `messages` at type `error` `[Measured: M29]`.
-   A clean `configure` isn't enough either. One rejection's message was only in the error
-   log, and `configure` then returned `solverStatus: "success"` `[Measured: M29]`; a
-   bundle-validation log written seconds after Place blocked the order, and its `Severity`
-   wasn't recorded `[Measured: M31]`; bundle-validation warnings were logged at `Severity`
-   Warning `[Measured: M29]`. So for a valid answer set also require no
-   `RevenueTransactionErrorLog` rows of any `Severity` on the quote, queried a few seconds
-   after Place. A successful `createOrdersFromQuote` alone doesn't prove that: whether a
-   Warning row blocks ordering is [open item 1](#open-items).
+4. **Call `configure` with `executeConfigurationRules: true`,** then read the result as
+   in [Reading a result](#reading-a-result).
 5. **Assert every component's quantity**, including the zeros, against a hand-computed
    table (see the worked example), and assert one line per component. Pick answers on
    each rounding boundary: exact multiples (`sites = 10`) and one past (`sites = 11`). Add
    the answers that produce the largest quantity, to test the 9,999 cap
    ([Raising the 9,999 cap](#raising-the-9999-cap-maxrelationsize)).
-6. **For each rejection, submit the conflicting state and assert that a rule message that
-   state breaks appears,** not merely that something failed. A rejected configuration
-   doesn't fail Place: Place returned `isSuccess: true` and saved what it was sent
-   `[Measured: M29]`. Read the rule's message in two places and accept it from either:
-   - the `configure` response's `messages`;
-   - `RevenueTransactionErrorLog` rows on the quote (`Severity` Error,
-     `ConfiguratorErrorMessage`). Query them a few seconds after Place: a log was written
-     seconds after Place returned `isSuccess: true` `[Measured: M31]`.
-
-   One rejection's message appeared only in the error log, and a `configure` call after
-   it returned `solverStatus: "success"` `[Measured: M29]`. An error log made
-   `createOrdersFromQuote` refuse the quote ("existing Revenue Transaction Error Logs")
-   `[Measured: M31]`, so a test can also try the order.
-
-   When a state breaks several rules, accept any of their messages and no other. One state
-   that broke two rules reported only one of the two messages, not the one the test
-   targeted `[Measured: M33]`. To make a rule report its own message, state it so that it fails
+6. **For each rejection, submit the conflicting state and assert that the message of a
+   rule it breaks appears** in either place [Reading a result](#reading-a-result) names,
+   not merely that something failed. When a state breaks several rules, accept any of
+   their messages and no other: one state that broke two rules reported only one
+   `[Measured: M33]`. To get a particular rule's message, state that rule so it can fail
    alone, for example on the answer as well as on the line. That is why every constraint
    in the worked example has its own message.
 7. **Check the activation result before reading any `configure` result.** A model that
    failed activation stayed inactive, and `configure` then returned `success: true` with
    no messages, which looks like a pass `[Measured: M20]`.
+
+### Reading a result
+
+Read two places for every answer set, a few seconds after Place:
+
+| Where | Seen for a rejected configuration | Require for a valid one |
+|---|---|---|
+| Place | `isSuccess: true`; it saved what it was sent `[Measured: M29]` | `isSuccess: true` |
+| `configure` | Usually `success: true`, `solverStatus: "error"`, `errors: []`, the rule's message in `messages` `[Measured: M29]` | `success: true`, `solverStatus: "success"`, `errors: []` `[Repo: .cursor/skills/constraint-models/SKILL.md]` |
+| `RevenueTransactionErrorLog` on the quote | A row with the rule's message in `ConfiguratorErrorMessage` `[Measured: M29]` | No rows |
+
+`success: true` and `isSuccess: true` prove nothing about the rules. Once, the rule's
+message was only in the error log and `configure` returned `solverStatus: "success"`
+`[Measured: M29]`. An error log row made `createOrdersFromQuote` refuse the quote
+`[Measured: M31]`.
+
 ---
 
 ## Examples
@@ -630,8 +604,8 @@ those rules' messages and no other:
 
 The "by hand" rows are rejected only because every component type is `@(split = false)`;
 without it the edit would split the line instead
-([One line per component](#one-line-per-component-split--false)). Read each message from
-`configure` and the error log ([Testing it headlessly](#testing-it-headlessly), step 6).
+([One line per component](#one-line-per-component-split--false)). Read each message as in
+[Reading a result](#reading-a-result).
 
 If the `support` relation's `[1..1]` bound rejects two plans first (an
 [open item](#open-items)), the message assertion catches it. Then either drop the bound to
@@ -693,11 +667,10 @@ was run.
 
 Each needs a live 264 org:
 
-1. Whether `IsQuantityEditable = true` clears the `bundlevalidation` warning in M16, and
-   whether a CML-set quantity on a component with `IsQuantityEditable = false`, with no
-   hand edit, writes a `RevenueTransactionErrorLog` that blocks ordering (M31 measured
-   only a hand edit, and didn't record the log's `Severity`). Also whether a
-   `RevenueTransactionErrorLog` row of `Severity` Warning blocks ordering.
+1. For a component with `IsQuantityEditable = false`: whether `true` clears the M16
+   warning, and whether a CML-set quantity alone, with no hand edit, writes an error log
+   (M31 edited by hand). Also whether an error-log row of `Severity` Warning blocks
+   ordering (M29 saw such rows for bundle-validation warnings).
 2. How a large cardinality (600 service hours) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
@@ -772,8 +745,7 @@ Each needs a live 264 org:
 6. Review notes use `Info`; nothing meant as advice uses `Warning` or `Error`.
 7. Headless test: placed with rules on and a `BillingFrequency` on every recurring line,
    answers that bind (checked against non-default values), every quantity asserted as one
-   line per component, no `RevenueTransactionErrorLog` rows of any `Severity` for a valid answer set, every
-   rejection asserted by the message of a rule it breaks, read from `configure` and
-   `RevenueTransactionErrorLog`. Then the parent
+   line per component, every rejection asserted by the message of a rule it breaks, and
+   every result read as in [Reading a result](#reading-a-result). Then the parent
    skill's [Validation Checks](SKILL.md#validation-checks), including the configurator
    check that the deployed model is the one you changed.

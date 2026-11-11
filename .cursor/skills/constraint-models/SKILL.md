@@ -508,13 +508,11 @@ Before calling a constraint-model change done:
    solver's current model headlessly. To prove a specific change, make it observable (for
    example a `message(true, "<marker>", "warning")` rule) and look for it in the response's
    `messages`. A valid configuration returns `success: true`,
-   `solverStatus: "success"`, `errors: []` **and** leaves no `RevenueTransactionErrorLog`
-   rows of any `Severity` on the quote (query a few seconds after Place; a successful
-   order alone doesn't prove it); an invalid model returns
-   `Model '…' is invalid`. A configuration the rules reject also returns `success: true`,
-   usually with `solverStatus: "error"`, but its message can be only in the error log
-   while `configure` reports `"success"`, so always read both. See
-   [quantities-from-attributes.md → Testing it headlessly](quantities-from-attributes.md#testing-it-headlessly).
+   `solverStatus: "success"`, `errors: []` and leaves no `RevenueTransactionErrorLog` rows
+   on the quote; an invalid model returns `Model '…' is invalid`. A configuration the
+   rules reject can still return `success: true`, with its message only in the error log:
+   read both, as in
+   [quantities-from-attributes.md → Reading a result](quantities-from-attributes.md#reading-a-result).
    Full recipe: [Runtime verification](../../../datasets/constraints/README.md#runtime-verification).
 
 ---
