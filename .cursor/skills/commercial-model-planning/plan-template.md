@@ -27,8 +27,7 @@ One bullet per capability area, each phrased as something checkable. End with:
 
 ## 2. Decisions
 
-Keep `#` as the decision table's first column; numbers showing what a choice changes
-can sit in a table of their own (the ledger reads only the `#` tables).
+Decision tables keep `#` as their first column (the ledger reads those).
 
 | # | Decision | Recommendation |
 |---|---|---|
@@ -58,9 +57,8 @@ changes). Note who has to answer it: the source's owner or the build's owner.
     - runtime surface
     - extraction
 - Each subsection keeps the source's own numbers and its order of application.
-- **Configuration and rules** lists every rule that rejects or warns with its message
-  text, the one the rules golden set asserts: the source's wording, or the plan's own
-  marked as such when the source has none. No such rule is left without one.
+- **Configuration and rules** gives every rule that rejects or warns its message, for
+  the rules golden set: the source's wording, or the plan's own, marked as such.
 - **Extraction** says what the converter (the script that reads the source) writes,
   and how it is accepted:
     - It writes the **design model and the golden values**, nothing else. The build
@@ -73,11 +71,10 @@ changes). Note who has to answer it: the source's owner or the build's owner.
       a test feeds it a wrong value and expects a failure, so none passes vacuously.
       A source without formulas (a store capture, a document) keeps the checks that
       apply to it.
-- **Rule decision record,** under a heading containing "Rule decision record": one row
-  per rule ID, in one table or one per area, with columns rule | decided by | native
-  feature and fallback | exact vs source?. All four are set at planning time; a rule may carry two "decided by" values,
-  such as new sale vs amendment. What the build finds (the path taken, its evidence)
-  goes in the verification ledger and the evidence log, not in this table.
+- **Rule decision record,** under a heading containing that name: one row per rule ID,
+  with columns rule | decided by | native feature and fallback | exact vs source?, all
+  set at planning time. A rule may carry two "decided by" values (new sale vs
+  amendment). Build results go to the ledger, not here.
 - **Knowledge source per area:** the table from
   [knowledge-sources.md](knowledge-sources.md), with the decision rule stated above it.
 
@@ -85,9 +82,6 @@ changes). Note who has to answer it: the source's owner or the build's owner.
 
 | Set | Source location | Cases | Must match |
 |---|---|---|---|
-
-A golden on platform-enforced behaviour asserts at the point the platform enforces it: a lock the platform saves and
-then refuses at order is asserted at the order or its error log, not at save.
 
 Always include a **Reprice** set (price again, then order, amend and renew) and an
 **Attributes** set (attributes unchanged through each step). Include each attribute's
@@ -98,9 +92,8 @@ that must never be presented).
 ## 5. Phases, gates, skills
 
 Dependencies on one line, for example `P1 → P2 → P3a → (P3b ∥ P4) → P5 → P6 → P7 → P8 → P9`.
-Each phase opens with an unbulleted bold label naming it (for example
-**P2 Live spikes**, in those words, since the verification ledger finds the spike table
-by that name), followed by bullets:
+Each phase opens with an unbulleted bold label naming it (P2's reads
+**P2 Live spikes**; the ledger finds the spike table by it), then bullets:
 - the work items,
 - **Skills:** the skills and sub-files to read first,
 - the **Gate:** what must pass, and on which org.
@@ -110,9 +103,9 @@ The usual phases:
 | Phase | Typical content |
 |---|---|
 | P0 Environment | Integration org through the build harness, on a named scenario or shape, with a lifetime that covers the build (shipped scenarios use `days: 1`; see `build-harness` → Keep an org for a multi-day build); feature and enablement checks; tooling. A checklist of the org settings the plan relies on. Some have no API: the Salesforce Pricing Setup default term counts (Evergreen, One Time) are read in Setup → Salesforce Pricing Setup → Proration Settings (a fresh 264 `ent-sb0` org showed Evergreen 1, One Time 0), or the plan adds a step that sets them |
-| P1 Extraction | Source → design model and golden values; the converter's acceptance tests (section 3, Extraction); an independent re-check: a fresh agent without the converter recomputes a sample of the golden values, weighted to derived ones where the source has any, or all of them when there are few (exercised: a prior build ran it as written); user reviews the design |
-| P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table under the phase's label, with columns spike ID, rules, must hit, smallest case, read first. A spike that chooses between routes lists each candidate's catalog and model prerequisites |
-| P3 Catalog, then configuration | Data plans derived from the base build's own plans; CML. Waits for any spike whose chosen route changes the catalog or the model, or builds every candidate route's prerequisites |
+| P1 Extraction | Source → design model and golden values; the converter's acceptance tests (section 3, Extraction); an independent re-check: a fresh agent, without the converter, recomputes a sample of golden values weighted to derived ones (exercised in a prior build); user reviews the design |
+| P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table with columns spike ID, rules, must hit, smallest case, read first |
+| P3 Catalog, then configuration | Data plans derived from the base build's own plans; CML |
 | P4 Pricing and cost | Price books, adjustments, procedure changes, cost wiring |
 | P5 Negotiation, approvals, runtime surface | Quote rounds, approvals, Transaction Line Editor configuration |
 | P6 Lifecycle and billing | Order, activate, amend, swap, cancel, renew; billing frequency, treatments and payment terms on the order |
@@ -129,10 +122,9 @@ The table and rules from [session-orchestration.md](session-orchestration.md).
 | Date | Phase | Check | Result | Notes |
 |---|---|---|---|---|
 
-Start it with the source read, and the coverage sweep with its counts. From the first
-gate on, each prediction's outcome is recorded in the verification ledger as well
-([SKILL.md](SKILL.md) → Measure the build against the plan). What the build finds goes
-here and in the ledger; the sections above keep what was planned.
+Start it with the source read, and the coverage sweep with its counts. What the build
+finds goes here and in the verification ledger ([SKILL.md](SKILL.md) step 9); the
+sections above keep what was planned.
 
 ## 8. Risks
 
@@ -168,8 +160,8 @@ Then list **extensions to existing skills** separately.
   temporary folder.
 - [ ] Every rule that rejects or warns has its message in the plan.
 - [ ] Goldens on platform-enforced behaviour assert where the platform enforces it.
-- [ ] Every spike that chooses a route lists each candidate's catalog and model
-  prerequisites, and P3 waits for it or builds them all.
+- [ ] Every spike that chooses a route lists each route's prerequisites
+  ([SKILL.md](SKILL.md) step 6).
 - [ ] The extraction section gives the converter only the design model and goldens,
   and lists its acceptance tests.
 - [ ] Decisions don't contradict each other or the mapping.

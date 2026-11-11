@@ -15,9 +15,8 @@ Read this when a plan splits the build across sessions. Parent:
   pricing and cost, negotiation and approvals. Each runs on its own org and writes its
   data plans, models and overlays from the design model; extraction doesn't write them.
   A session whose area depends on another's loads that session's finished plans onto
-  its own org first. A build session that a spike's route choice touches (a catalog or
-  model prerequisite) starts after that spike, or builds every candidate route's
-  prerequisites.
+  its own org first. When a spike's route choice touches its area, it follows
+  [SKILL.md](SKILL.md) step 6 (Route prerequisites).
 - **Integration org.** Build-phase gates (P3–P6) count only here. The main session
   loads each finished piece onto it and runs that piece's gate. P2 spike results are
   recorded from each spike session's own org, and the final gate is the fresh-org load

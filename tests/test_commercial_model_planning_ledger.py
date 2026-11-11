@@ -210,7 +210,6 @@ class LedgerTest(unittest.TestCase):
         self.init()
         self.assertNotEqual(self.run_ledger("record", "R-99", "affirmed", "x").returncode, 0)
         self.assertNotEqual(self.run_ledger("record", "R-01", "pending", "x").returncode, 0)
-        self.assertNotEqual(self.run_ledger("record", "R-01", "affirmed", "x", "--blind-right", "yes").returncode, 0)
         self.assertEqual(self.ledger()["rule:R-01"]["outcome"], "pending")
         p = subprocess.run([sys.executable, "-I", str(SCRIPT), "report"], cwd=tempfile.gettempdir(),
                            capture_output=True, text=True)
@@ -219,7 +218,7 @@ class LedgerTest(unittest.TestCase):
     def test_report(self):
         self.init()
         self.run_ledger("record", "R-01", "affirmed", "goldens pass")
-        self.run_ledger("record", "D3", "modified", "rounded per line", "--blind-right", "yes")
+        self.run_ledger("record", "D3", "modified", "rounded per line")
         self.run_ledger("record", "D3", "modified", "later gate, same result")
         self.run_ledger("record", "R-02", "refuted", "90.00", "--path", "fallback", "--skill", "s: c")
         p = self.run_ledger("report")
@@ -228,7 +227,6 @@ class LedgerTest(unittest.TestCase):
         self.assertIn("| rule | blind | 3 | 1 | 0 | 1 | 0 | 1 |", card)
         self.assertIn("| decision | edited | 1 | 0 | 1 | 0 | 0 | 0 |", card)
         self.assertIn("Excluded (intake or owner): 1.", card)
-        self.assertIn("Yes 1, no 0, not recorded 0.", card)
         self.assertIn("| Repo | 1 | 1 |", card)
         self.assertIn("| Repo (inferred) + Live | 1 |", card)
         self.assertIn("**rule:R-02** (blind): refuted. 90.00 Path: fallback.", card)

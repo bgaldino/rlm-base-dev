@@ -104,11 +104,8 @@ Every rule decided **Live** becomes a spike, with:
   with the source's value reached through the mapping,
 - the skills and articles to read before touching the org,
 - the smallest case that proves it,
-- for a spike that chooses between routes, what each route needs from the catalog and
-  the model, so the catalog phase can wait for the choice or build them all.
-
-A spike's must-hit names where the platform enforces the behaviour (save, order,
-activation) when that is part of the question.
+- for a spike that chooses between routes, each route's prerequisites
+  ([SKILL.md](SKILL.md) step 6).
 
 Don't plan a spike that re-measures a failure a skill already records; cite the skill,
 and spike only the untested route around it.

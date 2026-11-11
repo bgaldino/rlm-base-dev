@@ -51,8 +51,7 @@ files can use it.
    extension.
 8. **The plan is reviewed before anything is built.** Present it, stop, and wait for
    approval.
-9. **Measure the build against the plan; don't rewrite the plan to match it.** Each
-   prediction's outcome goes in a verification ledger and the evidence log
+9. **Measure the build against the plan; don't rewrite the plan to match it**
    ([step 9](#9-measure-the-build-against-the-plan)).
 
 ## DO NOT
@@ -74,11 +73,9 @@ files can use it.
 - **DO NOT** plan a header discount to stand in for line or product-line discounts
   without a live test. On a 264 org with an active procedure plan and
   `skipOrgSttPricing` on, a header discount was measured applying twice (`transaction-line-editor` → `runtime-behavior.md`).
-- **DO NOT** plan CCI or build-harness work in any git worktree. CCI finds the project
-  root by a `.git` directory, and a worktree's `.git` is a file, so a run there uses
-  another checkout's files (or none) and ignores the worktree's changes. Use the main checkout or
-  a regular clone, with separate orgs and file ownership
-  ([session-orchestration.md](session-orchestration.md)).
+- **DO NOT** plan CCI or build-harness work in a git worktree; use the main checkout
+  or a regular clone, with separate orgs and file ownership
+  ([session-orchestration.md](session-orchestration.md) Rule 2).
 - **DO NOT** let a test pass on configuration with rules off. Place quotes with
   configuration rules on, and assert each rejection's own message.
 - **DO NOT** assume a source's lifecycle examples can run in the order it lists them.
@@ -117,8 +114,7 @@ files can use it.
   build split across sessions. Org-per-session layout, file ownership, integration
   gates and session briefs.
 - [`scripts/ledger.py`](scripts/ledger.py): the verification ledger
-  ([step 9](#9-measure-the-build-against-the-plan)); tested by
-  `tests/test_commercial_model_planning_ledger.py`.
+  ([step 9](#9-measure-the-build-against-the-plan)).
 
 ---
 
@@ -187,7 +183,7 @@ Rules that need a live org become spikes, each with the source value it must hit
 ### 5. Golden tests
 
 - One set per area, in the template's section 4, split where useful: sizing or
-  configuration, rules (with expected messages), standard pricing, programs and edges
+  configuration, rules (each with its message, template section 3), standard pricing, programs and edges
   (every band boundary), currency, policies, cost and margin, negotiation, approvals,
   lifecycle changes, billing, plus the template's Reprice and Attributes sets.
 - Each expected value cites where it comes from in the source. A value the source
@@ -195,14 +191,9 @@ Rules that need a live org become spikes, each with the source value it must hit
   allowed: mark it **derived** and cite the rule's cells.
 - Recompute calculated values from inputs and match them to the source's own results
   (formula parity). A mis-read rule fails here instead of in the org.
-- **Every rule that rejects or warns has its message in the plan,** and the rules
-  golden set asserts it. Use the source's wording where it has one; otherwise the plan
-  writes the message and marks it as the plan's. A rule left without one gets a message
-  made up at build time, which no golden then checks.
-- **Assert platform-enforced behaviour where the platform enforces it.** A lock or
-  limit the platform lets a quote save with, then refuses at order, is asserted at the
-  order (or in the error log it writes), not at save. When the enforcement point is
-  unknown, the golden names it as part of a spike's must-hit.
+- **Assert platform-enforced behaviour where the platform enforces it.** A lock the
+  platform saves and then refuses at order is asserted at the order (or its error
+  log), not at save.
 - **Cross-rule parity.** Run each worked example through every rule in the register,
   not only its own formula: guards, dependencies and thresholds. A source's summary
   formulas often skip a rule its policy text states (a per-line floor-margin guard, a
@@ -229,11 +220,9 @@ Write these in the template's order:
   A decision that depends on a marker or flag names what sets it, on every path that
   creates the record (API, line editor, clone).
 - **Phases:** each with a gate and its skills.
-- **Route prerequisites:** a spike that chooses between routes lists, for each
-  candidate, what it needs from the catalog and the model (a classification, a
-  price-impacting attribute, a CML line). The catalog phase either waits for that spike
-  or builds every candidate's prerequisites; otherwise its files are amended after a
-  later phase has started.
+- **Route prerequisites:** a spike that chooses between routes lists what each route
+  needs from the catalog and the model. The catalog phase waits for that spike or
+  builds them all.
 - **Sessions:** see [session-orchestration.md](session-orchestration.md).
 - **Skills:** a phase-by-skill matrix.
 - **Skill gaps:** areas where the coverage sweep found no skill, and areas a phase
@@ -274,51 +263,19 @@ of the planner), review in three steps:
 
 ### 9. Measure the build against the plan
 
-Track every prediction in a verification ledger: each rule in the rule decision record,
-each decision, and each live spike's must-hit. The skill ships the script,
-[`scripts/ledger.py`](scripts/ledger.py) (standard library). Run it from the plan's
-folder:
+Keep a verification ledger with [`scripts/ledger.py`](scripts/ledger.py); its `--help`
+has the commands. It reads the plan's decisions, rule decision record and P2 spike
+table, by the names [plan-template.md](plan-template.md) gives them, and gives each row:
+- an **origin:** in the blind plan unchanged, edited, or added; or given to the planner
+  (an intake answer, or a decision a person settled later), which doesn't count toward
+  accuracy;
+- an **outcome** at each gate: `affirmed`, `modified` (held with different values or
+  configuration), `refuted` (failed) or `inconclusive` (not tested).
 
-```bash
-L=<Foundations root>/.cursor/skills/commercial-model-planning/scripts/ledger.py
-python3 "$L" init --plan plan.md [--blind <blind plan>] [--intake <IDs, e.g. D1-D6>] [--owner <IDs>]
-python3 "$L" record <ID> <outcome> "<org, record ids, values>" [--path "<what was built>"] \
-  [--skill "<skill/file: claim>"] [--blind-right yes|no]
-python3 "$L" report   # writes verification/scorecard.md
-```
-
-- **Origin,** set by `init`: `blind` (in the blind plan unchanged), `edited` (changed by
-  the audit's edits; the blind text is kept), `added`, `intake` (answers given at intake) or
-  `owner` (decisions a person settled after the blind plan: the source owner or the
-  build owner). Intake and owner items aren't predictions and are excluded from
-  accuracy. With no blind plan, every item not named by `--intake` or `--owner` is
-  `blind`.
-- **Outcome,** set at each gate, against what the item predicts: a rule's native
-  feature, a decision's recommendation, a spike's must-hit at its enforcement point.
-    - `affirmed`: it held and the goldens pass.
-    - `modified`: it held with different values or configuration.
-    - `refuted`: it failed, whether or not a fallback was built.
-    - `inconclusive`: not tested, or no clear result.
-
-  A rule with two "decided by" values takes the worse of its two parts (refuted, then
-  modified, then inconclusive, then affirmed); its Live part is also measured by its
-  spike.
-- **`--blind-right`** (edited items only): whether the blind text would have held, so
-  the audit's edits are measured too. Record it once; the report uses the latest
-  answer given.
-- `init` finds the plan's sections by the names the template gives them ("2. Decisions",
-  "Rule decision record", "P2 Live spikes"; see [plan-template.md](plan-template.md)). It
-  fails when it finds no rule or decision rows, and warns when it finds no spikes.
-- Re-running `init` adds new rows and keeps every recorded outcome and first
-  prediction. `--blind`, `--intake` and `--owner` are remembered, so a later `init` needs
-  only `--plan`. A new `--intake` or `--owner` list replaces the remembered one, so pass
-  the full list each time; a decision settled later then leaves the accuracy count.
-- **Sessions report; the main session records.** A session reports per item: outcome,
-  path, evidence, and the skill file and line when a refutation traces to a skill claim.
-- **Findings go to the ledger and the evidence log.** The plan isn't rewritten to match
-  what the build found, so the prediction stays measurable. A refuted or modified skill
-  claim is fixed in that skill ([knowledge-sources.md](knowledge-sources.md) → After the
-  build).
+Sessions report each outcome with its evidence; the main session records it. Findings
+go to the ledger and the evidence log, never into the plan's predictions, so the plan
+stays measurable. A refuted skill claim is fixed in that skill
+([knowledge-sources.md](knowledge-sources.md) → After the build).
 
 ---
 

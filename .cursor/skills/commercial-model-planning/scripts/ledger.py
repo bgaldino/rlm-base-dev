@@ -1,49 +1,30 @@
 #!/usr/bin/env python3
 """Verification ledger: how a build affirms or refutes its plan's predictions.
 
-Part of the commercial-model-planning skill (SKILL.md, step 9). Standard library only.
-Run it from the folder that holds the plan; paths are relative to the current folder.
+Part of the commercial-model-planning skill (SKILL.md step 9). Standard library only.
+Run from the folder that holds the plan:
 
     python3 ledger.py init --plan plan.md [--blind <blind plan>] [--intake D1-D6] [--owner D7,D8]
-    python3 ledger.py record <ID> <outcome> "<evidence>" [--path "<what was built>"]
-                             [--skill "<skill/file: claim>"] [--blind-right yes|no]
-    python3 ledger.py report
+    python3 ledger.py record <ID> <outcome> "<evidence>" [--path "<what was built>"] [--skill "<file: claim>"]
+    python3 ledger.py report     # writes scorecard.md next to the ledger
 
-Every prediction is one row of the plan. Each section is found by a heading or a bold
-label (a line starting "**") that contains its marker, ignoring case; every such section
-is read (one heading per area works), and only tables whose header identifies the kind
-count, so a passing mention elsewhere adds nothing. init fails if no rule or decision
-rows are found:
-  rule      tables under "Rule decision record" whose first header cell starts "Rule"
-  decision  tables under "2. Decisions" whose first header cell is "#" (so a table of
-            what each choice changes is not read as decisions)
-  spike     tables under "P2 Live spikes" with a "must hit" column
-Other tables in a section, such as the next phase's under a label, are skipped.
-The first cell of a row is its ID. Override the markers with --rules, --decisions, --spikes.
+Items are table rows of the plan (plan-template.md), the first cell being the ID:
+  decision  tables with "#" as first column, under a heading or bold label "2. Decisions"
+  rule      tables with a first column starting "Rule", under "Rule decision record"
+  spike     tables with a "must hit" column, under the label "P2 Live spikes"
+A bold label's section ends at the next heading or bold label. init fails if it finds
+no rule or decision rows.
 
-Origins (set by init):
-  blind    the row is in the blind plan unchanged
-  edited   the row is in the blind plan but was changed before the build (blind text kept)
-  added    the row is not in the blind plan
-  intake   a decision the build owner gave at intake (--intake): not a prediction
-  owner    a decision a person settled after the blind plan, the source owner or the
-           build owner (--owner): not a prediction
-With no blind plan, every row not named by --intake or --owner is "blind". Intake and
-owner items are excluded from accuracy. --blind, --intake and --owner are remembered, so
-a later init needs only --plan; a new --intake or --owner list replaces the remembered
-one, so pass the full list each time.
+Origin: blind (unchanged from the blind plan), edited (its blind text kept), added,
+intake or owner (given to the planner; not counted for accuracy). With no blind plan,
+everything else is blind. --blind, --intake and --owner are remembered; a new --intake
+or --owner list replaces the old one.
 
-Outcomes (set by record), judged against what the item predicts (a rule's native
-feature, a decision's recommendation, a spike's must-hit at its enforcement point; a
-rule with two decided-by values takes the worse of its parts, in the order refuted,
-modified, inconclusive, affirmed): affirmed (held, goldens pass), modified (held with
-different values or configuration), refuted (failed, whether or not a fallback was
-built), inconclusive (not tested, or no clear result). New items are pending.
+Outcome: affirmed, modified (held with different values or configuration), refuted
+(failed), inconclusive (not tested). New items are pending.
 
-init keeps every recorded outcome and, for rows already in the ledger, the row it first
-recorded, so the blind measurement survives later plan revisions. Origins are worked out
-again on every init, so a decision moved to --owner after the plan was written leaves
-the accuracy count. --rebuild re-reads every row from the plan (outcomes are still kept).
+Re-running init adds new rows and keeps outcomes and each row's first text, so the
+blind measurement survives plan revisions; --rebuild re-reads the rows.
 """
 import argparse
 import json
@@ -52,9 +33,8 @@ import sys
 from pathlib import Path
 
 OUTCOMES = ("pending", "affirmed", "modified", "refuted", "inconclusive")
-ORIGINS = ("blind", "edited", "added", "intake", "owner")
 KINDS = ("rule", "decision", "spike")
-DEFAULT_MARKERS = {
+MARKERS = {
     "rule": "Rule decision record",
     "decision": "2. Decisions",
     "spike": "P2 Live spikes",
@@ -143,13 +123,13 @@ def table_rows(lines, kind):
     return rows
 
 
-def items(text, markers, name):
+def items(text, name):
     lines = text.splitlines()
     found = {}
     for kind in KINDS:
-        found[kind] = table_rows(section_lines(lines, markers[kind]), kind)
+        found[kind] = table_rows(section_lines(lines, MARKERS[kind]), kind)
         if not found[kind]:
-            msg = f"{name}: no {kind} rows under a heading or bold label containing '{markers[kind]}'"
+            msg = f"{name}: no {kind} rows under a heading or bold label containing '{MARKERS[kind]}'"
             if kind == "spike":
                 print(f"warning: {msg}", file=sys.stderr)
             else:
@@ -196,15 +176,13 @@ def init(args):
     ledger_path = Path(args.ledger)
     old = json.loads(ledger_path.read_text()) if ledger_path.exists() else {"meta": {}, "items": {}}
     meta = old.get("meta", {})
-    markers = {k: getattr(args, k + "s") or meta.get("markers", {}).get(k) or DEFAULT_MARKERS[k]
-               for k in KINDS}
     intake = id_set(args.intake) if args.intake is not None else set(meta.get("intake", []))
     owner = id_set(args.owner) if args.owner is not None else set(meta.get("owner", []))
     blind_path = args.blind or meta.get("blind")
-    plan = items(Path(args.plan).read_text(), markers, args.plan)
-    blind = items(Path(blind_path).read_text(), markers, blind_path) if blind_path else None
+    plan = items(Path(args.plan).read_text(), args.plan)
+    blind = items(Path(blind_path).read_text(), blind_path) if blind_path else None
 
-    ledger = {"meta": {"plan": args.plan, "blind": blind_path, "markers": markers,
+    ledger = {"meta": {"plan": args.plan, "blind": blind_path,
                        "intake": sorted(intake), "owner": sorted(owner)},
               "items": {}}
     def origin_of(kind, iid, line):
@@ -272,10 +250,6 @@ def record(args):
     if args.skill:
         entry["skill_claim"] = args.skill
     item = ledger["items"][key]
-    if args.blind_right:
-        if item["origin"] != "edited":
-            sys.exit(f"--blind-right applies only to an edited item; {key} is {item['origin']}")
-        entry["blind_right"] = args.blind_right
     item["outcome"] = args.outcome
     item["evidence"].append(entry)
     save(ledger_path, ledger)
@@ -310,14 +284,6 @@ def report(args):
                 lines.append(f"| {k} | {o} | {len(sel)} | " + " | ".join(map(str, n)) + " |")
     excluded = [v for v in values if v["origin"] in ("intake", "owner")]
     lines += ["", f"Excluded (intake or owner): {len(excluded)}."]
-
-    edited = [v for v in values if v["origin"] == "edited" and v["evidence"]]
-    verdicts = [next((e["blind_right"] for e in reversed(v["evidence"]) if "blind_right" in e), None)
-                for v in edited]
-    if edited:
-        lines += ["", "## Edited items: would the blind text have held?", "",
-                  f"Yes {verdicts.count('yes')}, no {verdicts.count('no')}, "
-                  f"not recorded {sum(1 for x in verdicts if x is None)}."]
 
     labels = {}
     for v in values:
@@ -357,8 +323,6 @@ def main(argv=None):
     i.add_argument("--intake", help="decision IDs given at intake, e.g. D1-D6 (remembered; a new list replaces it)")
     i.add_argument("--owner", help="decision IDs a person settled after the blind plan, e.g. D7,D8 "
                    "(remembered; a new list replaces it)")
-    for k in KINDS:
-        i.add_argument(f"--{k}s", help=f"text that marks the {k} section (default: '{DEFAULT_MARKERS[k]}')")
     i.add_argument("--rebuild", action="store_true", help="re-read every prediction from the plan")
     i.set_defaults(func=init)
 
@@ -368,8 +332,6 @@ def main(argv=None):
     r.add_argument("evidence", help="org, record ids, values")
     r.add_argument("--path", help="what was built, when it differs from the prediction")
     r.add_argument("--skill", help="the skill file and claim a refutation traces to")
-    r.add_argument("--blind-right", choices=("yes", "no"),
-                   help="for an edited item: would the blind text have held?")
     r.set_defaults(func=record)
 
     sub.add_parser("report", help="write the scorecard").set_defaults(func=report)
