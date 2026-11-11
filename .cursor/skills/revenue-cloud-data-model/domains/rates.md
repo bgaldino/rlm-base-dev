@@ -49,10 +49,10 @@ BindingObjectCustomExt ← BindingObjectRateCardEntry (BindingObjectId)
 
 5 objects in 2 passes. **Must load after** `qb-rating` (RateCardEntry references UsageResource, which `qb-rating` loads).
 
-Nothing is deleted (todo 298). Every object is `Upsert` on its composite relationship-traversal externalId.
+Nothing is deleted (todo 298). RateCard, PriceBookRateCard, RateCardEntry and RateAdjustmentByTier are `Upsert` on composite externalIds (RateCard on `Name;Type`, the others on relationship-traversal keys); Product2 is `Update` on `StockKeepingUnit`.
 - **RateCardEntry, pass 1:** `skipExistingRecords`, so a missing entry is inserted as Draft (RateAdjustmentByTier requires a Draft parent).
 - **RateCardEntry, pass 2:** `Update` without Status.
 - **Activation:** `activate_rates`.
 - **Platform locks:** an Active RateCardEntry accepts only Status changes, and a RateAdjustmentByTier under an Active entry can't be edited.
 
-**Deletion constraint** (manual full teardown only): `delete_qb_rates_data` must run before `delete_qb_rating_data` — rates FK to PURs.
+**Deletion constraint** (manual full teardown only): `delete_qb_rates_data` must run before `delete_qb_rating_data` (the order `sfdmu-data-plans/plan-dependency-graph.md` documents). The reason is not a direct field reference to the PURs, as older notes claim: in the 264 schema no rate object references ProductUsageResource, and `deleteQbRatingData.apex` leaves UsageResource in place.

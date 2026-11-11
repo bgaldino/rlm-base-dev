@@ -54,9 +54,9 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 > `RLM_UsageUploaderController.OverageLookup`.
 >
 > Filter the association to `ProductUsageResource.Status = 'Active'`. `ProductUsageResourcePolicy`
-> has **no status of its own**, so the parent is the only gate — and a reloaded dataset leaves
-> Draft PURs carrying PURP children that overlap the Active row until
-> `scripts/apex/activateRatingRecords.apex` step 2.5a clears them. Reading one is not merely
+> has **no status of its own**, so the parent is the only gate. The shipped plans no longer
+> create Draft PUR copies on reload, but a copy made by hand, or left by an older load, can carry PURP children that overlap the Active row until
+> `scripts/apex/activateRatingRecords.apex` step 2.5a, kept as a safety net, clears them. Reading one is not merely
 > stale: a disagreeing Draft row trips the ambiguity guard above and blanks the Active answer.
 >
 > ⚠ **`Status = 'Active'` narrows to one *effective* row, not to one row.** A PUR carries
@@ -307,8 +307,8 @@ children key on the direct lookup `ProductUsageResourceId` (at most one PURP and
 per PUR in this dataset). The tracked CSVs carry no Ids, only the parent's portable key
 (`ProductUsageResource.Product.StockKeepingUnit` + `ProductUsageResource.UsageResource.Code`);
 `LoadSFDMUData` reads `parent_id_lookups.json`, queries the target org's PURs, and writes
-the Ids into a temp copy of the plan before SFDMU runs. A key that matches no PUR, or ties
-between two, fails the load. Details: `datasets/sfdmu/qb/en-US/qb-rating-entitlements/README.md`.
+the Ids into a temp copy of the plan before SFDMU runs. A key that matches no PUR fails the
+load; when several match, the Active one wins, then Draft, and only a remaining tie fails. Details: `datasets/sfdmu/qb/en-US/qb-rating-entitlements/README.md`.
 
 **Reloading a built org changes nothing** (live-verified 2026-10-30): the 25 PUR and 12 PUG
 stay Active, the 23 PURP and 12 PUG report "Same data", and nothing is deleted or demoted. A corrected
