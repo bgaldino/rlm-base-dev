@@ -70,7 +70,7 @@ What D2 changes:
 
 | Spike | Rules | Must hit | Smallest case | Read first |
 |---|---|---|---|---|
-| L-01 Amendment value | R-02 | 100.00 | One line | `asset-lifecycle-changes` |
+| S-1 Amendment value | R-02 | 100.00 | One line | `asset-lifecycle-changes` |
 
 **P3 Catalog, then configuration**
 
@@ -86,7 +86,7 @@ What D2 changes:
 PLAN = (BLIND
         .replace("| D3 | Round where? | At the end |",
                  "| D3 | Round where? | Per line |\n| D4 | Added later? | Yes |")
-        .replace("| L-01 Amendment value | R-02 | 100.00 |", "| L-01 Amendment value | R-02 | 120.00 |"))
+        .replace("| S-1 Amendment value | R-02 | 100.00 |", "| S-1 Amendment value | R-02 | 120.00 |"))
 
 
 class LedgerTest(unittest.TestCase):
@@ -117,11 +117,11 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(origin, {
             "decision:D1": "intake", "decision:D2": "blind", "decision:D3": "edited",
             "decision:D4": "added", "rule:R-01": "blind", "rule:R-02": "blind",
-            "rule:R-03": "blind", "spike:L-01": "edited"})
+            "rule:R-03": "blind", "spike:S-1": "edited"})
         items = self.ledger()
         self.assertIn("At the end", items["decision:D3"]["blind_prediction"])
         self.assertIsNone(items["decision:D2"]["blind_prediction"])
-        self.assertEqual(items["spike:L-01"]["prediction"]["Must hit"], "120.00")
+        self.assertEqual(items["spike:S-1"]["prediction"]["Must hit"], "120.00")
 
     def test_owner_set_after_the_plan_leaves_accuracy(self):
         self.init()
@@ -138,7 +138,7 @@ class LedgerTest(unittest.TestCase):
         self.init()
         self.assertEqual(sorted(self.ledger()), [
             "decision:D1", "decision:D2", "decision:D3", "decision:D4",
-            "rule:R-01", "rule:R-02", "rule:R-03", "spike:L-01"])
+            "rule:R-01", "rule:R-02", "rule:R-03", "spike:S-1"])
 
     def test_missing_rule_record_fails(self):
         (self.dir / "plan.md").write_text(PLAN.replace("### 3.10 Rule decision record", "### 3.10 Rules"))

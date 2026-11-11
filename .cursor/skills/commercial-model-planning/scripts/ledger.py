@@ -101,7 +101,7 @@ def is_separator(line):
 
 def clean_id(cell):
     """The row's ID: the whole first cell, or its first word when that word holds a digit
-    ("L-01 Regional route" -> "L-01"). A cell listing several IDs ("A-01, A-02") is kept whole."""
+    ("S-1 Amendment value" -> "S-1"). A cell listing several IDs ("A-01, A-02") is kept whole."""
     text = re.sub(r"[*`]", "", cell).strip()
     first = text.split(" ", 1)[0]
     if "," not in text and re.search(r"\d", first):
