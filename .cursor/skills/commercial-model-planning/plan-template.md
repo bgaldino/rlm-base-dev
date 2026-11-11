@@ -67,8 +67,9 @@ changes). Note who has to answer it: the source's owner or the build's owner.
     - **Acceptance** (the P1 gate), as tests the converter ships with: it refuses a
       source whose checksum isn't the pinned one; formula parity has 0 mismatches; every
       cached value equals its recomputation; every value the plan states (an anchor in
-      a decision, a spike or a golden) equals the computed one; and for each comparison
-      a test feeds it a wrong value and expects a failure, so none passes vacuously.
+      a decision, a spike or a golden) equals the computed one. A prior build ran these,
+      with a changed source refused; it didn't also feed each comparison a wrong value
+      to prove it can fail, which is recommended so none passes vacuously.
       A source without formulas (a store capture, a document) keeps the checks that
       apply to it.
 - **Rule decision record,** under a heading containing that name: one row per rule ID,
