@@ -44,8 +44,7 @@ becomes a decision for the plan: re-date it, give it its own asset, or drop it.
 
 ### Changes dated at or after the term end
 
-No snapshot article gives an amendment rule for a date at or after a Term Defined asset's
-end date, or on its renewal date. What Help does say:
+What Help says about changes near a Term Defined asset's end date:
 
 - An amendment keeps the subscription end date [Help: `ind.qocal_amend_assets`]. Changing
   the end date is its own term-change amendment: the last transaction before the asset
@@ -64,14 +63,22 @@ end date, or on its renewal date. What Help does say:
 - An evergreen asset has no lifecycle end date [Dev guide: `sforce_api_objects_asset`], and
   its end date can't be changed [Help: `ind.qocal_amend_and_renew_with_new_end_date`].
 
-Measured: amend ±1 and cancel dated one and two months into a term made by an earlier
-ramped renewal passed [Repo: `rlm-business-apis/backdated-asset-lifecycle.md` →
-group-ramp assets]. That is the only measured shape for an amendment or cancellation after a
-renewal: it runs after the renewal's activation, dated inside the new term. (Renewals dated
-after a term end were measured too; same file, Measured results.) An amendment or
-cancellation dated after the end of a term that wasn't renewed, and one dated on the
-renewal start date itself, are **Open**
-([verification.md](verification.md) → Open).
+What the repo records:
+
+- The amend date window, measured on group-ramped bundles on one 264 org with Quote
+  output: on or after the Lifecycle Start Date of every asset in the request, and before
+  the Lifecycle End Date of each asset that has one. The upper bound for assets with no end
+  date wasn't measured. An asset with a future ramped renewal refused an earlier amend, and
+  an ordered plain renewal blocked it the same way [Repo:
+  `ramped-quotes/bundle-children-lifecycle.md` → Amend date window].
+- Ordering a ramped renewal of a term-only ramped asset extended the same asset and its
+  state periods in place [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Renewal].
+- Amend ±1 and cancel dated one and two months into a term made by an earlier ramped
+  renewal passed, and renewals of expired plain and ramped assets are in the same file's
+  measured results [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`].
+
+Whether the window holds outside group-ramped bundles, and what an amendment dated exactly
+on a renewal's start date does, are **Open** ([verification.md](verification.md) → Open).
 
 ## Questions to settle in the plan
 

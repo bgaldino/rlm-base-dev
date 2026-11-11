@@ -86,10 +86,13 @@ The Standard price book gave the same results.
   ([change-policy-mapping.md](change-policy-mapping.md) → Replay the source's changes in
   date order). The repo's group-ramp runs changed assets before a ramp segment's future
   state period, which comes from the ramp schedule rather than a future-dated transaction,
-  so they don't settle it [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`].
-- **An amendment or cancellation dated after a Term Defined asset's end date, or on its
-  renewal date:** is one after the end of a term that wasn't renewed accepted, and does one
-  dated on the renewal start date price at the renewal's price? The only amendments and
-  cancellations run after a renewal were dated inside a ramped renewal's term
-  ([change-policy-mapping.md](change-policy-mapping.md) → Changes dated at or after the
-  term end).
+  so they don't settle it [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`]. In the
+  group-ramped bundle runs, a future ramped renewal, or an ordered plain renewal, refused an
+  earlier amend [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend date window],
+  which matches the amend article for that case. That record doesn't cover a future-dated
+  amendment or cancellation.
+- **Amendment dates at a term end or a renewal date:** the recorded amend date window was
+  measured on group-ramped bundles. Whether it holds for other assets, its upper bound for
+  assets with no end date, and what an amendment dated exactly on a renewal's start date
+  does, and at which price, are open ([change-policy-mapping.md](change-policy-mapping.md)
+  → Changes dated at or after the term end).
