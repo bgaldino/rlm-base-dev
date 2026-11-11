@@ -85,7 +85,7 @@ validation. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_cat
 | Price includes component | `DoesBundlePriceIncludeChild` | Bundle price covers the child; quantity must be locked |
 | Quantity scaling method | `QuantityScaleMethod` | None, Constant, Proportional (see below) |
 
-[Help: `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_product_relationships.htm`; Dev guide field names via `scripts/ai/query_erd.py describe ProductRelatedComponent`]
+[Help: `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_product_relationships.htm`; Repo: `scripts/ai/query_erd.py describe ProductRelatedComponent`]
 
 For a classification component, its min/max/default quantity apply to **each** product the
 buyer picks from that class, while the group bounds how many distinct products. Example:

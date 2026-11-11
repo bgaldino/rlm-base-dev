@@ -106,10 +106,11 @@ cart holding it alone is rejected, and what amend, renew or cancel do when its c
 removed are all **Open — needs live verification**. The QuantumBit plan sets it on no product.
 [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
 
-**Modeling advice until verified:** if an add-on must never be sold alone, make it a bundle
-component (optionally a required one) rather than relying on this flag alone. The
-lowest-level group's cardinality is enforced at run time, and Validate Product Definition
-checks the bundle's structure. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_catalog_bundled_product_validations.htm`]
+**Modeling advice until verified:** do not rely on this flag alone. Making the add-on a
+bundle component controls how it is chosen *inside* the bundle (the lowest-level group's
+cardinality is enforced at run time [Help: `ind.product_catalog_group_cardinality.htm`]),
+but no snapshot article says that stops the same active, priced product from being added to
+a quote on its own.
 
 ## Other lifecycle fields on `Product2`
 
