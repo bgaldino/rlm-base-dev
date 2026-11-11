@@ -114,7 +114,7 @@ enforced by the configurator and checked by Validate Product Definition. [Help: 
 
 | Field | Decision | Owner skill |
 |---|---|---|
-| `UsageModelType` | Anchor (main subscription), Pack (add-on that grants usage), Commit (minimum committed use). [Help: `ind.product_catalog_create_simple_products.htm`] | `usage-consumption` |
+| `UsageModelType` | Anchor (main subscription), Pack (add-on that grants usage), or a commitment type. Help lists one Commit value; the dev guide lists Monetary, Quantity and Token commitments, and `usage-consumption` names the API values. [Help: `ind.product_catalog_create_simple_products.htm`; Dev guide: `usage_management_fields_on_product2.htm`] | `usage-consumption` |
 | `DecompositionScope`, `FulfillmentQtyCalcMethod` | How many fulfillment lines; Always One vs Aggregate. [Help: `ind.product_catalog_create_simple_products.htm`] | `dro-plans` |
 | `AvailabilityDate`, `DiscontinuedDate`, `EndOfLifeDate` | Sale window and support window | see note below |
 

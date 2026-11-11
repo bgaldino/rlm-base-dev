@@ -73,7 +73,7 @@ same way, by literal value.
 | Family mirrors the category tree | Duplicates categories | Every category change becomes a Family change and breaks literal filters |
 | Family left blank | No maintenance | Invisible to any family-based facet or rule |
 
-Before renaming or retiring a value, find its consumers: `grep -rn "Family" force-app unpackaged tasks datasets`
+Before renaming or retiring a value, find its consumers: `git grep -nw Family -- force-app unpackaged tasks datasets ':!*.csv' ':!**/staticresources/**'`
 in the repo, and the org's decision table sources, approval criteria and flows. The
 QuantumBit plan uses Hardware, Software, Services, Bundle, 3rd Party Software, a literal
 `None` on five products, and blank on 166 of 314. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
