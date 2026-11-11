@@ -89,17 +89,21 @@ Measured traps:
 ### One discount on one product line inside a bundle
 
 A rep may want one discount on every line of one product line, for example all the components of
-one family inside a suite bundle. Help gives the editor no feature for this, and what it does say
-closes the obvious routes:
+one family inside a suite bundle. Help gives the editor no feature for this; it rules out the filter
+route and leaves the others unconfirmed:
 
 - **Column filter, then bulk edit:** the filter returns parent lines only and leaves bundle children
   out [Help: `ind.qocal_view_and_edit_quotes`], so it can't narrow the grid to one product line
   inside a bundle.
 - **Group By that column, then discount the group:** automatic grouping is TLE only
   [Help: `ind.qocal_view_and_edit_quotes`], and the STLE is the editor Help recommends
-  [Help: `ind.qocal_customize_transaction_line_editor`]. Group rows do take Adjustment Type fields
-  [Help: `ind.qocal_adjustment_type_column`], and Help's group-ramp example discounts all of a group's
-  lines from the group row [Help: `ind.qocal_basic_example_ramp_deals_for_groups`].
+  [Help: `ind.qocal_customize_transaction_line_editor`]. A group row takes an Adjustment Type field
+  only when that field is in Display Columns and selected for the Adjustment Type column
+  [Help: `ind.qocal_adjustment_type_column`]; the repo's quote page selects only
+  `QuoteLineItem.DiscountAmount` and `QuoteLineItem.Discount`, so it configures no group-row discount
+  [Repo: `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`]. Help shows group-row
+  discounts only for group ramps [Help: `ind.qocal_basic_example_ramp_deals_for_groups`,
+  `ind.qocal_ramp_deals_for_groups_transition`, `ind.qocal_ramp_schedule_with_trial_and_proration_segments`].
 - **Select the lines by hand and bulk edit:** applies one value to every selected line
   [Help: `ind.qocal_view_and_edit_quotes`]; whether bundle children can be selected is not stated.
 
