@@ -878,32 +878,36 @@ def check_instruction_budget(root: Path) -> CheckResult:
 
 
 AGENTS_INDEX_HEADING = "## AI Agent Skill Index"
+AGENTS_INDEX_HEADING_RE = re.compile(r"^## AI Agent Skill Index[ \t]*$", re.MULTILINE)
 SKILL_ROUTER_PATH = f"{SKILLS_ROOT}/README.md"
+LIST_ITEM_RE = re.compile(r"[ \t]*[-*+][ \t]")
 
 
-def agents_index_skill_names(agents_text: str) -> set[str] | None:
-    """Skill names in the AGENTS.md index list, or None when the section is missing.
+def agents_index_tokens(agents_text: str) -> list[str] | None:
+    """Code spans in the AGENTS.md index list, or None when the section is missing.
 
-    The index is a compact list of code spans: a bare skill name (`pricing-setup`) or a
-    path under a skill (`cci-orchestration/custom-task-authoring.md`) both count. Only
-    list items before the next heading of any level are read, so a name that appears
-    only in prose or in a following subsection (the Script Reference owner column, say)
-    does not count as listed.
+    The index is a compact list of code spans: a bare skill name (`pricing-setup`), a
+    path under a skill (`cci-orchestration/custom-task-authoring.md`) or another repo
+    path (`docker/README.md`). Only list items, with the indented lines they wrap onto,
+    before the next heading of any level are read, so a name that appears only in prose
+    or in a following subsection (the Script Reference owner column, say) is not listed.
     """
-    start = agents_text.find(AGENTS_INDEX_HEADING)
-    if start < 0:
+    text = strip_fenced_code(agents_text)
+    heading = AGENTS_INDEX_HEADING_RE.search(text)
+    if heading is None:
         return None
-    body = strip_fenced_code(agents_text[start + len(AGENTS_INDEX_HEADING):])
+    body = text[heading.end():]
     next_heading = re.search(r"^#{1,6}\s", body, re.MULTILINE)
     section = body[:next_heading.start()] if next_heading else body
-    items = "\n".join(line for line in section.splitlines() if re.match(r"\s*[-*+]\s", line))
-    names = set()
-    for token in re.findall(r"`([^`\n]+)`", items):
-        token = token.strip()
-        if token.startswith(f"{SKILLS_ROOT}/"):
-            token = token[len(SKILLS_ROOT) + 1:]
-        names.add(token.split("/", 1)[0])
-    return names
+    items, in_item = [], False
+    for line in section.splitlines():
+        if LIST_ITEM_RE.match(line):
+            in_item = True
+        elif not (in_item and line[:1] in (" ", "\t") and line.strip()):
+            in_item = False
+            continue
+        items.append(line)
+    return [token.strip() for token in re.findall(r"`([^`\n]+)`", "\n".join(items))]
 
 
 def router_skill_names(router_text: str) -> set[str]:
@@ -912,22 +916,36 @@ def router_skill_names(router_text: str) -> set[str]:
 
 
 def check_skill_index_parity(root: Path) -> CheckResult:
-    """Every skill directory is listed in the AGENTS.md index and linked from the router.
+    """The AGENTS.md index and the router each cover every skill, and the index names nothing stale.
 
     AGENTS.md carries only names; the router carries the "I need to..." intent. Each is
-    useless for discovery if it silently drops a skill, so both must cover every skill.
+    useless for discovery if it silently drops a skill, and a renamed or deleted skill
+    left in the index sends agents to a file that does not exist.
     """
     expected = {p.name for p in _skill_dirs(root) if (p / "SKILL.md").is_file()}
     try:
-        agents_names = agents_index_skill_names((root / AGENTS_PATH).read_text(encoding="utf-8"))
+        tokens = agents_index_tokens((root / AGENTS_PATH).read_text(encoding="utf-8"))
         router_names = router_skill_names((root / SKILL_ROUTER_PATH).read_text(encoding="utf-8"))
     except (OSError, UnicodeError) as exc:
         return CheckResult("skill index parity", False, str(exc))
     failures = []
-    if agents_names is None:
+    if tokens is None:
         failures.append(f"{AGENTS_PATH}: no '{AGENTS_INDEX_HEADING}' section")
-    elif expected - agents_names:
-        failures.append(f"{AGENTS_PATH} index is missing {sorted(expected - agents_names)}")
+    else:
+        listed, unknown = set(), set()
+        for token in tokens:
+            rel = token[len(SKILLS_ROOT) + 1:] if token.startswith(f"{SKILLS_ROOT}/") else token
+            first = rel.split("/", 1)[0]
+            if "/" not in rel and rel in expected:
+                listed.add(rel)
+            elif "/" in rel and first in expected and (root / SKILLS_ROOT / rel).exists():
+                listed.add(first)
+            elif first in expected or not (root / token).exists():
+                unknown.add(token)
+        if expected - listed:
+            failures.append(f"{AGENTS_PATH} index is missing {sorted(expected - listed)}")
+        if unknown:
+            failures.append(f"{AGENTS_PATH} index names unknown skills or missing paths {sorted(unknown)}")
     if expected - router_names:
         failures.append(f"{SKILL_ROUTER_PATH} router is missing {sorted(expected - router_names)}")
     return CheckResult("skill index parity", bool(expected) and not failures,

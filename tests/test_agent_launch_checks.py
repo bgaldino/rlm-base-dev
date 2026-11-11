@@ -198,8 +198,27 @@ class LaunchChecks(unittest.TestCase):
         agents = self.root / "AGENTS.md"
         router = self.root / ".cursor/skills/README.md"
         self.assertTrue(analyzer.check_skill_index_parity(self.root).ok)
-        agents.write_text("## AI Agent Skill Index\n\n- `cci-orchestration/custom-task-authoring.md`\n")
+        self.write(".cursor/skills/cci-orchestration/custom-task-authoring.md", "# Tasks\n")
+        agents.write_text("## AI Agent Skill Index\n\n- `cci-orchestration/custom-task-authoring.md`, `AGENTS.md`\n")
         self.assertTrue(analyzer.check_skill_index_parity(self.root).ok)
+        # A list item may wrap onto indented lines; they belong to the item.
+        agents.write_text("## AI Agent Skill Index\n\n- **Builds:** `AGENTS.md`,\n  `cci-orchestration`\n")
+        self.assertTrue(analyzer.check_skill_index_parity(self.root).ok)
+        # A renamed or deleted skill, a missing sub-file, or a missing repo path is stale.
+        for stale in ("deleted-skill", "cci-orchestration/gone.md", "docker/README.md"):
+            agents.write_text(f"## AI Agent Skill Index\n\n- `cci-orchestration`, `{stale}`\n")
+            result = analyzer.check_skill_index_parity(self.root)
+            self.assertFalse(result.ok, stale)
+            self.assertIn(f"unknown skills or missing paths ['{stale}']", result.detail)
+        # A list item under a later heading of any level is outside the index.
+        for heading in ("## Next", "### Script Reference"):
+            agents.write_text(f"## AI Agent Skill Index\n\n- none\n\n{heading}\n\n- `cci-orchestration`\n")
+            self.assertIn("index is missing ['cci-orchestration']",
+                          analyzer.check_skill_index_parity(self.root).detail, heading)
+        # Only the heading line itself opens the section, not an inline mention of it.
+        agents.write_text("See `## AI Agent Skill Index` below.\n\n- `cci-orchestration`\n\n"
+                          "## AI Agent Skill Index\n\n- none\n")
+        self.assertIn("index is missing ['cci-orchestration']", analyzer.check_skill_index_parity(self.root).detail)
         # Listed only outside the index section, or not at all: not discoverable from the index.
         agents.write_text("# Guide\n\n`cci-orchestration`\n\n## AI Agent Skill Index\n\n- none\n\n## Next\n\n`cci-orchestration`\n")
         result = analyzer.check_skill_index_parity(self.root)
