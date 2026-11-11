@@ -43,32 +43,15 @@ subscription that must renew or bill on its own model) is not settled by the rul
   verification.**
 
 Until that is measured, the shape to test against a static kit is a **locked configurable
-bundle**: fixed by cardinality instead of by `ConfigureDuringSale`.
-
-| Setting | Value | Help's effect |
-|---|---|---|
-| Root | `Type=Bundle`, `ConfigureDuringSale=Allowed` | Groups are mandatory; every child sits under one |
-| Each child | `IsComponentRequired` + `IsDefaultComponent` | Required in the bundle, and included by default |
-| Each child's quantity | *Allow quantity changes* off (`IsQuantityEditable=false`); `QuantityScaleMethod` Constant or Proportional | No min/max can be entered; Constant holds the design-time quantity, Proportional multiplies it by the root's quantity |
-| Each group that holds products | Min = max = its number of required children | Within what Validate Product Definition checks: required children ≤ max, products ≥ min |
-| Each parent group (holds child groups) | Min = max = its number of child groups | Its limits count child groups: child groups ≥ min, child groups with required products ≤ max |
-
-[Help: `ind.product_catalog_products.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_bundled_product_validations.htm`]
-
-What still differs from a static kit:
-
-- Attributes stay editable at run time; a static kit needs every attribute defaulted (see
-  [Structure rules](#structure-rules)).
-- CML bundle rules apply. A CML rule that set the quantity of a component with
-  `IsQuantityEditable = false` drew a `bundlevalidation` warning, so a child that CML sizes
-  from root answers is a poor candidate for a quantity lock. [Repo: `constraint-models/quantities-from-attributes.md`, run M16]
-- It can be converted to a static bundle later if it meets the configurable → static rules
-  above (static children, defaulted attributes, no classification components).
-
-Either way, amend, renew and cancel act on the top-level asset, and cancelling or renewing a
-component alone was refused; a child that must be cancelled on its own belongs on its own
-line. [Repo: `asset-lifecycle-changes/SKILL.md` Quick Rule 3] Root and child renewal rules
-by selling model are in [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
+bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child with
+*Require this component* and *Include component by default* on and *Allow quantity changes*
+(`IsQuantityEditable`) off, and group limits that pass
+[Validate Product Definition](#mistakes-validate-product-definition-catches).
+[Help: `ind.product_catalog_products.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_bundled_product_validations.htm`]
+CML bundle rules still apply to it: a CML rule that set the quantity of a component with
+`IsQuantityEditable = false` drew a `bundlevalidation` warning. [Repo: `constraint-models/quantities-from-attributes.md`, run M16]
+Root and child renewal rules by selling model are in
+[`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 Whether a fully locked configurable bundle still opens the configurator and shows each
 child's selling model selection, and how its locked children behave on amend and renew
 (whether a child's selling model or quantity can change, whether the lock holds on the
