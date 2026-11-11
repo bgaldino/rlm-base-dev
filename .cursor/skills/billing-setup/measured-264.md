@@ -73,6 +73,12 @@ Repeat this for the frequencies a plan promises, on the route the demo will use:
   Change Billing Frequency off.
 - A one-time line with a milestone treatment and no frequency (accepted in M5): does
   activation build a milestone plan for it?
+- A service added by an amendment (a new product on the amendment order, not a change to an
+  existing asset) carrying a milestone treatment: does activating the amendment order create
+  a billing milestone plan for it, with `enableMilestoneBillingForAmend` on (as the repo
+  ships) and off? Read its `BillingSchedule.Category`, `BillingMilestonePlanId` and billing
+  schedule group [Dev guide: `sforce_api_objects_billingschedule`]. Also: does a plan made by
+  hand for that order product or quote line link to its billing schedule?
 - An approved Net 60 quote through order and invoice: which due date the invoice gets.
 - With a billing profile on the account and a payment term on the order, which one the
   invoice uses outside billing arrangements.

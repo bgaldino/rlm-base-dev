@@ -198,6 +198,27 @@ invoiced [Help: `ind.billing_milestone_amended_renewed_canceled_assets`].
 The repo turns that setting on (`enableMilestoneBillingForAmend`)
 [Repo: `unpackaged/post_billing/settings/Billing.settings-meta.xml`].
 
+For amending an asset that has a milestone plan, the same article lists four cases, keyed on
+what the amendment carries. It doesn't say which of them hold with the setting off.
+
+| The amendment has | Result |
+|---|---|
+| A milestone treatment | A new plan based on the amendment, linked to the amendment billing schedule; dates and amounts recalculated from the amendment start date |
+| A non-milestone treatment | A one-time billing schedule and no plan |
+| A preconfigured or negotiated milestone plan | That plan, linked to the amendment billing schedule |
+| No billing treatment | A new plan from the original billing schedule group's treatment; the original plan isn't reused |
+
+**A service that an amendment adds** (a new product on the amendment, not a change to a
+milestone-billed asset) is none of those cases. Help says to use the same
+order-to-billing-schedule flow or API for amendments as for new sales
+[Help: `ind.billing_schedules_from_orders`], and the default-off rule above speaks of amend
+orders without separating new products. Whether activating the amendment order gives such a
+line a milestone plan, with the setting on or off, hasn't been measured ([measured-264.md](measured-264.md) → Open). Help also documents
+creating a plan by hand for an order product or quote line item
+[Help: `ind.billing_milestone_create`]; whether one made for the added line links to its
+billing schedule is part of the same open item. Until it is measured, record milestone
+billing for amendment-added services as an open decision in the plan.
+
 ## Payment terms
 
 A **payment term** (`PaymentTerm`) has one Standard **payment term item**: Period-Based
@@ -231,7 +252,7 @@ and set `Order.PaymentTermId` from the quote when the order is created.
 Quote and order values on a change are not the invoice. For where change values land, read
 `asset-lifecycle-changes`. For invoices and credit memos after a backdated change, and
 frequency changes on active assets, read `rlm-business-apis` → `backdated-asset-lifecycle.md`.
-For milestone-billed assets, see the milestone section above.
+For milestone-billed assets, and services an amendment adds, see the milestone section above.
 
 ## Examples
 
