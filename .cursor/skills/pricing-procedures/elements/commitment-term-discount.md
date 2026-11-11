@@ -18,7 +18,8 @@ A commitment-term discount gives an extra percentage off a subscription line bec
 commits to a long term. The rule modeled here: **annual Term Defined subscriptions committed for 36
 months or more get a further 4% off, applied after the line's other standard discounts; the
 discounted net is rounded to the cent, then the 4% is applied, then the result is rounded again.**
-Shorter terms and other selling models are unchanged.
+Shorter terms and Evergreen lines are unchanged; One Time lines were not priced (see
+[Open questions](#open-questions)).
 
 Worked example (the golden test): list 18,000, 5% and 3% discounts → net 16,587.00 → × 0.96 →
 **15,923.52**. A 24-month term stays at **16,587.00**.
@@ -74,7 +75,9 @@ the filter must be the first child, one filter per group].
 | 10 | `NetUnitPrice` | IsNotNull | |
 
 - The not-null criteria (3, 4, 10) follow the Help rule that a null tag compared in a filter
-  returns an error [Help: `ind.pricing_list_group_list_operation.htm`].
+  returns an error [Help: `ind.pricing_list_group_list_operation.htm`]. Criterion 2 has no such
+  guard, and `PricingTermUnit` is null on a One Time selling model
+  [Dev guide: `sforce_api_objects_productsellingmodel.htm`]; see [Open questions](#open-questions).
 - Criterion 9 copies the shipped discount filters, which skip last-transaction lines so an amended
   or renewed line does not take a discount a second time [Repo: `RLM_DefaultPricingProcedure`,
   `Filterlineswithoutlasttransactionpricing`]. Without it, an amendment that keeps the prior net
@@ -224,6 +227,9 @@ expressed the rule.
 
 ## Open questions
 
+- One Time lines were not in the run. Price one through the clone before using this filter in a
+  procedure that prices One Time products; if criterion 2 errors on the null `PricingTermUnit`,
+  add a `PricingTermUnit IsNotNull` criterion to the AND chain.
 - Which `SubscriptionTermUnit` the quote line editor writes for an annual Term Defined line was not
   measured; the filter accepts both `Months` and `Annual`. Check a real quote line before relying
   on one.
