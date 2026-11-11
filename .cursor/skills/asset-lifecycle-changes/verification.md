@@ -68,6 +68,13 @@ The Standard price book gave the same results.
   invoice. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 - **Whether the configurator can restore the reset attributes** on an amendment line.
 - **Removing a bundle component through an amendment** of the top-level asset.
+- **Changing a bundle component's plan or price through the top-level asset:** an
+  attribute amendment or a price amendment on the component's line, a swap of the
+  component asset, and a change to part of its quantity (10 of the sites). Help documents
+  both amendments on bundles without saying they can be made on a component's line
+  ([change-policy-mapping.md](change-policy-mapping.md)).
+- **Evergreen reductions and swaps:** what an amendment with `quantityChange` < 0, or a
+  swap's outgoing side, credits on an evergreen line. Only cancellation was measured.
 - **Renewing a standalone evergreen asset.** Help rules out uplift and end-date changes for
   evergreen assets but doesn't say what the renewal quote does to the line
   ([change-policy-mapping.md](change-policy-mapping.md)).
@@ -79,3 +86,8 @@ The Standard price book gave the same results.
   date order). The repo's group-ramp runs changed assets before a ramp segment's future
   state period, which comes from the ramp schedule rather than a future-dated transaction,
   so they don't settle it [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`].
+- **A change dated after a Term Defined asset's end date, or on its renewal date:** is an
+  amendment after the end of a term that wasn't renewed accepted, and does one dated on the
+  renewal start date price at the renewal's price? Only changes dated inside a ramped
+  renewal's term were run ([change-policy-mapping.md](change-policy-mapping.md) → Changes
+  dated at or after the term end).
