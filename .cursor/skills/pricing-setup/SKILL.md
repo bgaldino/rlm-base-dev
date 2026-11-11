@@ -82,6 +82,7 @@ The neighbouring skills own the rest:
 | Product cost, margin inputs, cost-based List Price | [`cost-books.md`](cost-books.md) |
 | Volume, tier, attribute or bundle adjustments; tiers; schedule migration | [`price-adjustment-schedules.md`](price-adjustment-schedules.md) |
 | Viewing, syncing, exporting/importing or bulk-loading pricing data | [`import-export-and-bulk-data.md`](import-export-and-bulk-data.md) |
+| Adding a second currency: what to enable, which records need a row per currency | [`import-export-and-bulk-data.md` → Adding a currency](import-export-and-bulk-data.md#adding-a-currency) |
 | Recipes: which tables a procedure may read; subtype; sync | [`pricing-recipes.md`](pricing-recipes.md) |
 | One-time / term / evergreen selling models; proration settings and policies | [`proration-and-selling-models.md`](proration-and-selling-models.md) |
 | Uplift and CPI: revision policies, index rates, regions, renewal math | [`price-revision-policies.md`](price-revision-policies.md) |

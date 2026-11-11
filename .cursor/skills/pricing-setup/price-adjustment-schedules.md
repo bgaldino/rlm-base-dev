@@ -98,7 +98,7 @@ Simulate a line at a quantity inside a band and check the waterfall step.
 | Symptom | Cause | Fix |
 |---|---|---|
 | Cannot add or change tiers | Schedule is active | Deactivate, edit, refresh (reactivating is not needed for volume tiers on 264; step 4) |
-| Tier discount missing for non-USD | Schedule duplicated per currency, or currency not matched | Single schedule, children carry currency |
+| Tier discount missing for non-USD | Schedule duplicated per currency, or currency not matched. A missing child row in that currency is a candidate cause, not measured ([open question](./import-export-and-bulk-data.md#open-questions)) | Single schedule; load one child row per currency ([Adding a currency](./import-export-and-bulk-data.md#adding-a-currency)) |
 | Attribute discount not applied (numeric) | Value without `.0` | Use `10.0` |
 | Attribute discount not applied after migration, table fresh | Conditions hash mismatch | Save an affected condition unchanged, then run a validation transaction |
 | Save error on attribute selection | Inherited or Boolean-picklist attribute | See limits |

@@ -4,7 +4,8 @@
 > `ind.pricing_view_pricing_data.htm`, `ind.pricing_export_and_import_your_pricing_data.htm`,
 > `ind.pricing_considerations_for_importing_and_exporting_pricing_data.htm`, `ind.pricing_sync_pricing_data.htm`,
 > `ind.pricing_update_your_product_price_range_entries_decision_table.htm`,
-> `ind.pricing_create_or_use_predefined_lookup_tables.htm`; `datasets/sfdmu/qb/en-US/qb-pricing/README.md`. Not live-verified except where tagged [Repo, measured].
+> `ind.pricing_create_or_use_predefined_lookup_tables.htm`, `ind.qocal_set_up_multiple_currencies.htm`,
+> `ind.product_catalog_turn_on_list_price_from_cache.htm`; `datasets/sfdmu/qb/en-US/qb-pricing/README.md`. Not live-verified except where tagged [Repo, measured].
 
 How to look at pricing records, move pricing metadata between orgs, and get changed records into the decision
 tables pricing reads.
@@ -57,8 +58,28 @@ Before import, check the org's decision table limit; importing without room fail
 
 - Order parents before children (price book/cost book before entries; schedule before tiers; attribute rule, then conditions, then adjustments with all conditions of a rule in one batch). Details: [price-adjustment-schedules.md](./price-adjustment-schedules.md#data-and-automation).
 - Deactivate the schedule before writing tiers or adjustments.
-- Multicurrency: one row per currency per entry; keep single schedules.
+- Multicurrency: one row per currency for each currency-matched record, adjustments included; keep single schedules ([Adding a currency](#adding-a-currency)).
 - Finish with the refresh rule above.
+
+## Adding a currency
+
+Prerequisites [Help: `ind.qocal_set_up_multiple_currencies.htm`]: turn on multiple currencies and activate the new currency in Setup; give the currency its prices in a price book; deactivate the pricing procedure version, map the `CurrencyIsoCode` input to `PricingCurrencyCode` in the Pricing Setting element, and activate it again. Enabling multicurrency while procedures on predefined tables are active, or adding the Currency field to a predefined table, needs the procedure or table deactivated first (see [price-books.md → How pricing uses it](price-books.md#how-pricing-uses-it)). With List Price from Cache on, refresh the cache after enabling multicurrency. [Help: `ind.product_catalog_turn_on_list_price_from_cache.htm`]
+
+What a pricing data pack loads for each extra currency, for example EUR next to USD:
+
+| Record | Per currency | Source |
+|---|---|---|
+| `PricebookEntry` | One row per product, selling model and currency | List Price step passes `CurrencyIsoCode` [Repo: `force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml`] |
+| `CostBookEntry` | One row per product and currency | `RLM_CostBookEntries` has a `CurrencyIsoCode` column [Repo: `unpackaged/pre/5_decisiontables/RLM_CostBookEntries.decisionTable-meta.xml`] |
+| `PriceAdjustmentTier` | One row per band and currency, percentage tiers included | The standard adjustment tables match on `PriceAdjustmentScheduleId` and `CurrencyIsoCode`, and the volume, attribute and bundle steps pass `CurrencyIsoCode` [Repo: `datasets/sfdmu/qb/en-US/qb-pricing/README.md`, `RLM_DefaultPricingProcedure`] |
+| `BundleBasedAdjustment` | One row per adjustment and currency | Same |
+| `AttributeBasedAdjustment` | One row per adjustment and currency | Same. In the repo plan its rules and conditions carry no currency and are shared [Repo] |
+| `PriceAdjustmentSchedule` | No: one per type, shared by every currency's children | [price-adjustment-schedules.md → Data and automation](price-adjustment-schedules.md#data-and-automation) |
+
+- Monetary values (`UnitPrice`, `Cost`, `Amount`/`Override` adjustment values) need the currency's own amount; percentage values are copied unchanged, and the repo still loads a row in each currency. [Repo: `scripts/expand_currency_pricing_data.py`] The effect of leaving a currency's row out is an open question (below).
+- [Repo] The QuantumBit plan loads seven currencies (USD corporate, plus GBP, EUR, AUD, CAD, CHF, JPY). The EUR rate lives in `datasets/sfdmu/qb/en-US/qb-pricing/CurrencyType.csv` (`ConversionRate` 0.876364 against USD 1). `scripts/expand_currency_pricing_data.py` builds every non-USD row from the USD row with that rate; it copies tier values unchanged because every QuantumBit tier is a percentage. Refreshing rates: [pricing-wiring → Wrong-currency price returned](../pricing-wiring/SKILL.md#wrong-currency-price-returned-multicurrency-orgs).
+- The procedure side must pass `CurrencyIsoCode` on every currency-denominated lookup, or a lookup returns another currency's row (same pricing-wiring section).
+- Finish with the refresh rule above, then Simulate one line in each currency.
 
 ## Bulk price edits
 
@@ -90,3 +111,8 @@ Then Simulate a known product and compare the waterfall with the source row.
 ## Open questions
 
 - Whether Package Manager components include price book records (Help implies metadata only).
+- What an adjustment or tier lookup returns for a currency that has no row of its own (no adjustment, an error, or another row) has not been measured; the repo loads every currency.
+- Whether pricing ever converts a corporate-currency row with the `CurrencyType` rate when a currency's row is missing is not stated in the 264 snapshot; the repo loads explicit rows.
+- Whether the predefined adjustment tables need the Currency field added by hand when multicurrency is enabled after the procedure exists; Help names only Price Book Entries V2 for that step (`ind.qocal_create_a_pricing_procedure_for_product_discovery.htm`).
+- `PricebookEntryDerivedPrice` has `CurrencyIsoCode` (Dev Guide) and the repo plan keys it on currency, but the plan ships no rows, so per-currency derived prices are untested here.
+- What Help means by "Only the Place Sales Transaction API supports multi-currency transactions" (`ind.qocal_set_up_multiple_currencies.htm`).
