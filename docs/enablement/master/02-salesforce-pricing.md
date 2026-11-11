@@ -120,7 +120,7 @@ QB orgs ship with the **Standard Price Book** (the default and only price book i
 3. View the related **Price Book Entries** list. Filter for `QB-API` to see all the entries.
 4. You'll see entries for Term Annual, Term Monthly, Evergreen Annual, etc., each with a UnitPrice. The Term Annual entry is the one that matters for Infinitech's standard 3-year deal.
 
-**Cost Books** (`CostBook`) track internal costs and are linked to Price Books via the `CostBook2.CostBookId` field. QB doesn't load cost data by default — `CostBookEntry` is `excluded: true` in the data plan — but the schema is in place for customers who want to track internal margins.
+**Cost Books** (`CostBook`) track internal costs and are linked to Price Books via the `Pricebook2.CostBookId` field. The QuantumBit pricing plan loads a cost book and its `CostBookEntry` rows (`datasets/sfdmu/qb/en-US/qb-pricing/`), and the default pricing procedure turns them into line cost and margin (`.cursor/skills/pricing-setup/scenarios/cost-and-margin.md`).
 
 ---
 

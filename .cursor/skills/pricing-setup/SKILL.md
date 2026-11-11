@@ -204,3 +204,6 @@ worktree, `.venv` lives in the main checkout):
     applied one after another.
   - [`scenarios/pricing-action-button.md`](scenarios/pricing-action-button.md) — Calculate
     Price on an Opportunity.
+  - [`scenarios/cost-and-margin.md`](scenarios/cost-and-margin.md) — unit cost, line
+    cost and margin, and a quote total cost, from cost book entries (repo wiring, not a
+    Help example).
