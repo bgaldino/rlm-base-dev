@@ -49,19 +49,13 @@ QuantumBit build.
       ([actions-and-objects.md](actions-and-objects.md)).
     - Standard approval fields can't be written through the sObject APIs
       [Help: `ind.approvals_design_build_activation`].
-6. **Extend the shipped workflow rather than adding a second one.** For a new dimension:
-    - add a fact to `RLM_Quote_Approval_Data`, and declare it as an output on the
-      `QueryApprovalData` step (`outputConfigParams`)
-    - add the new step's trigger condition as an OR condition on the `Requires_Approval`
-      decision, or a quote that triggers only the new dimension skips approval and goes
-      straight to Approved
-    - add a step with its own chain
-    - add two exit conditions for it, and a grouped `(completed OR not triggered)` clause
-      for them in the stage's `exitConditionLogic`
-    - add it to the rejection formula
-    - add an alert row and a template row
-
-   [Repo: `docs/features/composable-quote-approvals.md` → Adding A New Approval Dimension].
+6. **Extend the shipped workflow rather than adding a second one.** Follow the nine-step
+   recipe in `docs/features/composable-quote-approvals.md` → Adding A New Approval Dimension;
+   it is the one list to keep current. The two steps most often missed:
+    - the `Requires_Approval` decision must test the new step's trigger, or a quote that
+      triggers only the new dimension skips approval and goes straight to Approved;
+    - the stage's `exitConditionLogic` needs a `(completed OR not triggered)` clause for
+      the new step, or the stage can exit before it runs.
 7. **Reprice before you submit.** Line levels are written by the pricing procedure on each
    reprice; there is no staleness guard [Repo: `datasets/expression_set_overlays/README.md`].
 8. **Verify with a real submission, not only Preview.** Preview doesn't show steps whose entry
