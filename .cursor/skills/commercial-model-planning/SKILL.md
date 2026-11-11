@@ -291,17 +291,19 @@ python3 "$L" report   # writes verification/scorecard.md
   the audit's edits; the blind text is kept), `added`, `intake` (answers given at intake) or
   `owner` (decisions a person settled after the blind plan: the source owner or the
   build owner). Intake and owner items aren't predictions and are excluded from
-  accuracy. Without `--blind`, every item not
-  named by `--intake` or `--owner` is `blind`.
+  accuracy. With no blind plan, every item not
+  named by `--intake` or `--owner` is `blind`. `--blind`, `--intake` and `--owner` are
+  remembered, so a later `init` needs only `--plan`.
 - **Outcome,** set at each gate, against what the item predicts: a rule's native
-  feature, a decision's recommendation, a spike's recommended route (or, when it names
-  none, its must-hit at the named enforcement point). `affirmed`: it held and the goldens
+  feature, a decision's recommendation, a spike's must-hit at its enforcement point. A
+  rule with two "decided by" values takes the worse of its two parts; its Live part is
+  also measured by its spike. `affirmed`: it held and the goldens
   pass. `modified`: it held with different values or configuration. `refuted`: it
   failed, and a fallback or another route was used. Otherwise `inconclusive`.
 - **`--blind-right`** (edited items only): whether the blind text would have held, so
   the audit's edits are measured too. Record it once; the report uses the latest
   answer given.
-- `init` finds the plan's sections by the template's headings and labels ("2. Decisions",
+- `init` finds the plan's sections by the names the template gives them ("2. Decisions",
   "Rule decision record", "P2 Live spikes"; see [plan-template.md](plan-template.md)). It
   fails when it finds no rule or decision rows, and warns when it finds no spikes. Re-running it adds new rows, keeps every recorded outcome
   and first prediction, and re-applies `--intake` and `--owner`, so a decision the source

@@ -28,12 +28,13 @@ Origins (set by init):
   intake   a decision the build owner gave at intake (--intake): not a prediction
   owner    a decision a person settled after the blind plan, the source owner or the
            build owner (--owner): not a prediction
-Without --blind, every row not named by --intake or --owner is "blind". Intake and owner
-items are excluded from accuracy.
+With no blind plan, every row not named by --intake or --owner is "blind". Intake and
+owner items are excluded from accuracy. --blind, --intake and --owner are remembered, so
+a later init needs only --plan.
 
 Outcomes (set by record), judged against what the item predicts (a rule's native
-feature, a decision's recommendation, a spike's recommended route or, when it names
-none, its must-hit at the named enforcement point): affirmed (held, goldens pass),
+feature, a decision's recommendation, a spike's must-hit at its enforcement point; a
+rule with two decided-by values takes the worse of its parts): affirmed (held, goldens pass),
 modified (held with different values or configuration), refuted (failed; a fallback or
 another route was used), inconclusive. New items are pending.
 
@@ -68,8 +69,9 @@ def section_lines(lines, marker):
     """The plan's lines that lie in any section for `marker`, others blanked (so tables in
     different sections never join). A section starts at a heading or bold label (a line
     starting "**") that holds the marker, ignoring case. A heading ends at the next heading
-    of the same or a higher level; a label ends at the next heading, so its phase's other
-    bold lines (Skills, Gate) stay inside it. Overlapping sections are read once."""
+    of the same or a higher level; a label ends at the next heading or the next label
+    (the next phase), while bulleted bold lines ("- **Gate:**") stay inside it.
+    Overlapping sections are read once."""
     want = marker.lower()
     keep = set()
     for start, line in enumerate(lines):
@@ -79,6 +81,8 @@ def section_lines(lines, marker):
         for i in range(start + 1, len(lines)):
             h = heading_level(lines[i])
             if h and (not level or h <= level):
+                break
+            if not level and lines[i].startswith("**"):
                 break
             keep.add(i)
     return [l if i in keep else "" for i, l in enumerate(lines)]
@@ -347,7 +351,7 @@ def main(argv=None):
 
     i = sub.add_parser("init", help="build or update the ledger from the plan")
     i.add_argument("--plan", required=True, help="the plan the build follows")
-    i.add_argument("--blind", help="the blind plan, as generated before any edit")
+    i.add_argument("--blind", help="the blind plan, as generated before any edit (remembered)")
     i.add_argument("--intake", help="decision IDs given at intake, e.g. D1-D6 (remembered)")
     i.add_argument("--owner", help="decision IDs the source owner settled, e.g. D7,D8 (remembered)")
     for k in KINDS:

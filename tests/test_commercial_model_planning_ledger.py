@@ -66,7 +66,7 @@ What D2 changes:
 
 **P2 Live spikes** (each on its own org)
 
-**Skills:** `asset-lifecycle-changes`
+- **Skills:** `asset-lifecycle-changes`
 
 | Spike | Rules | Must hit | Smallest case | Read first |
 |---|---|---|---|---|
@@ -77,6 +77,10 @@ What D2 changes:
 | Not | a spike |
 |---|---|
 | X-01 | ignored |
+
+| Check | Must hit |
+|---|---|
+| G-1 | a gate check, not a spike |
 """
 
 PLAN = (BLIND

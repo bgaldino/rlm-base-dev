@@ -98,7 +98,9 @@ that must never be presented).
 ## 5. Phases, gates, skills
 
 Dependencies on one line, for example `P1 → P2 → P3a → (P3b ∥ P4) → P5 → P6 → P7 → P8 → P9`.
-For each phase:
+Each phase opens with an unbulleted bold label naming it (for example
+**P2 Live spikes**, in those words, since the verification ledger finds the spike table
+by that name), followed by bullets:
 - the work items,
 - **Skills:** the skills and sub-files to read first,
 - the **Gate:** what must pass, and on which org.
@@ -109,7 +111,7 @@ The usual phases:
 |---|---|
 | P0 Environment | Integration org through the build harness, on a named scenario or shape, with a lifetime that covers the build (shipped scenarios use `days: 1`; see `build-harness` → Keep an org for a multi-day build); feature and enablement checks; tooling. A checklist of the org settings the plan relies on. Some have no API: the Salesforce Pricing Setup default term counts (Evergreen, One Time) are read in Setup → Salesforce Pricing Setup → Proration Settings (a fresh 264 `ent-sb0` org showed Evergreen 1, One Time 0), or the plan adds a step that sets them |
 | P1 Extraction | Source → design model and golden values; the converter's acceptance tests (section 3, Extraction); an independent re-check: a fresh agent without the converter recomputes a sample of the golden values, weighted to derived ones where the source has any, or all of them when there are few (exercised: a prior build ran it as written); user reviews the design |
-| P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table under a label reading **P2 Live spikes**, with columns spike ID, rules, must hit, smallest case, read first. A spike that chooses between routes lists each candidate's catalog and model prerequisites |
+| P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table under the phase's label, with columns spike ID, rules, must hit, smallest case, read first. A spike that chooses between routes lists each candidate's catalog and model prerequisites |
 | P3 Catalog, then configuration | Data plans derived from the base build's own plans; CML. Waits for any spike whose chosen route changes the catalog or the model, or builds every candidate route's prerequisites |
 | P4 Pricing and cost | Price books, adjustments, procedure changes, cost wiring |
 | P5 Negotiation, approvals, runtime surface | Quote rounds, approvals, Transaction Line Editor configuration |
