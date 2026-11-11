@@ -32,7 +32,8 @@ files can use it.
    product, option, price and "not available with" state. Map from the inventory,
    never from memory of the source.
 3. **Decide each rule's knowledge source explicitly.** A repo skill or the
-   `docs/salesforce/<release>/` snapshot settles it, or a live org must. Having no
+   `docs/salesforce/<release>/` snapshot settles it, its build gate does (a custom
+   computation), or a live org must. Having no
    skill is a gap to record, not a reason for a live spike. Use the
    rule in [knowledge-sources.md](knowledge-sources.md): the per-area table holds the
    evidence, and the per-rule decision record holds each rule's decision.

@@ -17,8 +17,8 @@ spike. Model the rule directly; its build gate proves it.
 
 **A custom computation is not a platform behaviour.** A value the build computes itself,
 such as a fee, a derived total or a field formula, has nothing on the platform to
-observe. Its build gate decides it; record it as a skill gap if no skill shows the
-pattern.
+observe. Record it as **Build (custom)**: its build gate decides it. Record it as a skill
+gap too if no skill shows the pattern.
 
 **A skill's `[inferred]` claim is a hypothesis,** not a measured fact. Record it as
 **Repo (inferred)**, decided at its build gate, unless it predicts that shipped
@@ -91,7 +91,7 @@ Put two records in the plan. **Per area, the evidence,** one row per area:
 
 | Area | Repo skills (files) | Snapshot coverage (regex: counts, key articles) | Prior measured knowledge | Decided by | Why |
 |---|---|---|---|---|---|
-| \<area\> | `skill/sub-file.md` | `\bterm\b`: help 12, dev 3; `article-name` | dated measurements, from skills or earlier builds | **Repo** / **Repo (inferred)** / **Snapshot** / **Live (a–d)** | one line |
+| \<area\> | `skill/sub-file.md` | `\bterm\b`: help 12, dev 3; `article-name` | dated measurements, from skills or earlier builds | **Repo** / **Repo (inferred)** / **Snapshot** / **Build (custom)** / **Live (a–d)** | one line |
 
 Its "Decided by" column summarizes the area. **Per rule, the decision:** the rule
 decision record ([plan-template.md](plan-template.md)) gives each rule its own decided-by
@@ -99,15 +99,16 @@ value, and a rule can carry two (for example **Repo** on a new sale, **Live (c)*
 amendment). Spikes come from the per-rule record.
 
 Every rule decided **Live** becomes a spike, with:
-- the value it must hit, in the platform's own measure (for example the per-period
-  amount an Evergreen line shows), with the source's value reached through the mapping,
+- the value it must hit, in the platform's own measure (for example the amount an
+  Evergreen line shows for the Pricing Setup default term count: one period at `1`),
+  with the source's value reached through the mapping,
 - the skills and articles to read before touching the org,
 - the smallest case that proves it.
 
 Don't plan a spike that re-measures a failure a skill already records; cite the skill,
 and spike only the untested route around it.
 
-Every rule decided **Repo**, **Repo (inferred)** or **Snapshot** is proved at its build gate. A **Snapshot**
+Every rule decided **Repo**, **Repo (inferred)**, **Snapshot** or **Build (custom)** is proved at its build gate. A **Snapshot**
 area with no skill is also listed in the plan's skill gaps.
 
 ## After the build
