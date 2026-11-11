@@ -98,10 +98,9 @@ results, 2026-11-11).
     - A positive API amendment keeps the price on the parent.
     - A positive amendment edited in the UI also moved its price to detail rows (+2 and −1
       at the unit price) [Measured: 2026-11-05, 264].
-    - Detail rows on a reduction split last in, first out, one row per earlier lot: a
-      reduction larger than the latest add took all of that add, then the rest from the
-      original lot, each at its own price. A renewal priced each lot on its own row [Measured: 2026-11-11, 264, fresh
-      `ent-sb0` scratch org].
+    - A reduction's detail rows came one per earlier lot it drew from, last in, first out.
+      A renewal priced each lot on its own row [Measured: 2026-11-11, 264, fresh `ent-sb0`
+      scratch org].
     - Read detail rows, or coalesce them, in anything that reports line prices.
 5. **One-time lines have no term to renew; Term Defined bundles renew in place.**
     - Renewing a one-time product sets its quantity to zero [Help:
@@ -131,7 +130,8 @@ results, 2026-11-11).
       an anniversary [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. A Term
       Defined top-level cancellation (`initiateCancellation`) and the invoice-level values
       are separate measurements ([verification.md](verification.md) → Open).
-    - The only credit measured on an evergreen line is the cancellation's above. Help says
+    - The only quantity credit measured on an evergreen line is the cancellation's above (a
+      price amendment's credit rows are in Quick Rule 3). Help says
       an evergreen reduction takes units last in, first out from the current quantity, and
       a swap acts as an add plus a negative amendment [Help:
       `ind.qocal_fdo_examples_of_amendment_types_and_results`], but not what either credits.
