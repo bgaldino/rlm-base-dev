@@ -87,6 +87,7 @@ in November 2026.
 | Build many renewal-ready assets or lifecycle history for a demo | `renewal-asset-creation` |
 | Ramped (group ramp) quotes and their bundles | `ramped-quotes` → `bundle-children-lifecycle.md` |
 | Renewal price uplift (price revision policy, CPI) | `pricing-setup` → `price-revision-policies.md`; `pricing-procedures` → `elements/price-revision-compound-uplift.md` |
+| What the line editor shows on amendment, renewal and cancellation lines | `transaction-line-editor` |
 
 ## Sub-files
 
