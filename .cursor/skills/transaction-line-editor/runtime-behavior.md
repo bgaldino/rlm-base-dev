@@ -43,9 +43,10 @@ Measured traps:
 [Help: `ind.qocal_view_and_edit_quotes`]
 
 - Click a cell, edit, save. **Bulk edit:** select several lines, edit the cell on one, save; the value
-  goes to all selected lines. The STLE bulk-edits groups too; its bulk actions are editing fields,
+  goes to all selected lines. The STLE bulk-edits groups too; its bulk actions include editing fields,
   updating discounts and deleting selected lines or groups [Help: `ind.qocal_view_and_edit_orders`,
-  `ind.qocal_customize_transaction_line_editor`]. Help gives no cap on the selection and doesn't say
+  `ind.qocal_customize_transaction_line_editor`]. Those articles and `ind.qocal_limits` give no cap on
+  the selection, and they don't say
   whether bundle child lines can be selected for a bulk edit (see the parent's Open list).
   **Bulk Delete** can't be used on a quote or order with a group ramp schedule
   [Help: `ind.qocal_ramp_deal_for_groups_manage`].
@@ -89,26 +90,35 @@ Measured traps:
 ### One discount on one product line inside a bundle
 
 A rep may want one discount on every line of one product line, for example all the components of
-one family inside a suite bundle. Help gives the editor no feature for this; it rules out the filter
-route and leaves the others unconfirmed:
+one family inside a suite bundle. None of the line editor articles cited here describes a feature
+for this; Help rules out the column filter route and leaves the others unconfirmed:
 
-- **Column filter, then bulk edit:** the filter returns parent lines only and leaves bundle children
-  out [Help: `ind.qocal_view_and_edit_quotes`], so it can't narrow the grid to one product line
-  inside a bundle.
+- **Column filter, then bulk edit:** the column filter returns parent lines only and leaves bundle
+  children out [Help: `ind.qocal_view_and_edit_quotes`], so it can't narrow the grid to one product
+  line inside a bundle.
+- **STLE advanced filter, then bulk edit:** advanced filters take up to 5 conditions on line fields or
+  fields one relationship away [Help: `ind.qocal_filter_line_items_with_standard_and_advanced_filters`];
+  that article doesn't say whether bundle child lines are included.
 - **Group By that column, then discount the group:** automatic grouping is TLE only
   [Help: `ind.qocal_view_and_edit_quotes`], and the STLE is the editor Help recommends
   [Help: `ind.qocal_customize_transaction_line_editor`]. A group row takes an Adjustment Type field
   only when that field is in Display Columns and selected for the Adjustment Type column
   [Help: `ind.qocal_adjustment_type_column`]; the repo's quote page selects only
-  `QuoteLineItem.DiscountAmount` and `QuoteLineItem.Discount`, so it configures no group-row discount
-  [Repo: `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`]. Help shows group-row
-  discounts only for group ramps [Help: `ind.qocal_basic_example_ramp_deals_for_groups`,
-  `ind.qocal_ramp_deals_for_groups_transition`, `ind.qocal_ramp_schedule_with_trial_and_proration_segments`].
+  `QuoteLineItem.DiscountAmount` and `QuoteLineItem.Discount` there, and none of its display columns is
+  a group discount field [Repo: `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`]. The group-ramp articles
+  show a rep entering a discount on a group [Help: `ind.qocal_basic_example_ramp_deals_for_groups`,
+  `ind.qocal_ramp_deals_for_groups_transition`, `ind.qocal_ramp_schedule_with_trial_and_proration_segments`],
+  and the STLE overview lists updating discounts among its bulk actions on lines or groups
+  [Help: `ind.qocal_customize_transaction_line_editor`].
+  On the pricing side, the Propagation element applies discounts from groups to line items
+  [Help: `ind.pricing_essentials`]; this repo ships it off (`IsPropagationEnabled` false) in the
+  procedures that carry it [Repo: `.cursor/skills/pricing-procedures/elements/price-propagation.md`].
 - **Select the lines by hand and bulk edit:** applies one value to every selected line
   [Help: `ind.qocal_view_and_edit_quotes`]; whether bundle children can be selected is not stated.
 
-Whether bulk edit, Move Selected Items or Group By reach bundle child lines, and whether a group-row
-discount reaches children grouped apart from their root, are open (see the parent's Open list).
+Whether bulk edit, Move Selected Items, Group By or the STLE filters reach bundle child lines, and
+whether a group-row discount reaches children grouped apart from their root, are open (see the
+parent's Open list).
 Don't promise a one-step product-line discount inside a bundle in a demo until one is measured.
 A discount that must apply on every quote, not by a rep's hand, is a pricing question; see
 [`pricing-procedures`](../pricing-procedures/SKILL.md).
