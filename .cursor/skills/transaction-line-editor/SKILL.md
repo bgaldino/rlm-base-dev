@@ -188,11 +188,16 @@ patches:
       - "QuoteLineItem.RLM_Example__c"
 ```
 
-If `example` is a new flag, add it to `project.custom` in `cumulusci.yml`, to
-`scripts/ux/_flags.py::UX_KNOWN_FLAGS` (the assembler treats any other flag as off, and `ux_tool.py`
-rejects it in `--flag`), and register the patch directory's gate in
-`scripts/ux/_flags.py::FLEXIPAGE_PATCH_ORDER`. Then run `cci task run assemble_and_deploy_ux -o deploy false`, and confirm the field is in
-`unpackaged/post_ux/` only for a flag-on assembly [Repo: `scripts/ux/_patch_ops.py`, `scripts/ux/_flags.py`].
+If `patches/example/` is a new directory, register it with its gate in
+`scripts/ux/_flags.py::FLEXIPAGE_PATCH_ORDER`; the assembler applies only listed directories and
+never reads the YAML's `feature_flag:` key. If `example` is also a new flag, add it to
+`project.custom` in `cumulusci.yml` and to `scripts/ux/_flags.py::UX_KNOWN_FLAGS` (the assembler
+treats any other flag as off, and `ux_tool.py` rejects it in `--flag`). Then check both flag
+states into a scratch directory, which leaves `unpackaged/post_ux/` alone:
+`python scripts/ux/ux_tool.py assemble --flag example=true --output-path <scratch_dir>` (the field is
+in the quote page) and the same with `example=false` (it isn't). Finish with
+`cci task run assemble_and_deploy_ux -o deploy false` at the committed default flags
+[Repo: `scripts/ux/_patch_ops.py`, `scripts/ux/_flags.py`, `scripts/ux/ux_tool.py`].
 
 **A rep says the amendment line lost its price.** After a UI quantity edit on an amendment line,
 Sales Price and Net Unit Price are blank on the parent and the price sits on detail rows (for

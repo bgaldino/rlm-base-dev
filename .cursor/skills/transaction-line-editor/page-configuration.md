@@ -54,7 +54,8 @@ property list or the anchor is missing it logs a warning and adds nothing [Repo:
 already present and warns if there is no list [Repo: `scripts/ux/_patch_ops.py`]. The order page
 sets no `displayFields`, so a `displayFields` patch of either type has no list to add to there:
 add the property to the order template first. There is no patch type that removes a column or
-sets a scalar property; change the base template, or as a last resort use `insert_after_xml`.
+changes a scalar property; change the base template. `insert_after_xml` only inserts an XML fragment
+after an anchor, so at most it can add a property the template lacks.
 
 **Value syntax** in the templates [Repo: quote page template]:
 

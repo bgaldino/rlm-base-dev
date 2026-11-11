@@ -207,5 +207,6 @@ Renewal and cancellation line display in the STLE was not measured; see the pare
 6. Amendment demo: no inline quantity edit on configured products; explain blank parent prices as
    detail-row pricing if they appear.
 7. Don't count on Reprice All producing a visible change: on an already-priced quote with nothing
-   changed since, our run showed none. Help says it fully reprices every line, so changed pricing data
-   since the last run will show.
+   changed since, our run showed none. After changing prices or the catalog, refresh the decision
+   tables first [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`]; Reprice All alone
+   may not show the new price.
