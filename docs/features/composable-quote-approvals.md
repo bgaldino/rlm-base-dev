@@ -155,9 +155,10 @@ Run these checks before treating an approval-flow change as ready:
 - Re-running `prepare_approvals` is idempotent.
 - If the approval-flags overlay or the approvals context plan changed: on a fresh build,
   `cci flow run prepare_approvals_pricing --org <cci_alias>` applies both. On an org that
-  already has them, it applies only additions; change an existing overlay step with
-  `updateSteps` (`.cursor/skills/expression-sets/`) and deactivate the context version before
-  changing a mapping (`.cursor/skills/context-service/`). Reprice before testing.
+  already has them, a rerun adds new steps and variables, fails on an existing step whose
+  content changed (move it to `updateSteps`, `.cursor/skills/expression-sets/`), and skips a
+  changed existing variable silently. Deactivate the context version before changing a
+  mapping (`.cursor/skills/context-service/`). Reprice before testing.
 - Preview Approvals doesn't show steps whose entry conditions depend on the
   `QueryApprovalData` background step's subflow. The Help workaround, mock output values set
   in Flow Builder, edits the flow: do it only in a throwaway version that is never committed
@@ -170,6 +171,9 @@ Run these checks before treating an approval-flow change as ready:
 - **Rejection handling**: Rejecting any active work item routes the quote to `Rejected`.
 - **Resubmission**: Resubmission after rejection or recall keeps expected work items Smart
   Approval eligible.
+- **Recall**: check the quote status after a recall. The flow has no recall path, so the
+  quote stays `Pending`; the `RLM_Approval_Status` value set already has a `Recalled` value
+  that nothing sets yet.
 - `python scripts/ai/check_plan_readme_consistency.py --strict datasets/sfdmu/qb/en-US/qb-approvals`
   reports zero errors, zero warnings after notification dataset changes.
 - `python scripts/validate_sfdmu_v5_datasets.py` reports no findings against the composable-approvals

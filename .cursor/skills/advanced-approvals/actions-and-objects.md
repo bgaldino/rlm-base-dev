@@ -25,7 +25,7 @@ org [Measured: 2026-11-10, 264]. `ApprovalDelegation` wasn't present there.
 | Override | `overrideApprovalWorkItem`, same inputs [Dev guide: `actions_obj_override_approval_work_item`] | Approval Admin; item `Assigned` |
 | Reassign | `reassignApprovalWorkItem` with `approvalWorkItemId`, `assigneeId`, `comments` | Approval Admin; item `Assigned`. Makes a later resubmission ineligible for Smart Approvals |
 | Recall | `recallApprovalSubmission` with `approvalSubmissionId`, `comments` [Dev guide: `actions_obj_recall_approval_submission`] | Submission InProgress or Suspended. The dev guide says Approval Admin and submitter [Dev guide: `actions_obj_recall_approval_submission`]; the Help personas table gives submitters recall with Run Flows plus Read [Help: `ind.approvals_personas`]. The measured run was an admin who was also the submitter |
-| Cancel | `cancelApprovalSubmission` with `approvalSubmissionId`, `comments` | Approval Admin |
+| Cancel | `cancelApprovalSubmission` with `approvalSubmissionId`, `comments` [Dev guide: `actions_obj_cancel_approval_submission`] | Approval Admin; submission InProgress or Suspended |
 | Preview | `POST /connect/advanced-approvals/approval-submission/preview` with `flowApiName`, `objectApiName`, `recordId`, `inputParameters` [Dev guide: `connect_resources_preview_approvals`]; v65+, `inputParameters` v67+ | Creates nothing |
 | Prior submission data | `getPreviousRelaRecDetails` (v66+) | For rule-based auto-approval |
 

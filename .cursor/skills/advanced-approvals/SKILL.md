@@ -118,6 +118,7 @@ This table is a snapshot as of 264 and will age. To see what ships now, run
 | `datasets/expression_set_overlays/approval_flags.json` (`apply_approval_flags_overlay`) | Sets each line's level from its discount on every reprice: 15% to under 25% → 1 Manager, 25% to under 35% → 2 Director, 35% to under 100% → 3 VP |
 | `datasets/context_plans/Approvals` (`apply_context_approvals`) | Maps the two line fields into `RLM_SalesTransactionContext` so pricing can write them |
 | `RLM_Quote_Smart_Approval` (orchestration) | Background data step → approval stage with a Discount chain (Manager → Director → VP, cumulative) and a Finance chain (payment terms other than Net 30) → Approved or Rejected stage. Level 0 with Net 30 skips approval |
+| `force-app/main/default/groups/` | The `Manager`, `Director` and `VP` public groups the steps assign to, shipped with no members; no task adds members |
 | `datasets/sfdmu/qb/en-US/qb-approvals` + `create_approval_email_templates` | Lightning email templates and the alert definitions that link them to steps |
 
 Measured end to end on a QuantumBit build [Measured: 2026-11-10, 264]:
@@ -167,8 +168,9 @@ needs a Manager, below 65% a Director, below 60% the VP.
 **Find out why a quote is stuck at Pending.** Query its `ApprovalSubmission` and work
 items:
 - An `InProgress` submission with no `Assigned` item, after allowing a few seconds for the
-  asynchronous orchestration, usually means a stage exit condition is missing for a step
-  that never started. Check the stage exit logic against the flow, and Paused and Failed
+  asynchronous orchestration, usually means the stage's exit logic waits on a step that
+  never started: it requires that step to be completed, with no "not triggered"
+  alternative (Quick Rule 4). Check the stage exit logic against the flow, and Paused and Failed
   Interviews [Help: `ind.approvals_approval_process_execution`].
 - A `Recalled` submission with the quote at Pending is the missing recall path above.
 
@@ -178,9 +180,11 @@ items:
   [Repo: `docs/features/composable-quote-approvals.md` → Verification Checklist].
 - The approval-flags overlay and the approvals context plan are applied by
   `prepare_approvals_pricing`, not `prepare_approvals`. On a fresh build it applies both.
-  On an org that already has them, rerunning it applies only additions: a changed overlay
-  step must go through `updateSteps` (`expression-sets`), and a changed context mapping needs
-  the version deactivated first (`context-service`). Reprice before testing.
+  On an org that already has them, a rerun adds new overlay steps and variables, but an
+  existing step with changed content (the thresholds are in step criteria) fails the task
+  until it moves to `updateSteps` (`expression-sets`), and a changed existing variable is
+  skipped silently [Repo: `tasks/rlm_expression_set_connect.py`]. A changed context mapping
+  needs the version deactivated first (`context-service`). Reprice before testing.
 - Run the headless test in [actions-and-objects.md](actions-and-objects.md) for these paths:
     - no-approval
     - each single dimension

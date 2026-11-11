@@ -74,7 +74,8 @@ where each level is computed:
 ## 4. Approvers
 
 - Assign by group or queue name rather than by ID. The shipped flow assigns to groups
-  `Manager`, `Director` and `VP`.
+  `Manager`, `Director` and `VP`, which ship in `force-app/main/default/groups/`. A new
+  approver tier needs its own group there.
 - In a fresh scratch org those groups have no members. An org admin who wasn't a member
   could still review those items with `reviewApprovalWorkItem` [Measured: 2026-11-10, 264].
   The dev guide requires the reviewer to be the assignee, a group or queue member, a delegate
@@ -97,7 +98,8 @@ design doc requires threshold policy to be externalized before adding one
 exception. The steps below keep the shipped hard-coded thresholds and don't show it.
 
 1. The pricing procedure keeps writing the line discount level (the shipped overlay,
-   thresholds edited).
+   thresholds edited; on an org that already has the overlay, through `updateSteps`, since
+   a rerun fails on a changed step).
 2. `RLM_Quote_Approval_Data` reads the quote and returns:
     - `DiscountApprovalLevel`, from the roll-up;
     - `MarginApprovalLevel`, from the quote's margin;

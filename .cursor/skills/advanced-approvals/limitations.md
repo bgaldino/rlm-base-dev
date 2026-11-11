@@ -83,7 +83,7 @@ After a full approval, the next submission is a new request, not a resubmission.
   (through its profile and `RLM_CLM`), which the personas table allows to review any work item, so they don't
   settle what an ordinary reviewer needs.
 - Which Approval Settings a fresh scratch org has on, and whether Metadata API can set them.
-- Whether a dynamic (Resource) approver works at runtime, and whether there is a
+- Whether a Resource-type approver works at runtime, and whether there is a
   manager-hierarchy approver.
 - Whether Smart Approvals accepts roll-up summary, Percent, Currency or picklist
   conditions as Number or Text.
