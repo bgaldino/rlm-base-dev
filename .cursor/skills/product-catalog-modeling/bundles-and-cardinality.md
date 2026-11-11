@@ -25,6 +25,39 @@ configurator decisions. **Choose configurable when** anything (a child, a quanti
 attribute) is the buyer's choice. A configurable *simple* product is the right shape for a
 single SKU whose only choices are attributes. [Help: `ind.product_catalog_products.htm`]
 
+### Static kit or locked configurable bundle, when children recur
+
+A kit that never varies but whose children are Term Defined or Evergreen (support or a
+subscription that must renew or bill on its own model) is not settled by the rule above:
+
+- **Help says to set no component selling model on either shape's rows.** Under a new
+  static bundle, select None as the parent selling model and no component selling model;
+  for a configurable bundle, select no component selling model. The shipped q3 static
+  bundle `CERT007` sets both (see the linked section). Children keep their own selling
+  model options. [Help: `ind.product_catalog_add_components_to_a_static_product_bundle.htm`; `ind.product_catalog_product_relationships.htm`; [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles)]
+- **For a bundle's children, the run-time selling model choice Help documents is in the
+  configurator.** Product Discovery's buying options offer one for the item being added;
+  the configurator's Product Header offers one for each product or option; and a static
+  bundle cannot be configured at run time. [Help: `ind.qocal_discover_and_configure_products.htm`; `ind.product_configurator_flow_product_header.htm`; `ind.product_catalog_create_bundled_products.htm`]
+  No snapshot article says which selling model a static kit's Term Defined or Evergreen
+  child is quoted on, or whether it then renews and bills on it: **Open — needs live
+  verification.**
+
+Until that is measured, the shape to test against a static kit is a **locked configurable
+bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child with
+*Require this component* and *Include component by default* on and *Allow quantity changes*
+(`IsQuantityEditable`) off, and group limits that pass
+[Validate Product Definition](#mistakes-validate-product-definition-catches).
+[Help: `ind.product_catalog_products.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_bundled_product_validations.htm`]
+On one measured component with `IsQuantityEditable = false`, a CML rule that set its
+quantity returned `success: true`, and the line drew a PCM `bundlevalidation` warning. [Repo: `constraint-models/quantities-from-attributes.md`, run M16]
+Root and child renewal rules by selling model are in
+[`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
+Whether a fully locked configurable bundle still opens the configurator and shows each
+child's selling model selection, and how its locked children behave on amend and renew
+(whether a child's selling model or quantity can change, whether the lock holds on the
+renewal quote): **Open — needs live verification.**
+
 ## Structure rules
 
 | Rule | Static bundle | Configurable bundle |

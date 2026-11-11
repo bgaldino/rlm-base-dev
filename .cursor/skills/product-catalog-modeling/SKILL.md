@@ -201,7 +201,8 @@ several PCM lookups are create-only, so a partial failure needs a delete before 
 Read the one your decision needs:
 
 - [`bundles-and-cardinality.md`](bundles-and-cardinality.md) — read when designing a
-  bundle: static vs configurable rules, group nesting, group vs local cardinality,
+  bundle: static vs configurable rules (and a locked configurable bundle when a fixed kit's
+  children recur), group nesting, group vs local cardinality,
   defaults and required components, quantity scaling, price-includes-child, validation.
 - [`attributes-and-classifications.md`](attributes-and-classifications.md) — read when
   placing attributes: picklists, classifications and subclassifications, the four levels
@@ -296,6 +297,10 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Which mixed root/child shapes ramp deals support.** Help's ramp-deal considerations
   list them, but the snapshot drops the supported marks. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
+- **Recurring children in a fixed kit.** Which selling model a static kit's Term Defined
+  or Evergreen child is quoted, renewed and billed on; and whether a fully locked
+  configurable bundle still opens the configurator, and how its locked children amend and
+  renew. See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur).
 - **Bundle-based adjustments under a new static bundle**, whose component rows carry
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
