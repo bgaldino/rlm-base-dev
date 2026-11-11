@@ -45,7 +45,8 @@ cloning the previous round. Claims are tagged: `[Help: <article>]` and
    repo's approval status field came over blank, and submitting it created a new submission
    while the source's stayed in progress [Measured: 2026-11-10, 264]. Smart Approvals skips
    steps only on a resubmission of the same record ([Approvals per round](#approvals-per-round)).
-6. **Only the Award round syncs and becomes the order.** One quote syncs per opportunity:
+6. **One round syncs at a time, and only the Award round becomes the order.** Keep the current
+   customer-facing round synced. One quote syncs per opportunity:
    syncing a new round unsynced the previous one [Measured: 2026-11-10, 264]. Help converts an
    accepted quote into an order [Help: `ind.qocal_create_orders_from_a_quote`].
 7. **An internal round needs a gate you build and test.** The docs have no internal-only
@@ -129,13 +130,16 @@ ships). Reprice each round before submitting it.
   [Help: `ind.approvals_smart_approvals`]. It is turned on per approval step, Use Smart
   Approval [Help: `ind.approvals_turn_on_smart_approvals`]; the repo's four steps set
   `CanUseSmartApproval` [Repo: `unpackaged/post_approvals/flows/RLM_Quote_Smart_Approval.flow-meta.xml`].
-  Its eligibility rules (earlier submission Rejected or Recalled, at least one step approved,
-  same flow version) are in `advanced-approvals` → `limitations.md`.
+  Its eligibility rules (earlier submission Rejected or Recalled, reached at least 2 steps,
+  at least one step approved, same flow version) are in `advanced-approvals` → `limitations.md`.
+  After a full approval, the next submission is a new request, not a resubmission (same file).
   A round that is a new quote has no previous submission, so its first submission is a new
   request; that is inferred from those rules and from the measured clone having none.
   - Use **clone per round** when each round's numbers must be kept.
   - Use **revise and resubmit the same quote** within a round (the customer pushes back,
-    the rep adjusts) to get Smart Approvals.
+    the rep adjusts) to get Smart Approvals, before the round is fully approved. A quote whose
+    submission has only one step (in the repo, a level-1 quote on Net 30 creates only the Manager item) can't
+    qualify.
 
 ## Award round to order
 
@@ -146,7 +150,8 @@ ships). Reprice each round before submitting it.
    [Dev guide: `actions_obj_sync_quote_opportunity`]. The repo's quote page has the
    `SyncQuote` action [Repo: `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`].
 2. Set it to Accepted, then Create Order [Help: `ind.qocal_create_orders_from_a_quote`], or
-   `createOrderFromQuote` with `quoteRecordId` [Dev guide: `actions_obj_create_order_from_quote`].
+   `createOrdersFromQuote` with `quoteId` [Dev guide: `actions_obj_create_orders_from_quote`].
+   `createOrderFromQuote` is deprecated from API 65.0 [Dev guide: `actions_obj_create_order_from_quote`].
 3. Close out the other rounds: recall open submissions; set customer-facing rounds that
    lost to Denied if your process tracks that.
 

@@ -26,7 +26,7 @@ That is the form measured below; the dev guide's examples show a line id in `rec
   [Dev guide: `connect_responses_clone_sales_transaction_output`].
 - Measured on two whole-quote clones: the response also carried `trackerId` and
   `trackerUrl`; `requestId`, `trackerId` and `trackerUrl` were all null;
-  `salesTransactionId` was the **new** quote's id; the new quote read
+  `salesTransactionId` was the **new** quote's id. After the first clone, the new quote read
   `CalculationStatus = CompletedWithPricing` on the first query, about 5 seconds later
   [Measured: 2026-11-10, 264].
 - `Quote.CalculationStatus` has `QueuedForClone`, `CloneInProgress` and `CloneFailed`
