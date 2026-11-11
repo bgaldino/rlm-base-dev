@@ -68,14 +68,14 @@ The Standard price book gave the same results.
   invoice. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 - **Whether the configurator can restore the reset attributes** on an amendment line.
 - **Removing a bundle component through an amendment** of the top-level asset.
-- **Changing a bundle component's plan or price through the top-level asset:** an
-  attribute amendment or a price amendment on the component's line, a swap of the
-  component asset, and a change to part of its quantity (10 of the sites). Help documents
+- **Changing a bundle component's plan or price:** through an amendment of the top-level
+  asset (an attribute or price amendment on the component's line, or a change to part of
+  its quantity, 10 of the sites), or through a swap of the component asset. Help documents
   both amendments on bundles without saying they can be made on a component's line
   ([change-policy-mapping.md](change-policy-mapping.md)).
 - **Evergreen reductions and swaps:** what an amendment with `quantityChange` < 0, or a
-  swap's outgoing side, credits on an evergreen line. On an evergreen line only
-  cancellation was measured.
+  swap's outgoing side, credits on an evergreen line. The only evergreen credit measured is
+  a cancellation's (above).
 - **Renewing a standalone evergreen asset.** Help rules out uplift and end-date changes for
   evergreen assets but doesn't say what the renewal quote does to the line
   ([change-policy-mapping.md](change-policy-mapping.md)).
