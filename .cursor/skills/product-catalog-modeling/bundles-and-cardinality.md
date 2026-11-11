@@ -50,7 +50,8 @@ bundle**: fixed by cardinality instead of by `ConfigureDuringSale`.
 | Root | `Type=Bundle`, `ConfigureDuringSale=Allowed` | Groups are mandatory; every child sits under one |
 | Each child | `IsComponentRequired` + `IsDefaultComponent` | Required in the bundle, and included by default |
 | Each child's quantity | *Allow quantity changes* off (`IsQuantityEditable=false`); `QuantityScaleMethod` Constant or Proportional | No min/max can be entered; Constant holds the design-time quantity, Proportional multiplies it by the root's quantity |
-| Each group | Min = max = its number of required children | Within what Validate Product Definition checks: required children ≤ max, products ≥ min |
+| Each group that holds products | Min = max = its number of required children | Within what Validate Product Definition checks: required children ≤ max, products ≥ min |
+| Each parent group (holds child groups) | Min = max = its number of child groups | Its limits count child groups: child groups ≥ min, child groups with required products ≤ max |
 
 [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_bundled_product_validations.htm`]
 
