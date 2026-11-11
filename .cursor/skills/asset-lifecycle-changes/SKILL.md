@@ -21,7 +21,8 @@ behaviour you have to verify, because Help describes how to set lifecycle change
 not the numbers they produce. Claims are tagged `[Help: <article>]`, `[Dev guide: <article>]`,
 `[Repo: <path>]` and `[Measured: <date>, 264]`. The 2026-11-05 runs were on QuantumBit
 builds. The 2026-11-11 runs were on fresh 264 `ent-sb0` scratch orgs, on a bundle sized by
-CML root answers, with configuration rules on ([verification.md](verification.md) → Measured
+CML root answers, priced by a procedure cloned from the shipped default with overlays,
+with configuration rules on ([verification.md](verification.md) → Measured
 results, 2026-11-11).
 
 ## Quick Rules
@@ -98,8 +99,8 @@ results, 2026-11-11).
     - A positive amendment edited in the UI also moved its price to detail rows (+2 and −1
       at the unit price) [Measured: 2026-11-05, 264].
     - Detail rows on a reduction split last in, first out, one row per earlier lot: a
-      component sold once and added to later came back as two negative rows, the later add
-      first. A renewal priced each lot on its own row [Measured: 2026-11-11, 264, fresh
+      reduction larger than the latest add took all of that add, then the rest from the
+      original lot, each at its own price. A renewal priced each lot on its own row [Measured: 2026-11-11, 264, fresh
       `ent-sb0` scratch org].
     - Read detail rows, or coalesce them, in anything that reports line prices.
 5. **One-time lines have no term to renew; Term Defined bundles renew in place.**

@@ -79,8 +79,9 @@ through activation before the next; a reprice moved nothing at any step:
 | Root answer changed (more sites), mid-period | Each CML-sized child as a delta line at its price; other children 0; root a −1 / +1 detail pair at 0.00. Term Defined lines at 2 + 184/365 terms | New state periods from the amendment date; "Change / Upsells" per delta, amounts equal to the line totals |
 | Second answer changed (more users) on a later amendment | The first answer reset to its CML default and its children came back negative, until restated in a second Place request (SKILL.md Quick Rule 2) | Ordered after the restatement; state periods carry both answers |
 | Added units on a `LastTransaction` asset | A plain delta line at the asset's last net price; no volume-band step; existing units unchanged | State period at the new total, MRR at the last price |
+| The same, with a re-band overlay on the procedure ([change-policy-mapping.md](change-policy-mapping.md) → volume-band row) | The added units at the band for the new total | MRR = existing units at their old price + added units at the new band |
 | Term Defined component to 0 on an anniversary | −qty × net unit × 1 term, in two last-in-first-out detail rows | Component asset kept; state period 0 from the date; "Change / Downsells" for the credit |
-| The same, 184 days before a period's end (quote only) | Term count 1 + 184/366 (leap year), not 1.5 | Not ordered |
+| The same, with 184 days left in the current period (quote only) | Term count 1 + 184/366 (leap year), not 1.5 | Not ordered |
 | Plan answer changed while an add-on required the old plan | The add-on removed and the plan's lines moved, with no message | Not ordered |
 | Part of a component moved to another plan (−n, new +n line) | Refused by a CML rule; with rules off, a component-group (max one) Warning log; either log blocked `createOrdersFromQuote` | Not ordered |
 | Renewal with `renewalStartDate` and `renewalEndDate` | Term Defined lines per lot with the uplift agreed at the sale; evergreen component and one-time lines "No Change" at 0 | Same assets extended; `LifecycleEndDate` moved; "Change / Renewals" |
@@ -96,9 +97,6 @@ onto the asset action sources before amending stopped the reset.
 - **Term Defined top-level cancellation** (`initiateCancellation`): a Term Defined
   component's reduction to 0 prorated by day (above); the cancellation of a Term Defined
   top-level asset wasn't measured.
-- **Re-banding on amendment:** on `LastTransaction` assets added units kept the last net
-  price and nothing re-banded (above). Whether and how added units can take the band for
-  the new total is open; `PricingSource` isn't writable through Place.
 - **Why the asset action sources lack the configurator node status** after activation, so
   that unchanged answers reset on an amendment (above, and SKILL.md Quick Rule 2).
 - **Swap values with constraints in force.**
