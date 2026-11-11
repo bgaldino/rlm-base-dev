@@ -36,13 +36,14 @@ read the row's scope before generalising it.
    from the selling model [Measured: M1]. A frequency that matches the pricing term (Monthly on a
    Months model, Annual on an Annual model) needed no billing treatment on the line
    [Measured: M2].
-3. **A frequency that differs from the pricing term needs a billing treatment on the line**
+3. **A frequency that differs from the pricing term needs a billing treatment on the line.**
+   Changing a Term Defined Annual line to Monthly was refused until the line had one
    [Measured: M3]. Help also requires that treatment to have Change Billing Frequency
    (`CanChangeBillingFrequency`) selected [Help: `ind.billing_change_billing_pricing_frequencies`]. The flag
    defaults to false [Dev guide: `sforce_api_objects_billingtreatment`].
-4. **One-time lines take no frequency, or Milestone Plan.** Monthly on a one-time line was
-   refused, Milestone Plan was accepted, and Milestone Plan on a Term Defined line was
-   refused [Measured: M4–M6]. Bill services in milestones on a one-time selling model.
+4. **One-time lines take no frequency, or Milestone Plan (API value `MilestonePlan`).**
+   Monthly on a one-time line was refused, Milestone Plan with a milestone treatment was
+   accepted, and Milestone Plan on a Term Defined line was refused [Measured: M4–M6]. Bill services in milestones on a one-time selling model.
 5. **In advance or in arrears is the treatment item's Billing Type, not a line field.**
    Advance bills on the billing date on or before the start date; Arrears on the first one
    after it; None is for milestone billing
@@ -113,16 +114,16 @@ sf data query -o <sf-alias> -q "SELECT ApiName, IsActive FROM FlowDefinitionView
 ## Billing frequency
 
 A line's frequency is one of Weekly, Monthly, Quarterly, Semi-Annual, Annual or Milestone
-Plan [Measured: M9]. On a new sale it is chosen on the quote line or the order product
+Plan; the API values match the labels except `MilestonePlan` [Measured: M9]. On a new sale it is chosen on the quote line or the order product
 [Help: `ind.billing_change_billing_pricing_frequencies`].
 
 | Selling model | Frequency the API accepted | Billing treatment on the line |
 |---|---|---|
-| Term Defined, Evergreen | Required [Measured: M1]; the pricing term's own cadence (two models run) | Not needed [Measured: M2] |
-| Term Defined, Evergreen | A different cadence | Needed [Measured: M3], with Change Billing Frequency (Help) |
-| One Time | Blank, or Milestone Plan with a milestone treatment | Optional with a blank frequency [Measured: M4, M5] |
+| Term Defined, Evergreen | Required (the refusal names both; run on Term Defined, M1); the pricing term's own cadence (two models run) | Not needed [Measured: M2] |
+| Term Defined, Evergreen | A different cadence | Needed (run on Term Defined, M3), with Change Billing Frequency (Help) |
+| One Time | Blank, or `MilestonePlan` with a milestone treatment on the line | Optional with a blank frequency [Measured: M4, M5] |
 
-Milestone Plan on an Evergreen line wasn't tested.
+`MilestonePlan` on an Evergreen line wasn't tested.
 
 - **Combining periods:** `BillingTerm` bills several frequency units as one period, for
   example Monthly with a term of 3. It defaults to 1 [Help: `ind.billing_multiple_term_billing`]
@@ -165,8 +166,8 @@ the item a billable treatment, and reprocess the order when they are ready
 
 ## Milestone billing for services
 
-A milestone treatment has Enable milestone billing (`IsMilestoneBilling`) selected and up
-to 20 treatment items, one per milestone. Each item is date-based (an offset from the
+A milestone treatment has Enable milestone billing (`IsMilestoneBilling`) selected and one
+treatment item per milestone; Configure Milestones creates up to 20 at once. Each item is date-based (an offset from the
 billing schedule start) or event-based (someone marks it accomplished), and carries a
 percentage or a flat amount [Help: `ind.billing_milestone_treatment_and_item_create`]
 [Help: `ind.billing_milestone_create`]. Order activation creates a billing milestone plan
@@ -240,8 +241,9 @@ Check the first invoice's period against the period-boundary examples
 [Help: `ind.billing_field_combination_requirements`].
 
 **"Services billed in milestones" with no milestones named.** Sell the service on a
-one-time selling model and give it a milestone treatment, through its policy or on the
-line. Place the line with `BillingFrequency` Milestone Plan. Put the milestone names,
+one-time selling model and place the line with `BillingFrequency` `MilestonePlan` and the
+milestone treatment in `BillingTreatmentId` [Measured: M5]. Leaving the treatment to the
+product's policy wasn't placed. Put the milestone names,
 types, offsets and shares in the plan as open decisions, and test the plan's milestones
 after order activation.
 
