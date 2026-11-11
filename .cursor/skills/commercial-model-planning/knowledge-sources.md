@@ -15,10 +15,10 @@ live org. Parent: [commercial-model-planning](SKILL.md).
 snapshot coverage is decided by the snapshot. Record it as a skill gap, not as a live
 spike. Model the rule directly; its build gate proves it.
 
-**A skill's `[inferred]` claim is a hypothesis,** not a measured fact. Its build gate
-decides it, unless it predicts that shipped behaviour is wrong for the rule (for
-example a shipped formula that overstates margin on multi-year lines). Then it is
-trigger (b).
+**A skill's `[inferred]` claim is a hypothesis,** not a measured fact. Record it as
+**Repo (inferred)**, decided at its build gate, unless it predicts that shipped
+behaviour is wrong for the rule (for example a shipped formula that overstates margin
+on multi-year lines). Then it is trigger (b).
 
 **A live org decides** when one of these holds:
 
@@ -86,7 +86,7 @@ Put two records in the plan. **Per area, the evidence,** one row per area:
 
 | Area | Repo skills (files) | Snapshot coverage (regex: counts, key articles) | Prior measured knowledge | Decided by | Why |
 |---|---|---|---|---|---|
-| \<area\> | `skill/sub-file.md` | `\bterm\b`: help 12, dev 3; `article-name` | dated measurements, from skills or earlier builds | **Repo** / **Snapshot** / **Live (a–d)** | one line |
+| \<area\> | `skill/sub-file.md` | `\bterm\b`: help 12, dev 3; `article-name` | dated measurements, from skills or earlier builds | **Repo** / **Repo (inferred)** / **Snapshot** / **Live (a–d)** | one line |
 
 Its "Decided by" column summarizes the area. **Per rule, the decision:** the rule
 decision record ([plan-template.md](plan-template.md)) gives each rule its own decided-by
@@ -98,7 +98,7 @@ Every rule decided **Live** becomes a spike, with:
 - the skills and articles to read before touching the org,
 - the smallest case that proves it.
 
-Every rule decided **Repo** or **Snapshot** is proved at its build gate. A **Snapshot**
+Every rule decided **Repo**, **Repo (inferred)** or **Snapshot** is proved at its build gate. A **Snapshot**
 area with no skill is also listed in the plan's skill gaps.
 
 ## After the build

@@ -278,14 +278,16 @@ Before presenting the plan:
   in a private repo):
 
   The first command lists every hyphenated name in backticks that is not a skill, to
-  check by hand. The second lists every `.md` file named; a file printed without a skill
-  before it needs its skill looked up on its line before you check it with `ls`.
+  check by hand; check single-word skill names (`toolchain`, `troubleshooting`) by eye.
+  The second lists every `.md` file named in backticks or in a Markdown link; a file
+  printed without a skill before it needs its skill looked up on its line before you
+  check it with `ls`.
 
   ```bash
   PLAN=<path to plan.md>; test -f "$PLAN" || echo "no plan at $PLAN"
   for s in $(grep -oE '`[a-z0-9]+(-[a-z0-9]+)+`' "$PLAN" | tr -d '`' | sort -u); do
     [ -f ".cursor/skills/$s/SKILL.md" ] || echo "not a skill: $s"; done
-  grep -oE '`[a-z0-9-]+` → `[^`]+\.md`|`[^` ]+\.md`' "$PLAN" | sort -u
+  grep -oE '`[a-z0-9-]+` → `[^`]+\.md`|`[^` ]+\.md`|\]\([^)]+\.md\)' "$PLAN" | sort -u
   ```
 
 - Every sub-file named exists under its skill.
