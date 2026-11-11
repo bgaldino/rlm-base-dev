@@ -112,9 +112,9 @@ groups ≥ parent group min; child groups with required products ≤ parent grou
 bundles: default components within min/max, and child-group count within the parent's
 bounds. [Help: `ind.product_catalog_bundled_product_validations.htm`]
 
-The commonest design error is **required children exceeding the group max**: two required
-products in a pick-one group cannot be satisfied. A group min above the number of distinct
-children is the second. [Help: `ind.product_catalog_cardinality_examples.htm`]
+Two invalid designs from Help's examples: **required children exceeding the group max**
+(two required products in a pick-one group cannot be satisfied), and a group min above the
+number of distinct children. [Help: `ind.product_catalog_cardinality_examples.htm`]
 
 ## Quantity scaling and lifecycle
 
@@ -125,8 +125,9 @@ children is the second. [Help: `ind.product_catalog_cardinality_examples.htm`]
 | Proportional | Child = parent qty × child qty; with *Allow quantity changes* on, editable only in the configurator during a **new sale**, read-only in the line editor | **Read-only** in the configurator: the original ratio stays for the asset's life; change the parent quantity instead |
 
 Proportional is the default when *Allow quantity changes* is off at creation; None when on.
-Constant or the default method make child quantities read-only even on legacy rows with
-*Allow quantity changes*. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_local_cardinality.htm`]
+Help's warning says child quantities are read-only in the runtime cart when the method is
+Constant or "Default" (a value its own list of methods does not include), even on legacy
+rows with *Allow quantity changes*. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_local_cardinality.htm`]
 
 **Downstream:** choosing Proportional fixes the parent-to-child ratio for every later
 amendment. If a customer must later change one child's quantity independently, model it

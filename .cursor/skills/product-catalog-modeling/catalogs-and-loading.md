@@ -10,7 +10,7 @@
 A catalog is the top container; you need at least one. It can stand for a kind of product,
 a service line, a sales territory or a business unit. [Help: `ind.product_catalog_plan_catalog.htm`; `ind.product_catalog_catalogs.htm`]
 Products are placed in a catalog's **categories**, not in the catalog itself
-(`ProductCategoryProduct` carries the category and catalog). [Help: `ind.product_catalog_assign_products_to_catalog_cat_and_subcategories.htm`; Repo: `scripts/ai/query_erd.py describe ProductCategory`]
+(`ProductCategoryProduct` carries the category and catalog). [Help: `ind.product_catalog_assign_products_to_catalog_cat_and_subcategories.htm`; Repo: `scripts/ai/query_erd.py describe ProductCategoryProduct`]
 
 | Choice | Trade-off | Downstream |
 |---|---|---|
@@ -62,7 +62,6 @@ In this repo:
 
 | Consumer | How it uses `Family` |
 |---|---|
-| Product Discovery search index | Searchable and facetable field, facet rank 1 (`tasks/rlm_configure_search_index.py`) |
 | Billing schedule UI | Lists active products with `Family = 'Software'` (`unpackaged/post_billing_ui/classes/RLM_BillingScheduleGroupService.cls`) |
 
 Decision tables, approval conditions, flows, Apex and reports in an org can key on it the
@@ -91,16 +90,19 @@ A literal `None` is a value, not an absence: a filter for blank does not match i
    Its README states each object's key. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/export.json`, `README.md`]
 2. **Keep the keys.** Products on `StockKeepingUnit`; definitions, classifications, groups,
    categories and catalogs on `Code`. Use `;` composite keys and matching `$$` columns as
-   `sfdmu-data-plans` describes; avoid Bug 4 shapes (a self-referential `$$` lookup).
+   `sfdmu-data-plans` describes; avoid Bug 4 shapes (a `$$` lookup whose parts are not
+   exactly the parent's `externalId`, including a self-reference).
    [Repo: `sfdmu-data-plans/SKILL.md`]
 3. **Mark empty objects `excluded: true`.** [Repo: `sfdmu-data-plans/SKILL.md`]
 4. **Write a README** and run the plan checks (below).
 5. **Load twice into a fresh org.** [Measured: 2026-11, 264]
 
 ```bash
-# A new plan, through the generic loader (CCI alias, not sf alias)
-cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> --org <cci_alias>
-cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> --org <cci_alias>   # second pass
+# A new plan, through the generic loader (CCI alias, not sf alias). If the plan keeps
+# ProrationPolicy, tolerate the platform-seeded duplicate as insert_quantumbit_pcm_data does;
+# otherwise drop the ignore_row_errors_for option.
+cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> -o ignore_row_errors_for "{ProrationPolicy: duplicate value found}" --org <cci_alias>
+cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> -o ignore_row_errors_for "{ProrationPolicy: duplicate value found}" --org <cci_alias>   # second pass
 ```
 
 ### PCM load facts (264)
@@ -108,13 +110,15 @@ cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>
 | Fact | Consequence |
 |---|---|
 | **(a)** After the first SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held platform defaults; a second, update pass applied the plan's values. [Measured: 2026-11, 264] | Load twice. Never extract from an org that had one pass, or the defaults become the plan. |
-| **(b)** A `Readonly` anchor object needs its `$$` composite columns too, or child lookups silently fail to resolve. [Measured: 2026-11, 264] | When a plan anchors on objects another plan loaded, give the anchor's CSV the `$$` columns its children reference. |
-| **(c)** Repeating an object across object sets of one CSV plan: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] | Do not add a second object set to get fact (a)'s update pass; run the plan again. |
+| **(b)** A `Readonly` anchor object that children reach through a `$$` composite lookup column needs a CSV with that `$$` column, or those lookups silently fail to resolve. [Measured: 2026-11, 264] A single-field traversal of a `Readonly` object needs no CSV (`sfdmu-data-plans` → *Where a plan's CSVs live*). | When a plan anchors on objects another plan loaded through `$$` lookups, give the anchor's CSV the `$$` columns its children reference. |
+| **(c)** In a plan without `useSeparatedCSVFiles: true`, repeating an object across object sets: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] | For fact (a)'s second pass, run the plan again: that is the measured fix. |
 | **(d)** A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | See *Coding categories*. |
 | **(e)** A configurator test of a bundle must place the quote with configuration rules on. [Measured: 2026-11, 264] | See `constraint-models`. |
 
-In this repo `prepare_product_data` runs `insert_quantumbit_pcm_data` once, and
-`test_qb_pcm_idempotency` runs it twice and fails if counts rise. [Repo: `cumulusci.yml`]
+In this repo `prepare_product_data` runs `insert_quantumbit_pcm_data` once.
+`test_qb_pcm_idempotency` loads the plan once, extracts the org, reloads the extraction and
+fails if counts rise; its second load replays the one-pass org state, not the CSVs, so it is
+not fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUIdempotency`]
 
 Other load constraints: `ProrationPolicy` is create-only and platform-seeded, so its insert
 is rejected as a duplicate and tolerated (`ignore_row_errors_for`); several PCM lookups are

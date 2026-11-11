@@ -12,7 +12,7 @@ Selling models are optional in PCM; a product can have several. [Help: `ind.prod
 | The charge… | `SellingModelType` | `PricingTerm` / `PricingTermUnit` | Lifecycle consequence |
 |---|---|---|---|
 | happens once (hardware, a setup fee, a course) | `OneTime` | must be null | **Cannot be renewed**: renewing a bundle with one-time children sets them to No Change, quantity 0. [Help: `ind.qocal_asset_lifecycle_considerations.htm`] |
-| recurs for a contracted term with an end date | `TermDefined` | required, e.g. 1 Annual | Has an end date to renew against; `DoesAutoRenewAssetByDefault` copies to quote/order lines and then to assets. [Repo: `pricing-setup/proration-and-selling-models.md`; Help: `ind.qocal_view_and_edit_orders.htm`] |
+| recurs for a contracted term with an end date | `TermDefined` | required, e.g. 1 Annual | Has an end date to renew against; `DoesAutoRenewAssetByDefault` copies to quote/order lines and then to assets. [Help: `ind.product_catalog_create_a_product_selling_model.htm`; `ind.qocal_view_and_edit_orders.htm`] |
 | recurs until cancelled | `Evergreen` | required, e.g. 1 Months | No end date; cancel ends it. [Help: `ind.product_catalog_product_selling_model.htm`] |
 
 `SellingModelType` defaults to `OneTime` and `Status` to `Draft`; a model cannot return to

@@ -45,8 +45,8 @@ drop the `.md` suffix of the snapshot file name.
    sold on, with at most one `IsDefault`. Price book entries and attribute-based adjustments
    carry a `ProductSellingModelId`. [Help: `ind.product_catalog_product_selling_model.htm`; Dev guide: `sforce_api_objects_productsellingmodeloption.htm`; Repo: `scripts/ai/query_erd.py describe PricebookEntry`]
 6. **`IsAssetizable` on a bundle root governs every child**; it decides whether the sale
-   leaves an asset that amend, renew and cancel can act on. [Help: `ind.product_catalog_create_bundled_products.htm`]
-7. **Category codes must be unique across every level of a catalog.** A plan keyed on
+   leaves an asset that amend, renew and cancel can act on. [Help: `ind.product_catalog_create_bundled_products.htm`; `ind.qocal_asset_lifecycle.htm`]
+7. **Category codes must be unique across every level and every catalog a plan loads.** A plan keyed on
    `ProductCategory.Code` resolves a parent by code, so a child that reuses its parent's
    code becomes its own parent. [Measured: 2026-11, 264; Repo: `datasets/sfdmu/qb/en-US/qb-pcm/export.json`]
 8. **Load a PCM plan twice into a fresh org, and never extract from an org that had only
@@ -73,7 +73,7 @@ drop the `.md` suffix of the snapshot file name.
   model. [Measured: 2026-11, 264]
 - **DO NOT** hardcode the QuantumBit names in this skill as the model to build. They are
   a labelled worked example; discover your own instances first.
-- **DO NOT** cite or copy content from the private `.agents/` tree, and do not name a real
+- **DO NOT** cite or copy content from the private `.agents/artifacts/` tree, and do not name a real
   customer or brand in a model, example or commit.
 
 ## Entry Conditions
@@ -146,7 +146,7 @@ Ask, in order, and stop at the first yes:
    bundle **component** if it is sold inside something; a standalone product if not.
 2. **Does it have its own price that is not a function of the parent's attributes, or its
    own selling model?** → its own product (a component if bought inside a bundle). PBEs
-   are keyed by product and selling model. [Repo: `revenue-cloud-data-model/domains/pcm.md`; ERD `PricebookEntry.ProductSellingModelId`]
+   are keyed by product and selling model. [Repo: `pricing-setup/price-books.md`; `scripts/ai/query_erd.py describe PricebookEntry`]
 3. **Does every combination need its own SKU for tracking, but buyers should pick from one
    screen?** → **variation products** under a variation parent (up to 5 attributes in a
    variation attribute set; the parent cannot be purchased; turning variants off after use
@@ -156,8 +156,9 @@ Ask, in order, and stop at the first yes:
    you need to build". [Help: `ind.product_catalog_plan_catalog.htm`]
 
 Downstream checks for an attribute choice: if it changes price, it must be
-`IsPriceImpacting` on the **directly** assigned classification, a non-Boolean picklist
-(no Boolean picklists), and numeric matches need the `.0` form. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
+`IsPriceImpacting` on the **directly** assigned classification, must not be a picklist over
+a Boolean data type (use a Checkbox/Boolean attribute), and numeric values match in the
+`.0` form. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
 If a configuration rule must reason about it, CML needs it as an attribute variable; a
 change to an attribute *under a product class* does not sync to CML. [Help: `ind.product_configurator_sync_cml_and_pcm.htm`]
 
@@ -172,13 +173,15 @@ have a reason in that skill's terms. PCM-specific facts measured on 264 builds:
 | # | Fact | What to do |
 |---|---|---|
 | a | After the **first** SFDMU insert of a PCM plan on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held platform defaults; a second, update pass applied the plan's values. [Measured: 2026-11, 264] | Run the whole plan twice on a fresh org. Never re-extract an org that had one pass; the extract would bake the defaults into the CSVs. |
-| b | A `Readonly` anchor object in a plan needs its `$$` composite columns too, or child lookups that reference it silently fail to resolve. [Measured: 2026-11, 264] | Give the anchor's CSV the same `$$` column the children's lookup columns name. |
-| c | Repeating an object across object sets of one CSV plan does not give pass 2 its own data: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] | Get the second pass of fact (a) by running the plan again, not by a second object set. |
-| d | A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | Generate codes from the full path, and check uniqueness across the whole catalog before load. |
+| b | A `Readonly` anchor object that children reach through a `$$` composite lookup column needs a CSV with that `$$` column, or those lookups silently fail to resolve. [Measured: 2026-11, 264] A single-field traversal of a `Readonly` object needs no CSV (`sfdmu-data-plans` → *Where a plan's CSVs live*, verified live). | Give the anchor's CSV the same `$$` column the children's lookup columns name. |
+| c | In a plan without `useSeparatedCSVFiles: true`, repeating an object across object sets does not give pass 2 its own data: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] Per-pass files need that flag and `objectset_source/object-set-N/` (`sfdmu-data-plans` → *Where a plan's CSVs live*). | For fact (a)'s second pass, run the plan again: that is the measured fix. |
+| d | A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | Generate codes from the full path, and check uniqueness across every level and catalog the plan loads. |
 | e | A configurator test of a bundle must place the quote with configuration rules on. [Measured: 2026-11, 264] | See `constraint-models`. |
 
-In this repo, `prepare_product_data` runs `insert_quantumbit_pcm_data` once; the
-`test_qb_pcm_idempotency` task loads the plan twice. [Repo: `cumulusci.yml`] Whether a
+In this repo, `prepare_product_data` runs `insert_quantumbit_pcm_data` once. The
+`test_qb_pcm_idempotency` task loads the plan once, extracts the org, and reloads the
+extraction, so its second load replays the one-pass org state, not the CSVs: it is not
+fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUIdempotency`] Whether a
 one-pass QuantumBit build leaves any classification attribute at a default that differs
 from its CSV is **Open — needs live verification** (every `IsRequired` in the QB CSV is
 `false`, the documented default). [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
@@ -235,8 +238,11 @@ assetizable, so every child becomes an asset whatever its own flag says.
   override on that attribute. This skill, then `pricing-procedures`.
 - "Child lookups load blank in my new PCM plan." → facts (b)–(d) above, then
   `sfdmu-data-plans`.
-- "The configurator lets me pick two from a pick-one group." → check rules were on (fact e)
-  and that the group's cardinality reached CML: group changes do not sync. `constraint-models`.
+- "The configurator lets me pick two from a pick-one group." → check the group holds
+  products, not child groups: only the lowest-level group's cardinality is enforced at run
+  time ([`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality)).
+  Then check rules were on (fact e) and that the cardinality reached CML: group changes do
+  not sync. `constraint-models`.
 
 ## Validation Checks
 
@@ -257,7 +263,7 @@ Review the CSVs for these, each a rule above:
 - Every group's `MinBundleComponents` ≤ distinct children, and required children ≤ `MaxBundleComponents`.
 - Every product has at most one `IsDefault` selling model option; term-defined and
   evergreen options carry a proration policy where proration is wanted.
-- Category codes are unique across all levels; no row's `ParentCategory.Code` equals its own `Code`.
+- Category codes are unique across all levels and catalogs; no row's `ParentCategory.Code` equals its own `Code`.
 - Price-impacting attributes sit on the classification the adjustment names and are not overridden in a bundle.
 
 After a load into an org: run the plan's second pass (fact a), run **Validate Product
@@ -265,6 +271,8 @@ Definition** on each changed bundle in PCM [Help: `ind.product_catalog_bundled_p
 configure one bundle in the configurator with rules on.
 
 ## Open questions
+
+Every item marked **Open — needs live verification** in this skill and its sub-files:
 
 - **`IsSoldOnlyWithOtherProds` runtime effect.** Help says only "sell only with other
   products"; no snapshot article says whether Product Discovery hides the product, the
@@ -274,3 +282,12 @@ configure one bundle in the configurator with rules on.
   Fact (d) only proves that a plan keyed on `Code` alone conflates levels. **Open — needs live verification.**
 - **A non-assetizable child under an assetizable root.** Help says the root wins; whether
   a child flagged false then appears as an asset with lifecycle actions is **Open — needs live verification.**
+- **Which end date stops a sale.** Help contradicts itself on `DiscontinuedDate` vs
+  `EndOfLifeDate`. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#other-lifecycle-fields-on-product2).
+- **How a mixed-model bundle co-terminates and renews**, beyond the one-time rule. See
+  [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
+- **One-pass QuantumBit build.** Whether any classification attribute is left at a default
+  that differs from its CSV. See [Loading the model](#loading-the-model).
+- **Other classification-attribute fields after one pass.** Whether fields beyond
+  `AttributeNameOverride` and `IsRequired` behave like fact (a). See
+  [`attributes-and-classifications.md`](attributes-and-classifications.md#loading-attributes).

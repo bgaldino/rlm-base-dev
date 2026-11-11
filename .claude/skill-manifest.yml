@@ -313,7 +313,7 @@ foundations:
         - .cursor/skills/product-catalog-modeling/catalogs-and-loading.md
       provenance: grounded in the 264 Help and dev-guide snapshots plus repo skills; load facts measured on live 264 builds 2026-11
       caveats:
-        - "IsSoldOnlyWithOtherProds runtime enforcement, ProductCategory.Code uniqueness scope, and the Discontinued vs End Of Life sale cut-off are open and need live verification"
+        - "Several runtime behaviours are open and need live verification (IsSoldOnlyWithOtherProds enforcement, ProductCategory.Code uniqueness scope, the Discontinued vs End Of Life sale cut-off, among others); SKILL.md → Open questions lists them all"
 
     - id: constraint-models
       path: .cursor/skills/constraint-models/SKILL.md
