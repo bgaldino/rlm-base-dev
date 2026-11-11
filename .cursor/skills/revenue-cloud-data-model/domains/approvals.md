@@ -1,25 +1,41 @@
 # Approvals Domain
 
-3 objects: one core record for approval workflow submissions, plus the two
-supporting records the `qb-approvals` data plan loads against.
+3 objects in the ERD: one core record for approval workflow submissions, plus the two
+supporting records the `qb-approvals` data plan loads against. Four more Advanced Approvals
+objects, marked "live, not in ERD" below, were confirmed by `describe` on a live 264
+QuantumBit build (2026-11-10) and aren't in the offline ERD yet. Behaviour and modeling:
+`advanced-approvals` skill.
 
 ## Objects
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `ApprovalSubmission` | Tracks an approval request | RelatedRecordId (self-ref/polymorphic) |
+| `ApprovalSubmission` | One approval request for a record | RelatedRecordId (polymorphic: Quote, Order, Contract, ...), RelatedRecordObjectName, Status, SubmittedById, FlowOrchestrationInstanceId, IsEligibleForSmartApproval, IsSmartApprovalRun, SmartApprvlBasisSubmissionId |
+| `ApprovalWorkItem` (live, not in ERD) | One approval step assigned to a user, group or queue | ApprovalSubmissionId, RelatedRecordId, AssignedToId, Status, ApprovalChainName, ApprovalConditionName, ReviewedById, ReviewedDate, ParentWorkItemId, IsEligibleForSmartApproval, IsEligibleForAutoApproval, IsAutoReviewed, SmartApprovalBasisWorkItemId, FlowOrchestrationWorkItemId |
+| `ApprovalSubmissionDetail` (live, not in ERD) | Audit trail of actions on a submission or work item | ApprovalSubmissionId, ApprovalWorkItemId, ActionName, ActionPerformedById, ActionPerformerRole, ActionChannelName, Comments |
+| `ApprovalWorkItemCriteria` (live, not in ERD) | Entry/exit logic evaluated for a step | ApprovalWorkItemId, ApprovalStepApiName, CriteriaType, RequirementLogic |
+| `ApprovalWorkItemCondition` (live, not in ERD) | One evaluated condition of that logic | ApprovalWorkItemCriteriaId, ConditionSequencePosition, LeftValue, OperatorType, RightValue, HasEvaluationSucceeded, IsConditionExcluded |
+
+`ApprovalDelegation` is documented as new in 264 but was **not** present on that build
+(`describe` returned NOT_FOUND); it likely depends on the Use Advanced Approval Delegation
+setting. Standard fields on approval objects can't be written through the sObject APIs; use
+the approval invocable actions.
 
 ## Supporting Objects (from data plans)
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `ApprovalAlertContentDef` | Alert content definition for approval notifications | Name, EmailTemplateId |
-| `EmailTemplate` | Email template used for approval alerts | Name (read-only reference) |
+| `ApprovalAlertContentDef` | Maps an email template to an approval flow, step and notification reason | Name, ApprovalFlowApiName, ApprovalStepApiName, NotificationReason, EmailTemplateId |
+| `EmailTemplate` | Lightning email template used for approval alerts | Name (read-only reference) |
 
 ## Notes
 
-- ApprovalSubmission is a self-referencing object (RelatedRecordId can point to another ApprovalSubmission or the record being approved)
-- Approval email templates are `EmailTemplatePage` flexipages — these cannot be deployed via Metadata API and are created at runtime by `create_approval_email_templates` via the REST API
+- `ApprovalSubmission.RelatedRecordId` is polymorphic over the approved record's object; it
+  is not a link between submissions. A resubmission links to the earlier one through
+  `SmartApprvlBasisSubmissionId`.
+- Approval alerts use Lightning `EmailTemplate` records. Their builder page is an
+  `EmailTemplatePage` FlexiPage, which can't be deployed through Metadata API, so
+  `create_approval_email_templates` creates the templates over REST.
 - The `qb-approvals` data plan loads ApprovalAlertContentDef records linking to pre-existing EmailTemplate records
 
 ## SFDMU Data Plan: `qb-approvals`
