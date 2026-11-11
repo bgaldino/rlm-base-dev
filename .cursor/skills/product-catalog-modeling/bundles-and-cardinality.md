@@ -30,10 +30,11 @@ single SKU whose only choices are attributes. [Help: `ind.product_catalog_produc
 A kit that never varies but whose children are Term Defined or Evergreen (support or a
 subscription that must renew or bill on its own model) is not settled by the rule above:
 
-- **Neither shape sets a child's selling model on its component row.** Under a new static
-  bundle the row's parent selling model is None and it carries no component selling model;
-  a configurable bundle's row carries no component selling model either. In both, children
-  keep their own selling model options. [Help: `ind.product_catalog_add_components_to_a_static_product_bundle.htm`; `ind.product_catalog_product_relationships.htm`; [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles)]
+- **Help says to set no component selling model on either shape's rows.** Under a new
+  static bundle, select None as the parent selling model and no component selling model;
+  for a configurable bundle, select no component selling model. The shipped q3 static
+  bundle `CERT007` sets both (see the linked section). Children keep their own selling
+  model options. [Help: `ind.product_catalog_add_components_to_a_static_product_bundle.htm`; `ind.product_catalog_product_relationships.htm`; [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles)]
 - **For a bundle's children, the run-time selling model choice Help documents is in the
   configurator.** Product Discovery's buying options offer one for the item being added;
   the configurator's Product Header offers one for each product or option; and a static
@@ -48,8 +49,8 @@ bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child w
 (`IsQuantityEditable`) off, and group limits that pass
 [Validate Product Definition](#mistakes-validate-product-definition-catches).
 [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_bundled_product_validations.htm`]
-CML bundle rules still apply to it: a CML rule that set the quantity of a component with
-`IsQuantityEditable = false` drew a `bundlevalidation` warning. [Repo: `constraint-models/quantities-from-attributes.md`, run M16]
+On one measured component with `IsQuantityEditable = false`, a CML rule that set its
+quantity returned `success: true`, and the line drew a PCM `bundlevalidation` warning. [Repo: `constraint-models/quantities-from-attributes.md`, run M16]
 Root and child renewal rules by selling model are in
 [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 Whether a fully locked configurable bundle still opens the configurator and shows each
