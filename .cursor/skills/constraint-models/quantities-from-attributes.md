@@ -50,8 +50,9 @@ Where the dev guide and the org disagree, this file follows the org and says so.
    message (see [Testing it headlessly](#testing-it-headlessly)).
 8. **Annotate every component type a rule sizes `@(split = false)`.** Without it, a line
    that is already on the quote below the rule's quantity is kept, and the solver adds a
-   second line for the remainder, so a hand edit is never rejected
-   `[Measured: M22, M23]`. See [One line per component](#one-line-per-component-split--false).
+   second line for the remainder, so a hand edit below the rule's quantity isn't
+   rejected `[Measured: M22, M23]`. Leave it off a type whose lines must carry different
+   attribute values (see the section). See [One line per component](#one-line-per-component-split--false).
 9. **Set `property maxRelationSize` when any relation can exceed 9,999.** That is the
    default cap on every relation, whatever its declared bounds `[Measured: M25]`
    `[Dev guide: cml_relationships]`.
@@ -215,9 +216,10 @@ rest `[Measured: M22, M23, M24]`.
 `constraint()` makes the quantity a rule; `setdefault()` makes it a default. The Logical
 Constraints page says the engine never overrides a value the user selected, except through
 `exclude`, so a user value that breaks a `constraint` produces an error, not a correction
-`[Dev guide: cml_logical_constraints]`. On the org that held only for types annotated
-`@(split = false)`. Without it, the solver kept a rep's lower quantity and met the rule by
-adding a second line, with no error `[Measured: M22, M23]`. Two other pages qualify that: the solver doesn't
+`[Dev guide: cml_logical_constraints]`. On the org that held only for hand edits of a
+line on a `@(split = false)` type; a rep's add at quantity 1 of such a type was raised to
+the rule's quantity instead. Without the annotation, the solver kept a rep's lower
+quantity and met the rule by adding a second line, with no error `[Measured: M22, M23]`. Two other pages qualify that: the solver doesn't
 override user input "unless no other solution exists" `[Dev guide: cml_cml_best_practices]`
 (*Sequence and Configurable*), and the engine changes a variable annotated `Peelable` true,
 when that finds a valid configuration, rather than reporting an error; the default is
@@ -467,8 +469,8 @@ in front of it (step 1 below).
    `[Measured: M31]`, so a test can also try the order.
 
    When a state breaks several rules, accept any of their messages and no other. One state
-   that broke two rules reported one message, from the rule the author didn't expect
-   `[Measured: M33]`. To make a rule report its own message, state it so that it fails
+   that broke two rules reported only one of the two messages, not the one the test
+   targeted `[Measured: M33]`. To make a rule report its own message, state it so that it fails
    alone, for example on the answer as well as on the line. That is why every constraint
    in the worked example has its own message.
 7. **Check the activation result before reading any `configure` result.** A model that
@@ -664,7 +666,7 @@ was run.
 | M21 | A different model, placed with rules off, then `configure` | `success` for a combination the model rejects with rules on | 2026-11-03 |
 | M22 | Sized component types with no `split` annotation: Place with `addDefaultConfiguration: true`; a rep's optional add-on at quantity 1; a sized line edited down | Every case kept the line as placed and added a second line for the rest (1 + (n − 1); m + (n − m)); quantities totalled right, no rule message. Each split group drew a `bundlevalidation` "number of child products … isn't in the specified range" warning | 2026-11-11 |
 | M23 | The same with `@(split = false)` on every component type | One line per component at the rule's quantity; the add-on at 1 raised to `sites`. Edits of two sized lines, each down and up, rejected with the rule's message. The edited quantity stayed on the quote (read back for one downward edit) | 2026-11-11 |
-| M24 | Configurator UI (two orgs). Without the annotation: a default sized child. With it: an existing root line reconfigured (add-on ticked at 1, `sites` changed) and a fresh bundle add from Browse Catalogs | Without: two instances (1 + the rest); in a group ramp, later segments kept the split with only a group-range warning; non-default children were one instance. With: one line per child at the rule's quantity, the add-on raised to `sites`, each line resized when `sites` changed, defaults kept, no warning | 2026-11-11 |
+| M24 | Configurator UI (two orgs). Without the annotation: a default sized child. With it: an existing root line reconfigured (add-on ticked at 1, `sites` changed) and a fresh bundle add from Browse Catalogs | Without: two instances (1 + the rest); in a group ramp, later segments kept a stale split that broke the constraint, with only a group-range warning; non-default children were one instance. With: one line per child at the rule's quantity, the add-on raised to `sites`, each line resized when `sites` changed, defaults kept, no warning | 2026-11-11 |
 | M25 | A relation declared with an upper bound above 9,999, its cardinality set by a constraint from an `int` whose domain reaches the same bound, no `maxRelationSize` | A quantity just below 9,999 solved; one just above was rejected with the sizing rule's message, not a limit message. A CML-only `int` above 9,999 solved | 2026-11-11 |
 | M26 | The M25 case with the PRC `MaxQuantity` above the needed quantity; then with `property maxRelationSize` set to the relation's upper bound | `MaxQuantity`: still rejected. The property: the bound itself solved | 2026-11-11 |
 | M27 | `string region = parent(region);` in child types, no level; children in PCM component groups; no group types in the model; only the root's answer sent (two orgs) | Each child's attribute record held the root's value; editing the root's answer re-derived it and repriced; also in the configurator UI | 2026-11-11 |
@@ -673,7 +675,7 @@ was run.
 | M30 | Place graph answers as `QuoteLineItemAttribute` with `AttributeDefinitionId`, `AttributeValue` and, for picklists, `AttributePicklistValueId`; no `AttributeName` | Bound to the CML variables named by the definitions' developer names; a number stored with a decimal (`"12.0"`) bound to an `int` | 2026-11-11 |
 | M31 | Place PATCH of a bundle child's quantity with `IsQuantityEditable = false` on its PRC (two quotes); then `createOrdersFromQuote`; then the quantity set back | `isSuccess: true`, the line saved and repriced; within seconds a `RevenueTransactionErrorLog` (BundleValidation: the quantity "can't be edited"); the order refused, "existing Revenue Transaction Error Logs". Setting it back deleted the log. The line editor saved the same edit with a warning icon and the same log | 2026-11-11 |
 | M32 | Place of a rejected configuration without `BillingFrequency` on Term-defined and Evergreen lines | `FIELD_INTEGRITY_EXCEPTION` on the root, "… BillingFrequency can't be null", instead of the rule. Valid configurations placed without it | 2026-11-11 |
-| M33 | One state breaking two rules: a line-form rule (add-on present → other plan's quantity 0) and the answer-sized plan rule | One message, the plan rule's. With the first rule also stated on the answer (add-on present → the answer is the required plan), its own message | 2026-11-11 |
+| M33 | One state breaking two rules: a line-form rule (add-on present → other plan's quantity 0) and the answer-sized plan rule | One message, the plan rule's; the test targeted the first rule. With the first rule also stated on the answer (add-on present → the answer is the required plan), its own message | 2026-11-11 |
 
 ---
 
@@ -746,11 +748,11 @@ Each needs a live 264 org:
    as a `^` in a regular expression in a `define`, are fine.
 3. Every component quantity is a cardinality (`relation[Type] == …`); no rule writes
    `lineItemQuantity`, `ItemEndQuantity` or `this.quantity`. Every sized component type is
-   `@(split = false)`.
+   `@(split = false)`, unless its lines must carry different attribute values.
 4. No derived variable depends, directly or through an aggregate, on a cardinality it sets.
 5. Each "per N" rule is checked at an exact multiple and one past it. If any relation's
-   upper bound is above 9,999, the model sets `property maxRelationSize` to at least that
-   bound, and the answers that produce the largest quantity are tested.
+   upper bound is above 9,999, the model sets `property maxRelationSize` equal to the
+   largest declared upper bound, and the answers that produce the largest quantity are tested.
 6. Review notes use `Info`; nothing meant as advice uses `Warning` or `Error`.
 7. Headless test: placed with rules on and a `BillingFrequency` on every recurring line,
    answers that bind (checked against non-default values), every quantity asserted as one
