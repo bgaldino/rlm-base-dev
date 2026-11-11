@@ -77,7 +77,10 @@ recurs (One Time, Term Defined or Evergreen), then check the source for these:
 
 One Time children renew as No Change, quantity 0, whatever the root's model. [Help: `ind.qocal_asset_lifecycle_considerations.htm`]
 No snapshot article says how a Term Defined or Evergreen root renews its Evergreen
-children: **Open — needs live verification**. Help's ramp-deal considerations list mixed root/child shapes
+children. One shape is measured: a Term Defined root (a locked configurable bundle) renewed
+with no renewal term brought its Evergreen child at quantity 0 and its Term Defined child
+for one term of its selling model. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org; [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur)]
+An Evergreen root, and other bundle shapes: **Open — needs live verification**. Help's ramp-deal considerations list mixed root/child shapes
 (a term-defined parent with one-time or evergreen children; "a one-time evergreen parent,
 and a term-defined child"), but the snapshot drops the column that marks which are supported:
 **Open — needs live verification.** [Help: `ind.qocal_considerations_ramp_deals.htm`] Whether
@@ -123,16 +126,27 @@ combined with other products". [Help: `ind.product_catalog_create_simple_product
 flag is exposed on product representations returned by the catalog APIs.
 [Dev guide: `apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm`]
 
-What enforces it is not documented: whether Product Discovery hides the product, whether a
-cart holding it alone is rejected, and what amend, renew or cancel do when its companion is
-removed are all **Open — needs live verification**. The QuantumBit plan sets it on no product.
-[Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
+Help does not say what enforces it. Measured [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
 
-**Modeling advice until verified:** do not rely on this flag alone. Making the add-on a
-bundle component controls how it is chosen *inside* the bundle (the lowest-level group's
-cardinality is enforced at run time [Help: `ind.product_catalog_group_cardinality.htm`]),
-but no snapshot article says that stops the same active, priced product from being added to
-a quote on its own.
+| Where | Result |
+|---|---|
+| Assign the product to a catalog category | **Refused**: `INVALID_OPERATION`, "This product can't be assigned to the category because the Sell only with other products checkbox is selected on the product." |
+| Product Discovery search; the line editor's Add Product (Quick Add) search | Not found (a control product in a category was found) |
+| Make it a bundle component | Accepted |
+| Place it **alone** on a quote (Place Sales Transaction, rules on, `validateProductCatalog: true`) | Accepted and priced; `configure` reports success with no message |
+| Order and activate that quote | Ordered and activated; the asset is created |
+
+So the flag is enforced in one place, category assignment. Catalog-backed selection in the UI
+(Product Discovery, Quick Add, and Browse Catalogs, which lists category contents) never
+offers the product on its own, so a rep reaches it only as a bundle component. Nothing
+checks a quote or an order, so a quote built by API can sell it alone. What an amendment or
+cancellation that removes its companion does is **Open — needs live verification**. The
+QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
+
+**Modeling advice:** set the flag and make the add-on a bundle component; leave it out of
+every category (the platform requires that anyway). If a quote built outside the UI must
+not sell it alone, add your own check (a configuration rule or a validation on the quote):
+the flag does not.
 
 ## Other lifecycle fields on `Product2`
 

@@ -79,6 +79,14 @@ QuantumBit plan uses Hardware, Software, Services, Bundle, 3rd Party Software, a
 `None` on five products, and blank on 166 of 314. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
 A literal `None` is a value, not an absence: a filter for blank does not match it.
 
+**A new Family value must be added to the picklist, as part of the load.** The `Family`
+picklist is unrestricted, so a load stores any value through the API, but a value that is
+not one of the org's picklist values is not offered in the UI's Family picklist.
+[Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] Add the value to the `Product2Family`
+standard value set (a metadata deploy) in the same change as the plan that uses it. In this
+repo that file is `force-app/main/default/standardValueSets/Product2Family.standardValueSet-meta.xml`;
+it lists the values the shipped plans use. [Repo: that file]
+
 ## From model to plan
 
 1. **Copy the QuantumBit plan, then cut.** `datasets/sfdmu/qb/en-US/qb-pcm/` already has
@@ -96,6 +104,7 @@ A literal `None` is a value, not an absence: a filter for blank does not match i
 3. **Mark empty objects `excluded: true`.** [Repo: `sfdmu-data-plans/SKILL.md`]
 4. **Write a README** and run the plan checks (below).
 5. **Load twice into a fresh org.** [Measured: 2026-11, 264]
+6. **Rebuild the search index, and wait for it, before placing a quote** (fact f).
 
 ```bash
 # A new plan, through the generic loader (CCI alias, not sf alias). If the plan keeps
@@ -103,6 +112,7 @@ A literal `None` is a value, not an absence: a filter for blank does not match i
 # otherwise drop the ignore_row_errors_for option.
 cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> -o ignore_row_errors_for "{ProrationPolicy: duplicate value found}" --org <cci_alias>
 cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> -o ignore_row_errors_for "{ProrationPolicy: duplicate value found}" --org <cci_alias>   # second pass
+cci task run rebuild_search_index --org <cci_alias>   # async: allow a few minutes before placing a quote
 ```
 
 ### PCM load facts (264)
@@ -114,6 +124,9 @@ cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>
 | **(c)** In a plan without `useSeparatedCSVFiles: true`, repeating an object across object sets: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] | For fact (a)'s second pass, run the plan again: that is the measured fix. |
 | **(d)** A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | See *Coding categories*. |
 | **(e)** A configurator test of a bundle must place the quote with configuration rules on. [Measured: 2026-11, 264] | See `constraint-models`. |
+| **(f)** Newly loaded products are invisible to Place Sales Transaction ("Could not find product with ID …") until `rebuild_search_index` has run and its asynchronous build has finished, a matter of minutes. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | Rebuild the index after every load that adds products, and wait before placing. If the load also changes pricing data, refresh decision tables first (`decision-tables`). |
+| **(g)** A `Family` value outside the org's picklist is stored through the API but not offered in the UI. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | Deploy the picklist value with the plan; see [Family](#product-family-is-a-contract). |
+| **(h)** On `ProductRelatedComponent`, `ParentProductRole` and `ChildProductRole` are not writable (set from the relationship type), and `MinQuantity`, when given, must be at least 1; `QuantityScaleMethod` takes `Constant`, `Proportional` or blank, never `None`. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality). |
 
 In this repo `prepare_product_data` runs `insert_quantumbit_pcm_data` once.
 `test_qb_pcm_idempotency` loads the plan once, extracts the org, reloads the extraction and
