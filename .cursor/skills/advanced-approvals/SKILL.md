@@ -97,6 +97,7 @@ QuantumBit build.
 |---|---|
 | Add an approval dimension to the shipped quote approval (margin, deal size, term) | This skill → [matrix-modeling.md](matrix-modeling.md), then `docs/features/composable-quote-approvals.md` |
 | Map a customer's sign-off matrix onto approvals | This skill → [matrix-modeling.md](matrix-modeling.md) |
+| Approvals across negotiation rounds (each round a cloned quote) | `quote-negotiation-rounds` |
 | Submit, approve, reject, recall or inspect a submission; test headlessly | This skill → [actions-and-objects.md](actions-and-objects.md) |
 | Smart Approvals, preview, email, delegation limits; what's still unknown | This skill → [limitations.md](limitations.md) |
 | Change how the line approval level is computed | `pricing-procedures` and `expression-sets` (the `approval_flags.json` overlay) |

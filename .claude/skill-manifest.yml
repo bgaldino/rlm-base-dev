@@ -150,6 +150,15 @@ foundations:
       caveats:
         - "Action-button configuration UI, run-time limit and the Manage Header Adjustment API name disagree across 264 Help articles and the release notes; settle on a live org before writing an action layout into a template"
 
+    - id: quote-negotiation-rounds
+      path: .cursor/skills/quote-negotiation-rounds/SKILL.md
+      purpose: "Negotiation or bid rounds as quote versions: deep clone of a quote and what carries over, naming and relating rounds, an internal-only round, per-round discounts and approvals, and which round syncs and becomes the order"
+      consumed_by_pmos: []
+      provenance: 264 Help and dev-guide snapshot, plus two live Connect API quote clones on a QuantumBit scratch org (2026-11-10)
+      sub_skills:
+        - .cursor/skills/quote-negotiation-rounds/deep-clone.md
+        - .cursor/skills/quote-negotiation-rounds/internal-round.md
+
     - id: asset-lifecycle-changes
       path: .cursor/skills/asset-lifecycle-changes/SKILL.md
       purpose: "Model and verify amendments, swaps, cancellations and renewals: mapping a change policy, where prices and attributes land, bundle-component limits, credits by selling model, end-to-end verification"
