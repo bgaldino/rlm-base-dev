@@ -38,7 +38,7 @@ Do **not** use this skill when:
 3. For resume, keep scenario id and flags consistent with checkpoint.
 4. Use JSON mode (`--format json`) when another agent or script needs structured output.
 5. Run focused harness tests after implementation changes: `.harness/tui-venv/bin/python -m pytest tests/build_harness/`.
-6. For end-user org creation, default to shape `ent`, days `30`, alias auto-generated.
+6. For end-user org creation (TUI), default to shape `ent`, days `30`, alias auto-generated. Harness CLI scenarios take `days` from the scenario instead (`1` today); see **Keep an org for a multi-day build**.
 7. **Before creating the org, ask the user to confirm or override all three defaults** (shape, days, alias).
 8. Cleanup semantics differ by entrypoint: harness CLI keeps failed orgs for resume; TUI auto-deletes on failure by default only if the org was created in the current run. Set `delete_org_on_failure: false` in `scripts/build_harness/tui/settings.local.json` to preserve failed TUI orgs.
 
@@ -96,6 +96,20 @@ python scripts/build_harness/harness.py run --scenario dev-default --scenario en
 ```bash
 python scripts/build_harness/harness.py run --scenario ent-default --keep-orgs
 ```
+
+### Keep an org for a multi-day build
+
+An org's lifetime is the `--days` passed to `cci org scratch <shape> <alias> --days <n>` when the harness or TUI registers it (both then run `cci org info <alias>` to materialize it). No other harness or TUI code passes `--days` or changes an existing org's lifetime. The two entrypoints take `<n>` from different places:
+
+| Entrypoint | Source of `days` | Current value |
+|------------|------------------|---------------|
+| Harness CLI `run` | the scenario's `days` in the scenarios file (`harness/scenario_runner.py`; `1` when absent) | `1` in all four scenarios in `scripts/build_harness/scenarios.json` |
+| TUI | `orgs.scratch.<shape>.days` in `cumulusci.yml` (`tui/runner.py::load_tui_config`), prefilled when a shape is picked and editable in wizard step 2 | `30` on every shape |
+
+- `run` and `resume` have no `--days` option. For a longer-lived harness org, give the scenario a larger `days` in a copy of the manifest and pass `--scenarios-file <copy>`; pass the same file to `resume`, which reloads the scenario from it. Editing `scripts/build_harness/scenarios.json` changes the shared matrix.
+- `--keep-orgs` only skips the `cci org scratch_delete` that follows a successful `run` or `resume`; it does not lengthen the org's life. Pass it on `resume` too, or a successful resume deletes the org.
+- A failed run keeps its org for `resume`, but resume works only while the org exists: `execution.py::org_exists` runs `cci org info <alias>` with a 30-second timeout, and resume reports `resume_blocked` with target `org_missing` when that command exits non-zero or times out. Do not check an expired org by hand with `cci org info`: CumulusCI's `check_org_expired` (`cumulusci/cli/runtime.py`) recreates an expired scratch org under the same alias, with the same `days`, so you get a new, unbuilt org instead of an error. The harness probe can start that recreation too before its timeout kills it.
+- The TUI rejects days outside 1–30 (`tui/app.py::_validate_alias_and_days`); the harness CLI applies no range check to a scenario's `days`.
 
 ### Resume a failed scenario
 
@@ -267,7 +281,7 @@ Always share the generated alias with the user before creation.
   - failed runs trigger scratch delete only if the org was created in that same TUI run
   - `delete_org_on_failure` defaults to `true`; set it to `false` in `scripts/build_harness/tui/settings.local.json` to preserve the org for inspection
   - alias defaults use `<shape>-tui-<4char>` and retry on collisions
-- Use `--keep-orgs` when you need to retain successful orgs for debugging.
+- Use `--keep-orgs` when you need to retain successful orgs for debugging. It prevents the delete only; the org still expires after its `days`, and a later `cci org info <alias>` recreates a new, unbuilt org under the alias (see **Keep an org for a multi-day build**).
 - Resume is blocked when checkpoint prerequisites are missing or flags changed; perform a full re-run after fixing blockers.
 
 ## Implementation Notes
@@ -318,6 +332,7 @@ Use tests first for parser, evaluator, cleanup, and resume-safety changes. Mock 
 ## Known Follow-Ups
 
 - Operational hygiene: keep `.harness/runs/` pruning opt-in; avoid automatic deletion without explicit operator intent.
+- Open: the platform's maximum scratch-org duration is not recorded in this repo. `30` is the TUI's own cap and the `days` on every `cumulusci.yml` shape; whether a harness scenario with `days` above 30 is accepted has not been run.
 - Larger refactors should stay separate: `tui/app.py` decomposition and replacing remaining CLI `print()` calls with structured logging if that becomes useful.
 
 ## Related Docs
