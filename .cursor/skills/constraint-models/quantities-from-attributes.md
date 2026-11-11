@@ -126,7 +126,7 @@ PCM attribute imported into CML takes the attribute's developer name as its vari
 |---|---|---|
 | One per answer unit | `constraint(gateways[Gateway] == sites, "One gateway per site: expected {}.", sites);` | `[Dev guide: cml_logical_constraints]` (message with `{}` arguments) |
 | Per N, rounded up (bracket) | `constraint(rackQty * 10 >= sites && (rackQty - 1) * 10 < sites, "<message>");` | 23 → 3 `[Measured: 2026-11-10, 264]` |
-| Per N, rounded up (inline) | `int rackQty = ceil(sites / 10);` | 23 → 3, with an input that a constraint set, not a rep-edited answer `[Measured: 2026-11-10, 264]`. No explicit domain; see [Why `ceil()` isn't in a constraint here](#why-ceil-isnt-in-a-constraint-here) |
+| Per N, rounded up (inline) | `int rackQty = ceil(<int variable> / 10);` | 23 → 3, with a variable that a constraint set, not a rep-edited answer `[Measured: 2026-11-10, 264]`. No explicit domain; see [Why `ceil()` isn't in a constraint here](#why-ceil-isnt-in-a-constraint-here) |
 | Zero unless a choice is made | `constraint(hosting != "OnPrem" -> rackQty == 0, "<message>");` | `[Dev guide: cml_logical_constraints]` |
 | Equal to another component's quantity | `constraint(mounts[GatewayMount] == gateways[Gateway], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead (see [Chained derivations](#chained-derivations)) |
 | A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
@@ -175,7 +175,7 @@ Two forms round up:
   `N*(q-1) < x <= N*q`, the ceiling of `x / N` for `x >= 0`. It keeps everything in solver
   constraints, so the dev guide's advice to calculate inside constraints still holds
   `[Dev guide: cml_best_practice_calculations]`. The worked example uses it.
-- **Inline `ceil()`**, as in `int rackQty = ceil(sites / 10);`. Shorter, but the variable
+- **Inline `ceil()`**, as in `int rackQty = ceil(<int variable> / 10);`. Shorter, but the variable
   is declared by its expression and can't have an explicit domain. The dev guide warns that
   inline derived declarations can leave domains uninitialized
   `[Dev guide: cml_core_concept_examples]` (*Key Considerations for Calculations and
