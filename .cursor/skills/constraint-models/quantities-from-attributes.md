@@ -328,8 +328,9 @@ checks), `message`, `messageType`, `primaryRecordId` (the quote) and `relatedRec
 
 ## Testing it headlessly
 
-Run the place-then-configure check from the parent skill
-([Validation check 7](SKILL.md#validation-checks)) once per answer set.
+Run the parent skill's headless `configure` check
+([Validation check 7](SKILL.md#validation-checks)) once per answer set, with a Place step
+in front of it (step 1 below).
 
 1. **Place with configuration rules on:** `configurationMethod: Force` with
    `executeConfigurationRules: true`. `configurationMethod` defaults to `Skip`
