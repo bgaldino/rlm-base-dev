@@ -40,11 +40,11 @@ pointer, not the skill's full open list.
 | Discount when bought in a package | Bundle-based adjustment | `pricing-procedures` → `elements/bundle-based-price.md` |
 | Regional or channel uplift | A documented route first: CML copies the root answer to a price-impacting child attribute plus an attribute-based price; formula-based pricing on a header value; or a price adjustment matrix over a lookup table. The attribute adjustment matrix is unverified | `pricing-procedures` → `elements/root-answer-child-price.md` |
 | Order of application, rounding | Procedure element order, rounding element | `pricing-procedures` → `procedure-anatomy-and-ordering.md`, `elements/rounding-values.md` |
-| Second currency | Multicurrency price book entries | `pricing-setup`, `sfdmu-data-plans` |
-| Annual escalator | Group ramp with uplift | `ramped-quotes`; `pricing-procedures` → `elements/price-revision-compound-uplift.md` |
-| Renewal uplift | Price revision policy | `pricing-setup` → `price-revision-policies.md`; `asset-lifecycle-changes` |
+| Second currency | Multicurrency price book entries, and per-currency rows for every adjustment that matches on currency (volume tiers, bundle-based adjustments) as well as cost entries | `pricing-setup`, `sfdmu-data-plans` |
+| Annual escalator | Group ramp with uplift. An API-built group-ramped bundle with a one-time or evergreen child failed to amend (`asset-lifecycle-changes` Quick Rule 8) | `ramped-quotes`; `pricing-procedures` → `elements/price-revision-compound-uplift.md` |
+| Renewal uplift | Price revision policy. Renewal uplifts apply only to term-defined selling models (Help: `ind.qocal_renewal_price_uplifts`), so an Evergreen line takes none | `pricing-setup` → `price-revision-policies.md`; `asset-lifecycle-changes` |
 | Discount for a longer commitment | List filter on term plus a formula step on Term Defined lines | `pricing-procedures` → `elements/commitment-term-discount.md` |
-| A policy approved but not yet in the source's calculator ("Proposed") | Build it behind a quote-level switch the procedure reads; run the source's goldens with it off and the policy's own examples with it on. Ask whether two such policies stack | `pricing-procedures` → `elements/root-answer-child-price.md` (route 2: map the header field into the context, then read it in a formula). A list filter on a header tag is unverified |
+| A policy approved but not yet in the source's calculator ("Proposed") | Build it behind a quote-level switch the procedure reads; run the source's goldens with it off and the policy's own examples with it on. Ask whether two such policies stack, and for each policy's effective date | `pricing-procedures` → `elements/root-answer-child-price.md` (route 2: map the header field into the context, then read it in a formula). A list filter on a header tag is unverified |
 | Price from cost and a target margin | Formula step on a cost looked up from a decision table | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md`; `pricing-procedures` → `elements/formula-based-pricing.md` |
 
 ## Cost and margin
@@ -75,7 +75,7 @@ pointer, not the skill's full open list.
 | An internal what-if round that must never be presented | A marker on the quote plus a guard on presenting and ordering it | `quote-negotiation-rounds` |
 | Discount per product line | Manual line discounts. A line-editor group discount is open: unmeasured inside a bundle, and Propagation ships off. Not a header discount: it was measured applying twice with an active procedure plan and `skipOrgSttPricing` on | `pricing-procedures` → `elements/manual-discount.md`, `elements/price-propagation.md`; `transaction-line-editor` → `runtime-behavior.md` |
 | Approval matrix by discount, margin, size | Advanced Approvals: one level per dimension, the maximum drives a cumulative chain. State what "discount" is measured against (list, or a standard price after programs) | `advanced-approvals` → `matrix-modeling.md` |
-| Line-level guards (below floor, below cost) | A count of breaking lines as an approval condition, with a marker so a round's bulk discount and an individual override can be told apart | `advanced-approvals` → `matrix-modeling.md` |
+| Line-level guards (below floor, below cost) | A count of breaking lines as an approval condition, with a marker so a round's bulk discount and an individual override can be told apart; name what sets the marker on each path | `advanced-approvals` → `matrix-modeling.md` |
 | "Resubmit from the start" after a rejection | Smart Approval off on that chain's steps, or accepted as a difference | `advanced-approvals` → `matrix-modeling.md`, `limitations.md` |
 
 ## Lifecycle

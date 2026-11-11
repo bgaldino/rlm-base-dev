@@ -58,7 +58,9 @@ files can use it.
 - **DO NOT** call something in the source an inconsistency until you have read the
   source's own notes on it. A label that looks contradictory may be defined elsewhere,
   for example a "Proposed" policy that a note defines as "approved, not yet in the
-  calculator". Real inconsistencies become decisions, not silent choices.
+  calculator". Real inconsistencies become decisions, not silent choices. When a note
+  states a rule and a formula breaks it, recommend the stated rule, and keep the
+  formula's cached values only to check the extraction.
 - **DO NOT** put customer, brand or third-party commercial data in the public repo.
   Decide where the plan and data live (Quick Rule 1). A private plan may name real
   data; this skill and anything public may not.
@@ -188,10 +190,15 @@ Rules that need a live org become spikes, each with the source value it must hit
   not only its own formula: guards, dependencies and thresholds. A source's summary
   formulas often skip a rule its policy text states (a per-line floor-margin guard, a
   never-below-cost rule). Each violation is a decision, not a silent choice.
-- **Replay lifecycle examples in date order,** with configuration rules on. An example
-  that breaks a sizing rule, or that runs a change dated before an existing later one,
-  is a decision. Whether the platform refuses the second case is open in
-  `asset-lifecycle-changes`, so plan a live check for it.
+- **Replay lifecycle examples in date order,** with configuration rules on. Anchor
+  the timeline first (the contract start, and whether the replay's dates are in the
+  future of the build), and state whether proration is by month or by day.
+    - At each step, run the running totals through every rule as well as the end state:
+      a threshold the contract crosses part way through (a deal-size approval level,
+      a band) is a decision too.
+    - An example that breaks a sizing rule, or that runs a change dated before an
+      existing later one, is a decision. Whether the platform refuses the second case
+      is open in `asset-lifecycle-changes`, so plan a live check for it.
 - Where the source and Revenue Cloud measure different things, write the mapping into
   the test rather than forcing equality. Example: a monthly plan the source counts
   for the contract term "for comparison only".
@@ -199,7 +206,10 @@ Rules that need a live org become spikes, each with the source value it must hit
 ### 6. Decisions, phases, sessions, skills
 
 Write these in the template's order:
-- **Decisions:** each one decided or recommended, with the alternative.
+- **Decisions:** each one decided or recommended, with the alternative. Check every
+  recommendation and fallback against the Quick Rules of the domain skills it touches.
+  A decision that depends on a marker or flag names what sets it, on every path that
+  creates the record (API, line editor, clone).
 - **Phases:** each with a gate and its skills.
 - **Sessions:** see [session-orchestration.md](session-orchestration.md).
 - **Skills:** a phase-by-skill matrix.

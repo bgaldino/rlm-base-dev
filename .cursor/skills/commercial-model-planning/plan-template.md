@@ -83,7 +83,7 @@ The usual phases:
 
 | Phase | Typical content |
 |---|---|
-| P0 Environment | Integration org through the build harness; feature and enablement checks; tooling |
+| P0 Environment | Integration org through the build harness, on a named scenario or shape, with a lifetime that covers the build (the scenario's `days`); feature and enablement checks; tooling |
 | P1 Extraction | Source → design model and golden values; parity; independent re-check of a sample; user reviews the design |
 | P2 Live spikes | Only the rules the rule decision record marks **Live** |
 | P3 Catalog, then configuration | Data plans derived from the base build's own plans; CML |

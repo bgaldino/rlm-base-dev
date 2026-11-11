@@ -15,6 +15,11 @@ live org. Parent: [commercial-model-planning](SKILL.md).
 snapshot coverage is decided by the snapshot. Record it as a skill gap, not as a live
 spike. Model the rule directly; its build gate proves it.
 
+**A custom computation is not a platform behaviour.** A value the build computes itself,
+such as a fee, a derived total or a field formula, has nothing on the platform to
+observe. Its build gate decides it; record it as a skill gap if no skill shows the
+pattern.
+
 **A skill's `[inferred]` claim is a hypothesis,** not a measured fact. Record it as
 **Repo (inferred)**, decided at its build gate, unless it predicts that shipped
 behaviour is wrong for the rule (for example a shipped formula that overstates margin
@@ -24,7 +29,7 @@ on multi-year lines). Then it is trigger (b).
 
 | Trigger | Typical cases |
 |---|---|
-| (a) The snapshot and the skills are both silent on the rule | A behaviour no article or skill describes |
+| (a) The snapshot and the skills are both silent on a platform behaviour the rule depends on | A behaviour no article or skill describes |
 | (b) The repo measured, or a skill infers from shipped code, behaviour that contradicts the docs or is a defect or limitation the docs don't describe | A header discount applying twice with an active procedure plan and `skipOrgSttPricing` on; a quantity edit on an amendment line resetting its attributes; a cancellation credit that doesn't prorate; an API-built group-ramped bundle with a one-time or evergreen child that failed to amend (`asset-lifecycle-changes` Quick Rule 8) |
 | (c) The rule is about values across the lifecycle that no skill has measured for the build's selling models and shape | Amend, cancel and renew values: Help describes setup, not values |
 | (d) The docs disagree, describe a preview with limitations, or lost information in capture | A considerations page for a preview feature; a support table whose values were icons and came through the snapshot blank |
@@ -94,9 +99,13 @@ value, and a rule can carry two (for example **Repo** on a new sale, **Live (c)*
 amendment). Spikes come from the per-rule record.
 
 Every rule decided **Live** becomes a spike, with:
-- the source value it must hit,
+- the value it must hit, in the platform's own measure (for example the per-period
+  amount an Evergreen line shows), with the source's value reached through the mapping,
 - the skills and articles to read before touching the org,
 - the smallest case that proves it.
+
+Don't plan a spike that re-measures a failure a skill already records; cite the skill,
+and spike only the untested route around it.
 
 Every rule decided **Repo**, **Repo (inferred)** or **Snapshot** is proved at its build gate. A **Snapshot**
 area with no skill is also listed in the plan's skill gaps.
