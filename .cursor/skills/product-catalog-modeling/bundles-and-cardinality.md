@@ -188,7 +188,7 @@ child's quantity edit still saved in the line editor; see
 
 **Downstream:** choosing Proportional fixes the parent-to-child ratio for every later
 amendment. If a customer must later change one child's quantity independently, model it
-with None (or as a separate line). [Help: `ind.product_catalog_product_relationships.htm`]
+with None (blank, with *Allow quantity changes* on) or as a separate line. [Help: `ind.product_catalog_product_relationships.htm`]
 
 ## CML-sized default components
 

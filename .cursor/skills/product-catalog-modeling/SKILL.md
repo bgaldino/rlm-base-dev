@@ -284,6 +284,8 @@ Review the CSVs for these, each a rule above:
 - Every group's `MinBundleComponents` ≤ distinct children, and required children ≤ `MaxBundleComponents`.
 - Every `Family` value is a value of the org's `Family` picklist, or the same change adds it
   to the `Product2Family` standard value set.
+- No `ProductCategoryProduct` row names a product with `IsSoldOnlyWithOtherProds` true; the
+  platform refuses that assignment.
 - No `QuantityScaleMethod` is the literal `None`; the 264 picklist rejects it
   ([`bundles-and-cardinality.md`](bundles-and-cardinality.md#quantity-scaling-and-lifecycle)).
 - Every product has at most one `IsDefault` selling model option; term-defined and

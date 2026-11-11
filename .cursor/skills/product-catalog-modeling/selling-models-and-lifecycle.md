@@ -62,7 +62,8 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
 Children keep their **own** options, which may differ from the root's. In the QuantumBit
 Starter bundle the root is One-Time while a maintenance child is Term Annual.
 [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductSellingModelOption.csv`] How a mixed-model bundle
-co-terminates and renews is **Open — needs live verification** beyond the one-time rule above.
+co-terminates and renews is **Open — needs live verification** beyond the one-time rule above
+and the one measured shape ([below](#selling-model-of-the-bundle-root)).
 
 ### Selling model of the bundle root
 
