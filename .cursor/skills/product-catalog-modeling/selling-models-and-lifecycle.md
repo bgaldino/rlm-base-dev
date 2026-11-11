@@ -138,11 +138,12 @@ Help does not say what enforces it. Measured [Measured: 2026-11-11, fresh 264 en
 
 So the only refusal is at category assignment. Product Discovery and Quick Add did not find
 the product on its own, while a control product created at the same time and placed in a
-category was found; whether that is the missing category or the flag itself was not
-isolated. Browse Catalogs lists category contents, so it should not show the product either,
-and a rep reaches it through a bundle (both inferred, not tested). Nothing
-checks a quote or an order, so a quote built by API can sell it alone. What an amendment or
-cancellation that removes its companion does is **Open — needs live verification**. The
+category was found; whether that is the missing category or the flag itself: **Open —
+needs live verification.** Browse Catalogs lists category contents, so it should not show the product either,
+and a rep reaches it through a bundle (both inferred, not tested).
+None of the measured steps (Place, `configure`, order, activation) refused it, so a quote
+built by API can sell it alone; line-editor save, approval and CML rules were not tried.
+What amend, renew or cancel do when its companion is removed: **Open — needs live verification**. The
 QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
 
 **Modeling advice:** set the flag and make the add-on a bundle component; leave it out of

@@ -196,8 +196,9 @@ from its CSV is **Open — needs live verification**: every `IsRequired` in the 
 first-insert value was not recorded. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
 After any load of new products, run `refresh_all_decision_tables` and then `rebuild_search_index`,
-and wait a few minutes for the index build before placing a quote: until it finishes, Place
-answers "Could not find product with ID" for them. Two more
+and wait for the index build before placing a quote (minutes on the measured scratch org;
+longer for a larger catalog): until it finishes, Place answers "Could not find product with
+ID" for them. Two more
 load facts measured the same way, a `Family` value missing from the picklist and the
 component fields an insert cannot set, are in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264).
 [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
@@ -255,8 +256,8 @@ assetizable, so every child is assetizable whatever its own flag says. [Help: `i
   override on that attribute. This skill, then `pricing-procedures`.
 - "Child lookups load blank in my new PCM plan." → facts (b)–(d) above, then
   `sfdmu-data-plans`.
-- "Place says *Could not find product with ID* for a product I just loaded." → the search
-  index has not been rebuilt yet ([Loading the model](#loading-the-model)).
+- "Place says *Could not find product with ID* for a product I just loaded." → first check
+  that the search index was rebuilt after the load and has finished ([Loading the model](#loading-the-model)).
 - "A group I set to pick one says its number of child products is out of range, but I
   picked one product." → the product is on two lines; see
   [`bundles-and-cardinality.md`](bundles-and-cardinality.md#cml-sized-default-components).
@@ -285,7 +286,8 @@ Review the CSVs for these, each a rule above:
 - No classification component is required or default.
 - Every group's `MinBundleComponents` ≤ distinct children, and required children ≤ `MaxBundleComponents`.
 - Every `Family` value is a value of the org's `Family` picklist (or the load adds it).
-- Every `QuantityScaleMethod` is `Constant`, `Proportional` or blank, never `None`.
+- Every `QuantityScaleMethod` is `Constant`, `Proportional` or blank, never `None`; a blank on
+  a row with `IsQuantityEditable` false loads as `Proportional`, so write that value.
 - Every product has at most one `IsDefault` selling model option; term-defined and
   evergreen options carry a proration policy where proration is wanted.
 - Category codes are unique across all levels and catalogs; no row's `ParentCategory.Code` equals its own `Code`.
@@ -300,9 +302,10 @@ configure one bundle in the configurator with rules on.
 
 Every item marked **Open — needs live verification** in this skill and its sub-files:
 
-- **`IsSoldOnlyWithOtherProds` on amend, renew and cancel.** The refusals measured are at
-  category assignment only (quote, order and activation accepted it alone); what an
-  amendment or cancellation that removes its companion does was not measured. **Open — needs live verification.** See
+- **`IsSoldOnlyWithOtherProds` beyond category assignment.** The only refusal measured is
+  at category assignment (Place, order and activation accepted it alone). Open: whether
+  search hides it for the flag or for the missing category, and what amend, renew or cancel
+  do when its companion is removed. **Open — needs live verification.** See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods).
 - **Is `ProductCategory.Code` unique per org or per catalog?** The snapshot does not say.
   Fact (d) only proves that a plan keyed on `Code` alone conflates levels. **Open — needs live verification.**
@@ -321,6 +324,9 @@ Every item marked **Open — needs live verification** in this skill and its sub
   or Evergreen child is quoted, renewed and billed on; how a locked configurable bundle's
   children amend, and whether the lock holds on its renewal quote. (That it opens the
   configurator, and how its children renew, is measured.) See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur).
+- **Group range message and orders.** Whether a group's `bundlevalidation` range message
+  (a component split across two lines) blocks order creation. See
+  [`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality).
 - **Bundle-based adjustments under a new static bundle**, whose component rows carry
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).

@@ -120,7 +120,7 @@ components**. [Help: `ind.product_catalog_group_cardinality.htm`] Measured at ru
 counted **lines**: a 1..1 group holding one product on two lines (a split, below) drew a
 `bundlevalidation` range message (the number of child products isn't in the specified range;
 the configurator shows it as a warning). Whether it then blocks the order, as the
-locked-quantity message above does, was not measured.
+locked-quantity message above does: **Open — needs live verification.**
 [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] Design with Help's rule, then keep each component on one line. Blank min = 0, blank
 max = unlimited; max ≥ min. With nested groups, only the **lowest-level** group's
 cardinality is enforced at run time; a parent group's limits count child groups for
@@ -191,9 +191,9 @@ Proportional is the default when *Allow quantity changes* is off at creation; No
 Help's warning says child quantities are read-only in the runtime cart when the method is
 Constant or "Default" (a value its own list of methods does not include), even on legacy
 rows with *Allow quantity changes*. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_local_cardinality.htm`]
-Measured, read-only held in the configurator but not in the line editor: a Proportional child
-with *Allow quantity changes* off was editable there, and the edit saved; the lock was
-enforced only at order creation. See [the locked bundle measurement](#static-kit-or-locked-configurable-bundle-when-children-recur). [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
+Separately from that warning, measured on a **Proportional** child with *Allow quantity
+changes* off: its quantity was read-only in the configurator, but in the line editor and
+through Place the edit saved, and it was refused only at order creation. See [the locked bundle measurement](#static-kit-or-locked-configurable-bundle-when-children-recur). [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 
 **Downstream:** choosing Proportional fixes the parent-to-child ratio for every later
 amendment. If a customer must later change one child's quantity independently, model it
@@ -208,8 +208,9 @@ quantity of 1: 1 + (n − 1)). Measured in the
 UI configurator and on the API defaults path (Place with `addDefaultConfiguration: true`);
 a hand edit below the rule's quantity split the same way instead of being rejected. Totals
 stay right, but each split counts as two lines against its group's max (above). In a group
-ramp, correcting the split by hand in the first segment did not correct the later segments:
-they kept a quantity above the rule's, flagged only by the `bundlevalidation` range message. A component added without defaults (not
+ramp, setting the first segment's component back to one line by hand did not fix the later
+segments: each still held two lines per component, adding up to one more than the rule's
+quantity, flagged only by the `bundlevalidation` range message. A component added without defaults (not
 `IsDefaultComponent`, or the API sending the child lines itself) gave one instance.
 [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 
