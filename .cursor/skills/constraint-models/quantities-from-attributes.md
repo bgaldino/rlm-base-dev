@@ -9,9 +9,16 @@ check. This file covers only the CML that sizes a bundle and how to test it.
 
 **Claim tags.** `[Dev guide: <article>]` is the 264 developer guide snapshot under
 `docs/salesforce/264/dev-guide/articles/`, cited by file name without `.htm.md`.
-`[Repo: <file>]` is this repository. `[Measured: <date>, 264]` is an earlier live run on
-a 264 org. Items marked **Open — needs live verification** are not settled by any of these.
-All CML below follows documented syntax, but none of it has been run.
+`[Repo: <file>]` is this repository. `[Measured: <date>, 264]` is a live run on a 264
+(API v68.0) scratch org. Items marked **Open — needs live verification** are not settled
+by any of these.
+
+The 2026-11-10 measurements come from a temporary probe model: rules added to an active
+bundle model, imported and cycled, then read back through `message(...)` values in a
+`configure` response after a Place with rules on. The probe tested arithmetic, `ceil()`,
+`^`, `configurable = false`, message severity and a decimal-driven cardinality, and
+nothing else. The worked example as a whole has not been run. Where the dev guide and the
+org disagree, this file follows the org and says so.
 
 ---
 
@@ -29,6 +36,9 @@ All CML below follows documented syntax, but none of it has been run.
    without explicit domains can fail to initialize
    `[Dev guide: cml_core_concept_examples]`
    `[Dev guide: cml_business-centric_cml_guidelines_quantity_and_aggregation_fun]`.
+   **Rounding up is the exception:** `ceil()` does nothing inside `constraint(...)`, so
+   round up with an inline `ceil()` or an integer bracket (see
+   [Rounding and number types](#rounding-and-number-types)) `[Measured: 2026-11-10, 264]`.
 4. **Use `int`, not `decimal`, for anything that becomes a line quantity.** `decimal` isn't
    supported for the quote line quantity field `[Dev guide: cml_variable_data_types]`.
 5. **Keep data flowing one way:** answers → derived variables → cardinalities. A loop
@@ -56,6 +66,14 @@ All CML below follows documented syntax, but none of it has been run.
 - **DO NOT** leave relation cardinality open (`relation x : X;`). Without bounds the
   engine tries quantities up to 9,999 `[Dev guide: cml_best_practice_cardinality]`
   `[Dev guide: cml_relationships]`.
+- **DO NOT** put `ceil()` inside `constraint(...)`. It returns its argument unchanged
+  there, so `constraint(q == ceil(15 / 10))` sets 1. An `int` set equal to
+  `ceil(<decimal>)` inside a constraint makes the model fail to activate
+  `[Measured: 2026-11-10, 264]`. The dev guide's own `ceil()` example is written this way
+  `[Dev guide: cml_core_concept_examples]`.
+- **DO NOT** use `^` for powers inside a constraint. Even in parentheses
+  (`constraint(p == (2 ^ 3))`), it compiles to a false constraint and the model fails to
+  deploy. Inline, `int p = 2 ^ 3;` gives 8 `[Measured: 2026-11-10, 264]`. Multiply instead.
 
 ---
 
@@ -70,11 +88,18 @@ All CML below follows documented syntax, but none of it has been run.
 
 `relation[Type] == n` sets a **quantity**. The dev guide's `count()` example satisfies
 `warranties[Warranty] == 2` by adding one warranty product with quantity 2, not two
-products `[Dev guide: cml_relationship_variable_functions]`.
+products `[Dev guide: cml_relationship_variable_functions]`. Measured the same way:
+`softwaremaintenance[SoftwareMaintenance] == 3` produced one line with `Quantity` 3 in the
+`configure` response `[Measured: 2026-11-10, 264]`.
 
-**Open — needs live verification:** whether a cardinality of 600 on a service-hours
-component always appears as one line with quantity 600 in the configurator and the
-transaction line editor, or can be split across instances.
+**Check the component's PCM quantity settings.** On that run the component's
+`ProductRelatedComponent` had `IsQuantityEditable = false`. `configure` still returned
+`success: true`, but with a `bundlevalidation` warning on the line: "The Quantity of the
+line item containing product … can't be edited" `[Measured: 2026-11-10, 264]`.
+
+**Open — needs live verification:** whether `IsQuantityEditable = true` clears that
+warning; how a large cardinality (600 service hours) displays in the configurator and the
+transaction line editor.
 
 ### `sum()` and `total()` aren't the same
 
@@ -94,8 +119,8 @@ PCM attribute imported into CML takes the attribute's developer name as its vari
 | Pattern | CML | Source |
 |---|---|---|
 | One per answer unit | `constraint(gateways[Gateway] == sites, "One gateway per site: expected {}.", sites);` | `[Dev guide: cml_logical_constraints]` (message with `{}` arguments) |
-| Per N, rounded up (documented form) | `constraint(rackQty == ceil(sites / 10));` | `[Dev guide: cml_mathematical_functions_numerical_derivation]` `[Dev guide: cml_core_concept_examples]` |
-| Per N, rounded up (no division) | `constraint(rackQty * 10 >= sites && (rackQty - 1) * 10 < sites);` | Integer arithmetic and relational operators only `[Dev guide: cml_constraints]` |
+| Per N, rounded up (bracket) | `constraint(rackQty * 10 >= sites && (rackQty - 1) * 10 < sites);` | 23 → 3 `[Measured: 2026-11-10, 264]` |
+| Per N, rounded up (inline) | `int rackQty = ceil(sites / 10);` | 23 → 3 `[Measured: 2026-11-10, 264]` |
 | Zero unless a choice is made | `constraint(hosting != "OnPrem" -> rackQty == 0);` | `[Dev guide: cml_logical_constraints]` |
 | Equal to another component's quantity | `constraint(mounts[GatewayMount] == gateways[Gateway]);` | `[Dev guide: cml_best_practice_access_quantity]` |
 | A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
@@ -112,38 +137,59 @@ overridable" `[Dev guide: cml_cml_best_practices]`.
 that a `constraint` sizes (error banner, locked field, or something else), and whether a
 `setdefault` quantity stays as the rep set it after they change an unrelated answer.
 
-### Why there are two "rounded up" forms
+### Why `ceil()` isn't in a constraint here
 
-The dev guide documents `ceil()` with `ceil(totalItems / itemsPerCrate)`, both operands
-`int` `[Dev guide: cml_core_concept_examples]`. It doesn't say whether `/` between two
-`int` values truncates first. Another dev guide example rounds up to a multiple of 100 with
-`((x + 99) / 100) * 100` `[Dev guide: cml_best_practice_relation_aggregates]`, which only
-works if `/` truncates. If it does, `ceil(sites / 10)` returns `sites / 10` rounded
-**down**.
+The dev guide puts `ceil()` inside a named constraint,
+`constraint calculateCeil(requiredCrates == ceil(totalItems / itemsPerCrate));`, with both
+operands `int` `[Dev guide: cml_core_concept_examples]`. On a 264 org that form never
+rounds up `[Measured: 2026-11-10, 264]`:
 
-**Open — needs live verification:** the result of `ceil(15 / 10)` with `int` operands.
-Until that is measured, use the division-free bracket. It pins the one integer `q` with
-`N*(q-1) < x <= N*q`, which is the ceiling of `x / N` for `x >= 0`.
+| Expression | Inside `constraint(...)` | Inline (`int x = …;` / `decimal(2) x = …;`) |
+|---|---|---|
+| `15 / 10`, `23 / 10` | 1, and 2.00 into a `decimal(2)`: integer division truncates | `int q = 23 / 10;` → 2 |
+| `ceil(15 / 10)` | 1 | — |
+| `ceil(<int var 23> / 10)` | — | 3 |
+| `ceil(2.30)`, on a `decimal(2)` variable, a literal or a `double(2)` | 2.30, named or unnamed constraint | 3.00, or 3 into an `int` |
+| `int == ceil(23 * 0.1)` | Model fails to activate: "couldn't find a solution … for the rule" | 3 |
+| `((15 + 99) / 100) * 100` | 100: the round-up-to-a-multiple idiom works | — |
+
+So inside a constraint, integer `/` truncates and `ceil()` is the identity. Inline, `/`
+keeps the fraction until the result is stored, and `ceil()` rounds up. That also settles
+the dev guide's `((x + 99) / 100) * 100` example `[Dev guide: cml_best_practice_relation_aggregates]`:
+it relies on truncation, and inside a constraint it works.
+
+Two forms round up reliably:
+
+- **The integer bracket inside a constraint.** It pins the one integer `q` with
+  `N*(q-1) < x <= N*q`, the ceiling of `x / N` for `x >= 0`. It keeps everything in solver
+  constraints, so the dev guide's advice to calculate inside constraints still holds
+  `[Dev guide: cml_best_practice_calculations]`. The worked example uses it.
+- **Inline `ceil()`**, as in `int rackQty = ceil(sites / 10);`. Shorter. Measured with an
+  input that a constraint set within the same solve.
+
+**Open — needs live verification:** whether an inline `ceil()` recalculates when a rep
+changes the PCM attribute it reads in the configurator. Until that is measured, prefer the
+bracket for answers the rep edits.
 
 ---
 
 ## Rounding and number types
 
-| Need | What the 264 guide documents | Source |
+| Need | Documented | Measured on 264 |
 |---|---|---|
-| Round up | `ceil()`: smallest integer >= the argument | `[Dev guide: cml_mathematical_functions_numerical_derivation]` |
-| Arithmetic | `+ - * / %` (`%` is remainder). The math-functions page also lists `^` as power, but the Constraints page lists `^` as XOR, so avoid `^` | `[Dev guide: cml_constraints]` `[Dev guide: cml_mathematical_functions_numerical_derivation]` |
-| Round down, round to nearest, absolute value | Not documented. Write them as a bracket with integer arithmetic, as above, or with `%` | — |
-| Decimal values | `decimal(n)` fixed-point; `double(n)` 64-bit. Each digit of scale multiplies the values the engine may test | `[Dev guide: cml_variable_data_types]` `[Dev guide: cml_cml_best_practices]` |
-| Line quantity | `int` only; `decimal` isn't supported for the quote line quantity field | `[Dev guide: cml_variable_data_types]` |
+| Round up | `ceil()`: smallest integer >= the argument `[Dev guide: cml_mathematical_functions_numerical_derivation]` | Works inline only; the identity inside `constraint(...)`. See above `[Measured: 2026-11-10, 264]` |
+| Integer division | `/` listed with no stated semantics `[Dev guide: cml_constraints]` | Inside a constraint, `int / int` truncates. Inline, the fraction survives until the result is stored, so `int q = 23 / 10` is 2 but `ceil(23 / 10)` is 3 `[Measured: 2026-11-10, 264]` |
+| Power | The math-functions page lists `^` as power; the Constraints page lists `^` as XOR `[Dev guide: cml_mathematical_functions_numerical_derivation]` `[Dev guide: cml_constraints]` | Both are right in different places: inline `2 ^ 3` = 8; inside a constraint `^` is a logic operator and the model fails to deploy `[Measured: 2026-11-10, 264]`. Multiply instead |
+| Other arithmetic | `+ - * %` (`%` is remainder) `[Dev guide: cml_constraints]` | `+` and `*` in constraints and inline `[Measured: 2026-11-10, 264]` |
+| Round down, round to nearest, absolute value | Not documented | Round down is integer `/` inside a constraint. Write the others as a bracket or with `%` |
+| Decimal values | `decimal(n)` fixed-point; `double(n)` 64-bit. Each digit of scale multiplies the values the engine may test `[Dev guide: cml_variable_data_types]` `[Dev guide: cml_cml_best_practices]` | — |
+| Line quantity | `decimal` isn't supported for the quote line quantity field `[Dev guide: cml_variable_data_types]` | A `decimal(2)` value of 1.50 × 2 set a cardinality of 3 `[Measured: 2026-11-10, 264]`. A fractional result wasn't tested. Keep quantities `int` |
 
-Percentages: write 15% as integer arithmetic (`pmHours * 100 >= 15 * base`), not as
-`base * 0.15`. That keeps every variable `int`, so no `decimal` value reaches a
-cardinality. The dev guide does show a decimal literal (`requiredKW * 1.25`) assigned to a
-`decimal(2)` variable `[Dev guide: cml_core_concept_examples]`.
-
-**Open — needs live verification:** whether an `int` variable can equal an expression with
-a decimal literal (`pmHours == ceil(base * 0.15)`), and how it rounds.
+Percentages: inside a constraint, write 15% as integer arithmetic
+(`pmHours * 100 >= 15 * base && (pmHours - 1) * 100 < 15 * base`); 752 → 113
+`[Measured: 2026-11-10, 264]`. Inline, `int pmHours = ceil(base * 0.15);` also works:
+`int x = ceil(23 * 0.1)` gave 3 `[Measured: 2026-11-10, 264]`. Don't write
+`constraint(pmHours == ceil(base * 0.15))`. With an `int` target it fails to activate.
 
 ---
 
@@ -168,10 +214,15 @@ Size domains from the answer domains. With `sites = [1..200]`, `24 * sites + 80`
 4,880, so `[80..4880]` is the domain, not `[0..99999]`. A smaller domain gives the engine
 fewer values to test `[Dev guide: cml_cml_best_practices]` (*Variable Domains*).
 
-The dev guide says to calculate inside constraints, not with inline expressions
-`[Dev guide: cml_best_practice_calculations]`. Some of its own examples use inline ones
-(`int totalWeight = quantity * weightPerUnit;`) `[Dev guide: cml_cml_best_practices]`
-(*Dependent Logic*). Follow the rule.
+The dev guide says to calculate inside constraints, not with inline expressions, for
+performance `[Dev guide: cml_best_practice_calculations]`. Some of its own examples use
+inline ones (`int totalWeight = quantity * weightPerUnit;`)
+`[Dev guide: cml_cml_best_practices]` (*Dependent Logic*). Both forms evaluate:
+`int x = a * b;` gave 150 for 15 × 10 `[Measured: 2026-11-10, 264]`. They don't evaluate
+the same way. Inline keeps fractions and rounds with `ceil()`; a constraint uses integer
+arithmetic (see [Why `ceil()` isn't in a constraint here](#why-ceil-isnt-in-a-constraint-here)).
+Default to constraints, and use inline where you need `ceil()`. The performance difference
+wasn't measured.
 
 ---
 
@@ -238,9 +289,15 @@ Syntax: `message(condition, string, arg, …, severity)`
 `Info` severity `[Dev guide: cml_preference_rule]`, but a preference also moves the
 solver; a `message` only reports.
 
+The severity argument is case-insensitive: `"warning"` and `"Warning"` both came back as
+`messageType: "warning"`, and `"Info"` or no severity came back as `"info"`. A headless
+`configure` response tells them apart. `messages` is an object keyed by line Id. Each
+entry carries `category` (`configurationrules` for CML, `bundlevalidation` for PCM bundle
+checks), `message`, `messageType`, `primaryRecordId` (the quote) and `relatedRecordId`
+(the line) `[Measured: 2026-11-10, 264]`.
+
 **Open — needs live verification:** which action counts as the "next step" that a
-`Warning` blocks (save, pricing, submit for approval), and whether a headless `configure`
-response distinguishes `Info` from `Warning`.
+`Warning` blocks (save, pricing, submit for approval).
 
 ---
 
@@ -270,9 +327,19 @@ Run the place-then-configure check from the parent skill
    is that rule's own text,** not merely that the call failed. The solver can reject the
    right case for a different reason. That is why every sizing constraint in this file has
    its own message.
+6. **Expect rules errors at activation, not at configure.** A model the solver can't
+   satisfy fails when the version is activated (`manage_expression_sets` reports the rule,
+   for example "couldn't find a solution … for the rule …", or "extra variables
+   [… FalseConstraint]"), and the version stays **inactive**. `configure` against an
+   inactive model then returns `success: true` with no messages, which looks like a pass
+   `[Measured: 2026-11-10, 264]`. Check the activation result before reading any
+   `configure` result.
 
-**Open — needs live verification:** the exact response shape in which a `constraint`
-failure message appears in a 264 `configure` response.
+`message(...)` output appears in `messages` as described under
+[Warnings that don't block](#warnings-that-dont-block) `[Measured: 2026-11-10, 264]`.
+
+**Open — needs live verification:** where a violated `constraint`'s own failure message
+appears in a 264 `configure` response (in `messages`, in `errors`, or both).
 
 ---
 
@@ -326,7 +393,8 @@ type FieldOpsPlatform : LineItem {
     constraint(gateways[Gateway] == sites, "One gateway per site: expected {}.", sites);
     constraint(mounts[GatewayMount] == gateways[Gateway], "One mount per gateway.");
 
-    // Per 10 sites, rounded up; zero unless on-premises (division-free form)
+    // Per 10 sites, rounded up; zero unless on-premises.
+    // Bracket, not ceil(): ceil() does nothing inside constraint().
     constraint(hosting == "OnPrem" -> rackQty * 10 >= sites && (rackQty - 1) * 10 < sites);
     constraint(hosting != "OnPrem" -> rackQty == 0);
     constraint(racks[Rack] == rackQty, "Racks: expected {}.", rackQty);
@@ -373,17 +441,25 @@ Notes on the model:
   because `implHours` can't. Keep the two in step when you change an answer domain.
 - Each component is a bundle member, so it still needs the four records in the parent
   skill ([The four records a bundle member needs](SKILL.md#the-four-records-a-bundle-member-needs)).
-- **Open — needs live verification:** the derived `int` variables have no
-  `@(configurable = false)`. The dev guide says `configurable = false` stops the engine
-  setting the value `[Dev guide: cml_variable_annotations]`
-  `[Dev guide: cml_annotation_example_configurable]`. Its *Dependent Logic* practice uses
-  the same annotation to keep a variable null *until* the rules set it
-  `[Dev guide: cml_cml_best_practices]`. Whether a rep can see or edit an unannotated
-  derived variable in the configurator isn't documented.
+  Set each sized component's `ProductRelatedComponent` so its quantity can change. With
+  `IsQuantityEditable = false`, a CML-set quantity drew a `bundlevalidation` warning
+  `[Measured: 2026-11-10, 264]`.
+- The bracket forms used here gave 3 racks for 23 sites and 113 PM hours for a 752-hour
+  base `[Measured: 2026-11-10, 264]`.
+- The derived `int` variables could carry `@(configurable = false)`. The dev guide
+  disagrees with itself about what that does. The annotation reference says the engine
+  can't set the variable `[Dev guide: cml_variable_annotations]`
+  `[Dev guide: cml_annotation_example_configurable]`. *Sequence and Configurable* and
+  *Dependent Logic* say the solver sets it `[Dev guide: cml_cml_best_practices]`. The org
+  sides with the second: a CML-only `@(configurable = false) int` set by
+  `constraint(x == 7)` came back as 7 `[Measured: 2026-11-10, 264]`. A
+  `configurable = false` variable that maps to a PCM attribute wasn't tested.
+- **Open — needs live verification:** whether a rep can see or edit a derived variable in
+  the configurator, with or without `@(configurable = false)`.
 - **Open — needs live verification:** solve time for the largest answers (200 sites,
   5,000 users, 20 integrations).
 
-Expected quantities (hand-computed from the rules above, not measured):
+Expected quantities (hand-computed from the rules above; the whole model has not been run):
 
 | Answers | Gateway / mount | Rack | License | Connector | Impl. h | Integ. h | PM h | Support | Review note |
 |---|---|---|---|---|---|---|---|---|---|
@@ -409,13 +485,15 @@ bound's own message.
 ## Validation Checks
 
 1. Every derived variable is `int`, has an explicit domain derived from the answer
-   domains, and is set by its own `constraint`.
-2. Every component quantity is a cardinality (`relation[Type] == …`); no rule writes
+   domains, and is set by its own `constraint` or, for a round-up, by an inline `ceil()`.
+2. No `constraint(...)` contains `ceil(` or `^`:
+   `grep -nE 'constraint.*(ceil\(|\^)' <blob>` returns nothing.
+3. Every component quantity is a cardinality (`relation[Type] == …`); no rule writes
    `lineItemQuantity`, `ItemEndQuantity` or `this.quantity`.
-3. No derived variable depends, directly or through an aggregate, on a cardinality it sets.
-4. Each "per N" rule is checked at an exact multiple and one past it.
-5. Review notes use `Info`; nothing meant as advice uses `Warning` or `Error`.
-6. Headless test: placed with rules on, answers sent with `AttributeName`, every quantity
+4. No derived variable depends, directly or through an aggregate, on a cardinality it sets.
+5. Each "per N" rule is checked at an exact multiple and one past it.
+6. Review notes use `Info`; nothing meant as advice uses `Warning` or `Error`.
+7. Headless test: placed with rules on, answers sent with `AttributeName`, every quantity
    asserted, every rejection asserted by its own message. Then the parent skill's
    [Validation Checks](SKILL.md#validation-checks), including the configurator check that
    the deployed model is the one you changed.
