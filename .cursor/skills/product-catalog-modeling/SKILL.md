@@ -293,6 +293,9 @@ Every item marked **Open — needs live verification** in this skill and its sub
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
 - **One-pass QuantumBit build.** Whether any classification attribute is left at a default
   that differs from its CSV. See [Loading the model](#loading-the-model).
+- **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
+  sets them; Help forbids them under a *new* static bundle. See
+  [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
 - **A `Readonly` anchor behind a `$$` lookup.** Fact (b) says it needs a CSV;
   `sfdmu-data-plans` says a `Readonly` object is source-free and its CSV optional (its own
   optional-CSV example, `inapp/RecordType.csv`, is reached through a `$$` lookup). Settling it

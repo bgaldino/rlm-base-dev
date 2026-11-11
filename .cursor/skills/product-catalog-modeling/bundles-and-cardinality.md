@@ -113,7 +113,7 @@ bundles: default components within min/max, and child-group count within the par
 bounds. [Help: `ind.product_catalog_bundled_product_validations.htm`]
 
 Two invalid designs from Help's examples: **required children exceeding the group max**
-(two required products in a pick-one group cannot be satisfied), and a group min above the
+(Example 4: more required children than the group's max of 5), and a group min above the
 number of distinct children. [Help: `ind.product_catalog_cardinality_examples.htm`]
 
 ## Quantity scaling and lifecycle

@@ -50,6 +50,10 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
 
 - **Configurable bundle:** do not set a component selling model. [Help: `ind.product_catalog_product_relationships.htm`]
 - **New static bundle:** parent selling model None, and no component selling model. [Help: `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
+  The shipped q3 plan's static bundle `CERT007` sets Term Annual as both parent and component
+  selling model on its two children. [Repo: `datasets/sfdmu/q3/en-US/q3-pcm/ProductRelatedComponent.csv`]
+  Whether Help's rule, written for a *new* static bundle, makes such rows invalid is **Open —
+  needs live verification**; do not copy the pattern into a new model.
 - **Bundle-based adjustments** need a selling model on the parent product and on the root
   bundle, and every product in a price book. [Help: `ind.pricing_create_bundle_based_adjustments.htm`]
 
