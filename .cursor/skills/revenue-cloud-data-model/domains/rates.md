@@ -6,12 +6,12 @@
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `RateCard` | Container for rate entries | Name, Type, UsageResourceId |
+| `RateCard` | Container for rate entries | Name, Type, EffectiveFrom, EffectiveTo (no usage-resource lookup: the resource is on each `RateCardEntry`) |
 | `RateCardEntry` | Rate for a product+resource combination | ProductId, RateCardId, UsageResourceId, ProductSellingModelId, RateUnitOfMeasureClassId, RateUnitOfMeasureId |
 | `RateAdjustmentByTier` | Tiered adjustment on a rate card entry | RateCardEntryId, ProductId, ProductSellingModelId, RateCardId, LowerBound, UpperBound |
 | `RateAdjustmentByAttribute` | Attribute-based adjustment on a rate card entry | RateCardEntryId, RateCardId |
 | `PriceBookRateCard` | Junction: PriceBook ↔ RateCard | PriceBookId, RateCardId, RateCardType |
-| `RatingFrequencyPolicy` | Controls rating frequency per product/resource | RatingPeriod, ProductId, UsageResourceId |
+| `RatingFrequencyPolicy` | Controls rating frequency | RatingPeriod, RatingDelayDuration, RatingDelayDurationUnit — `ProductId` and `UsageResourceId` were **removed in 264**; bind it to a product and resource through `ProductUsageResourcePolicy.RatingFrequencyPolicyId` (see `usage.md`) |
 
 ## Supporting Objects
 
@@ -33,7 +33,7 @@ RateCardEntry ← RateAdjustmentByAttribute (RateCardEntryId)
 Product2 ← RateCardEntry (ProductId)
 ProductSellingModel ← RateCardEntry (ProductSellingModelId)
 UsageResource ← RateCardEntry (UsageResourceId)
-UsageResource ← RateCard (UsageResourceId)
+RatingFrequencyPolicy ← ProductUsageResourcePolicy (RatingFrequencyPolicyId, Usage domain)
 PriceBook2 ← PriceBookRateCard (PriceBookId)
 RateCard ← PriceBookRateCard (RateCardId)
 BindingObjectCustomExt ← BindingObjectRateCardEntry (BindingObjectId)
@@ -47,7 +47,7 @@ BindingObjectCustomExt ← BindingObjectRateCardEntry (BindingObjectId)
 
 ## SFDMU Data Plan: `qb-rates`
 
-5 objects in 2 passes. **Must load after** `qb-rating` (RateCardEntry references UsageResource and PUR).
+5 objects in 2 passes. **Must load after** `qb-rating` (RateCardEntry references UsageResource, which `qb-rating` loads).
 
 Nothing is deleted (todo 298). Every object is `Upsert` on its composite relationship-traversal externalId.
 - **RateCardEntry, pass 1:** `skipExistingRecords`, so a missing entry is inserted as Draft (RateAdjustmentByTier requires a Draft parent).
