@@ -16,11 +16,13 @@ by any of these.
 The 2026-11-10 measurements come from a temporary probe model: rules added to an active
 bundle model, imported and cycled, then read back through `message(...)` values in a
 `configure` response after a Place with rules on. The probe tested arithmetic, `ceil()`,
-`^`, `configurable = false`, message severity and a decimal-driven cardinality, and
-nothing else. The 2026-11-03 measurement is an earlier headless test of a different model
-on a 264 org: placed with rules off, `configure` returned `success` for a combination that
-the model rejects with rules on. The worked example as a whole has not been run. Where the dev guide and the
-org disagree, this file follows the org and says so.
+`^`, `configurable = false`, message severity and a decimal-driven cardinality. Along
+the way it also observed the `bundlevalidation` warning, the shape of `messages` and what
+an inactive model returns, all described below. Nothing else was tested. The 2026-11-03
+measurement is an earlier headless test of a different model on a 264 org: placed with
+rules off, `configure` returned `success` for a combination that the model rejects with
+rules on. The worked example as a whole has not been run. Where
+the dev guide and the org disagree, this file follows the org and says so.
 
 ---
 
@@ -72,10 +74,10 @@ org disagree, this file follows the org and says so.
   `[Dev guide: cml_relationships]`.
 - **DO NOT** put `ceil()` inside `constraint(...)`. It returns its argument unchanged
   there: `ceil(2.30)` on a `decimal(2)` stays 2.30. With `int` operands,
-  `constraint(q == ceil(15 / 10))` sets 1, because `/` has already truncated. An `int` set equal to
-  `ceil(<decimal>)` inside a constraint makes the model fail to activate
-  `[Measured: 2026-11-10, 264]`. The dev guide's own `ceil()` example is written this way
-  `[Dev guide: cml_core_concept_examples]`.
+  `constraint(q == ceil(15 / 10))` sets 1, because `/` has already truncated. An `int` set
+  equal to `ceil(23 * 0.1)`, a non-integer constant, inside a constraint made the model fail
+  to activate `[Measured: 2026-11-10, 264]`. The dev guide's own `ceil()` example is written
+  this way `[Dev guide: cml_core_concept_examples]`.
 - **DO NOT** use `^` for powers inside a constraint. Even in parentheses
   (`constraint(p == (2 ^ 3))`), it compiles to a false constraint and the model fails to
   activate. Inline, `int p = 2 ^ 3;` gives 8 `[Measured: 2026-11-10, 264]`. Multiply instead.
@@ -205,7 +207,9 @@ Percentages: inside a constraint, write 15% as integer arithmetic
 `[Measured: 2026-11-10, 264]`. Inline, `int pmHours = ceil(base * 0.15);` also works,
 without an explicit domain:
 `int x = ceil(23 * 0.1)` gave 3 `[Measured: 2026-11-10, 264]`. Don't write
-`constraint(pmHours == ceil(base * 0.15))`. With an `int` target it fails to activate.
+`constraint(pmHours == ceil(base * 0.15))`: `ceil()` does nothing there, and the constant
+form, `int == ceil(23 * 0.1)`, made the model fail to activate. The variable form wasn't
+tested.
 
 ---
 
@@ -355,7 +359,7 @@ in front of it (step 1 below).
    the right case for a different reason. That is why every constraint in the worked
    example has its own message.
 6. **Check the activation result before reading any `configure` result.** The two
-   rules above that the solver couldn't satisfy, an `int` equal to `ceil(<decimal>)` and
+   rules above that the solver couldn't satisfy, an `int` equal to `ceil(23 * 0.1)` and
    a `^` inside a constraint, failed when the version was activated
    (`manage_expression_sets` reported "couldn't find a solution … for the rule …" and
    "extra variables [… FalseConstraint]"), and the version stayed **inactive**.
