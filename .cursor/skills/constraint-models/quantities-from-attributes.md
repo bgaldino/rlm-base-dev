@@ -38,8 +38,11 @@ the org and says so.
    `decimal(2)` product of 1.50 × 2 did set a cardinality of 3; a fractional result wasn't
    tested `[Measured: M15]`.
 5. **Keep data flowing one way:** answers → derived variables → cardinalities. A loop
-   through `total()` or `sum()` back into the same relation leaves the aggregate unbound
-   `[Dev guide: cml_business-centric_cml_guidelines_quantity_and_aggregation_fun]`.
+   through `total()` back into the same relation leaves the aggregate unbound if the loop
+   isn't broken
+   `[Dev guide: cml_business-centric_cml_guidelines_quantity_and_aggregation_fun]`. The
+   dev guide breaks such a loop with `@(sequence = n)` (see
+   [Chained derivations](#chained-derivations)); this file avoids the loop instead.
 6. **Give every constraint that sizes or derives a quantity its own message,** so a test
    can tell which rule rejected a configuration `[Dev guide: cml_logical_constraints]`.
 7. **Test with configuration rules on,** and assert each expected rejection by its own
@@ -167,9 +170,10 @@ service hours), compute in stages:
    to constraint chains.
 3. Every cardinality from its variable, last.
 
-Where order still matters, the dev guide orders a read-calculate-write chain with
-`@(sequence = n)` on constraints, lower first
-`[Dev guide: cml_business_centric_cml_examples]` (*Resolving Circular Dependencies*).
+Where a quantity must depend on an aggregate of its own relation, the dev guide breaks the
+loop with a read-calculate-write chain ordered by `@(sequence = n)` on constraints, lower
+first `[Dev guide: cml_business_centric_cml_examples]` (*Resolving Circular
+Dependencies*). This file avoids such loops instead (Validation check 4).
 
 Size domains from the answer domains. With `sites = [1..200]`, `24 * sites + 80` runs from
 104 to 4,880, so `[104..4880]` is the domain, not `[0..99999]`. A smaller domain gives the
