@@ -121,7 +121,7 @@ Plan; the API values match the labels except `MilestonePlan` [Measured: M9]. On 
 |---|---|---|
 | Term Defined, Evergreen | Required (the refusal names both; run on Term Defined, M1); the pricing term's own cadence (two models run) | Not needed [Measured: M2] |
 | Term Defined, Evergreen | A different cadence | Needed (run on Term Defined, M3), with Change Billing Frequency (Help) |
-| One Time | Blank, or `MilestonePlan` with a milestone treatment on the line | Optional with a blank frequency [Measured: M4, M5] |
+| One Time | Blank, or `MilestonePlan` with a milestone treatment on the line | Optional with a blank frequency [Measured: M2, M5] |
 
 `MilestonePlan` on an Evergreen line wasn't tested.
 
