@@ -25,9 +25,10 @@ ProductAttributeDefinition (product level; OverrideContextId set = bundle-contex
   select it. [Help: `ind.product_catalog_product_classifications.htm`; `ind.product_catalog_create_bundled_products.htm`; Repo: ERD]
 - **Subclassifications** inherit every parent attribute and may add their own: up to three
   levels, up to five children per node. [Help: `ind.product_catalog_product_classifications.htm`]
-- **Attribute categories** group attributes for assignment. Assigning two categories that
-  share an attribute fails unless you assign the shared attribute once, through one
-  category, first. [Help: `ind.product_catalog_considerations_while_assigning_attributes_to_product_classifications.htm`]
+- **Attribute categories** group attributes for assignment. Assigning, to a classification
+  with no attributes yet, several categories that share attributes fails. Assign the one
+  category you prefer for the shared attributes, or, if the preferred category differs per
+  attribute, assign the shared attributes individually first and the rest through categories. [Help: `ind.product_catalog_considerations_while_assigning_attributes_to_product_classifications.htm`]
 
 ## Designing the classification tree
 
@@ -58,7 +59,7 @@ Shared fields at the classification, product and override levels: `AttributeName
 `IsHidden`, `IsReadOnly`, `IsPriceImpacting`, `DisplayType`, min/max value and character
 count, `StepValue`, `Sequence`, `Status`. Booleans default `false`; `Status` defaults to
 `Draft`. The definition level carries only `DefaultValue` and `IsRequired` of these.
-[Dev guide: `sforce_api_objects_attributedefinition.htm`] [Help: `ind.product_catalog_attribute_fields.htm`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
+[Help: `ind.product_catalog_attribute_fields.htm`; Dev guide: `sforce_api_objects_productclassificationattr.htm`, `sforce_api_objects_attributedefinition.htm`]
 
 **Changes do not cascade for you.** After changing a definition, review the classification
 attributes; after changing a classification attribute, review the product attributes; after

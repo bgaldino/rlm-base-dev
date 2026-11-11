@@ -107,8 +107,9 @@ removed are all **Open — needs live verification**. The QuantumBit plan sets i
 [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
 
 **Modeling advice until verified:** if an add-on must never be sold alone, make it a bundle
-component (optionally a required one) rather than relying on this flag alone. Cardinality is
-enforced by the configurator and checked by Validate Product Definition. [Help: `ind.product_catalog_bundled_product_validations.htm`]
+component (optionally a required one) rather than relying on this flag alone. The
+lowest-level group's cardinality is enforced at run time, and Validate Product Definition
+checks the bundle's structure. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_catalog_bundled_product_validations.htm`]
 
 ## Other lifecycle fields on `Product2`
 
