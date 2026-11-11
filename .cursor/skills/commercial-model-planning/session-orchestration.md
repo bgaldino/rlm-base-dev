@@ -8,7 +8,9 @@ Read this when a plan splits the build across sessions. Parent:
 - **Main session.** Owns the plan, the design model, the golden tests, extraction,
   integration, lifecycle work, the pack and every gate.
 - **Spike sessions.** Group the live spikes by area, for example pricing and
-  lifecycle. Each session runs on its own org and keeps nothing.
+  lifecycle. Each session runs on its own kept org. Nothing from a spike goes into the
+  model or the pack; its results go in `spikes/<area>/` and the plan's rule decision
+  record.
 - **Build sessions.** One per independent area, for example catalog and configuration,
   pricing and cost, negotiation and approvals. Each runs on its own org. A session
   whose area depends on another's loads that session's finished plans onto its own

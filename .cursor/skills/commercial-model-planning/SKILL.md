@@ -256,7 +256,9 @@ options, a tab of discount tiers, and a calculator tab that prices a sample orde
 service plans and trade-in credits.
 - **Mapping:** one configurable root per model plus a root per preset; options as
   attributes with attribute-based price; service plans as bundle components with
-  their own selling models; option exclusions and dependencies as CML.
+  their own selling models, unless the store lets them be cancelled or renewed on
+  their own, in which case they are separate lines (`asset-lifecycle-changes` Quick
+  Rule 3); option exclusions and dependencies as CML.
 - **Source handling:** captured with a browser; an independent re-capture of a sample
   verifies it.
 - **Golden tests:** every preset price and a sample of custom configurations, plus an
@@ -274,8 +276,11 @@ Before presenting the plan:
   branch while it is being tested):
 
   ```bash
-  grep -oE '`[a-z0-9-]+` → `[^`]+\.md`' plan.md | sort -u   # each skill → sub-file pair
-  ls .cursor/skills/<name>/SKILL.md .cursor/skills/<name>/<sub-file>.md
+  # every hyphenated name in backticks that isn't a skill: check each by hand
+  for s in $(grep -oE '`[a-z0-9]+(-[a-z0-9]+)+`' plan.md | tr -d '`' | sort -u); do
+    [ -f ".cursor/skills/$s/SKILL.md" ] || echo "not a skill: $s"; done
+  # every .md file named, with the skill it follows on its line, to check with ls
+  grep -oE '`[a-z0-9-]+` → `[^`]+\.md`|`[^` ]+\.md`' plan.md | sort -u
   ```
 
 - Every sub-file named exists under its skill.

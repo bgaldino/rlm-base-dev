@@ -79,19 +79,24 @@ cover line-editor "\btransaction line editor\b"
 
 ## Recording the decision
 
-Put this table in the plan, one row per area:
+Put two records in the plan. **Per area, the evidence,** one row per area:
 
 | Area | Repo skills (files) | Snapshot coverage (regex: counts, key articles) | Prior measured knowledge | Decided by | Why |
 |---|---|---|---|---|---|
 | \<area\> | `skill/sub-file.md` | `\bterm\b`: help 12, dev 3; `article-name` | dated measurements, from skills or earlier builds | **Repo** / **Snapshot** / **Live (a–d)** | one line |
 
-Every **Live** row becomes a spike, with:
+Its "Decided by" column summarizes the area. **Per rule, the decision:** the rule
+decision record ([plan-template.md](plan-template.md)) gives each rule its own decided-by
+value, and a rule can carry two (for example **Repo** on a new sale, **Live (c)** on an
+amendment). Spikes come from the per-rule record.
+
+Every rule decided **Live** becomes a spike, with:
 - the source value it must hit,
 - the skills and articles to read before touching the org,
 - the smallest case that proves it.
 
-Every **Repo** or **Snapshot** row is proved at its build gate. A **Snapshot** row with no
-skill is also listed in the plan's skill gaps.
+Every rule decided **Repo** or **Snapshot** is proved at its build gate. A **Snapshot**
+area with no skill is also listed in the plan's skill gaps.
 
 ## After the build
 

@@ -15,11 +15,11 @@ release, and each domain skill's own open-items list says what is still unmeasur
 | Pricing basis: one-time / annual subscription / monthly plan | Selling models: One-Time, Term Defined (annual), Evergreen (monthly) | `product-catalog-modeling` → `selling-models-and-lifecycle.md`; `pricing-setup` → `proration-and-selling-models.md` | (b) a term model under a configurable bundle |
 | Package priced as the sum of its contents | Configurable bundle; component groups with min and max. Decide the root's own selling model | `product-catalog-modeling` → `bundles-and-cardinality.md`, `selling-models-and-lifecycle.md` | (c) how the root's selling model renews its children (`asset-lifecycle-changes`) |
 | Fixed kit | Static bundle | same | — |
-| Option the rep picks, priced | Attribute with attribute-based price, or a component | `product-catalog-modeling` → `attributes-and-classifications.md`; `pricing-procedures` → `elements/attribute-based-price.md` | (b) attribute on the parent, price on a child |
+| Option the rep picks, priced | Attribute with attribute-based price, or a component | `product-catalog-modeling` → `attributes-and-classifications.md`; `pricing-procedures` → `elements/attribute-based-price.md` | (a) attribute on the parent, price on a child |
 | Not sold standalone | `IsSoldOnlyWithOtherProds` | `product-catalog-modeling` → `selling-models-and-lifecycle.md` | (a) what enforces it at run time |
 | Not tracked in the installed base | `IsAssetizable = false` | same | (c) its effect on amend, cancel and renew |
 | Product lines, categories, catalogs | Catalog categories and `Family` | `product-catalog-modeling` → `catalogs-and-loading.md` | — |
-| Part number per configuration | Attribute set by CML from the selection | `constraint-models` | — |
+| Part number per configuration | Attribute set by CML from the selection | `constraint-models`; `pricing-procedures` → `elements/root-answer-child-price.md` (route 1) | (a) whether a CML-set attribute value is saved on the line |
 
 ## Configuration and rules
 
@@ -54,7 +54,7 @@ release, and each domain skill's own open-items list says what is still unmeasur
 | Standard cost per item | Cost book entries | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md` | — |
 | Labour rates, loaded cost | Computed during extraction into cost entries | `pricing-setup` → `scenarios/cost-and-margin.md` (modeling costs from a source) | — |
 | Line and quote margin | The shipped cost-and-margin wiring, plus a roll-up for the quote total | `pricing-setup` → `scenarios/cost-and-margin.md` | (b) margin on multi-period subscription lines |
-| Full commitment value, with monthly lines counted "for comparison" | A computed value of its own; a quote total counts an Evergreen line for the Pricing Setup default term count, not the source's term | `pricing-setup` → `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` | — |
+| Full commitment value, with monthly lines counted "for comparison" | A computed value of its own; a quote total counts an Evergreen line for the Pricing Setup default term count (or, when that is blank, from the line's start and end dates), not the source's term | `pricing-setup` → `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` | — |
 | Partner or referral fee taken from net revenue | A computed value (a field or a formula), not a price adjustment. Check whether it applies on a direct deal | — | — |
 | Pass-through items (travel, expenses) | Priced near cost by design; decide how margin and below-cost guards treat them | `pricing-setup` → `scenarios/cost-and-margin.md`; `advanced-approvals` → `matrix-modeling.md` | — |
 
@@ -62,9 +62,9 @@ release, and each domain skill's own open-items list says what is still unmeasur
 
 | Source concept | Try first | Where documented | Usual live trigger |
 |---|---|---|---|
-| Billing frequency (annual, monthly) | Billing frequency on the line, from the selling model | `billing-setup`; `pricing-setup` → `proration-and-selling-models.md` | — |
-| In advance vs in arrears; milestone billing | Billing policy and treatment | `billing-setup` | (c) the invoice values; milestones when the source names none |
-| Payment terms | Terms on the quote, as an approval input | `billing-setup`; `advanced-approvals` | — |
+| Billing frequency (annual, monthly) | `BillingFrequency` set on every Term Defined and Evergreen line; it isn't derived from the selling model. A cadence different from the pricing term needs a treatment that allows it | `billing-setup` | — |
+| In advance vs in arrears; milestone billing | Billing policy and treatment. Milestones the source doesn't name are a decision for its owner, not invented | `billing-setup` | (c) the invoice values |
+| Payment terms | `Order.PaymentTermId` for invoicing; the shipped approval reads a custom quote picklist, and nothing copies one to the other. Decide how they meet | `billing-setup`; `advanced-approvals` | (a) which term an invoice uses |
 | Non-standard billing as an approval trigger | Approval condition on the line's billing frequency | see Negotiation and approvals | — |
 
 ## Negotiation and approvals
