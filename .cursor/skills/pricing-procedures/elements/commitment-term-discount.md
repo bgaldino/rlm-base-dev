@@ -99,6 +99,12 @@ the filter must be the first child, one filter per group].
     `ItemPricingSource Equals 'LastTransaction'`, action `Renew`, a policy formula and no ramp
     [Repo: `RLM_DefaultPricingProcedure`;
     [`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md)].
+    A last-transaction line with a contract price takes another path: step 13 sets its
+    `InputUnitPrice` to `ItemContractPrice`, and group 26, after group 24, assigns
+    `InputUnitPrice` to `NetUnitPrice` on lines with `ItemPricingSource Equals 'LastTransaction'`
+    and `ItemContractPrice` not null [Repo: `RLM_DefaultPricingProcedure`,
+    `Setinputunitpriceforlineswithcontractpricing`,
+    `Setnetunitpriceforcontractedlasttransactionlines`].
   - Help: an uplift needs the asset's Pricing Source to be Last Transaction, and under Last
     Transaction Pricing should be applied after discounts; with a list-price source the uplift is
     ignored [Help: `ind.qocal_renewal_price_uplifts.htm`,
@@ -111,12 +117,13 @@ the filter must be the first child, one filter per group].
     Expected results took the uplift, which group 24 applies only to last-transaction lines
     [Repo: measured 2026-10-29, 264, default procedure].
   - So, inferred from the filters and not measured: the uplift (group 24) and this group select
-    disjoint lines. A renewal line from a Last Transaction asset takes the uplift and **no term
-    discount from this group**; it carries the 4% only if the last transaction price it starts
-    from already includes it. A renewal line from a list-price asset takes no uplift and passes
-    criterion 9, so it gets the 4% if its term meets the threshold (the renewal takes its term
-    from the asset or the contract [Help: `ind.qocal_renew_assets.htm`]). As built, one renewal
-    line does not get both.
+    disjoint lines. A renewal line from a Last Transaction asset gets **no term discount from
+    this group**; it carries the 4% only if the price it starts from already includes it.
+    Without a contract price it takes the uplift. With one, group 26 writes the contract price
+    over the uplifted net, so it ends at the contract price without the uplift. A renewal line
+    from a list-price asset takes no uplift and passes criterion 9, so it gets the 4% if its
+    term meets the threshold (the renewal takes its term from the asset or the contract [Help:
+    `ind.qocal_renew_assets.htm`]). As built, one renewal line does not get both.
   - Letting `Renew` lines through criterion 9 would reward a renewal's own commitment, but would
     take a 4% already inside the last transaction price a second time, and Help's "uplifts after
     discounts" would put the group before group 24 rather than at 28. Neither was built; see
@@ -305,9 +312,13 @@ expressed the rule.
   on one.
 - The amendment and renewal behavior (criterion 9) was not measured. **Open — needs live
   verification:** renew, with a +5% uplift, one 36-month asset that took the 4% and one shorter
-  asset renewed for 36 months, price the renewal lines through the clone, and read
-  `NetUnitPrice`. Check whether the last transaction price the uplift starts from includes the
-  original 4%, and whether the second line gets no term discount, as the filters imply. Also
+  asset renewed for 36 months, and price the renewal lines through the clone. On an as-is renewal
+  the parent `NetUnitPrice` is null and the price sits on `QuoteLineDetail`
+  ([`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md)), so
+  read `NetUnitPrice` there, or on the lines of a headless response. Check whether the last
+  transaction price the uplift starts from includes the original 4%, and whether the second line
+  gets no term discount, as the filters imply. Repeat with a contract price on the line to check
+  that it ends at the contract price without the uplift. Also
   open: whether a renewal should earn the 4% at all, and if so how to avoid taking a prior 4%
   twice. That is a business rule to settle with the source; no design for it was built or
   measured. The headless response did
