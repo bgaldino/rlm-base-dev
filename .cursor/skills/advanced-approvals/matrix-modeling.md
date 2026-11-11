@@ -38,7 +38,9 @@ the contract value after it.
 - **The quote holds no contract-value field.** Its fields in the repo's ERD include
   `ContractId` but no contract value [Repo: `python scripts/ai/query_erd.py describe Quote`];
   `OriginalActionType` says which action created it (`Amend`, `Cancel`, `Renew`, `Transfer`)
-  [Dev guide: `quote_and_order_capture_fields_on_quote`]. A threshold on the value after the
+  [Dev guide: `quote_and_order_capture_fields_on_quote`]. Swap, upgrade and downgrade quotes
+  leave it blank [Repo: `.cursor/skills/rlm-business-apis/backdated-asset-lifecycle.md`], so
+  a threshold keyed on `OriginalActionType = Amend` misses them. A threshold on the value after the
   change has to be computed in the approval data flow; which records to compute it from is
   open ([limitations.md](limitations.md)).
 - **The shipped approval has no deal-size dimension.** Its conditions read the discount
@@ -106,7 +108,8 @@ where each level is computed:
   [Help: `ind.qocal_view_and_edit_quotes`, `ind.qocal_customize_transaction_line_editor`];
   neither article says the result is recorded as a bulk edit. The repo's custom
   `QuoteLineItem` fields include no such marker
-  [Repo: `force-app/main/default/objects/QuoteLineItem/fields/`, `unpackaged/*/objects/QuoteLineItem/fields/`].
+  [Repo: `force-app/**/objects/QuoteLineItem/fields/`, `unpackaged/**/objects/QuoteLineItem/fields/`,
+  including `unpackaged/pre/6_fields`].
   Whatever applies the round's discount (a second bulk edit on the marker's column, or an
   API call or flow that writes the discount) would have to set the marker too, and
   something would have to clear it when a rep later overrides a marked line. None of this
