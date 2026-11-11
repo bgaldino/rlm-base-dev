@@ -182,7 +182,9 @@ on; child quantities are read-only in the runtime cart when the method is Consta
 "Default" (a value its own list of methods does not include). [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_local_cardinality.htm`]
 In the 264 API the picklist holds only `Constant` and `Proportional`; writing `None` is
 rejected (`INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`). An editable row is left blank for None,
-but a locked row inserted blank was stored `Proportional`, so give locked rows a method. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] A locked
+but a locked row inserted blank through the API was stored `Proportional`, so give new locked
+rows a method. (The QuantumBit plan has locked rows with a blank method; what a load stores
+for them was not checked.) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] A locked
 child's quantity edit still saved in the line editor; see
 [the locked bundle measurement](#static-kit-or-locked-configurable-bundle-when-children-recur).
 

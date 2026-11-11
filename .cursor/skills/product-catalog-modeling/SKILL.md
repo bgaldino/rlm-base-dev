@@ -196,7 +196,7 @@ first-insert value was not recorded. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Prod
 
 After a load of new products, run the `refresh_all_decision_tables` flow and the
 `rebuild_search_index` task before placing a quote. That and two more load facts (a `Family`
-value missing from the picklist, component fields an insert cannot set) are facts (f)–(h) in
+value missing from the picklist, component fields an insert can't set or values it rejects) are facts (f)–(h) in
 [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264).
 
 Two more load constraints that shape the model, from the QB plan: bundle depth is capped by
@@ -311,8 +311,9 @@ Every item marked **Open — needs live verification** in this skill and its sub
   a child flagged false then appears as an asset with lifecycle actions is **Open — needs live verification.**
 - **Which end date stops a sale.** Help contradicts itself on `DiscontinuedDate` vs
   `EndOfLifeDate`. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#other-lifecycle-fields-on-product2).
-- **How a mixed-model bundle co-terminates and renews**, beyond the one-time rule and the
-  one measured shape (a locked configurable bundle with a Term Defined root). See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
+- **How a mixed-model bundle co-terminates and renews.** Co-termination for any shape;
+  renewal beyond the one-time rule and the one measured shape (a locked configurable bundle
+  with a Term Defined root). See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 - **Which mixed root/child shapes ramp deals support.** Help's ramp-deal considerations
   list them, but the snapshot drops the supported marks. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
