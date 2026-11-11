@@ -132,7 +132,7 @@ keeps one instance and adds quantity to it; `true` makes every instance quantity
 |---|---|---|
 | A default component, added at 1 by Place with defaults on | Kept at 1; the solver added a line for the rest (1 + (n − 1) for a rule of n) `[Measured: M22]` | One line at the rule's quantity `[Measured: M23]` |
 | A rep adds an optional add-on at quantity 1 | Kept; a second line for the rest `[Measured: M22]` | One line, raised to the rule's quantity `[Measured: M23]` |
-| A hand edit of a sized line, down | Kept; a second line for the difference (n edited to m became m + (n − m)). No rule message; a `bundlevalidation` group-range warning only `[Measured: M22]` | Rejected with the rule's message `[Measured: M23]` |
+| A hand edit of a sized line, down | Kept; a second line for the difference (n edited to m became m + (n − m)). No rule message; at most a `bundlevalidation` group-range warning (see below) `[Measured: M22]` | Rejected with the rule's message `[Measured: M23]` |
 | A hand edit of a sized line, up | Not measured | Rejected with the rule's message `[Measured: M23]` |
 | The configurator UI | A default component split into two instances (1 + the rest); non-default children stayed one instance `[Measured: M24]` | One line per component at the rule's quantity, defaults kept, no warning; a changed answer resized each line `[Measured: M24]` |
 
@@ -455,11 +455,13 @@ and the error log, a few seconds after Place:
 |---|---|---|
 | Place | `isSuccess: true`; it saved what it was sent `[Measured: M29]` | `isSuccess: true` |
 | `configure` | Usually `success: true`, `solverStatus: "error"`, `errors: []`, the rule's message in `messages` `[Measured: M29]` | `success: true`, `solverStatus: "success"`, `errors: []` `[Repo: .cursor/skills/constraint-models/SKILL.md]` |
-| `RevenueTransactionErrorLog` on the quote | A row with the rule's message in `ConfiguratorErrorMessage` `[Measured: M29]` | No row with a rule's message |
+| `RevenueTransactionErrorLog` on the quote | A row with the rule's message in `ConfiguratorErrorMessage` `[Measured: M29]` | No row with a constraint's failure message |
 
 `success: true` and `isSuccess: true` prove nothing about the rules. Once, the rule's
-message was only in the error log and `configure` returned `solverStatus: "success"`
-`[Measured: M29]`. Bundle-validation rows can appear in the log too, and one made
+message was only in the error log and a later `configure` returned
+`solverStatus: "success"` `[Measured: M29]`. Assert expected `Info` or `Warning` notes
+from `message(...)` separately, in `configure`'s `messages`; whether they also reach the
+log wasn't measured. Bundle-validation rows can appear in the log too, and one made
 `createOrdersFromQuote` refuse the quote `[Measured: M29, M31]`; which of them block
 ordering is [open item 1](#open-items).
 
