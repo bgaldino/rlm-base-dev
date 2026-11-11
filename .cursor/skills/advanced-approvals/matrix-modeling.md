@@ -95,7 +95,7 @@ over $5M needs the VP. One approver ladder.
 Prerequisite: margin and net value are dimensions beyond Discount and Finance, and the
 design doc requires threshold policy to be externalized before adding one
 [Repo: `docs/features/composable-quote-approvals.md`]. Do that first, or agree and record the
-exception. The steps below keep the shipped hard-coded thresholds and don't show it.
+exception. The steps below keep thresholds hard-coded (edited to the §1 bands) and don't show it.
 
 1. The pricing procedure keeps writing the line discount level (the shipped overlay,
    thresholds edited in its `addSteps`; for an org that already has it, see the design

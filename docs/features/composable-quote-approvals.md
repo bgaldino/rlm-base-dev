@@ -157,12 +157,13 @@ Run these checks before treating an approval-flow change as ready:
   `cci flow run prepare_approvals_pricing --org <cci_alias>` applies both. The thresholds
   are step criteria in `approval_flags.json` `addSteps`; edit them there so fresh builds
   get them. On an org that already has the overlay, a rerun fails on a changed step and
-  silently skips a changed existing variable. Apply the change there with a separate,
-  uncommitted overlay holding only `updateSteps` for those steps:
-  `cci task run apply_approval_flags_overlay -o overlay_file <one-off.json> --org <cci_alias>`
-  (`scripts/expression_sets/README.md` → Existing steps and verification). Never add
-  `updateSteps` for the overlay's own steps to the shipped file: on a fresh org those steps
-  don't exist yet, so the task fails. Deactivate the context version before changing a
+  silently skips a changed existing variable. Change that org with a separate, uncommitted
+  overlay that keeps `expressionSetApiName` and `versionApiName` from `approval_flags.json`
+  and holds only the change (`updateSteps` for a changed step; for a variable, see
+  `scripts/expression_sets/README.md`). Apply it with
+  `cci task run apply_approval_flags_overlay -o overlay_file <one-off.json> --org <cci_alias>`.
+  Never add `updateSteps` for the overlay's own steps to the shipped file: on a fresh org
+  those steps don't exist yet, so the task fails. Deactivate the context version before changing a
   mapping (`.cursor/skills/context-service/`). Reprice before testing.
 - Preview Approvals doesn't show steps whose entry conditions depend on the
   `QueryApprovalData` background step's subflow. The Help workaround, mock output values set
