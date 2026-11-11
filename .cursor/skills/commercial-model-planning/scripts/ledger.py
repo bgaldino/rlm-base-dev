@@ -13,10 +13,11 @@ Every prediction is one row of the plan. Each section is found by a heading or a
 label (a line starting "**") that contains its marker, ignoring case. Headings are tried
 before labels, and the first that yields rows is used, so a passing mention in a label
 elsewhere doesn't hide the real section. init fails if no rule or decision rows are found:
-  rule      the first table under "Rule decision record"
-  decision  every table whose first header cell is "#" under "2. Decisions", up to the
-            next heading of the same level (so impact tables there are not decisions)
-  spike     the first table under "P2 Live spikes"
+  rule      tables under "Rule decision record" whose first header cell starts "Rule"
+  decision  tables under "2. Decisions" whose first header cell is "#" (so a table of
+            what each choice changes is not read as decisions)
+  spike     tables under "P2 Live spikes" with a "must hit" column
+Other tables in a section, such as the next phase's under a label, are skipped.
 The first cell of a row is its ID. Override the markers with --rules, --decisions, --spikes.
 
 Origins (set by init):
@@ -101,12 +102,18 @@ def clean_id(cell):
     return text
 
 
+TABLE_TEST = {
+    "decision": lambda h: h[0] == "#",
+    "rule": lambda h: h[0].lower().startswith("rule"),
+    "spike": lambda h: any(re.search(r"must.hit", c, re.I) for c in h),
+}
+
+
 def table_rows(lines, kind):
-    """{id: (header cells, row cells, raw line)} for the body rows of the kind's tables:
-    decision tables (first header cell "#") for a decision, the first table otherwise."""
+    """{id: (header cells, row cells, raw line)} for the body rows of every table whose
+    header passes the kind's TABLE_TEST."""
     rows = {}
     header = None
-    tables = 0
     for i, line in enumerate(lines):
         if not line.lstrip().startswith("|"):
             header = None
@@ -115,11 +122,8 @@ def table_rows(lines, kind):
             continue
         if i + 1 < len(lines) and is_separator(lines[i + 1]):
             header = cells(line)
-            tables += 1
             continue
-        if kind == "decision" and (not header or header[0] != "#"):
-            continue
-        if kind != "decision" and tables != 1:
+        if not header or not TABLE_TEST[kind](header):
             continue
         row = cells(line)
         iid = clean_id(row[0]) if row else ""
@@ -302,7 +306,8 @@ def report(args):
     lines += ["", f"Excluded (intake or owner): {len(excluded)}."]
 
     edited = [v for v in values if v["origin"] == "edited" and v["evidence"]]
-    verdicts = [v["evidence"][-1].get("blind_right") for v in edited]
+    verdicts = [next((e["blind_right"] for e in reversed(v["evidence"]) if "blind_right" in e), None)
+                for v in edited]
     if edited:
         lines += ["", "## Edited items: would the blind text have held?", "",
                   f"Yes {verdicts.count('yes')}, no {verdicts.count('no')}, "

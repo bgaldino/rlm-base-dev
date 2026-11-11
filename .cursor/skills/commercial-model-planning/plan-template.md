@@ -73,8 +73,8 @@ changes). Note who has to answer it: the source's owner or the build's owner.
       A source without formulas (a store capture, a document) keeps the checks that
       apply to it.
 - **Rule decision record,** under a heading containing "Rule decision record": one row
-  per rule ID, with columns rule | decided by | native feature and fallback | exact vs
-  source?. All four are set at planning time; a rule may carry two "decided by" values,
+  per rule ID, in one table or one per area, with columns rule | decided by | native
+  feature and fallback | exact vs source?. All four are set at planning time; a rule may carry two "decided by" values,
   such as new sale vs amendment. What the build finds (the path taken, its evidence)
   goes in the verification ledger and the evidence log, not in this table.
 - **Knowledge source per area:** the table from
@@ -108,7 +108,7 @@ The usual phases:
 |---|---|
 | P0 Environment | Integration org through the build harness, on a named scenario or shape, with a lifetime that covers the build (shipped scenarios use `days: 1`; see `build-harness` → Keep an org for a multi-day build); feature and enablement checks; tooling. A checklist of the org settings the plan relies on. Some have no API: the Salesforce Pricing Setup default term counts (Evergreen, One Time) are read in Setup → Salesforce Pricing Setup → Proration Settings (a fresh 264 `ent-sb0` org showed Evergreen 1, One Time 0), or the plan adds a step that sets them |
 | P1 Extraction | Source → design model and golden values; the converter's acceptance tests (section 3, Extraction); an independent re-check: a fresh agent without the converter recomputes a sample of the golden values, weighted to derived ones where the source has any, or all of them when there are few (exercised: a prior build ran it as written); user reviews the design |
-| P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table under a label reading **P2 Live spikes**: spike ID, rules, must-hit value, smallest case, skills to read first. A spike that chooses between routes lists each candidate's catalog and model prerequisites |
+| P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table under a label reading **P2 Live spikes**, with columns spike ID, rules, must hit, smallest case, read first. A spike that chooses between routes lists each candidate's catalog and model prerequisites |
 | P3 Catalog, then configuration | Data plans derived from the base build's own plans; CML. Waits for any spike whose chosen route changes the catalog or the model, or builds every candidate route's prerequisites |
 | P4 Pricing and cost | Price books, adjustments, procedure changes, cost wiring |
 | P5 Negotiation, approvals, runtime surface | Quote rounds, approvals, Transaction Line Editor configuration |

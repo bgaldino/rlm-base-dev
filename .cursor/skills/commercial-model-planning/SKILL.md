@@ -280,7 +280,7 @@ folder:
 
 ```bash
 L=<Foundations root>/.cursor/skills/commercial-model-planning/scripts/ledger.py
-python3 "$L" init --plan plan.md --blind <blind plan> [--intake <IDs, e.g. D1-D6>] [--owner <IDs>]
+python3 "$L" init --plan plan.md [--blind <blind plan>] [--intake <IDs, e.g. D1-D6>] [--owner <IDs>]
 python3 "$L" record <ID> <outcome> "<org, record ids, values>" [--path "<what was built>"] \
   [--skill "<skill/file: claim>"] [--blind-right yes|no]
 python3 "$L" report   # writes verification/scorecard.md
@@ -295,10 +295,11 @@ python3 "$L" report   # writes verification/scorecard.md
   configuration), `refuted` (the predicted route failed; a fallback or another route was
   used) or `inconclusive`.
 - **`--blind-right`** (edited items only): whether the blind text would have held, so
-  the audit's edits are measured too.
+  the audit's edits are measured too. Record it once; the report uses the latest
+  answer given.
 - `init` finds the plan's sections by the template's headings and labels ("2. Decisions",
-  "Rule decision record", "P2 Live spikes"; see [plan-template.md](plan-template.md)) and
-  warns when one has no rows. Re-running it adds new rows, keeps every recorded outcome
+  "Rule decision record", "P2 Live spikes"; see [plan-template.md](plan-template.md)). It
+  fails when it finds no rule or decision rows, and warns when it finds no spikes. Re-running it adds new rows, keeps every recorded outcome
   and first prediction, and re-applies `--intake` and `--owner`, so a decision the source
   owner settles later can still leave the accuracy count.
 - **Sessions report; the main session records.** A session reports per item: outcome,

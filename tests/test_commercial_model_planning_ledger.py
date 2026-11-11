@@ -143,6 +143,25 @@ class LedgerTest(unittest.TestCase):
         self.assertIn("no rule rows", p.stderr)
         self.assertFalse((self.dir / "verification/ledger.json").exists())
 
+    def test_empty_spike_section_reads_no_other_phase(self):
+        start = PLAN.index("**P2 Live spikes**")
+        end = PLAN.index("**P3 Catalog")
+        plan = PLAN[:start] + "**P2 Live spikes** None: no rule is Live.\n\n" + PLAN[end:]
+        (self.dir / "plan.md").write_text(plan.replace("| Not | a spike |", "| Item | Content |"))
+        p = self.run_ledger("init", "--plan", "plan.md")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertIn("no spike rows", p.stderr)
+        self.assertFalse([k for k in self.ledger() if k.startswith("spike:")])
+
+    def test_rules_in_several_tables(self):
+        (self.dir / "plan.md").write_text(PLAN.replace(
+            "| R-02 | Live (c) | Amendment | exact |\n",
+            "\nPricing rules:\n\n| Rule | Decided by | Native feature and fallback | Exact vs source? |\n"
+            "|---|---|---|---|\n| R-02 | Live (c) | Amendment | exact |\n"))
+        self.init()
+        self.assertEqual(sorted(k for k in self.ledger() if k.startswith("rule:")),
+                         ["rule:R-01", "rule:R-02", "rule:R-03"])
+
     def test_without_blind_every_row_is_blind(self):
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertEqual(p.returncode, 0, p.stderr)
@@ -186,6 +205,7 @@ class LedgerTest(unittest.TestCase):
         self.init()
         self.run_ledger("record", "R-01", "affirmed", "goldens pass")
         self.run_ledger("record", "D3", "modified", "rounded per line", "--blind-right", "yes")
+        self.run_ledger("record", "D3", "modified", "later gate, same result")
         self.run_ledger("record", "R-02", "refuted", "90.00", "--path", "fallback", "--skill", "s: c")
         p = self.run_ledger("report")
         self.assertEqual(p.returncode, 0, p.stderr)
