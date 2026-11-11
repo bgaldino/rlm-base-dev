@@ -21,9 +21,9 @@ For each change, record the state after every step:
    should move.
 4. **Create the order** (`createOrdersFromQuote`), reprice it, and read `OrderItem`,
    `OrderItemDetail` and `OrderItemAttribute`.
-5. **Activate the order.** An order created by an asset action needs a bill-to contact
-   and addresses first [Repo: `rlm-business-apis/backdated-asset-lifecycle.md` → Activating
-   the order].
+5. **Activate the order.** Fill its bill-to contact and addresses first: backdated-change
+   orders were refused without them [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`
+   → Activating the order].
 6. **Read the asset:**
     - `AssetStatePeriod` (`StartDate`, `EndDate`, `Quantity`, `Amount`, `Mrr`);
     - `AssetStatePeriodAttribute`;
@@ -44,9 +44,10 @@ service component and a one-time accessory). The assets' `PricingSource` was not
 | Renew | $0; quantity 0 on every line (no Term Defined line) | — |
 | Amend in the UI, inline quantity edit, rules on | Total right; parent prices blank (details +2 and −1); **attributes reset to product defaults** | The asset's new state period carries the defaults |
 
-The action history netted to zero over add, add, remove and cancel (+, +, −, −). A
-reprice with configuration rules on and **no** quantity change left the attributes
-unchanged, as did a cancellation. The attribute reset also reproduced on a product
+The action history netted to zero over add, add, remove and cancel (+, +, −, −). The
+attributes stayed unchanged after an `initiateAmendment` with `quantityChange`, a quantity change
+with configuration rules off, a reprice with rules on and **no** quantity change, and a
+cancellation. The attribute reset also reproduced on a product
 outside any custom model: one attribute went from its chosen value to its default. That
 points to platform or base-build behaviour rather than a particular catalog.
 
@@ -66,3 +67,4 @@ The Standard price book gave the same results.
 - **Invoice values** for every change: the quote and order values above aren't the
   invoice. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 - **Whether the configurator can restore the reset attributes** on an amendment line.
+- **Removing a bundle component through an amendment** of the top-level asset.

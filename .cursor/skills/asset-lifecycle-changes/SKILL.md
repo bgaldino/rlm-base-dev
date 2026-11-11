@@ -28,11 +28,11 @@ in November 2026.
    placement.** Follow the change from quote → reprice → order → reprice → activation →
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
-2. **Read attributes as well as prices.** An inline quantity edit on an amendment line,
-   with configuration rules on, resets the line's attributes to the product defaults.
-   Activation keeps them on the asset, and the next amendment inherits them. The price
-   stays right [Measured: 2026-11-05, 264]. Add quantity with `initiateAmendment` and
-   `quantityChange`, which keeps them.
+2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
+   with configuration rules on (the UI's inline quantity edit does this), resets the
+   line's attributes to the product defaults. Activation keeps them on the asset, and the
+   next amendment inherits them. The price stays right [Measured: 2026-11-05, 264]. Add
+   quantity with `initiateAmendment` and `quantityChange`, which kept them.
 3. **Amend, renew and cancel act on top-level assets.** Cancelling or renewing a bundle
    component alone is refused: "the asset is a bundle component. Provide the top-level
    asset" [Measured: 2026-11-05, 264]. If a component must be cancellable on its own (a
@@ -66,7 +66,8 @@ in November 2026.
 ## DO NOT
 
 - **DO NOT** demo an inline quantity edit on an amendment of a configured product until
-  the attribute reset is fixed. Use the API or the configurator.
+  the attribute reset is fixed. Change quantity with `initiateAmendment` and
+  `quantityChange` (Quick Rule 2).
 - **DO NOT** promise a source's cancellation-credit or re-banding rule from the docs alone.
   Measure it on the selling models the model uses (Quick Rule 6, [verification.md](verification.md)).
 - **DO NOT** trust `UnitPrice` or `NetUnitPrice` on renewal, cancellation or negative
@@ -107,9 +108,9 @@ reprice, create the order and activate. Check:
 raises.
 
 **"Cancel the support add-on but keep the device."** If the add-on is a bundle component,
-cancelling it alone is refused (Quick Rule 3). Either the model changes (sell it as its
-own line), or the demo cancels and re-adds the bundle. Decide this in the plan, not on
-stage.
+cancelling it alone is refused (Quick Rule 3), and removing it through an amendment of the
+bundle is unmeasured. Either sell it as its own line, or measure the amendment path first.
+Decide this in the plan, not on stage.
 
 ## Validation Checks
 
