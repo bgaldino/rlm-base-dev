@@ -153,8 +153,11 @@ Run these checks before treating an approval-flow change as ready:
 
 - `cci flow run prepare_approvals --org <cci_alias>` succeeds on a scratch org.
 - Re-running `prepare_approvals` is idempotent.
-- If the approval-flags overlay or the approvals context plan changed, run
-  `cci flow run prepare_approvals_pricing --org <cci_alias>` and reprice before testing.
+- If the approval-flags overlay or the approvals context plan changed: on a fresh build,
+  `cci flow run prepare_approvals_pricing --org <cci_alias>` applies both. On an org that
+  already has them, it applies only additions; change an existing overlay step with
+  `updateSteps` (`.cursor/skills/expression-sets/`) and deactivate the context version before
+  changing a mapping (`.cursor/skills/context-service/`). Reprice before testing.
 - Preview Approvals shows the expected chains and steps once mock output values are set for
   the `QueryApprovalData` background step: Preview doesn't show steps whose entry
   conditions depend on a background step's subflow. A real submission (below) is the

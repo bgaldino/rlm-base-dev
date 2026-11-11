@@ -79,7 +79,7 @@ where each level is computed:
   or above in the role hierarchy [Dev guide: `actions_obj_review_approval_work_item`], and
   the Help gives an approval administrator the right to "review or override any work item"
   [Help: `ind.approvals_personas`]. The admin held Approval Admin (through its profile and the
-  `RLM_CLM` permission set) [Measured: 2026-11-10, 264], which fits the Help. Don't rely on it for ordinary reviewers: give the groups members.
+  `RLM_CLM` permission set group) [Measured: 2026-11-10, 264], which fits the Help. Don't rely on it for ordinary reviewers: give the groups members.
 - Documented approver types: user, group and queue. A "Resource" type exists, but Preview
   doesn't support it [Help: `ind.approvals_preview_feature_limitations`].
 - The docs don't describe a manager or role-hierarchy approver type ([limitations.md](limitations.md)).

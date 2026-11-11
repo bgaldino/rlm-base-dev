@@ -23,10 +23,10 @@ QuantumBit build.
 
 ## Quick Rules
 
-1. **Advanced Approvals runs on Flow Orchestration.** An approval workflow is an
-   orchestration flow of stages and steps: background steps run flows, and approval steps
-   assign work items [Help: `ind.approvals_advanced_approvals`]. Flow Orchestration's own
-   limits apply.
+1. **Advanced Approvals runs on Flow Orchestration**, so Flow Orchestration's limits apply
+   [Help: `ind.approvals_advanced_approvals`]. An approval workflow is an orchestration flow
+   of stages and steps: background steps run flows, and approval steps assign work items
+   [Help: `ind.approvals_example_configure_an_approval_workflow`].
 2. **Reduce every condition to a Number or Text value before the approval stage.**
    - Conditions can test a background step's outputs, another step's outputs (the shipped
      Director step reads `Manager_Approver.Outputs.approvalDecision`) and flow formulas. Line
@@ -167,9 +167,11 @@ items:
 
 - `cci flow run prepare_approvals --org <cci_alias>` succeeds, and a rerun is idempotent
   [Repo: `docs/features/composable-quote-approvals.md` → Verification Checklist].
-- When the approval-flags overlay or the approvals context plan changes, also run
-  `cci flow run prepare_approvals_pricing --org <cci_alias>` (it applies both), then reprice
-  before testing. `prepare_approvals` doesn't touch the pricing side.
+- The approval-flags overlay and the approvals context plan are applied by
+  `prepare_approvals_pricing`, not `prepare_approvals`. On a fresh build it applies both.
+  On an org that already has them, rerunning it applies only additions: a changed overlay
+  step must go through `updateSteps` (`expression-sets`), and a changed context mapping needs
+  the version deactivated first (`context-service`). Reprice before testing.
 - Run the headless test in [actions-and-objects.md](actions-and-objects.md) for these paths:
     - no-approval
     - each single dimension
