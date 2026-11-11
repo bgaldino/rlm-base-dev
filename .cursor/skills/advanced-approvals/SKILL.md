@@ -28,8 +28,10 @@ QuantumBit build.
    assign work items [Help: `ind.approvals_advanced_approvals`]. Flow Orchestration's own
    limits apply.
 2. **Reduce every condition to a Number or Text value before the approval stage.**
-   - Step conditions read what a background step outputs, so aggregate line values (a
-     maximum level, a count of lines below floor) into quote-level numbers first.
+   - Conditions can test a background step's outputs, another step's outputs (the shipped
+     Director step reads `Manager_Approver.Outputs.approvalDecision`) and flow formulas. Line
+     values aren't one of those, so aggregate them (a maximum level, a count of lines below
+     floor) into quote-level numbers in a background step or a roll-up first.
    - Smart Approvals needs Number or Text conditions and no NOT operator
      [Help: `ind.approvals_smart_approval_limitations`].
 3. **Model "each level also needs the levels below" as one serial chain.** Step N starts
@@ -39,8 +41,9 @@ QuantumBit build.
 4. **Give every stage with conditional steps a custom exit condition:** "(completed OR not
    triggered)" per step, plus a rejection shortcut. Otherwise the stage waits forever for
    steps that never started [Help: `ind.approvals_use_the_stage_exit_condition`].
-5. **Submit by starting the approval flow.** There is no submit action
-   [Help: `ind.approvals_add_an_approval_button_for_sales_reps`].
+5. **Submit by starting the approval flow.** The approval invocable actions are cancel,
+   override, reassign, recall, review and `getPreviousRelaRecDetails`; none submits
+   [Dev guide: `advanced_approvals_invocable_actions_parent`].
     - The repo uses the invocable Apex `RLM_AA_Submit_Approval`.
     - Review, override, reassign, recall and cancel have standard actions
       ([actions-and-objects.md](actions-and-objects.md)).
@@ -48,6 +51,8 @@ QuantumBit build.
       [Help: `ind.approvals_design_build_activation`].
 6. **Extend the shipped workflow rather than adding a second one.** For a new dimension:
     - add a fact to `RLM_Quote_Approval_Data`
+    - add it as an OR condition on the `Requires_Approval` decision, or a quote that
+      triggers only the new dimension skips approval and goes straight to Approved
     - add a step with its own chain
     - add two exit conditions for it
     - add it to the rejection formula
@@ -72,10 +77,12 @@ QuantumBit build.
 - **DO NOT** hard-code user, group or queue IDs in an orchestration you package or deploy
   between orgs [Help: `ind.approvals_add_an_approval_button_for_sales_reps`]. Assign by group
   name, as the repo does.
-- **DO NOT** expect the submitter to be the user you pass in. Starting the flow over REST
-  records the calling user as `SubmittedById`, ignoring a `submitter` input
-  [Measured: 2026-11-10, 264]. Quick-action flows run as the Automated Process User, which is
-  why the repo's Apex bridge passes `UserInfo.getUserId()`.
+- **DO NOT** expect to choose the submitter. `SubmittedById` was the running user on every
+  route tried: the repo's Apex bridge, and starting the flow over REST with another user's ID
+  in the `submitter` input [Measured: 2026-11-10, 264]. The shipped orchestration declares
+  `submitter` but never reads it. (In an *autolaunched* flow started by a quick action,
+  `$User` is the Automated Process User [Help: `ind.approvals_add_an_approval_button_for_sales_reps`];
+  the repo's quick action launches a screen flow, which runs as the user.)
 - **DO NOT** confuse "dynamic approvals" with dynamic routing. In the docs it means
   AI-written notification summaries [Help: `ind.approvals_turn_on_dynamic_approvals`].
 - **DO NOT** confuse this feature with the legacy Salesforce CPQ "Advanced Approvals"
@@ -135,9 +142,17 @@ Measured end to end on a QuantumBit build [Measured: 2026-11-10, 264]:
 needs a Manager, below 65% a Director, below 60% the VP.
 - Compute the quote margin in the pricing procedure, or in the approval data flow, and
   convert it to a level 0–3 number (`MarginApprovalLevel`) in `RLM_Quote_Approval_Data`.
-- Take the overall level as the maximum of the discount and margin levels, and keep the
-  one serial chain. Or give margin its own chain if its approvers differ.
-- Add the exit conditions and the rejection clause, and reprice before testing.
+- Take the overall level as the maximum of the discount and margin levels
+  (`ApprovalLevel`), and drive the one serial chain from it. Everything that reads
+  `DiscountApprovalLevel` must switch to `ApprovalLevel`: the three step entry conditions,
+  the `Requires_Approval` decision, and the stage's "not triggered" exit conditions (2, 4
+  and 6). Otherwise a margin-only quote skips approval, or the stage exits before anyone
+  approves.
+- Or give margin its own chain if its approvers differ, following Quick Rule 6.
+- The design doc asks for threshold policy to be externalized before a third dimension is
+  added [Repo: `docs/features/composable-quote-approvals.md`]. Folding margin into one level
+  adds no step, but its thresholds are still hard-coded.
+- Reprice before testing.
 - [matrix-modeling.md](matrix-modeling.md) walks through the choices.
 
 **Find out why a quote is stuck at Pending.** Query its `ApprovalSubmission` and work

@@ -20,13 +20,13 @@ org [Measured: 2026-11-10, 264]. `ApprovalDelegation` wasn't present there.
 
 | Operation | How | Who, precondition |
 |---|---|---|
-| Submit | Start the approval flow. Repo: `POST /services/data/v68.0/actions/custom/apex/RLM_AA_Submit_Approval` with `{"inputs":[{"flowName":"RLM_Quote_Smart_Approval","recordId":"<quote>","comments":"..."}]}`. Starting the flow directly (`/actions/custom/flow/<flow>`) also works, but records the calling user as submitter [Measured: 2026-11-10, 264] | Run Flows |
-| Approve or reject | `POST /actions/standard/reviewApprovalWorkItem` with `approvalWorkItemId`, `approvalDecision` (`Approve`/`Reject`), `comments` [Dev guide: `actions_obj_review_approval_work_item`] | The assignee, a group or queue member, a delegate, or a user above in the role hierarchy; the item must be `Assigned`. An org admin who wasn't a group member succeeded [Measured: 2026-11-10, 264] |
+| Submit | Start the approval flow. Repo: `POST /services/data/v68.0/actions/custom/apex/RLM_AA_Submit_Approval` with `{"inputs":[{"flowName":"RLM_Quote_Smart_Approval","recordId":"<quote>","comments":"..."}]}`. Starting the flow directly (`/actions/custom/flow/<flow>`) also works. Either way `SubmittedById` is the running user, whatever `submitter` input you pass [Measured: 2026-11-10, 264] | Run Flows |
+| Approve or reject | `POST /actions/standard/reviewApprovalWorkItem` with `approvalWorkItemId`, `approvalDecision` (`Approve`/`Reject`), `comments` [Dev guide: `actions_obj_review_approval_work_item`] | The assignee, a group or queue member, a delegate, or a user above in the role hierarchy; the item must be `Assigned`. An org admin who wasn't a group member succeeded on a group that includes bosses [Measured: 2026-11-10, 264] |
 | Override | `overrideApprovalWorkItem`, same inputs [Dev guide: `actions_obj_override_approval_work_item`] | Approval Admin; item `Assigned` |
 | Reassign | `reassignApprovalWorkItem` with `approvalWorkItemId`, `assigneeId`, `comments` | Approval Admin; item `Assigned`. Makes a later resubmission ineligible for Smart Approvals |
 | Recall | `recallApprovalSubmission` with `approvalSubmissionId`, `comments` [Dev guide: `actions_obj_recall_approval_submission`] | Submission InProgress or Suspended. The docs say Approval Admin and submitter; the measured run was both |
 | Cancel | `cancelApprovalSubmission` with `approvalSubmissionId`, `comments` | Approval Admin |
-| Preview | `POST /connect/advanced-approvals/approval-submission/preview` with `flowApiName`, `objectApiName`, `recordId`, `inputParameters` (v67+) [Dev guide: `connect_resources_preview_approvals`] | Creates nothing |
+| Preview | `POST /connect/advanced-approvals/approval-submission/preview` with `flowApiName`, `objectApiName`, `recordId`, `inputParameters` [Dev guide: `connect_resources_preview_approvals`]; v65+, `inputParameters` v67+ | Creates nothing |
 | Prior submission data | `getPreviousRelaRecDetails` (v66+) | For rule-based auto-approval |
 
 ## Headless test

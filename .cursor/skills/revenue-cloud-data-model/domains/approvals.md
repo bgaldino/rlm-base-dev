@@ -31,8 +31,9 @@ the approval invocable actions.
 ## Notes
 
 - `ApprovalSubmission.RelatedRecordId` is polymorphic over the approved record's object; it
-  is not a link between submissions. A resubmission links to the earlier one through
-  `SmartApprvlBasisSubmissionId`.
+  is not a link between submissions. `SmartApprvlBasisSubmissionId` names the earlier
+  submission that a Smart Approvals evaluation used as its basis (ERD: lookup to
+  ApprovalSubmission); not observed on a live resubmission yet.
 - Approval alerts use Lightning `EmailTemplate` records. Their builder page is an
   `EmailTemplatePage` FlexiPage, which can't be deployed through Metadata API, so
   `create_approval_email_templates` creates the templates over REST.

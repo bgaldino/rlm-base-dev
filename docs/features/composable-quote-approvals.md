@@ -109,16 +109,19 @@ Add dimensions as a recipe, not as a framework rewrite.
 
 1. Add the approval fact to `RLM_Quote_Approval_Data` if the step needs a new
    quote-derived value.
-2. Add one `stageSteps` approval step to `RLM_Quote_Smart_Approval`.
-3. Give the step a unique `ActionInput__ApprovalChainName`.
-4. Add explicit `entryConditions`; do not use a stage-start entry rule.
-5. Add two stage exit conditions: `Step.Status = Completed` and the inverse of
+2. Add the fact as an OR condition on the `Requires_Approval` decision. Without it, a
+   quote that triggers only the new dimension takes the decision's default path straight
+   to `Update_Quote_Status_to_Approved`.
+3. Add one `stageSteps` approval step to `RLM_Quote_Smart_Approval`.
+4. Give the step a unique `ActionInput__ApprovalChainName`.
+5. Add explicit `entryConditions`; do not use a stage-start entry rule.
+6. Add two stage exit conditions: `Step.Status = Completed` and the inverse of
    the trigger condition.
-6. Add one grouped `(completed OR not triggered)` clause to the stage
+7. Add one grouped `(completed OR not triggered)` clause to the stage
    `exitConditionLogic`.
-7. Add the step to the `rejectedQuote` formula so any rejection routes to the
+8. Add the step to the `rejectedQuote` formula so any rejection routes to the
    rejected-status stage.
-8. Add one `ApprovalAlertContentDef.csv` row and one `EmailTemplate.csv` row in
+9. Add one `ApprovalAlertContentDef.csv` row and one `EmailTemplate.csv` row in
    `datasets/sfdmu/qb/en-US/qb-approvals/`.
 
 What should not change for a normal new dimension:
