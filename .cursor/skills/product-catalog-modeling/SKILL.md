@@ -39,7 +39,7 @@ drop the `.md` suffix of the snapshot file name.
    and groups nest at most two levels. Help says group cardinality counts *distinct*
    components, but at run time it counted **lines**: one product on two lines in a 1..1
    group drew a `bundlevalidation` range error. Component cardinality counts *quantity*.
-   Keep each component on one line (see [`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality)).
+   Keep each component on one line (see [`bundles-and-cardinality.md`](bundles-and-cardinality.md#cml-sized-default-components)).
    [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_group_cardinality.htm`; Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 4. **Attributes reach a product only through a product classification.** Put an attribute
    that drives a price on the classification the adjustment names, not on its parent, and
@@ -140,7 +140,7 @@ the detail and the sources.
 | **Where an attribute value is set** | Definition → classification attr → product attr → bundle override. | Lower levels are more specific but must be reviewed when a higher level changes. | Bundle overrides break attribute-based pricing. [Help: `ind.product_catalog_attribute_fields.htm`; `ind.pricing_attribute_based_pricing_limits.htm`] |
 | **Selling model** | One Time / Term-Defined / Evergreen from the pricing basis. | Each extra model adds a PBE and an option per product. | Proration, renewal and the Subscription price element read it. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md) |
 | **`IsAssetizable`** | True when the sale must leave something to amend, renew or cancel. | False keeps the asset table clean for consumables. | Root value overrides children. [Help: `ind.product_catalog_create_bundled_products.htm`] |
-| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses to put it in a category, so the UI offers it only as a bundle component. | Hidden from catalog-backed UI; a quote or order holding it alone is **not** refused. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
+| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses to put it in a category, so Product Discovery and Quick Add do not find it; it is offered as a bundle component. | A quote or order holding it alone is **not** refused. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
 | **Catalog / category placement** | Catalogs by audience or business unit; categories for browsing. | More catalogs means more category rows to keep coded uniquely. | Drives Product Discovery browsing; categories, not catalogs, hold products. [`catalogs-and-loading.md`](catalogs-and-loading.md) |
 | **Family** | A coarse product line other systems filter on. | A free picklist value becomes a contract. | Whatever keys on it (search facets, Apex, rules) breaks on a rename. [`catalogs-and-loading.md`](catalogs-and-loading.md#product-family-is-a-contract) |
 
@@ -195,8 +195,9 @@ from its CSV is **Open — needs live verification**: every `IsRequired` in the 
 `false`, the documented default, but all 36 rows set `AttributeNameOverride`, whose
 first-insert value was not recorded. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
-After any load of new products, run `rebuild_search_index` and wait for it before placing a
-quote: until it finishes, Place answers "Could not find product with ID" for them. Two more
+After any load of new products, run `refresh_all_decision_tables` and then `rebuild_search_index`,
+and wait for the index before placing a quote: until it finishes, Place answers "Could not
+find product with ID" for them. Two more
 load facts measured the same way, a `Family` value missing from the picklist and the
 component fields an insert cannot set, are in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264).
 [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
@@ -290,7 +291,8 @@ Review the CSVs for these, each a rule above:
 - Category codes are unique across all levels and catalogs; no row's `ParentCategory.Code` equals its own `Code`.
 - Price-impacting attributes sit on the classification the adjustment names and are not overridden in a bundle.
 
-After a load into an org: run the plan's second pass (fact a), run `rebuild_search_index`, run **Validate Product
+After a load into an org: run the plan's second pass (fact a), then `refresh_all_decision_tables` and
+`rebuild_search_index`, run **Validate Product
 Definition** on each changed bundle in PCM [Help: `ind.product_catalog_bundled_product_validations.htm`], and
 configure one bundle in the configurator with rules on.
 

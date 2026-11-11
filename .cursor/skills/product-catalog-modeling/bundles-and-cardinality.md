@@ -53,8 +53,8 @@ On one measured component with `IsQuantityEditable = false`, a CML rule that set
 quantity returned `success: true`, and the line drew a PCM `bundlevalidation` warning. [Repo: `constraint-models/quantities-from-attributes.md`, run M16]
 
 Measured on a locked configurable bundle (Term Defined root at a zero price; one group whose
-min and max equal its four children, each required, default, quantity 1, not editable; the
-children One Time, Term Defined and Evergreen) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
+min and max equal its four children, each required, default, quantity 1, not editable, with
+no scaling method given, so stored `Proportional`; the children One Time, Term Defined and Evergreen) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
 
 | Where | What happened |
 |---|---|
@@ -188,6 +188,9 @@ Proportional is the default when *Allow quantity changes* is off at creation; No
 Help's warning says child quantities are read-only in the runtime cart when the method is
 Constant or "Default" (a value its own list of methods does not include), even on legacy
 rows with *Allow quantity changes*. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_local_cardinality.htm`]
+Measured, read-only held in the configurator but not in the line editor: a Proportional child
+with *Allow quantity changes* off was editable there, and the edit saved; the lock was
+enforced only at order creation. See [the locked bundle measurement](#static-kit-or-locked-configurable-bundle-when-children-recur). [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 
 **Downstream:** choosing Proportional fixes the parent-to-child ratio for every later
 amendment. If a customer must later change one child's quantity independently, model it
@@ -200,17 +203,20 @@ A component that is `IsDefaultComponent` and whose quantity a CML rule sets (for
 quantity and the solver adds a second instance for the rest (1 + (n − 1)). Measured in the
 UI configurator and on the API defaults path (Place with `addDefaultConfiguration: true`);
 a hand edit below the rule's quantity split the same way instead of being rejected. Totals
-stay right, but each split counts as two lines against its group's max (above), and in a
-group ramp the later segments kept a stale split. A component added without defaults (not
+stay right, but each split counts as two lines against its group's max (above). In a group
+ramp, correcting the split by hand in the first segment did not correct the later segments:
+they kept a quantity above the rule's, flagged only by the group-range warning. A component added without defaults (not
 `IsDefaultComponent`, or the API sending the child lines itself) gave one instance.
 [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 
 Keep the default flag and fix it in the model: the `split` annotation set to false on the
-component's CML type (`@(split = false)`) gives one instance, so the default line takes the
-rule's quantity, and a hand edit to another quantity is rejected with the rule's message.
-[Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] Dropping `IsDefaultComponent` also avoids the split, but loses
-the pre-selection and cannot keep a required child (a required child must be a default).
-[Dev guide: `cml_annotation_example_split.htm`] Authoring the annotation is `constraint-models`.
+component's CML type (`@(split = false)`) keeps one instance [Dev guide: `cml_annotation_example_split.htm`],
+so the default line takes the rule's quantity, and a hand edit to another quantity is
+rejected with the rule's message. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] Dropping `IsDefaultComponent` also avoids the
+split, but loses the pre-selection and cannot keep a required child (a required child must
+be a default). [Help: `ind.product_catalog_local_cardinality.htm`] `constraint-models`
+covers writing the CML; its one-line result for `relation[Type] == n` was measured with no
+default line on the quote.
 
 ## Quote visibility
 

@@ -136,9 +136,9 @@ Help does not say what enforces it. Measured [Measured: 2026-11-11, fresh 264 en
 | Place it **alone** on a quote (Place Sales Transaction, rules on, `validateProductCatalog: true`) | Accepted and priced; `configure` reports success with no message |
 | Order and activate that quote | Ordered and activated; the asset is created |
 
-So the flag is enforced in one place, category assignment. Catalog-backed selection in the UI
-(Product Discovery, Quick Add, and Browse Catalogs, which lists category contents) never
-offers the product on its own, so a rep reaches it only as a bundle component. Nothing
+So the flag is enforced in one place, category assignment. Product Discovery and Quick Add
+do not find the product on its own; Browse Catalogs lists category contents, so it should
+not show it either (inferred, not tested). A rep reaches it as a bundle component. Nothing
 checks a quote or an order, so a quote built by API can sell it alone. What an amendment or
 cancellation that removes its companion does is **Open — needs live verification**. The
 QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
