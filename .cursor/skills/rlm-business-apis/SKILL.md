@@ -76,8 +76,9 @@ platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemD
 - Integrations, document templates, formulas and Apex must read the detail rows (or coalesce)
   and must never trust the parent's `NetUnitPrice` on these lines (renewal, cancel, negative
   amendment).
-- A positive-quantity amendment and new business keep the price on the parent and have no detail
-  rows.
+- A positive-quantity amendment placed through the API and new business keep the price on the
+  parent and have no detail rows. A positive amendment edited inline in the quote UI was measured
+  with its price on detail rows (`asset-lifecycle-changes` → Quick Rule 4).
 - This repo keeps **as-is renewals on** (`enableAsIsRenewals=true` in
   `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`), so renewals behave this way
   too. Turning it off moves a plain renewal's price back to the parent, but leaves cancels and
