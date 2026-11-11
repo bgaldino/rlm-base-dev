@@ -131,19 +131,19 @@
       }
       .phase-chevron.open { transform: rotate(90deg); }
       .phase-1 .phase-header { background: #032D60; border-bottom: 1.5px solid #021d3f; }
-      .phase-2 .phase-header { background: #0B6E4F; border-bottom: 1.5px solid #084f39; }
-      .phase-3 .phase-header { background: #4A235A; border-bottom: 1.5px solid #311745; }
-      .phase-4 .phase-header { background: #1A5276; border-bottom: 1.5px solid #123550; }
-      .phase-5 .phase-header { background: #784212; border-bottom: 1.5px solid #4e2b0c; }
-      .phase-6 .phase-header { background: #1B4F72; border-bottom: 1.5px solid #123550; }
-      .phase-7 .phase-header { background: #0E5C63; border-bottom: 1.5px solid #09424a; }
+      .phase-3 .phase-header { background: #0B6E4F; border-bottom: 1.5px solid #084f39; }
+      .phase-4 .phase-header { background: #4A235A; border-bottom: 1.5px solid #311745; }
+      .phase-2 .phase-header { background: #1A5276; border-bottom: 1.5px solid #123550; }
+      .phase-6 .phase-header { background: #784212; border-bottom: 1.5px solid #4e2b0c; }
+      .phase-7 .phase-header { background: #1B4F72; border-bottom: 1.5px solid #123550; }
+      .phase-5 .phase-header { background: #0E5C63; border-bottom: 1.5px solid #09424a; }
       .phase-1 { border-color: #032D60; }
-      .phase-2 { border-color: #0B6E4F; }
-      .phase-3 { border-color: #4A235A; }
-      .phase-4 { border-color: #1A5276; }
-      .phase-5 { border-color: #784212; }
-      .phase-6 { border-color: #1B4F72; }
-      .phase-7 { border-color: #0E5C63; }
+      .phase-3 { border-color: #0B6E4F; }
+      .phase-4 { border-color: #4A235A; }
+      .phase-2 { border-color: #1A5276; }
+      .phase-6 { border-color: #784212; }
+      .phase-7 { border-color: #1B4F72; }
+      .phase-5 { border-color: #0E5C63; }
       /* ── Phase body ── */
       .phase-body {
         background: #fff;
@@ -414,7 +414,7 @@
         </div>
       </div>
       <!-- ══ PHASE 2: Data Cloud ══ -->
-      <div class="phase phase-4">
+      <div class="phase phase-2">
         <button type="button" class="phase-header" id="p2-header" aria-expanded="true" aria-controls="p2" onclick="togglePhase('p2')">
           <div class="phase-badge">2</div>
           <div class="phase-label">Data Cloud</div>
@@ -438,7 +438,7 @@
         </div>
       </div>
       <!-- ══ PHASE 3: Salesforce & Slack Bidirectional Architecture ══ -->
-      <div class="phase phase-2">
+      <div class="phase phase-3">
         <button type="button" class="phase-header" id="p3-header" aria-expanded="true" aria-controls="p3" onclick="togglePhase('p3')">
           <div class="phase-badge">3</div>
           <div class="phase-label">Salesforce &amp; Slack Bidirectional Architecture</div>
@@ -498,7 +498,7 @@
         </div>
       </div>
       <!-- ══ PHASE 4: Agentforce & Record Channel Deployment ══ -->
-      <div class="phase phase-3">
+      <div class="phase phase-4">
         <button type="button" class="phase-header" id="p4-header" aria-expanded="true" aria-controls="p4" onclick="togglePhase('p4')">
           <div class="phase-badge">4</div>
           <div class="phase-label">Agentforce &amp; Record Channel Deployment</div>
@@ -576,7 +576,7 @@
         </div>
       </div>
       <!-- ══ PHASE 5: Coworker Setup ══ -->
-      <div class="phase phase-7">
+      <div class="phase phase-5">
         <button type="button" class="phase-header" id="p5-header" aria-expanded="true" aria-controls="p5" onclick="togglePhase('p5')">
           <div class="phase-badge">5</div>
           <div class="phase-label">Coworker Setup</div>
@@ -612,7 +612,7 @@
         </div>
       </div>
       <!-- ══ PHASE 6: Cursor IDE & Local Dev Tooling Configuration ══ -->
-      <div class="phase phase-5">
+      <div class="phase phase-6">
         <button type="button" class="phase-header" id="p6-header" aria-expanded="true" aria-controls="p6" onclick="togglePhase('p6')">
           <div class="phase-badge">6</div>
           <div class="phase-label">Cursor IDE &amp; Local Dev Tooling Configuration</div>
@@ -668,7 +668,7 @@
         </div>
       </div>
       <!-- ══ PHASE 7: DevHub Handshake & Scratch Org Lifecycle ══ -->
-      <div class="phase phase-6">
+      <div class="phase phase-7">
         <button type="button" class="phase-header" id="p7-header" aria-expanded="true" aria-controls="p7" onclick="togglePhase('p7')">
           <div class="phase-badge">7</div>
           <div class="phase-label">DevHub Handshake &amp; Scratch Org Lifecycle</div>
