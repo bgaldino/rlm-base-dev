@@ -9,6 +9,7 @@
 | [lowest-price-across-price-books.md](lowest-price-across-price-books.md) | Minimum list price across price books | Pricing Setting, List Price with output resolution | `ind.pricing_example_calculate_the_lowest_price_of_a_product.htm` |
 | [sequential-discounts.md](sequential-discounts.md) | Apply tier discounts one after another | Pricing Setting, List Price, Price Adjustment Matrix with output resolution | `ind.pricing_example_apply_discounts_sequentially_for_a_product.htm` |
 | [pricing-action-button.md](pricing-action-button.md) | Calculate Price button on an Opportunity | context, procedure, action parameter | `ind.pricing_pricing_action_parameters.htm` |
+| [cost-and-margin.md](cost-and-margin.md) | Unit cost, line cost and margin, and a quote total cost | List Price (cost), List Group + Formula-Based Pricing, context mapping, roll-up | Repo wiring (`ind.pricing_define_costs_in_cost_books.htm` calls cost books tracking-only) |
 
 Help `ind.pricing_unique_pricing_scenarios.htm` also lists derived pricing, contract-based pricing,
 discount distribution, output resolution, price revisions, promotions and advanced detail line
