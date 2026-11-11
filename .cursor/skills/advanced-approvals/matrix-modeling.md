@@ -19,6 +19,11 @@ Two policy rules decide the shape:
   the maximum.
 - **"Each level also needs every level below":** the levels form a serial chain.
 
+Every percentage also needs a base. "Discount > 20%" can be measured off list price, or off
+a standard price that already includes contract, bundle or volume pricing; the same line can
+land on different levels under each. That is a modeling decision the source must state; if
+it doesn't, ask and record the answer. §2 shows what the shipped level measures.
+
 ## 2. Compute each level as a Number
 
 Conditions test the outputs of background steps and other steps, or flow formulas; the docs
@@ -43,6 +48,41 @@ where each level is computed:
 - **Security:** keep stored levels read-only for submitters
   [Repo: `docs/references/revenue-cloud-permissions.md`].
 
+**What the shipped discount level measures.** "The procedure" below is
+`force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml`.
+- The approval-flags overlay bands only `ItemDiscountPercentage`
+  [Repo: `datasets/expression_set_overlays/approval_flags.json`], the line's own manual
+  discount percent (the `Discount` attribute of `SalesTransactionItem`)
+  [Repo: `docs/references/context-definitions/RLM_SalesTransactionContext.contextDefinition-meta.xml`].
+- The procedure applies that percentage in `Applyamountbasedandpercentagebaseddiscounts`,
+  after the bundle and volume steps, the contract discount and the line's amount discount.
+  So its base is the net unit price those left, not list [Repo: the procedure; `pricing-procedures` →
+  [elements/manual-discount.md](../pricing-procedures/elements/manual-discount.md)].
+- The overlay runs after `Calculatecostandmarginforpricedlines` and before the header
+  discount steps and `DiscountDistributionService` [Repo: overlay placement, procedure step
+  order]. So bundle, volume and contract pricing, a line amount discount, and a header
+  discount spread to lines don't raise the level.
+- A source that measures discount off list needs its own percentage, for example a formula
+  step at the same point that computes it from `ListPrice` and `NetUnitPrice`, banded the
+  same way.
+
+**Line guards (below floor margin, below cost).**
+- The shipped procedure computes line margin (`ItemMargin__std`, net total less unit cost
+  times quantity, over net total) only for lines with a unit cost, before the header discount
+  steps [Repo: the procedure, `Filterlineswithunitcost` and `Calculatetotalcostandmargin`].
+  A guard placed where the flags sit can read it; decide what a line with no cost means.
+- A guard sees only the line's resulting values. A round's bulk discount (the same discount
+  set on every line) and a rep's override on one line end up in the same fields, and nothing
+  in the shipped model records which set them. If the source treats them differently,
+  give the guard a marker it can read: a line field the bulk step sets, mapped into the
+  pricing context like the shipped approval fields
+  [Repo: `datasets/context_plans/Approvals`], and tested in the guard's filter. This is a
+  modeling recommendation, not platform behavior.
+- A pass-through line priced at or near cost (a travel line, say) trips a below-cost or
+  floor-margin guard on every quote. Exclude it by a marker the filter tests, such as a
+  product attribute or line field, not by product name. The source must also say whether
+  excluded lines still count in a blended margin.
+
 ## 3. Lay out chains and steps
 
 - **Cumulative levels:** one chain (for example `Discount`) with one step per level. Step N
@@ -57,6 +97,21 @@ where each level is computed:
   run in parallel [Help: `ind.approvals_types_of_approvals`]. The shipped `Finance` chain is
   a separate sign-off, but it routes to the same `Manager` group as the first Discount step,
   so a quote that triggers both gives that group two items.
+- **Payment terms: in the ladder or in a Finance chain.** The shipped flow keeps terms out of
+  the ladder: one `Payment_Terms` step in the `Finance` chain, entry
+  `PaymentTerms != "Net 30"`, with its own alert and email template
+  [Repo: `unpackaged/post_approvals/flows/RLM_Quote_Smart_Approval.flow-meta.xml`,
+  `datasets/sfdmu/qb/en-US/qb-approvals/README.md`]. A source that puts custom terms at a
+  ladder level (level 2 in §1) maps terms to a level number in the approval data flow and
+  folds it into `ApprovalLevel`. The trade-off:
+    - One ladder: terms pass every level up to theirs, in order, with one item per approver.
+      Alerts link a template to a step [Help: `ind.approvals_email_templates`], so the
+      approver isn't told whether discount or terms raised the level unless the template
+      shows both.
+    - A Finance chain: runs in parallel and can go to its own approver and template. The
+      shipped `rejectedQuote` formula includes `Payment_Terms`, so a terms rejection also
+      routes the flow to Rejected (not yet run; see Rejection below).
+    - Either way, `Requires_Approval` and the stage exit conditions must cover terms.
 - **Level 0:** route around the approval stage with a Decision, as the repo does
   (`Requires_Approval`). The Decision must test **every** dimension: a dimension it leaves
   out never gets approval when it is the only one triggered. The steps use explicit entry
@@ -74,6 +129,24 @@ where each level is computed:
   uses one record-triggered flow for both, `RLM_AA_Reset_Quote_Status`, which leaves the
   orchestration unchanged
   [Repo: `docs/features/composable-quote-approvals.md` → Quote approval status].
+- **Resubmission: restart or Smart Approvals.** Smart Approvals is set per approval step
+  (Use Smart Approval) [Help: `ind.approvals_turn_on_smart_approvals`]. On a resubmission
+  after a rejection or recall, it re-evaluates each step's entry conditions against the
+  previous submission and skips manual review where they are still met
+  [Help: `ind.approvals_smart_or_rule_based_approvals`]; eligibility rules are in
+  [limitations.md](limitations.md). All four shipped steps pass
+  `ActionInput__CanUseSmartApproval = true` [Repo: `unpackaged/post_approvals/flows/RLM_Quote_Smart_Approval.flow-meta.xml`].
+    - With level conditions (`Level >= N`), a value that moved within its band still meets
+      them, so that step is skipped. The Help example skips two approvers whose ranges were
+      still met and routes only to the third [Help: `ind.approvals_smart_approvals`]. A
+      re-review that depends on how much a value changed is Rule-Based Auto-Approvals
+      [Help: `ind.approvals_smart_or_rule_based_approvals`].
+    - A source that says "a resubmission restarts the chain" wants every approver to review
+      again: turn Smart Approval off on that chain's steps. Left on, it skips approvers on a
+      rejected or recalled resubmission. That the shipped input is this setting is an open
+      question in [limitations.md](limitations.md).
+    - After a full approval, any later submission is a new request, so the chain restarts
+      whatever the setting [Help: `ind.approvals_smart_or_rule_based_approvals`].
 
 ## 4. Approvers
 

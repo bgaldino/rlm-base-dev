@@ -88,6 +88,15 @@ After a full approval, the next submission is a new request, not a resubmission.
 - Whether Smart Approvals accepts roll-up summary, Percent, Currency or picklist
   conditions as Number or Text.
 - Whether `ApprovalDelegation` appears once delegation is turned on.
+- Whether a step that Smart Approvals skips on resubmission counts as approved for a later
+  step whose entry condition reads its outcome (the shipped Director step reads
+  `Manager_Approver.Outputs.approvalDecision`). No recorded run shows the shipped flow
+  skipping a step on resubmission.
+- Whether the shipped steps' `ActionInput__CanUseSmartApproval` input is the Use Smart
+  Approval property in Flow Builder; the design doc treats it as the step's Smart Approval
+  input, and the docs don't name it.
+- Whether a line's margin values reflect a header discount that `DiscountDistributionService`
+  spreads to lines; the shipped procedure computes margin before the header discount steps.
 - Whether `ApprovalWorkItem` standard fields accept a sObject `update()`: the Help says no
   [Help: `ind.approvals_design_build_activation`]; the dev guide lists `update()` and marks
   `ApprovalChainName` and the Smart Approval fields updatable
