@@ -119,8 +119,17 @@ PCM attribute imported into CML takes the attribute's developer name as its vari
 | One per answer unit | `constraint(gateways[Gateway] == sites, "One gateway per site: expected {}.", sites);` | `[Dev guide: cml_logical_constraints]` (message with `{}` arguments) |
 | Per N, rounded up | `constraint(rackQty * 10 >= sites && (rackQty - 1) * 10 < sites, "<message>");` | See [Rounding up](#rounding-up) |
 | Zero unless a choice is made | `constraint(hosting != "OnPrem" -> rackQty == 0, "<message>");` | `[Dev guide: cml_logical_constraints]` |
+| One per answer unit, only if the rep adds it | `relation security : SecurityAddOn[0..200];` with `constraint(security[SecurityAddOn] > 0 -> security[SecurityAddOn] == sites, "<message>");` | `[Dev guide: cml_annotation_example_sequence]` (Examples 4 and 5). See the note below the table |
 | Equal to another component's quantity | `constraint(mounts[GatewayMount] == gateways[Gateway], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead (see [Chained derivations](#chained-derivations)) |
 | A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
+
+The "only if the rep adds it" row takes the dev guide's form
+`constraint(alternators[Alternator] > 0 -> alternators[Alternator] == alternatorsQty, ...)`
+`[Dev guide: cml_annotation_example_sequence]`; the `mouse` example has the same form
+`[Dev guide: cml_best_practice_sequence_configurable]`. Those relations have a lower bound
+of 1; the row's bound of 0 lets the add-on be absent. The implication holds at 0 and at
+`sites`, so the rule alone doesn't require the add-on. What the engine does when a rep
+adds it at quantity 1 is [open item 14](#open-items).
 
 `constraint()` makes the quantity a rule; `setdefault()` makes it a default. The Logical
 Constraints page says the engine never overrides a value the user selected, except through
@@ -226,6 +235,43 @@ warranty example, each with its own message:
 This picks one plan for the whole bundle. It can't express a mixed split, with some sites
 on one plan and the rest on another. The dev guide has no such example; how to model one
 is [open item 13](#open-items).
+
+### Exactly one plan when each plan is sized per site
+
+The first two rows of the choice-group table above count quantity, not distinct
+components. `rel[Type]` and `cardinality()` include the quantity of every instance
+`[Dev guide: cml_using_proxy_variables_constraints]`, and a relation's bounds are a
+quantity range `[Dev guide: cml_relationships]`. M14 set a cardinality of 3 as one line of
+quantity 3 `[Measured: M14]`. So with each plan at `sites`, the sum `== 1` and a `[1..1]`
+bound can't hold once `sites` is above 1; that failure itself wasn't run.
+
+| Tool | What the dev guide says it counts | Source |
+|---|---|---|
+| `rel.count(<condition>)` | "the number of component instances" that match the condition. Another page says that when the condition covers every instance it returns the same value as `cardinality()`. Lines or quantity: [open item 15](#open-items) | `[Dev guide: cml_relationship_variable_functions]` `[Dev guide: cml_using_proxy_variables_constraints]` |
+| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Unique instances chosen from the group; the chosen component can still have a high quantity. The annotation reference calls it the maximum cardinality for a component in a group | `[Dev guide: cml_group_type]` `[Dev guide: cml_type_annotations]` |
+
+**When an answer picks the plan,** nothing needs counting. Size the chosen plan from the
+answer, zero the other, and drop the sum:
+
+```
+relation support : Support[1..200];
+constraint(supportLevel == "Standard" -> support[StandardSupport] == sites, "<message>");
+constraint(supportLevel == "Premium" -> support[PremiumSupport] == sites, "<message>");
+constraint(supportLevel != "Standard" -> support[StandardSupport] == 0, "<message>");
+constraint(supportLevel != "Premium" -> support[PremiumSupport] == 0, "<message>");
+```
+
+`supportLevel` holds one value, so one plan carries `sites` and the other 0. The dev guide
+sets a subtype's cardinality behind an implication
+(`DutyRating == ... -> engine[PrimePowerEngine] == 1`) `[Dev guide: cml_relationships]`;
+here the right side is `sites`, as in the "One per answer unit" row of
+[Deriving quantities](#deriving-quantities-from-attribute-values). Not run.
+
+**When the rep picks the plan by adding it,** with no answer behind it, neither row of the
+table settles it: `count()`'s unit is unclear, and Group Type needs the plans in a product
+component group, while the Relationships page says not to include product component groups
+when importing product relationships from PCM `[Dev guide: cml_relationships]`. This case
+is [open item 15](#open-items).
 
 ### Zero for a component a choice excludes
 
@@ -509,6 +555,16 @@ Each needs a live 264 org:
     Candidates, neither in the dev guide nor run: an answer per plan (a site count each,
     constrained to sum to `sites`, each driving its plan's cardinality), or per-site child
     instances that each carry a plan.
+14. For an add-on sized `rel[Type] > 0 -> rel[Type] == sites` with a lower bound of 0
+    ([Deriving quantities](#deriving-quantities-from-attribute-values)): whether a rep's add
+    at quantity 1 is raised to `sites`, removed, or rejected with the message, and whether
+    the add-on follows a later change to `sites`.
+15. How to require exactly one plan, each sized per site, when the rep picks the plan by
+    adding it ([Exactly one plan when each plan is sized per site](#exactly-one-plan-when-each-plan-is-sized-per-site)).
+    Unsettled: whether `count(<condition>)` counts lines or quantity; whether Group Type
+    `maxInstanceQty=1` admits one plan line of quantity `sites`, given that the two dev-guide
+    pages describe it differently. A candidate in neither source: one exclusion per pair of
+    plans, such as `support[StandardSupport] > 0 -> support[PremiumSupport] == 0`. None run.
 
 ---
 
