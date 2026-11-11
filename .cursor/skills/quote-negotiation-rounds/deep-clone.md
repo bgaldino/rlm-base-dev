@@ -47,9 +47,10 @@ Documented [Help: `ind.qocal_clone_quotes_and_orders`]:
 - Group ramp schedules keep their structure, and amendment and renewal quotes keep their
   ramp and segment relationships. Amendment, renewal and cancellation quotes can be cloned.
 - The clone is created in **Draft** status. Approval work items aren't copied.
-- Custom objects and custom fields clone only when the sales transaction's context
-  definition is configured for them; custom child objects need `ParentReference` mapped
-  to the parent record id.
+- "To clone custom objects and custom fields, configure the context definition for the
+  sales transaction"; custom child objects need `ParentReference` mapped to the parent
+  record id. Measured below, a custom header field that no repo context plan maps still
+  copied.
 
 Measured on one org, from a source quote with one group, two evergreen lines of one
 product (line discounts 20% and 10%), one attribute row on the 20% line, synced to its

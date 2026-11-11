@@ -46,8 +46,9 @@ cloning the previous round. Claims are tagged: `[Help: <article>]` and
    while the source's stayed in progress [Measured: 2026-11-10, 264]. Smart Approvals skips
    steps only on a resubmission of the same record ([Approvals per round](#approvals-per-round)).
 6. **One round syncs at a time, and only the Award round becomes the order.** Keep the current
-   customer-facing round synced. One quote syncs per opportunity:
-   syncing a new round unsynced the previous one [Measured: 2026-11-10, 264]. Help converts an
+   customer-facing round synced. One quote syncs per opportunity: setting
+   `Opportunity.SyncedQuoteId` to a new round unsynced the previous one
+   [Measured: 2026-11-10, 264]; Start Sync itself was not measured. Help converts an
    accepted quote into an order [Help: `ind.qocal_create_orders_from_a_quote`].
 7. **An internal round needs a gate you build and test.** The docs have no internal-only
    quote; see [internal-round.md](internal-round.md).
