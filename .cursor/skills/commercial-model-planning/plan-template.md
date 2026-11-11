@@ -59,7 +59,8 @@ changes). Note who has to answer it: the source's owner or the build's owner.
     - extraction
 - Each subsection keeps the source's own numbers and its order of application.
 - **Configuration and rules** lists every rule that rejects or warns with its message
-  text, the one the rules golden set asserts. No such rule is left without one.
+  text, the one the rules golden set asserts: the source's wording, or the plan's own
+  marked as such when the source has none. No such rule is left without one.
 - **Extraction** says what the converter (the script that reads the source) writes,
   and how it is accepted:
     - It writes the **design model and the golden values**, nothing else. The build

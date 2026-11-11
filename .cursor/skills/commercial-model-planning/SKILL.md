@@ -195,8 +195,9 @@ Rules that need a live org become spikes, each with the source value it must hit
   allowed: mark it **derived** and cite the rule's cells.
 - Recompute calculated values from inputs and match them to the source's own results
   (formula parity). A mis-read rule fails here instead of in the org.
-- **Every rule that rejects or warns has its message in the plan,** in the rule's own
-  words, and the rules golden set asserts it. A rule left without one gets a message
+- **Every rule that rejects or warns has its message in the plan,** and the rules
+  golden set asserts it. Use the source's wording where it has one; otherwise the plan
+  writes the message and marks it as the plan's. A rule left without one gets a message
   made up at build time, which no golden then checks.
 - **Assert platform-enforced behaviour where the platform enforces it.** A lock or
   limit the platform lets a quote save with, then refuses at order, is asserted at the
@@ -287,13 +288,16 @@ python3 "$L" report   # writes verification/scorecard.md
 ```
 
 - **Origin,** set by `init`: `blind` (in the blind plan unchanged), `edited` (changed by
-  the audit's edits; the blind text is kept), `added`, `intake` or `owner` (decisions
-  given to the planner, excluded from accuracy). Without `--blind`, every item not
+  the audit's edits; the blind text is kept), `added`, `intake` (answers given at intake) or
+  `owner` (decisions a person settled after the blind plan: the source owner or the
+  build owner). Intake and owner items aren't predictions and are excluded from
+  accuracy. Without `--blind`, every item not
   named by `--intake` or `--owner` is `blind`.
-- **Outcome,** set at each gate, by the route: `affirmed` (built on the predicted route,
-  goldens pass), `modified` (the predicted route kept, with different values or
-  configuration), `refuted` (the predicted route failed; a fallback or another route was
-  used) or `inconclusive`.
+- **Outcome,** set at each gate, against what the item predicts: a rule's native
+  feature, a decision's recommendation, a spike's recommended route (or, when it names
+  none, its must-hit at the named enforcement point). `affirmed`: it held and the goldens
+  pass. `modified`: it held with different values or configuration. `refuted`: it
+  failed, and a fallback or another route was used. Otherwise `inconclusive`.
 - **`--blind-right`** (edited items only): whether the blind text would have held, so
   the audit's edits are measured too. Record it once; the report uses the latest
   answer given.

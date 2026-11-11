@@ -10,9 +10,10 @@ Run it from the folder that holds the plan; paths are relative to the current fo
     python3 ledger.py report
 
 Every prediction is one row of the plan. Each section is found by a heading or a bold
-label (a line starting "**") that contains its marker, ignoring case. Headings are tried
-before labels, and the first that yields rows is used, so a passing mention in a label
-elsewhere doesn't hide the real section. init fails if no rule or decision rows are found:
+label (a line starting "**") that contains its marker, ignoring case; every such section
+is read (one heading per area works), and only tables whose header identifies the kind
+count, so a passing mention elsewhere adds nothing. init fails if no rule or decision
+rows are found:
   rule      tables under "Rule decision record" whose first header cell starts "Rule"
   decision  tables under "2. Decisions" whose first header cell is "#" (so a table of
             what each choice changes is not read as decisions)
@@ -25,14 +26,16 @@ Origins (set by init):
   edited   the row is in the blind plan but was changed before the build (blind text kept)
   added    the row is not in the blind plan
   intake   a decision the build owner gave at intake (--intake): not a prediction
-  owner    a decision the source owner settled (--owner): not a prediction
+  owner    a decision a person settled after the blind plan, the source owner or the
+           build owner (--owner): not a prediction
 Without --blind, every row not named by --intake or --owner is "blind". Intake and owner
 items are excluded from accuracy.
 
-Outcomes (set by record), judged by the route: affirmed (the predicted route, goldens
-pass), modified (the predicted route with different values or configuration), refuted
-(the predicted route failed; a fallback or another route was used), inconclusive.
-New items are pending.
+Outcomes (set by record), judged against what the item predicts (a rule's native
+feature, a decision's recommendation, a spike's recommended route or, when it names
+none, its must-hit at the named enforcement point): affirmed (held, goldens pass),
+modified (held with different values or configuration), refuted (failed; a fallback or
+another route was used), inconclusive. New items are pending.
 
 init keeps every recorded outcome and, for rows already in the ledger, the row it first
 recorded, so the blind measurement survives later plan revisions. Origins are worked out
@@ -61,26 +64,24 @@ def heading_level(line):
     return len(m.group(1)) if m else 0
 
 
-def regions(lines, marker):
-    """Candidate sections for `marker`: for each heading or bold label (a line starting "**")
-    that holds it, ignoring case, the lines up to where that section ends. Headings come
-    first. A heading ends at the next heading of the same or a higher level; a label ends
-    at the next heading, so its phase's other bold lines (Skills, Gate) stay inside it."""
+def section_lines(lines, marker):
+    """The plan's lines that lie in any section for `marker`, others blanked (so tables in
+    different sections never join). A section starts at a heading or bold label (a line
+    starting "**") that holds the marker, ignoring case. A heading ends at the next heading
+    of the same or a higher level; a label ends at the next heading, so its phase's other
+    bold lines (Skills, Gate) stay inside it. Overlapping sections are read once."""
     want = marker.lower()
-    starts = [i for i, l in enumerate(lines)
-              if want in l.lower() and (heading_level(l) or l.startswith("**"))]
-    starts.sort(key=lambda i: 0 if heading_level(lines[i]) else 1)
-    out = []
-    for start in starts:
-        level = heading_level(lines[start])
-        body = []
-        for line in lines[start + 1:]:
-            h = heading_level(line)
+    keep = set()
+    for start, line in enumerate(lines):
+        level = heading_level(line)
+        if want not in line.lower() or not (level or line.startswith("**")):
+            continue
+        for i in range(start + 1, len(lines)):
+            h = heading_level(lines[i])
             if h and (not level or h <= level):
                 break
-            body.append(line)
-        out.append(body)
-    return out
+            keep.add(i)
+    return [l if i in keep else "" for i, l in enumerate(lines)]
 
 
 def cells(line):
@@ -140,8 +141,7 @@ def items(text, markers, name):
     lines = text.splitlines()
     found = {}
     for kind in KINDS:
-        found[kind] = next((rows for rows in (table_rows(r, kind) for r in regions(lines, markers[kind]))
-                            if rows), {})
+        found[kind] = table_rows(section_lines(lines, markers[kind]), kind)
         if not found[kind]:
             msg = f"{name}: no {kind} rows under a heading or bold label containing '{markers[kind]}'"
             if kind == "spike":

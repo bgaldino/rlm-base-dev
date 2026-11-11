@@ -162,6 +162,17 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(sorted(k for k in self.ledger() if k.startswith("rule:")),
                          ["rule:R-01", "rule:R-02", "rule:R-03"])
 
+    def test_rule_record_under_one_heading_per_area(self):
+        plan = PLAN.replace("| R-02 | Live (c) | Amendment | exact |\n",
+                            "\n#### Rule decision record: lifecycle\n\n"
+                            "| Rule | Decided by | Native feature and fallback | Exact vs source? |\n"
+                            "|---|---|---|---|\n| R-02 | Live (c) | Amendment | exact |\n")
+        (self.dir / "plan.md").write_text(plan)
+        p = self.init()
+        self.assertNotIn("appears twice", p.stderr)
+        self.assertEqual(sorted(k for k in self.ledger() if k.startswith("rule:")),
+                         ["rule:R-01", "rule:R-02", "rule:R-03"])
+
     def test_without_blind_every_row_is_blind(self):
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertEqual(p.returncode, 0, p.stderr)
