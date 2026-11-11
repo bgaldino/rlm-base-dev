@@ -10,7 +10,9 @@ Run it from the folder that holds the plan; paths are relative to the current fo
     python3 ledger.py report
 
 Every prediction is one row of the plan. Each section is found by a heading or a bold
-label (a line starting "**") that contains its marker, ignoring case:
+label (a line starting "**") that contains its marker, ignoring case. Headings are tried
+before labels, and the first that yields rows is used, so a passing mention in a label
+elsewhere doesn't hide the real section. init fails if no rule or decision rows are found:
   rule      the first table under "Rule decision record"
   decision  every table whose first header cell is "#" under "2. Decisions", up to the
             next heading of the same level (so impact tables there are not decisions)
@@ -23,9 +25,13 @@ Origins (set by init):
   added    the row is not in the blind plan
   intake   a decision the build owner gave at intake (--intake): not a prediction
   owner    a decision the source owner settled (--owner): not a prediction
-Without --blind, every row is "blind". Intake and owner items are excluded from accuracy.
+Without --blind, every row not named by --intake or --owner is "blind". Intake and owner
+items are excluded from accuracy.
 
-Outcomes (set by record): pending, affirmed, modified, refuted, inconclusive.
+Outcomes (set by record), judged by the route: affirmed (the predicted route, goldens
+pass), modified (the predicted route with different values or configuration), refuted
+(the predicted route failed; a fallback or another route was used), inconclusive.
+New items are pending.
 
 init keeps every recorded outcome and, for rows already in the ledger, the row it first
 recorded, so the blind measurement survives later plan revisions. Origins are worked out
@@ -54,30 +60,25 @@ def heading_level(line):
     return len(m.group(1)) if m else 0
 
 
-def region(lines, marker):
-    """The lines after the heading or bold label that holds `marker`, to where its section ends.
-
-    Only headings and bold labels (a line starting "**") count, matched ignoring case, so
-    a mention in prose or in a table doesn't. A heading ends at the next heading of the
-    same or a higher level. A label (a bold paragraph such as "**P2 Live spikes**") ends
-    at the next heading or the next bold label that starts a line.
-    """
-    def labelled(line):
-        return heading_level(line) or line.startswith("**")
-
+def regions(lines, marker):
+    """Candidate sections for `marker`: for each heading or bold label (a line starting "**")
+    that holds it, ignoring case, the lines up to where that section ends. Headings come
+    first. A heading ends at the next heading of the same or a higher level; a label ends
+    at the next heading, so its phase's other bold lines (Skills, Gate) stay inside it."""
     want = marker.lower()
-    start = next((i for i, l in enumerate(lines) if want in l.lower() and labelled(l)), None)
-    if start is None:
-        return None
-    level = heading_level(lines[start])
+    starts = [i for i, l in enumerate(lines)
+              if want in l.lower() and (heading_level(l) or l.startswith("**"))]
+    starts.sort(key=lambda i: 0 if heading_level(lines[i]) else 1)
     out = []
-    for line in lines[start + 1:]:
-        h = heading_level(line)
-        if level and h and h <= level:
-            break
-        if not level and (h or line.startswith("**")):
-            break
-        out.append(line)
+    for start in starts:
+        level = heading_level(lines[start])
+        body = []
+        for line in lines[start + 1:]:
+            h = heading_level(line)
+            if h and (not level or h <= level):
+                break
+            body.append(line)
+        out.append(body)
     return out
 
 
@@ -131,18 +132,18 @@ def table_rows(lines, kind):
     return rows
 
 
-def items(text, markers):
+def items(text, markers, name):
     lines = text.splitlines()
     found = {}
     for kind in KINDS:
-        reg = region(lines, markers[kind])
-        if reg is None:
-            print(f"warning: no '{markers[kind]}' in the plan; no {kind} items", file=sys.stderr)
-            found[kind] = {}
-        else:
-            found[kind] = table_rows(reg, kind)
-            if not found[kind]:
-                print(f"warning: no {kind} rows under '{markers[kind]}'", file=sys.stderr)
+        found[kind] = next((rows for rows in (table_rows(r, kind) for r in regions(lines, markers[kind]))
+                            if rows), {})
+        if not found[kind]:
+            msg = f"{name}: no {kind} rows under a heading or bold label containing '{markers[kind]}'"
+            if kind == "spike":
+                print(f"warning: {msg}", file=sys.stderr)
+            else:
+                sys.exit(f"error: {msg}")
     return found
 
 
@@ -190,8 +191,8 @@ def init(args):
     intake = id_set(args.intake) if args.intake is not None else set(meta.get("intake", []))
     owner = id_set(args.owner) if args.owner is not None else set(meta.get("owner", []))
     blind_path = args.blind or meta.get("blind")
-    plan = items(Path(args.plan).read_text(), markers)
-    blind = items(Path(blind_path).read_text(), markers) if blind_path else None
+    plan = items(Path(args.plan).read_text(), markers, args.plan)
+    blind = items(Path(blind_path).read_text(), markers, blind_path) if blind_path else None
 
     ledger = {"meta": {"plan": args.plan, "blind": blind_path, "markers": markers,
                        "intake": sorted(intake), "owner": sorted(owner)},

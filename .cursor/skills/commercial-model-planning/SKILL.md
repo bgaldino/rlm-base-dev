@@ -74,9 +74,9 @@ files can use it.
 - **DO NOT** plan a header discount to stand in for line or product-line discounts
   without a live test. On a 264 org with an active procedure plan and
   `skipOrgSttPricing` on, a header discount was measured applying twice (`transaction-line-editor` → `runtime-behavior.md`).
-- **DO NOT** plan CCI or build-harness work in a git worktree nested in the checkout.
-  CCI finds the project root by a `.git` directory, so from a worktree it runs the
-  parent checkout's files and ignores the worktree's changes. Use the main checkout or
+- **DO NOT** plan CCI or build-harness work in any git worktree. CCI finds the project
+  root by a `.git` directory, and a worktree's `.git` is a file, so a run there uses
+  another checkout's files (or none) and ignores the worktree's changes. Use the main checkout or
   a regular clone, with separate orgs and file ownership
   ([session-orchestration.md](session-orchestration.md)).
 - **DO NOT** let a test pass on configuration with rules off. Place quotes with
@@ -288,11 +288,14 @@ python3 "$L" report   # writes verification/scorecard.md
 
 - **Origin,** set by `init`: `blind` (in the blind plan unchanged), `edited` (changed by
   the audit's edits; the blind text is kept), `added`, `intake` or `owner` (decisions
-  given to the planner, excluded from accuracy). Without `--blind`, every item is
-  `blind`.
-- **Outcome,** set at each gate: `affirmed` (built as predicted, goldens pass),
-  `modified` (works with a changed path or values), `refuted` (the prediction was wrong;
-  a fallback or another path was needed) or `inconclusive`.
+  given to the planner, excluded from accuracy). Without `--blind`, every item not
+  named by `--intake` or `--owner` is `blind`.
+- **Outcome,** set at each gate, by the route: `affirmed` (built on the predicted route,
+  goldens pass), `modified` (the predicted route kept, with different values or
+  configuration), `refuted` (the predicted route failed; a fallback or another route was
+  used) or `inconclusive`.
+- **`--blind-right`** (edited items only): whether the blind text would have held, so
+  the audit's edits are measured too.
 - `init` finds the plan's sections by the template's headings and labels ("2. Decisions",
   "Rule decision record", "P2 Live spikes"; see [plan-template.md](plan-template.md)) and
   warns when one has no rows. Re-running it adds new rows, keeps every recorded outcome

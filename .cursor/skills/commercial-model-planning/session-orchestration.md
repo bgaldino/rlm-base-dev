@@ -40,8 +40,8 @@ extraction → spikes → catalog → (configuration ∥ pricing) → negotiatio
    that covers the session (`build-harness` → Keep an org for a multi-day build).
    Each session reports its org alias. No one deletes an org without the user's yes.
 2. **No worktrees for CCI or harness work.** CCI finds the project root by a `.git`
-   directory; in a git worktree `.git` is a file, so a run there uses the parent
-   checkout's files. Run from the main checkout or a regular clone. Sessions share that
+   directory; in a git worktree `.git` is a file, so a run there uses another
+   checkout's files (or none). Run from the main checkout or a regular clone. Sessions share that
    checkout, and each one owns specific folders; a session never writes outside them.
    Concurrent harness builds are fine, each with its own run id (`--run-id`), on a
    harness that gives each run its own Robot output folder (`main` since 2026-11-11);

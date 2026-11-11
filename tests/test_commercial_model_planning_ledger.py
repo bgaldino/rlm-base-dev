@@ -20,6 +20,7 @@ BLIND = """# Example on Revenue Cloud — Build Plan
 ## 1. Goal and definition of done
 
 - The Rule decision record below is the record.
+**The record:** the Rule decision record in section 3.
 
 ## 2. Decisions
 
@@ -40,11 +41,11 @@ What D2 changes:
 
 ### 3.10 Rule decision record
 
-| Rule | Decided by | Native feature | Exact vs source? | Path taken | Evidence |
-|---|---|---|---|---|---|
-| R-01 | **Repo** | Volume tiers | exact | | |
-| R-02 | Live (c) | Amendment | exact | | |
-| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact | | |
+| Rule | Decided by | Native feature and fallback | Exact vs source? |
+|---|---|---|---|
+| R-01 | **Repo** | Volume tiers | exact |
+| R-02 | Live (c) | Amendment | exact |
+| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |
 
 ### 3.11 Knowledge source per area
 
@@ -59,7 +60,13 @@ What D2 changes:
 | P2 Live spikes | Only the Live rules |
 | P3 Catalog | Plans |
 
+**P0 Environment**
+
+**Skills:** `build-harness`
+
 **P2 Live spikes** (each on its own org)
+
+**Skills:** `asset-lifecycle-changes`
 
 | Spike | Rules | Must hit | Smallest case | Read first |
 |---|---|---|---|---|
@@ -129,6 +136,13 @@ class LedgerTest(unittest.TestCase):
             "decision:D1", "decision:D2", "decision:D3", "decision:D4",
             "rule:R-01", "rule:R-02", "rule:R-03", "spike:L-01"])
 
+    def test_missing_rule_record_fails(self):
+        (self.dir / "plan.md").write_text(PLAN.replace("### 3.10 Rule decision record", "### 3.10 Rules"))
+        p = self.run_ledger("init", "--plan", "plan.md")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("no rule rows", p.stderr)
+        self.assertFalse((self.dir / "verification/ledger.json").exists())
+
     def test_without_blind_every_row_is_blind(self):
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertEqual(p.returncode, 0, p.stderr)
@@ -151,10 +165,11 @@ class LedgerTest(unittest.TestCase):
         self.run_ledger("init", "--plan", "plan.md")
         item = self.ledger()["rule:R-02"]
         self.assertEqual(item["outcome"], "refuted")
-        self.assertEqual(item["prediction"]["Native feature"], "Amendment")
+        self.assertEqual(item["prediction"]["Native feature and fallback"], "Amendment")
         self.run_ledger("init", "--plan", "plan.md", "--rebuild")
         item = self.ledger()["rule:R-02"]
-        self.assertEqual((item["outcome"], item["prediction"]["Native feature"]), ("refuted", "Rewritten"))
+        self.assertEqual((item["outcome"], item["prediction"]["Native feature and fallback"]),
+                         ("refuted", "Rewritten"))
         self.assertEqual(self.ledger()["decision:D1"]["origin"], "intake")  # --intake remembered
 
     def test_refusals(self):
