@@ -54,13 +54,35 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
   selling model on its two children. [Repo: `datasets/sfdmu/q3/en-US/q3-pcm/ProductRelatedComponent.csv`]
   Whether Help's rule, written for a *new* static bundle, makes such rows invalid is **Open —
   needs live verification**; do not copy the pattern into a new model.
-- **Bundle-based adjustments** need a selling model on the parent product and on the root
-  bundle, and every product in a price book. [Help: `ind.pricing_create_bundle_based_adjustments.htm`]
+- **Bundle-based adjustments** need three selling models: the product's, its parent
+  product's and its root bundle's. Help lists all three as prerequisites, and all three
+  products must be in a price book. [Help: `ind.pricing_create_bundle_based_adjustments.htm`]
+  See [Selling model of the bundle root](#selling-model-of-the-bundle-root).
 
 Children keep their **own** options, which may differ from the root's. In the QuantumBit
 Starter bundle the root is One-Time while a maintenance child is Term Annual.
 [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductSellingModelOption.csv`] How a mixed-model bundle
 co-terminates and renews is **Open — needs live verification** beyond the one-time rule above.
+
+### Selling model of the bundle root
+
+Before choosing the root's model, list each child the source names with how its charge
+recurs (One Time, Term Defined or Evergreen), then check the source for these:
+
+| If the source… | Then for the root |
+|---|---|
+| prices a child differently because it is sold inside this bundle | The root needs a selling model. Each Bundle Based Adjustment row carries `RootProductSellingModelId`, `ParentProductSellingModelId` and `ProductSellingModelId`, and the Bundle-Based Price element matches rows on the line's root and parent selling models. Help's worked example uses One Time for all three. [Help: `ind.pricing_create_bundle_based_adjustments.htm`; `ind.pricing_calculate_bundle_based_discounts.htm`; Repo: `scripts/ai/query_erd.py describe BundleBasedAdjustment`] |
+| renews the bundle as a unit | A One Time root does not renew: renewing a bundle sets its one-time products to No Change, quantity 0. [Help: `ind.qocal_asset_lifecycle_considerations.htm`] A one-time root with an evergreen component renewed as a $0 quote with quantity 0 on every line ([`asset-lifecycle-changes` Quick Rule 5](../asset-lifecycle-changes/SKILL.md#quick-rules)); that skill models a renewable commitment as Term Defined. |
+| ramps the bundle, or renews it early | Early renewal of ramped assets takes a term-defined bundle whose children are all term-defined: a ramped bundle renewed early cannot contain one-time or evergreen child assets. [Help: `ind.qocal_early_renewal_of_ramped_assets.htm`] Measured amend limits for mixed children are in [`../ramped-quotes/bundle-children-lifecycle.md`](../ramped-quotes/bundle-children-lifecycle.md#amend-and-cancel-limitation). |
+
+One Time children renew as No Change, quantity 0, whatever the root's model. [Help: `ind.qocal_asset_lifecycle_considerations.htm`]
+No snapshot article says how a Term Defined or Evergreen root renews its Evergreen
+children: **Open — needs live verification**. Help's ramp-deal considerations list mixed root/child shapes
+(a term-defined parent with one-time or evergreen children; "a one-time evergreen parent,
+and a term-defined child"), but the snapshot drops the column that marks which are supported:
+**Open — needs live verification.** [Help: `ind.qocal_considerations_ramp_deals.htm`] Whether
+a bundle-based adjustment applies under a new static bundle, whose component rows Help
+requires to carry parent selling model None, is **Open — needs live verification**.
 
 ## Ramps
 

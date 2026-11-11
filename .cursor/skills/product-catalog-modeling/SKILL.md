@@ -290,8 +290,15 @@ Every item marked **Open — needs live verification** in this skill and its sub
   a child flagged false then appears as an asset with lifecycle actions is **Open — needs live verification.**
 - **Which end date stops a sale.** Help contradicts itself on `DiscontinuedDate` vs
   `EndOfLifeDate`. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#other-lifecycle-fields-on-product2).
-- **How a mixed-model bundle co-terminates and renews**, beyond the one-time rule. See
-  [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
+- **How a mixed-model bundle co-terminates and renews**, beyond the one-time rule,
+  including what a Term Defined or Evergreen root renews for its Evergreen children
+  (One Time children renew as No Change, quantity 0, under any root). See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
+- **Which mixed root/child shapes ramp deals support.** Help's ramp-deal considerations
+  list them, but the snapshot drops the supported marks. See
+  [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
+- **Bundle-based adjustments under a new static bundle**, whose component rows carry
+  parent selling model None. See
+  [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 - **One-pass QuantumBit build.** Whether any classification attribute is left at a default
   that differs from its CSV. See [Loading the model](#loading-the-model).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
