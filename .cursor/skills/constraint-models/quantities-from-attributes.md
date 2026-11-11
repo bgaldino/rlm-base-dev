@@ -68,11 +68,11 @@ the org and says so.
   [Rounding up](#rounding-up). The dev guide's own `ceil()` example,
   `constraint calculateCeil(requiredCrates == ceil(totalItems / itemsPerCrate));` with
   `int` operands, is written this way `[Dev guide: cml_core_concept_examples]`.
-- **DO NOT** use `^` inside a constraint. The math-functions page lists `^` as power and
-  the Constraints page lists it as XOR
+- **DO NOT** use `^` for powers inside a constraint. The math-functions page lists `^` as
+  power and the Constraints page lists it as XOR
   `[Dev guide: cml_mathematical_functions_numerical_derivation]` `[Dev guide: cml_constraints]`.
-  Inside a constraint it compiled to a false constraint and the model failed to activate
-  `[Measured: M12]`. Multiply instead.
+  Used as a power inside a constraint, `p == 2 ^ 3` compiled to a false constraint and the
+  model failed to activate `[Measured: M12]`. Multiply instead.
 
 ---
 
@@ -489,10 +489,10 @@ Each needs a live 264 org:
 
 1. Every derived variable is `int`, has an explicit domain derived from the answer
    domains, and is set by its own `constraint`. Every round-up is a bracket.
-2. No `constraint(...)` contains `ceil(` or `^`. Run `grep -nE 'ceil\(|\^' <blob>` and
-   confirm that no hit is part of a `constraint(...)`, including one that continues onto
-   later lines. Hits elsewhere, such as a `^` in a regular expression in a `define`, are
-   fine.
+2. No `constraint(...)` contains `ceil(`, or `^` used as a power. Run
+   `grep -nE 'ceil\(|\^' <blob>` and confirm that no such hit is part of a
+   `constraint(...)`, including one that continues onto later lines. Hits elsewhere, such
+   as a `^` in a regular expression in a `define`, are fine.
 3. Every component quantity is a cardinality (`relation[Type] == …`); no rule writes
    `lineItemQuantity`, `ItemEndQuantity` or `this.quantity`.
 4. No derived variable depends, directly or through an aggregate, on a cardinality it sets.
