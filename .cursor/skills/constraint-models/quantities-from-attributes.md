@@ -86,7 +86,7 @@ org disagree, this file follows the org and says so.
 
 | You want to… | Write | Engine behaviour |
 |---|---|---|
-| Add or remove instances so the quantity matches | `relation[Type] == n` (also `>`, `<`, sums of cardinalities) | Configures: adds or removes instances `[Dev guide: cml_best_practice_access_quantity]` |
+| Add or remove instances so the quantity matches | `relation[Type] == n` | Configures: adds or removes instances `[Dev guide: cml_best_practice_access_quantity]` |
 | Read a line's quantity in a calculation | `int q = this.quantity;` in that type | Read-only, calculation rules only `[Dev guide: cml_using_proxy_variables_constraints]` |
 | Validate a quantity already on the line | `lineItemQuantity` / `ItemEndQuantity`, per instance | Validates, doesn't configure `[Dev guide: cml_best_practice_access_quantity]` |
 | Count the instances in a relation | `cardinality()` or `count(<condition>)` | `cardinality()` includes the quantity of every instance of that type `[Dev guide: cml_using_proxy_variables_constraints]` |
@@ -131,17 +131,22 @@ PCM attribute imported into CML takes the attribute's developer name as its vari
 | Equal to another component's quantity | `constraint(mounts[GatewayMount] == gateways[Gateway], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead (see [Chained derivations](#chained-derivations)) |
 | A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
 
-`constraint()` makes the quantity a rule; `setdefault()` makes it a default. The engine
-never overrides a value the user selected, except through `exclude`. A user value that
-breaks a `constraint` produces an error, not a correction
-`[Dev guide: cml_logical_constraints]`. `setdefault` tries to satisfy its expression only
-when part of its condition changes or the parent is new; otherwise it only evaluates
-`[Dev guide: cml_setdefault_rule]`. The dev guide calls such defaults "dynamic,
-overridable" `[Dev guide: cml_cml_best_practices]`.
+`constraint()` makes the quantity a rule; `setdefault()` makes it a default. The Logical
+Constraints page says the engine never overrides a value the user selected, except through
+`exclude`, so a user value that breaks a `constraint` produces an error, not a correction
+`[Dev guide: cml_logical_constraints]`. Two other pages qualify that: the solver doesn't
+override user input "unless no other solution exists" `[Dev guide: cml_cml_best_practices]`
+(*Sequence and Configurable*), and the engine changes a variable annotated `Peelable` true,
+when that finds a valid configuration, rather than reporting an error; the default is false `[Dev guide: cml_variable_annotations]`.
+
+`setdefault` tries to satisfy its expression only when part of its condition changes or
+the parent is new; otherwise it only evaluates `[Dev guide: cml_setdefault_rule]`. The
+dev guide calls such defaults "dynamic, overridable" `[Dev guide: cml_cml_best_practices]`.
 
 **Open — needs live verification:** what a rep sees when they edit the quantity of a line
-that a `constraint` sizes (error banner, locked field, or something else), and whether a
-`setdefault` quantity stays as the rep set it after they change an unrelated answer.
+that a `constraint` sizes (error banner, locked field, a silent correction, or something
+else), and whether a `setdefault` quantity stays as the rep set it after they change an
+unrelated answer.
 
 ### Why `ceil()` isn't in a constraint here
 
@@ -213,8 +218,10 @@ service hours), compute in stages:
    `constraint` `[Dev guide: cml_core_concept_examples]` (*Key Considerations for
    Calculations and Aggregations*).
 2. The dependent quantity from those **variables**, not from the relations' cardinalities
-   or aggregates. Staging aggregates in local variables before using them reduces solver
-   oscillation `[Dev guide: cml_best_practice_relation_aggregates]`.
+   or aggregates. When preferences act on the same relation, staging its aggregates in
+   local variables reduces solver oscillation
+   `[Dev guide: cml_best_practice_relation_aggregates]`. This file applies the same staging
+   to constraint chains.
 3. Every cardinality from its variable, last.
 
 Where order still matters, the dev guide orders a read-calculate-write chain with
@@ -501,8 +508,9 @@ those rules' messages and no other:
 
 **Open — needs live verification:** which message a 264 `configure` reports when one state
 breaks several rules (the rack and support rows), and whether the `support` relation's
-`[1..1]` bound rejects two plans first, with a different message or none. If the bound
-does, the message assertion catches it. Then either drop the bound to `[0..1]` or add the
+`[1..1]` bound rejects two plans first, with a different message or none, and whether the
+engine corrects a hand-set quantity instead of rejecting it. If the bound rejects first,
+the message assertion catches it. Then either drop the bound to `[0..1]` or add the
 bound's message to the accepted set.
 
 ---
