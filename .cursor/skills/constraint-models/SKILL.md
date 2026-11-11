@@ -277,7 +277,9 @@ another partial generation layers on. So if the import errored, rerun until one 
 clean.
 
 A dry run surfaces the resolution warnings without touching the org, which is why it is
-worth reading rather than just checking its exit code.
+worth reading rather than just checking its exit code. That holds for a model the org
+already has; for a new model a dry run stops before resolving any row (Validation
+check 3).
 
 ---
 
@@ -524,12 +526,13 @@ Before calling a constraint-model change done:
   model's ESC rows, and from looking those rows up by display `Name` instead of
   `ApiName`. `data_dirs` fixes both: the retained QuantumBit/Server2 models can report unsupported-annotation notes. Treat the **error** count as the signal and check the warning
   count against a known-good baseline for the models you are touching.
-  One such note is a false positive on every variable declaration with an initializer:
-  `int sites = [1..500];` warns "Unsupported annotation 'sites' on attribute 'sites'",
-  with or without an annotation above it, because the validator reads the declaration's
-  own `name =` as an annotation key (`ANNOTATION_KEY_RE` in `tasks/rlm_cml.py`; checked
-  against the validator locally, 2026-11-11). A model with these warnings imported,
-  activated and ran on fresh 264 `ent-sb0` scratch orgs (2026-11-11).
+  Many such notes are false positives: the validator reads any `<identifier> =` or
+  `<identifier> ==` on a declaration, `constraint` or `message` line as an annotation key
+  (`ANNOTATION_KEY_RE` in `tasks/rlm_cml.py`). So `int sites = [1..500];` warns
+  "Unsupported annotation 'sites' on attribute 'sites'", and `constraint(sites > 3 ->
+  sites == 4, …)` warns "… 'sites' on constraint/rule" (checked against the validator
+  locally, 2026-11-11). A model with such warnings imported, activated and ran on fresh
+  264 `ent-sb0` scratch orgs (2026-11-11).
 - **A standalone `import_cml` never cycles the version.** `prepare_constraints` covers
   this at steps 9-10, but shipping a model change usually means running `import_cml` on
   its own — where the upload lands and nothing redeploys. There is no single task that

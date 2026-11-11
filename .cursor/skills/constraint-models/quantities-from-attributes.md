@@ -134,12 +134,12 @@ keeps one instance and adds quantity to it; `true` makes every instance quantity
 | A rep adds an optional add-on at quantity 1 | Kept; a second line for the rest `[Measured: M22]` | One line, raised to the rule's quantity `[Measured: M23]` |
 | A hand edit of a sized line, down | Kept; a second line for the difference (n edited to m became m + (n − m)). No rule message; a `bundlevalidation` group-range warning only `[Measured: M22]` | Rejected with the rule's message `[Measured: M23]` |
 | A hand edit of a sized line, up | Not measured | Rejected with the rule's message `[Measured: M23]` |
-| The same in the configurator UI | A default component split into two instances (1 + the rest) `[Measured: M24]` | One line per component at the rule's quantity, defaults kept, no warning; a changed answer resized each line `[Measured: M24]` |
+| The configurator UI | A default component split into two instances (1 + the rest); non-default children stayed one instance `[Measured: M24]` | One line per component at the rule's quantity, defaults kept, no warning; a changed answer resized each line `[Measured: M24]` |
 
 Where the PCM component groups had a quantity range, each split group drew a
 `bundlevalidation` group-range warning `[Measured: M22]`; don't rely on it to detect a
-split, assert the line count. "Rejected" means flagged, not undone: Place kept the edited quantity
-`[Measured: M23]`; read the message as in [Reading a result](#reading-a-result).
+split, assert the line count. "Rejected" means flagged, not undone: Place saved the edit (read back
+for one downward edit) `[Measured: M23]`; read the message as in [Reading a result](#reading-a-result).
 
 Put the annotation on each leaf type that is a sized component (in the worked example,
 every type but the abstract `Support`). Leave it off a type whose lines must carry
