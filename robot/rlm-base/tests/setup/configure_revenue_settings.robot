@@ -34,6 +34,11 @@ Configure Revenue Settings
     ...    4. Set Up Flow for Creating Orders from Quotes (text + Save)
     ...    5. Set Up Flow for Creating Contracts from Quotes (text + Save, conditional)
     ...    6. Set Up Flow for Managing Assets (text + Save, conditional)
+    # Open Browser For Setup ends with Maximize Browser Window, which in headless
+    # Chrome shrinks the window to the 800x600 default screen. At that width the
+    # procedure pill's remove button straddles the viewport's right edge and a
+    # Selenium click on it is intercepted.
+    Set Window Size    1920    1080
     Open Revenue Settings Page
     Set Procedure Field    Set Up Salesforce Pricing    ${PRICING_PROCEDURE}
     Dismiss Toast If Present
@@ -72,10 +77,16 @@ Set Procedure Field
     ...    Flow:
     ...    1. Scroll to the step title to trigger lazy rendering of step content
     ...    2. Click the step title to expand/toggle the content area
-    ...    3. Check if a pill already shows the correct value → skip
-    ...    4. If wrong pill, clear it
+    ...    3. Check if a pill already shows exactly the target value → skip
+    ...    4. If wrong pill, clear it (the platform saves the empty value at once)
     ...    5. Find and use the <select> or combobox dropdown to set the value
+    ...
+    ...    Names are compared exactly, never by substring: a clone named
+    ...    "<procedure> Clone" must not pass for "<procedure>", or the reverse.
+    ...    Fails if it cleared a pill and could not set the new value, since that
+    ...    leaves the org with no procedure for the step.
     [Arguments]    ${step_title}    ${target_value}
+    ${cleared}=    Set Variable    ${False}
     # Find the step LI element that contains this title
     ${step_li}=    Set Variable    xpath=//li[.//span[contains(normalize-space(text()), '${step_title}')]]
     # Scroll to step title to trigger rendering
@@ -94,22 +105,15 @@ Set Procedure Field
     ${has_pill}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${pill_label}    timeout=5s
     IF    ${has_pill}
         ${pill_text}=    Get Text    ${pill_label}
-        ${correct}=    Run Keyword And Return Status    Should Contain    ${pill_text}    ${target_value}
-        IF    ${correct}
+        ${pill_text}=    Strip String    ${pill_text}
+        IF    $pill_text == $target_value.strip()
             Log    "${step_title}" already set to "${target_value}". No change needed.
             RETURN
         END
         # Wrong value - clear the pill (scoped to this <li>)
         Log    "${step_title}" has wrong value "${pill_text}". Clearing pill.
-        ${pill_area}=    Set Variable    ${step_li}//span[contains(@class, 'slds-pill')]
-        Mouse Over    ${pill_area}
-        Sleep    1s    reason=Reveal X button on hover
-        ${remove_btn}=    Set Variable    ${step_li}//button[contains(@class, 'pill__rem') or contains(@class, 'slds-pill__remove')]
-        ${btn_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${remove_btn}    timeout=5s
-        IF    ${btn_found}
-            Click Element    ${remove_btn}
-            Sleep    2s    reason=Allow pill to clear and dropdown to appear
-        END
+        _Remove Pill In Step    ${step_li}    ${step_title}
+        ${cleared}=    Set Variable    ${True}
     END
     Capture Page Screenshot
     # Try to find a native <select> within this specific <li>
@@ -134,27 +138,29 @@ Set Procedure Field
         Sleep    2s    reason=Allow dropdown to populate
         Capture Page Screenshot
         # Search for the target option using multiple patterns
-        ${option}=    Set Variable    xpath=(//*[@role='option' and contains(normalize-space(.), '${target_value}')])[1]
+        # Exact text match: contains() would pick "<name> Clone" for "<name>".
+        ${option}=    Set Variable    xpath=(//*[@role='option' and normalize-space(.)='${target_value}'])[1]
         ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=10s
         IF    not ${opt_found}
             # Try lightning-base-combobox-item
-            ${option}=    Set Variable    xpath=(//lightning-base-combobox-item[contains(normalize-space(.), '${target_value}')])[1]
+            ${option}=    Set Variable    xpath=(//lightning-base-combobox-item[normalize-space(.)='${target_value}'])[1]
             ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
         END
         IF    not ${opt_found}
             # Try any element in a listbox
-            ${option}=    Set Variable    xpath=(//*[@role='listbox']//*[contains(normalize-space(text()), '${target_value}')])[1]
+            ${option}=    Set Variable    xpath=(//*[@role='listbox']//*[normalize-space(text())='${target_value}'])[1]
             ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
         END
         IF    not ${opt_found}
             # Try any link/span in the step li that appeared after click
-            ${option}=    Set Variable    ${step_li}//*[contains(normalize-space(text()), '${target_value}')]
+            ${option}=    Set Variable    ${step_li}//*[normalize-space(text())='${target_value}']
             ${opt_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option}    timeout=5s
         END
         IF    ${opt_found}
             Click Element    ${option}
             Sleep    2s    reason=Allow selection to apply
             Capture Page Screenshot
+            _Pill In Step Should Be    ${step_li}    ${step_title}    ${target_value}
             Log    "${step_title}" set to "${target_value}" (combobox).
             RETURN
         ELSE
@@ -192,18 +198,22 @@ Set Procedure Field
         Sleep    0.5s
         Click Element    ${cb_trigger}
         Sleep    2s
-        ${option2}=    Set Variable    xpath=(//*[@role='option' and contains(normalize-space(.), '${target_value}')])[1]
+        ${option2}=    Set Variable    xpath=(//*[@role='option' and normalize-space(.)='${target_value}'])[1]
         ${opt_found2}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${option2}    timeout=10s
         IF    ${opt_found2}
             Click Element    ${option2}
             Sleep    2s
             Capture Page Screenshot
+            _Pill In Step Should Be    ${step_li}    ${step_title}    ${target_value}
             Log    "${step_title}" set to "${target_value}" (combobox, retry).
             RETURN
         END
     END
-    Log    WARNING: Could not set "${step_title}" to "${target_value}". No interactive element found.    WARN
     Capture Page Screenshot
+    IF    ${cleared}
+        Fail    Cleared "${step_title}" but could not set it to "${target_value}"; the org now has no value for this step.
+    END
+    Log    WARNING: Could not set "${step_title}" to "${target_value}". No interactive element found.    WARN
 
 Enable Instant Pricing Toggle
     [Documentation]    Enables the Instant Pricing toggle on Revenue Settings.
@@ -323,6 +333,42 @@ Set Flow Text Input In Step
     Sleep    3s    reason=Allow save to complete
     Capture Page Screenshot
     Log    ${log_label} set to "${flow_api_name}" and saved.
+
+_Remove Pill In Step
+    [Documentation]    Removes the procedure pill in a setup-assistant step with a JavaScript
+    ...    click, then waits for the pill to go. A Selenium click can land outside
+    ...    the rendered content when the button sits at the viewport's edge
+    ...    (ElementClickInterceptedException). The platform saves the empty value as
+    ...    soon as the pill is removed.
+    [Arguments]    ${step_li}    ${step_title}
+    ${remove_btn}=    Set Variable    ${step_li}//button[contains(@class, 'slds-pill__remove')]
+    ${btn_found}=    Run Keyword And Return Status    Wait Until Page Contains Element    ${remove_btn}    timeout=5s
+    IF    not ${btn_found}
+        Capture Page Screenshot
+        Fail    Could not find the remove button on the "${step_title}" pill.
+    END
+    ${btn_el}=    Get WebElement    ${remove_btn}
+    Execute JavaScript
+    ...    arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});
+    ...    arguments[0].click();
+    ...    ARGUMENTS    ${btn_el}
+    Wait Until Page Does Not Contain Element    ${step_li}//span[contains(@class, 'slds-pill__label')]
+    ...    timeout=10s    error=The "${step_title}" pill was still present 10s after its remove button was clicked.
+    Sleep    1s    reason=Allow the combobox to render in place of the pill
+
+_Pill In Step Should Be
+    [Documentation]    Fails unless the step's pill reads exactly the expected value.
+    [Arguments]    ${step_li}    ${step_title}    ${expected}
+    ${pill_label}=    Set Variable    ${step_li}//span[contains(@class, 'slds-pill__label')]
+    ${shown}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${pill_label}    timeout=10s
+    IF    not ${shown}
+        Fail    No pill appeared in "${step_title}" after selecting "${expected}".
+    END
+    ${pill_text}=    Get Text    ${pill_label}
+    ${pill_text}=    Strip String    ${pill_text}
+    IF    $pill_text != $expected.strip()
+        Fail    "${step_title}" shows "${pill_text}" after selecting "${expected}".
+    END
 
 Dismiss Toast If Present
     [Documentation]    Clicks the close button on any visible Salesforce toast messages.
