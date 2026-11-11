@@ -98,8 +98,8 @@ design doc requires threshold policy to be externalized before adding one
 exception. The steps below keep the shipped hard-coded thresholds and don't show it.
 
 1. The pricing procedure keeps writing the line discount level (the shipped overlay,
-   thresholds edited; on an org that already has the overlay, through `updateSteps`, since
-   a rerun fails on a changed step).
+   thresholds edited in its `addSteps`; for an org that already has it, see the design
+   doc's Verification Checklist [Repo: `docs/features/composable-quote-approvals.md`]).
 2. `RLM_Quote_Approval_Data` reads the quote and returns:
     - `DiscountApprovalLevel`, from the roll-up;
     - `MarginApprovalLevel`, from the quote's margin;

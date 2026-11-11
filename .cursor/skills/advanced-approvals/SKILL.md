@@ -180,11 +180,9 @@ items:
   [Repo: `docs/features/composable-quote-approvals.md` → Verification Checklist].
 - The approval-flags overlay and the approvals context plan are applied by
   `prepare_approvals_pricing`, not `prepare_approvals`. On a fresh build it applies both.
-  On an org that already has them, a rerun adds new overlay steps and variables, but an
-  existing step with changed content (the thresholds are in step criteria) fails the task
-  until it moves to `updateSteps` (`expression-sets`), and a changed existing variable is
-  skipped silently [Repo: `tasks/rlm_expression_set_connect.py`]. A changed context mapping
-  needs the version deactivated first (`context-service`). Reprice before testing.
+  Changing thresholds on an org that already has the overlay takes a separate one-off
+  overlay, not a rerun; follow the design doc's Verification Checklist for where each change
+  goes [Repo: `docs/features/composable-quote-approvals.md`].
 - Run the headless test in [actions-and-objects.md](actions-and-objects.md) for these paths:
     - no-approval
     - each single dimension
