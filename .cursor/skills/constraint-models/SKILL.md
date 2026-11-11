@@ -507,11 +507,12 @@ Before calling a constraint-model change done:
    `executeConfigurationRules: true` against a quote line that uses the model runs the
    solver's current model headlessly. To prove a specific change, make it observable (for
    example a `message(true, "<marker>", "warning")` rule) and look for it in the response's
-   `messages`. A valid model returns `success: true`,
-   `solverStatus: "success"`, `errors: []`; an invalid one returns `Model '…' is invalid`.
-   A configuration the rules reject also returns `success: true`, with
-   `solverStatus: "error"`, and its message can be only in the quote's
-   `RevenueTransactionErrorLog` rows; read `solverStatus` and the error log. See
+   `messages`. A valid configuration returns `success: true`,
+   `solverStatus: "success"`, `errors: []` **and** leaves no `RevenueTransactionErrorLog`
+   rows on the quote (query a few seconds after Place); an invalid model returns
+   `Model '…' is invalid`. A configuration the rules reject also returns `success: true`,
+   usually with `solverStatus: "error"`, but its message can be only in the error log
+   while `configure` reports `"success"`, so always read both. See
    [quantities-from-attributes.md → Testing it headlessly](quantities-from-attributes.md#testing-it-headlessly).
    Full recipe: [Runtime verification](../../../datasets/constraints/README.md#runtime-verification).
 

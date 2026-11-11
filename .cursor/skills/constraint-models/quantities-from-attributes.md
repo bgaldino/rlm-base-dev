@@ -451,9 +451,9 @@ in front of it (step 1 below).
    `success`: a rejected configuration returned `success: true`, `solverStatus: "error"`,
    `errors: []`, with the rule's message in `messages` at type `error` `[Measured: M29]`.
    A clean `configure` isn't enough either: also require that the quote has no
-   `RevenueTransactionErrorLog` rows, queried a few seconds after Place. One rejection's
-   message was only in the error log, and `configure` then returned
-   `solverStatus: "success"` `[Measured: M29, M31]`.
+   `RevenueTransactionErrorLog` rows, queried a few seconds after Place
+   `[Measured: M31]`. One rejection's message was only in the error log, and `configure`
+   then returned `solverStatus: "success"` `[Measured: M29]`.
 5. **Assert every component's quantity**, including the zeros, against a hand-computed
    table (see the worked example), and assert one line per component. Pick answers on
    each rounding boundary: exact multiples (`sites = 10`) and one past (`sites = 11`). Add
