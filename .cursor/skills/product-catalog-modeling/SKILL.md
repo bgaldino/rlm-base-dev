@@ -50,8 +50,8 @@ drop the `.md` suffix of the snapshot file name.
    `ProductCategory.Code` resolves a parent by code, so a child that reuses its parent's
    code becomes its own parent. [Measured: 2026-11, 264; Repo: `datasets/sfdmu/qb/en-US/qb-pcm/export.json`]
 8. **Load a PCM plan twice into a fresh org, and never extract from an org that had only
-   one pass**: the first insert left classification attributes' `AttributeNameOverride`
-   and `IsRequired` at platform defaults. [Measured: 2026-11, 264] See [Loading the model](#loading-the-model).
+   one pass**: on the measured plan, the first insert left classification attributes'
+   `AttributeNameOverride` and `IsRequired` at platform defaults. [Measured: 2026-11, 264] See [Loading the model](#loading-the-model).
 
 ## DO NOT
 
@@ -117,7 +117,8 @@ What the repo ships, offline: the PCM plans `datasets/sfdmu/qb/en-US/qb-pcm/`,
 `datasets/sfdmu/q3/en-US/q3-pcm/` and `datasets/sfdmu/mfg/en-US/mfg-pcm/`, each with a
 README that lists its objects, keys and counts. `python scripts/ai/query_erd.py describe <Object>`
 gives fields offline. `python scripts/sfdmu_product_view.py capture` reads what the
-configurator sees for a built org (see `sfdmu-data-plans`).
+configurator sees for a built org (see `sfdmu-data-plans`); outside the qb and q3 PCM plans,
+pass `--sku` for your products.
 
 ## The modeling decisions
 
@@ -174,7 +175,7 @@ general SFDMU behaviour, seen on a PCM plan):
 
 | # | Fact | What to do |
 |---|---|---|
-| a | After the **first** SFDMU insert of a PCM plan on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held platform defaults; a second, update pass applied the plan's values. [Measured: 2026-11, 264] | Run the whole plan twice on a fresh org. Never re-extract an org that had one pass; the extract would bake the defaults into the CSVs. |
+| a | On the measured PCM plan (for the QuantumBit plan this is open; see below), after the **first** SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held platform defaults; a second, update pass applied the plan's values. [Measured: 2026-11, 264] | Run the whole plan twice on a fresh org. Never re-extract an org that had one pass; the extract would bake the defaults into the CSVs. |
 | b | A `Readonly` anchor object that children reach through a `$$` composite lookup column needs a CSV with that `$$` column, or those lookups silently fail to resolve. [Measured: 2026-11, 264] A single-field traversal of a `Readonly` object needs no CSV (`sfdmu-data-plans` → *Where a plan's CSVs live*, verified live). | Give the anchor's CSV the same `$$` column the children's lookup columns name. |
 | c | In a plan without `useSeparatedCSVFiles: true`, repeating an object across object sets does not give pass 2 its own data: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] Per-pass files need that flag and `objectset_source/object-set-N/` (`sfdmu-data-plans` → *Where a plan's CSVs live*). | For fact (a)'s second pass, run the plan again: that is the measured fix. |
 | d | A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | Generate codes from the full path, and check uniqueness across every level and catalog the plan loads. |
@@ -191,7 +192,7 @@ first-insert value was not recorded. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Prod
 
 Two more load constraints that shape the model, from the QB plan: bundle depth is capped by
 the org value `MaxBundleDepth` (default 3, ceiling 5; the repo's scratch shapes set 5), and
-several PCM lookups are create-only, so a partial failure needs a delete, not a reload.
+several PCM lookups are create-only, so a partial failure needs a delete before a reload.
 [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/README.md`; `orgs/README.md`; `sfdmu-data-plans/SKILL.md`]
 
 ## Sub-files
@@ -261,7 +262,8 @@ Review the CSVs for these, each a rule above:
 
 - Every `Type=Bundle` + `ConfigureDuringSale=Allowed` product has all components under a
   group, and no group mixes products with a classification.
-- No static bundle has a configurable child, an optional default, or an editable quantity.
+- No static bundle has a configurable child, a child without *Include component by default*,
+  or an editable quantity.
 - No classification component is required or default.
 - Every group's `MinBundleComponents` ≤ distinct children, and required children ≤ `MaxBundleComponents`.
 - Every product has at most one `IsDefault` selling model option; term-defined and

@@ -105,7 +105,7 @@ Adding an attribute a rule must read is therefore a CML change too (`constraint-
 
 ## Loading attributes
 
-Measured on 264 builds: after the **first** SFDMU insert of a PCM plan on a fresh org,
+Measured on a 264 build of one PCM plan (for the QuantumBit plan this is open; see [`SKILL.md`](SKILL.md#loading-the-model)): after the **first** SFDMU insert on a fresh org,
 classification attributes' `AttributeNameOverride` and `IsRequired` held platform defaults;
 a second, update pass applied the plan's values. [Measured: 2026-11, 264] Load twice, and
 do not extract from an org that had one pass. Whether other classification-attribute fields

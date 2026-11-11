@@ -109,7 +109,7 @@ cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>
 
 | Fact | Consequence |
 |---|---|
-| **(a)** After the first SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held platform defaults; a second, update pass applied the plan's values. [Measured: 2026-11, 264] | Load twice. Never extract from an org that had one pass, or the defaults become the plan. |
+| **(a)** On the measured PCM plan (for the QuantumBit plan this is open; see [`SKILL.md`](SKILL.md#loading-the-model)), after the first SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held platform defaults; a second, update pass applied the plan's values. [Measured: 2026-11, 264] | Load twice. Never extract from an org that had one pass, or the defaults become the plan. |
 | **(b)** A `Readonly` anchor object that children reach through a `$$` composite lookup column needs a CSV with that `$$` column, or those lookups silently fail to resolve. [Measured: 2026-11, 264] A single-field traversal of a `Readonly` object needs no CSV (`sfdmu-data-plans` → *Where a plan's CSVs live*). | When a plan anchors on objects another plan loaded through `$$` lookups, give the anchor's CSV the `$$` columns its children reference. |
 | **(c)** In a plan without `useSeparatedCSVFiles: true`, repeating an object across object sets: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] | For fact (a)'s second pass, run the plan again: that is the measured fix. |
 | **(d)** A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | See *Coding categories*. |
@@ -131,7 +131,7 @@ create-only, so a partial failure needs a delete before a reload; bundle depth b
 python scripts/validate_sfdmu_v5_datasets.py                             # expected result: AGENTS.md pre-merge checklist
 python scripts/ai/check_sfdmu_layering.py                                # $$ lookup shapes (Bug 4)
 python scripts/ai/check_plan_readme_consistency.py --strict <plan_dir>   # 0 errors, 0 warnings
-python scripts/sfdmu_product_view.py capture --target-org <sf_alias> --shape <qb|q3> --out <file>   # what the configurator sees
+python scripts/sfdmu_product_view.py capture --target-org <sf_alias> --shape <qb|q3> --sku <SKU> --out <file>   # what the configurator sees; --sku (repeatable) is required for a plan outside qb/q3-pcm, else it reads that shape's Product2.csv
 ```
 
 After the load, re-run the Discovery queries in [`SKILL.md`](SKILL.md#discovery) and
