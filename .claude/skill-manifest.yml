@@ -150,6 +150,15 @@ foundations:
       caveats:
         - "Action-button configuration UI, run-time limit and the Manage Header Adjustment API name disagree across 264 Help articles and the release notes; settle on a live org before writing an action layout into a template"
 
+    - id: asset-lifecycle-changes
+      path: .cursor/skills/asset-lifecycle-changes/SKILL.md
+      purpose: "Model and verify amendments, swaps, cancellations and renewals: mapping a change policy, where prices and attributes land, bundle-component limits, credits by selling model, end-to-end verification"
+      consumed_by_pmos: []
+      provenance: 264 Help snapshot, repo skills, and live lifecycle runs on QuantumBit builds (2026-11-05)
+      sub_skills:
+        - .cursor/skills/asset-lifecycle-changes/change-policy-mapping.md
+        - .cursor/skills/asset-lifecycle-changes/verification.md
+
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md
       purpose: "Build/verify multi-year GROUP ramp quotes (place→EditGroup→clone) and per-segment (compound) price uplift"
