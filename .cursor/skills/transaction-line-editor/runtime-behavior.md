@@ -43,7 +43,12 @@ Measured traps:
 [Help: `ind.qocal_view_and_edit_quotes`]
 
 - Click a cell, edit, save. **Bulk edit:** select several lines, edit the cell on one, save; the value
-  goes to all selected lines. The STLE bulk-edits groups too.
+  goes to all selected lines. The STLE bulk-edits groups too; its bulk actions are editing fields,
+  updating discounts and deleting selected lines or groups [Help: `ind.qocal_view_and_edit_orders`,
+  `ind.qocal_customize_transaction_line_editor`]. Help gives no cap on the selection and doesn't say
+  whether bundle child lines can be selected for a bulk edit (see the parent's Open list).
+  **Bulk Delete** can't be used on a quote or order with a group ramp schedule
+  [Help: `ind.qocal_ramp_deal_for_groups_manage`].
 - Unsaved edits are lost on page reload or session expiry.
 - Decimal quantities only for products with a unit of measure; the grid shows two decimals and stores
   the unit of measure's scale.
@@ -52,7 +57,9 @@ Measured traps:
 - Hover **Net Unit Price** for the price waterfall (bundle, tier, attribute, derived and contract
   adjustments); hover **Total Price** for bundle parent price, sum of lines and bundle subtotal.
 - **Freeze up to this Column** pins columns; the filter row searches columns. Column filtering covers
-  parent lines only; bundle children are excluded.
+  parent lines only: with bundles on the quote, "the editor excludes child items from the filter
+  results" [Help: `ind.qocal_view_and_edit_quotes`]; the order article says the same
+  [Help: `ind.qocal_view_and_edit_orders`].
 - **STLE filters:** predefined All Lines, Errored Lines, Ramped Lines, Unconfigured Lines; advanced
   filters take up to 5 conditions with AND/OR, scoped to all or selected groups. The most recently
   applied of a column filter and a predefined or advanced filter wins
@@ -69,14 +76,38 @@ Measured traps:
 - **Add Group** the first time moves all existing lines into one group; click again for more. Name
   each group. **Move Selected Items** reassigns lines or groups; **load more** reveals more groups.
 - Up to five levels of nested groups and lines in one table, with subtotals per level.
-- **Group By** on a column groups automatically, in the **TLE only**; not in the STLE, and not on
-  formula fields.
+- **Group By** on a groupable column groups automatically (Help's example is Location), in the
+  **TLE only**; not in the STLE, and not on formula fields. Help doesn't list which columns are
+  groupable or say how Group By places bundle child lines.
 - Sort Order on the Quote Line Groups related list sets group order; blank ones go last, by creation date.
 - **Ungroup** returns to a flat list. Groups carry over from quote to order.
 - Lines created through the Place Sales Transaction API should carry a group ID when the STLE will be
   used on that quote afterwards [Dev guide: `connect_resources_place_sales_transaction`].
 - Group ramps (Create Ramp Schedule, segments, uplift) are covered in
   [`ramped-quotes`](../ramped-quotes/SKILL.md); the legacy TLE doesn't support them.
+
+### One discount on one product line inside a bundle
+
+A rep may want one discount on every line of one product line, for example all the components of
+one family inside a suite bundle. Help gives the editor no feature for this, and what it does say
+closes the obvious routes:
+
+- **Column filter, then bulk edit:** the filter returns parent lines only and leaves bundle children
+  out [Help: `ind.qocal_view_and_edit_quotes`], so it can't narrow the grid to one product line
+  inside a bundle.
+- **Group By that column, then discount the group:** automatic grouping is TLE only
+  [Help: `ind.qocal_view_and_edit_quotes`], and the STLE is the editor Help recommends
+  [Help: `ind.qocal_customize_transaction_line_editor`]. Group rows do take Adjustment Type fields
+  [Help: `ind.qocal_adjustment_type_column`], and Help's group-ramp example discounts all of a group's
+  lines from the group row [Help: `ind.qocal_basic_example_ramp_deals_for_groups`].
+- **Select the lines by hand and bulk edit:** applies one value to every selected line
+  [Help: `ind.qocal_view_and_edit_quotes`]; whether bundle children can be selected is not stated.
+
+Whether bulk edit, Move Selected Items or Group By reach bundle child lines, and whether a group-row
+discount reaches children grouped apart from their root, are open (see the parent's Open list).
+Don't promise a one-step product-line discount inside a bundle in a demo until one is measured.
+A discount that must apply on every quote, not by a rep's hand, is a pricing question; see
+[`pricing-procedures`](../pricing-procedures/SKILL.md).
 
 ## 4. Pricing actions
 
