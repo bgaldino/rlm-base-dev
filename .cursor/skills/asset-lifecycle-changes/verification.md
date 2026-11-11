@@ -108,8 +108,8 @@ onto the asset action sources before amending stopped the reset.
   held as a root answer, and a partial move under a one-plan group are measured (above;
   [change-policy-mapping.md](change-policy-mapping.md)).
 - **Evergreen reductions and swaps:** what an amendment with `quantityChange` < 0, or a
-  swap's outgoing side, credits on an evergreen line. The only evergreen quantity credit
-  measured is a cancellation's (above).
+  swap's outgoing side, credits on an evergreen line. Reductions priced on quotes that weren't
+  ordered; the only evergreen credit measured through activation is a cancellation's (above).
 - **Renewing a standalone evergreen asset.** Help rules out uplift and end-date changes for
   evergreen assets but doesn't say what the renewal quote does to the line
   ([change-policy-mapping.md](change-policy-mapping.md)). In a bundle renewal the evergreen

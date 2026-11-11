@@ -130,10 +130,10 @@ results, 2026-11-11).
       an anniversary [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. A Term
       Defined top-level cancellation (`initiateCancellation`) and the invoice-level values
       are separate measurements ([verification.md](verification.md) → Open).
-    - The only quantity credit measured on an evergreen line is the cancellation's above (a
-      price amendment's credit rows are in Quick Rule 3). Help says
-      an evergreen reduction takes units last in, first out from the current quantity, and
-      a swap acts as an add plus a negative amendment [Help:
+    - Evergreen reductions were priced on quotes (one period, in last-in-first-out rows) but
+      none was ordered, so the cancellation above is the only evergreen credit measured
+      through activation. Help says an evergreen reduction takes units last in, first out
+      from the current quantity, and a swap acts as an add plus a negative amendment [Help:
       `ind.qocal_fdo_examples_of_amendment_types_and_results`], but not what either credits.
       Evergreen reduction and swap credits are **Open** ([verification.md](verification.md)
       → Open).
@@ -154,8 +154,8 @@ results, 2026-11-11).
       removed the add-on on the amendment silently, with `configure` success and no error
       log [Measured: 2026-11-11, 264]. Read the deltas of an answer change for lines the rep
       didn't touch.
-    - Editing an amendment line through Place needs `configurationMethod: Force`; with
-      `Skip` it was refused ("Specify 0 in Quantity of the Quote Line Item record with the
+    - Edit amendment lines through Place with `configurationMethod: Force`; with `Skip` it
+      was refused ("Specify 0 in Quantity of the Quote Line Item record with the
       action of type No Change") [Measured: 2026-11-11, 264].
 8. **Ramped bundles have their own limits:** amending an API-built group-ramped bundle
    with a one-time or evergreen child failed in the measured shapes
