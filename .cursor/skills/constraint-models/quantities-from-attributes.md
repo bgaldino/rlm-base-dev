@@ -9,7 +9,8 @@ check. This file covers only the CML that sizes a bundle and how to test it.
 
 **Claim tags.** `[Dev guide: <article>]` is the 264 developer guide snapshot under
 `docs/salesforce/264/dev-guide/articles/`, cited by file name without `.htm.md`.
-`[Repo: <file>]` is this repository. `[Measured: M<n>]` is row M<n> of
+`[Help: <article>]` is the 264 Help snapshot under `docs/salesforce/264/help/articles/`,
+cited the same way. `[Repo: <file>]` is this repository. `[Measured: M<n>]` is row M<n> of
 [Measured on 264](#measured-on-264), a live run on a 264 (API v68.0) scratch org. Questions
 none of these settle are listed once, under [Open items](#open-items). The worked example
 as a whole has not been run. Where the dev guide and the org disagree, this file follows
@@ -221,6 +222,10 @@ Tie the choice to an answer with one implication per subtype, as in the dev guid
 warranty example, each with its own message:
 `constraint(supportLevel != "Premium" -> support[PremiumSupport] == 0, "<message>");`
 `[Dev guide: cml_logical_constraints]`.
+
+This picks one plan for the whole bundle. It can't express a mixed split, with some sites
+on one plan and the rest on another. The dev guide has no such example; how to model one
+is [open item 13](#open-items).
 
 ### Zero for a component a choice excludes
 
@@ -486,6 +491,24 @@ Each needs a live 264 org:
 11. Whether a literal `%` in a message string is passed through or read as a Java format
     specifier. The dev guide documents Java format for these strings
     `[Dev guide: cml_logical_constraints]`; the worked example avoids `%`.
+12. Whether a sizing model re-derives service quantities on an amendment, both when the
+    root's sizing answer changes (`sites` from 23 to 30, say) and when the amendment
+    changes only a line quantity. The sources stop short of it. A future-dated order with
+    CML products can be amended, but the amendment "doesn't conform to all the rules"
+    `[Help: ind.qocal_future_dated_order_amendments_important_considerations]`. The
+    Constraint Rules Engine setup copies the engine's `ConstraintEngineNodeStatus` from the
+    source asset's latest asset action source onto lines that a quote or order action
+    creates `[Help: ind.product_configurator_set_up_constraint_engine_prerequisites]`; this
+    repo ships the quote-line trigger
+    `[Repo: unpackaged/post_constraints/triggers/RLM_QuoteItemTrigger.trigger]`.
+    Configurator requests take a `validateAmendRenewCancel` option that runs amend, renew
+    and cancel validations `[Dev guide: connect_requests_configuration_options_input]`.
+    None says which rules run on an amendment or whether a cardinality is solved again.
+13. How to model a mixed per-site plan split, which
+    [Exactly one of a choice group](#exactly-one-of-a-choice-group) can't express.
+    Candidates, neither in the dev guide nor run: an answer per plan (a site count each,
+    constrained to sum to `sites`, each driving its plan's cardinality), or per-site child
+    instances that each carry a plan.
 
 ---
 
