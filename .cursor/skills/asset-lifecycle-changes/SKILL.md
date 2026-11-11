@@ -50,6 +50,15 @@ in November 2026.
       `ind.qocal_fdo_examples_of_amendment_types_and_results`]. Whether changing the root's
       sizing attribute on an amendment re-derives the children through CML is **Open**
       ([verification.md](verification.md) → Open).
+    - An amendment that changes a component's plan or price is an amendment of the
+      top-level asset too. Help describes two that fit: the attribute amendment
+      above, and a price amendment, which changes price without changing
+      quantity, attributes or bundle configuration and works on bundles [Help:
+      `ind.qocal_field_and_pricing_amendments`,
+      `ind.qocal_field_and_price_amend_important_considerations`]. Neither says whether the
+      change can sit on a component's line. A swap is a separate route, and no snapshot
+      article says whether it takes a component asset. All three are **Open**
+      ([change-policy-mapping.md](change-policy-mapping.md)).
 4. **Know where the price lands.**
     - On a renewal, a cancellation or a negative amendment, the unit price moves to
       `QuoteLineDetail` / `OrderItemDetail` rows, and the parent line's `UnitPrice` is null
@@ -70,9 +79,22 @@ in November 2026.
     - Both held on the Standard price book [Measured: 2026-11-05, 264]. Term Defined
       credits and the invoice-level values are separate measurements
       ([verification.md](verification.md) → Open).
+    - The only credit measured on an evergreen line is the cancellation's above. Help says
+      an evergreen reduction takes units last in, first out from the current quantity, and
+      a swap acts as an add plus a negative amendment [Help:
+      `ind.qocal_fdo_examples_of_amendment_types_and_results`], but not what either credits.
+      Evergreen reduction and swap credits are **Open** ([verification.md](verification.md)
+      → Open).
+    - A source's term-total value for an evergreen line (a total credit over the remaining
+      term) doesn't compare with the quote directly: the quote counts the line for its
+      pricing term count, not the term ([change-policy-mapping.md](change-policy-mapping.md)
+      → Questions to settle in the plan).
 7. **Constraints apply to amendments too.** A rule such as "Shield only with Premier"
    decides the order in which changes can run. Test each change sequence with
-   configuration rules on.
+   configuration rules on. Help warns that an amendment of a future-dated order with
+   CML products "doesn't conform to all the rules" [Help:
+   `ind.qocal_future_dated_order_amendments_important_considerations`], so a passing
+   future-dated amendment doesn't prove the rules held.
 8. **Ramped bundles have their own limits:** amending an API-built group-ramped bundle
    with a one-time or evergreen child failed in the measured shapes
    [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].
@@ -128,6 +150,13 @@ raises.
 cancelling it alone is refused (Quick Rule 3), and removing it through an amendment of the
 bundle is unmeasured. Either sell it as its own line, or measure the amendment path first.
 Decide this in the plan, not on stage.
+
+**"Move some units of a component to another plan."** If support is a bundle component, an
+amendment has to act on the top-level asset (Quick Rule 3), and whether a swap takes the
+component asset is undocumented. None of the paths (an attribute amendment, separate
+component products, a swap of the component) is measured on a component.
+[change-policy-mapping.md](change-policy-mapping.md) lists them with what to check; pick one
+in the plan and measure it.
 
 ## Validation Checks
 

@@ -68,6 +68,14 @@ The Standard price book gave the same results.
   invoice. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 - **Whether the configurator can restore the reset attributes** on an amendment line.
 - **Removing a bundle component through an amendment** of the top-level asset.
+- **Changing a bundle component's plan or price:** through an amendment of the top-level
+  asset (an attribute or price amendment on the component's line, or a change to part of
+  its quantity, 10 of the sites), or through a swap of the component asset. Help documents
+  the price amendment on bundles; neither amendment is documented on a component's line
+  ([change-policy-mapping.md](change-policy-mapping.md)).
+- **Evergreen reductions and swaps:** what an amendment with `quantityChange` < 0, or a
+  swap's outgoing side, credits on an evergreen line. The only evergreen credit measured is
+  a cancellation's (above).
 - **Renewing a standalone evergreen asset.** Help rules out uplift and end-date changes for
   evergreen assets but doesn't say what the renewal quote does to the line
   ([change-policy-mapping.md](change-policy-mapping.md)).
@@ -78,4 +86,13 @@ The Standard price book gave the same results.
   ([change-policy-mapping.md](change-policy-mapping.md) → Replay the source's changes in
   date order). The repo's group-ramp runs changed assets before a ramp segment's future
   state period, which comes from the ramp schedule rather than a future-dated transaction,
-  so they don't settle it [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`].
+  so they don't settle it [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`]. In the
+  group-ramped bundle runs, a future ramped renewal, or an ordered plain renewal, refused an
+  earlier amend [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend date window],
+  which matches the amend article for that case. That record doesn't cover a future-dated
+  amendment or cancellation.
+- **Amendment dates at a term end or a renewal date:** the recorded amend date window was
+  measured on group-ramped bundles. Whether it holds for other assets, its upper bound for
+  assets with no end date, and what an amendment dated exactly on a renewal's start date
+  does, and at which price, are open ([change-policy-mapping.md](change-policy-mapping.md)
+  → Changes dated at or after the term end).
