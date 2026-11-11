@@ -391,14 +391,11 @@ Two shapes owe no root CSV at all:
   CSV at either location**, while `ProcedurePlanOption.csv` traverses it
   (`ExpressionSetDefinition.DeveloperName`) — and `ProcedurePlanOption.ExpressionSetDefinitionId`
   is populated with real ids in both fresh 264 orgs. The traversal resolved against the target org
-  with no source rows in existence. **Exception, measured on a 264 PCM build (2026-11):** when
-  children reach a `Readonly` object through a `$$` composite lookup column rather than a
-  single-field traversal, those lookups silently fail to resolve unless the object has a CSV
-  carrying that `$$` column ([product-catalog-modeling](../product-catalog-modeling/SKILL.md#loading-the-model), fact b).
+  with no source rows in existence.
   - Convention (pack 151), because the count column used to mean two different things by sight: a
     Readonly object's record count is **org records, not file rows** — it is resolved from the target
     org, and a Readonly CSV that *does* exist (e.g. `inapp/RecordType.csv`) is maintained but not
-    required for resolution (except for the `$$` composite-lookup case above). So `generate_plan_readme.py` renders a Readonly row's count as **`—`**:
+    required for resolution. So `generate_plan_readme.py` renders a Readonly row's count as **`—`**:
     it runs offline with no org access, and labeling the optional CSV's row count as an org count
     would bake in a number that is never validated and silently wrong whenever the org and the CSV
     differ. `check_plan_readme_consistency.py` never file-matches a `—` row, so deleting an optional
@@ -414,7 +411,16 @@ Two shapes owe no root CSV at all:
 - **every writable pass supplied per-pass** — the root path is an alternative location for the same
   file, not an additional requirement.
 
-`validate_sfdmu_v5_datasets.py` enforces exactly this (`_objects_owing_root_csv`), and
+**Exception: a `Readonly` object behind a `$$` composite lookup** (measured on a 264 PCM build,
+2026-11; [product-catalog-modeling](../product-catalog-modeling/SKILL.md#loading-the-model), fact b).
+Everything above about `Readonly` CSVs being source-free, optional and safe to delete holds for
+single-field traversals. When children reach a `Readonly` object through a `$$` composite lookup
+column instead (`ProductSellingModel.$$Name$SellingModelType` in `qb-pricing/PricebookEntry.csv`,
+say), those lookups silently fail to resolve unless the object has a CSV carrying that `$$`
+column. Such a CSV is a load requirement: keep it, and do not count on the validator or the
+README checker to notice it is missing, because both treat every `Readonly` CSV as optional.
+
+`validate_sfdmu_v5_datasets.py` enforces the two shapes above, not this exception (`_objects_owing_root_csv`), and
 `tests/test_sfdmu_csv_expectation.py` pins both directions. Read the operation from the pass, never
 from the merged config: the validator's own `_parse_object_configs` keeps only the **first**
 declaration, so an object Readonly or `excluded` in pass 1 and `Upsert` in pass 2 looks exempt when

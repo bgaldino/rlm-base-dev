@@ -43,7 +43,7 @@ drop the `.md` suffix of the snapshot file name.
 5. **Pick the selling model from how the charge recurs** (once, for a fixed term, until
    cancelled), then give the product one `ProductSellingModelOption` per model it can be
    sold on, with at most one `IsDefault`. Price book entries and attribute-based adjustments
-   carry a `ProductSellingModelId`. [Help: `ind.product_catalog_product_selling_model.htm`; Dev guide: `sforce_api_objects_productsellingmodeloption.htm`; Repo: `scripts/ai/query_erd.py describe PricebookEntry`]
+   carry a `ProductSellingModelId`. [Help: `ind.product_catalog_product_selling_model.htm`; Dev guide: `sforce_api_objects_productsellingmodeloption.htm`; Repo: `scripts/ai/query_erd.py describe PricebookEntry`, `describe AttributeBasedAdjustment`]
 6. **`IsAssetizable` on a bundle root governs every child**; it decides whether the sale
    leaves an asset that amend, renew and cancel can act on. [Help: `ind.product_catalog_create_bundled_products.htm`; `ind.qocal_asset_lifecycle.htm`]
 7. **Category codes must be unique across every level and every catalog a plan loads.** A plan keyed on
@@ -127,7 +127,7 @@ the detail and the sources.
 | Choice | Pick A when… / B when… | Trade-off | Downstream effect |
 |---|---|---|---|
 | **Attribute vs product** | Attribute: a characteristic on one SKU, same price book entry. Product: needs its own SKU, price, selling model, asset or fulfillment line. | Attributes keep the catalog small; each product adds price book entries, options and category rows. | Attribute → priced only via attribute-based adjustments (classification-bound). Product → own PBE per selling model, own asset line. [Help: `ind.product_catalog_plan_catalog.htm`; `ind.pricing_attribute_based_pricing_limits.htm`] |
-| **Simple vs bundle** (`Type`) | Bundle when the thing sold is a set of priced/fulfilled parts. | Irreversible. | Only bundles carry groups, components, bundle-based adjustments, and CML bundle relations. [Help: `ind.product_catalog_create_simple_products.htm`] |
+| **Simple vs bundle** (`Type`) | Bundle when the thing sold is a set of priced/fulfilled parts. | Irreversible. | Only bundles carry groups, components and bundle-based adjustments. [Help: `ind.product_catalog_create_simple_products.htm`; `ind.product_catalog_products.htm`; `ind.pricing_create_bundle_based_adjustments.htm`] |
 | **Static vs configurable** (`ConfigureDuringSale`) | Static: a fixed kit. Configurable: the buyer picks parts, quantities or attributes. | Static needs a default for every attribute and fixes children and quantities; configurable needs groups and cardinality. Convertible both ways, but configurable → static also requires no classification components. | Configurable: buyers add or remove children, change quantities and attributes at run time, and CML bundle rules apply. Static: none of that. [Help: `ind.product_catalog_create_bundled_products.htm`; `ind.product_catalog_change_a_configurable_bundle_product_to_a_static_bundle_product.htm`; Repo: `constraint-models/SKILL.md`] |
 | **Component vs classification component** | One product per row vs "any product based on classification X". | Classification components grow with the catalog but cannot be required or default. | New products of that classification appear in the bundle without a PCM edit; CML sync does not pick up class membership changes. [Help: `ind.product_catalog_creation_of_a_bundled_product_structure.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_configurator_sync_cml_and_pcm.htm`] |
 | **Cardinality** (group min/max, component min/max/default, required, default) | See [`bundles-and-cardinality.md`](bundles-and-cardinality.md). | Tight cardinality blocks bad quotes but can make a bundle unconfigurable. | CML sync carries component cardinality and *required*; group changes do not sync. [Help: `ind.product_configurator_sync_cml_and_pcm.htm`] |
@@ -150,12 +150,12 @@ Ask, in order, and stop at the first yes:
 3. **Does every combination need its own SKU for tracking, but buyers should pick from one
    screen?** → **variation products** under a variation parent (up to 5 attributes in a
    variation attribute set; the parent cannot be purchased; turning variants off after use
-   corrupts data). [Help: `ind.product_catalog_create_product_variants_in_revenue_cloud.htm`; `ind.product_catalog_turn_on_product_variants.htm`]
+   can cause errors and data inconsistencies). [Help: `ind.product_catalog_create_product_variants_in_revenue_cloud.htm`; `ind.product_catalog_turn_on_product_variants.htm`]
 4. **Otherwise** → an **attribute** on the product's classification. Size, colour,
    capacity, region of a single SKU. Attributes "reduce the number of individual products
    you need to build". [Help: `ind.product_catalog_plan_catalog.htm`]
 
-Downstream checks for an attribute choice: if it changes price, it must be
+Downstream checks for an attribute choice: if it changes price, it must
 be active with `IsPriceImpacting` selected [Help: `ind.pricing_define_price_impacting_attributes.htm`],
 belong directly to the classification the adjustment names, must not be a picklist over a
 Boolean data type (use a Checkbox/Boolean attribute), and numeric values match in the `.0`
@@ -185,8 +185,9 @@ In this repo, `prepare_product_data` runs `insert_quantumbit_pcm_data` once. The
 extraction, so its second load replays the one-pass org state, not the CSVs: it is not
 fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUIdempotency`] Whether a
 one-pass QuantumBit build leaves any classification attribute at a default that differs
-from its CSV is **Open — needs live verification** (every `IsRequired` in the QB CSV is
-`false`, the documented default). [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
+from its CSV is **Open — needs live verification**: every `IsRequired` in the QB CSV is
+`false`, the documented default, but all 36 rows set `AttributeNameOverride`, whose
+first-insert value was not recorded. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
 Two more load constraints that shape the model, from the QB plan: bundle depth is capped by
 the org value `MaxBundleDepth` (default 3, ceiling 5; the repo's scratch shapes set 5), and

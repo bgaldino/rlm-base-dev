@@ -74,8 +74,7 @@ level; exclude values there, at the product, or in a bundle override
 - The pricing engine **does not** apply attribute-based adjustments to an attribute with an
   overridden bundle context. Define a price-impacting attribute once; do not override it.
   [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
-- A static bundle needs a default for every attribute of every component, overrides
-  included. [Help: `ind.product_catalog_change_a_configurable_bundle_product_to_a_static_bundle_product.htm`]
+- A static bundle needs a default for every attribute of every component. [Help: `ind.product_catalog_change_a_configurable_bundle_product_to_a_static_bundle_product.htm`]
 
 ## Run-time settings
 
