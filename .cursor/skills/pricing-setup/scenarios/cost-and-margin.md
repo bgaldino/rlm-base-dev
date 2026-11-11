@@ -39,6 +39,15 @@ cost book entries.
     - Price a 36-month annual line and compare `Margin` with a hand calculation.
     - If it's wrong, either store the cost per term, or change the formula to multiply by
       the term count (`PricingTermCount`) in a procedure overlay (`expression-sets`).
+- **Evergreen lines** are priced for the Evergreen default pricing term count in Salesforce
+  Pricing Setup: at `1`, a $50/month line totals $50; left blank, the count comes from the
+  line's start and end dates [Help: `ind.pricing_configure_proration_settings.htm`;
+  [../proration-and-selling-models.md](../proration-and-selling-models.md)]. So the quote total,
+  and a quote margin derived from it (row 6), count an Evergreen line for that many periods
+  next to term lines at their full term `[inferred]`. A "full commitment" deal size or margin,
+  such as monthly support counted over a comparison horizon, is a separate value: compute it
+  outside the quote total (per-period amount × horizon), and don't compare it with
+  quote-total margins.
 - **Lines without a cost entry** are skipped by the filter, so they show no margin. They
   aren't zero-margin.
 - **Table freshness:** a cost change without a refresh leaves the old cost.
@@ -65,3 +74,11 @@ sf data query -q "SELECT Product2.StockKeepingUnit, Quantity, TotalPrice, UnitCo
 `UnitCost` equals the cost entry for that product and currency. `TotalCost` equals
 `UnitCost × Quantity`. `Margin` equals `(TotalPrice − TotalCost) / TotalPrice`. Then repeat
 the query on the order.
+
+## Open questions
+
+- OPEN: how a cost-based target price (unit cost ÷ (1 − target margin), above) interacts
+  with a later Manual Discount in the same procedure. Manual Discount reads the previous
+  `NetUnitPrice` as its input (`../../pricing-procedures/elements/manual-discount.md`), so a
+  rep discount after the target-price step may take the line below its target margin. Whether
+  the target should act as a floor, or be re-applied after discounts, is untested.
