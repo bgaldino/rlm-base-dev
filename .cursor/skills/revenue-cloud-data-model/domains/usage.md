@@ -13,7 +13,7 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 | `UsageResource` | Defines a usage resource (API calls, storage, data, etc.) | Code (unique), UsageDefinitionProductId (→ Product2), TokenResourceId (self-ref), UnitOfMeasureClassId — `UsageResourceBillingPolicyId` was **removed in 264**; bind the accumulation policy via `ProductUsageResourcePolicy.UsageAggregationPolicyId` instead |
 | `ProductUsageResource` (PUR) | Binds a Product to a UsageResource | ProductId, UsageResourceId, TokenResourceId |
 | `ProductUsageResourcePolicy` (PURP) | Policy config for a PUR | ProductUsageResourceId, RatingFrequencyPolicyId, UsageAggregationPolicyId, UsageCommitmentPolicyId, UsageOveragePolicyId — but see the commitment restriction below |
-| `ProductUsageGrant` (PUG) | Entitlement grant for a product/resource | ProductUsageResourceId, UsageResourceId, RenewalPolicyId, RolloverPolicyId, UnitOfMeasureClassId, UnitOfMeasureId |
+| `ProductUsageGrant` (PUG) | Entitlement grant for a product/resource | ProductUsageResourceId, ProductSellingModelId, RenewalPolicyId, RolloverPolicyId, UnitOfMeasureClassId, UnitOfMeasureId, UsageDefinitionProductId, `DrawdownOrder` (picklist `ExpiringFirst` / `GrantedFirst` / `GrantedLast`; in 264 the design-time home of drawdown order, which `TransactionUsageEntitlement` lost). The product and resource lookups, `ProductId` and **`UsageRsrcId`** (not `UsageResourceId`), are read-only (neither createable nor updateable), so a load cannot set them; the shipped plans bind each grant through `ProductUsageResourceId` |
 | `UsageResourceBillingPolicy` | Billing policy for usage resources | Code |
 
 > ⛔ **A commitment product's PURP may carry ONLY a `UsageCommitmentPolicy` — platform-enforced.**
@@ -54,9 +54,9 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 > `RLM_UsageUploaderController.OverageLookup`.
 >
 > Filter the association to `ProductUsageResource.Status = 'Active'`. `ProductUsageResourcePolicy`
-> has **no status of its own**, so the parent is the only gate — and a reloaded dataset leaves
-> Draft PURs carrying PURP children that overlap the Active row until
-> `scripts/apex/activateRatingRecords.apex` step 2.5a clears them. Reading one is not merely
+> has **no status of its own**, so the parent is the only gate. The shipped plans no longer
+> create Draft PUR copies on reload, but a copy made by hand, or left by an older load, can carry PURP children that overlap the Active row until
+> `scripts/apex/activateRatingRecords.apex` step 2.5a, kept as a safety net, clears them. Reading one is not merely
 > stale: a disagreeing Draft row trips the ambiguity guard above and blanks the Active answer.
 >
 > ⚠ **`Status = 'Active'` narrows to one *effective* row, not to one row.** A PUR carries
@@ -82,10 +82,10 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 
 | Object | Purpose | Key Fields |
 |--------|---------|-----------|
-| `RatingFrequencyPolicy` | How often to rate usage | RatingPeriod, ProductId, UsageResourceId |
+| `RatingFrequencyPolicy` | How often to rate usage | RatingPeriod, RatingDelayDuration, RatingDelayDurationUnit — `ProductId` and `UsageResourceId` were **removed in 264**; the policy no longer knows its product or resource, and binds through `ProductUsageResourcePolicy.RatingFrequencyPolicyId` (or `UsageResourcePolicy` at resource level) |
 | `UsageCommitmentPolicy` | Commitment/minimum usage rules | Name |
 | `UsageOveragePolicy` | Overage handling rules | Name |
-| `UsageGrantRenewalPolicy` | Grant renewal rules | Code, UsageSummaryId |
+| `UsageGrantRenewalPolicy` | Grant renewal rules | Code, IsRenewalAllowed, RenewalFrequency, RenewalFrequencyUnit |
 | `UsageGrantRolloverPolicy` | Unused grant rollover rules | Code |
 | `UsagePrdGrantBindingPolicy` | Binding policy for grants | Name, Product2Id |
 | `UsageResourcePolicy` | Aggregate policy binding | UsageAggregationPolicyId, UsageCommitmentPolicyId, UsageOveragePolicyId |
@@ -102,8 +102,8 @@ Verify this list with `python scripts/ai/query_erd.py domain Usage`.
 | `TransactionUsageEntitlement` (TUE) | Entitlement context for transactions. **Transactional** — the platform writes it during order activation / assetization, and `ProductId` is `createable: false` | AssetId, ProductId, UsageResourceId, OrderItemId, EntitlementUomId, UsageGrantRefreshPolicyId, UsageGrantRolloverPolicyId, EffectiveStartDateTime / EffectiveEndDateTime, `EntitlementProcessingStatus` (**no `Status` field** — values `PENDING` / `PROCESSED`). **TUE carries no commitment or overage policy lookup** — see the note below |
 | `UsageBillingPeriodItem` | Usage billing period tracking | — |
 | `UsageRatableSummary` | Ratable usage summary | `TierQuantity`, `OverageQuantity` — see caveat below |
-| `UsageCmtAssetRelatedObj` | **Commitment → anchor junction.** `AssetId` = the *commitment* asset, `RelatedObjectId` = the *anchor* asset. Without this row the commitment is inert. | AssetId, RelatedObjectId, UsageResourceId |
-| `UsageRatableSumCmtAssetRt` | Ratable summary commitment | UsageResourceId |
+| `UsageCmtAssetRelatedObj` | **Commitment → anchor junction.** `AssetId` = the *commitment* asset, `RelatedObjectId` = the *anchor* asset. Without this row the commitment is inert. | AssetId, RelatedObjectId, EffectiveStartDateTime / EffectiveEndDateTime |
+| `UsageRatableSumCmtAssetRt` | Ratable summary commitment | UsageRatableSummaryId, CommitmentAssetId, NetUnitRate |
 
 > ⚠ **`TransactionUsageEntitlement` has never carried `UsageCommitmentPolicyId` or
 > `UsageOveragePolicyId` — on 262 *or* 264.** This table listed both until 2026-08-14; that was
@@ -142,7 +142,10 @@ UsageResource ← ProductUsageResource (UsageResourceId)
 Product2 ← ProductUsageResource (ProductId)
 ProductUsageResource ← ProductUsageResourcePolicy (ProductUsageResourceId)
 ProductUsageResource ← ProductUsageGrant (ProductUsageResourceId)
-UsageResource ← ProductUsageGrant (UsageResourceId)
+UsageResource ← ProductUsageGrant (UsageRsrcId, read-only)
+Product2 ← ProductUsageGrant (UsageDefinitionProductId)
+ProductSellingModel ← ProductUsageGrant (ProductSellingModelId)
+RatingFrequencyPolicy ← ProductUsageResourcePolicy (RatingFrequencyPolicyId)
 UsageGrantRenewalPolicy ← ProductUsageGrant (RenewalPolicyId)
 UsageGrantRolloverPolicy ← ProductUsageGrant (RolloverPolicyId)
 UnitOfMeasureClass ← ProductUsageGrant (UnitOfMeasureClassId)
@@ -266,26 +269,64 @@ stop when a full round makes no progress. See `scripts/apex/clearUsageData.apex`
 
 ## Activation Order
 
-Rating objects require careful activation ordering:
+UnitOfMeasureClass, UsageResource, PUR and PUG load as Draft and are activated afterwards, in
+dependency order. The
+`prepare_rating` flow runs, in this order (the qb path; with `q3` on and `qb` off it runs
+the matching q3 plans instead):
 
-1. Load UnitOfMeasure and UnitOfMeasureClass
-2. Load UsageResource and policies
-3. Load ProductUsageResource (PUR) — Insert + deleteOldData
-4. Load ProductUsageResourcePolicy (PURP) — Insert + deleteOldData
-5. Load ProductUsageGrant (PUG) — Insert + deleteOldData
-6. Activate UnitOfMeasureClass and UsageResource (Pass 2)
-7. Run `activateRatingRecords.apex` for PUR/PUG activation
+1. **`qb-rating`** (`insert_qb_rating_data`), pass 1 — `Upsert` the units, usage
+   resources, policy records and ProductUsageResource (PUR). The objects that activation later sets
+   Active (UnitOfMeasureClass, UsageResource, PUR) set `skipExistingRecords`: a missing row is
+   inserted as Draft and an existing row is never touched.
+2. **`qb-rating`**, pass 2 — `Update` UnitOfMeasureClass, UsageResource and PUR
+   **without** `Status`, so field corrections land on existing rows. Pass 2 activates
+   nothing.
+3. **`qb-rating-entitlements`** (`insert_qb_rating_entitlements_data`) —
+   ProductUsageResourcePolicy (PURP) and ProductUsageGrant (PUG): pass 1 `Upsert` +
+   `skipExistingRecords` (a new PUG is inserted as Draft), pass 2 `Update` without `Status`.
+4. **`qb-rates`** (`insert_qb_rates_data`) — rate cards; see `rates.md`.
+5. **`activateRatingRecords.apex`** (`activate_rating_records`) — UnitOfMeasureClass →
+   UsageResource → Token PURs → every other PUR → PUG. Token PURs must be Active before the
+   usage PURs of the same product can activate, and every PUR before its grants. PURP has
+   no `Status` of its own.
+6. **`activate_rates`** — activates the Draft rate card entries; see `rates.md`.
 
-## SFDMU Data Plan: `qb-rating`
+## SFDMU Data Plans: `qb-rating` and `qb-rating-entitlements`
 
-16 objects across 2 passes. Upstream: `qb-pcm` (Product2, UoM, UoMClass), `qb-billing` (UsageResourceBillingPolicy).
+The usage design-time records load from two plans, `qb-rating` then
+`qb-rating-entitlements`. Upstream: `qb-pcm` (Product2, UnitOfMeasure,
+UnitOfMeasureClass). Neither plan uses `Insert` + `deleteOldData` or a `deleteQuery`;
+nothing is deleted.
 
-PUR, PURP, and PUG in the **shipped** plans use `Insert` + `deleteOldData: true` — a **pre-5.6.4 workaround** for Bug 3, which is **fixed on the 5.6.4+ floor** (Upsert matches on traversal externalIds; new plans use `Upsert`, shipped-plan migration is the gated `sfdmu-v5-optimization` initiative). **PUG is not an operation-only migration**: its 3-field externalId is intentionally non-unique across parent PURs, so moving it to `Upsert` requires first adding a PUR component (e.g. `ProductUsageResourceId`) to the key.
+| Plan | Loads | Match key | Passes |
+|------|-------|-----------|--------|
+| `qb-rating` | 12 objects: UnitOfMeasure, UnitOfMeasureClass, UsageResourceBillingPolicy, UsageResource, Product2 (`Update` only), UsageGrantRenewalPolicy, UsageGrantRolloverPolicy, UsageOveragePolicy, UsageCommitmentPolicy, PUR, UsagePrdGrantBindingPolicy, RatingFrequencyPolicy | PUR: `Product.StockKeepingUnit;UsageResource.Code` (a relationship-traversal key, which matches on the 5.6.4+ floor) | 1: `Upsert`, with `skipExistingRecords` on UnitOfMeasureClass, UsageResource and PUR. 2: `Update` without `Status` |
+| `qb-rating-entitlements` | PURP and PUG; the policy, unit and product objects and PUR are `Readonly` | `ProductUsageResourceId` for both, resolved on the target org at load time | 1: `Upsert` + `skipExistingRecords`. 2: `Update` without `Status` |
 
-⚠ **Reloading `qb-rating`/`qb-rates` against an org that already has live usage
-assets does not work** — `Insert` + `deleteOldData` cannot clear design-time records
-that live entitlements reference. Load a new product **surgically** instead. See
-`.cursor/skills/sfdmu-data-plans/SKILL.md` → *Reloading a plan into a live org*.
+**Why PURP and PUG are a separate plan.** SFDMU 5.8.0 cannot `Upsert` a child keyed on
+its parent's composite traversal key: the target query drops the `ProductUsageResource.`
+prefix ("Didn't understand relationship 'Product'", upstream issue #1218). So both
+children key on the direct lookup `ProductUsageResourceId` (at most one PURP and one PUG
+per PUR in this dataset). The tracked CSVs carry no Ids, only the parent's portable key
+(`ProductUsageResource.Product.StockKeepingUnit` + `ProductUsageResource.UsageResource.Code`);
+`LoadSFDMUData` reads `parent_id_lookups.json`, queries the target org's PURs, and writes
+the Ids into a temp copy of the plan before SFDMU runs. A key that matches no PUR fails the
+load; when several match, the Active one wins, then Draft, and only a remaining tie fails. Details: `datasets/sfdmu/qb/en-US/qb-rating-entitlements/README.md`.
+
+**Reloading a built org changes nothing** (live-verified 2026-10-30): the 25 PUR and 12 PUG
+stay Active, the 23 PURP and 12 PUG report "Same data", and nothing is deleted or demoted. A corrected
+non-`Status` value in a CSV lands through pass 2. Two limits:
+
+- The platform rejects some changes on Active records, and the load then **fails** with
+  its message rather than skipping the row — for example `ProductUsageResource.EffectiveEndDate`
+  while the PUR's grant is Active, or `UsageResource` fields tied to active rate card
+  entries or grants. The list is in `datasets/sfdmu/qb/en-US/qb-rating/README.md`.
+- Changing a match key (a SKU or Code), or moving a grant or policy to a different PUR,
+  adds a new record and leaves the old one, because nothing is deleted. Remove the old
+  record by hand.
+
+The pattern behind both plans is in `.cursor/skills/sfdmu-data-plans/SKILL.md` →
+*Reload-Safe Status Objects and Child Lookups (qb-rating pattern)*.
 
 ## Tooling
 

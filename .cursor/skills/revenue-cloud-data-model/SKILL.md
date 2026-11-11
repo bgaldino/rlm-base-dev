@@ -58,8 +58,9 @@ there — what this diff adds for them is the schema record, not the discovery. 
 first recorded here: `UsageResource.UsageResourceBillingPolicyId`, both
 `RatingFrequencyPolicy` lookups, and the removal of `ProductUsageGrant.OverageChargeable`
 (which #365 implied by reading from the policy instead, but never stated).
-Both `RatingFrequencyPolicy` removals are still selected by the `qb-rating` and
-`q3-rating` export queries — see #264-66. Full diff at
+Both `RatingFrequencyPolicy` removals were selected by the `qb-rating` and
+`q3-rating` export queries until pack 127 dropped them; the shipped plans now select
+only `Name`, `RatingDelayDuration` and `RatingPeriod`. Full diff at
 `scripts/erd/schema_diff/262-vs-264-diff.md`.
 
 <details>
@@ -130,8 +131,8 @@ ProductSellingModel ←── PriceBookEntry, QuoteLineItem, OrderItem, PriceAdj
 Order ←── OrderItem, FulfillmentOrder, BillingSchedule, Invoice (via ReferenceEntityId)
 Quote ←── QuoteLineItem; Order.QuoteId links to originating Quote
 OrderItem ←── FulfillmentOrderLineItem, AssetActionSource, OrderItemDetail, OrderItemAttribute
-Asset ←── AssetAction, AssetStatePeriod, AssetRelationship, ProductUsageGrant
-UsageResource ←── ProductUsageResource, RateCardEntry, RateCard, TransactionJournal, UsageSummary
+Asset ←── AssetAction, AssetStatePeriod, AssetRelationship, TransactionUsageEntitlement
+UsageResource ←── ProductUsageResource, ProductUsageGrant (UsageRsrcId), RateCardEntry, TransactionJournal, UsageSummary
 LegalEntity ←── TaxTreatment, BillingScheduleGroup, GeneralLedgerAccount, Invoice, CreditMemo
 BillingSchedule ←── InvoiceLine, BillingPeriodItem, BillingMilestonePlanItem
 ```

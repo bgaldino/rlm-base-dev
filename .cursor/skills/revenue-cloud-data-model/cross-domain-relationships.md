@@ -79,11 +79,10 @@ UsageResource (Usage) bridges Usage, Rates, and Billing:
 | Target Object | Field | Domain |
 |--------------|-------|--------|
 | ProductUsageResource | UsageResourceId | Usage |
-| ProductUsageGrant | UsageResourceId | Usage |
+| ProductUsageGrant | UsageRsrcId (read-only) | Usage |
 | TransactionJournal | UsageResourceId | Usage |
 | UsageSummary | UsageResourceId | Usage |
 | RateCardEntry | UsageResourceId | Rates |
-| RateCard | UsageResourceId | Rates |
 
 ## LegalEntity Cross-Domain Links
 
