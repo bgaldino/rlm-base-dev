@@ -108,7 +108,7 @@ An org's lifetime is the `--days` passed to `cci org scratch <shape> <alias> --d
 
 - `run` and `resume` have no `--days` option. For a longer-lived harness org, give the scenario a larger `days` in a copy of the manifest and pass `--scenarios-file <copy>`; pass the same file to `resume`, which reloads the scenario from it. Editing `scripts/build_harness/scenarios.json` changes the shared matrix.
 - `--keep-orgs` only skips the `cci org scratch_delete` that follows a successful `run` or `resume`; it does not lengthen the org's life. Pass it on `resume` too, or a successful resume deletes the org.
-- A failed run keeps its org for `resume`, but resume works only while the org exists: it runs `cci org info <alias>` first and reports `resume_blocked` with target `org_missing` when that command fails.
+- A failed run keeps its org for `resume`, but resume works only while the org exists: `execution.py::org_exists` runs `cci org info <alias>` with a 30-second timeout, and resume reports `resume_blocked` with target `org_missing` when that command exits non-zero or times out. Do not check an expired org by hand with `cci org info`: CumulusCI's `check_org_expired` (`cumulusci/cli/runtime.py`) recreates an expired scratch org under the same alias, with the same `days`, so you get a new, unbuilt org instead of an error. The harness probe can start that recreation too before its timeout kills it.
 - The TUI rejects days outside 1–30 (`tui/app.py::_validate_alias_and_days`); the harness CLI applies no range check to a scenario's `days`.
 
 ### Resume a failed scenario
@@ -281,7 +281,7 @@ Always share the generated alias with the user before creation.
   - failed runs trigger scratch delete only if the org was created in that same TUI run
   - `delete_org_on_failure` defaults to `true`; set it to `false` in `scripts/build_harness/tui/settings.local.json` to preserve the org for inspection
   - alias defaults use `<shape>-tui-<4char>` and retry on collisions
-- Use `--keep-orgs` when you need to retain successful orgs for debugging. It prevents the delete only; the org still expires after its `days` (see **Keep an org for a multi-day build**).
+- Use `--keep-orgs` when you need to retain successful orgs for debugging. It prevents the delete only; the org still expires after its `days`, and a later `cci org info <alias>` recreates a new, unbuilt org under the alias (see **Keep an org for a multi-day build**).
 - Resume is blocked when checkpoint prerequisites are missing or flags changed; perform a full re-run after fixing blockers.
 
 ## Implementation Notes
