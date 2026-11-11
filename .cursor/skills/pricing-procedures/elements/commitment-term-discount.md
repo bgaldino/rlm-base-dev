@@ -76,8 +76,14 @@ the filter must be the first child, one filter per group].
 
 - The not-null criteria (3, 4, 10) follow the Help rule that a null tag compared in a filter
   returns an error [Help: `ind.pricing_list_group_list_operation.htm`]. Criterion 2 has no such
-  guard, and `PricingTermUnit` is null on a One Time selling model
-  [Dev guide: `sforce_api_objects_productsellingmodel.htm`]; see [Open questions](#open-questions).
+  guard, and `PricingTermUnit` must be null on a One Time selling model
+  [Dev guide: `sforce_api_objects_productsellingmodel.htm`]. A bundle can mix One Time, Term
+  Defined and Evergreen lines, since each child keeps its own selling model options
+  ([product-catalog-modeling → Selling models inside bundles](../../product-catalog-modeling/selling-models-and-lifecycle.md#selling-models-inside-bundles)).
+  As a precaution, add criterion 11, `PricingTermUnit` IsNotNull, to the AND chain
+  (`1 AND 2 AND 3 AND 4 AND 9 AND 10 AND 11 AND ((5 AND 6) OR (7 AND 8))`). The overlay and the
+  measured result below do not have it; what an unguarded criterion 2 does on a null value is
+  open (see [Open questions](#open-questions)).
 - Criterion 9 copies the shipped discount filters, which skip last-transaction lines so an amended
   or renewed line does not take a discount a second time [Repo: `RLM_DefaultPricingProcedure`,
   `Filterlineswithoutlasttransactionpricing`]. Without it, an amendment that keeps the prior net
@@ -124,6 +130,29 @@ phases 9 and 10].
   it does not.
 - Far ahead of DDS and the aggregates, so the tail rule does not apply
   ([`formula-based-pricing.md`](formula-based-pricing.md) → Placement).
+
+## Rounding before a negotiated discount
+
+The inner `ROUND(NetUnitPrice, 2)` above rounds the net to the cent before the term discount.
+Some sources also round to the cent **before the negotiated (manual) discount**, so the rep's
+percentage is taken from a cent-rounded price. Neither Help nor the repo places a rounding step
+there: no shipped procedure has a `RoundingValues` step, and Help's example puts it after the
+formula that produces the value ([`rounding-values.md`](rounding-values.md) → Placement and
+ordering, Shipped). Treat the position as the source's requirement and model it like this:
+
+- Add a Rounding Values step that rounds `NetUnitPrice` and writes it back, after the elements
+  that produce the fractional price and before the Manual Discount groups (phase 7 in
+  [`../procedure-anatomy-and-ordering.md`](../procedure-anatomy-and-ordering.md): `ManualDiscount`
+  22 and the amount/percentage discounts 23). Manual Discount takes the previous `NetUnitPrice`
+  as its input unit price ([`manual-discount.md`](manual-discount.md) → Configuration), so it then
+  discounts the rounded value.
+- Help says the element rounds the output of any pricing element in a procedure
+  [Help: `ind.pricing_rounding_values.htm`], and core checks no position for it except the DDS
+  tail rule ([`rounding-values.md`](rounding-values.md) → Feasibility). Fields, precision and
+  multicurrency behavior are in that file.
+- Inside a formula, round the operand instead, as step 2 of this pattern does.
+- **Open — needs live verification:** a Rounding Values step before Manual Discount was not built
+  or measured here; check the discounted net and the waterfall entry on a fractional-cent line.
 
 ## Overlay shape
 
@@ -230,9 +259,12 @@ expressed the rule.
 
 ## Open questions
 
-- One Time lines were not in the run. Price one through the clone before using this filter in a
-  procedure that prices One Time products; if criterion 2 errors on the null `PricingTermUnit`,
-  add a `PricingTermUnit IsNotNull` criterion to the AND chain.
+- One Time lines were not in the run. **Open — needs live verification:** what an unguarded
+  criterion 2 does on a One Time line's null `PricingTermUnit`. Help says a null compared tag
+  returns an error, but whether criterion 1 (which already excludes the line) stops criterion 2
+  being evaluated, and what the error looks like, was not measured. Price a One Time line, alone
+  and inside a mixed bundle, through the clone with and without criterion 11. Until then keep
+  criterion 11.
 - Which `SubscriptionTermUnit` the quote line editor writes for an annual Term Defined line was not
   measured; the filter accepts both `Months` and `Annual`. Check a real quote line before relying
   on one.

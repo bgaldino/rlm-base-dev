@@ -32,6 +32,8 @@ Parameter names, the Currency data type and the three rule strings come from cor
 - It belongs to the closing tail with DDS and the aggregate steps. When a procedure has a DDS, core rejects any step after it other than Aggregate Price or Rounding Values: "You can add the Discount Distribution Service element only before the Rounding Rules and Aggregate elements or you can make it the only element in a pricing procedure." [Core]. Place Rounding Values after DDS and after the price calculations it rounds.
 - Position relative to aggregates (round before or after summing) changes totals: sum of already-rounded lines vs rounding the sum. Core enforces neither order, so pick the one you need. See [../procedure-anatomy-and-ordering.md](../procedure-anatomy-and-ordering.md).
 - No `FormulaBasedPricing` after DDS: see [formula-based-pricing](./formula-based-pricing.md).
+- Rounding mid-procedure, before a negotiated (manual) discount, when a source requires it: see
+  [commitment-term-discount → Rounding before a negotiated discount](./commitment-term-discount.md#rounding-before-a-negotiated-discount) (not measured).
 
 ## Rules and limits
 - Single-currency org: uses the `Precision` input; if none is passed the value is returned unchanged [Help][Core]. Core only accepts a numeric tag value; anything else leaves precision unset, and the value passes through without an error [Core].

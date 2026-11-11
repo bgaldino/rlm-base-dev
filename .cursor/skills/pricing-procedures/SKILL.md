@@ -297,7 +297,12 @@ Checklist:
   commitment-term discount (annual Term Defined lines committed 36+ months get a further
   percentage off) built from a List Group filter and Formula-Based Pricing: tags, filter logic,
   rounding, placement before term pricing, the overlay, a measured headless-pricing result, and
-  the Price Adjustment Matrix alternative. Read it when a discount depends on the subscription term.
+  the Price Adjustment Matrix alternative, plus rounding before a negotiated discount. Read it when
+  a discount depends on the subscription term.
+- [`elements/root-answer-child-price.md`](elements/root-answer-child-price.md) — a child line's
+  price driven by an answer on the bundle root (for example a regional uplift on some children):
+  the documented routes (CML `parent()` into a price-impacting child attribute, Formula-Based
+  Pricing over a header tag, a Price Adjustment Matrix), each cited, and what is still open.
 - [`elements/price-revision-compound-uplift.md`](elements/price-revision-compound-uplift.md)
   — compound ramp uplift on Price Revision: prerequisites, ramp-path bindings, tracked
   default vs the 264 template, the compounding arithmetic, and what can't compound.
