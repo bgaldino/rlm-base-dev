@@ -71,7 +71,8 @@ org disagree, this file follows the org and says so.
   engine tries quantities up to 9,999 `[Dev guide: cml_best_practice_cardinality]`
   `[Dev guide: cml_relationships]`.
 - **DO NOT** put `ceil()` inside `constraint(...)`. It returns its argument unchanged
-  there, so `constraint(q == ceil(15 / 10))` sets 1. An `int` set equal to
+  there: `ceil(2.30)` on a `decimal(2)` stays 2.30. With `int` operands,
+  `constraint(q == ceil(15 / 10))` sets 1, because `/` has already truncated. An `int` set equal to
   `ceil(<decimal>)` inside a constraint makes the model fail to activate
   `[Measured: 2026-11-10, 264]`. The dev guide's own `ceil()` example is written this way
   `[Dev guide: cml_core_concept_examples]`.
@@ -163,7 +164,7 @@ keeps the fraction until the result is stored, and `ceil()` rounds up. That also
 the dev guide's `((x + 99) / 100) * 100` example `[Dev guide: cml_best_practice_relation_aggregates]`:
 it relies on truncation, and inside a constraint it works.
 
-Two forms round up reliably:
+Two forms round up:
 
 - **The integer bracket inside a constraint.** It pins the one integer `q` with
   `N*(q-1) < x <= N*q`, the ceiling of `x / N` for `x >= 0`. It keeps everything in solver
@@ -173,7 +174,8 @@ Two forms round up reliably:
   is declared by its expression and can't have an explicit domain. The dev guide warns that
   inline derived declarations can leave domains uninitialized
   `[Dev guide: cml_core_concept_examples]` (*Key Considerations for Calculations and
-  Aggregations*). Measured only with an input that a constraint set within the same solve.
+  Aggregations*). Measured only with an input that a constraint set within the same solve,
+  not with a rep-edited answer such as `sites`, so the open item below applies.
 
 **Open — needs live verification:** whether an inline `ceil()` recalculates when a rep
 changes the PCM attribute it reads in the configurator. Until that is measured, prefer the
@@ -511,8 +513,9 @@ bound's message to the accepted set.
    domain derived from the answer domains. The one exception is a round-up written as an
    inline `ceil()`, which has no domain.
 2. No `constraint(...)` contains `ceil(` or `^`. Run `grep -nE 'ceil\(|\^' <blob>` and
-   confirm that every hit is an inline declaration, not part of a `constraint(...)`,
-   including one that continues onto later lines.
+   confirm that no hit is part of a `constraint(...)`, including one that continues onto
+   later lines. Hits elsewhere, such as a `^` in a regular expression in a `define`, are
+   fine.
 3. Every component quantity is a cardinality (`relation[Type] == …`); no rule writes
    `lineItemQuantity`, `ItemEndQuantity` or `this.quantity`.
 4. No derived variable depends, directly or through an aggregate, on a cardinality it sets.
