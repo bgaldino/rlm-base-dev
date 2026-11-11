@@ -67,9 +67,13 @@ where each level is computed:
 - **Rejection:** route any rejected step to a "Rejected" stage. In the shipped flow,
   rejecting the Discount item withdrew the open Finance item and rejected the submission
   [Measured: 2026-11-10, 264]; the reverse direction hasn't been run.
-- **Recall:** add a path that resets the record's status on recall. The shipped flow has
-  none, and recall left the quote at Pending [Measured: 2026-11-10, 264]. For contracts the
-  docs say to build it [Help: `ind.sf_contracts_aa_configure`].
+- **Recall and cancel:** a status the approval flow set (Pending) stays unless something
+  resets it. The docs give a recall path in the approval flow for recall, and a
+  record-triggered flow on `ApprovalSubmission` for cancel
+  [Help: `ind.sf_contracts_aa_configure`]. The shipped flow has no recall path; the repo
+  uses one record-triggered flow for both, `RLM_AA_Reset_Quote_Status`, which leaves the
+  orchestration unchanged
+  [Repo: `docs/features/composable-quote-approvals.md` → Quote approval status].
 
 ## 4. Approvers
 

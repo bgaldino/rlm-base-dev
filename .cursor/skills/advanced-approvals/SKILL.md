@@ -119,6 +119,7 @@ This table is a snapshot as of 264 and will age. To see what ships now, run
 | `datasets/context_plans/Approvals` (`apply_context_approvals`) | Maps the two line fields into `RLM_SalesTransactionContext` so pricing can write them |
 | `RLM_Quote_Smart_Approval` (orchestration) | Background data step → approval stage with a Discount chain (Manager → Director → VP, cumulative) and a Finance chain (payment terms other than Net 30) → Approved or Rejected stage. Level 0 with Net 30 skips approval |
 | `force-app/main/default/groups/` | The `Manager`, `Director` and `VP` public groups the steps assign to, shipped with no members; no task adds members |
+| `RLM_AA_Reset_Quote_Status` (record-triggered on `ApprovalSubmission`) | Sets the quote's `RLM_Approval_Status__c` to `Recalled` on recall and clears it on cancel. The shipped orchestration has no recall path and nothing that runs on cancel |
 | `datasets/sfdmu/qb/en-US/qb-approvals` + `create_approval_email_templates` | Lightning email templates and the alert definitions that link them to steps |
 
 Measured end to end on a QuantumBit build [Measured: 2026-11-10, 264]:
@@ -129,8 +130,11 @@ Measured end to end on a QuantumBit build [Measured: 2026-11-10, 264]:
 - Rejecting the Discount item while a Finance item was open set the Finance item to
   Withdrawn, and the submission and the quote to Rejected.
 - A level-0 quote with Net 30 was Approved at once.
-- **Recall left the quote's status at Pending:** the shipped flow has no recall path.
-  Resubmitting created a new submission.
+- Recall set the submission and its work item to Recalled, and the quote to Recalled.
+  Resubmitting created a new submission, and approving it set the quote to Approved.
+  Cancel set the submission and work item to Canceled and cleared the quote's status
+  [Measured: 2026-11-10, 264, with `RLM_AA_Reset_Quote_Status`]. Before that flow
+  shipped, recall left the quote at Pending.
 
 ## Sub-files
 
@@ -172,7 +176,9 @@ items:
   never started: it requires that step to be completed, with no "not triggered"
   alternative (Quick Rule 4). Check the stage exit logic against the flow, and Paused and Failed
   Interviews [Help: `ind.approvals_approval_process_execution`].
-- A `Recalled` submission with the quote at Pending is the missing recall path above.
+- A `Recalled` or `Canceled` submission with the quote still at Pending means
+  `RLM_AA_Reset_Quote_Status` didn't run: check that it's active and deployed
+  (`deploy_post_approvals`).
 
 ## Validation Checks
 
@@ -189,6 +195,7 @@ items:
     - multi-dimension
     - rejection
     - recall and resubmit
+    - cancel
 
   Each must end with the expected work-item statuses and quote status.
 - After dataset changes:
