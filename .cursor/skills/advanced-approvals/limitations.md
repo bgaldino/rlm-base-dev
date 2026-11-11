@@ -78,8 +78,9 @@ After a full approval, the next submission is a new request, not a resubmission.
 - Whether approving and recalling need Approval Admin, or only Run Flows plus Read. For
   recall, the dev guide requires Approval Admin plus being the submitter, while the Help
   personas table gives submitters Run Flows plus Read. For approving, only the Help quote
-  walkthrough requires Approval Admin. Measured runs used an admin, who could also review
-  a work item assigned to an empty group; why is unknown.
+  walkthrough requires Approval Admin. Measured runs used an admin holding Approval Admin
+  (through its profile and `RLM_CLM`), which the personas table allows to review any work item, so they don't
+  settle what an ordinary reviewer needs.
 - Which Approval Settings a fresh scratch org has on, and whether Metadata API can set them.
 - Whether a dynamic (Resource) approver works at runtime, and whether there is a
   manager-hierarchy approver.

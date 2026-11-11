@@ -63,8 +63,8 @@ where each level is computed:
 - **Exit:** for each step, "completed OR not triggered", plus the rejection shortcut
   [Repo: `docs/features/composable-quote-approvals.md` → Exit Condition Pattern].
 - **Rejection:** route any rejected step to a "Rejected" stage. In the shipped flow,
-  rejecting one chain withdrew the other chain's open item and rejected the submission
-  [Measured: 2026-11-10, 264].
+  rejecting the Discount item withdrew the open Finance item and rejected the submission
+  [Measured: 2026-11-10, 264]; the reverse direction hasn't been run.
 - **Recall:** add a path that resets the record's status on recall. The shipped flow has
   none, and recall left the quote at Pending [Measured: 2026-11-10, 264]. For contracts the
   docs say to build it [Help: `ind.sf_contracts_aa_configure`].
@@ -76,9 +76,10 @@ where each level is computed:
 - In a fresh scratch org those groups have no members. An org admin who wasn't a member
   could still review those items with `reviewApprovalWorkItem` [Measured: 2026-11-10, 264].
   The dev guide requires the reviewer to be the assignee, a group or queue member, a delegate
-  or above in the role hierarchy [Dev guide: `actions_obj_review_approval_work_item`]. Why the
-  admin could review an empty group's item is unknown (admin permissions such as Approval
-  Admin or Modify All are the likelier reason); it's listed in [limitations.md](limitations.md).
+  or above in the role hierarchy [Dev guide: `actions_obj_review_approval_work_item`], and
+  the Help gives an approval administrator the right to "review or override any work item"
+  [Help: `ind.approvals_personas`]. The admin held Approval Admin (through its profile and the
+  `RLM_CLM` permission set) [Measured: 2026-11-10, 264], which fits the Help. Don't rely on it for ordinary reviewers: give the groups members.
 - Documented approver types: user, group and queue. A "Resource" type exists, but Preview
   doesn't support it [Help: `ind.approvals_preview_feature_limitations`].
 - The docs don't describe a manager or role-hierarchy approver type ([limitations.md](limitations.md)).
