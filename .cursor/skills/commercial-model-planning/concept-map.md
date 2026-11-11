@@ -44,7 +44,7 @@ them.
 | Annual escalator | Group ramp with uplift | `ramped-quotes`; `pricing-procedures` → `elements/price-revision-compound-uplift.md` |
 | Renewal uplift | Price revision policy | `pricing-setup` → `price-revision-policies.md`; `asset-lifecycle-changes` |
 | Discount for a longer commitment | List filter on term plus a formula step on Term Defined lines | `pricing-procedures` → `elements/commitment-term-discount.md` |
-| A policy approved but not yet in the source's calculator ("Proposed") | Build it behind a quote-level switch the procedure filters on; run the source's goldens with it off and the policy's own examples with it on. Ask whether two such policies stack | `pricing-procedures` (filters) |
+| A policy approved but not yet in the source's calculator ("Proposed") | Build it behind a quote-level switch the procedure reads; run the source's goldens with it off and the policy's own examples with it on. Ask whether two such policies stack | `pricing-procedures` → `elements/root-answer-child-price.md` (route 2: map the header field into the context, then read it in a formula). A list filter on a header tag is unverified |
 | Price from cost and a target margin | Formula step on a cost looked up from a decision table | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md`; `pricing-procedures` → `elements/formula-based-pricing.md` |
 
 ## Cost and margin
