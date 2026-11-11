@@ -17,7 +17,9 @@ The 2026-11-10 measurements come from a temporary probe model: rules added to an
 bundle model, imported and cycled, then read back through `message(...)` values in a
 `configure` response after a Place with rules on. The probe tested arithmetic, `ceil()`,
 `^`, `configurable = false`, message severity and a decimal-driven cardinality, and
-nothing else. The worked example as a whole has not been run. Where the dev guide and the
+nothing else. The 2026-11-03 measurement is an earlier headless test of a different model
+on a 264 org: placed with rules off, `configure` returned `success` for a combination that
+the model rejects with rules on. The worked example as a whole has not been run. Where the dev guide and the
 org disagree, this file follows the org and says so.
 
 ---
@@ -36,9 +38,10 @@ org disagree, this file follows the org and says so.
    without explicit domains can fail to initialize
    `[Dev guide: cml_core_concept_examples]`
    `[Dev guide: cml_business-centric_cml_guidelines_quantity_and_aggregation_fun]`.
-   **Rounding up is the exception:** `ceil()` does nothing inside `constraint(...)`
-   `[Measured: 2026-11-10, 264]`. Round up with an integer bracket, which keeps the
-   explicit domain, or with an inline `ceil()`, which can't have one (see
+   **Rounding up:** `ceil()` does nothing inside `constraint(...)`
+   `[Measured: 2026-11-10, 264]`. Round up with an integer bracket, which keeps this rule
+   and is the choice for answers the rep edits. An inline `ceil()` also rounds up, but its
+   variable can't have an explicit domain (see
    [Why `ceil()` isn't in a constraint here](#why-ceil-isnt-in-a-constraint-here)).
 4. **Use `int`, not `decimal`, for anything that becomes a line quantity.** `decimal` isn't
    supported for the quote line quantity field `[Dev guide: cml_variable_data_types]`.
@@ -227,10 +230,11 @@ and Aggregations*). Some of its own examples use
 inline ones (`int totalWeight = quantity * weightPerUnit;`)
 `[Dev guide: cml_cml_best_practices]` (*Dependent Logic*). Both forms evaluate:
 `int x = a * b;` gave 150 for 15 × 10 `[Measured: 2026-11-10, 264]`. They don't evaluate
-the same way. Inline keeps fractions and rounds with `ceil()`; a constraint uses integer
-arithmetic (see [Why `ceil()` isn't in a constraint here](#why-ceil-isnt-in-a-constraint-here)).
-Default to constraints, and use inline where you need `ceil()`. The performance difference
-wasn't measured.
+the same way. Inline, `/` keeps the fraction until the result is stored and `ceil()` rounds
+up; inside a constraint, `int / int` truncates and `ceil()` does nothing (see
+[Why `ceil()` isn't in a constraint here](#why-ceil-isnt-in-a-constraint-here)). Default to
+constraints and round up with the bracket. Use an inline `ceil()` only where its input isn't
+an answer the rep edits. The performance difference wasn't measured.
 
 ---
 
@@ -480,7 +484,7 @@ Expected quantities (hand-computed from the rules above; the whole model has not
 | Answers | Gateway / mount | Rack | License | Connector | Impl. h | Integ. h | PM h | Support | Review note |
 |---|---|---|---|---|---|---|---|---|---|
 | 23 sites, 180 users, 3 int., OnPrem, Standard | 23 / 23 | 3 | 180 | 3 | 632 | 120 | 113 (752 × 15% = 112.8) | Standard 1, Premium 0 | no |
-| 10 sites, 50 users, 12 int., OnPrem, Standard | 10 / 10 | 1 (exact multiple) | 50 | 12 | 320 | 480 | 120 (800 × 15% = 120, exact) | Standard 1 | **yes, Info** |
+| 10 sites, 50 users, 12 int., OnPrem, Standard | 10 / 10 | 1 (exact multiple) | 50 | 12 | 320 | 480 | 120 (800 × 15% = 120, exact) | Standard 1, Premium 0 | **yes, Info** |
 | 11 sites, 50 users, 0 int., OnPrem, Premium | 11 / 11 | 2 (one past a multiple) | 50 | 0 | 344 | 0 | 52 (344 × 15% = 51.6) | Premium 1, Standard 0 | no |
 | 11 sites, 50 users, 0 int., Cloud, Premium | 11 / 11 | 0 (Cloud) | 50 | 0 | 344 | 0 | 52 (344 × 15% = 51.6) | Premium 1, Standard 0 | no |
 
