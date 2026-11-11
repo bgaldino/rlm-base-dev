@@ -109,8 +109,10 @@ the filter must be the first child, one filter per group].
     Transaction Pricing should be applied after discounts; with a list-price source the uplift is
     ignored [Help: `ind.qocal_renewal_price_uplifts.htm`,
     `ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm`]. With a
-    CPI/Variable uplift, Help computes the renewal net unit price from the last transaction price
-    [Help: `ind.qocal_consumer_price_index_and_price_uplifts.htm`].
+    CPI/Variable uplift, Help computes the renewal net unit price from the latest asset action
+    source's change in subtotal divided by its change in quantity, times (1 + the uplift)
+    [Help: `ind.qocal_consumer_price_index_and_price_uplifts.htm`]. Whether that price includes a
+    4% the earlier sale took is not documented.
   - This repo stamps `LastTransaction` on every lifecycle asset whose source is blank [Repo: flow
     `RLM_Update_Asset_Pricing_Source_if_Price_Revision`], and the as-is renewal recorded in
     [`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md) →
@@ -124,10 +126,10 @@ the filter must be the first child, one filter per group].
     from a list-price asset takes no uplift and passes criterion 9, so it gets the 4% if its
     term meets the threshold (the renewal takes its term from the asset or the contract [Help:
     `ind.qocal_renew_assets.htm`]). As built, one renewal line does not get both.
-  - Letting `Renew` lines through criterion 9 would reward a renewal's own commitment, but would
-    take a 4% already inside the last transaction price a second time, and Help's "uplifts after
-    discounts" would put the group before group 24 rather than at 28. Neither was built; see
-    [Open questions](#open-questions).
+  - Letting `Renew` lines through criterion 9 would reward a renewal's own commitment. If the
+    price the renewal starts from already includes an earlier 4%, it would take the 4% a second
+    time. Help's "uplifts after discounts" would put the group before group 24 rather than at
+    28. Neither was built; see [Open questions](#open-questions).
 - Nested parentheses in the condition logic save and evaluate as expected
   [Measured: 2026-11-10, 264].
 
@@ -319,8 +321,8 @@ expressed the rule.
   transaction price the uplift starts from includes the original 4%, and whether the second line
   gets no term discount, as the filters imply. Repeat with a contract price on the line to check
   that it ends at the contract price without the uplift. Also
-  open: whether a renewal should earn the 4% at all, and if so how to avoid taking a prior 4%
-  twice. That is a business rule to settle with the source; no design for it was built or
-  measured. The headless response did
+  open: whether a renewal should earn the 4% at all, and if so how to avoid taking it twice when
+  the starting price already includes an earlier 4%. That is a business rule to settle with the
+  source; no design for it was built or measured. The headless response did
   carry a waterfall entry for the formula step (input `NetUnitPrice` 16,587 on line 1); how it
   shows in the quote's waterfall UI was not checked.
