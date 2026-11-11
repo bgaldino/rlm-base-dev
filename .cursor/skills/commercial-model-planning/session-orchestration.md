@@ -42,9 +42,9 @@ extraction → spikes → catalog → (configuration ∥ pricing) → negotiatio
    directory; in a git worktree `.git` is a file, so a run there uses another
    checkout's files (or none). Run from the main checkout or a regular clone. Sessions share that
    checkout, and each one owns specific folders; a session never writes outside them.
-   Concurrent harness builds are fine, each with its own run id (`--run-id`), on a
-   harness that gives each run its own Robot output folder (`main` since 2026-11-11);
-   on an older one, two runs' Robot steps overwrite each other's output.
+   Before running harness builds at the same time, read `build-harness` → Run several
+   builds at once: a run id isolates only Robot output, and other steps still write to
+   the shared checkout.
 3. **Only the main session commits,** after reviewing a session's files at its gate.
    This stops two sessions racing on one git index.
 4. **Every brief stands alone.** It names:

@@ -191,9 +191,9 @@ Rules that need a live org become spikes, each with the source value it must hit
   allowed: mark it **derived** and cite the rule's cells.
 - Recompute calculated values from inputs and match them to the source's own results
   (formula parity). A mis-read rule fails here instead of in the org.
-- **Assert platform-enforced behaviour where the platform enforces it.** A lock the
-  platform saves and then refuses at order is asserted at the order (or its error
-  log), not at save.
+- **Assert platform-enforced behaviour where the platform enforces it.** Where the
+  platform accepts a change and enforces the rule later (at order, activation or
+  amendment), the golden asserts at that later step.
 - **Cross-rule parity.** Run each worked example through every rule in the register,
   not only its own formula: guards, dependencies and thresholds. A source's summary
   formulas often skip a rule its policy text states (a per-line floor-margin guard, a
