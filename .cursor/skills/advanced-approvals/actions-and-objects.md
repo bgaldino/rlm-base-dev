@@ -11,7 +11,7 @@ the UI. Parent: [advanced-approvals](SKILL.md). The object fields are in
 | `ApprovalSubmission` | The request: `RelatedRecordId`, `Status` (Approved, Canceled, Errored, InProgress, Recalled, Rejected, Suspended), `SubmittedById`, `FlowOrchestrationInstanceId`. Query only: no create or update [Dev guide: `sforce_api_objects_approvalsubmission`] |
 | `ApprovalWorkItem` | One assigned step: `Status` (Assigned, Approved, Rejected, Recalled, Withdrawn, ...), `AssignedToId` (user, group or queue), `ApprovalChainName`, `ApprovalConditionName`, `ReviewedById`, Smart Approval fields |
 | `ApprovalSubmissionDetail` | Audit trail of every action |
-| `ApprovalWorkItemCriteria`, `ApprovalWorkItemCondition` | The entry and exit logic each step evaluated, condition by condition. Read these to see why a step did or didn't start |
+| `ApprovalWorkItemCriteria`, `ApprovalWorkItemCondition` | The entry and exit logic evaluated for a work item, condition by condition, keyed by `ApprovalWorkItemId`. Read these to see why a started step's logic evaluated as it did; whether a row exists for a step that never started is unverified |
 
 The Withdrawn and Recalled work-item statuses and the field lists were measured on a live
 org [Measured: 2026-11-10, 264]. `ApprovalDelegation` wasn't present there.

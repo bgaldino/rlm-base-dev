@@ -8,7 +8,8 @@ before telling anyone how approvals behave where the docs are unclear. Parent:
 
 - **Settings:** Setup → Approval Settings: Use Flow Approval Process, Use Advanced
   Approvals, the email options, Use Advanced Approval Delegation, Use Dynamic Approval
-  Notifications, and the Slack toggles. Email replies are a separate setting, under
+  Notifications [Help: `ind.approvals_set_up_advanced_approvals`], and the Slack toggles
+  [Help: `ind.approvals_turn_on_slack_notifs`]. Email replies are a separate setting, under
   Process Automation Settings [Help: `ind.approvals_set_up_advanced_approvals`].
 - **Repo coverage:** the repo ships no settings metadata for these toggles. On a
   QuantumBit build the shipped approval ran end to end with whatever the scratch org
@@ -87,3 +88,7 @@ After a full approval, the next submission is a new request, not a resubmission.
 - Whether Smart Approvals accepts roll-up summary, Percent, Currency or picklist
   conditions as Number or Text.
 - Whether `ApprovalDelegation` appears once delegation is turned on.
+- Whether `ApprovalWorkItem` standard fields accept a sObject `update()`: the Help says no
+  [Help: `ind.approvals_design_build_activation`]; the dev guide lists `update()` and marks
+  `ApprovalChainName` and the Smart Approval fields updatable
+  [Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`].

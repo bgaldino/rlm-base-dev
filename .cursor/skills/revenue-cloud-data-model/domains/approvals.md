@@ -18,9 +18,11 @@ QuantumBit build (2026-11-10) and aren't in the offline ERD yet. Behaviour and m
 
 `ApprovalDelegation` is documented as new in 264 but was **not** present on that build
 (`describe` returned NOT_FOUND); it likely depends on the Use Advanced Approval Delegation
-setting. Standard fields on the runtime records (`ApprovalSubmission`, `ApprovalWorkItem` and
-their detail, criteria and condition records) can't be written through the sObject APIs;
-change them through the approval invocable actions. Configuration records such as
+setting. The Help says standard fields on approval objects can't be written through the
+sObject APIs; change them through the approval invocable actions
+[Help: `ind.approvals_design_build_activation`]. The dev guide, though, lists `update()` on
+`ApprovalWorkItem` for `ApprovalChainName` and the Smart Approval fields
+[Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`]; unmeasured. Configuration records such as
 `ApprovalAlertContentDef` load normally (the `qb-approvals` plan upserts them).
 
 ## Supporting Objects (from data plans)

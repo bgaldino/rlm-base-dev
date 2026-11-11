@@ -88,6 +88,12 @@ where each level is computed:
 
 The policy: discount levels as in §1, margin below 65% needs a Director, and net value
 over $5M needs the VP. One approver ladder.
+
+Prerequisite: margin and net value are dimensions beyond Discount and Finance, and the
+design doc requires threshold policy to be externalized before adding one
+[Repo: `docs/features/composable-quote-approvals.md`]. Do that first, or agree and record the
+exception. The steps below keep the shipped hard-coded thresholds and don't show it.
+
 1. The pricing procedure keeps writing the line discount level (the shipped overlay,
    thresholds edited).
 2. `RLM_Quote_Approval_Data` reads the quote and returns:
@@ -104,9 +110,7 @@ over $5M needs the VP. One approver ladder.
     - the stage's "not triggered" exit conditions (2, 4 and 6 in the shipped flow).
 
    The rejection formula and alerts are per step and don't change.
-4. Thresholds stay hard-coded in the flow. The design doc asks for them to be externalized
-   before a third dimension is added [Repo: `docs/features/composable-quote-approvals.md`].
-5. Test cases:
+4. Test cases:
     - a 22% discount at 72% margin → Manager, Director;
     - a 5% discount at 63% margin → Manager, Director;
     - $6M at 75% margin → Manager, Director, VP;

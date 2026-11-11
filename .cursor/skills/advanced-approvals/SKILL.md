@@ -47,8 +47,11 @@ QuantumBit build.
     - The repo uses the invocable Apex `RLM_AA_Submit_Approval`.
     - Review, override, reassign, recall and cancel have standard actions
       ([actions-and-objects.md](actions-and-objects.md)).
-    - Standard approval fields can't be written through the sObject APIs
-      [Help: `ind.approvals_design_build_activation`].
+    - The Help says standard fields on approval objects can't be written through the sObject
+      APIs [Help: `ind.approvals_design_build_activation`], but the dev guide lists `update()`
+      on `ApprovalWorkItem` for a few fields
+      [Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`]. Use the actions; treat
+      direct writes as unsettled ([limitations.md](limitations.md)).
 6. **Extend the shipped workflow rather than adding a second one.** Follow the nine-step
    recipe in `docs/features/composable-quote-approvals.md` → Adding A New Approval Dimension;
    it is the one list to keep current. The two steps most often missed:
@@ -138,6 +141,10 @@ Measured end to end on a QuantumBit build [Measured: 2026-11-10, 264]:
 
 **Add a margin dimension to the shipped approval.** The policy: blended margin below 70%
 needs a Manager, below 65% a Director, below 60% the VP.
+- First: margin is a third dimension beyond Discount and Finance, and the design doc makes
+  externalizing threshold policy a prerequisite for that
+  [Repo: `docs/features/composable-quote-approvals.md`]. Do it first, or agree and record the
+  exception; the steps below don't show it.
 - Compute the quote margin in the pricing procedure, or in the approval data flow, and
   convert it to a level 0–3 number (`MarginApprovalLevel`) in `RLM_Quote_Approval_Data`.
 - Take the overall level as the maximum of the discount and margin levels
@@ -149,9 +156,6 @@ needs a Manager, below 65% a Director, below 60% the VP.
   and 6). Otherwise a margin-only quote skips approval, or the stage exits before anyone
   approves.
 - Or give margin its own chain if its approvers differ, following Quick Rule 6.
-- The design doc asks for threshold policy to be externalized before a third dimension is
-  added [Repo: `docs/features/composable-quote-approvals.md`]. Folding margin into one level
-  adds no step, but its thresholds are still hard-coded.
 - Reprice before testing.
 - [matrix-modeling.md](matrix-modeling.md) walks through the choices.
 
@@ -159,8 +163,8 @@ needs a Manager, below 65% a Director, below 60% the VP.
 items:
 - An `InProgress` submission with no `Assigned` item, after allowing a few seconds for the
   asynchronous orchestration, usually means a stage exit condition is missing for a step
-  that never started. Confirm with `ApprovalWorkItemCriteria` / `ApprovalWorkItemCondition`,
-  and check Paused and Failed Interviews [Help: `ind.approvals_approval_process_execution`].
+  that never started. Check the stage exit logic against the flow, and Paused and Failed
+  Interviews [Help: `ind.approvals_approval_process_execution`].
 - A `Recalled` submission with the quote at Pending is the missing recall path above.
 
 ## Validation Checks

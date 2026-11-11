@@ -158,10 +158,11 @@ Run these checks before treating an approval-flow change as ready:
   already has them, it applies only additions; change an existing overlay step with
   `updateSteps` (`.cursor/skills/expression-sets/`) and deactivate the context version before
   changing a mapping (`.cursor/skills/context-service/`). Reprice before testing.
-- Preview Approvals shows the expected chains and steps once mock output values are set for
-  the `QueryApprovalData` background step: Preview doesn't show steps whose entry
-  conditions depend on a background step's subflow. A real submission (below) is the
-  deciding check.
+- Preview Approvals doesn't show steps whose entry conditions depend on the
+  `QueryApprovalData` background step's subflow. The Help workaround, mock output values set
+  in Flow Builder, edits the flow: do it only in a throwaway version that is never committed
+  or left active, since a new active version also ends Smart Approvals eligibility for
+  resubmissions (Help: `ind.approvals_smart_approval_limitations`). A real submission (below) is the deciding check.
 - **No-approval path**: Quotes with `DiscountApprovalLevel = 0` AND `PaymentTerms = "Net 30"` 
   route directly to `Approved` status without entering the approval stage.
 - **Single-dimension paths**: Discount-only and terms-only quotes complete correctly.
