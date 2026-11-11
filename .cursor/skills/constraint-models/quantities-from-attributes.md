@@ -150,7 +150,7 @@ ramp, later segments kept a stale split that broke the constraint with only that
 `[Measured: M24]`.
 
 "Rejected" means the configuration is flagged, not that the edit is undone. Place saved
-the edited quantity; `configure` and the error log carried the rule's message
+the edited quantity; `configure`, the error log, or both carried the rule's message
 `[Measured: M23, M29]`. See [Testing it headlessly](#testing-it-headlessly) for where to
 read it.
 
@@ -457,8 +457,8 @@ in front of it (step 1 below).
    wasn't recorded `[Measured: M31]`; bundle-validation warnings were logged at `Severity`
    Warning `[Measured: M29]`. So for a valid answer set also require no
    `RevenueTransactionErrorLog` rows of any `Severity` on the quote, queried a few seconds
-   after Place, or a successful `createOrdersFromQuote`. Whether a Warning row blocks
-   ordering is [open item 1](#open-items).
+   after Place. A successful `createOrdersFromQuote` alone doesn't prove that: whether a
+   Warning row blocks ordering is [open item 1](#open-items).
 5. **Assert every component's quantity**, including the zeros, against a hand-computed
    table (see the worked example), and assert one line per component. Pick answers on
    each rounding boundary: exact multiples (`sites = 10`) and one past (`sites = 11`). Add
@@ -681,7 +681,7 @@ was run.
 | M26 | The M25 case with the PRC `MaxQuantity` above the needed quantity; then with `property maxRelationSize` set to the relation's upper bound | `MaxQuantity`: still rejected. The property: the bound itself solved | 2026-11-11 |
 | M27 | `string region = parent(region);` in child types, no level; children in PCM component groups; no group types in the model; only the root's answer sent (two orgs) | Each child's attribute record held the root's value; editing the root's answer re-derived it and repriced; also in the configurator UI | 2026-11-11 |
 | M28 | The M27 child types under a bundle root that isn't a type in the model; one child placed alone | Under that root: the children kept their attribute default. Alone: no attribute record written. Solver success, no message, both | 2026-11-11 |
-| M29 | Place (rules on, `Force`) of configurations the rules reject | Place `isSuccess: true`, saving what it was sent. `configure`: `success: true`, `solverStatus: "error"`, `errors: []`, the rule's message in `messages` at type `error`; an error log with the message in `ConfiguratorErrorMessage`. Bundle-validation warnings in the same run were logged as a separate row of `Severity` Warning. In one case the message was only in the error log, and a later `configure` returned `solverStatus: "success"` | 2026-11-11 |
+| M29 | Place (rules on, `Force`) of configurations the rules reject | Place `isSuccess: true`, saving what it was sent. `configure`: `success: true`, `solverStatus: "error"`, `errors: []`, the rule's message in `messages` at type `error`; an error log of `Severity` Error with the message in `ConfiguratorErrorMessage`. Bundle-validation warnings in the same run were logged as a separate row of `Severity` Warning. In one case the message was only in the error log, and a later `configure` returned `solverStatus: "success"` | 2026-11-11 |
 | M30 | Place graph answers as `QuoteLineItemAttribute` with `AttributeDefinitionId`, `AttributeValue` and, for picklists, `AttributePicklistValueId`; no `AttributeName` | Bound to the CML variables named by the definitions' developer names; a number stored with a decimal (`"12.0"`) bound to an `int` | 2026-11-11 |
 | M31 | Place PATCH of a bundle child's quantity with `IsQuantityEditable = false` on its PRC (two quotes); then `createOrdersFromQuote`; then the quantity set back | `isSuccess: true`, the line saved and repriced; within seconds a `RevenueTransactionErrorLog` (BundleValidation: the quantity "can't be edited"); the order refused, "existing Revenue Transaction Error Logs". Setting it back deleted the log. The line editor saved the same edit with a warning icon and the same log | 2026-11-11 |
 | M32 | Place of a rejected configuration without `BillingFrequency` on Term-defined and Evergreen lines | `FIELD_INTEGRITY_EXCEPTION` on the root, "… BillingFrequency can't be null", instead of the rule. Valid configurations placed without it | 2026-11-11 |
@@ -772,7 +772,7 @@ Each needs a live 264 org:
 6. Review notes use `Info`; nothing meant as advice uses `Warning` or `Error`.
 7. Headless test: placed with rules on and a `BillingFrequency` on every recurring line,
    answers that bind (checked against non-default values), every quantity asserted as one
-   line per component, no `RevenueTransactionErrorLog` rows (or a successful order) for a valid answer set, every
+   line per component, no `RevenueTransactionErrorLog` rows of any `Severity` for a valid answer set, every
    rejection asserted by the message of a rule it breaks, read from `configure` and
    `RevenueTransactionErrorLog`. Then the parent
    skill's [Validation Checks](SKILL.md#validation-checks), including the configurator
