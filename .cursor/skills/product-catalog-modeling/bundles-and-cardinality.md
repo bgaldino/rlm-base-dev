@@ -56,7 +56,8 @@ the same error log: **Open — needs live verification.**
 
 Measured on a locked configurable bundle (Term Defined root at a zero price; one group whose
 min and max equal its four children, each required, default, quantity 1, not editable, with
-no scaling method given, so stored `Proportional`; the children One Time, Term Defined and Evergreen) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
+no scaling method given, so stored `Proportional`; two children One Time, one Term Defined,
+one Evergreen) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
 
 | Where | What happened |
 |---|---|
@@ -66,6 +67,8 @@ no scaling method given, so stored `Proportional`; the children One Time, Term D
 | After either save | The platform writes a `RevenueTransactionErrorLog` (BundleValidation) within seconds, and `createOrdersFromQuote` is **refused** while it exists ("there are existing Revenue Transaction Error Logs"). Setting the quantity back deletes the log. |
 | Renewal (Connect `renew` on the root asset, no renewal term passed) | The Term Defined child renews at its quantity for **one** term of its selling model, even after a multi-term sale; the Evergreen and One Time children come through at quantity 0; the root at quantity 1. |
 
+On a second build whose locked children were `Constant`, the same Place edit also saved and
+wrote the error log (the order and the line editor were not tried there). [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 So the lock holds in the configurator and at order creation, not at save: a headless test
 of "locked children can't change" must try the order (or read the error log), not trust
 the save's success. Root and child renewal rules by selling model are in
@@ -188,7 +191,8 @@ number of distinct children. [Help: `ind.product_catalog_cardinality_examples.ht
 In the 264 API the picklist holds only `Constant` and `Proportional`: writing `None` is
 rejected (`INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`). Blank means None only when
 `IsQuantityEditable` is true: a row inserted with `IsQuantityEditable = false` and no method
-was stored `Proportional`. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
+was stored `Proportional`. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] A Proportional child scales with the parent quantity, so on a
+locked row write `Constant` when the quantity must stay fixed whatever the parent quantity.
 Proportional is the default when *Allow quantity changes* is off at creation; None when on.
 Help's warning says child quantities are read-only in the runtime cart when the method is
 Constant or "Default" (a value its own list of methods does not include), even on legacy
@@ -203,8 +207,8 @@ with None (blank, with *Allow quantity changes* on) or as a separate line. [Help
 
 ## CML-sized default components
 
-A component that is `IsDefaultComponent` and whose quantity a CML rule sets (for example
-`relation[Type] == n` from a root answer) **splits**: the default instance stays at its PCM
+A component that is `IsDefaultComponent`, whose quantity a CML rule sets (for example
+`relation[Type] == n` from a root answer), and whose CML type has no `split` annotation **splits**: the default instance stays at its PCM
 quantity and the solver adds a second instance for the rest (measured with a default
 quantity of 1: 1 + (n − 1)). Measured in the
 UI configurator and on the API defaults path (Place with `addDefaultConfiguration: true`);
@@ -224,7 +228,8 @@ rejected with the rule's message. [Measured: 2026-11-11, fresh 264 ent-sb0 scrat
 split, but loses the pre-selection and cannot keep a required child (a required child must
 be a default). [Help: `ind.product_catalog_local_cardinality.htm`] `constraint-models`
 covers writing the CML. Its one-line result for `relation[Type] == n` (run M14) does not
-record whether the component was a default; for a default component, expect the split.
+record whether the component was a default; for a default component whose type has no
+`split` annotation, expect the split.
 
 ## Quote visibility
 

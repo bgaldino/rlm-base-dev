@@ -140,7 +140,7 @@ the detail and the sources.
 | **Where an attribute value is set** | Definition → classification attr → product attr → bundle override. | Lower levels are more specific but must be reviewed when a higher level changes. | Bundle overrides break attribute-based pricing. [Help: `ind.product_catalog_attribute_fields.htm`; `ind.pricing_attribute_based_pricing_limits.htm`] |
 | **Selling model** | One Time / Term-Defined / Evergreen from the pricing basis. | Each extra model adds a PBE and an option per product. | Proration, renewal and the Subscription price element read it. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md) |
 | **`IsAssetizable`** | True when the sale must leave something to amend, renew or cancel. | False keeps the asset table clean for consumables. | Root value overrides children. [Help: `ind.product_catalog_create_bundled_products.htm`] |
-| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses to put it in a category, and Product Discovery and Quick Add did not find it; a bundle component row for it is accepted. | Placed alone through the API (Place, order, activation), it was **not** refused; other paths untested. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
+| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses to put it in a category; Product Discovery and Quick Add did not find it (the flag or the missing category: not isolated); a bundle component row for it is accepted. | Placed alone through the API (Place, order, activation), it was **not** refused; other paths untested. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
 | **Catalog / category placement** | Catalogs by audience or business unit; categories for browsing. | More catalogs means more category rows to keep coded uniquely. | Drives Product Discovery browsing; categories, not catalogs, hold products. [`catalogs-and-loading.md`](catalogs-and-loading.md) |
 | **Family** | A coarse product line other systems filter on. | A free picklist value becomes a contract. | Whatever keys on it (search facets, Apex, rules) breaks on a rename. [`catalogs-and-loading.md`](catalogs-and-loading.md#product-family-is-a-contract) |
 
@@ -195,9 +195,10 @@ from its CSV is **Open — needs live verification**: every `IsRequired` in the 
 `false`, the documented default, but all 36 rows set `AttributeNameOverride`, whose
 first-insert value was not recorded. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
-After any load of new products, run `refresh_all_decision_tables` and then `rebuild_search_index`,
-and wait for the index build before placing a quote (minutes on the measured scratch org):
-until it finishes, Place answers "Could not find product with ID" for them, so retry until
+After any load of new products, run the `refresh_all_decision_tables` flow and then the
+`rebuild_search_index` task, and wait for the index build (minutes on the measured scratch
+org). Place answered "Could not find product with ID" for new products until both had run
+and the build had finished (which of the two it waits on was not isolated), so retry until
 that error stops. Two more
 load facts measured the same way, a `Family` value missing from the picklist and the
 component fields an insert cannot set, are in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264).
@@ -288,15 +289,16 @@ Review the CSVs for these, each a rule above:
 - Every group's `MinBundleComponents` ≤ distinct children, and required children ≤ `MaxBundleComponents`.
 - Every `Family` value is a value of the org's `Family` picklist, or the same change adds it
   to the `Product2Family` standard value set.
-- No `QuantityScaleMethod` is `None` (use blank). A blank on a row with `IsQuantityEditable`
-  false comes back from the org as `Proportional`; expect that difference in an extract.
+- No `QuantityScaleMethod` is `None` (use blank), and every row with `IsQuantityEditable`
+  false names its method: a blank there is stored `Proportional`, which scales with the parent
+  quantity. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 - Every product has at most one `IsDefault` selling model option; term-defined and
   evergreen options carry a proration policy where proration is wanted.
 - Category codes are unique across all levels and catalogs; no row's `ParentCategory.Code` equals its own `Code`.
 - Price-impacting attributes sit on the classification the adjustment names and are not overridden in a bundle.
 
-After a load into an org: run the plan's second pass (fact a), then `refresh_all_decision_tables` and
-`rebuild_search_index`, run **Validate Product
+After a load into an org: run the plan's second pass (fact a), then the `refresh_all_decision_tables` flow and
+the `rebuild_search_index` task, run **Validate Product
 Definition** on each changed bundle in PCM [Help: `ind.product_catalog_bundled_product_validations.htm`], and
 configure one bundle in the configurator with rules on.
 

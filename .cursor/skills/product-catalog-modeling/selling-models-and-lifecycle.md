@@ -147,9 +147,9 @@ What amend, renew or cancel do when its companion is removed: **Open — needs l
 QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
 
 **Modeling advice:** set the flag and make the add-on a bundle component; leave it out of
-every category (the platform requires that anyway). If a quote built outside the UI must
-not sell it alone, add your own check (a configuration rule or a validation on the quote):
-the flag does not.
+every category (the platform requires that anyway). If no quote may sell it alone, add your
+own check (a configuration rule or a validation on the quote): the flag's only measured
+enforcement is the category refusal.
 
 ## Other lifecycle fields on `Product2`
 
