@@ -51,8 +51,8 @@ in November 2026.
       sizing attribute on an amendment re-derives the children through CML is **Open**
       ([verification.md](verification.md) → Open).
     - An amendment that changes a component's plan or price is an amendment of the
-      top-level asset too. Help has two amendments that keep the bundle: the attribute
-      amendment above, and a price amendment, which changes price without changing
+      top-level asset too. Help describes two that fit: the attribute amendment
+      above, and a price amendment, which changes price without changing
       quantity, attributes or bundle configuration and works on bundles [Help:
       `ind.qocal_field_and_pricing_amendments`,
       `ind.qocal_field_and_price_amend_important_considerations`]. Neither says whether the

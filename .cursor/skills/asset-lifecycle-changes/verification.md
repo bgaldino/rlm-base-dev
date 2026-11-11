@@ -71,7 +71,7 @@ The Standard price book gave the same results.
 - **Changing a bundle component's plan or price:** through an amendment of the top-level
   asset (an attribute or price amendment on the component's line, or a change to part of
   its quantity, 10 of the sites), or through a swap of the component asset. Help documents
-  both amendments on bundles without saying they can be made on a component's line
+  the price amendment on bundles; neither amendment is documented on a component's line
   ([change-policy-mapping.md](change-policy-mapping.md)).
 - **Evergreen reductions and swaps:** what an amendment with `quantityChange` < 0, or a
   swap's outgoing side, credits on an evergreen line. The only evergreen credit measured is
