@@ -5,7 +5,7 @@ the sale work. Parent: [asset-lifecycle-changes](SKILL.md).
 
 | Source rule | Platform action | What decides the numbers | Verify |
 |---|---|---|---|
-| "Additions are co-termed and prorated by months remaining" | Amendment (`initiateAmendment`, `quantityChange` > 0) on the top-level asset. The new units end with the original term [Help: `ind.qocal_coterminate_with_contract_end_date`, `ind.qocal_coterminate_contract_important_considerations`] | Proration in the pricing procedure (`pricing-procedures` → `elements/proration-and-subscription.md`) | Value = qty × net unit × months remaining ÷ 12 for annual terms; for evergreen, check what the quote counts |
+| "Additions are co-termed and prorated by months remaining" | Amendment (`initiateAmendment`, `quantityChange` > 0) on the top-level asset. The amendment can't change the subscription end date, so the new units end with the original term [Help: `ind.qocal_amend_assets`] | Proration in the pricing procedure (`pricing-procedures` → `elements/proration-and-subscription.md`) | Value = qty × unit price (from the asset's `PricingSource`, below) × months remaining ÷ 12 for annual terms; for evergreen, check what the quote counts |
 | "Volume bands apply to the new total; new units get the new band, existing units keep theirs" | Amendment | Volume and tier discount on the amendment line: does it see the new total or only the delta? | **Open**: measure on the product's tiers before promising it |
 | "Swap plan A for plan B" | Swap (`/revenue/transaction-management/assets/actions/swap`), or an amendment that removes A and adds B | Each side's price; constraints between them | Run with configuration rules on; a constraint may force an order between changes |
 | "Downgrades must still obey sizing rules" | Amendment or swap, with configuration rules on | CML constraints evaluated on the amendment | The rejection's own message |
@@ -18,8 +18,9 @@ the sale work. Parent: [asset-lifecycle-changes](SKILL.md).
 
 - Which lines are bundle components, and must any be changeable on their own?
 - Which selling model does each line use? That decides renewals and credits.
-- Do changes run at the asset's net price, or at the current list price? The platform
-  amends at the asset's net price. A source that computes changes "at standard pricing"
-  differs, and needs two fixtures: one at standard pricing for the source's examples, one
-  for the realistic case.
+- Do changes run at the asset's last price, or at the current list price? The asset's
+  `PricingSource` picks one for amendments and renewals: `LastTransaction` or
+  `PriceBookListPrice` [Dev guide: `sforce_api_objects_asset`; Help: `ind.qocal_amend_assets`].
+  Map a source that computes changes "at standard pricing" to `PriceBookListPrice`, and
+  check which value the build's assets carry before comparing numbers.
 - Are changes backdated? If so, also read `rlm-business-apis` → `backdated-asset-lifecycle.md`.

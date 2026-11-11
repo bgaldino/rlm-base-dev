@@ -59,9 +59,9 @@ in November 2026.
 7. **Constraints apply to amendments too.** A rule such as "Shield only with Premier"
    decides the order in which changes can run. Test each change sequence with
    configuration rules on.
-8. **Ramped bundles have their own limits:** an API-built group-ramped bundle with a
-   one-time or evergreen child can't be amended or cancelled
-   [Repo: `ramped-quotes/bundle-children-lifecycle.md`].
+8. **Ramped bundles have their own limits:** amending an API-built group-ramped bundle
+   with a one-time or evergreen child failed in the measured shapes
+   [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].
 
 ## DO NOT
 
@@ -70,7 +70,7 @@ in November 2026.
 - **DO NOT** promise a source's cancellation-credit or re-banding rule from the docs alone.
   Measure it on the selling models the model uses (Quick Rule 6, [verification.md](verification.md)).
 - **DO NOT** trust `UnitPrice` or `NetUnitPrice` on renewal, cancellation or negative
-  amendment lines (Quick Rule 4).
+  amendment lines, or on a positive amendment edited in the UI (Quick Rule 4).
 - **DO NOT** roll back a backdated change; it is refused once the amendment period has
   started [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`].
 
@@ -85,7 +85,6 @@ in November 2026.
 | Build many renewal-ready assets or lifecycle history for a demo | `renewal-asset-creation` |
 | Ramped (group ramp) quotes and their bundles | `ramped-quotes` → `bundle-children-lifecycle.md` |
 | Renewal price uplift (price revision policy, CPI) | `pricing-setup` → `price-revision-policies.md`; `pricing-procedures` → `elements/price-revision-compound-uplift.md` |
-| What the Transaction Line Editor shows on these lines | `transaction-line-editor` |
 
 ## Sub-files
 

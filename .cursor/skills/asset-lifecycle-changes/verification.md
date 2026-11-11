@@ -33,7 +33,7 @@ For each change, record the state after every step:
 ## Measured results (QuantumBit builds, release 264, 2026-11-05)
 
 On a configured bundle (a device with a one-time selling model, an evergreen annual
-service component and a one-time accessory):
+service component and a one-time accessory). The assets' `PricingSource` was not recorded:
 
 | Change | Quote | After reprice, order, order reprice, activation |
 |---|---|---|
