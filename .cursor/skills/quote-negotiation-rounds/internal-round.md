@@ -19,7 +19,7 @@ test. Each says which.
 
 ## Recommended combination
 
-1. **Mark** the round with a flag field and a name convention ("Round 3 — Floor (internal)").
+1. **Mark** the round with a flag field and the parent skill's name convention ("<Opportunity> — R3 Floor (internal)").
 2. **Block** Presented and Accepted with a validation rule on the flag.
 3. **Hide** Generate Document, Email, Sync and Create Order on the page when the flag is set.
 4. **Never clone the next customer-facing round from the internal one** without clearing the
