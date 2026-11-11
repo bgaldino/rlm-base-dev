@@ -49,8 +49,9 @@ bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child w
 (`IsQuantityEditable`) off, and group limits that pass
 [Validate Product Definition](#mistakes-validate-product-definition-catches).
 [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_bundled_product_validations.htm`]
-Measured on a locked configurable bundle whose children were required, default, quantity 1,
-not editable and `Proportional` [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
+Measured on a locked configurable bundle with a Term Defined root and four children (two One
+Time, one Term Defined, one Evergreen), each required, default, quantity 1, not editable and
+`Proportional` [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
 
 | Where | What happened |
 |---|---|
@@ -172,22 +173,22 @@ number of distinct children. [Help: `ind.product_catalog_cardinality_examples.ht
 
 | Method | Run time | Amend / renew / cancel |
 |---|---|---|
-| None (blank) | Editable if *Allow quantity changes*, independent of parent | — |
+| None | Editable if *Allow quantity changes*, independent of parent | — |
 | Constant | Fixed at design-time quantity; *Allow quantity changes* must be off | — |
 | Proportional | Child = parent qty × child qty; with *Allow quantity changes* on, editable only in the configurator during a **new sale**, read-only in the line editor | **Read-only** in the configurator: the original ratio stays for the asset's life; change the parent quantity instead |
 
 Help: Proportional is the default when *Allow quantity changes* is off at creation, None when
 on; child quantities are read-only in the runtime cart when the method is Constant or
 "Default" (a value its own list of methods does not include). [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_local_cardinality.htm`]
-In the 264 API the picklist holds only `Constant` and `Proportional` (writing `None` is
-rejected, `INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`), and a locked row inserted with no method
-was stored `Proportional`. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] So on a locked row, write the method you mean. A locked
+In the 264 API the picklist holds only `Constant` and `Proportional`; writing `None` is
+rejected (`INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`). An editable row is left blank for None,
+but a locked row inserted blank was stored `Proportional`, so give locked rows a method. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] A locked
 child's quantity edit still saved in the line editor; see
 [the locked bundle measurement](#static-kit-or-locked-configurable-bundle-when-children-recur).
 
 **Downstream:** choosing Proportional fixes the parent-to-child ratio for every later
 amendment. If a customer must later change one child's quantity independently, model it
-with None (blank, with *Allow quantity changes* on) or as a separate line. [Help: `ind.product_catalog_product_relationships.htm`]
+with None (or as a separate line). [Help: `ind.product_catalog_product_relationships.htm`]
 
 ## CML-sized default components
 

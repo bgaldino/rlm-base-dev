@@ -252,8 +252,8 @@ assetizable, so every child is assetizable whatever its own flag says. [Help: `i
   override on that attribute. This skill, then `pricing-procedures`.
 - "Child lookups load blank in my new PCM plan." → facts (b)–(d) above, then
   `sfdmu-data-plans`.
-- "Place says *Could not find product with ID* for a product I just loaded." → the search
-  index rebuild after the load (fact f in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264)).
+- "Place says *Could not find product with ID* for a product I just loaded." → the decision-table
+  refresh and search index rebuild after the load (fact f in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264)).
 - "A group I set to pick one says its number of child products is out of range, but I
   picked one product." → check whether the product is on two lines (a CML-sized default
   component splits); see
@@ -284,7 +284,7 @@ Review the CSVs for these, each a rule above:
 - Every group's `MinBundleComponents` ≤ distinct children, and required children ≤ `MaxBundleComponents`.
 - Every `Family` value is a value of the org's `Family` picklist, or the same change adds it
   to the `Product2Family` standard value set.
-- No `QuantityScaleMethod` is `None`, and locked rows name their method
+- No `QuantityScaleMethod` is the literal `None`; the 264 picklist rejects it
   ([`bundles-and-cardinality.md`](bundles-and-cardinality.md#quantity-scaling-and-lifecycle)).
 - Every product has at most one `IsDefault` selling model option; term-defined and
   evergreen options carry a proration policy where proration is wanted.
