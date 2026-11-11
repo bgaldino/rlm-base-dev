@@ -288,8 +288,8 @@ top-level skill, by area:
 - **Maintainer integrations:** `todo-tracker`, `pmos-integration`
 
 Each skill has **Quick Rules**; new ones also need **DO NOT**, **Entry Conditions**,
-**Examples** and **Validation Checks**, and register in this list, the router and the
-manifest (`skill-authoring`). Sub-files are listed only in their parent `SKILL.md`.
+**Examples** and **Validation Checks**, and register in this list and the router (plus
+the manifest when cross-repo discovery applies; see `skill-authoring`). Sub-files are listed only in their parent `SKILL.md`.
 
 ### Script Reference
 

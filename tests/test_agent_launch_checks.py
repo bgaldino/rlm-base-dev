@@ -205,8 +205,12 @@ class LaunchChecks(unittest.TestCase):
         result = analyzer.check_skill_index_parity(self.root)
         self.assertFalse(result.ok)
         self.assertIn("index is missing ['cci-orchestration']", result.detail)
+        # Prose and a following subsection (an owner column, say) are not the list.
+        agents.write_text("## AI Agent Skill Index\n\nSee `cci-orchestration`.\n\n- **Builds:** none\n\n"
+                          "### Script Reference\n\n| Scripts | Owner |\n|---|---|\n| `tasks/x.py` | `cci-orchestration` |\n")
+        self.assertIn("index is missing ['cci-orchestration']", analyzer.check_skill_index_parity(self.root).detail)
         # A name inside a fenced block is an example, not a listing.
-        agents.write_text("## AI Agent Skill Index\n\n```\n`cci-orchestration`\n```\n")
+        agents.write_text("## AI Agent Skill Index\n\n```\n- `cci-orchestration`\n```\n")
         self.assertFalse(analyzer.check_skill_index_parity(self.root).ok)
         agents.write_text("# Guide\n")
         self.assertIn("no '## AI Agent Skill Index' section", analyzer.check_skill_index_parity(self.root).detail)

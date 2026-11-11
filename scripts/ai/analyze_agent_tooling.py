@@ -882,18 +882,23 @@ SKILL_ROUTER_PATH = f"{SKILLS_ROOT}/README.md"
 
 
 def agents_index_skill_names(agents_text: str) -> set[str] | None:
-    """Skill names in the AGENTS.md index section, or None when the section is missing.
+    """Skill names in the AGENTS.md index list, or None when the section is missing.
 
     The index is a compact list of code spans: a bare skill name (`pricing-setup`) or a
-    path under a skill (`cci-orchestration/custom-task-authoring.md`) both count.
+    path under a skill (`cci-orchestration/custom-task-authoring.md`) both count. Only
+    list items before the next heading of any level are read, so a name that appears
+    only in prose or in a following subsection (the Script Reference owner column, say)
+    does not count as listed.
     """
     start = agents_text.find(AGENTS_INDEX_HEADING)
     if start < 0:
         return None
-    end = agents_text.find("\n## ", start + len(AGENTS_INDEX_HEADING))
-    section = strip_fenced_code(agents_text[start:end if end >= 0 else len(agents_text)])
+    body = strip_fenced_code(agents_text[start + len(AGENTS_INDEX_HEADING):])
+    next_heading = re.search(r"^#{1,6}\s", body, re.MULTILINE)
+    section = body[:next_heading.start()] if next_heading else body
+    items = "\n".join(line for line in section.splitlines() if re.match(r"\s*[-*+]\s", line))
     names = set()
-    for token in re.findall(r"`([^`\n]+)`", section):
+    for token in re.findall(r"`([^`\n]+)`", items):
         token = token.strip()
         if token.startswith(f"{SKILLS_ROOT}/"):
             token = token[len(SKILLS_ROOT) + 1:]
