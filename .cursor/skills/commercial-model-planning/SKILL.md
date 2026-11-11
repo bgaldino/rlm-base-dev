@@ -36,10 +36,9 @@ files can use it.
    skill is a gap to record, not a reason for a live spike. Use the
    rule in [knowledge-sources.md](knowledge-sources.md): the per-area table holds the
    evidence, and the per-rule decision record holds each rule's decision.
-4. **Spike live only what the repo can't answer.** A live spike is for a corpus that
-   is silent, a repo measurement or code-based inference that contradicts the docs or
-   shows a defect they don't describe, values across the asset lifecycle, or docs that disagree. Everything else is modeled directly and
-   proved at its build gate.
+4. **Spike live only what the repo can't answer:** a rule that meets one of the four
+   triggers in [knowledge-sources.md](knowledge-sources.md). Everything else is modeled
+   directly and proved at its build gate.
 5. **Golden tests come from the source's own worked examples.** Every expected value
    traces to a cell, a page or a sentence in the source. Recompute calculated values
    from inputs (formula parity), then run every worked example through every rule
@@ -102,8 +101,7 @@ files can use it.
 - [plan-template.md](plan-template.md): read when writing the plan. Section order,
   what each section must hold, and a self-review checklist.
 - [concept-map.md](concept-map.md): read when mapping. Common commercial concepts,
-  the Revenue Cloud feature to try first, the skill that covers it, and the usual
-  live-verification triggers.
+  the Revenue Cloud feature to try first, and the skill that covers it.
 - [knowledge-sources.md](knowledge-sources.md): read when deciding which rules need a
   live org. The decision rule, the coverage sweep commands, and how to record the
   result.
@@ -177,9 +175,10 @@ Rules that need a live org become spikes, each with the source value it must hit
 
 ### 5. Golden tests
 
-- One set per area: sizing or configuration, rules (with expected messages), standard
-  pricing, programs and edges (every band boundary), currency, policies, negotiation,
-  approvals, lifecycle changes, reprice, and attributes.
+- One set per area in the template's section 3, split where useful: sizing or
+  configuration, rules (with expected messages), standard pricing, programs and edges
+  (every band boundary), currency, policies, cost and margin, negotiation, approvals,
+  lifecycle changes, billing, plus the template's Reprice and Attributes sets.
 - Each expected value cites where it comes from in the source. A value the source
   doesn't show but its rules determine (a band edge, a second example of a formula) is
   allowed: mark it **derived** and cite the rule's cells.
@@ -278,8 +277,8 @@ Before presenting the plan:
   in a private repo):
 
   The first command lists every hyphenated name in backticks that is not a skill, to
-  check by hand. The second lists every `.md` file named, with the skill it follows on
-  its line, to check with `ls`.
+  check by hand. The second lists every `.md` file named; a file printed without a skill
+  before it needs its skill looked up on its line before you check it with `ls`.
 
   ```bash
   PLAN=<path to plan.md>; test -f "$PLAN" || echo "no plan at $PLAN"

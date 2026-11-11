@@ -15,8 +15,9 @@ Read this when a plan splits the build across sessions. Parent:
   pricing and cost, negotiation and approvals. Each runs on its own org. A session
   whose area depends on another's loads that session's finished plans onto its own
   org first.
-- **Integration org.** Gates count only here. The main session loads each finished
-  piece onto it and runs that piece's gate.
+- **Integration org.** Phase gates count only here. The main session loads each
+  finished piece onto it and runs that piece's gate. The final gate is the fresh-org
+  load (the template's P7), on a new org.
 
 **A private pack's files live in the pack's repo,** not in the Foundations checkout.
 Sessions own folders there. CCI still runs from the Foundations root, with explicit

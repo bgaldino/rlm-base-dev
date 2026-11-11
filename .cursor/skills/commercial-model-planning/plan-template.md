@@ -50,6 +50,7 @@ changes). Note who has to answer it: the source's owner or the build's owner.
     - negotiation and approvals
     - lifecycle changes
     - billing
+    - runtime surface
     - extraction
 - Each subsection keeps the source's own numbers and its order of application.
 - **Rule decision record:** one row per rule ID, with columns
@@ -64,7 +65,7 @@ changes). Note who has to answer it: the source's owner or the build's owner.
 | Set | Source location | Cases | Must match |
 |---|---|---|---|
 
-Always include a **Reprice** set (price again, then order, then amend) and an
+Always include a **Reprice** set (price again, then order, amend and renew) and an
 **Attributes** set (attributes unchanged through each step). Include each attribute's
 minimum and maximum, every option the source allows that its worked examples don't
 use, and a check for anything the source marks internal-only (for example a round
