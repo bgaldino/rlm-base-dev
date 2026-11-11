@@ -12,7 +12,7 @@ pointer, not the skill's full open list.
 | Source concept | Try first | Where documented |
 |---|---|---|
 | Item with a list price and unit | `Product2` + price book entry | `product-catalog-modeling`; `sfdmu-data-plans` (loading) |
-| Pricing basis: one-time / annual subscription / monthly plan | Selling models: One-Time, Term Defined (annual), Evergreen (monthly) | `product-catalog-modeling` → `selling-models-and-lifecycle.md`; `pricing-setup` → `proration-and-selling-models.md` |
+| Pricing basis: one-time / committed term / until cancelled | Selling models by end date: One-Time; Term Defined for a committed term (any term unit, so 12 months billed monthly is Term Defined); Evergreen for until cancelled. Billing cadence is a separate choice (`billing-setup`) | `product-catalog-modeling` → `selling-models-and-lifecycle.md`; `pricing-setup` → `proration-and-selling-models.md` |
 | Package priced as the sum of its contents | Configurable bundle; component groups with min and max. Decide the root's own selling model | `product-catalog-modeling` → `bundles-and-cardinality.md`, `selling-models-and-lifecycle.md` |
 | Fixed kit | Static bundle | same |
 | Option the rep picks, priced | Attribute with attribute-based price, or a component | `product-catalog-modeling` → `attributes-and-classifications.md`; `pricing-procedures` → `elements/attribute-based-price.md`; for an answer on the parent priced on a child, `elements/root-answer-child-price.md` |
