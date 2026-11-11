@@ -38,11 +38,12 @@ results, 2026-11-11).
     - **Changing one CML answer on an amendment reset the others.** When a Place request on
       an amendment quote changed one root answer with rules on, every answer the request
       didn't change went back to its CML default on the solve, and the children those
-      answers size came back as negative delta lines. Re-sending an answer at its current
+      answers size came back as delta lines toward the defaults (negative in the measured
+      runs, where the answers were above their defaults). Re-sending an answer at its current
       value didn't protect it: Place drops an unchanged value. A change to lines only, with
-      no answer in the request, kept every answer. On those orgs
-      `AssetActionSource.RLM_ConstraintEngineNodeStatus__c` was empty after every activation
-      while the order lines carried it, so amendment lines started with no node status
+      no answer in the request, kept every answer. On one of those orgs (the reset reproduced
+      on a second) `AssetActionSource.RLM_ConstraintEngineNodeStatus__c` was empty after
+      every activation while the order lines carried it, so amendment lines started with no node status
       [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
     - Two workarounds held. Restate, in a second Place request, every answer that reset to
       its default (it now differs, so it counts as a change). Or, before amending, copy each
@@ -53,13 +54,14 @@ results, 2026-11-11).
    `ind.qocal_amend_assets`, `ind.qocal_renew_assets`, `ind.qocal_cancel_assets`].
    Cancelling or renewing a bundle component alone is refused: "the asset is a bundle
    component. Provide the top-level asset" [Measured: 2026-11-05, 264].
-    - **Removing a component through an amendment of the top-level asset works.** Amend the
-      root with `quantityChange` 0, then set the component line's `Quantity` to −n with a
+    - **Removing a Term Defined component through an amendment of the top-level asset
+      works.** Amend the root with `quantityChange` 0, then set the component line's `Quantity` to −n with a
       Place request, rules on. On an amendment quote `Quantity` is the delta, and
       `StartQuantity` and `EndQuantity` are the totals before and after. The component asset
       stays, with a 0 state period from the amendment date, a "Change / Downsells" action, and
-      the credit in detail rows [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. A
-      component that must be cancelled on its own, into a terminal state, still has to be
+      the credit in detail rows [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Only
+      a Term Defined component was removed; an evergreen component's credit on removal is
+      **Open** (Quick Rule 6). A component that must be cancelled on its own, into a terminal state, still has to be
       sold as its own line.
     - `quantityChange` is the quantity to add to or reduce from the asset's existing
       quantity, and the amend inputs take no attribute values [Dev guide:
@@ -211,7 +213,8 @@ raises.
 
 **"Cancel the support add-on but keep the device."** If the add-on is a bundle component,
 cancelling it alone is refused, but an amendment of the bundle that sets the add-on's line
-to −n removes it, with a 0 state period and a credit (Quick Rule 3). Decide in the plan
+to −n removes it. That was measured on a Term Defined add-on, with a 0 state period and a
+credit (Quick Rule 3); an evergreen add-on's credit is **Open**. Decide in the plan
 whether that is enough or the add-on must be its own line.
 
 **"Move some units of a component to another plan."** If support is a bundle component, an

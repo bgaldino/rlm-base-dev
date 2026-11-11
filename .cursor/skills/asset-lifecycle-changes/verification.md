@@ -86,8 +86,8 @@ through activation before the next; a reprice moved nothing at any step:
 | Renewal with `renewalStartDate` and `renewalEndDate` | Term Defined lines per lot with the uplift agreed at the sale; evergreen component and one-time lines "No Change" at 0 | Same assets extended; `LifecycleEndDate` moved; "Change / Renewals" |
 | Price amendment on an evergreen component line, dated on the renewal's start | Amend / FieldAmendment; delta 0; credit per lot at the old price, charge at the new | New state period MRR at the new price; "Change / Upsells" for the difference |
 
-Amendments on a CML bundle depend on the configurator's node status: on these orgs
-`AssetActionSource.RLM_ConstraintEngineNodeStatus__c` was empty after every activation while
+Amendments on a CML bundle depend on the configurator's node status: on one of these orgs
+(the answer reset reproduced on the other) `AssetActionSource.RLM_ConstraintEngineNodeStatus__c` was empty after every activation while
 `OrderItem.RLM_ConstraintEngineNodeStatus__c` was filled. Copying the order lines' value
 onto the asset action sources before amending stopped the reset.
 
