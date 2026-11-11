@@ -14,15 +14,17 @@ before telling anyone how approvals behave where the docs are unclear. Parent:
   QuantumBit build the shipped approval ran end to end with whatever the scratch org
   defaults to [Measured: 2026-11-10, 264].
 - **Personas:**
-    - Designer: Manage Flow, Approval Designer.
+    - Designer: Manage Flow, Approval Designer, Read on Approval Submission.
     - Submitter, reviewer, delegate: Run Flows plus Read on Approval Submission.
     - Administrator: also Approval Admin.
 
   [Help: `ind.approvals_personas`]. One quote walkthrough says approving needs Approval
   Admin [Help: `ind.approvals_use_advanced_approvals_in_a_quote`]; the personas table says
   otherwise. Test with a reviewer who has no admin permissions.
-- **Supported objects:** the docs publish no list of supported objects. Quote, Order,
-  Contract and custom objects appear in examples [Help: `ind.approvals_objects_considerations`].
+- **Supported objects:** the docs publish no list of supported objects
+  [Help: `ind.approvals_objects_considerations`]. Quotes, orders and custom objects are named
+  [Help: `ind.approvals_advanced_approvals`], and contracts have their own setup
+  [Help: `ind.sf_contracts_aa_configure`].
 - **Sandboxes:** run Match Production License after a release
   [Help: `ind.approvals_environment_setup`].
 
@@ -74,7 +76,7 @@ After a full approval, the next submission is a new request, not a resubmission.
 
 - Where "First Response" vs "All Must Approve" is configured for a group or queue step.
 - Whether approving needs Approval Admin, or only Run Flows plus Read (measured runs used
-  an admin).
+  an admin), and why that admin could review a work item assigned to an empty group.
 - Which Approval Settings a fresh scratch org has on, and whether Metadata API can set them.
 - Whether a dynamic (Resource) approver works at runtime, and whether there is a
   manager-hierarchy approver.

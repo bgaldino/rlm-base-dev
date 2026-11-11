@@ -76,9 +76,9 @@ where each level is computed:
 - In a fresh scratch org those groups have no members. An org admin who wasn't a member
   could still review those items with `reviewApprovalWorkItem` [Measured: 2026-11-10, 264].
   The dev guide requires the reviewer to be the assignee, a group or queue member, a delegate
-  or above in the role hierarchy [Dev guide: `actions_obj_review_approval_work_item`]. The
-  shipped `Manager` group includes bosses (`doesIncludeBosses`), which may explain it. Don't
-  read it as "Approval Admin can review".
+  or above in the role hierarchy [Dev guide: `actions_obj_review_approval_work_item`]. Why the
+  admin could review an empty group's item is unknown (admin permissions such as Approval
+  Admin or Modify All are the likelier reason); it's listed in [limitations.md](limitations.md).
 - Documented approver types: user, group and queue. A "Resource" type exists, but Preview
   doesn't support it [Help: `ind.approvals_preview_feature_limitations`].
 - The docs don't describe a manager or role-hierarchy approver type ([limitations.md](limitations.md)).

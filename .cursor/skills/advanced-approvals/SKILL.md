@@ -51,10 +51,12 @@ QuantumBit build.
       [Help: `ind.approvals_design_build_activation`].
 6. **Extend the shipped workflow rather than adding a second one.** For a new dimension:
     - add a fact to `RLM_Quote_Approval_Data`
-    - add it as an OR condition on the `Requires_Approval` decision, or a quote that
-      triggers only the new dimension skips approval and goes straight to Approved
+    - add the new step's trigger condition as an OR condition on the `Requires_Approval`
+      decision, or a quote that triggers only the new dimension skips approval and goes
+      straight to Approved
     - add a step with its own chain
-    - add two exit conditions for it
+    - add two exit conditions for it, and a grouped `(completed OR not triggered)` clause
+      for them in the stage's `exitConditionLogic`
     - add it to the rejection formula
     - add an alert row and a template row
 
@@ -104,7 +106,7 @@ QuantumBit build.
 ## What the repo ships
 
 With the `quantumbit` and `approvals` flags on, `prepare_rlm_org` builds a working quote
-approval [Repo: `cumulusci.yml`, `docs/features/composable-quote-approvals.md`]:
+approval (the alert definitions also need `qb`; all three default to true) [Repo: `cumulusci.yml`, `docs/features/composable-quote-approvals.md`]:
 
 | Piece | What it does |
 |---|---|
@@ -157,8 +159,10 @@ needs a Manager, below 65% a Director, below 60% the VP.
 
 **Find out why a quote is stuck at Pending.** Query its `ApprovalSubmission` and work
 items:
-- An `InProgress` submission with no `Assigned` item means a stage exit condition is
-  missing for a step that never started.
+- An `InProgress` submission with no `Assigned` item, after allowing a few seconds for the
+  asynchronous orchestration, usually means a stage exit condition is missing for a step
+  that never started. Confirm with `ApprovalWorkItemCriteria` / `ApprovalWorkItemCondition`,
+  and check Paused and Failed Interviews [Help: `ind.approvals_approval_process_execution`].
 - A `Recalled` submission with the quote at Pending is the missing recall path above.
 
 ## Validation Checks
