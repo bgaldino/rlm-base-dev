@@ -111,14 +111,13 @@ where each level is computed:
   API call or flow that writes the discount) would have to set the marker too, and
   something would have to clear it when a rep later overrides a marked line. None of this
   is measured ([limitations.md](limitations.md)).
-- A group's own `Discount` field holds a discount entered at the group level
-  [Dev guide: `sforce_api_objects_quotelinegroup`], and a header discount is spread to lines
-  by `DiscountDistributionService`. Either keeps a round-wide discount out of the line's own
-  `Discount`, but the shipped level reads neither (above). Propagation, which applies group
-  discounts to lines, ships off in this repo's procedures (`IsPropagationEnabled` false)
-  [Repo: `pricing-procedures` → `elements/price-propagation.md`]; whether a group-row
-  discount reaches bundle child lines is open
-  [Repo: `transaction-line-editor` → `runtime-behavior.md` §3].
+- A round-wide header discount stays out of the level: `DiscountDistributionService` spreads
+  it to lines after the level is set (above). A discount on a group row is unsettled. Help
+  applies one to all the lines of a group [Help: `ind.qocal_basic_example_ramp_deals_for_groups`]
+  but doesn't say whether it stays on the group's `Discount` field
+  [Dev guide: `sforce_api_objects_quotelinegroup`] or is written to each line's `Discount`,
+  which the shipped level reads. Don't count on a group discount to keep a round's discount
+  out of the level until that is measured ([limitations.md](limitations.md)).
 - A pass-through line priced at or near cost (a travel line, say) trips a below-cost or
   floor-margin guard on every quote. Exclude it by a marker the filter tests, such as a
   product attribute or line field, not by product name. The source must also say whether
