@@ -55,6 +55,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | Model, build, run or verify **Advanced Approvals**: sign-off matrices, cumulative levels, chains, submit/review/recall, the shipped quote approval | Advanced Approvals | [advanced-approvals/SKILL.md](advanced-approvals/SKILL.md) |
 | Configure or use the quote/order **line editor** (columns, Adjustment Type, groups, action buttons, Instant Pricing, auto-refresh, configure from a line, amendment lines) | Transaction Line Editor | [transaction-line-editor/SKILL.md](transaction-line-editor/SKILL.md) |
 | Model and verify **amend, swap, cancel and renew** on sold assets: change policies, where prices and attributes land, credits, end-to-end tests | Asset Lifecycle Changes | [asset-lifecycle-changes/SKILL.md](asset-lifecycle-changes/SKILL.md) |
+| Set up **billing**: billing frequency vs selling model, advance or arrears treatments, milestone billing for services, payment terms and the approval, what the repo's billing build ships | Billing Setup | [billing-setup/SKILL.md](billing-setup/SKILL.md) |
 | Build / verify a multi-year group **ramp** quote + per-segment (compound) uplift | Ramped Quotes | [ramped-quotes/SKILL.md](ramped-quotes/SKILL.md) |
 | Create renewal-ready assets across the 4 expiry windows + layer lifecycle event history | Renewal Asset Creation | [renewal-asset-creation/SKILL.md](renewal-asset-creation/SKILL.md) |
 | Build, rate, and verify metered consumption demos | Usage & Consumption | [usage-consumption/SKILL.md](usage-consumption/SKILL.md) |

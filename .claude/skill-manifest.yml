@@ -159,6 +159,15 @@ foundations:
         - .cursor/skills/asset-lifecycle-changes/change-policy-mapping.md
         - .cursor/skills/asset-lifecycle-changes/verification.md
 
+    - id: billing-setup
+      path: .cursor/skills/billing-setup/SKILL.md
+      purpose: "Billing setup: billing frequency vs the selling model on quote, order and asset lines, billing policies and treatments (advance, arrears, exclude), milestone billing for services, payment terms and the shipped approval, and what the repo's billing build ships"
+      consumed_by_pmos: []
+      provenance: 264 Help and dev-guide snapshot, repo billing wiring, and headless quote-line placements on a QuantumBit build (2026-11-10)
+      sub_skills:
+        - .cursor/skills/billing-setup/shipped-billing.md
+        - .cursor/skills/billing-setup/measured-264.md
+
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md
       purpose: "Build/verify multi-year GROUP ramp quotes (place→EditGroup→clone) and per-segment (compound) price uplift"
