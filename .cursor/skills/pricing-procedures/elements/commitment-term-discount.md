@@ -90,6 +90,46 @@ the filter must be the first child, one filter per group].
   or renewed line does not take a discount a second time [Repo: `RLM_DefaultPricingProcedure`,
   `Filterlineswithoutlasttransactionpricing`]. Without it, an amendment that keeps the prior net
   unit price would lose another 4%. That case was not measured.
+- **What criterion 9 means for a renewal** (for example a 36-month renewal at +5%):
+  - The shipped default prices a last-transaction line on its own path. When its `NetUnitPrice`
+    is null, `ListContainer` (step 8) assigns `InputUnitPrice` to it, the setup Help gives for
+    pricing from the last transaction [Help: `ind.qocal_set_up_price_amendments.htm`]. Every
+    phase 7 adjustment group (17 to 23) filters on `ItemPricingSource NotEquals
+    'LastTransaction'`, and the renewal uplift group (24) runs only on lines with
+    `ItemPricingSource Equals 'LastTransaction'`, action `Renew`, a policy formula and no ramp
+    [Repo: `RLM_DefaultPricingProcedure`;
+    [`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md)].
+    A last-transaction line with a contract price takes another path: step 13 sets its
+    `InputUnitPrice` to `ItemContractPrice`, and group 26, after group 24, assigns
+    `InputUnitPrice` to `NetUnitPrice` on lines with `ItemPricingSource Equals 'LastTransaction'`
+    and `ItemContractPrice` not null [Repo: `RLM_DefaultPricingProcedure`,
+    `Setinputunitpriceforlineswithcontractpricing`,
+    `Setnetunitpriceforcontractedlasttransactionlines`].
+  - Help: an uplift needs the asset's Pricing Source to be Last Transaction, and under Last
+    Transaction Pricing should be applied after discounts; with a list-price source the uplift is
+    ignored [Help: `ind.qocal_renewal_price_uplifts.htm`,
+    `ind.qocal_consumer_price_index_and_uplifts_important_considerations.htm`]. With a
+    CPI/Variable uplift, Help computes the renewal net unit price from the latest asset action
+    source's change in subtotal divided by its change in quantity, times (1 + the uplift)
+    [Help: `ind.qocal_consumer_price_index_and_price_uplifts.htm`]. Whether that price includes a
+    4% the earlier sale took is not documented.
+  - This repo stamps `LastTransaction` on every lifecycle asset whose source is blank [Repo: flow
+    `RLM_Update_Asset_Pricing_Source_if_Price_Revision`], and the as-is renewal recorded in
+    [`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md) →
+    Expected results took the uplift, which group 24 applies only to last-transaction lines
+    [Repo: measured 2026-10-29, 264, default procedure].
+  - So, inferred from the filters and not measured: the uplift (group 24) and this group select
+    disjoint lines. A renewal line from a Last Transaction asset gets **no term discount from
+    this group**; it carries the 4% only if the price it starts from already includes it.
+    Without a contract price it takes the uplift. With one, group 26 writes the contract price
+    over the uplifted net, so it ends at the contract price without the uplift. A renewal line
+    from a list-price asset takes no uplift and passes criterion 9, so it gets the 4% if its
+    term meets the threshold (the renewal takes its term from the asset or the contract [Help:
+    `ind.qocal_renew_assets.htm`]). As built, one renewal line does not get both.
+  - Letting `Renew` lines through criterion 9 would reward a renewal's own commitment. If the
+    price the renewal starts from already includes an earlier 4%, it would take the 4% a second
+    time. Help's "uplifts after discounts" would put the group before group 24 rather than at
+    28. Neither was built; see [Open questions](#open-questions).
 - Nested parentheses in the condition logic save and evaluate as expected
   [Measured: 2026-11-10, 264].
 
@@ -244,6 +284,7 @@ does, so the difference comes from the new group alone.
 |---|---|---|
 | A 36-month line is not discounted | Its `SubscriptionTermUnit` is not `Months` or `Annual`, or `PricingTermUnit` is not `Annual` | Check the line's unit; add a criterion pair for the unit you sell in |
 | Discount applied twice on an amendment | Criterion 9 removed | Keep `ItemPricingSource NotEquals 'LastTransaction'` |
+| A 36-month renewal line gets the uplift but not the 4% | Criterion 9 skips lines from a Last Transaction asset, which this repo makes the default source | Expected as built (inferred, not measured); see criterion 9 → renewals |
 | Totals do not move with the unit price | Group placed after the term pricing groups, or Subscription Price reads `ListPrice` | Move it before `Applyproratedpricingtotermdefinedlines`; bind Subscription Price's Net Unit Price to `NetUnitPrice` |
 | Off by a cent | Single `ROUND`, or no `ROUND` | Keep both: `ROUND(ROUND(NetUnitPrice, 2) * 0.96, 2)` |
 
@@ -271,6 +312,17 @@ expressed the rule.
 - Which `SubscriptionTermUnit` the quote line editor writes for an annual Term Defined line was not
   measured; the filter accepts both `Months` and `Annual`. Check a real quote line before relying
   on one.
-- The amendment and renewal behavior (criterion 9) was not measured. The headless response did
+- The amendment and renewal behavior (criterion 9) was not measured. **Open — needs live
+  verification:** renew, with a +5% uplift, one 36-month asset that took the 4% and one shorter
+  asset renewed for 36 months, and price the renewal lines through the clone. On an as-is renewal
+  the parent `NetUnitPrice` is null and the price sits on `QuoteLineDetail`
+  ([`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md)), so
+  read `NetUnitPrice` there, or on the lines of a headless response. Check whether the last
+  transaction price the uplift starts from includes the original 4%, and whether the second line
+  gets no term discount, as the filters imply. Repeat with a contract price on the line to check
+  that it ends at the contract price without the uplift. Also
+  open: whether a renewal should earn the 4% at all, and if so how to avoid taking it twice when
+  the starting price already includes an earlier 4%. That is a business rule to settle with the
+  source; no design for it was built or measured. The headless response did
   carry a waterfall entry for the formula step (input `NetUnitPrice` 16,587 on line 1); how it
   shows in the quote's waterfall UI was not checked.
