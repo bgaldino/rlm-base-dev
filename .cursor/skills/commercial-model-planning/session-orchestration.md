@@ -49,8 +49,8 @@ extraction → spikes → catalog → (configuration ∥ pricing) → negotiatio
    tells the main session; it doesn't build a workaround into the model on its own.
 6. **Sessions report skill gaps:** where a skill was missing, wrong or silent. These
    feed the plan's gap section.
-7. **Check the org allowance first.** Count the integration org plus every parallel
-   session against the dev hub's limits:
+7. **Check the org allowance first.** Count the integration org, the new org for the
+   fresh-org gate (P7), and every parallel session against the dev hub's limits:
 
    ```bash
    sf org list limits -o <dev hub alias>
@@ -66,6 +66,6 @@ extraction → spikes → catalog → (configuration ∥ pricing) → negotiatio
 
 | Session | Phase(s) | Org | Writes (owns) | Reads |
 |---|---|---|---|---|
-| main | P0, P1, P6–P8, integration | integration | plan, design, golden, tools, pack | everything |
+| main | P0, P1, P6–P8, integration | integration; a new org for P7 | plan, design, golden, tools, pack | everything |
 | \<area\> spikes | \<spike ids\> | own | `spikes/<area>/` | design, golden |
 | \<area\> build | \<phase\> | own (+ dependencies loaded) | its data plans, models, overlays | design, dependencies' plans |

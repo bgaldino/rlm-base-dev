@@ -157,8 +157,9 @@ the request already answers, and say what you assumed instead.
 Use [concept-map.md](concept-map.md). For every concept, write the feature to try first
 and the skill that covers it, and keep the source's own numbers next to it. Order
 matters as much as the features do: write down the source's order of application and
-where it rounds. Some sources round once at the end; a pricing procedure may round at
-each step (`pricing-procedures` → `elements/rounding-values.md`). Decide where each Rounding
+where it rounds. Some sources round once at the end. A pricing procedure rounds only where a
+Rounding Values step or a `ROUND()` in a formula sits, and the shipped procedures have
+no Rounding Values step (`pricing-procedures` → `elements/rounding-values.md`). Decide where each Rounding
 Values step sits, and add a golden case off the source's own examples that would show a
 missing one.
 

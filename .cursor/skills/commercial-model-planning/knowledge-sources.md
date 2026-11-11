@@ -5,7 +5,7 @@ live org. Parent: [commercial-model-planning](SKILL.md).
 
 ## The decision rule
 
-**The repo decides** when one of these holds:
+**The repo decides** when one of these holds and no live trigger below applies:
 - a skill holds a dated, measured fact or a shipped reference (XML, dataset, overlay)
   for the exact feature;
 - the release's snapshot (Help or developer guide) documents the feature and nothing
