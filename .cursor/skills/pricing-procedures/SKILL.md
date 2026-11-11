@@ -33,7 +33,8 @@ The neighbouring skills own the mechanics this one builds on:
 > **[Dev guide]**, **[Repo]** (shipped XML in this repo), **[Core]** (Salesforce source
 > behavior), **[Live]** (verified on an org). A qualifier narrows a tag, for example
 > `[Repo, measured]` (a live measurement recorded in a repo README) or
-> `[Live, repo owner]` (observed on an org by the repo owner, no recorded run). A live org of the
+> `[Live, repo owner]` (observed on an org by the repo owner, no recorded run).
+> `[Measured: <date>, <release>]` is a live result with the run recorded in the file. A live org of the
 > target release beats every other source. Treat untagged or "inferred" claims as
 > hypotheses until you have verified them.
 
@@ -142,7 +143,7 @@ snapshot of the procedures this repo deploys; check it again with the discovery 
 | Bundle-Based Price | `BundleDiscount` | [`elements/bundle-based-price.md`](elements/bundle-based-price.md) | yes |
 | Price Adjustment Matrix | `PriceAdjustmentMatrix` | [`elements/price-adjustment-matrix.md`](elements/price-adjustment-matrix.md) | PRM |
 | Attribute Adjustment Price (undocumented in Help) | `AttributeAdjustmentMatrix` | [`elements/attribute-adjustment-matrix.md`](elements/attribute-adjustment-matrix.md) | no |
-| Formula-Based Pricing | `FormulaBasedPricing` | [`elements/formula-based-pricing.md`](elements/formula-based-pricing.md) | yes |
+| Formula-Based Pricing (commitment-term discount pattern: [`commitment-term-discount.md`](elements/commitment-term-discount.md)) | `FormulaBasedPricing` | [`elements/formula-based-pricing.md`](elements/formula-based-pricing.md) | yes |
 | List Group / List Operation | `ListGroup` / `AdvancedListFilter` (step types) | [`elements/list-group-and-list-operation.md`](elements/list-group-and-list-operation.md) | yes |
 | Assignment | `AssignmentElement` | [`elements/assignment.md`](elements/assignment.md) | yes |
 | Aggregate Price | `GroupingAndAggregatePricing` | [`elements/aggregate-price.md`](elements/aggregate-price.md) | yes (SUM) |
@@ -228,6 +229,12 @@ band it reaches) or Tier Discount (each band priced separately) with
 [`elements/volume-and-tier-discount.md`](elements/volume-and-tier-discount.md). Then
 refresh the adjustment-tier decision table before you Simulate.
 
+**Extra discount for a long commitment term.** No pricing element is built for term-based discounts.
+Use a List Group whose filter selects the long-term lines and whose Formula-Based Pricing step
+rewrites `NetUnitPrice`, placed before the term pricing groups. The filter, formula and placement
+are in [`elements/commitment-term-discount.md`](elements/commitment-term-discount.md), measured
+live on 264.
+
 **Compound ramp uplift is flat.** Read [`elements/price-revision-compound-uplift.md`](elements/price-revision-compound-uplift.md)
 → prerequisites. A blank Uplift Method silently gives a standard (non-compound) uplift.
 
@@ -286,6 +293,11 @@ Checklist:
   what it computes, Builder field → parameter mapping, placement, rules and limits,
   metadata shape (where one is known), shipped snapshot, how to verify, troubleshooting,
   open questions.
+- [`elements/commitment-term-discount.md`](elements/commitment-term-discount.md) — a
+  commitment-term discount (annual Term Defined lines committed 36+ months get a further
+  percentage off) built from a List Group filter and Formula-Based Pricing: tags, filter logic,
+  rounding, placement before term pricing, the overlay, a measured headless-pricing result, and
+  the Price Adjustment Matrix alternative. Read it when a discount depends on the subscription term.
 - [`elements/price-revision-compound-uplift.md`](elements/price-revision-compound-uplift.md)
   — compound ramp uplift on Price Revision: prerequisites, ramp-path bindings, tracked
   default vs the 264 template, the compounding arithmetic, and what can't compound.

@@ -2,7 +2,7 @@
 
 > Sub-file of `.cursor/skills/pricing-procedures/SKILL.md`. Release 264 / API v68.0. Sources:
 > Help `ind.pricing_*` articles (cited inline); core 264 for the runtime model. Not
-> live-verified. Companion to [`operations-and-troubleshooting.md`](operations-and-troubleshooting.md), which covers
+> live-verified, except the headless pricing action (measured on 2026-11-10, below). Companion to [`operations-and-troubleshooting.md`](operations-and-troubleshooting.md), which covers
 > procedure selection, Simulate/activate, plans, output resolution, tag mapping, decision-table
 > sync and the cross-element symptom table.
 
@@ -19,8 +19,9 @@ returns `contextId`), `POST /connect/core-pricing/price-contexts/{contextId}` wi
 `{"procedureName": "<name>", "configurationOverrides": {...}}` (returns an `executionId`),
 `GET /connect/core-pricing/waterfall/{lineItemId}/{executionId}`, and
 `POST /connect/contexts/query-tags` with `{"contextId","tags":[...]}` to read results. Naming a
-procedure bypasses the procedure plan. Waterfall needs the waterfall setting on (below). Not
-exercised in this repo.
+procedure bypasses the procedure plan. Waterfall needs the waterfall setting on (below). This
+multi-call chain is not exercised in this repo; the single-call action below was run by hand
+on 2026-11-10 and recorded; no repo script calls it.
 
 The `contextId` is **request-scoped** by default: each HTTP call is a separate Salesforce
 request, so running these calls one after another from a script does **not** keep the context
@@ -36,6 +37,40 @@ use one Flow that builds the context, runs `runSalesforcePricing` (Flow-only) wi
 `actions_obj_run_salesforce_pricing.htm`]. The multi-call REST path works only with
 SESSION scope or context reuse enabled, plus the query pilot. Which path fits which org:
 [`../context-service/runtime-and-persistence.md`](../context-service/runtime-and-persistence.md).
+
+**Measured: `runSalesforceHeadlessPricing` against a named procedure** [Measured: 2026-11-10, 264,
+QuantumBit scratch org; worked example in
+[`elements/commitment-term-discount.md`](elements/commitment-term-discount.md)]:
+
+- Request: `POST /services/data/v68.0/actions/standard/runSalesforceHeadlessPricing` with
+  `{"inputs":[{"contextDefinitionId":"<RLM_SalesTransactionContext 11O…>","contextMappingId":"<QuoteEntitiesMapping 11j…>","pricingProcedureId":"<procedure API name>","pricingData":"<JSON string>","skipDiscovery":true,"isSkipWaterfall":true,"persistContext":false,"useSessionScopedContext":false,"displayContext":false,"taggedData":false}]}`.
+  Sent with `sf api request rest … --target-org <sf_alias>`, so no token handling.
+- `pricingProcedureId` accepts the procedure's **API name**; an inactive procedure fails with
+  `Ensure that this procedure has at least one active version.`
+- `pricingData` that worked: a root `SalesTransaction` **object** (not an array) holding the
+  lines as an **array** of objects under `SalesTransactionItem`, **no `id` keys** on either node,
+  `businessObjectType` `Quote` on the `SalesTransaction` node and `QuoteLineItem` on each
+  `SalesTransactionItem`; keys are context **attribute** names (`Product`,
+  `ProductSellingModel`, `PricebookEntry`, `Quantity`, `StartDate`, `EndDate`, `UnitPrice`,
+  `Discount`, `SubscriptionTerm`, `SubscriptionTermUnit`, `SellingModelType`, `PricingTermUnit`,
+  `SalesTransactionItemSource`, …). Values passed inline price the line without any record:
+  `ListPrice` still came from the price book entry, and `UnitPrice` was used as the input unit price.
+- The dev guide sample's mapping (`businessObjectType` `SalesTransaction` with the definition's
+  `SalesTransaction` mapping) failed both ways tried (a root object without `id` keys, and a root array with `id` keys):
+  `INTERNAL_ERROR: We couldn’t fetch the data for RLM_SalesTransactionContext context definition.
+  Try again later or contact your Salesforce admin for help.` [Dev guide:
+  `actions_obj_run_salesforce_headless_pricing.htm` shows that sample].
+- Response: `outputValues.pricingResult` (and `contextDetails`, `pricingProcessErrors`) come back
+  as **JSON strings**, not the nested objects the dev guide sample shows. `pricingResult` is keyed
+  by context attribute name (`NetUnitPrice`, `NetTotalPrice`, `PricingTermCount`, `TotalAmount`,
+  …); each value carries a `dataPath` of generated ids (`CTX_Quote_1`, `CTX_QuoteLineItem_2`, …,
+  in payload order). `pricingProcessStatus` was `Completed`. A line-level failure (for example a
+  Term Defined line with no end date and no term: `END_DATE_MISSING`) shows only inside that
+  line's `PriceWaterFall` value, while the call still reports `isSuccess: true`.
+- `isSkipWaterfall: true` still returned each line's `PriceWaterFall`, with per-step entries (the
+  formula step's included); the dev guide defines `true` as *generate* the waterfall, despite the name.
+- With `persistContext: false` and inline values, no context is stored and no quote record is
+  changed. The run is still recorded as a pricing API execution log (table below).
 
 | Capability | Enable / find | Notes |
 |---|---|---|
