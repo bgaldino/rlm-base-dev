@@ -65,7 +65,7 @@ them.
 | Billing frequency (annual, monthly) | `BillingFrequency` set on every Term Defined and Evergreen line placed through the API (a line without one was refused). A cadence different from the pricing term needs a treatment that allows it | `billing-setup` |
 | In advance vs in arrears; milestone billing | Billing policy and treatment. Milestones the source doesn't name are a decision for its owner, not invented | `billing-setup` |
 | Payment terms | `Order.PaymentTermId` for invoicing; the shipped approval reads a custom quote picklist, and nothing copies one to the other. Decide how they meet | `billing-setup`; `advanced-approvals` |
-| Non-standard billing as an approval trigger | Approval condition on the line's billing frequency | see Negotiation and approvals |
+| Non-standard billing as an approval trigger | A quote-level value computed from the lines' billing frequency (in the approval data flow, or a roll-up count of non-standard lines) that the approval condition tests | `advanced-approvals` → `matrix-modeling.md` |
 
 ## Negotiation and approvals
 

@@ -89,7 +89,7 @@ The usual phases:
 | P3 Catalog, then configuration | Data plans derived from the base build's own plans; CML |
 | P4 Pricing and cost | Price books, adjustments, procedure changes, cost wiring |
 | P5 Negotiation, approvals, runtime surface | Quote rounds, approvals, Transaction Line Editor configuration |
-| P6 Lifecycle | Order, activate, amend, swap, cancel, renew |
+| P6 Lifecycle and billing | Order, activate, amend, swap, cancel, renew; billing frequency, treatments and payment terms on the order |
 | P7 Pack and fresh-org load | Every gate in one run on a new org; reload changes nothing |
 | P8 Walkthrough and sign-off | Independent verifier, then the user |
 | P9 Promotion | Public repo through a pull request, if chosen; its own approval |

@@ -122,7 +122,7 @@ the request already answers, and say what you assumed instead.
 |---|---|
 | What is the build for (demo, customer proof, benchmark, product extension)? | Sets "done": reproducing worked examples, a walkthrough, or a shipped feature |
 | Where does it live (private pack first, public repo behind a flag, or both)? | Sets data handling and the promotion phase |
-| What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, proposed policies |
+| What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, billing, proposed policies |
 | Is the source read once, or kept in sync? | Read once means one extraction with a parity check; kept in sync adds a generator to maintain |
 | What runtime surface? | The standard Transaction Line Editor and configurator, or custom UI |
 | How should the work be split? | One session, sequential sessions, or parallel sessions each with its own org |
@@ -157,11 +157,10 @@ the request already answers, and say what you assumed instead.
 Use [concept-map.md](concept-map.md). For every concept, write the feature to try first
 and the skill that covers it, and keep the source's own numbers next to it. Order
 matters as much as the features do: write down the source's order of application and
-where it rounds. Some sources round once at the end. A pricing procedure rounds only where a
-Rounding Values step or a `ROUND()` in a formula sits, and the shipped procedures have
-no Rounding Values step (`pricing-procedures` → `elements/rounding-values.md`). Decide where each Rounding
-Values step sits, and add a golden case off the source's own examples that would show a
-missing one.
+where it rounds. Some sources round once at the end. Decide where the build rounds (a
+Rounding Values step or a `ROUND()` in a formula; the shipped procedures have no
+Rounding Values step, `pricing-procedures` → `elements/rounding-values.md`), and add a
+golden case off the source's own examples that would show a rounding difference.
 
 ### 4. Decide each rule's knowledge source
 
