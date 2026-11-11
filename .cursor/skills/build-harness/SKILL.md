@@ -33,7 +33,7 @@ Do **not** use this skill when:
 
 ## Quick Rules
 
-1. Use stable harness commands from repo root: `python scripts/build_harness/harness.py run|resume|report`.
+1. Use stable harness commands from repo root: `python scripts/build_harness/harness.py run|resume|report`. Run builds from the main checkout or a regular `git clone`, never a git worktree (see **Where to run a build**).
 2. Prefer scenario-based runs from `scripts/build_harness/scenarios.json`.
 3. For resume, keep scenario id and flags consistent with checkpoint.
 4. Use JSON mode (`--format json`) when another agent or script needs structured output.
@@ -49,6 +49,8 @@ Do **not** use this skill when:
 - **DO NOT** attempt resume when scenario flags changed from checkpoint; re-run instead.
 - **DO NOT** bypass the TUI/CLI materialized `cci_project` path when validating runtime flag overrides.
 - **DO NOT** edit generated per-scenario `.harness/**/cci_project/cumulusci.yml` as source of truth; edit repo-root `cumulusci.yml` or scenario config instead.
+- **DO NOT** start a harness or TUI build from a git worktree. CCI resolves past it to the enclosing checkout, or finds no project at all (see **Where to run a build**).
+- **DO NOT** kill a run while an SFDMU load is in progress; it can leave the org's access token in a tracked `export.json` (see **Stopping a run**).
 
 ---
 
@@ -78,6 +80,17 @@ Key modules:
 - `scripts/build_harness/tui/` - Textual CCI Build Manager TUI
 
 ## Command Recipes
+
+### Where to run a build
+
+Start harness and TUI builds from the main checkout or from a regular `git clone`. Do not start them from a git worktree.
+
+- The workspace links `.git` into `cci_project/`, and CumulusCI takes as its project root the first folder, from the working directory upward, whose `.git` is a **directory** (`BaseProjectConfig.repo_root`, `cumulusci/core/config/project_config.py`). In a git worktree `.git` is a file.
+- From a worktree nested under a checkout (for example `<checkout>/.claude/worktrees/<name>`), the root resolves to that enclosing checkout. The build loads its `cumulusci.yml` instead of the scenario's generated one, imports its `tasks/`, runs its Robot suites, and writes into its `robot/rlm-base/results/` and `datasets/`. The run's own `robot_results/` stays empty, and the worktree's code is never exercised. Measured 2026-11-11: a worktree build's Robot step wrote the enclosing checkout's `robot/rlm-base/results/output.xml` at the same moment as a harness build there that predated per-run Robot output, and both failed with exit 252.
+- From a worktree outside any checkout, no parent has a `.git` directory, so CCI finds no project.
+- `cci project info` run from a worktree's root looks normal and does not reveal this. Check the folder you start from instead: `test -d .git` must succeed there.
+- CCI's root override (`CUMULUSCI_AUTO_DETECT=1` with `CUMULUSCI_REPO_ROOT`, which `tests/test_doc_build_steps.py` uses to read flows from a worktree) is not a fix for builds. The root must be each run's own `cci_project/`; pointing it at the worktree skips the scenario's generated `cumulusci.yml` and the per-run Robot output.
+- Harness unit tests (`tests/build_harness/`) mock their subprocesses and run fine from a worktree. Only builds are affected.
 
 ### Run all scenarios
 
@@ -115,7 +128,16 @@ An org's lifetime is the `--days` passed to `cci org scratch <shape> <alias> --d
 
 Concurrent harness runs are supported for Robot output only. Give each `run` its own `--run-id` (`run` refuses an existing run directory). The org alias is the scenario's `org_alias_prefix` (default `harness-<scenario_id>`) plus the **last 12 characters** of the run id after every `run-` is removed and the rest lowercased (`config.py::alias_for_scenario`). Two runs of the same scenario therefore need ids whose tails differ ignoring case, or both build the same scratch org. Starting two runs without `--run-id` in the same second can pick the same generated id.
 
-Each workspace copies `robot/` and links `robot/rlm-base/results` to that run's own `robot_results/` folder, so Robot-backed steps no longer share `output.xml`. Before this, overlapping runs corrupted it and passing steps failed with exit 252 (`ParseError: not well-formed`), seen on `enable_document_builder_toggle` and `reorder_app_launcher`.
+Each workspace copies `robot/` and links `robot/rlm-base/results` to that run's own `robot_results/` folder, so Robot-backed steps no longer share `output.xml`. Before this, overlapping runs corrupted it and passing steps failed with exit 252 (`ParseError: not well-formed`), seen on `enable_document_builder_toggle` and `reorder_app_launcher`. Measured 2026-11-11 from a regular clone: two concurrent `ent-sb0` builds both completed all `prepare_rlm_org` steps while their Robot steps overlapped. The same failure now means two writers still shared a checkout's `robot/rlm-base/results/`: builds started from git worktrees under it (see **Where to run a build**), a plain `cci` run in it, or a harness build on code from before this isolation.
+
+To build several orgs at once, put every scenario in one copy of the scenarios file, each with its own `org_alias_prefix` (or none, so the default `harness-<scenario_id>` applies), and start one `run` per scenario with a run id derived from its scenario id:
+
+```bash
+python scripts/build_harness/harness.py run --scenarios-file <copy> --scenario <scenario_a> --run-id <scenario_a>-r1 --keep-orgs
+python scripts/build_harness/harness.py run --scenarios-file <copy> --scenario <scenario_b> --run-id <scenario_b>-r1 --keep-orgs
+```
+
+Distinct prefixes keep the aliases apart even when two run ids share their last 12 characters. Each run gets a predictable alias and run folder, and `resume` takes the same `--scenarios-file`, `--scenario` and `--run-id`, plus `--keep-orgs`. A rebuild after a failed run needs a new id, such as `<scenario_id>-r2`.
 
 Other build steps still write into folders the workspace links to the shared repo, so overlapping runs can still collide there. Not isolated yet: SFDMU loads (`tasks/rlm_sfdmu.py` rewrites the plan's `export.json` with the target org and restores it), the `.forceignore` edit in `tasks/rlm_cleanup_settings.py`, the network and payments site XML patch/revert in `tasks/rlm_community.py`, and UX assembly output in `unpackaged/post_ux/` (`tasks/rlm_ux_assembly.py`).
 
@@ -217,6 +239,17 @@ Failure classes are heuristic:
 - `deterministic`: configuration, schema, validation, or metadata patterns
 - `unknown`: not clearly classified
 
+### Resumable UI flakes on fresh orgs
+
+These Robot-backed steps have failed on a freshly created `ent-sb0` org and then passed on `resume` with no change. The harness classed each failure `unknown`, so `run_summary.json` recommends `resume`. Resume once before investigating; if the same step fails again, open its Robot log and treat it as a real failure.
+
+| Step | Robot task | Symptom in `scenario.log` | Seen |
+|------|------------|---------------------------|------|
+| 10 `prepare_docgen` | `enable_document_builder_toggle` | `Keyword '_EnsureToggleByLabel' failed after retrying`, the locator for the `Document Builder` switch not found; the suite's other tests pass | twice |
+| 27 `prepare_pricing_discovery` | `configure_product_discovery_settings` | `Default Catalog "<catalog>" could not be set within 90s`, last error `page_not_ready` (combobox or its shadow elements not yet rendered) | once |
+
+Exit 252 with `ParseError: not well-formed` after the tests passed is not a flake: two builds wrote the same `output.xml`. See **Run several builds at once**.
+
 ---
 
 ## End-User Scratch Org Creation (Harness/TUI Path)
@@ -293,6 +326,20 @@ Always share the generated alias with the user before creation.
   - alias defaults use `<shape>-tui-<4char>` and retry on collisions
 - Use `--keep-orgs` when you need to retain successful orgs for debugging. It prevents the delete only; the org still expires after its `days`, and a later `cci org info <alias>` recreates a new, unbuilt org under the alias (see **Keep an org for a multi-day build**).
 - Resume is blocked when checkpoint prerequisites are missing or flags changed; perform a full re-run after fixing blockers.
+
+### Stopping a run
+
+An SFDMU load (`tasks/rlm_sfdmu.py`) writes the target org's access token into the plan's tracked `export.json` and restores the file when the load finishes. A process killed mid-load never restores it. Measured 2026-11-11: stopping a build during step 8 left the org's token in a tracked `datasets/sfdmu/**/export.json`.
+
+- Don't stop a run while an SFDMU load is in progress. Let the step finish, or stop before it starts.
+- After any interrupted run, check the checkout the build ran from, before committing anything:
+
+  ```bash
+  git grep -l accessToken -- datasets/sfdmu
+  git diff --stat -- datasets/sfdmu
+  ```
+
+  Tracked plans hold no `accessToken`, so the first command prints nothing on a clean tree. For each file listed that you did not edit yourself, run `git restore -- <file>`. If you did edit it, `git restore` would discard your edits: set `"orgs": []` by hand instead, then review the whole diff, because the load also rewrote the file's formatting (trailing newline, non-ASCII escapes).
 
 ## Implementation Notes
 
