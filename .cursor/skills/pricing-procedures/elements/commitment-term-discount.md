@@ -11,8 +11,8 @@
 > run on a 264 scratch org (QuantumBit build) on 2026-11-10.
 >
 > Tags: `[Help: …]`, `[Dev guide: …]`, `[Repo: …]`, and `[Measured: 2026-11-10, 264]` for a
-> result observed live on that org: a headless pricing run (request and response shapes below), a
-> describe, or a save.
+> result observed live on that org: a headless pricing run (request and response shapes in
+> [`../runtime-and-observability.md`](../runtime-and-observability.md)), a describe, or a save.
 
 A commitment-term discount gives an extra percentage off a subscription line because the customer
 commits to a long term. The rule modeled here: **annual Term Defined subscriptions committed for 36
@@ -42,7 +42,7 @@ All are standard tags on the `SalesTransactionItem` node of the sales transactio
 
 | Tag | Context attribute | What it carries |
 |---|---|---|
-| `SellingModelType` | `SellingModelType` | `TermDefined`, `Evergreen` or `OneTime` (the selling model type) [Help: `ind.product_catalog_product_selling_model.htm`] |
+| `SellingModelType` | `SellingModelType` | The selling model type: One Time, Term-Defined or Evergreen [Help: `ind.product_catalog_product_selling_model.htm`]. The shipped filters compare it with `'TermDefined'` and `'Evergreen'` [Repo: `RLM_DefaultPricingProcedure`] |
 | `PricingTermUnit` | `PricingTermUnit` | The selling model's pricing term unit; `Annual` for an annual subscription |
 | `ItemSubscriptionTerm` | `SubscriptionTerm` | The line's subscription term, a number |
 | `ItemSubscriptionTermUnit` | `SubscriptionTermUnit` | The unit of that term. The `QuoteLineItem` picklist offers `Months`, `Quarterly`, `Semi-Annual`, `Weekly`, `Annual` [Measured: 2026-11-10, 264, field describe] |
