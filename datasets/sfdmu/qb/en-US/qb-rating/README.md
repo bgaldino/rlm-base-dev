@@ -14,11 +14,11 @@ This plan is executed as **step 1** of the `prepare_rating` flow (when `rating=t
 |------|---------------------------------------|----------------------------------------------------|
 | 1    | `insert_qb_rating_data`               | Runs this SFDMU plan (2 passes)                    |
 | 2    | `insert_qb_rating_entitlements_data`  | Runs the `qb-rating-entitlements` plan (PURP + PUG, 2 passes) |
-| 6    | `insert_qb_rates_data`                | Runs the qb-rates plan (2 passes, nothing deleted) |
-| 8    | `activate_rating_records`             | Runs `activateRatingRecords.apex`                  |
-| 9    | `activate_rates`                      | Activates Draft RateCardEntry records via the REST Composite API |
+| 5    | `insert_qb_rates_data`                | Runs the qb-rates plan (2 passes, nothing deleted) |
+| 7    | `activate_rating_records`             | Runs `activateRatingRecords.apex`                  |
+| 8    | `activate_rates`                      | Activates Draft RateCardEntry records via the REST Composite API |
 
-Steps 4–6 and 8 are the q3 equivalents (they run only when `q3` is on and `qb` is off).
+Steps 3, 4 and 6 are the q3 equivalents (they run only when `q3` is on and `qb` is off). Steps 7 and 8 run for either shape.
 
 ### Task Definition
 
@@ -555,8 +555,8 @@ The idempotency test (`test_qb_rating_idempotency`) uses **extraction roundtrip*
 To start the test from a known state, clean up first:
 
 ```bash
-cci task run delete_qb_rates_data   # deactivate + delete rates (reference PURs via FK)
-cci task run delete_qb_rating_data  # deactivate + delete PUG → PURP → PUR via Apex
+cci task run delete_qb_rates_data   # deactivate + delete rates (runs first; reason unverified, see Dependencies)
+cci task run delete_qb_rating_data  # deactivate + delete PUG → PURP → PUR and the usage policies via Apex
 ```
 
 **qb-rates note**: `test_qb_rates_idempotency` uses `use_extraction_roundtrip: false` (load-twice without extraction). SFDMU v5 cannot extract 2-hop traversal fields used as components of RABT's composite externalId (`RateCardEntry.RateCard.Name`, `RateUnitOfMeasure.UnitCode`, `UsageResource.Code`) — extraction produces `#N/A` for those components, breaking FK resolution on re-import.
@@ -564,7 +564,7 @@ cci task run delete_qb_rating_data  # deactivate + delete PUG → PURP → PUR v
 **Full reset and idempotency test (org already has qb-pcm and qb-billing loaded; uses CCI default org):**
 
 ```bash
-# 1. Delete rates first (they reference PURs), then rating
+# 1. Delete rates first, then rating (order kept; its reason is unverified, see Dependencies)
 cci task run delete_qb_rates_data
 cci task run delete_qb_rating_data
 
@@ -594,18 +594,21 @@ cci task run delete_qb_rating_data
 cci task run execute_anon -o path scripts/apex/cleanupRatingRecords.apex
 ```
 
-These scripts delete PUG, PURP, PUR, binding policies, frequency policies, overage policies, and commitment policies in reverse dependency order. They do **not** delete UoM, UoMClass, UsageResource, or UsageResourceBillingPolicy (managed by qb-billing/qb-pcm).
+Both scripts delete PUG, PURP, PUR, binding policies, frequency policies, overage policies, and commitment policies in reverse dependency order. `deleteQbRatingData.apex` also deletes the grant renewal and rollover policies and UsageResourceBillingPolicy; `cleanupRatingRecords.apex` leaves those three. Neither deletes UoM, UoMClass or UsageResource, which this plan loads (qb-pcm also loads UoM and UoMClass).
 
 ## Dependencies
 
 This plan depends on the following having been loaded first:
 
-- **qb-pcm** — Product2 records (referenced by SKU), UnitOfMeasure, UnitOfMeasureClass
-- **qb-billing** — UsageResourceBillingPolicy, UsageResource (base records)
+- **qb-pcm** — Product2 records (referenced by SKU). qb-pcm also loads UnitOfMeasure and UnitOfMeasureClass, which this plan upserts as well
+
+UsageResourceBillingPolicy and UsageResource load from this plan, not from qb-billing, which loads neither.
 
 This plan is a prerequisite for:
 
-- **qb-rates** — RateCardEntry references ProductUsageResource, UsageResource, and Product2 records created here
+- **qb-rates** — RateCardEntry and RateAdjustmentByTier look up the UsageResource records created here. No rate object has a ProductUsageResource lookup in the 264 schema
+
+**Teardown order:** run `delete_qb_rates_data` before `delete_qb_rating_data`. Keep that order, but its reason is unverified: no rates record references anything `deleteQbRatingData.apex` deletes, since UsageResource stays in place.
 
 ## 260 Schema Analysis (Confirmed via Org Describe)
 
@@ -664,7 +667,7 @@ This self-reference is well-understood and documented in the API 260 Known Issue
 | Product2                   | qb-pcm         | Update only|
 | UnitOfMeasure              | qb-pcm/this    | Upsert     |
 | UnitOfMeasureClass         | qb-pcm/this    | Upsert     |
-| UsageResourceBillingPolicy | qb-billing/this| Upsert     |
+| UsageResourceBillingPolicy | This plan      | Upsert     |
 | UsageResource              | This plan      | Upsert     |
 | UsageGrantRenewalPolicy    | This plan      | Upsert     |
 | UsageGrantRolloverPolicy   | This plan      | Upsert     |
