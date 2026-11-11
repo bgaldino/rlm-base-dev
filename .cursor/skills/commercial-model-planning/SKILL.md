@@ -67,7 +67,7 @@ files can use it.
   release is pre-GA, a live org is ground truth (`AGENTS.md`).
 - **DO NOT** plan a header discount to stand in for line or product-line discounts
   without a live test. On a 264 org with an active procedure plan, a header discount
-  was measured applying twice.
+  was measured applying twice (`transaction-line-editor` → `runtime-behavior.md`).
 - **DO NOT** plan parallel sessions in git worktrees for CCI work. CCI runs from the
   project root and ignores worktree changes; use separate orgs and file ownership
   instead ([session-orchestration.md](session-orchestration.md)).
@@ -81,9 +81,12 @@ files can use it.
 | "Model this spreadsheet / store / price list in Revenue Cloud" | Yes | — |
 | "Write a build plan for this demo" with an external source | Yes | — |
 | Revising a plan after review | Yes | Keep the decision log and evidence log intact |
-| Building the catalog the plan describes | No | `sfdmu-data-plans`, `revenue-cloud-data-model` |
+| Modeling or building the catalog the plan describes | No | `product-catalog-modeling`, then `sfdmu-data-plans` to load it |
 | Building pricing the plan describes | No | `pricing-setup`, `pricing-procedures`, `pricing-wiring`, `expression-sets` |
-| Building configuration rules | No | `constraint-models` |
+| Building configuration rules, or sizing quantities from answers | No | `constraint-models` → `quantities-from-attributes.md` |
+| Building the approval matrix | No | `advanced-approvals` |
+| Amend, swap, cancel and renew rules and their numbers | No | `asset-lifecycle-changes` |
+| Configuring the line editor the rep uses | No | `transaction-line-editor` |
 | Answering one product question ("does Revenue Cloud support X?") | No | `revenue-cloud-docs`, then a live check if pre-GA |
 | A demo walkthrough for an existing build | No | `qb-demo-script` |
 

@@ -1,56 +1,57 @@
 # Concept Map — Commercial Concepts to Revenue Cloud
 
 Read this when mapping a source with [commercial-model-planning](SKILL.md). Each row
-names the feature to try first, where the repo documents it, and the usual reason for
-a live check. The letter is the trigger from [knowledge-sources.md](knowledge-sources.md):
+names the feature to try first, the skill that covers it, and the usual reason for a
+live check. The letter is the trigger from [knowledge-sources.md](knowledge-sources.md):
 (a) silent, (b) measured differently, (c) lifecycle numbers, (d) docs disagree or a
-preview. This is a starting point; the coverage sweep decides each rule for the current
-release.
+preview. This is a starting point. The coverage sweep decides each rule for the current
+release, and each domain skill's own open-items list says what is still unmeasured.
 
 ## Catalog
 
 | Source concept | Try first | Where documented | Usual live trigger |
 |---|---|---|---|
-| Item with a list price and unit | `Product2` + price book entry | `revenue-cloud-data-model`, `sfdmu-data-plans` | — |
-| Pricing basis: one-time / annual subscription / monthly plan | Selling models: One-Time, Term Defined (annual), Evergreen (monthly) | `pricing-setup` → `proration-and-selling-models.md` | (b) a term model under a configurable bundle |
-| Package priced as the sum of its contents | Configurable bundle; component groups with min and max | `revenue-cloud-data-model`, `sfdmu-data-plans`; dev guide cardinality articles | — |
+| Item with a list price and unit | `Product2` + price book entry | `product-catalog-modeling`; `sfdmu-data-plans` (loading) | — |
+| Pricing basis: one-time / annual subscription / monthly plan | Selling models: One-Time, Term Defined (annual), Evergreen (monthly) | `product-catalog-modeling` → `selling-models-and-lifecycle.md`; `pricing-setup` → `proration-and-selling-models.md` | (b) a term model under a configurable bundle |
+| Package priced as the sum of its contents | Configurable bundle; component groups with min and max | `product-catalog-modeling` → `bundles-and-cardinality.md` | — |
 | Fixed kit | Static bundle | same | — |
-| Option the rep picks, priced | Attribute with attribute-based price, or a component | `pricing-procedures` → `elements/attribute-based-price.md` | (b) attribute on the parent, price on a child |
-| Not sold standalone | `IsSoldOnlyWithOtherProds` | `revenue-cloud-data-model` | — |
-| Not tracked in the installed base | `IsAssetizable = false` | `revenue-cloud-data-model` | (c) its effect on amend, cancel and renew |
+| Option the rep picks, priced | Attribute with attribute-based price, or a component | `product-catalog-modeling` → `attributes-and-classifications.md`; `pricing-procedures` → `elements/attribute-based-price.md` | (b) attribute on the parent, price on a child |
+| Not sold standalone | `IsSoldOnlyWithOtherProds` | `product-catalog-modeling` → `selling-models-and-lifecycle.md` | (a) what enforces it at run time |
+| Not tracked in the installed base | `IsAssetizable = false` | same | (c) its effect on amend, cancel and renew |
+| Product lines, categories, catalogs | Catalog categories and `Family` | `product-catalog-modeling` → `catalogs-and-loading.md` | — |
 | Part number per configuration | Attribute set by CML from the selection | `constraint-models` | — |
 
 ## Configuration and rules
 
 | Source concept | Try first | Where documented | Usual live trigger |
 |---|---|---|---|
-| Sizing questions | Attributes on the bundle root | `constraint-models` | — |
-| Quantity derived from answers (per site, per 10 rounded up) | CML cardinality constraints; `ceil()` | `constraint-models`; dev guide: accessing quantity in CML, numerical functions, quantity and aggregation guidelines | — |
+| Sizing questions | Attributes on the bundle root | `constraint-models` → `quantities-from-attributes.md` | — |
+| Quantity derived from answers (per site, per 10 rounded up) | CML cardinality constraints driven by `int` variables, with an integer bracket for rounding up | `constraint-models` → `quantities-from-attributes.md` (`ceil()` doesn't round inside a constraint) | — |
 | Effort or hours estimator | Same, on service components | same | — (golden tests check each rounding step) |
 | "X only with Y", "exactly one of" | CML constraints with messages | `constraint-models` | (c) enforcement on amendments, not just new sales |
-| Warning that doesn't block | CML message with warning severity | `constraint-models` | — |
+| Warning that doesn't block | CML message with warning severity | `constraint-models` → `quantities-from-attributes.md` | (a) what a warning blocks in the flow |
 
 ## Pricing
 
 | Source concept | Try first | Where documented | Usual live trigger |
 |---|---|---|---|
-| Volume bands by quantity | Volume and tier discounts, price adjustment schedule | `pricing-procedures` → `elements/volume-and-tier-discount.md`; `pricing-setup` → `price-adjustment-schedules.md` | (c) new units only at the new band on an amendment |
+| Volume bands by quantity | Volume and tier discounts, price adjustment schedule | `pricing-procedures` → `elements/volume-and-tier-discount.md`; `pricing-setup` → `price-adjustment-schedules.md` | (c) new units only at the new band on an amendment (`asset-lifecycle-changes`) |
 | Discount when bought in a package | Bundle-based adjustment | `pricing-procedures` → `elements/bundle-based-price.md` | — |
 | Regional or channel uplift | Attribute adjustment matrix, or a decision-table lookup | `pricing-procedures` → `elements/attribute-adjustment-matrix.md`, `elements/decision-table-lookups.md` | (b) the driver lives on a different line from the price |
 | Order of application, rounding | Procedure element order, rounding element | `pricing-procedures` → `procedure-anatomy-and-ordering.md`, `elements/rounding-values.md` | — (golden tests check rounding once vs per step) |
 | Second currency | Multicurrency price book entries | `pricing-setup`, `sfdmu-data-plans` | — |
-| Annual escalator | Group ramp with uplift | `ramped-quotes`; `pricing-procedures` → `elements/price-revision-compound-uplift.md` | (b) a ramped bundle with one-time or evergreen children can't be amended when built by API (`ramped-quotes`) |
-| Renewal uplift | Price revision policy | `pricing-setup` → `price-revision-policies.md` | (c) the renewal's actual value |
-| Discount for a longer commitment | Price adjustment matrix or formula on term | `pricing-procedures` → `elements/price-adjustment-matrix.md`, `elements/formula-based-pricing.md` | (a) if the sweep finds no commitment-term coverage |
-| Price from cost and a target margin | Formula step on a cost looked up from a decision table | `pricing-setup` → `cost-books.md`; `pricing-procedures` → `elements/formula-based-pricing.md` | — |
+| Annual escalator | Group ramp with uplift | `ramped-quotes`; `pricing-procedures` → `elements/price-revision-compound-uplift.md` | (b) a ramped bundle with one-time or evergreen children failed to amend when built by API (`ramped-quotes`) |
+| Renewal uplift | Price revision policy | `pricing-setup` → `price-revision-policies.md`; `asset-lifecycle-changes` | (c) the renewal's actual value |
+| Discount for a longer commitment | List filter on term plus a formula step on Term Defined lines | `pricing-procedures` → `elements/commitment-term-discount.md` | (c) whether an amendment or renewal applies it a second time |
+| Price from cost and a target margin | Formula step on a cost looked up from a decision table | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md`; `pricing-procedures` → `elements/formula-based-pricing.md` | — |
 
 ## Cost and margin
 
 | Source concept | Try first | Where documented | Usual live trigger |
 |---|---|---|---|
-| Standard cost per item | Cost book entries | `pricing-setup` → `cost-books.md` | — |
-| Labour rates, loaded cost | Computed during extraction into cost entries | — | — |
-| Line and quote margin | Cost through a decision table; the procedure's cost-and-margin formulas | `pricing-procedures` → `elements/formula-based-pricing.md`, `elements/list-group-and-list-operation.md`; `decision-tables` | — (field visibility is checked at the build gate) |
+| Standard cost per item | Cost book entries | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md` | — |
+| Labour rates, loaded cost | Computed during extraction into cost entries | `pricing-setup` → `scenarios/cost-and-margin.md` (modeling costs from a source) | — |
+| Line and quote margin | The shipped cost-and-margin wiring, plus a roll-up for the quote total | `pricing-setup` → `scenarios/cost-and-margin.md` | (b) margin on multi-period subscription lines |
 
 ## Billing
 
@@ -65,22 +66,24 @@ release.
 | Source concept | Try first | Where documented | Usual live trigger |
 |---|---|---|---|
 | Rounds or versions of a bid | One quote per round, by the clone action | `rlm-business-apis` | — |
-| Discount per product line | Manual line discounts, or a group in the line editor | `pricing-procedures` → `elements/manual-discount.md`, `elements/discount-distribution-service.md` | (b) a header discount was measured applying twice with an active procedure plan |
-| Approval matrix by discount, margin, size | Advanced Approvals | `rlm-business-apis` (approvals endpoints); Help: approvals articles | (d) preview considerations and limitations; (c) cumulative levels and rejection paths |
-| Line-level guards (below floor, below cost) | Approval conditions on line margin | same | same |
+| Discount per product line | Manual line discounts, or a group in the line editor | `pricing-procedures` → `elements/manual-discount.md`, `elements/discount-distribution-service.md`; `transaction-line-editor` → `runtime-behavior.md` | (b) a header discount was measured applying twice with an active procedure plan |
+| Approval matrix by discount, margin, size | Advanced Approvals: one level per dimension, the maximum drives a cumulative chain | `advanced-approvals` → `matrix-modeling.md` | (d) Preview limits; (c) rejection, recall and resubmission paths |
+| Line-level guards (below floor, below cost) | A count of breaking lines as an approval condition | `advanced-approvals` → `matrix-modeling.md` | same |
 
 ## Lifecycle
 
 | Source concept | Try first | Where documented | Usual live trigger |
 |---|---|---|---|
-| Co-termed addition | Amendment | `rlm-business-apis` → `backdated-asset-lifecycle.md`; Help: co-terminate | (c) values; (b) attributes after a quantity edit on an amendment line |
-| Swap one plan for another | Swap action | `rlm-business-apis` | (c) constraints on the amendment |
-| Cancellation credit | Cancellation | `rlm-business-apis` → `backdated-asset-lifecycle.md` | (b)(c) credit by selling model and date |
-| Renewal at a new price | Renewal with a price revision policy | `renewal-asset-creation`, `pricing-setup` | (c) the renewal's value and term |
+| Co-termed addition | Amendment | `asset-lifecycle-changes` → `change-policy-mapping.md`; `rlm-business-apis` → `backdated-asset-lifecycle.md` | (c) values; (b) attributes after a UI quantity edit on an amendment line |
+| Swap one plan for another | Swap action | `asset-lifecycle-changes` | (c) constraints on the amendment |
+| Cancellation credit | Cancellation | `asset-lifecycle-changes` → `change-policy-mapping.md` | (b)(c) credit by selling model and date |
+| Renewal at a new price | Renewal with a price revision policy | `asset-lifecycle-changes`, `renewal-asset-creation`, `pricing-setup` | (c) the renewal's value and term |
+| Proving a change end to end | Reprice, order, activate, check the asset | `asset-lifecycle-changes` → `verification.md` | — |
 
 ## Runtime surface
 
 | Source concept | Try first | Where documented | Usual live trigger |
 |---|---|---|---|
-| Columns the rep needs (margin, product line, uplift) | Transaction Line Editor display fields | Help: Transaction Line Editor articles; `repo-integration` → `ux-assembly-retrieve.md` | — (visibility per permission set is checked at the build gate) |
-| Grouping lines | Line groups in the Transaction Line Editor | `ramped-quotes` (groups); Help | — |
+| Columns the rep needs (margin, product line, uplift) | Line editor display columns | `transaction-line-editor` → `page-configuration.md` | — (visibility per permission set is checked at the build gate) |
+| Grouping lines | Line groups in the line editor | `transaction-line-editor`; `ramped-quotes` (groups) | — |
+| Header actions (reprice, ramp schedule, header adjustment) | Line editor action buttons | `transaction-line-editor` | (d) the action-button setup and limits disagree across the docs |
