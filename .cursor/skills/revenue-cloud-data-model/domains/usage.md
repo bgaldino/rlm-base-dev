@@ -269,12 +269,14 @@ stop when a full round makes no progress. See `scripts/apex/clearUsageData.apex`
 
 ## Activation Order
 
-Rating objects load as Draft and are activated afterwards, in dependency order. The
-`prepare_rating` flow runs, in this order:
+UnitOfMeasureClass, UsageResource, PUR and PUG load as Draft and are activated afterwards, in
+dependency order. The
+`prepare_rating` flow runs, in this order (the qb path; with `q3` on and `qb` off it runs
+the matching q3 plans instead):
 
 1. **`qb-rating`** (`insert_qb_rating_data`), pass 1 — `Upsert` the units, usage
-   resources, policy records and ProductUsageResource (PUR). The objects with a `Status`
-   (UnitOfMeasureClass, UsageResource, PUR) set `skipExistingRecords`: a missing row is
+   resources, policy records and ProductUsageResource (PUR). The objects that activation later sets
+   Active (UnitOfMeasureClass, UsageResource, PUR) set `skipExistingRecords`: a missing row is
    inserted as Draft and an existing row is never touched.
 2. **`qb-rating`**, pass 2 — `Update` UnitOfMeasureClass, UsageResource and PUR
    **without** `Status`, so field corrections land on existing rows. Pass 2 activates
@@ -287,6 +289,7 @@ Rating objects load as Draft and are activated afterwards, in dependency order. 
    UsageResource → Token PURs → every other PUR → PUG. Token PURs must be Active before the
    usage PURs of the same product can activate, and every PUR before its grants. PURP has
    no `Status` of its own.
+6. **`activate_rates`** — activates the Draft rate card entries; see `rates.md`.
 
 ## SFDMU Data Plans: `qb-rating` and `qb-rating-entitlements`
 
@@ -297,7 +300,7 @@ nothing is deleted.
 
 | Plan | Loads | Match key | Passes |
 |------|-------|-----------|--------|
-| `qb-rating` | 12 objects: UnitOfMeasure, UnitOfMeasureClass, UsageResourceBillingPolicy, UsageResource, Product2 (`Update` only), UsageGrantRenewalPolicy, UsageGrantRolloverPolicy, UsageOveragePolicy, UsageCommitmentPolicy, PUR, UsagePrdGrantBindingPolicy, RatingFrequencyPolicy | PUR: `Product.StockKeepingUnit;UsageResource.Code` (a relationship-traversal key, which matches on the 5.6.4+ floor) | 1: `Upsert`, with `skipExistingRecords` on the `Status` objects. 2: `Update` without `Status` |
+| `qb-rating` | 12 objects: UnitOfMeasure, UnitOfMeasureClass, UsageResourceBillingPolicy, UsageResource, Product2 (`Update` only), UsageGrantRenewalPolicy, UsageGrantRolloverPolicy, UsageOveragePolicy, UsageCommitmentPolicy, PUR, UsagePrdGrantBindingPolicy, RatingFrequencyPolicy | PUR: `Product.StockKeepingUnit;UsageResource.Code` (a relationship-traversal key, which matches on the 5.6.4+ floor) | 1: `Upsert`, with `skipExistingRecords` on UnitOfMeasureClass, UsageResource and PUR. 2: `Update` without `Status` |
 | `qb-rating-entitlements` | PURP and PUG; the policy, unit and product objects and PUR are `Readonly` | `ProductUsageResourceId` for both, resolved on the target org at load time | 1: `Upsert` + `skipExistingRecords`. 2: `Update` without `Status` |
 
 **Why PURP and PUG are a separate plan.** SFDMU 5.8.0 cannot `Upsert` a child keyed on
