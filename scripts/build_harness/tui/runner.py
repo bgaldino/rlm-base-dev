@@ -43,12 +43,12 @@ def _create_workspace_dir(root: Path, alias_slug: str, run_stamp: str) -> Path:
     raise RuntimeError("Unable to allocate a unique TUI workspace directory.")
 
 
-def _remove_workspace_dir(workspace_dir: Path, succeeded: bool) -> Path | None:
+def _remove_workspace_dir(workspace_dir: Path, succeeded: bool) -> None:
     """Remove a TUI workspace after its cci_project/ was cleaned up.
 
     The workspace also holds the run's Robot output (``robot_results/``). A
-    successful build discards it; a failed build keeps it, with the workspace,
-    when a Robot step wrote anything. Returns the kept results folder, if any.
+    successful build discards it. A build that did not succeed (failed or
+    cancelled) keeps it, with the workspace, when a Robot step wrote anything.
     """
     results_dir = workspace_dir / ROBOT_RESULTS_DIRNAME
     if results_dir.is_dir() and not results_dir.is_symlink():
@@ -59,7 +59,6 @@ def _remove_workspace_dir(workspace_dir: Path, succeeded: bool) -> Path | None:
     except OSError:
         # Keep parent workspace for troubleshooting if it's non-empty.
         pass
-    return results_dir if results_dir.is_dir() else None
 
 
 def load_tui_config() -> Tuple[
@@ -350,18 +349,7 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
                 )
             )
         else:
-            kept_results = _remove_workspace_dir(workspace_dir, succeeded)
-            if kept_results is not None:
-                emit(
-                    RunEvent(
-                        kind=RunEventKind.COMMAND_OUTPUT,
-                        payload={
-                            "phase": "cleanup",
-                            "step_number": -1,
-                            "line": f"[harness] Robot output kept at {kept_results}",
-                        },
-                    )
-                )
+            _remove_workspace_dir(workspace_dir, succeeded)
 
 def _run_command(
     command: Iterable[str],

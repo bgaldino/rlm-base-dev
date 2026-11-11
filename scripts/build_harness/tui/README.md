@@ -84,7 +84,7 @@ the TUI falls back to the first shape in the list.
 ## Notes
 
 - The TUI materializes a run-scoped `cci_project` workspace under `.harness/tui-runs/` and executes `cci` commands from that workspace so runtime flag overrides affect CCI `when:` behavior.
-- Robot output for the run goes to `robot_results/` beside that `cci_project`, not to the repo's `robot/rlm-base/results/`. A successful build removes it with the workspace. A failed build that wrote Robot output keeps `.harness/tui-runs/tui-workspace-*/robot_results/` (regardless of `persistent_logging`) and logs where; delete those folders by hand when done.
+- Robot output for the run goes to `robot_results/` beside that `cci_project`, not to the repo's `robot/rlm-base/results/`. A successful build removes it with the workspace. A failed or cancelled build that wrote Robot output keeps `.harness/tui-runs/tui-workspace-<UTC stamp>-<alias>-<suffix>/robot_results/` (regardless of `persistent_logging`); delete those folders by hand when done.
 - Scratch org lifecycle is intentionally split for timing analysis:
   - `cci org scratch <shape> <alias> --days <n>` registers the alias/config
   - `cci org info <alias>` forces org materialization before `prepare_core`
