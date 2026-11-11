@@ -74,9 +74,10 @@ files can use it.
   instead ([session-orchestration.md](session-orchestration.md)).
 - **DO NOT** let a test pass on configuration with rules off. Place quotes with
   configuration rules on, and assert each rejection's own message.
-- **DO NOT** plan lifecycle examples in an order the platform refuses. Replay them as a
-  dated sequence first; a change dated before an existing later change can't be
-  initiated (`asset-lifecycle-changes`).
+- **DO NOT** assume a source's lifecycle examples can run in the order it lists them.
+  Replay them as a dated sequence first. Whether a change dated before an existing
+  later change is refused is open: the Help says both (`asset-lifecycle-changes`), so
+  an example that depends on it is a live check.
 
 ## Entry Conditions
 
@@ -189,9 +190,10 @@ Rules that need a live org become spikes, each with the source value it must hit
   not only its own formula: guards, dependencies and thresholds. A source's summary
   formulas often skip a rule its policy text states (a per-line floor-margin guard, a
   never-below-cost rule). Each violation is a decision, not a silent choice.
-- **Replay lifecycle examples in date order,** with configuration rules on and the
-  platform's ordering rule applied (`asset-lifecycle-changes`). An example that can't
-  run in date order, or that breaks a sizing rule, is a decision.
+- **Replay lifecycle examples in date order,** with configuration rules on. An example
+  that breaks a sizing rule, or that runs a change dated before an existing later one,
+  is a decision. Whether the platform refuses the second case is open in
+  `asset-lifecycle-changes`, so plan a live check for it.
 - Where the source and Revenue Cloud measure different things, write the mapping into
   the test rather than forcing equality. Example: a monthly plan the source counts
   for the contract term "for comparison only".
