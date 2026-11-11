@@ -113,7 +113,7 @@ An org's lifetime is the `--days` passed to `cci org scratch <shape> <alias> --d
 
 ### Run several builds at once
 
-Concurrent harness runs are supported for Robot output only. Give each `run` its own `--run-id` (`run` refuses an existing run directory). The org alias is the scenario's `org_alias_prefix` plus the run id's **last 12 characters** (`config.py::alias_for_scenario`), so two runs of the same scenario need ids that differ in that tail. Starting two runs without `--run-id` in the same second can pick the same generated id.
+Concurrent harness runs are supported for Robot output only. Give each `run` its own `--run-id` (`run` refuses an existing run directory). The org alias is the scenario's `org_alias_prefix` (default `harness-<scenario_id>`) plus the **last 12 characters** of the run id after every `run-` is removed and the rest lowercased (`config.py::alias_for_scenario`). Two runs of the same scenario therefore need ids whose tails differ ignoring case, or both build the same scratch org. Starting two runs without `--run-id` in the same second can pick the same generated id.
 
 Each workspace copies `robot/` and links `robot/rlm-base/results` to that run's own `robot_results/` folder, so Robot-backed steps no longer share `output.xml`. Before this, overlapping runs corrupted it and passing steps failed with exit 252 (`ParseError: not well-formed`), seen on `enable_document_builder_toggle` and `reorder_app_launcher`.
 
