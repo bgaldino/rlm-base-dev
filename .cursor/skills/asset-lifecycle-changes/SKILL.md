@@ -78,10 +78,13 @@ in November 2026.
     - Both held on the Standard price book [Measured: 2026-11-05, 264]. Term Defined
       credits and the invoice-level values are separate measurements
       ([verification.md](verification.md) → Open).
-    - Only cancellations were measured. Help says an evergreen reduction takes units last
-      in, first out from the current quantity, and a swap acts as an add plus a negative
-      amendment [Help: `ind.qocal_fdo_examples_of_amendment_types_and_results`], but not
-      what either credits. Evergreen reduction and swap values are **Open**
+    - On an evergreen line only cancellation was measured. The measured reductions were on
+      the one-time bundle root ([verification.md](verification.md)) and a Term Defined
+      product, and the measured swaps on Term Defined products [Repo:
+      `rlm-business-apis/backdated-asset-lifecycle.md`]. Help says an evergreen reduction
+      takes units last in, first out from the current quantity, and a swap acts as an add
+      plus a negative amendment [Help: `ind.qocal_fdo_examples_of_amendment_types_and_results`],
+      but not what either credits. Evergreen reduction and swap values are **Open**
       ([verification.md](verification.md) → Open).
     - A source's term-total value for an evergreen line (a total credit over the remaining
       term) doesn't compare with the quote directly: the quote counts the line for its
