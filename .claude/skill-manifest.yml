@@ -301,6 +301,20 @@ foundations:
         - "The CCI tasks remain the org-build path — the toolkit complements, does not duplicate, them"
         - "check_decision_table_freshness requires post_utils deployed; it delegates to RLM_DecisionTableManagerController rather than recomputing freshness"
         - "A table's own row count is not queryable — DecisionTableDataset/Recordset reject aggregates and partial filters; only source counts exist"
+
+    - id: product-catalog-modeling
+      path: .cursor/skills/product-catalog-modeling/SKILL.md
+      purpose: "Turn commercial offerings into a PCM catalog model: product vs attribute vs component, bundles and cardinality, classifications and attribute overrides, selling models, IsAssetizable/IsSoldOnlyWithOtherProds, catalogs, categories and Family"
+      consumed_by_pmos: []
+      sub_skills:
+        - .cursor/skills/product-catalog-modeling/bundles-and-cardinality.md
+        - .cursor/skills/product-catalog-modeling/attributes-and-classifications.md
+        - .cursor/skills/product-catalog-modeling/selling-models-and-lifecycle.md
+        - .cursor/skills/product-catalog-modeling/catalogs-and-loading.md
+      provenance: grounded in the 264 Help and dev-guide snapshots plus repo skills; load facts measured on live 264 builds 2026-11
+      caveats:
+        - "IsSoldOnlyWithOtherProds runtime enforcement, ProductCategory.Code uniqueness scope, and the Discontinued vs End Of Life sale cut-off are open and need live verification"
+
     - id: constraint-models
       path: .cursor/skills/constraint-models/SKILL.md
       purpose: "CML constraint models for the Product Configurator: .ffxblob as the shipped plain-text artifact, the four records a bundle member needs, Sequence in the PRC composite key, and why importing into an ACTIVE version does not redeploy"
