@@ -50,7 +50,8 @@ QuantumBit build.
     - Standard approval fields can't be written through the sObject APIs
       [Help: `ind.approvals_design_build_activation`].
 6. **Extend the shipped workflow rather than adding a second one.** For a new dimension:
-    - add a fact to `RLM_Quote_Approval_Data`
+    - add a fact to `RLM_Quote_Approval_Data`, and declare it as an output on the
+      `QueryApprovalData` step (`outputConfigParams`)
     - add the new step's trigger condition as an OR condition on the `Requires_Approval`
       decision, or a quote that triggers only the new dimension skips approval and goes
       straight to Approved
@@ -63,8 +64,9 @@ QuantumBit build.
    [Repo: `docs/features/composable-quote-approvals.md` → Adding A New Approval Dimension].
 7. **Reprice before you submit.** Line levels are written by the pricing procedure on each
    reprice; there is no staleness guard [Repo: `datasets/expression_set_overlays/README.md`].
-8. **Verify with a real submission, not only Preview.** Preview skips asynchronous entry
-   conditions and doesn't tell AND from OR [Help: `ind.approvals_preview_feature_limitations`].
+8. **Verify with a real submission, not only Preview.** Preview doesn't show steps whose entry
+   conditions depend on asynchronous evaluations, such as a background step's subflow, and
+   doesn't tell AND from OR [Help: `ind.approvals_preview_feature_limitations`].
    Check work items, statuses and the quote status after each action
    ([actions-and-objects.md](actions-and-objects.md) → headless test).
 
@@ -171,6 +173,9 @@ items:
 
 - `cci flow run prepare_approvals --org <cci_alias>` succeeds, and a rerun is idempotent
   [Repo: `docs/features/composable-quote-approvals.md` → Verification Checklist].
+- When the approval-flags overlay or the approvals context plan changes, also run
+  `cci flow run prepare_approvals_pricing --org <cci_alias>` (it applies both), then reprice
+  before testing. `prepare_approvals` doesn't touch the pricing side.
 - Run the headless test in [actions-and-objects.md](actions-and-objects.md) for these paths:
     - no-approval
     - each single dimension

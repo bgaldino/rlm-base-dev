@@ -108,7 +108,8 @@ This pattern has been validated in scratch orgs and proves:
 Add dimensions as a recipe, not as a framework rewrite.
 
 1. Add the approval fact to `RLM_Quote_Approval_Data` if the step needs a new
-   quote-derived value.
+   quote-derived value, and declare it as an output on the `QueryApprovalData` step
+   (`outputConfigParams`) so conditions can read `QueryApprovalData.Outputs.<name>`.
 2. Add the new step's trigger condition as an OR condition on the `Requires_Approval`
    decision. Without it, a quote that triggers only the new dimension takes the decision's
    default path straight to `Update_Quote_Status_to_Approved`.
@@ -152,9 +153,12 @@ Run these checks before treating an approval-flow change as ready:
 
 - `cci flow run prepare_approvals --org <cci_alias>` succeeds on a scratch org.
 - Re-running `prepare_approvals` is idempotent.
+- If the approval-flags overlay or the approvals context plan changed, run
+  `cci flow run prepare_approvals_pricing --org <cci_alias>` and reprice before testing.
 - Preview Approvals shows the expected chains and steps once mock output values are set for
-  the `QueryApprovalData` background step: Preview skips entry conditions that depend on a
-  background step's subflow. A real submission (below) is the deciding check.
+  the `QueryApprovalData` background step: Preview doesn't show steps whose entry
+  conditions depend on a background step's subflow. A real submission (below) is the
+  deciding check.
 - **No-approval path**: Quotes with `DiscountApprovalLevel = 0` AND `PaymentTerms = "Net 30"` 
   route directly to `Approved` status without entering the approval stage.
 - **Single-dimension paths**: Discount-only and terms-only quotes complete correctly.
