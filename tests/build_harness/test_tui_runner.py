@@ -338,3 +338,68 @@ def test_create_workspace_dir_uses_unique_suffixes(tmp_path, monkeypatch) -> Non
     assert first != second
     assert first.exists()
     assert second.exists()
+
+
+def _robot_workspace_build(tmp_path, monkeypatch, *, step_exit: int, create_exit: int = 0):
+    """Run run_build with the real workspace prepare/cleanup and a fake Robot step."""
+    (tmp_path / "robot" / "rlm-base" / "tests").mkdir(parents=True)
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    monkeypatch.setattr(runner, "load_cci", lambda _: {"project": {"custom": {}}, "flows": {"prepare_rlm_org": {"steps": {}}}, "orgs": {"scratch": {"ent": {"config_file": "orgs/ent.json", "days": 30}}}})
+    monkeypatch.setattr(
+        runner,
+        "load_prepare_steps",
+        lambda _: [SimpleNamespace(step_number=1, target_type="task", target_name="robot_step", when=None)],
+    )
+    monkeypatch.setattr(runner, "evaluate_when", lambda *_args, **_kwargs: True)
+
+    def _run_command(command, *_args, **kwargs):
+        command = list(command)
+        if command[:3] == ["cci", "org", "scratch"]:
+            return {"duration_seconds": 0.01, "exit_code": create_exit, "failure_signature": ""}
+        if "robot_step" in command:
+            results = Path(kwargs["cwd"]) / "robot" / "rlm-base" / "results"
+            results.mkdir(parents=True, exist_ok=True)
+            (results / "output.xml").write_text("<robot/>\n", encoding="utf-8")
+            return {"duration_seconds": 0.01, "exit_code": step_exit, "failure_signature": "robot failed"}
+        return {"duration_seconds": 0.01, "exit_code": 0, "failure_signature": ""}
+
+    monkeypatch.setattr(runner, "_run_command", _run_command)
+    events: List[RunEvent] = []
+    code = runner.run_build(config=_build_config(overrides={}), stop_event=Event(), emit=_emit_collector(events))
+    return code, events, tmp_path / ".harness" / "tui-runs"
+
+
+def _kept_lines(events: List[RunEvent]) -> List[str]:
+    return [
+        str(event.payload.get("line", ""))
+        for event in events
+        if "Robot output kept" in str(event.payload.get("line", ""))
+    ]
+
+
+def test_run_build_success_removes_workspace_and_robot_results(tmp_path, monkeypatch) -> None:
+    code, events, tui_runs = _robot_workspace_build(tmp_path, monkeypatch, step_exit=0)
+
+    assert code == 0
+    assert list(tui_runs.iterdir()) == [], "a successful build must not leave its workspace"
+    assert _kept_lines(events) == []
+
+
+def test_run_build_failure_keeps_robot_output(tmp_path, monkeypatch) -> None:
+    code, events, tui_runs = _robot_workspace_build(tmp_path, monkeypatch, step_exit=7)
+
+    assert code == 7
+    workspaces = list(tui_runs.iterdir())
+    assert len(workspaces) == 1
+    kept = workspaces[0] / "robot_results"
+    assert sorted(path.name for path in workspaces[0].iterdir()) == ["robot_results"]
+    assert (kept / "output.xml").read_text(encoding="utf-8") == "<robot/>\n"
+    assert _kept_lines(events) == [f"[harness] Robot output kept at {kept}"]
+
+
+def test_run_build_failure_without_robot_output_removes_workspace(tmp_path, monkeypatch) -> None:
+    code, events, tui_runs = _robot_workspace_build(tmp_path, monkeypatch, step_exit=0, create_exit=5)
+
+    assert code == 5
+    assert list(tui_runs.iterdir()) == []
+    assert _kept_lines(events) == []

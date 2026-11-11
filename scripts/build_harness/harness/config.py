@@ -218,7 +218,7 @@ _SCENARIO_CCI_BANNER = (
     "# removed when the run completes successfully and retained on failure (and\n"
     "# for resumable runs) so the artifacts can be inspected. Robot output\n"
     "# (robot/rlm-base/results) is a link to robot_results/ beside this\n"
-    "# workspace, which is kept in either case.\n"
+    "# workspace. The CLI always keeps it; the TUI keeps it for a failed build.\n"
     "#\n"
     "# Differences from the source cumulusci.yml that are EXPECTED:\n"
     "# - YAML anchors (&name / *name) are inlined as their resolved values.\n"
@@ -246,7 +246,8 @@ def _copy_robot_tree(source: Path, destination: Path, results_dir: Path) -> None
     The repo's ``robot/rlm-base/results`` (untracked, often 100MB+ of old logs)
     is not copied. Instead ``destination/rlm-base/results`` is a symlink to
     ``results_dir``, a sibling of ``cci_project/``, so Robot output is private
-    to the run and survives workspace cleanup and the clean rebuild on resume.
+    to the run and outlives ``cleanup_scenario_project_root`` and the clean
+    rebuild on resume. Callers decide whether to keep ``results_dir``.
     """
     source_results = source / ROBOT_RESULTS_RELPATH
 

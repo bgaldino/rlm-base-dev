@@ -185,6 +185,7 @@ TUI runs, when `persistent_logging` is enabled:
 - `.harness/tui-runs/<run_id>/events.jsonl`
 - `.harness/tui-runs/<run_id>/command-output.log`
 - `.harness/tui-runs/<run_id>/run_summary.json`
+- `.harness/tui-runs/tui-workspace-*/robot_results/` - Robot output of a failed build (kept whatever `persistent_logging` says)
 
 ## Resume and Failure Policy
 
@@ -320,7 +321,7 @@ exported them.
 
 ### Scenario workspaces
 
-`prepare_scenario_project_root` creates a temporary `cci_project/` under a run-scoped directory (CLI scenario run dirs, or TUI workspace dirs under `.harness/tui-runs/`). It symlinks most repo entries, copies `scripts/` and `robot/`, and writes a generated `cumulusci.yml` with scenario/effective flags. The `robot/` copy leaves out the repo's `robot/rlm-base/results/` and links that path to `robot_results/` beside `cci_project/`, so Robot logs are private to the run and outlive workspace cleanup and the clean rebuild on resume. The cleanup guard refuses to delete paths not named `cci_project`.
+`prepare_scenario_project_root` creates a temporary `cci_project/` under a run-scoped directory (CLI scenario run dirs, or TUI workspace dirs under `.harness/tui-runs/`). It symlinks most repo entries, copies `scripts/` and `robot/`, and writes a generated `cumulusci.yml` with scenario/effective flags. The `robot/` copy leaves out the repo's `robot/rlm-base/results/` and links that path to `robot_results/` beside `cci_project/`, so Robot logs are private to the run and outlive `cci_project/` cleanup and the clean rebuild on resume. The CLI keeps `robot_results/` in the scenario run dir. The TUI (`tui/runner.py::_remove_workspace_dir`) discards it after a successful build; after a failed build that wrote Robot output it keeps the `tui-workspace-*` folder with `robot_results/` and logs `Robot output kept at <path>`. Nothing prunes those folders. The cleanup guard refuses to delete paths not named `cci_project`.
 
 ### Tests to extend
 
