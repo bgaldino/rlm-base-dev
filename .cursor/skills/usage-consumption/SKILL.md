@@ -61,8 +61,9 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
   included allowance"
 - **DO NOT** put a `RatingFrequencyPolicyId` or `UsageAggregationPolicyId` on a
   commitment product's PURP
-- **DO NOT** re-run `qb-rating` / `qb-rates` / `qb-pricing` into an org that already
-  has usage assets — see `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a Live
+- **DO NOT** re-run `qb-rates` / `qb-pricing` into an org that already has usage
+  assets (`qb-rating` and `qb-rating-entitlements` match existing rows and delete
+  nothing, so they're safe to reload) — see `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a Live
   Org*. Load new products surgically instead
 - **DO NOT** infer runtime behaviour from a field description in the dev-guide or
   help snapshot — neither documents drawdown ordering or interaction. Establish it
@@ -177,7 +178,8 @@ row budget, reporting a partial teardown rather than throwing. Two consequences
 worth knowing:
 
 - **Re-run until the remaining counts read zero.** A partial teardown is expected on
-  a large graph and is real progress, not a failure.
+  a large graph and is real progress, not a failure. Account Utilities says so on
+  its result screen: a run that stops early asks to be run again.
 - **Usage teardown must sit outside any rollback boundary.** In
   `RLM_AccountUtilities` it deliberately runs *before* the savepoint: inside it, one
   later exception would roll back every usage row removed and the reset could never
@@ -266,7 +268,7 @@ progress.
 ## Validation Checks
 
 ```bash
-python tests/test_qb_multicurrency_data.py                  # the 17 offline invariants, no org
+python tests/test_qb_multicurrency_data.py                  # the 18 offline invariants, no org
 python scripts/validate_sfdmu_v5_datasets.py                # plan v5 compliance
 python scripts/ai/check_plan_readme_consistency.py --strict  # plan README ↔ CSVs
 cci task run validate_multicurrency_rates --org <cci-alias> # live design+runtime

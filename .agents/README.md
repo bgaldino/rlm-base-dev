@@ -44,8 +44,8 @@ For contributions, follow [CONTRIBUTING.md](../CONTRIBUTING.md).
      and release enablement.
    - Despite the historical `.cursor` path, these are plain Markdown skills for
      any agent that can read repository files.
-   - Use the Skill Index in `AGENTS.md` or `.cursor/skills/README.md` to choose
-     the relevant entry point.
+   - Pick a skill by task in the router, `.cursor/skills/README.md`; the
+     `AGENTS.md` Skill Index lists every skill by area.
    - `.agents/skills/<name>` and `.claude/skills/<name>` are relative directory
      links to that same content for native client discovery. See the
      [discovery guide](../docs/guides/agent-skill-discovery.md) for tested
@@ -112,7 +112,8 @@ this README):
   defines escalation criteria.
 - `.agents/context/project-map.md` — human-readable map of the repository.
 - `.agents/context/project-memory.json` — machine-readable project memory,
-  validated against `.agents/schemas/project-memory.schema.json`.
+  validated against `.agents/schemas/project-memory.schema.json` by
+  `tests/test_project_memory_schema.py`, which `pr_gate.py` runs.
 
 None of these override `AGENTS.md`; they are routing and context aids.
 
@@ -130,7 +131,9 @@ guidelines above.
 
 Keep private tracker payloads and generated working artifacts out of public
 commits. `.agents/artifacts/` is gitignored; authorized maintainers synchronize
-it as a private nested repository.
+it as a private nested repository. Inside it, placement follows
+`.cursor/rules/analysis-artifacts.mdc` and the private repository's own README;
+its pre-commit hook, once enabled as that README describes, rejects misplaced files.
 
 ### PMOS integration
 

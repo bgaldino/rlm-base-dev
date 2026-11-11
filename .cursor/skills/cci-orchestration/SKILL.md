@@ -3,7 +3,9 @@ name: cci-orchestration
 description: >-
   Configure and run CumulusCI tasks and flows for Revenue Cloud Foundations. Use when
   editing cumulusci.yml, authoring Python CCI tasks, sequencing build steps, applying
-  feature flags, or choosing CCI versus Salesforce CLI org aliases.
+  feature flags, choosing CCI versus Salesforce CLI org aliases, or cleaning up CCI
+  and sf orgs: expired/deleted scratch orgs, stale aliases/defaults, invalid auth,
+  and orphaned .sf/.sfdx state.
 ---
 
 # CumulusCI Orchestration Skill
@@ -21,6 +23,9 @@ project's specific configuration.
    steps only. CCI discards a `when:` on a `flow:` step; gate the child steps.
 5. In Python tasks: `self.org_config.username` for CLI, `.access_token` for REST only.
 6. `prepare_rlm_org` has strict ordering — don't add steps out of dependency order.
+7. For local org/auth cleanup, read `org-cleanup.md` first; preserve live orgs,
+   Dev Hubs, reusable shapes, and any entry whose lifecycle is uncertain.
+   `cci org remove` deletes a scratch org remotely; it is not a local cleanup.
 
 ## DO NOT
 
@@ -251,7 +256,7 @@ either a built-in CCI class or a custom class in `tasks/`.
 ### 6. Flows (`flows`)
 
 Flows are organized as a hierarchy. The main entry point is `prepare_rlm_org`
-(35 steps), which calls sub-flows:
+(37 steps), which calls sub-flows:
 
 ```
 prepare_rlm_org
@@ -262,8 +267,8 @@ prepare_rlm_org
 ├── 5. deploy_full (force-app/main/default)
 ├── 6. prepare_price_adjustment_schedules
 ├── 7. prepare_quantumbit (utils, approvals, QB metadata)
-├── 8. prepare_product_data (PCM, Q3, product images)
-├── 9. prepare_pricing_data (pricing delete + insert)
+├── 8. prepare_product_data (PCM with product image URLs, Q3, org-default configurator flow)
+├── 9. prepare_pricing_data (pricing reload in place, CPI price revision data)
 ├── 10. prepare_docgen
 ├── 11. prepare_dro
 ├── 12. prepare_tax
@@ -271,7 +276,7 @@ prepare_rlm_org
 ├── 14. prepare_collections [child steps gated on collections]
 ├── 15. prepare_analytics
 ├── 16. prepare_clm
-├── 17. prepare_rating (delete, insert, activate for rating+rates)
+├── 17. prepare_rating (reload in place + activate for rating+rates)
 ├── 18. activate_and_deploy_expression_sets
 ├── 19. prepare_approvals_pricing [child steps gated on quantumbit + approvals]
 ├── 20. prepare_tso (TSO-specific PSLs, PSGs, deploy)
@@ -289,7 +294,9 @@ prepare_rlm_org
 ├── 32. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
 ├── 33. refresh_all_decision_tables
 ├── 34. rebuild_search_index (PCM catalog search index, async)
-└── 35. stamp_git_commit
+├── 35. empty_recycle_bin (scratch orgs only)
+├── 36. prepare_mcp [child steps gated on mcp; custom server on mcp_custom_server]
+└── 37. stamp_git_commit
 ```
 
 `[child steps gated on <flag>]` means the flag turns that sub-flow's work off, but
@@ -376,6 +383,11 @@ python scripts/ai/generate_cci_reference.py --dry-run
 
 ## Common Workflows
 
+For requests such as "clean up my CCI and SF orgs" or "purge expired scratch
+orgs and invalid auth", follow [Local Org and Auth Cleanup](org-cleanup.md).
+That procedure audits first, removes only entries a Dev Hub shows are gone,
+and verifies both CLI registries and residual local state.
+
 ```bash
 # Full org setup
 cci flow run prepare_rlm_org --org beta
@@ -383,7 +395,7 @@ cci flow run prepare_rlm_org --org beta
 # Run a single data plan
 cci task run insert_quantumbit_pricing_data --org beta
 
-# Delete before re-load
+# Manual full teardown (flows reload qb pricing in place)
 cci task run delete_quantumbit_pricing_data --org beta
 
 # Extract data from an org
@@ -395,8 +407,8 @@ cci task run test_qb_pricing_idempotency --org beta
 # Activate records
 cci task run activate_rating_records --org beta
 
-# Deploy and assemble UX (deploys to your DEFAULT cci org — no --org flag)
-cci task run assemble_and_deploy_ux
+# Assemble and deploy UX
+cci task run assemble_and_deploy_ux --org beta
 
 # UX dry-run (assemble only, no deploy; local — no org needed)
 cci task run assemble_and_deploy_ux -o deploy false
@@ -420,6 +432,14 @@ cci flow info prepare_rlm_org
 ```
 
 ---
+
+## Sub-Files
+
+- `org-cleanup.md` — read before cleaning CCI/SF org registries, invalid auth,
+  aliases/defaults, or residual `.sf`/`.sfdx` files. Drives `scripts/ai/org_cleanup.py`.
+- `custom-task-authoring.md` — read before writing Python CCI tasks.
+- `tasks-reference.md`, `flows-reference.md`, `feature-flags.md` — generated
+  task, flow, and feature-flag references; regenerate after configuration edits.
 
 ## Related Skills
 

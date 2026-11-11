@@ -84,7 +84,7 @@ Each domain has a distinct color for easy visual identification:
 
 ### "Which objects reference Product2?"
 
-Open `revenue-cloud-erd.html`, search for "Product2", and observe all connected nodes.
+Open `revenue-cloud-erd.html`, search for "Product2", and observe all connected nodes. Search for `DocumentTemplate` or `DocumentClause` to explore the Contracts CLM extension in the same viewer.
 
 ### "What are all the billing-related objects?"
 
@@ -106,7 +106,7 @@ If `erd-data.json` changes, regenerate the HTML viewer:
 python3 scripts/erd/build_erds.py
 ```
 
-This rebuilds `revenue-cloud-erd.html` from current `erd-data.json` data. The Mermaid `.mermaid` files are relationship-focused summaries that may need manual updates if domain structure shifts significantly.
+This rebuilds `revenue-cloud-erd.html` from `erd-data.json` plus the optional `contracts-erd-data.json` extension. The Revenue Cloud baseline remains separate from the CLM schema snapshot. The Mermaid `.mermaid` files are relationship-focused summaries that may need manual updates if domain structure shifts significantly.
 
 To refresh `erd-data.json` itself against a fresh org or new release, see `.cursor/skills/schema-validation/SKILL.md` for the full workflow.
 

@@ -9,6 +9,7 @@ Implemented in:
 - `unpackaged/post_approvals/flows/RLM_Quote_Smart_Approval.flow-meta.xml`
 - `unpackaged/post_approvals/flows/RLM_Quote_Approval_Data.flow-meta.xml`
 - `unpackaged/post_approvals/flows/RLM_Quote_Approval_Comments.flow-meta.xml`
+- `unpackaged/post_approvals/flows/RLM_AA_Reset_Quote_Status.flow-meta.xml`
 - `unpackaged/post_approvals/classes/RLM_AA_Submit_Approval.cls`
 - `tasks/rlm_create_approval_email_templates.py`
 - `datasets/sfdmu/qb/en-US/qb-approvals/`
@@ -22,7 +23,8 @@ work item management.
 - Submission lifecycle: platform `ApprovalSubmission` and Flow Orchestration;
   the project starts the orchestration for the quote.
 - Recall and cancellation: platform Advanced Approvals invocable actions; the
-  project exposes UI/actions when needed.
+  project exposes UI/actions when needed, and resets the quote's own approval
+  status (`RLM_AA_Reset_Quote_Status`, below).
 - Resubmission: platform new submission after rejection or recall; the project
   keeps the submit action re-runnable.
 - Smart Approval: platform Smart Approval inputs on approval steps; the project
@@ -68,6 +70,33 @@ If no approval is required (`DiscountApprovalLevel = 0` AND `PaymentTerms = "Net
 the flow takes the `Requires_Approval` decision's default connector directly to
 `Update_Quote_Status_to_Approved`, bypassing the approval stage entirely.
 
+### Quote approval status
+
+`Quote.RLM_Approval_Status__c` (global value set `RLM_Approval_Status`, shown on the
+`RLM_Quote_Approval` path) is the project's own field. The platform keeps the real
+state on `ApprovalSubmission` and `ApprovalWorkItem`; this field mirrors it for reps.
+
+| Event | Who sets it | Value |
+| ----- | ----------- | ----- |
+| Approval stage starts | Orchestration background step `Set_Quote_Approval_Status_Pending` (`RLM_AA_Set_Quote_Status`) | `Pending` |
+| All required steps approved, or no approval needed | Orchestration stage `Update_Quote_Status_to_Approved` | `Approved` |
+| Any step rejected | Orchestration stage `Update_Quote_Status_to_Rejected` | `Rejected` |
+| Submission recalled (`recallApprovalSubmission`) | `RLM_AA_Reset_Quote_Status` | `Recalled` |
+| Submission canceled (`cancelApprovalSubmission`) | `RLM_AA_Reset_Quote_Status` | blank |
+
+`RLM_Quote_Smart_Approval` has no recall path and nothing that runs on cancel, so it
+doesn't set the field on either. `RLM_AA_Reset_Quote_Status` is a
+record-triggered flow (after save, on update) on `ApprovalSubmission`. It runs when
+`Status` changes to `Recalled` or `Canceled` and `RelatedRecordObjectName = 'Quote'`,
+and updates the related quote.
+
+It lives outside `RLM_Quote_Smart_Approval` on purpose. The Help docs offer two
+patterns: a recall path inside the approval flow for recall, and a record-triggered
+flow on Approval Submission for cancel
+(`docs/salesforce/264/help/articles/ind.sf_contracts_aa_configure.htm.md`). One
+record-triggered flow handles both, and leaves the orchestration, its active
+version and its Smart Approvals eligibility unchanged.
+
 ## Exit Condition Pattern
 
 The approval stage uses a composable exit condition pattern with one resolved
@@ -108,17 +137,21 @@ This pattern has been validated in scratch orgs and proves:
 Add dimensions as a recipe, not as a framework rewrite.
 
 1. Add the approval fact to `RLM_Quote_Approval_Data` if the step needs a new
-   quote-derived value.
-2. Add one `stageSteps` approval step to `RLM_Quote_Smart_Approval`.
-3. Give the step a unique `ActionInput__ApprovalChainName`.
-4. Add explicit `entryConditions`; do not use a stage-start entry rule.
-5. Add two stage exit conditions: `Step.Status = Completed` and the inverse of
+   quote-derived value, and declare it as an output on the `QueryApprovalData` step
+   (`outputConfigParams`) so conditions can read `QueryApprovalData.Outputs.<name>`.
+2. Add the new step's trigger condition as an OR condition on the `Requires_Approval`
+   decision. Without it, a quote that triggers only the new dimension takes the decision's
+   default path straight to `Update_Quote_Status_to_Approved`.
+3. Add one `stageSteps` approval step to `RLM_Quote_Smart_Approval`.
+4. Give the step a unique `ActionInput__ApprovalChainName`.
+5. Add explicit `entryConditions`; do not use a stage-start entry rule.
+6. Add two stage exit conditions: `Step.Status = Completed` and the inverse of
    the trigger condition.
-6. Add one grouped `(completed OR not triggered)` clause to the stage
+7. Add one grouped `(completed OR not triggered)` clause to the stage
    `exitConditionLogic`.
-7. Add the step to the `rejectedQuote` formula so any rejection routes to the
+8. Add the step to the `rejectedQuote` formula so any rejection routes to the
    rejected-status stage.
-8. Add one `ApprovalAlertContentDef.csv` row and one `EmailTemplate.csv` row in
+9. Add one `ApprovalAlertContentDef.csv` row and one `EmailTemplate.csv` row in
    `datasets/sfdmu/qb/en-US/qb-approvals/`.
 
 What should not change for a normal new dimension:
@@ -129,6 +162,7 @@ What should not change for a normal new dimension:
 - Overall stage structure
 - `RLM_AA_Evaluate_Approval_Request`
 - `RLM_AA_Set_Quote_Status`
+- `RLM_AA_Reset_Quote_Status`
 - Email-template task code
 
 Threshold and terms policy is still hardcoded in the current formula/flow
@@ -149,12 +183,33 @@ Run these checks before treating an approval-flow change as ready:
 
 - `cci flow run prepare_approvals --org <cci_alias>` succeeds on a scratch org.
 - Re-running `prepare_approvals` is idempotent.
-- Preview Approvals shows the expected chains and steps.
+- If the approval-flags overlay or the approvals context plan changed: on a fresh build,
+  `cci flow run prepare_approvals_pricing --org <cci_alias>` applies both. The thresholds
+  are step criteria in `approval_flags.json` `addSteps`; edit them there so fresh builds
+  get them. On an org that already has the overlay, a rerun fails on a changed step and
+  silently skips a changed existing variable. Change that org with a separate, uncommitted
+  overlay that keeps `expressionSetApiName` and `versionApiName` from `approval_flags.json`
+  and holds only the change: `updateSteps` for a changed step; for a changed variable, its
+  name in `removeVariables` and its new definition in `addVariables` (the task removes
+  before it adds, `tasks/rlm_expression_set_connect.py`). Apply it with
+  `cci task run apply_approval_flags_overlay -o overlay_file <one-off.json> --org <cci_alias>`.
+  Never add `updateSteps` for the overlay's own steps to the shipped file: on a fresh org
+  those steps don't exist yet, so the task fails. Deactivate the context version before changing a
+  mapping (`.cursor/skills/context-service/`). Reprice before testing.
+- Preview Approvals doesn't show steps whose entry conditions depend on the
+  `QueryApprovalData` background step's subflow. The Help workaround, mock output values set
+  in Flow Builder, edits the flow: do it only in a throwaway version that is never committed
+  or left active, since a new active version also ends Smart Approvals eligibility for
+  resubmissions (Help: `ind.approvals_smart_approval_limitations`). A real submission (below) is the deciding check.
 - **No-approval path**: Quotes with `DiscountApprovalLevel = 0` AND `PaymentTerms = "Net 30"` 
   route directly to `Approved` status without entering the approval stage.
 - **Single-dimension paths**: Discount-only and terms-only quotes complete correctly.
 - **Multi-dimension path**: Quotes requiring both discount and payment term approval complete.
 - **Rejection handling**: Rejecting any active work item routes the quote to `Rejected`.
+- **Recall**: Recalling an in-progress submission sets the submission and its open
+  work items to `Recalled`, and the quote's `RLM_Approval_Status__c` to `Recalled`.
+- **Cancel**: Canceling an in-progress submission sets the submission and its open
+  work items to `Canceled`, and clears the quote's `RLM_Approval_Status__c`.
 - **Resubmission**: Resubmission after rejection or recall keeps expected work items Smart
   Approval eligible.
 - `python scripts/ai/check_plan_readme_consistency.py --strict datasets/sfdmu/qb/en-US/qb-approvals`

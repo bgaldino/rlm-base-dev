@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SharingRules xmlns="http://soap.sforce.com/2006/04/metadata">
+    <sharingCriteriaRules>
+        <fullName>RLM_Constraint_Models_Read</fullName>
+        <accessLevel>Read</accessLevel>
+        <description>Gives every internal user Read on constraint-model Expression Sets (UsageType = Constraint). The first configuration-rules run on a cold org redeploys the active models as the running user and reads these records in user mode; without row access a non-admin user, such as the sales rep, fails with &quot;Something went wrong while running configuration rules&quot;. Pricing procedures and other Expression Sets stay Private.</description>
+        <label>RLM Constraint Models Read</label>
+        <sharedTo>
+            <allInternalUsers></allInternalUsers>
+        </sharedTo>
+        <criteriaItems>
+            <field>UsageType</field>
+            <operation>equals</operation>
+            <value>Constraint</value>
+        </criteriaItems>
+        <includeRecordsOwnedByAll>true</includeRecordsOwnedByAll>
+    </sharingCriteriaRules>
+</SharingRules>

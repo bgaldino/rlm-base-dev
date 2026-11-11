@@ -3,6 +3,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent'
 import getDecisionTables from '@salesforce/apex/RLM_DecisionTableManagerController.getDecisionTables'
 import refreshTables from '@salesforce/apex/RLM_DecisionTableManagerController.refreshTables'
 import getRefreshStatus from '@salesforce/apex/RLM_DecisionTableManagerController.getRefreshStatus'
+import canRefreshTables from '@salesforce/apex/RLM_DecisionTableManagerController.canRefreshTables'
 
 const POLL_INTERVAL_MS = 4000
 const MAX_POLL_ATTEMPTS = 45 // ~3 minutes; a refresh that outlives this is reported, not hidden
@@ -36,6 +37,12 @@ const SUCCESS_REFRESH_STATUSES = new Set(['Completed', 'Success', 'Succeeded'])
 const isEstablished = (verdict) => verdict === VERDICT_FRESH || verdict === VERDICT_STALE
 
 const FILTER_ALL = 'all'
+
+// The objects a table reads, source included, from the controller's readsObjects. Filled for
+// every sObject table whatever its verdict: contributingObjects is not, since it is only set
+// once a freshness probe has run, and the filter exists for the tables whose verdict could not.
+const readObjectsOf = (row) => row.readsObjects || []
+const readsObject = (row, objectName) => readObjectsOf(row).includes(objectName)
 // The "not established" tile covers BOTH non-committal verdicts. It is deliberately
 // not keyed to one of them: the count and the filter have to select the same rows,
 // and counting Unknown while filtering only Not-comparable made the tile lie about
@@ -110,16 +117,17 @@ const COLUMNS = [
             class: { fieldName: 'stalenessClass' }
         }
     },
+    // The LATER of the full and incremental sync — the stamp the verdict is judged
+    // against (issue #587). Release 264 can run a full request as incremental, so a
+    // full-sync column would show a date older than the change a Fresh row covers.
+    // Which kind it was, and both raw stamps, are in the details.
     {
-        label: 'Full Sync',
-        fieldName: 'lastSyncDate',
+        label: 'Last Sync',
+        fieldName: 'latestSyncDate',
         type: 'date',
         sortable: true,
         typeAttributes: COMPACT_DATE
     },
-    // No incremental-sync column while IsIncrementalSyncEnabled is false on every
-    // table in a fresh build — it spends width to print the same blank on each row.
-    // The timestamp and the reason it cannot be enabled from here are in the details.
     {
         label: 'Refresh',
         fieldName: 'refreshStatus',
@@ -162,8 +170,12 @@ export default class RlmDecisionTableManager extends LightningElement {
     errorMessage
     searchTerm = ''
     usageTypeFilter = FILTER_ALL
+    readsObjectFilter = FILTER_ALL
     verdictFilter = FILTER_ALL
     useIncremental = false
+    // Undefined until known. Only an explicit false disables Refresh: if the check itself
+    // fails, refreshTables applies the same gate and says why.
+    canRefresh
     sortedBy = 'usageType'
     sortedDirection = 'asc'
     pollMessage = ''
@@ -195,7 +207,10 @@ export default class RlmDecisionTableManager extends LightningElement {
     async loadTables() {
         this.isLoading = true
         try {
-            const data = await getDecisionTables()
+            const [data, canRefresh] = await Promise.all([
+                getDecisionTables(),
+                canRefreshTables().catch(() => undefined)
+            ])
             // Same guard, lesser stake: no timer to strand here, only work and state
             // assignment on a component nobody can see. Written the same way so the
             // three continuations stay recognisable as one rule.
@@ -203,6 +218,7 @@ export default class RlmDecisionTableManager extends LightningElement {
                 return
             }
             this.rows = data.map((row) => this.decorate(row))
+            this.canRefresh = canRefresh
             this.errorMessage = undefined
         } catch (error) {
             this.rows = []
@@ -260,6 +276,9 @@ export default class RlmDecisionTableManager extends LightningElement {
             if (this.usageTypeFilter !== FILTER_ALL && row.usageType !== this.usageTypeFilter) {
                 return false
             }
+            if (this.readsObjectFilter !== FILTER_ALL && !readsObject(row, this.readsObjectFilter)) {
+                return false
+            }
             if (this.verdictFilter === FILTER_UNCLEAR) {
                 if (isEstablished(row.staleness)) return false
             } else if (this.verdictFilter !== FILTER_ALL && row.staleness !== this.verdictFilter) {
@@ -303,6 +322,17 @@ export default class RlmDecisionTableManager extends LightningElement {
         return [{ label: 'All usage types', value: FILTER_ALL }, ...options]
     }
 
+    // Every object some table reads, exact API names. Matching on the name, not a substring,
+    // is the point: a search for RateCardEntry also hits AssetRateCardEntry.
+    get readsObjectOptions() {
+        const seen = new Set()
+        this.rows.forEach((row) => readObjectsOf(row).forEach((o) => seen.add(o)))
+        // "Reads:" in each label, since the box is label-hidden and a bare object name would
+        // not say what it filters on.
+        const options = [...seen].sort().map((o) => ({ label: `Reads: ${o}`, value: o }))
+        return [{ label: 'Reads any object', value: FILTER_ALL }, ...options]
+    }
+
     get summaryTiles() {
         const counts = { total: this.rows.length, fresh: 0, stale: 0, unclear: 0 }
         this.rows.forEach((row) => {
@@ -337,9 +367,9 @@ export default class RlmDecisionTableManager extends LightningElement {
             // A summary that drops a qualification the detail carries is not shorter,
             // it is wrong — and the tiles are what people read first.
             tile(VERDICT_STALE, 'Stale', counts.stale, 'stale',
-                'Something this table reads changed at or after the last full sync'),
+                'Something this table reads changed at or after the last sync, full or incremental'),
             tile(VERDICT_FRESH, 'Fresh', counts.fresh, 'fresh',
-                'Last full sync is later than the newest change you can see in every ' +
+                'Last sync (full or incremental) is later than the newest change you can see in every ' +
                     'object this table reads'),
             tile(FILTER_UNCLEAR, 'Not comparable', counts.unclear, 'unclear',
                 `"${VERDICT_UNCOMPUTED}" or "${VERDICT_UNKNOWN}" — freshness was not ` +
@@ -350,7 +380,7 @@ export default class RlmDecisionTableManager extends LightningElement {
     get rowCountSummary() {
         const shown = this.visibleRows.length
         const total = this.rows.length
-        const selected = this.selectedApiNames.length
+        const selected = this.visibleSelectedApiNames.length
         const base = shown === total ? `${total} decision tables` : `${shown} of ${total} decision tables`
         return selected > 0 ? `${base} · ${selected} selected` : base
     }
@@ -369,8 +399,15 @@ export default class RlmDecisionTableManager extends LightningElement {
         return this.rows.filter((row) => row.staleness === VERDICT_STALE)
     }
 
+    // Selected rows a filter now hides are left out: the button acts on what you can see.
+    // The datatable drops hidden rows from the selection on its next change anyway.
+    get visibleSelectedApiNames() {
+        const visible = new Set(this.visibleRows.map((r) => r.apiName))
+        return this.selectedApiNames.filter((n) => visible.has(n))
+    }
+
     get refreshSelectedLabel() {
-        const n = this.selectedApiNames.length
+        const n = this.visibleSelectedApiNames.length
         return n > 0 ? `Refresh ${n} selected` : 'Refresh selected'
     }
 
@@ -378,16 +415,20 @@ export default class RlmDecisionTableManager extends LightningElement {
         return `Refresh all shown (${this.visibleRows.length})`
     }
 
+    get isRefreshDenied() {
+        return this.canRefresh === false
+    }
+
     get isRefreshSelectedDisabled() {
-        return this.isBusy || this.selectedApiNames.length === 0
+        return this.isBusy || this.isRefreshDenied || this.visibleSelectedApiNames.length === 0
     }
 
     get isRefreshVisibleDisabled() {
-        return this.isBusy || this.visibleRows.length === 0
+        return this.isBusy || this.isRefreshDenied || this.visibleRows.length === 0
     }
 
     get isRefreshStaleDisabled() {
-        return this.isBusy || this.staleRows.length === 0
+        return this.isBusy || this.isRefreshDenied || this.staleRows.length === 0
     }
 
     // ---- events --------------------------------------------------------------
@@ -402,6 +443,10 @@ export default class RlmDecisionTableManager extends LightningElement {
 
     handleUsageTypeFilter(event) {
         this.usageTypeFilter = event.detail.value
+    }
+
+    handleReadsObjectFilter(event) {
+        this.readsObjectFilter = event.detail.value
     }
 
     handleIncrementalToggle(event) {
@@ -570,16 +615,14 @@ export default class RlmDecisionTableManager extends LightningElement {
         return this.detailRow.isVersioned ? `${this.detailRow.status} · versioned` : this.detailRow.status
     }
 
-    // The incremental timestamp belongs next to the full sync it is so often
-    // mistaken for: incremental advances ONLY this one, leaving Last Full Sync
-    // untouched, which makes a working incremental refresh look dead.
+    // Both raw stamps, since the stat shows only the later one. A full sync moves
+    // LastSyncDate, an incremental LastIncrementalSyncDate; Release 264 picks which
+    // runs unless incremental is requested.
     get incrementalSyncNote() {
         if (!this.detailRow) return ''
-        if (!this.detailRow.lastIncrementalSyncDate) {
-            return 'No incremental sync has run.'
-        }
-        const when = new Date(this.detailRow.lastIncrementalSyncDate).toLocaleString()
-        return `Incremental sync last ran ${when}, which does not move this date.`
+        const fmt = (d) => (d ? new Date(d).toLocaleString() : 'never')
+        return `Full sync: ${fmt(this.detailRow.lastSyncDate)}. Incremental sync: ` +
+            `${fmt(this.detailRow.lastIncrementalSyncDate)}. Freshness uses the later of the two.`
     }
 
     get detailCriteriaClass() {
@@ -694,17 +737,16 @@ export default class RlmDecisionTableManager extends LightningElement {
     }
 
     get incrementalShortNote() {
-        if (!this.detailRow) return ''
-        return this.detailRow.lastIncrementalSyncDate
-            ? 'Incremental ran later; it does not move this.'
-            : 'No incremental sync has run.'
+        if (!this.detailRow || !this.detailRow.latestSyncKind) return ''
+        return `${this.detailRow.latestSyncKind} sync`
     }
 
     get incrementalTooltip() {
         if (!this.detailRow) return ''
-        return this.detailRow.incrementalEnabled
-            ? 'Incremental refresh advances only the incremental timestamp, never the full sync date.'
-            : 'An incremental refresh will not sync while this is disabled.'
+        // Release 264 does not consult IsIncrementalSyncEnabled: the platform picks full or
+        // incremental itself unless incremental is requested (issue #587).
+        return 'Not used in Release 264, which picks full or incremental itself. An incremental ' +
+            'refresh advances only the incremental timestamp, never the full sync date.'
     }
 
     // ⚠ Do NOT name a specific reason here. Criteria go unreproduced for several
@@ -778,7 +820,7 @@ export default class RlmDecisionTableManager extends LightningElement {
     }
 
     handleRefreshSelected() {
-        this.queueRefresh(this.selectedApiNames)
+        this.queueRefresh(this.visibleSelectedApiNames)
     }
 
     handleRefreshVisible() {
@@ -822,11 +864,10 @@ export default class RlmDecisionTableManager extends LightningElement {
 
             if (result.errorMessage) {
                 // ⚠ The error path must still report the OTHER bucket. The controller
-                // populates unknownApiNames before the incremental gate returns
-                // precisely so a mixed request — one disabled table, one name that no
-                // longer exists — reports both. Dropping it here defeats that at the
-                // last step: the user fixes the incremental problem, re-runs, and is
-                // still silently missing a table.
+                // populates unknownApiNames before any early return after its permission
+                // check (which refuses before looking up any table), so an error and a
+                // name that no longer exists are both reported. Dropping it here would
+                // leave the user re-running and still silently missing a table.
                 const missing =
                     result.unknownApiNames && result.unknownApiNames.length > 0
                         ? ` Also not found: ${result.unknownApiNames.join(', ')}.`
@@ -844,16 +885,19 @@ export default class RlmDecisionTableManager extends LightningElement {
             if (result.unknownApiNames && result.unknownApiNames.length > 0) {
                 problems.push(`${result.unknownApiNames.length} not found (${result.unknownApiNames.join(', ')})`)
             }
-            const mode = result.incremental ? 'Incremental' : 'Full'
+            // A full request is not a full refresh in Release 264: the platform may run
+            // it as incremental, so the toast does not claim the type for it.
+            const mode = result.incremental ? 'Incremental refresh' : 'Refresh'
+            const typeNote = result.incremental ? '' : ' The platform picks full or incremental.'
             if (problems.length > 0) {
                 this.toast(
-                    `${mode} refresh partially queued`,
+                    `${mode} partially queued`,
                     `${result.queuedCount} queued · ${problems.join(' · ')}`,
                     'warning',
                     'sticky'
                 )
             } else {
-                this.toast(`${mode} refresh queued`, `${result.queuedCount} decision table(s) queued.`, 'success')
+                this.toast(`${mode} queued`, `${result.queuedCount} decision table(s) queued.${typeNote}`, 'success')
             }
 
             if (result.queuedCount > 0) {
@@ -1066,6 +1110,7 @@ export default class RlmDecisionTableManager extends LightningElement {
                 sourceNewestChange: row.sourceNewestChange,
                 lookupType: row.lookupType,
                 contributingObjects: row.contributingObjects,
+                readsObjects: row.readsObjects,
                 unreproducedCriteria: row.unreproducedCriteria
             })
         })

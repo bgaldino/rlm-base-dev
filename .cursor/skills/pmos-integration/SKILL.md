@@ -25,7 +25,7 @@ contributions. The [skill catalog](../README.md) provides standalone starting po
 
 1. **Temporal split is the framing.** PMOS is canonical for *future state* (PRDs, roadmap, proposed schema changes). Foundations is canonical for *current state* (built schema, deployed flags, real records). Don't put proposed-but-not-built content in Foundations; don't put runtime-verified state in PMOS.
 2. **Manifest is read-only on both sides.** Foundations consumes PMOS via local clone path; PMOS does the same in reverse. Each maintainer keeps full control of what they own.
-3. **Filesystem-level, not API-level.** No servers, no auth, no CI dependency. The resolver looks for `$FOUNDATIONS_REPO_ROOT` / `$PMOS_REPO_ROOT` env vars or sibling-directory layout (`../pmos-revenue-cloud`, `../rlm-base-dev`).
+3. **Filesystem-level, not API-level.** No servers, no auth, no CI dependency. The resolver looks for `$FOUNDATIONS_REPO_ROOT` / `$PMOS_REPO_ROOT` env vars or sibling-directory layout (`../pmos-revenue-cloud`, `../rlm-base-dev`). A repo's own section always resolves to the checkout it runs in, ahead of those hints, so a worktree or renamed clone audits itself; the env vars and siblings locate the *other* repo.
 4. **Degrades gracefully.** If a sibling clone isn't present, the consumer skill operates standalone. Nothing breaks; the upgrade just isn't available.
 5. **Per-skill opt-in.** Each side decides which of their skills consume from the other. Not all-or-nothing.
 6. **PMOS is document-centric — not a code project.** Don't propose Python or build automation in PMOS. PMOS's side of the manifest is purely declarative YAML.
@@ -109,7 +109,7 @@ python scripts/ai/skill_manifest.py --list-skills pmos
 
 ## The Working Example
 
-Foundations' `qb-demo-script` skill (shipped in Release 262) auto-generates the QuantumBit demo canvas grounded entirely on canonical Foundations sources (ERD, Help mirror, qb-scenario-reference, feature-index). Output at `docs/enablement/262/qb-demo-script.md`.
+Foundations' `qb-demo-script` skill (shipped in Release 262) auto-generates the QuantumBit demo canvas grounded entirely on canonical Foundations sources (ERD, Help mirror, qb-scenario-reference, feature-index). Output at `docs/enablement/264/qb-demo-script.md` (the 262 draft, relabeled to 264 on 2026-10-29).
 
 - **Today (standalone):** Works whether or not PMOS is present
 - **With manifest fully wired:** Optionally invokes PMOS `presentation` for narrative-voice polish; PMOS `sales-enablement` for battle-card companion. None of those are dependencies — they're upgrades.
@@ -122,8 +122,8 @@ Foundations' `qb-demo-script` skill (shipped in Release 262) auto-generates the 
 - ✅ `qb-demo-script` skill — first proof-of-pattern consumer
 
 ### In progress
-- 🟡 PMOS-side manifest YAML (drafted at `.agents/artifacts/pmos-side-manifest-draft.md`, pending Arun → Sandy review)
-- 🟡 PMOS Tier 0 hygiene fixes (drafted at `.agents/artifacts/pmos-tier-0-hygiene-ask.md` — 4 critical-path: legacy CPQ schema in `context/ARCHITECTURE.md`, v61.0 REST examples, invented Apex REST paths, healthcare residue in `demo-data`)
+- 🟡 PMOS-side manifest YAML (drafted at `.agents/artifacts/topics/pmos-integration/pmos-side-manifest-draft.md`, pending Arun → Sandy review)
+- 🟡 PMOS Tier 0 hygiene fixes (drafted at `.agents/artifacts/topics/pmos-integration/pmos-tier-0-hygiene-ask.md` — 4 critical-path: legacy CPQ schema in `context/ARCHITECTURE.md`, v61.0 REST examples, invented Apex REST paths, healthcare residue in `demo-data`)
 
 ### Not yet built
 - Per-skill PMOS opt-in PRs (one PR per skill that PMOS chooses to upgrade)
@@ -133,14 +133,14 @@ Foundations' `qb-demo-script` skill (shipped in Release 262) auto-generates the 
 
 ## Related Artifacts
 
-- `.agents/artifacts/arun-pmos-skills-brief.md` — full briefing to Arun on the integration plan
-- `.agents/artifacts/rlm-base-dev-and-pmos-research.md` — owner/purpose comparison
-- `.agents/artifacts/integration-claim-validation-pmos.md` — line-by-line validation of pmos-analysis claims
-- `.agents/artifacts/pmos-side-manifest-draft.md` — proposed PMOS-side YAML (Sandy's review pending)
-- `.agents/artifacts/pmos-tier-0-hygiene-ask.md` — prioritized PMOS-internal hygiene
-- `.agents/artifacts/skills-pmos-distribution.md` — how PMOS's package system works (and doesn't ship skills today)
-- `.agents/artifacts/skills-pmos-enablement.md` — enablement-cluster integration plan
-- `.agents/artifacts/ssot-pmos-comprehensive-reaudit.md` — comprehensive single-source-of-truth audit
+- `.agents/artifacts/topics/skills/arun-pmos-skills-brief.md` — full briefing to Arun on the integration plan
+- `.agents/artifacts/topics/pmos-integration/rlm-base-dev-and-pmos-research.md` — owner/purpose comparison
+- `.agents/artifacts/archive/2026/ssot-audit-inputs/integration-claim-validation-pmos.md` — line-by-line validation of pmos-analysis claims
+- `.agents/artifacts/topics/pmos-integration/pmos-side-manifest-draft.md` — proposed PMOS-side YAML (Sandy's review pending)
+- `.agents/artifacts/topics/pmos-integration/pmos-tier-0-hygiene-ask.md` — prioritized PMOS-internal hygiene
+- `.agents/artifacts/archive/2026/skills-analysis-inputs/skills-pmos-distribution.md` — how PMOS's package system works (and doesn't ship skills today)
+- `.agents/artifacts/archive/2026/skills-analysis-inputs/skills-pmos-enablement.md` — enablement-cluster integration plan
+- `.agents/artifacts/archive/2026/ssot-audit-inputs/ssot-pmos-comprehensive-reaudit.md` — comprehensive single-source-of-truth audit
 - `.claude/skill-manifest.yml` — the actual manifest
 
 ## Future Direction (Not Asks)

@@ -108,6 +108,7 @@ for the step-by-step macOS setup referenced by the contributing guide.
 | Task names and options | [Generated task reference](.cursor/skills/cci-orchestration/tasks-reference.md) |
 | Flow steps and conditions | [Generated flow reference](.cursor/skills/cci-orchestration/flows-reference.md) |
 | Feature flags and defaults | [Generated flag reference](.cursor/skills/cci-orchestration/feature-flags.md) |
+| MCP servers on a built org (opt-in `mcp` flag, `prepare_mcp` flow) | [MCP integration skill](.cursor/skills/mcp-integration/SKILL.md) |
 | Data plans, validation, and dataset READMEs | [Data-plan guide](docs/guides/data-plans.md) |
 | Deployment examples and troubleshooting | [Org operations](docs/guides/org-operations.md) |
 | Revenue Cloud API collections | [Postman guide](postman/README.md) |

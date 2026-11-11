@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from contextlib import contextmanager, redirect_stdout
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "scripts", "ai"))
@@ -148,6 +148,15 @@ def upgrade_flag(word):
     return word == "--upgrade" or bool(re.fullmatch(r"-[A-Za-z]+", word) and "U" in word[1:])
 
 
+def span_of(src, start, end, label):
+    """The source from `start` up to `end`, or "" with a reported failure: body_of()'s guard against a
+    rename, for a region that does not end at the next top-level `def`."""
+    found = start in src and end in src.split(start, 1)[-1]
+    check(f"{label} still runs from {start!r} to {end!r}, so the rules scoped to it still apply",
+          found, "not found — rename the markers in this file too")
+    return src.split(start, 1)[1].split(end, 1)[0] if found else ""
+
+
 def body_of(src, marker, label):
     """The source between `marker` and the next top-level `def`, or "" with a reported failure.
 
@@ -267,13 +276,24 @@ check("a cumulusci.yml change selects the CCI reference drift check",
       "cci_reference_drift" in sel, sel)
 sel = selected_names(["docs/erds/erd-data.json"])
 check("an ERD data change selects the ERD count check", "erd_doc_counts" in sel, sel)
-# Local Markdown links can target any repository file, and a numbered branch can appear in
-# any tracked text file. The two cheap whole-repo checks (navigation baseline and
-# release_refs) therefore run for every non-empty change, while unrelated expensive checks
-# stay skipped.
+# Local Markdown links can target any repository file, a numbered branch or a private-tree
+# citation can appear in any tracked text file, and a file force-added anywhere .dockerignore
+# excludes drops out of a local image. The four cheap whole-repo checks (navigation baseline,
+# release_refs, dockerignore, private_refs) therefore run for every non-empty change, while
+# unrelated expensive checks stay skipped.
+sel = selected_names(["docker/compose.yaml"])
+check("an otherwise unrelated path selects only the four whole-repo baselines",
+      sel == {"agent_tooling", "release_refs", "dockerignore", "private_refs"}, sel)
+# docker/Dockerfile used to be that unrelated path; it names the Node major line now, so it selects
+# the one cheap check that compares it with .nvmrc — and still nothing expensive.
 sel = selected_names(["docker/Dockerfile"])
-check("an otherwise unrelated path selects only the two whole-repo baselines",
-      sel == {"agent_tooling", "release_refs"}, sel)
+check("a Dockerfile change selects the Node-line check and nothing expensive",
+      sel == {"agent_tooling", "release_refs", "dockerignore", "private_refs", "node_line"}, sel)
+# A trigger list mirroring .dockerignore once let a force-added file under an excluded path skip
+# the suite that checks every tracked file still reaches the image (PR review, todo 357).
+for _forced in (".env.example", ".harness/README.md", "logs/probe.txt"):
+    check(f"a change that only force-adds {_forced} selects the dockerignore check",
+          "dockerignore" in selected_names([_forced]), selected_names([_forced]))
 # A suffix selector, for the check that walks every .md in the repo. Prefix triggers left
 # the root README and seven datasets/**/README.md build-step citations unable to select the
 # suite that audits them.
@@ -285,9 +305,13 @@ check("a data plan README selects the build-step check",
           ["datasets/sfdmu/qb/en-US/qb-billing/README.md"]))
 check("a non-markdown file does not select it via the suffix",
       "doc_build_steps" not in selected_names(["robot/x.robot"]))
-check("only the whole-repo check carries a suffix selector",
-      [c["name"] for c in pr_gate.CHECKS if c.get("suffixes")] == ["doc_build_steps"],
+check("only the whole-repo checks carry a suffix selector",
+      [c["name"] for c in pr_gate.CHECKS if c.get("suffixes")]
+      == ["permission_set_dependencies", "doc_build_steps"],
       [c["name"] for c in pr_gate.CHECKS if c.get("suffixes")])
+check("a permission set selects the Account/Contact dependency check via the suffix",
+      "permission_set_dependencies" in selected_names(
+          ["unpackaged/post_billing_ui/permissionsets/RLM_BillingUI.permissionset-meta.xml"]))
 check("a harness change selects the harness suites",
       "harness_suites" in selected_names(["scripts/txn_data_harness/cli.py"]))
 check("an empty change set selects nothing", selected_names([]) == set())
@@ -362,7 +386,7 @@ check("a suite is never run twice — no dedicated check's suite is also in a bu
 CMD_WORDS = {"python", "-m", "pytest", "-q", "check", "--check"}
 # Words admitted only for the one check that declares them, not for CHECKS at large — the
 # scoping the global CMD_WORDS set cannot express.
-PER_CHECK_EXTRA_WORDS = {"plan_readme_consistency": {"--strict"}}
+PER_CHECK_EXTRA_WORDS = {"plan_readme_consistency": {"--strict"}, "data_plan_audit": {"audit"}}
 bad_words = sorted({w for c in pr_gate.CHECKS for w in (c["cmd"] or ())
                     if w not in CMD_WORDS
                     and w not in PER_CHECK_EXTRA_WORDS.get(c["name"], set())
@@ -1244,7 +1268,7 @@ if os.path.exists(workflow):
         return found[0] if len(found) == 1 else (None, {})
 
     gate_job_name, gate_job = job_with("scripts/ai/pr_gate.py",
-                                       exclude=("--requirements", "--list", "--help"))
+                                       exclude=("--requirements", "--needs-node", "--list", "--help"))
     check("exactly one job runs the gate", gate_job_name, list(doc.get("jobs") or {}))
     # A whitelist of job keys, not a search for `if:`. `continue-on-error:` at job level, and
     # `defaults: {run: {shell: …}}` — which replaces the shell for *every* step in the job and so
@@ -1277,6 +1301,7 @@ if os.path.exists(workflow):
     # rest of the file, not about the step, and it is the argument that stops being true after an edit.
     STEP_KEYS = {"Checkout repository": {"name", "uses", "with"},
                  "Set up Python": {"name", "uses", "with"},
+                 "Set up Node": {"name", "uses", "with"},
                  "Resolve the base ref": {"name", "id", "env", "run"},
                  "Install only what the selection needs": {"name", "env", "run"},
                  "Run the gate": {"name", "run"},
@@ -1975,7 +2000,7 @@ if os.path.exists(workflow):
         return len(segs) == 1 and segs[0][0].split()[:1] == ["echo"]
 
     found_gate = steps_named(gate_job, "scripts/ai/pr_gate.py",
-                             exclude=("--requirements", "--list", "--help"))
+                             exclude=("--requirements", "--needs-node", "--list", "--help"))
     # Reachability for the other shell steps, and stated precisely, because the first version of this
     # comment claimed an early exit there "ends the job" — each `run:` is its own shell, so it ends
     # that *step*, successfully, and the job continues. What it actually costs: the resolver exits
@@ -2996,9 +3021,12 @@ if os.path.exists(workflow):
     # the round-6 mistake — a rule scoped to the thing it protects — one level up, at job scope. So the
     # job is whitelisted whole: which steps exist, which actions they may use, and what their shell may
     # say. Four of these five shapes survived the round-8 suite.
-    JOB_STEPS = ["Checkout repository", "Set up Python", "Resolve the base ref",
+    JOB_STEPS = ["Checkout repository", "Set up Python", "Set up Node", "Resolve the base ref",
                  "Install only what the selection needs", "Run the gate", "Branch scope"]
-    JOB_USES = {"Checkout repository": "actions/checkout", "Set up Python": "actions/setup-python"}
+    # setup-node installs a runtime on the runner and touches no file in the checkout; its one input
+    # is pinned below to `.nvmrc`, so it cannot be pointed at another Node line.
+    JOB_USES = {"Checkout repository": "actions/checkout", "Set up Python": "actions/setup-python",
+                "Set up Node": "actions/setup-node"}
     # A full commit SHA only. A tag can be repointed, which is how a pinned action stops being
     # trusted; the ESAG GitHub Actions Security Guide requires SHA pins, and the repository's
     # "require full-length commit SHA" setting refuses anything else at "Set up job". (The first
@@ -3025,7 +3053,8 @@ if os.path.exists(workflow):
     # is decided inside `pip_install_ok`, not by a constant here.
     PIP_PAYLOAD = "${reqs}"
     JOB_ASSIGN = ALLOWED_ASSIGN + (
-        'reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"',)
+        'reqs="$(python scripts/ai/pr_gate.py --requirements ${SEL})"',
+        'node="$(python scripts/ai/pr_gate.py --needs-node ${SEL})"',)
     # A redirection is how a step writes to the checkout, so its *target* is the rule. The four
     # GitHub-provided files are how steps legitimately pass values on; /dev/null is how `git rev-parse
     # --verify` stays quiet.
@@ -3091,6 +3120,10 @@ if os.path.exists(workflow):
             return set_line_ok(words)
         if re.match(r"^[A-Za-z_][A-Za-z_0-9]*=", w0):
             return re.sub(r"\s+", "", seg) in [re.sub(r"\s+", "", f) for f in JOB_ASSIGN]
+        if w0 == "npm":
+            # One form only: a clean install from the committed lockfile with install scripts off.
+            # `npm install` would rewrite the lockfile, and a dependency's postinstall is code.
+            return " ".join(words) == "npm ci --ignore-scripts --no-audit --no-fund"
         if w0 == "git":
             # Pinning the subcommand and not its arguments left the base ref writable *locally*:
             # `git fetch . "+HEAD:refs/remotes/origin/${BASE_REF}"` moves origin/<base> onto the PR
@@ -3365,7 +3398,8 @@ if os.path.exists(workflow):
     # against actually comes from: `BASE: HEAD` leaves both permitted `SEL` lines untouched and makes
     # the selection `HEAD...HEAD`. So the inputs are pinned alongside the identities.
     JOB_WITH = {"Checkout repository": {"fetch-depth": "0", "persist-credentials": "false"},
-                "Set up Python": {"python-version": None}}
+                "Set up Python": {"python-version": None},
+                "Set up Node": {"node-version-file": ".nvmrc", "package-manager-cache": "false"}}
     JOB_ENV = {"Resolve the base ref": {"BASE_REF": "${{ github.base_ref }}"},
                "Install only what the selection needs": {"BASE": "${{ steps.base.outputs.ref }}"}}
     def inputs_of(step):
@@ -3395,7 +3429,7 @@ if os.path.exists(workflow):
            if "env" in s and s.get("name") in JOB_ENV} == JOB_ENV,
           {s.get("name"): s.get("env") for s in job_steps if "env" in s})
     check("with no other step carrying an env block this rule would not read",
-          {s.get("name") for s in job_steps if "env" in s} == set(JOB_ENV) | {JOB_STEPS[5]},
+          {s.get("name") for s in job_steps if "env" in s} == set(JOB_ENV) | {"Branch scope"},
           # `or "<unnamed>"` for the same reason as the other four sites: an unnamed step carrying an
           # `env:` block puts None in this set, and `sorted()` cannot order it against str — so the
           # rule that exists to notice an unpinned env would crash instead of reporting it.
@@ -4003,10 +4037,25 @@ NOT_INPUTS = {
         # .agents/artifacts is gitignored, so it can never appear in a PR diff — nothing
         # there is selectable, which is the very asymmetry this suite exists to pin.
         ".agents/artifacts": "gitignored: cannot appear in a diff, so cannot select anything",
-        ".agents/artifacts/integration-staging/pmos-integration.md": "gitignored",
+        ".agents/artifacts/topics/integration-staging/pmos-integration.md": "gitignored",
+        # The discovery checks (issue #593) build throwaway clones in a temp dir. Their hint
+        # resolves beside REPO only on a workstation laid out that way, which is why it
+        # surfaced locally and would not in CI.
+        "../rlm-base-dev": "a local_path_hint resolved inside a throwaway temp tree",
+        ".claude/skills": "a skill surface created inside a throwaway clone",
+        ".cursor/skills": "a skill surface created inside a throwaway clone",
+    },
+    "tests/test_claude_hooks.py": {
+        # Rule 4's fixture clone (a temp `.agents/artifacts` with its own `.git`). They exist in
+        # this repo only in a full clone (CI), not in a worktree, whose `.git` is a file.
+        ".git/config": "a path inside the fixture clone of the private tree, never this repo's",
+        ".git/hooks": "a path inside the fixture clone of the private tree, never this repo's",
     },
     "tests/test_fix_scratch_identity.py": {
         ".sf/orgs": "runtime org state, gitignored — not a repo input",
+    },
+    "tests/test_dockerignore.py": {
+        ".gitattributes": "a tracked path .dockerignore may drop, named as a prefix — never read",
     },
     "tests/build_harness/test_tui_runner.py": {
         "orgs/ent.json": "a value in a stubbed load_cci dict, with runner.ROOT pointed at "
@@ -4473,18 +4522,60 @@ for node in ast.walk(gate_tree):
 # *variables* a read is allowed to name, which works for `os.environ["X"]` and not at all for
 # `os.environ.copy()` — a read with no literal in it, whose harvested set is empty, so the only way to
 # permit it would be to delete the rule. `ENV_SPELLINGS_OK` allows an exact expression instead.
-ENV_SPELLINGS_OK = set()
-unallowed = []
-for node in env_nodes:
-    if isinstance(node, ast.alias):
-        unallowed.append(f"line ?: from os import {node.name}")
-        continue
-    segment = ast.get_source_segment(gate_src, node) or ""
-    named = {c.value for c in ast.walk(node)
-             if isinstance(c, ast.Constant) and isinstance(c.value, str)}
-    if segment in ENV_SPELLINGS_OK or (named and not (named - ENV_READS_OK)):
-        continue
-    unallowed.append(f"line {node.lineno}: {segment or ast.dump(node)[:60]}")
+# Keyed by the whole expression, mapped to the one top-level function allowed to spell it: an exact
+# expression such as `os.environ.items()` is just as able to read `CI` anywhere else.
+# Both hatches read the *whole* expression the reference sits in (`os.environ.items()`, `os.environ.get(
+# "X")`), not the bare `os.environ` node: matched on that node, neither could ever fire, since its text
+# is always `os.environ` and it holds no literal.
+ENV_SPELLINGS_OK = {
+    # check_env() hands each check this environment minus git's repository-locating variables. It only
+    # removes, and CI exports none of them, so what a check sees can differ locally only by lacking a
+    # variable that would have aimed its fixtures at this repository.
+    "os.environ.items()": "check_env",
+}
+
+
+def unallowed_env_reads(tree, src, nodes):
+    owner_of, parent_of = {}, {}
+    for fn in tree.body:
+        if isinstance(fn, ast.FunctionDef):
+            for inner in ast.walk(fn):
+                owner_of[id(inner)] = fn.name
+    for outer in ast.walk(tree):
+        for child in ast.iter_child_nodes(outer):
+            parent_of[id(child)] = outer
+    refused = []
+    for node in nodes:
+        if isinstance(node, ast.alias):
+            refused.append(f"line ?: from os import {node.name}")
+            continue
+        top = node
+        while True:
+            up = parent_of.get(id(top))
+            if (isinstance(up, (ast.Attribute, ast.Subscript)) and up.value is top) or (
+                    isinstance(up, ast.Call) and up.func is top):
+                top = up
+            else:
+                break
+        segment = ast.get_source_segment(src, top) or ""
+        named = {c.value for c in ast.walk(top)
+                 if isinstance(c, ast.Constant) and isinstance(c.value, str)}
+        owner = owner_of.get(id(node))
+        if owner is not None and ENV_SPELLINGS_OK.get(segment) == owner:
+            continue
+        if named and not (named - ENV_READS_OK):
+            continue
+        refused.append(f"line {node.lineno}: {segment or ast.dump(node)[:60]}")
+    return refused
+
+
+unallowed = unallowed_env_reads(gate_tree, gate_src, env_nodes)
+_moved = "def check_env():\n    return 1\ndef elsewhere():\n    return os.environ.items()\n"
+_moved_tree = ast.parse(_moved)
+check("an allowed environment spelling is refused outside the function it is declared for",
+      unallowed_env_reads(_moved_tree, _moved,
+                          [n for n in ast.walk(_moved_tree)
+                           if isinstance(n, ast.Attribute) and n.attr in ENV_ATTRS]) != [])
 check("the gate reads no environment variable under any spelling — attribute, bare name, or `from os "
       "import environ` — so it cannot behave one way locally and another in Actions (allow one by "
       "naming the variable in ENV_READS_OK, or the expression in ENV_SPELLINGS_OK when it names no "
@@ -4572,6 +4663,51 @@ abs_literals = sorted({node.value for node in ast.walk(gate_tree)
 check("and contains no absolute-path literal, the remaining way to ask 'am I on a hosted runner' "
       "without reading a variable — every path the gate uses is derived from __file__",
       not abs_literals, abs_literals)
+
+# The LWC Jest check (lwc_jest). CI runs `npm ci` only when `--needs-node` says a selected check
+# needs Node, so the selection and the dependency probe are what keep it honest: selected for any
+# component directory, and MISSING-DEP — a failure — when Node packages are absent.
+_jest = next((c for c in pr_gate.CHECKS if c["name"] == "lwc_jest"), None)
+check("lwc_jest exists and gates", _jest is not None and _jest["gating"] is True)
+check("it is selected by a change under any `lwc` directory: a bundle, force-app, a nested layout, "
+      "and a bundle that no longer exists on disk (a deletion)",
+      _jest is not None and all(pr_gate.selects(_jest, [f]) for f in (
+          "unpackaged/post_utils/lwc/rlmDecisionTableManager/x.js",
+          "force-app/main/default/lwc/x/x.js",
+          "unpackaged/post_new/main/default/lwc/y/y.js",
+          "unpackaged/post_deleted_bundle/lwc/z/z.js")))
+check("and by sfdx-project.json, whose package directories decide how `c/` imports resolve",
+      _jest is not None and pr_gate.selects(_jest, ["sfdx-project.json"]))
+check("and not by an unrelated change, nor by a file merely named lwc",
+      _jest is not None and not pr_gate.selects(_jest, ["tasks/rlm_x.py"])
+      and not pr_gate.selects(_jest, ["docs/lwc"]))
+_absent = dict(_jest or {}, node_deps=["node_modules/.bin/no-such-binary-for-this-test"])
+check("a missing Node package is reported missing, so the gate fails rather than skips",
+      any("no-such-binary" in m for m in pr_gate.missing_deps(_absent)), pr_gate.missing_deps(_absent))
+_needs = subprocess.run([sys.executable, os.path.join(REPO, "scripts", "ai", "pr_gate.py"), "--needs-node",
+                         "--changed-files-from", "/dev/stdin"], input="unpackaged/post_utils/lwc/a/a.js\n",
+                        capture_output=True, text=True, cwd=REPO)
+_no_needs = subprocess.run([sys.executable, os.path.join(REPO, "scripts", "ai", "pr_gate.py"), "--needs-node",
+                            "--changed-files-from", "/dev/stdin"], input="tasks/rlm_x.py\n",
+                           capture_output=True, text=True, cwd=REPO)
+_spec = importlib.util.spec_from_file_location(
+    "_run_lwc_jest", os.path.join(REPO, "scripts", "ai", "run_lwc_jest.py"))
+_wrapper = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_wrapper)
+_ok = {"numPassedTests": 13, "numTotalTests": 13, "numTotalTestSuites": 1, "success": True}
+check("the Jest wrapper passes a clean report", _wrapper.verdict(_ok, 0)[0] == 0, _wrapper.verdict(_ok, 0))
+check("and fails one where every test was skipped, which Jest itself calls a success",
+      _wrapper.verdict({"numPassedTests": 0, "numPendingTests": 13, "numTotalTests": 13, "success": True}, 0)[0] == 1)
+check("and one with a single skipped or todo test among passes",
+      _wrapper.verdict(dict(_ok, numTodoTests=1), 0)[0] == 1
+      and _wrapper.verdict(dict(_ok, numPendingTests=1), 0)[0] == 1)
+check("and one with a failure, a failed suite, a non-zero Jest exit, or success false",
+      all(_wrapper.verdict(r, c)[0] == 1 for r, c in (
+          (dict(_ok, numFailedTests=1), 0), (dict(_ok, numFailedTestSuites=1), 0),
+          (_ok, 1), (dict(_ok, success=False), 0))))
+check("--needs-node answers true for an LWC change and false otherwise, which is what CI's `npm ci` keys on",
+      (_needs.stdout.strip(), _no_needs.stdout.strip()) == ("true", "false"),
+      (_needs.stdout, _needs.stderr[-300:], _no_needs.stdout))
 
 # The other way a verdict disappears between producing it and reporting it: exempt one check by name.
 # `if check["name"] != "pr_gate_suite": failures.append(...)` still prints `[FAIL] pr_gate_suite` — the
@@ -4687,19 +4823,29 @@ def probe_path(trig, ext=".md"):
     return trig.rstrip("/") + "/probe_reaches_verdict" + ext if trig.endswith("/") else trig
 
 
-def gate_verdict_all(runner_code, only=None, checks=None):
+def gate_verdict_all(runner_code, only=None, checks=None, config_note=None):
     """Run `main()` with every selected runner returning `runner_code`, and report the exit code.
 
     Distinct from `gate_verdict` above, which fails one runner at a time to make the exit code an
     assertion about a single check's *booking*. This asks the other question — what the gate's exit code
     means — which needs the outcome uniform. `only` narrows the selection; `checks` replaces it outright,
-    for a synthetic check no live `CHECKS` entry can stand in for.
+    for a synthetic check no live `CHECKS` entry can stand in for. `config_note` has each runner file
+    a non-failing config note, as `run()` does for another worktree's `[branch]` section.
     """
     buf = io.StringIO()
     keep = [c for c in (checks if checks is not None else pr_gate.CHECKS) if only is None or only(c)]
     try:
-        pr_gate.run = lambda cmd: (runner_code, f"stub exit {runner_code}", 0.1)
+        def stub_run(cmd):
+            if config_note:
+                pr_gate.CONFIG_NOTES.append(config_note)
+            return runner_code, f"stub exit {runner_code}", 0.1
+        pr_gate.run = stub_run
         pr_gate.run_sequence = lambda cmds: (runner_code, f"stub exit {runner_code}", 0.1)
+        # The drift check reads `git status` on the generated CCI references for its verdict. Left
+        # real, it made "a clean run is still exit 0" fail whenever those files were dirty in the
+        # working tree, e.g. mid-edit before a regeneration is committed: an outcome the stubbed
+        # runners don't control. Stubbed clean, so every check's verdict is `runner_code`'s.
+        pr_gate.git = lambda args, what: ""
         pr_gate.missing_deps = lambda check: []
         pr_gate.unlisted_suites = lambda: []
         pr_gate.CHECKS = keep
@@ -4709,7 +4855,7 @@ def gate_verdict_all(runner_code, only=None, checks=None):
         with redirect_stdout(buf):
             rc = pr_gate.main()
     finally:
-        pr_gate.run, pr_gate.run_sequence = real_run, real_seq
+        pr_gate.run, pr_gate.run_sequence, pr_gate.git = real_run, real_seq, real_git
         pr_gate.changed_files, sys.argv = real_changed, real_argv
         pr_gate.missing_deps, pr_gate.unlisted_suites = real_deps, real_unlisted
         pr_gate.CHECKS = real_checks
@@ -4846,19 +4992,47 @@ VERDICT_REGIONS = {
     # region: (fingerprint, what it decides)
     # Repinned for todo 237: a check that leaves the repository's .git/config changed now fails (code
     # raised to at least 1, with a message). The comparison is a local file read, the same on every host.
-    "run()": ("30ce6447552c", "the exit code, stdout and duration of one command"),
+    # Repinned when another worktree's `[branch "X"]` section became a note rather than a failure, and
+    # again when run() began decoding a check's output with errors="replace": a non-UTF-8 byte raised
+    # UnicodeDecodeError, a traceback whose exit 1 read as a verdict. What decides whether a config
+    # change fails now lives in the config guard, pinned below. Repinned again when run() began
+    # spawning checks with `env=check_env()`: git's repository-locating variables are removed so a
+    # fixture cannot reach this repository. It only removes, the same list on every host.
+    "run()": ("29836ab7bb5a", "the exit code, stdout and duration of one command"),
+    # Pinned when the excuse for `[branch]` bookkeeping entries moved here from a one-line byte
+    # comparison in run(): about sixty lines that call git now decide whether a config change fails.
+    # It reads git's own answers (config --list, for-each-ref), the same on every host.
+    "the config guard": ("e8ab35427705", "whether a check's config change fails it"),
     "run_sequence()": ("00747f44b21e", "the first non-zero code across a sequence"),
+    # The environment every check runs in, and the variable list it strips. Pinned with run() because
+    # a hosted-runner-only predicate here changes every check's inputs while run() reads unchanged, and
+    # the env rule allows `os.environ.items()` in this function.
+    "check_env()": ("cb715cb2c533", "the environment every check runs in"),
     # Repinned in the wave that split tool errors out of failures: a runner returning 2 was booked as a
     # FAIL and exited 1, publishing a code verdict on a check that produced none. This rule is what
     # made that a deliberate edit rather than a quiet one, which is exactly its purpose.
     # Repinned when the script entry point became `main(reexec=True)`: run by path, the gate re-runs
     # itself under the gate interpreter when this one lacks a selected check's dependency. The booking
     # loop and every return are untouched; CI installs the selection's deps, so it never re-runs.
-    "the booking loop and main()'s return": ("4b9962703135", "which verdicts reach the exit code"),
+    # Repinned when the loop began clearing, and main() printing, run()'s non-failing config notes.
+    # The bookings and every return are untouched.
+    "the booking loop and main()'s return": ("1223a68cd50e", "which verdicts reach the exit code"),
 }
 observed = {
     "run()": fingerprint(body_of(gate_src, "def run(", "the command runner")),
     "run_sequence()": fingerprint(body_of(gate_src, "def run_sequence(", "the sequence runner")),
+    "check_env()": fingerprint(body_of(gate_src, "def check_env(", "the check environment")
+                               + repr(sorted(pr_gate.GIT_LOCATING_ENV))
+                               + repr(pr_gate.GIT_CONFIG_INJECTION_PREFIXES)),
+    # One bounded span, from where the config files are found to the CHECKS table, rather than
+    # body_of() per function: body_of() runs to the next top-level
+    # `def`, which left the key allowlist, branch_of() and without() unpinned while folding the whole
+    # CHECKS table after config_change_note() into the pin.
+    "the config guard": fingerprint(
+        span_of(gate_src, "\ndef repo_config_paths(", "\n# name, command, path prefixes",
+                "the config guard")
+        + body_of(gate_src, "def config_drift(", "the config note filer")
+        + body_of(gate_src, "def git(", "the git runner")),
     "the booking loop and main()'s return":
         fingerprint(gate_src.split("results, failures, advisory_failures")[-1]),
 }
@@ -5260,6 +5434,478 @@ check("in a linked worktree the guard watches the main repository's config and i
       == [os.path.realpath(os.path.join(main_repo, ".git", "config")),
           os.path.realpath(os.path.join(linked_gitdir, "config.worktree"))], found)
 
+# The guard above notices a leak after it happened; it cannot un-commit one. The cause is a check
+# inheriting GIT_DIR (from a hook, or a caller that exported it), which aims a fixture's `git init`,
+# `git config` and `git commit` at this repository. Reproduced on test_check_permission_set_
+# dependencies.py, whose fixture wrote `user.*` and `core.bare=true` into the real config and
+# committed onto the session branch. `run()` now strips the variables at spawn; the fixture below is
+# that suite's, run with GIT_DIR naming a stand-in for the real repository, with a positive control
+# proving the same fixture does leak when the environment is inherited.
+LEAKY_FIXTURE = (
+    "import os, shutil, subprocess, tempfile\n"
+    "d = tempfile.mkdtemp()\n"
+    "for a in (['init', '-q'], ['config', 'user.email', 'leak@example.com'],\n"
+    "          ['config', 'user.name', 'leak']):\n"
+    "    subprocess.run(['git', *a], cwd=d)\n"
+    "open(os.path.join(d, 'f.txt'), 'w').write('x')\n"
+    "subprocess.run(['git', 'add', '.'], cwd=d)\n"
+    "subprocess.run(['git', 'commit', '-qm', 'leaked'], cwd=d)\n"
+    "shutil.rmtree(d, ignore_errors=True)\n")
+
+
+def stand_in_repo():
+    """A throwaway repository with one commit, standing in for the real one."""
+    root = tempfile.mkdtemp()
+    git(root, "init", "-q", "-b", "session")
+    git(root, "-c", "user.email=t@example.com", "-c", "user.name=t",
+        "commit", "-q", "--allow-empty", "-m", "seed")
+    return root
+
+
+def repo_state(root):
+    """Config bytes and HEAD, read with no inherited GIT_DIR so they describe `root` itself."""
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True,
+                          env=pr_gate.check_env()).stdout.strip()
+    return pathlib.Path(root, ".git", "config").read_bytes(), head
+
+
+prior_root, prior_git_dir = pr_gate.REPO_ROOT, os.environ.get("GIT_DIR")
+control_root, guarded_root = stand_in_repo(), stand_in_repo()
+try:
+    control_before, guarded_before = repo_state(control_root), repo_state(guarded_root)
+    os.environ["GIT_DIR"] = os.path.join(control_root, ".git")
+    subprocess.run([sys.executable, "-c", LEAKY_FIXTURE], capture_output=True)
+    os.environ["GIT_DIR"] = os.path.join(guarded_root, ".git")
+    pr_gate.REPO_ROOT = guarded_root
+    leak_code, leak_out, _ = pr_gate.run([sys.executable, "-c", LEAKY_FIXTURE])
+finally:
+    pr_gate.REPO_ROOT = prior_root
+    if prior_git_dir is None:
+        os.environ.pop("GIT_DIR", None)
+    else:
+        os.environ["GIT_DIR"] = prior_git_dir
+control_after, guarded_after = repo_state(control_root), repo_state(guarded_root)
+shutil.rmtree(control_root, ignore_errors=True)
+shutil.rmtree(guarded_root, ignore_errors=True)
+check("control: the fixture run with an inherited GIT_DIR does write the repository's config and "
+      "commit onto its branch, so the next two checks can see a leak",
+      control_after[0] != control_before[0] and control_after[1] != control_before[1],
+      (control_before[1], control_after[1]))
+check("a check run with GIT_DIR set in the parent cannot write the real repository's config",
+      guarded_after[0] == guarded_before[0], guarded_after[0].decode(errors="replace")[-300:])
+check("nor commit onto its branch, and it passes rather than tripping the config guard",
+      guarded_after[1] == guarded_before[1] and leak_code == 0,
+      (guarded_before[1], guarded_after[1], leak_code, leak_out[-300:]))
+# Each variable, not only GIT_DIR: the list is the guarantee, so dropping one from it must fail here.
+_hostile = {v: "/nonexistent" for v in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE",
+                                        "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
+                                        "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX",
+                                        "GIT_NAMESPACE", "GIT_CONFIG",
+                                        "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",
+                                        "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0")}
+# Kept on purpose: these narrow discovery or isolate the caller's own config, and cannot aim a check
+# at this repository. Stripping them would let ~/.gitconfig into fixtures and widen the walk-up.
+_kept = {v: "/kept" for v in ("GIT_CEILING_DIRECTORIES", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM",
+                              "GIT_CONFIG_NOSYSTEM", "PR_GATE_ENV_PROBE")}
+_saved_env = dict(os.environ)
+try:
+    os.environ.update(_hostile, **_kept)
+    _scrubbed = pr_gate.check_env()
+finally:
+    os.environ.clear()
+    os.environ.update(_saved_env)
+check("check_env() drops every repository-locating and config-injecting variable",
+      not set(_hostile) & set(_scrubbed), sorted(set(_hostile) & set(_scrubbed)))
+check("and keeps the rest of the environment, including the ceiling and the caller's global/system "
+      "config isolation",
+      all(_scrubbed.get(k) == v for k, v in _kept.items()),
+      sorted(k for k in _kept if k not in _scrubbed))
+# Every worktree shares one .git/config, so another session's `git push -u` (or `git switch -c X
+# origin/X`) adds a `[branch "X"]` section mid-run and failed an innocent check twice in PR 702. Who
+# wrote a change cannot be known, so what it does decides: [branch] bookkeeping of a real local branch
+# naming a defined remote is noted; anything that alters a commit, push or merge target fails, as does
+# anything changed alongside it, and a section for a branch with no ref.
+branch_root = tempfile.mkdtemp()
+prior_root = pr_gate.REPO_ROOT
+branch_cases = {}
+try:
+    git(branch_root, "init", "-q", "-b", "base")
+    git(branch_root, "-c", "user.email=t@example.com", "-c", "user.name=t",
+        "commit", "-q", "--allow-empty", "-m", "seed")
+    git(branch_root, "remote", "add", "origin", "https://example.invalid/origin.git")
+    git(branch_root, "remote", "add", "up.stream", "https://example.invalid/upstream.git")
+    git(branch_root, "branch", "other-session/work")
+    # A real ref whose name holds U+2028: splitlines() cut it into a fabricated `preview/next`, which
+    # then excused the leaked `[branch "preview/next"]` below (Copilot, PR 705).
+    git(branch_root, "branch", "preview/next\u2028suffix")
+    branch_config = os.path.join(branch_root, ".git", "config")
+    pr_gate.REPO_ROOT = branch_root
+    with open(branch_config, "rb") as fh:
+        pristine = fh.read()
+    for label, argv in (
+            ("real", [sys.executable, "-c", "import sys; open(sys.argv[1], 'a').write(sys.argv[2])",
+                      branch_config, '[branch "other-session/work"]\n\tremote = origin\n'
+                                     '\tmerge = refs/heads/other-session/work\n']),
+            ("ghost", [sys.executable, "-c", "import sys; open(sys.argv[1], 'a').write(sys.argv[2])",
+                       branch_config,
+                       '[branch "preview/next"]\n\tremote = origin\n\tmerge = refs/heads/preview/next\n']),
+            ("user", [sys.executable, "-c", "import sys; open(sys.argv[1], 'a').write(sys.argv[2])",
+                      branch_config, '[user]\n\temail = t@example.com\n']),
+            ("real+user", [sys.executable, "-c", "import sys; open(sys.argv[1], 'a').write(sys.argv[2])",
+                           branch_config, '[branch "other-session/work"]\n\tremote = origin\n'
+                                          '[user]\n\temail = t@example.com\n']),
+            # What a leaked fixture `git branch --track X base` does: its merge names another branch,
+            # which redirects `git pull` (and `git push` under push.default=upstream), so it fails.
+            ("leaked-track", ["git", "-C", branch_root, "branch", "-q", "--track", "leaked", "base"])):
+        pr_gate.CONFIG_NOTES.clear()
+        code, out, _ = pr_gate.run(argv)
+        branch_cases[label] = (code, out, list(pr_gate.CONFIG_NOTES))
+        with open(branch_config, "wb") as fh:
+            fh.write(pristine)
+    # Removal and change count as well as addition: the section written above, edited in place to
+    # another defined remote (whose name holds a dot).
+    with open(branch_config, "a") as fh:
+        fh.write('[branch "other-session/work"]\n\tremote = origin\n')
+    pr_gate.CONFIG_NOTES.clear()
+    edit = ("import sys; p = sys.argv[1]; t = open(p).read();"
+            " open(p, 'w').write(t.replace('remote = origin', 'remote = up.stream'))")
+    branch_cases["real-edit"] = (*pr_gate.run([sys.executable, "-c", edit, branch_config])[:2],
+                                 list(pr_gate.CONFIG_NOTES))
+    with open(branch_config, "wb") as fh:
+        fh.write(pristine)
+
+    # run() keeps a tool error at 2 when the check also changed the config, keeps the diff on a
+    # timeout, and files no note for a check that changed nothing.
+    write_user = "import sys; open(sys.argv[1], 'a').write('[user]\\n\\tname = x\\n'); "
+    branch_cases["tool-error"] = pr_gate.run([sys.executable, "-c", write_user + "sys.exit(2)",
+                                              branch_config])[:2]
+    with open(branch_config, "wb") as fh:
+        fh.write(pristine)
+    prior_timeout = pr_gate.CHECK_TIMEOUT
+    pr_gate.CHECK_TIMEOUT = 3
+    try:
+        branch_cases["timeout"] = pr_gate.run([sys.executable, "-c",
+                                               write_user + "import time; time.sleep(60)",
+                                               branch_config])[:2]
+    finally:
+        pr_gate.CHECK_TIMEOUT = prior_timeout
+    with open(branch_config, "wb") as fh:
+        fh.write(pristine)
+    pr_gate.CONFIG_NOTES.clear()
+    branch_cases["quiet"] = (pr_gate.run([sys.executable, "-c", "pass"])[:2], list(pr_gate.CONFIG_NOTES))
+
+    def added(section, base=pristine):
+        """config_change_note for `section` appended to the shared config."""
+        return pr_gate.config_change_note({branch_config: base}, {branch_config: base + section})
+
+    # Keys that redirect later pushes or merges fail even for a real branch; the bookkeeping keys pass.
+    for label, text in (("pushremote", '\tpushRemote = origin\n'),
+                        ("mergeoptions", '\tmergeOptions = --strategy=ours\n'),
+                        ("url-remote", '\tremote = https://evil.example/x.git\n'),
+                        ("undefined-remote", '\tremote = nowhere\n'),
+                        ("merge-other", '\tremote = origin\n\tmerge = refs/heads/base\n'),
+                        ("rebase", '\trebase = interactive\n'),
+                        ("dot-remote", '\tremote = .\n\tmerge = refs/heads/other-session/work\n'),
+                        ("editor-notes", '\tvscode-merge-base = origin/main\n'
+                                         '\tgithub-pr-owner-number = o#r#1\n'
+                                         '\tgithub-pr-base-branch = o#r#main\n')):
+        branch_cases[label] = added(f'[branch "other-session/work"]\n{text}'.encode())
+    # The branch's state afterwards is what is judged, not only the entries that changed. A merge
+    # left from `git switch -c X origin/main` plus a remote added now makes X track main: fails. The
+    # same branch retargeted at its own name (what `push -u` then writes) passes, as does removing
+    # its tracking (`--unset-upstream`). A reordered multi-valued remote whose values include a URL
+    # fails, since git uses the last one.
+    tracked_main = pristine + b'[branch "other-session/work"]\n\tmerge = refs/heads/base\n'
+    branch_cases["stale-merge"] = pr_gate.config_change_note(
+        {branch_config: tracked_main},
+        {branch_config: tracked_main + b'[branch "other-session/work"]\n\tremote = origin\n'})
+    from_main = pristine + b'[branch "other-session/work"]\n\tremote = origin\n\tmerge = refs/heads/'
+    branch_cases["retarget-own"] = pr_gate.config_change_note(
+        {branch_config: from_main + b"base\n"}, {branch_config: from_main + b"other-session/work\n"})
+    branch_cases["unset-upstream"] = pr_gate.config_change_note(
+        {branch_config: pristine + b'[branch "other-session/work"]\n\tremote = origin\n'
+                                   b'\tmerge = refs/heads/other-session/work\n'},
+        {branch_config: pristine})
+    # A remote with a fixed refspec, left without its merge, makes `git pull` merge that branch; and a
+    # file with an include excuses nothing, since moving lines across it changes which value wins.
+    fixed = pristine + (b'[remote "pinned"]\n\turl = https://example.invalid/p.git\n'
+                        b'\tfetch = +refs/heads/base:refs/remotes/pinned/base\n'
+                        b'[branch "other-session/work"]\n\tremote = pinned\n')
+    branch_cases["merge-removed"] = pr_gate.config_change_note(
+        {branch_config: fixed + b'\tmerge = refs/heads/other-session/work\n'}, {branch_config: fixed})
+    included = pristine + b'[include]\n\tpath = elsewhere.cfg\n'
+    branch_cases["with-include"] = pr_gate.config_change_note(
+        {branch_config: included},
+        {branch_config: included + b'[branch "other-session/work"]\n\tvscode-merge-base = origin/main\n'})
+    # Reordering a repeated non-bookkeeping key changes which value git uses, beside tracking added.
+    two_push = '[branch "other-session/work"]\n\tpushRemote = {}\n\tpushRemote = {}\n'
+    branch_cases["reordered-pushremote"] = pr_gate.config_change_note(
+        {branch_config: pristine + two_push.format("evil", "origin").encode()},
+        {branch_config: pristine + two_push.format("origin", "evil").encode()
+         + b'[branch "other-session/work"]\n\tremote = origin\n'})
+    two_remotes = '[branch "other-session/work"]\n\tremote = {}\n\tremote = {}\n'
+    branch_cases["reordered-url"] = pr_gate.config_change_note(
+        {branch_config: pristine + two_remotes.format("https://evil.example/x", "origin").encode()},
+        {branch_config: pristine + two_remotes.format("origin", "https://evil.example/x").encode()})
+    # Only the entries that changed are judged: `push -u` on a branch with a description, and beside
+    # another branch's own tracking (as in every real shared config), is still bookkeeping.
+    with_description = pristine + (b'[branch "base"]\n\tremote = origin\n\tmerge = refs/heads/base\n'
+                                   b'[branch "other-session/work"]\n\tdescription = wip\n')
+    branch_cases["beside-others"] = added(b'[branch "other-session/work"]\n\tremote = origin\n'
+                                          b'\tmerge = refs/heads/other-session/work\n', with_description)
+    # A remote is defined by its url: one with only a pushurl does not vouch for a branch's remote.
+    branch_cases["pushurl-only"] = added(b'[branch "other-session/work"]\n\tremote = evil\n',
+                                         pristine + b'[remote "evil"]\n\tpushurl = https://evil.example/x\n'
+                                         b'\tvcs = x\n')
+    # A before-snapshot git rejects fails cleanly, as the after-side one does.
+    branch_cases["unparseable-before"] = pr_gate.config_change_note(
+        {branch_config: b"[core\n"}, {branch_config: b"[core]\n"})
+    # A remote defined by the same change is itself a non-branch change, so it cannot vouch for one.
+    branch_cases["new-remote"] = added(b'[remote "evil"]\n\turl = https://evil.example/x.git\n'
+                                       b'[branch "base"]\n\tremote = evil\n')
+    # A non-branch value changed beside an excused section, rather than added.
+    branch_cases["real+value"] = pr_gate.config_change_note(
+        {branch_config: pristine + b'[user]\n\tname = a\n'},
+        {branch_config: pristine + b'[user]\n\tname = b\n[branch "other-session/work"]\n\tremote = origin\n'})
+    # A comment beside an excused section rides along: git reads it as nothing (alone, it fails).
+    branch_cases["comment+real"] = pr_gate.config_change_note(
+        {branch_config: pristine},
+        {branch_config: b"# a comment\n" + pristine + b'[branch "other-session/work"]\n\tremote = origin\n'})
+    # Removing an unsafe key is a change to it, so it fails like adding one.
+    with_push = pristine + b'[branch "other-session/work"]\n\tremote = origin\n\tpushRemote = origin\n'
+    branch_cases["pushremote-removed"] = pr_gate.config_change_note(
+        {branch_config: with_push},
+        {branch_config: pristine + b'[branch "other-session/work"]\n\tremote = origin\n'})
+    # A comment alone fails even in a file that already holds a real branch's section, which did not move.
+    with_branch = pristine + b'[branch "other-session/work"]\n\tremote = origin\n'
+    branch_cases["comment-only"] = pr_gate.config_change_note(
+        {branch_config: with_branch}, {branch_config: b"# a comment\n" + with_branch})
+    # A snapshot git rejects excuses nothing, even when the other side held only bookkeeping.
+    branch_cases["unparseable-after"] = pr_gate.config_change_note(
+        {branch_config: b'[branch "other-session/work"]\n\tremote = .\n'},
+        {branch_config: b'[branch "other-session/work"\n'})
+    # The excusable section beside text git cannot parse: nothing is excused.
+    branch_cases["unparseable"] = added(b'[branch "other-session/work"]\n\tremote = origin\n[user\n')
+    # One file's excused change must not carry another file's unexplained change with it, nor be
+    # dropped from the report when the other fails: both are diffed and the excused branch is named.
+    worktree_config = branch_config + ".worktree"
+    branch_cases["split"] = pr_gate.config_change_note(
+        {branch_config: pristine, worktree_config: b"[core]\n"},
+        {branch_config: pristine + b'[branch "other-session/work"]\n\tremote = origin\n',
+         worktree_config: b"[user]\n\tname = leak\n"})
+
+    # A backslash continues a value, so the "[branch]" header below is still inside [user] and the
+    # remote line sets user.remote: a change to it must fail. The control, without the backslash, is a
+    # real bookkeeping key and is excused.
+    def continued_config(remote, cont):
+        return {branch_config: pristine + ('[user]\n\tname = Alice' + cont
+                                           + '\n[branch "other-session/work"]\n'
+                                           f'\tremote = {remote}\n').encode()}
+    for label, cont in (("continued", "\\"), ("uncontinued", "")):
+        branch_cases[label] = pr_gate.config_change_note(continued_config("origin", cont),
+                                                         continued_config("up.stream", cont))
+    # Two more ways a line git reads as user.* could be filed under that branch (local review of PR
+    # 705, both confirmed with `git config --list`): a section opened on the [branch] header's own line,
+    # and a form feed, which str.splitlines treats as a line break and git keeps inside a value.
+    for label, template in (
+            ("same-line", '[branch "other-session/work"][user] remote = {}\n'),
+            ("form-feed", '[user]\n\tname = A\f[branch "other-session/work"]\n\tremote = {}\n')):
+        branch_cases[label] = pr_gate.config_change_note(
+            {branch_config: pristine + template.format("origin").encode()},
+            {branch_config: pristine + template.format("up.stream").encode()})
+    # A section removed for a branch that is gone (another session's `git branch -D`), or renamed away
+    # by `git branch -m`, still fails: pinned by the owner's decision, so loosening it is deliberate.
+    branch_cases["removed"] = pr_gate.config_change_note(
+        {branch_config: pristine + b'[branch "deleted/elsewhere"]\n\tremote = origin\n'},
+        {branch_config: pristine})
+    branch_cases["renamed"] = pr_gate.config_change_note(
+        {branch_config: pristine + b'[branch "renamed/away"]\n\tremote = origin\n'},
+        {branch_config: pristine + b'[branch "other-session/work"]\n\tremote = origin\n'})
+    # CRLF is git's to read, not ours: a real branch's section written with CRLF is still excused.
+    branch_cases["crlf"] = pr_gate.config_change_note(
+        {branch_config: b'[remote "origin"]\r\n\turl = x\r\n'},
+        {branch_config: b'[remote "origin"]\r\n\turl = x\r\n[branch "other-session/work"]\r\n'
+                        b'\tremote = origin\r\n'})
+    branch_cases["listed"] = pr_gate.local_branches()
+finally:
+    pr_gate.REPO_ROOT = prior_root
+    pr_gate.CONFIG_NOTES.clear()
+    shutil.rmtree(branch_root, ignore_errors=True)
+real_code, real_out, real_notes = branch_cases["real"]
+check("a [branch] tracking section added for a real local branch passes, as a note naming it",
+      real_code == 0 and "config" not in real_out
+      and len(real_notes) == 1 and "other-session/work" in real_notes[0], branch_cases["real"])
+check("a [branch] section edited for a real local branch passes too, to a dotted remote name",
+      branch_cases["real-edit"][0] == 0 and len(branch_cases["real-edit"][2]) == 1,
+      branch_cases["real-edit"])
+check("a leaked `git branch --track X base` fails: its merge points X at another branch",
+      branch_cases["leaked-track"][0] == 1 and '+[branch "leaked"]' in branch_cases["leaked-track"][1]
+      and not branch_cases["leaked-track"][2], branch_cases["leaked-track"])
+check("local branches are listed whole, U+2028 included",
+      {"base", "other-session/work", "preview/next\u2028suffix"} <= branch_cases["listed"]
+      and "preview/next" not in branch_cases["listed"] and "" not in branch_cases["listed"],
+      branch_cases["listed"])
+for label, what in (("pushremote", "a pushRemote"), ("mergeoptions", "a mergeOptions"),
+                    ("url-remote", "a URL as remote"), ("undefined-remote", "an undefined remote"),
+                    ("new-remote", "a remote defined by the same change"),
+                    ("merge-other", "a merge naming another branch"), ("rebase", "a rebase setting"),
+                    ("dot-remote", "`remote = .`, which pushes to a local branch"),
+                    ("stale-merge", "a remote added to a branch whose merge names another"),
+                    ("reordered-url", "a reordered remote that leaves a URL in use"),
+                    ("reordered-pushremote", "a reordered repeated pushRemote"),
+                    ("merge-removed", "a merge removed while a remote with a fixed refspec stays"),
+                    ("with-include", "bookkeeping in a file holding an include")):
+    check(f"{what} for a real branch still fails: it redirects later pushes, pulls or merges",
+          branch_cases[label][1] is True, branch_cases[label])
+check("a pushurl-only remote does not vouch for a branch's remote",
+      branch_cases["pushurl-only"][1] is True, branch_cases["pushurl-only"])
+check("a before-snapshot git rejects fails cleanly",
+      branch_cases["unparseable-before"][1] is True, branch_cases["unparseable-before"])
+for label, what in (("beside-others", "tracking added to a branch with a description, beside another "
+                                      "branch's own tracking,"),
+                    ("retarget-own", "a branch's merge retargeted at its own name (`push -u` after "
+                                     "`switch -c X origin/main`)"),
+                    ("unset-upstream", "a branch's tracking removed"),
+                    ("editor-notes", "an editor's vscode-merge-base or github-pr-* note")):
+    check(f"...while {what} is excused",
+          branch_cases[label][1] is False and "other-session/work" in branch_cases[label][0],
+          branch_cases[label])
+check("a check that exits 2 and changes the config stays a tool error (2), with the diff",
+      branch_cases["tool-error"][0] == 2 and "+\tname = x" in branch_cases["tool-error"][1],
+      branch_cases["tool-error"])
+check("a check that times out after changing the config still shows the config diff",
+      branch_cases["timeout"][0] == 1 and "timed out" in branch_cases["timeout"][1]
+      and "+\tname = x" in branch_cases["timeout"][1], branch_cases["timeout"])
+check("a check that changes nothing files no config note",
+      branch_cases["quiet"] == ((0, ""), []), branch_cases["quiet"])
+for label, what in (("pushremote-removed", "removing a pushRemote"),
+                    ("comment-only", "a comment alone, in a file holding an untouched branch section"),
+                    ("unparseable-after", "a snapshot git rejects, whose other side held only bookkeeping")):
+    check(f"{what} fails", branch_cases[label][1] is True, branch_cases[label])
+check("a comment beside an excused section passes with it, since git reads the comment as nothing",
+      branch_cases["comment+real"][1] is False, branch_cases["comment+real"])
+check("a user.name value changed beside an excused section still fails",
+      branch_cases["real+value"][1] is True, branch_cases["real+value"])
+check("an excusable section beside text git cannot parse excuses nothing",
+      branch_cases["unparseable"][1] is True, branch_cases["unparseable"])
+split_note, split_fails = branch_cases["split"]
+check("a failing file does not hide the other file's excused change: both are diffed, and the excused "
+      "branch is named",
+      split_fails and "(config.worktree)" in split_note and '+[branch "other-session/work"]' in split_note
+      and "bookkeeping for other-session/work in the diff below is excused" in split_note
+      and "+\tname = leak" in split_note, split_note)
+check("a line continuation that carries user.* past a [branch] header still fails",
+      branch_cases["continued"][1] is True, branch_cases["continued"])
+check("...while the same text without the continuation is a real bookkeeping key, excused as a note",
+      branch_cases["uncontinued"][1] is False and "other-session/work" in branch_cases["uncontinued"][0],
+      branch_cases["uncontinued"])
+check("a section opened on a [branch] header's own line is not excused as that branch",
+      branch_cases["same-line"][1] is True, branch_cases["same-line"])
+check("a form feed inside a value does not split off a fake [branch] header",
+      branch_cases["form-feed"][1] is True, branch_cases["form-feed"])
+ghost_code, ghost_out, ghost_notes = branch_cases["ghost"]
+check("a [branch] section for a branch with no real ref (a leaked fixture's) still fails, with the diff, "
+      "even beside a real ref that extends its name past a U+2028",
+      ghost_code == 1 and '+[branch "preview/next"]' in ghost_out and not ghost_notes,
+      branch_cases["ghost"])
+check("a user.email change still fails",
+      branch_cases["user"][0] == 1 and "+\temail = t@example.com" in branch_cases["user"][1],
+      branch_cases["user"])
+check("a user.email change alongside an excused [branch] section still fails",
+      branch_cases["real+user"][0] == 1 and not branch_cases["real+user"][2], branch_cases["real+user"])
+check("a section removed for a branch that no longer exists still fails",
+      branch_cases["removed"][1] is True, branch_cases["removed"])
+check("a section renamed away from a branch that no longer exists still fails",
+      branch_cases["renamed"][1] is True, branch_cases["renamed"])
+check("a CRLF config is read by git, so a real branch's section written with CRLF is still excused",
+      branch_cases["crlf"][1] is False and "other-session/work" in branch_cases["crlf"][0],
+      branch_cases["crlf"])
+# git is the parser: an escaped subsection comes back as the ref it names, a dotted branch name keeps
+# its dots, a global `branch.*` setting or another section's key is not mistaken for a branch's, and a
+# bare boolean stays distinct from an empty value.
+check("git's reading of an escaped, dotted branch section names the ref it belongs to",
+      pr_gate.config_entries(b'[branch "a\\\\b.c"]\n\tremote = o\n') == [("branch.a\\b.c.remote", "o")]
+      and pr_gate.branch_of("branch.a\\b.c.remote") == "a\\b.c"
+      and pr_gate.branch_of("branch.autosetupmerge") is None
+      and pr_gate.branch_of("remote.origin.url") is None,
+      pr_gate.config_entries(b'[branch "a\\\\b.c"]\n\tremote = o\n'))
+check("a bare boolean and an empty value are different entries",
+      pr_gate.config_entries(b"[core]\n\tbare\n\tx =\n") == [("core.bare", None), ("core.x", "")],
+      pr_gate.config_entries(b"[core]\n\tbare\n\tx =\n"))
+unread_note, unread_fails = pr_gate.config_change_note({"c": b"[core]\n"}, {"c": b"[core]\n[user\n"})
+check("a snapshot git cannot parse excuses nothing and fails, saying git could not read it",
+      unread_fails and "git could not read a snapshot" in unread_note, unread_note)
+cr_note = pr_gate.config_change_note({"c": b"[core]\n"}, {"c": b"[core]\r[user]\n\temail = x\n"})[0]
+check("a carriage return in the diff is shown as \\r, so a terminal cannot overwrite the line",
+      "+[core]\\r[user]" in cr_note and "\r" not in cr_note, cr_note)
+check("a change git reads as no change at all (a comment) is shown and failed, not passed unexamined",
+      pr_gate.config_change_note({"c": b"[core]\n"}, {"c": b"# note\n[core]\n"})[1] is True)
+unlistable = tempfile.mkdtemp()
+prior_root = pr_gate.REPO_ROOT
+loud_err = io.StringIO()
+try:
+    pr_gate.REPO_ROOT = unlistable
+    with outside_any_repo(unlistable):
+        soft = pr_gate.git(["rev-parse", "HEAD"], "probe", fatal=False)
+        unlisted = pr_gate.local_branches()
+        try:
+            with redirect_stderr(loud_err):
+                pr_gate.git(["rev-parse", "HEAD"], "probe")
+            loud_code = 0
+        except SystemExit as exc:
+            loud_code = exc.code
+    # A cwd that is gone makes the spawn itself fail (an OSError), which fatal=False also answers None.
+    pr_gate.REPO_ROOT = os.path.join(unlistable, "gone")
+    unspawned = pr_gate.git(["rev-parse", "HEAD"], "probe", fatal=False)
+finally:
+    pr_gate.REPO_ROOT = prior_root
+    os.rmdir(unlistable)
+check("git(fatal=False) returns None on failure, and so do refs that cannot be listed",
+      soft is None and unlisted is None, (soft, unlisted))
+# Refs that cannot be listed excuse nothing, and the failure says why rather than blaming the change.
+real_branches = pr_gate.local_branches
+pr_gate.local_branches = lambda: None
+try:
+    unlisted_note, unlisted_fails = pr_gate.config_change_note(
+        {"config": b'[remote "o"]\n\turl = x\n'},
+        {"config": b'[remote "o"]\n\turl = x\n[branch "work"]\n\tremote = o\n'})
+finally:
+    pr_gate.local_branches = real_branches
+check("a branch's tracking fails when the refs cannot be listed, saying git could not list them",
+      unlisted_fails and "list the local branches" in unlisted_note, unlisted_note)
+check("git(fatal=False) returns None when git cannot even be spawned, rather than dying",
+      unspawned is None, unspawned)
+check("git() without fatal=False still dies with exit 2 and a readable message, not a bytes repr",
+      loud_code == 2 and "b'" not in loud_err.getvalue() and "probe failed" in loud_err.getvalue(),
+      (loud_code, loud_err.getvalue()))
+# Classification is lossless: decoded with "replace", two distinct non-UTF-8 names both became U+FFFD,
+# compared equal, and the change passed as an empty branch note (Copilot, PR 705).
+latin_note, latin_fails = pr_gate.config_change_note(
+    {"config": b"[user]\n\tname = Andr\xe9\n"}, {"config": b"[user]\n\tname = Andr\xe4\n"})
+check("a user.name change between two non-UTF-8 values still fails, with a printable diff",
+      latin_fails and "-\tname = Andr\\xe9" in latin_note and "+\tname = Andr\\xe4" in latin_note,
+      (latin_fails, latin_note[-200:]))
+# A branch name that is not UTF-8 is held with surrogates; the note shows it as \xNN, so printing it
+# under a strict UTF-8 stdout cannot raise.
+real_branches = pr_gate.local_branches
+pr_gate.local_branches = lambda: {"caf\udcff"}
+try:
+    odd_note, odd_fails = pr_gate.config_change_note(
+        {"config": b'[remote "o"]\n\turl = x\n'},
+        {"config": b'[remote "o"]\n\turl = x\n[branch "caf\xff"]\n\tremote = o\n'})
+finally:
+    pr_gate.local_branches = real_branches
+check("a non-UTF-8 branch name is excused and noted printably, as \\xNN",
+      odd_fails is False and "caf\\xff" in odd_note and odd_note.encode("utf-8", "strict"),
+      (odd_fails, odd_note))
+noisy = pr_gate.run([sys.executable, "-c", "import sys; sys.stdout.buffer.write(b'caf\\xff\\n')"])
+check("a check that prints a non-UTF-8 byte still gets a verdict rather than a decode traceback",
+      noisy[0] == 0 and "caf" in noisy[1], noisy[:2])
+noted = gate_verdict_all(0, only=lambda c: c is pr_gate.CHECKS[0],
+                         config_note="note: probe-config-note [during: x]")
+check("main() prints another worktree's config note even though the check passed",
+      noted[0] == 0 and "probe-config-note" in noted[1], noted)
+
 # And the same class one layer *up*, which is where it was actually still open. `run()` normalises a
 # signal-killed child to 2 and its comment calls that "the definition of a tool error in this file's
 # 0/1/2 contract" — but the booking loop sent 1 and 2 down one branch, so an OOM-killed suite was
@@ -5335,7 +5981,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 728
+EXPECTED = 839
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
@@ -5351,7 +5997,9 @@ check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the p
 _NUM_WORDS = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen",
               18: "eighteen", 19: "nineteen", 20: "twenty", 21: "twenty-one", 22: "twenty-two",
               23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six",
-              27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine", 30: "thirty"}
+              27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine", 30: "thirty",
+              31: "thirty-one", 32: "thirty-two", 33: "thirty-three",
+              34: "thirty-four"}
 _actual = len(pr_gate.CHECKS)
 # A word boundary that also rejects a trailing hyphen, so the pattern for a smaller number word
 # does not match inside a hyphenated compound of a larger one: "two of the twenty" must NOT

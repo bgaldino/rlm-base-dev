@@ -1,10 +1,10 @@
 @isTest
 private class RLM_CollectionsConsoleControllerTest {
 
-    // Invoice and the downstream PaymentSchedule/CollectionPlanItem/Dispute records are
-    // system-managed and not insertable in Apex tests. With no qualifying invoices visible
-    // (SeeAllData=false), the worklist query returns empty and the dispute/schedule lookups
-    // are skipped — this verifies the method runs clean and returns a safe empty result.
+    // Invoice is system-managed and not insertable in Apex tests, and the schedule, plan-item and
+    // dispute lookups only run for the invoices found. With no qualifying invoices visible
+    // (SeeAllData=false), the worklist query returns empty and those lookups are skipped; this
+    // verifies the method runs clean and returns a safe empty result.
     @isTest
     static void getHighValueDelinquents_noData_returnsEmptyList() {
         Test.startTest();
@@ -55,6 +55,57 @@ private class RLM_CollectionsConsoleControllerTest {
         System.assertEquals('Billing Error - Overcharge', w2.disputeReason, 'Dispute reason projected.');
         System.assertEquals('', w2.collectionPlanId, 'No plan -> empty string.');
         System.assertEquals(null, w2.ptpDate, 'No PTP -> null.');
+    }
+
+    // An invoice without a billing account shows a blank account, and no related records
+    // leave the defaults: a dash for the dispute, a blank plan, no promise to pay.
+    @isTest
+    static void buildDelinquents_invoiceWithoutBillingAccount_usesDefaults() {
+        Id invId = mintId(Invoice.SObjectType);
+        Invoice inv = (Invoice) JSON.deserialize(JSON.serialize(new Map<String, Object>{
+            'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
+            'Id' => invId,
+            'Balance' => 2500,
+            'DaysInvoiceOverdue' => 40
+        }), Invoice.class);
+
+        Test.startTest();
+        List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
+            RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>{ inv },
+                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>());
+        Test.stopTest();
+
+        Assert.areEqual(1, rows.size(), 'One row per invoice.');
+        Assert.areEqual(invId, rows[0].Id, 'The row is the invoice.');
+        Assert.areEqual('', rows[0].businessAccount, 'No billing account, blank name.');
+        Assert.isNull(rows[0].accountId, 'No billing account id.');
+        Assert.areEqual('-', rows[0].disputeReason, 'No dispute, a dash.');
+        Assert.areEqual('', rows[0].collectionPlanId, 'No plan, blank.');
+        Assert.isNull(rows[0].collectionPlanRecordId, 'No plan record.');
+        Assert.isNull(rows[0].ptpDate, 'No promise to pay.');
+        assertAmount(2500, rows[0].balance, 'The balance is the invoice balance.');
+        assertAmount(2500, rows[0].invoiceBalance, 'The invoice balance is the invoice balance.');
+        Assert.areEqual(40, rows[0].overdueDays, 'Days overdue come from the invoice.');
+        Assert.isNull(rows[0].documentNumber, 'No document number on the invoice, none on the row.');
+    }
+
+    @isTest
+    static void buildDelinquents_noInvoices_returnsEmpty() {
+        Test.startTest();
+        List<RLM_CollectionsConsoleController.DelinquentWrapper> rows =
+            RLM_CollectionsConsoleController.buildDelinquents(new List<Invoice>(),
+                new Map<Id, Date>(), new Map<Id, String>(), new Map<Id, Id>(), new Map<Id, String>());
+        Test.stopTest();
+
+        Assert.isNotNull(rows, 'A list is returned for no invoices.');
+        Assert.isTrue(rows.isEmpty(), 'No invoices, no rows.');
+    }
+
+    // Fails on a null amount and names both values in the message; Decimal equality already
+    // ignores scale.
+    private static void assertAmount(Decimal expected, Decimal actual, String message) {
+        Assert.isTrue(actual != null && actual == expected,
+            message + ' Expected ' + expected + ', got ' + actual + '.');
     }
 
     private static Integer seq = 0;

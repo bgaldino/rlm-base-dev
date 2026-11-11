@@ -47,8 +47,12 @@ BindingObjectCustomExt ← BindingObjectRateCardEntry (BindingObjectId)
 
 ## SFDMU Data Plan: `qb-rates`
 
-5 objects in 1 pass. **Must load after** `qb-rating` (RateCardEntry references UsageResource and PUR).
+5 objects in 2 passes. **Must load after** `qb-rating` (RateCardEntry references UsageResource and PUR).
 
-In the **shipped** plan, RateCardEntry and RateAdjustmentByTier use `Insert` + `deleteOldData: true` and PriceBookRateCard uses `Upsert` + `deleteOldData: true`, due to composite relationship-traversal externalIds — a **pre-5.6.4 workaround** (fixed on the 5.6.4+ floor; new plans use `Upsert`, shipped-plan migration is the gated `sfdmu-v5-optimization` initiative).
+Nothing is deleted (todo 298). Every object is `Upsert` on its composite relationship-traversal externalId.
+- **RateCardEntry, pass 1:** `skipExistingRecords`, so a missing entry is inserted as Draft (RateAdjustmentByTier requires a Draft parent).
+- **RateCardEntry, pass 2:** `Update` without Status.
+- **Activation:** `activate_rates`.
+- **Platform locks:** an Active RateCardEntry accepts only Status changes, and a RateAdjustmentByTier under an Active entry can't be edited.
 
-**Deletion constraint**: `delete_qb_rates_data` must run before `delete_qb_rating_data` — rates FK to PURs.
+**Deletion constraint** (manual full teardown only): `delete_qb_rates_data` must run before `delete_qb_rating_data` — rates FK to PURs.

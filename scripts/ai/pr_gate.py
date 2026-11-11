@@ -47,6 +47,7 @@ Usage:
     python scripts/ai/pr_gate.py --all                    # ignore selection, run everything
     python scripts/ai/pr_gate.py --list                   # print the matrix, run nothing
     python scripts/ai/pr_gate.py --requirements --base X  # extra pip deps the selection needs
+    python scripts/ai/pr_gate.py --needs-node --base X    # whether CI must `npm ci` (true/false)
 
 Run as a script, the gate re-runs itself under the gate interpreter (the main checkout's
 `.venv`, resolved by `gate_python.py`) when this interpreter lacks a selected check's
@@ -114,11 +115,34 @@ CHECK_TIMEOUT = 900
 # A fixture whose git command reaches this repository instead of its throwaway one (an inherited
 # GIT_DIR from a git hook, or a cwd that isn't a repository yet) writes to the developer's .git/config,
 # and the change outlives the run. An early test_branch_scope.py fixture wrote `user.name test` and
-# `user.email t@example.com` there, and every commit for two months carried them (todo 237). Each
-# git-using suite drops the hook variables at startup, which is the fix: a leak can also stage files
-# into this repo's index or commit onto its branch, and only the suites can prevent that. The gate
-# doesn't read the environment, so it can't drop them itself; what it can do is fail a check that
-# leaves the config changed, the symptom that outlives the run.
+# `user.email t@example.com` there, and every commit for two months carried them (todo 237). A leak
+# can also stage files into this repo's index or commit onto its branch, which no after-the-fact
+# guard can undo. So there are two layers: `run()` starts every check without git's
+# repository-locating variables (`check_env()`), so a fixture cannot inherit a path to this repo; and
+# it still fails a check that leaves the config changed, for the leaks the environment cannot cause
+# (a fixture whose cwd is not a repository yet walks up into this one). Suites keep their own
+# preamble too, because they are also run directly, outside the gate.
+#
+# Every variable here either names a repository, work tree, index or object store, or can rewrite
+# this repository's own config: the legacy GIT_CONFIG names the file `git config` writes, and
+# GIT_CONFIG_PARAMETERS/COUNT/KEY_n/VALUE_n inject settings such as `core.bare` or `core.worktree`.
+# The same list the git-using suites drop in their preambles. Deliberately kept:
+# GIT_CEILING_DIRECTORIES only narrows discovery, and a check starts at the repository root, so it
+# cannot aim a check at this repo but can stop a fixture walking up into it; and
+# GIT_CONFIG_GLOBAL/SYSTEM/NOSYSTEM name the user's and system's config, not this repository's, and
+# are how a hermetic caller keeps ~/.gitconfig (a global hooksPath, gpgsign) out of fixtures.
+GIT_LOCATING_ENV = frozenset((
+    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_PREFIX", "GIT_NAMESPACE",
+    "GIT_CONFIG", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_COUNT",
+))
+GIT_CONFIG_INJECTION_PREFIXES = ("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_")
+
+
+def check_env():
+    """This process's environment minus git's repository-locating variables, for a check to run in."""
+    return {k: v for k, v in os.environ.items()
+            if k not in GIT_LOCATING_ENV and not k.startswith(GIT_CONFIG_INJECTION_PREFIXES)}
 
 
 def repo_config_paths():
@@ -157,21 +181,181 @@ def repo_config_bytes():
     return out
 
 
+# The shared config is also written by every *other* worktree of this repository: another session's
+# `git push -u`, or a branch it creates from a remote-tracking ref, adds a `[branch "<name>"]` section
+# mid-run, and that failed an innocent check twice during PR 702. Who wrote a change cannot be known
+# from here (PR 705 tried to infer it from refs, then from worktrees, and a leaked fixture command met
+# each test in one step), so the guard judges what the change leaves behind. A file's change passes, as
+# a printed note, only when it is confined to branches that each meet all of these:
+# - refs/heads/<name> exists;
+# - every entry that changed is a bookkeeping key (BOOKKEEPING_KEYS);
+# - afterwards, every `remote` the branch has is a remote the same file defines (has a url for), and
+#   every `merge` is refs/heads/<name> itself, as `push -u` and `switch -c X origin/X` write them; a
+#   branch left with a remote but no merge fails when that remote has a non-glob fetch refspec, since
+#   `git pull` then merges the first refspec's fixed branch. A file holding an include or includeIf excuses nothing, since an include inserts its
+#   entries where it stands and moving a branch's lines across it changes which value wins.
+# The last point is judged on the branch's state after the change, not on the entries that changed: a
+# `merge` naming another branch, left from before or added now, makes `git pull` merge it and
+# `git push` under push.default=upstream push there (`feat -> trunk`), and a URL or `.` as `remote`
+# sends a bare push somewhere no remote names. So those fail, as do `rebase`, `pushRemote`,
+# `mergeOptions`, user.*, core.*, remote.* and the rest, and any entry changed alongside them.
+# Accepted: a swap between two remotes the file defines, since tracking steers only a bare `git push`
+# or `git pull` and this repository's docs push with an explicit remote and branch; and bytes git reads
+# as no entry (a comment) beside an excused branch, since git reads them as nothing (alone, they fail).
+# A section removed for a branch that no longer exists fails, by the owner's decision (pinned).
+#
+# Both snapshots are read by git itself (`git config --file - --no-includes --null --list`, the
+# snapshot on stdin), not by a parser here: a hand-rolled one disagreed with git repeatedly in PR
+# 705's reviews (a backslash continuation, a section opened on a header's own line, splitlines()
+# breaking on \f and U+2028), each time letting a line git reads as user.* pass as a branch's. That
+# reads the snapshot alone: no `-c`, no GIT_CONFIG_* variables, and includes listed as plain
+# `include.path` entries rather than followed. A snapshot git cannot read excuses nothing.
+
+# What `push -u` writes (remote, merge), plus notes this repository's shared config already carries
+# from editors: VS Code's and Cursor's `vscode-merge-base`, and the GitHub Pull Requests extension's
+# `github-pr-owner-number` and `github-pr-base-branch`. None of the notes changes what git does.
+BOOKKEEPING_KEYS = {"remote", "merge", "vscode-merge-base", "github-pr-owner-number",
+                    "github-pr-base-branch"}
+
+# Notes about excused `[branch]` bookkeeping, collected by run() and printed by main() whatever the
+# check's verdict: a passing check's output is otherwise never shown.
+CONFIG_NOTES = []
+
+
+def config_entries(data):
+    """git's own reading of one config snapshot, as [(key, value)] in file order: the key with its
+    section and variable lowercased and its subsection verbatim, the value None for a bare boolean.
+    [] for a missing or empty file; None when git cannot read it."""
+    if not data:
+        return []
+    out = git(["config", "--file", "-", "--no-includes", "--null", "--list"],
+              "config --list of a snapshot", fatal=False, stdin=data)
+    if out is None:
+        return None
+    entries = []
+    for record in out.split("\0")[:-1]:
+        key, newline, value = record.partition("\n")
+        entries.append((key, value if newline else None))
+    return entries
+
+
+def branch_of(key):
+    """X for a `branch.X.<variable>` key, else None (`branch.autosetupmerge` has no subsection). X is
+    everything between the first dot and the last: a variable name holds no dot, a branch name may."""
+    if not key.startswith("branch."):
+        return None
+    name, dot, _ = key[len("branch."):].rpartition(".")
+    return name if dot else None
+
+
+def without(entries, branches):
+    """`entries` less every `branch.X.*` entry whose X is in `branches`, order kept."""
+    return [entry for entry in entries if branch_of(entry[0]) not in branches]
+
+
+def shown(text):
+    """`text` (decoded with surrogateescape) made printable: each undecodable byte as `\\xNN`, so two
+    non-UTF-8 values stay distinct on screen and print() cannot raise on a lone surrogate, and a
+    carriage return as `\\r`, so a terminal cannot overwrite the line it ends."""
+    return (text.encode("utf-8", "surrogateescape").decode("utf-8", "backslashreplace")
+            .replace("\r", "\\r"))
+
+
+def local_branches():
+    """Every `refs/heads/` name in this repository, short form: what a `[branch]` subsection names.
+    Split on "\\n" only: a ref name cannot hold a control character, but it can hold U+2028, which
+    splitlines() would cut into a fabricated shorter ref (Copilot, PR 705). Decoded exactly as
+    config_entries() decodes git's reading of the config, so the two compare like for like. None
+    when the refs cannot be listed, which excuses nothing rather than stopping the gate and losing
+    the diff of what changed."""
+    out = git(["for-each-ref", "--format=%(refname)", "refs/heads/"], "for-each-ref refs/heads/",
+              fatal=False)
+    if out is None:
+        return None
+    return {ref[len("refs/heads/"):] for ref in out.split("\n") if ref.startswith("refs/heads/")}
+
+
+def excused_branches(old, new, real):
+    """The branches whose entries moved between `old` and `new` and meet the rule above: real
+    (in `real`), changed only in bookkeeping keys, and left tracking only themselves on a defined
+    remote."""
+    # An include inserts its entries where it stands, so moving a branch's lines across one changes
+    # which value wins without changing the branch's own entries: a file with one excuses nothing.
+    if any(key == "include.path" or key.startswith("includeif.") for key, _ in old + new):
+        return set()
+    groups = [{}, {}]
+    for group, entries in zip(groups, (old, new)):
+        for entry in entries:
+            group.setdefault(branch_of(entry[0]), []).append(entry)
+    # A remote's name may hold dots, so it is everything between `remote.` and `.url`.
+    remotes = {key[len("remote."):-len(".url")] for key, _ in new
+               if key.startswith("remote.") and key.endswith(".url")}
+    fetches = {}
+    for key, value in new:
+        if key.startswith("remote.") and key.endswith(".fetch"):
+            fetches.setdefault(key[len("remote."):-len(".fetch")], []).append(value or "")
+    excused = set()
+    for name in (set(groups[0]) | set(groups[1])) & real:
+        was, now = groups[0].get(name, []), groups[1].get(name, [])
+        if was == now:
+            continue
+        # Everything but bookkeeping must be identical, in order: git uses a repeated key's last value,
+        # so reordering two `rebase` or `pushRemote` lines changes what git does.
+        if ([entry for entry in was if entry[0].rpartition(".")[2] not in BOOKKEEPING_KEYS]
+                == [entry for entry in now if entry[0].rpartition(".")[2] not in BOOKKEEPING_KEYS]
+                and all(value in remotes for key, value in now if key.endswith(".remote"))
+                # With no merge, `git pull` merges the remote's first refspec: a fixed branch unless
+                # every refspec is a glob.
+                and (any(key.endswith(".merge") for key, _ in now)
+                     or all("*" in spec for key, value in now if key.endswith(".remote")
+                            for spec in fetches.get(value, ())))
+                and all(value == f"refs/heads/{name}" for key, value in now if key.endswith(".merge"))):
+            excused.add(name)
+    return excused
+
+
 def config_change_note(before, after):
-    """A note for a check during which a repository config file changed, with the diffs, or ""."""
+    """(note, fails) for the repository config files' change during a check: ("", False) when none
+    changed. A file whose change is confined to excusable `[branch]` bookkeeping (see the comment
+    above BOOKKEEPING_KEYS) is noted, not failed. Any other change fails, with the diff of every
+    changed file and the excused branches named."""
     changed = [path for path in before if after.get(path) != before[path]]
     if not changed:
-        return ""
+        return "", False
+    real = local_branches()
+    excused, failing, unread = set(), [], real is None
+    real = real or set()
+    for path in changed:
+        old, new = config_entries(before[path]), config_entries(after.get(path))
+        unread |= old is None or new is None
+        ours = excused_branches(old, new, real) if old is not None and new is not None else set()
+        # A file passes only when its excused branches account for every entry that changed.
+        if not ours or without(old, ours) != without(new, ours):
+            failing.append(path)
+        excused |= ours
+    named = ", ".join(shown(name) for name in sorted(excused))
+    if not failing:
+        return ("\nnote: the repository's git config changed [branch] bookkeeping for " + named
+                + " while this check ran: a real local branch's tracking of its own name on a remote"
+                " this config defines (which steers only a bare `git push` or `git pull`), or an"
+                " editor's note. Left in place.\n", False)
     diffs = []
     for path in changed:
         name = os.path.basename(path)
-        diffs += difflib.unified_diff((before[path] or b"").decode("utf-8", "replace").splitlines(),
-                                      (after.get(path) or b"").decode("utf-8", "replace").splitlines(),
+        text = [shown((data or b"").decode("utf-8", "surrogateescape"))
+                for data in (before[path], after.get(path))]
+        diffs += difflib.unified_diff(text[0].split("\n"), text[1].split("\n"),
                                       f"{name} before", f"{name} after", lineterm="")
-    return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in changed) + ")"
+    return ("\nThe repository's git config (" + ", ".join(os.path.basename(p) for p in failing) + ")"
             " changed while this check ran. A fixture git command may have reached the real"
-            " repository (or something else wrote it meanwhile, such as `git push -u`). Restore it by"
-            " hand; the change is not reverted for you.\n" + "\n".join(diffs) + "\n")
+            " repository (or something else wrote it meanwhile). Only [branch] bookkeeping is excused"
+            " (a real local branch's tracking of its own name on a defined remote, or an editor's"
+            " note), and this change is not that"
+            + (": git could not read a snapshot of it or list the local branches, so nothing could be"
+               " excused" if unread else "")
+            + ". Restore it by hand; the change is not reverted for you."
+            + (f" (The [branch] bookkeeping for {named} in the diff below is excused.)" if excused
+               else "") + "\n" + "\n".join(diffs) + "\n", True)
 
 
 # name, command, path prefixes that select it, extra pip deps, gating, note.
@@ -194,6 +378,25 @@ CHECKS = [
         # Information). It reads every tracked text file, so like agent_tooling it always
         # runs rather than mirroring a scope here: ~2,900 files in about three seconds (it is profiled: keep it there).
         triggers=["scripts/ai/check_release_refs.py"], always=True,
+        deps=[], gating=True,
+    ),
+    dict(
+        name="private_refs",
+        cmd=["python", "scripts/ai/check_private_refs.py"],
+        # Citations into the private `.agents/artifacts/` tree must be tier-shaped and, where the
+        # clone is present, resolve (todo 358). One `git grep` finds the citing files, so it always
+        # runs, in under a second. Keeping the tree untracked is the dockerignore check's job.
+        triggers=["scripts/ai/check_private_refs.py"], always=True,
+        deps=[], gating=True,
+    ),
+    dict(
+        name="permission_set_dependencies",
+        cmd=["python", "scripts/ai/check_permission_set_dependencies.py"],
+        # Account read depends on Contact read because of the person accounts in the TSO orgs;
+        # a permission set granting one without the other fails at deploy time. It reads every
+        # tracked permission set, so it selects on the suffix rather than a subtree.
+        triggers=["scripts/ai/check_permission_set_dependencies.py"],
+        suffixes=[".permissionset-meta.xml"],
         deps=[], gating=True,
     ),
     dict(
@@ -296,7 +499,8 @@ CHECKS = [
         triggers=["docs/erds/", ".cursor/skills/revenue-cloud-data-model/",
                   ".cursor/skills/schema-validation/",
                   "scripts/ai/README.md", "tests/test_erd_doc_counts.py",
-                  "scripts/erd/build_erds.py", "scripts/erd/validate_erd_against_org.py"],
+                  "scripts/erd/build_erds.py", "scripts/erd/validate_erd_against_org.py",
+                  "scripts/erd/schema_diff/264-clm-schema.json"],
         deps=[], gating=True,
     ),
     dict(
@@ -378,6 +582,38 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="node_line",
+        cmd=["python", "tests/test_node_line.py"],
+        # Every file that names the Node major line, so bumping any one alone runs the check that
+        # they still agree with .nvmrc. Its own check rather than a STDLIB_SUITES entry: a Dockerfile
+        # or workflow edit should cost this sub-second suite, not the whole offline bundle.
+        triggers=[".nvmrc", ".envrc", "package.json", "docker/Dockerfile", ".github/workflows/",
+                  "scripts/bash/update-toolchain.sh", "tests/test_node_line.py",
+                  # The instructions that name the line, which the suite also compares. Every
+                  # guide, since the suite also checks none of them loads nvm a second way or
+                  # writes pyenv lines into a shell startup file.
+                  "docs/guides/",
+                  ".cursor/skills/troubleshooting/SKILL.md", ".cursor/skills/toolchain/SKILL.md",
+                  ".cursor/skills/toolchain/workstation-audit.md",
+                  ".cursor/skills/toolchain/verification-handoff.md",
+                  ".cursor/skills/toolchain/managed-workstations.md",
+                  "README.md", "CONTRIBUTING.md", "docker/README.md",
+                  "tasks/rlm_validate_setup.py"],
+        deps=[], gating=True,
+    ),
+    dict(
+        name="dockerignore",
+        cmd=["python", "tests/test_dockerignore.py"],
+        # A locally built image copies the working tree, so a git-ignored folder missing from
+        # .dockerignore is baked into it (todo 357). The suite compares the two ignore files and
+        # checks that every tracked file still reaches the build context, so a file force-added
+        # anywhere .dockerignore excludes (most of it at any depth) is an input too. A trigger
+        # list mirroring those patterns would drift from them, so like agent_tooling it always
+        # runs; it takes about three seconds.
+        triggers=[".dockerignore", ".gitignore", "tests/test_dockerignore.py"], always=True,
+        deps=[], gating=True,
+    ),
+    dict(
         name="doc_build_steps",
         cmd=["python", "tests/test_doc_build_steps.py"],
         # The suite walks every .md in the repo, so any .md must be able to select it.
@@ -396,6 +632,31 @@ CHECKS = [
         # try/except ImportError fallback — the module was never written to be importable without
         # it, and adding that guard is a bigger footprint than this pack (126 / #264-64) needs.
         triggers=["tasks/rlm_extend_stdctx.py", "tests/test_extend_stdctx.py"],
+        deps=["cumulusci"], gating=True,
+    ),
+    dict(
+        name="cci_task_org_option",
+        cmd=["python", "tests/test_cci_task_org_option.py"],
+        # Imports every task class in tasks/ the way cci does and asserts the ones that read
+        # org_config set salesforce_task, without which cci rejects --org (todo 244).
+        triggers=["tasks/", "cumulusci.yml", "tests/test_cci_task_org_option.py"],
+        deps=["cumulusci"], gating=True,
+    ),
+    dict(
+        name="sfdmu_id_lookup_wiring",
+        cmd=["python", "tests/test_sfdmu_id_lookup_wiring.py"],
+        # LoadSFDMUData's parent-Id lookup step (todo 298): the sf CLI org is never the access
+        # token, and Ids resolve in a temp copy that leaves the tracked plan untouched. Also
+        # DeleteSFDMUData's named-sobjects teardown of the all-Upsert qb-pricing plan.
+        triggers=["tasks/rlm_sfdmu.py", "scripts/sfdmu_id_lookups.py", "scripts/sfdmu_export.py",
+                  "datasets/sfdmu/qb/en-US/qb-rating-entitlements/",
+                  "datasets/sfdmu/qb/en-US/qb-rating/",
+                  "datasets/sfdmu/qb/en-US/qb-pricing/",
+                  # The export.json byte-restore cases load q3-rates in place (todo 319).
+                  "datasets/sfdmu/q3/en-US/q3-rates/",
+                  # TestSFDMUIdempotency's AssignedTo placeholder case copies qb-dro (todo 329).
+                  "datasets/sfdmu/qb/en-US/qb-dro/",
+                  "tests/test_sfdmu_id_lookup_wiring.py"],
         deps=["cumulusci"], gating=True,
     ),
     dict(
@@ -430,6 +691,9 @@ CHECKS = [
                   "force-app/", "unpackaged/",
                   ".agents/", ".claude/", ".cursor/", "docs/references/",
                   "AGENTS.md", "CLAUDE.md", "README.md",
+                  # tests/test_toolchain_audit.py runs the guide's ~/.zshenv NVM block against the
+                  # audit's nested-shell check, so an edit to the template must run it.
+                  "docs/guides/dev-environment-setup.md",
                   # Loaded by path (spec loader) from tests/test_robot_salesforce_api_auth.py,
                   # so the import-coverage rule cannot see it; named here so an edit to the
                   # library runs its auth suite. tests/test_validate_setup_chrome.py loads the
@@ -443,7 +707,7 @@ CHECKS = [
     dict(
         name="requests_offline_suites",
         cmd=None,  # expanded at runtime — see REQUESTS_SUITES
-        # The modules these two suites exercise, plus the non-code inputs they read and assert
+        # The modules these suites exercise, plus the non-code inputs they read and assert
         # against — the shipped overlay examples and the export fixture. The paths are the ones the
         # trigger-coverage rule named when this check was first added with guessed ones: a suite that
         # reads a file no trigger selects is a suite that can be invalidated without being run.
@@ -455,11 +719,14 @@ CHECKS = [
         # found this to be the only instance.
         triggers=["tasks/rlm_expression_set_connect.py", "tasks/rlm_cml.py",
                   "tasks/expression_set_schema.py", "tasks/rlm_community.py",
-                  "scripts/expression_sets/", "scripts/cml/",
+                  "scripts/expression_sets/", "scripts/recycle_bin/", "tasks/rlm_empty_recycle_bin.py",
+                  "scripts/sf_token.py",
+                  "tests/test_empty_recycle_bin.py",
                   "tests/test_expression_set_schema.py",
                   "tests/test_rlm_cml_import_failure.py",
                   "tests/test_rlm_cml_validate.py",
                   "tests/test_rlm_community.py",
+                  "tasks/rlm_mcp.py", "tests/test_rlm_mcp_configure.py",
                   "tests/data/expression_set/",
                   "datasets/expression_set_overlays/",
                   "docs/references/expression-set-overlay-examples/"],
@@ -474,13 +741,16 @@ CHECKS = [
              "tests/test_prepare_constraints_validation.py",
              "tests/test_doc_snapshot_presets.py",
              "tests/test_workflow_policy.py",
-             "tests/test_docker_publish.py"],  # run in sequence
+             "tests/test_docker_publish.py",
+             "tests/test_deploy_with_fragments.py"],  # run in sequence
         # qb-dro because test_fulfillment_scope_tolerance.py reads its Product2.csv and
         # FulfillmentStepDefinition.csv and asserts the banner's count matches them — adding a
         # usage product to that dataset invalidates the assertion, so it has to select this.
         triggers=["tasks/", "cumulusci.yml", "scripts/ai/skill_manifest.py",
                   ".claude/skill-manifest.yml",
                   "datasets/sfdmu/qb/en-US/qb-dro/",
+                  # test_prepare_constraints_validation.py asserts the shipped model set under here.
+                  "datasets/constraints/qb/",
                   "tests/test_decision_table_tasks.py",
                   "tests/test_deactivate_changed_decision_tables.py",
                   "unpackaged/pre/5_decisiontables/",
@@ -495,7 +765,13 @@ CHECKS = [
                   # interpolation in run:) parses the YAML, so any workflow or local-action change selects it.
                   ".github/workflows/", ".github/actions/", "tests/test_workflow_policy.py",
                   # docker-publish's :latest rule runs the workflow's own coordinates script.
-                  "tests/test_docker_publish.py"],
+                  "tests/test_docker_publish.py",
+                  # quote_est_tax: the partner permission set and the setting must deploy with
+                  # the flag off and on, and no other settings file (unpackaged/pre, a scratch
+                  # def) may set enableQuoteEstimatedTaxCPQ behind the flag's back.
+                  "tests/test_deploy_with_fragments.py", "unpackaged/pre/", "unpackaged/post_prm/",
+                  "unpackaged/post_quote_est_tax_settings/", "orgs/", "force-app/main/default/settings/",
+                  "templates/"],
         deps=["PyYAML"], gating=True,
     ),
     dict(
@@ -569,6 +845,25 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="sfdmu_layering",
+        cmd=["python", "scripts/ai/check_sfdmu_layering.py"],
+        # Cross-plan, so any plan's data can change what it finds: a `$$` lookup that can't
+        # resolve, or a record two shapes write with different values (todo 325).
+        triggers=["datasets/sfdmu/", "scripts/ai/check_sfdmu_layering.py", "scripts/sfdmu_export.py"],
+        deps=[], gating=True,
+    ),
+    dict(
+        name="data_plan_audit",
+        cmd=["python", "scripts/audit_data_plans.py", "audit"],
+        # Offline: the plans against the active release's committed describe snapshot (todo 321).
+        # A plan change can select a field the release doesn't have or a value a restricted
+        # picklist won't take; the manifest names the active release, so a release bump selects it.
+        triggers=["datasets/sfdmu/", "scripts/audit_data_plans.py",
+                  "scripts/ai/check_sfdmu_layering.py", "scripts/sfdmu_export.py",
+                  "scripts/erd/schema_diff/", ".claude/skill-manifest.yml"],
+        deps=[], gating=True,
+    ),
+    dict(
         # Two pytest-style suites (test_ functions, no __main__) that `python tests/<name>.py`
         # would exit 0 on without running — the silent-green trap. Invoked through pytest for
         # that reason. test_billing_portal_config asserts prepare_billing_portal's step gating
@@ -598,6 +893,19 @@ CHECKS = [
                   "tests/test_ux_tool.py", "pyproject.toml", "unpackaged/post_ux/"],
         deps=["pytest", "PyYAML"], gating=True,
     ),
+    dict(
+        name="lwc_jest",
+        cmd=["python", "scripts/ai/run_lwc_jest.py"],
+        # Any path with an `lwc` directory segment, at any depth: components live under every
+        # `unpackaged/<bundle>/lwc/`, and matching the segment (not a typed prefix list, not the
+        # directories on disk) also selects a nested layout and a deleted bundle. Plus everything
+        # that decides how Jest runs, resolves `c/` imports (sfdx-project.json's package
+        # directories) or installs.
+        segments=["lwc"],
+        triggers=["jest.config.js", "package.json", "package-lock.json", "sfdx-project.json",
+                  ".nvmrc", "scripts/ai/run_lwc_jest.py"],
+        deps=[], node_deps=["node_modules/.bin/sfdx-lwc-jest"], gating=True,
+    ),
 ]
 
 # Suites that need nothing but the standard library, run as one check. Enumerated rather
@@ -607,8 +915,16 @@ CHECKS = [
 STDLIB_SUITES = [
     "tests/test_agent_launch_checks.py",
     "tests/test_agents_common.py",
+    "tests/test_billing_flow_copies.py",
     "tests/test_build_billing_ui_module.py",
+    "tests/test_build_quote_ramp_args.py",
+    "tests/test_check_node_ca.py",
+    "tests/test_check_permission_set_dependencies.py",
+    "tests/test_check_private_refs.py",
     "tests/test_check_release_refs.py",
+    "tests/test_audit_data_plans.py",
+    "tests/test_check_sfdmu_layering.py",
+    "tests/test_sfdmu_product_view.py",
     "tests/test_claude_hooks.py",
     "tests/test_context_apply.py",
     "tests/test_context_delete.py",
@@ -620,27 +936,40 @@ STDLIB_SUITES = [
     "tests/test_df_workshop_replay.py",
     "tests/test_expression_sets_toolkit.py",
     "tests/test_fix_scratch_identity.py",
+    "tests/test_manage_expression_sets_constraint_activation.py",
+    "tests/test_mcp_scripts_security.py",
+    "tests/test_org_cleanup.py",
     "tests/test_post_process_extraction.py",
+    "tests/test_procedure_plan_overlay_activation.py",
+    "tests/test_project_memory_schema.py",
     "tests/test_qb_multicurrency_data.py",
     "tests/test_renewal_bucket_planner.py",
     "tests/test_rlm_apex_file.py",
     "tests/test_rlm_enable_change_data_capture.py",
     "tests/test_robot_salesforce_api_auth.py",
+    "tests/test_search_index_readiness.py",
+    "tests/test_sfdmu_id_lookups.py",
     "tests/test_sf_token.py",
     "tests/test_snapshot_dev_guide.py",
     "tests/test_snapshot_help.py",
+    "tests/test_toolchain_audit.py",
+    "tests/test_update_toolchain_sf.py",
     "tests/test_validate_keys_targets.py",
     "tests/test_validate_setup_chrome.py",
+    "tests/test_validate_setup_sf.py",
+    "tests/test_verify_backdated_billing.py",
 ]
 
 # Offline like the list above, but they reach a `tasks/` module that imports `requests`, so the
 # dependency is declared and installed rather than inherited by luck from another check's transitive
 # tree. Kept as a separate list so `STDLIB_SUITES` means what it says.
 REQUESTS_SUITES = [
+    "tests/test_empty_recycle_bin.py",
     "tests/test_expression_set_schema.py",
     "tests/test_rlm_cml_import_failure.py",
     "tests/test_rlm_cml_validate.py",
     "tests/test_rlm_community.py",
+    "tests/test_rlm_mcp_configure.py",
 ]
 
 # Which check runs which spliced list — named once, read by both `resolve()` (to build the argv) and
@@ -783,8 +1112,13 @@ def changed_files(base):
     return sorted(set(files))
 
 
-def git(args, purpose):
-    """Run git from the repo root and return stdout, or die — never return a verdict.
+def git(args, purpose, fatal=True, stdin=None):
+    """Run git from the repo root and return stdout, or die — never return a verdict. stdout is
+    decoded with surrogateescape, so a path or config value that is not UTF-8 survives rather than
+    raising; `stdin` (bytes) is fed to git. `fatal=False` returns None instead of dying, on a spawn
+    failure or a non-zero exit, for a caller whose answer to a git failure is to fail closed (the
+    config guard) rather than to stop the gate and lose its diff; None is never mistaken for an
+    empty answer, which is the confusion dying here exists to prevent.
 
     Centralised after the same two guards had to be added to each call site separately and were
     not: `run()` grew an `OSError` guard while this path kept only `FileNotFoundError`, so a git
@@ -794,12 +1128,16 @@ def git(args, purpose):
     failed command is indistinguishable from a clean tree.
     """
     try:
-        out = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, text=True)
+        out = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, input=stdin)
     except OSError as exc:
+        if not fatal:
+            return None
         die(f"could not run git ({purpose}): {exc}")
+    if out.returncode != 0 and not fatal:
+        return None
     if out.returncode != 0:
-        die(f"git {purpose} failed: {out.stderr.strip()}")
-    return out.stdout
+        die(f"git {purpose} failed: {out.stderr.decode('utf-8', 'replace').strip()}")
+    return out.stdout.decode("utf-8", "surrogateescape")
 
 
 def selects(check, files):
@@ -807,10 +1145,33 @@ def selects(check, files):
         return True
     if any(f.startswith(t) for t in check["triggers"] for f in files):
         return True
-    return any(f.endswith(s) for s in check.get("suffixes", ()) for f in files)
+    if any(f.endswith(s) for s in check.get("suffixes", ()) for f in files):
+        return True
+    # `segments` is for a check keyed on a directory name wherever it sits (`lwc`): a directory
+    # segment, so a file merely named `lwc` does not count.
+    return any(seg in f.split("/")[:-1] for seg in check.get("segments", ()) for f in files)
 
 
 def missing_deps(check):
+    return missing_python_deps(check) + missing_node_deps(check)
+
+
+def missing_node_deps(check):
+    """Node checks: the runtime and the installed packages, both fatal when absent, exactly as
+    a missing pip package is. CI installs them only when --needs-node says a selected check
+    wants them, so a wrong answer there shows up here as MISSING-DEP, never as a skip.
+    Not something the gate interpreter can supply, so they don't trigger the re-run."""
+    missing = []
+    if check.get("node_deps"):
+        if shutil.which("node") is None:
+            missing.append("node (see .nvmrc)")
+        missing += [f"{path} (run `npm ci`)" for path in check["node_deps"]
+                    if not os.path.exists(os.path.join(REPO_ROOT, path))]
+    return missing
+
+
+def missing_python_deps(check):
+    """Pip packages and the interpreter floor."""
     missing = [pkg for pkg in check["deps"]
                if not have_module(DEPS.get(pkg, pkg))]
     need = check.get("min_python")
@@ -835,6 +1196,16 @@ def have_module(name):
     return _IMPORTABLE[name]
 
 
+def config_drift(argv, before):
+    """(note, fails) for the config change since `before`; a non-failing note goes to CONFIG_NOTES
+    instead, since a passing check's output is never printed."""
+    note, fails = config_change_note(before, repo_config_bytes())
+    if note and not fails:
+        CONFIG_NOTES.append(f"{note.strip()} [during: {' '.join(argv)}]")
+        return "", False
+    return note, fails
+
+
 def run(cmd):
     """Run one command from the repo root, streaming nothing but returning everything."""
     argv = list(cmd)
@@ -849,13 +1220,16 @@ def run(cmd):
     started = time.time()
     try:
         # Bounded, so one hung check cannot burn the whole CI job's budget with no output.
-        proc = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True,
-                              timeout=CHECK_TIMEOUT)
+        # errors="replace": a check that prints a non-UTF-8 byte still gets its verdict, where strict
+        # decoding raised UnicodeDecodeError, a traceback whose exit 1 reads as one.
+        # `check_env()`: no inherited GIT_DIR and friends, so a fixture cannot reach this repository.
+        proc = subprocess.run(argv, cwd=REPO_ROOT, capture_output=True, text=True, errors="replace",
+                              timeout=CHECK_TIMEOUT, env=check_env())
     except subprocess.TimeoutExpired:
         # A timeout stays a check failure, not a tool error: a check that hangs is a property
         # of the change under test, unlike an interpreter that will not start.
-        return 1, (f"timed out after {CHECK_TIMEOUT}s: {' '.join(argv)}"
-                   + config_change_note(config_before, repo_config_bytes())), time.time() - started
+        note, _ = config_drift(argv, config_before)
+        return 1, f"timed out after {CHECK_TIMEOUT}s: {' '.join(argv)}" + note, time.time() - started
     except OSError as exc:
         die(f"could not run {argv[0]!r}: {exc}")
     # `subprocess` reports a child killed by a signal as *negative* (-9 for SIGKILL). Left negative
@@ -871,9 +1245,10 @@ def run(cmd):
     code = 2 if proc.returncode < 0 else proc.returncode
     out = proc.stdout + proc.stderr
     # A check that rewrites the repository's config is a failure of that check, whatever it
-    # printed: the change outlives the run and silently alters every later commit.
-    note = config_change_note(config_before, repo_config_bytes())
-    if note:
+    # printed: the change outlives the run and silently alters every later commit. Another
+    # worktree's `[branch]` bookkeeping is the one exception, and config_drift() files it as a note.
+    note, fails = config_drift(argv, config_before)
+    if fails:
         code = max(code, 1)
         out += note
     return code, out, time.time() - started
@@ -948,7 +1323,9 @@ def reexec_under_gate_interpreter(selected, argv):
     entry point: the suite drives main() in-process with `missing_deps` patched, and an
     exec there would replace the test runner.
     """
-    if not any(missing_deps(c) for c in selected):
+    # Node items are subtracted, not the rest recomputed: the gate interpreter cannot supply Node,
+    # and reading through missing_deps keeps this the one function the suite patches.
+    if not any(set(missing_deps(c)) - set(missing_node_deps(c)) for c in selected):
         return
     try:
         import gate_python  # stdlib-only sibling; scripts/ai is sys.path[0] when run by path
@@ -979,6 +1356,8 @@ def main(reexec=False):
     ap.add_argument("--list", action="store_true", help="print the matrix and exit")
     ap.add_argument("--requirements", action="store_true",
                     help="print pip deps the selection needs, one per line, then exit")
+    ap.add_argument("--needs-node", action="store_true",
+                    help="print `true` when a selected check needs Node packages, else `false`, then exit")
     ap.add_argument("--no-reexec", action="store_true",
                     help="never re-run under the gate interpreter (the re-run passes this)")
     args = ap.parse_args()
@@ -986,7 +1365,8 @@ def main(reexec=False):
     if args.list:
         print(f"{'check':26} {'gating':7} {'deps':34} triggers")
         for c in CHECKS:
-            selectors = list(c["triggers"]) + [f"*{s}" for s in c.get("suffixes", ())]
+            selectors = (list(c["triggers"]) + [f"*{s}" for s in c.get("suffixes", ())]
+                         + ["/".join(("*", s, "*")) for s in c.get("segments", ())])
             print(f"{c['name']:26} {str(c['gating']):7} "
                   f"{','.join(c['deps']) or '-':34} {', '.join(selectors)}")
         print("\nexcluded from the gate, deliberately:")
@@ -1026,6 +1406,10 @@ def main(reexec=False):
             print(line)
         return 0
 
+    if args.needs_node:
+        print("true" if any(c.get("node_deps") for c in selected) else "false")
+        return 0
+
     if reexec and not args.no_reexec:
         reexec_under_gate_interpreter(selected, sys.argv[1:])
 
@@ -1043,6 +1427,7 @@ def main(reexec=False):
     # *ranking* purpose (a signal kill no longer sorts below a clean run) and none of its contract
     # purpose, and the comment claimed both.
     results, failures, advisory_failures, tool_errors = [], [], [], []
+    CONFIG_NOTES.clear()
     for check in CHECKS:
         if check not in selected:
             results.append((check, "SKIPPED", "", 0.0))
@@ -1103,6 +1488,9 @@ def main(reexec=False):
                             + f"\n({len(lines) - ADVISORY_HEAD} later line(s) elided; run "
                               f"the check directly for the full report)")
             print(f"\n----- {check['name']} ({status}) -----\n{body}")
+
+    for note in CONFIG_NOTES:
+        print(f"\n{note.rstrip()}")
 
     if orphans:
         print(f"\n[FAIL       ] suites no check runs: {', '.join(orphans)}\n"

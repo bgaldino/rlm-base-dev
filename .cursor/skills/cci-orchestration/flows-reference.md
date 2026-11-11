@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**45 flows** across **5 groups**.
+**47 flows** across **5 groups**.
 
 ---
 
@@ -17,13 +17,18 @@ Run all QB data extract tasks (org → CSV). Use --org to specify source org.
 
 1. **task** `extract_qb_pcm_data`
 2. **task** `extract_qb_pricing_data`
-3. **task** `extract_qb_product_images_data`
-4. **task** `extract_qb_dro_data`
-5. **task** `extract_qb_clm_data`
-6. **task** `extract_qb_rating_data`
+3. **task** `extract_qb_dro_data`
+4. **task** `extract_qb_clm_data`
+5. **task** `extract_qb_rating_data`
+6. **task** `extract_qb_rating_entitlements_data`
 7. **task** `extract_qb_rates_data`
 8. **task** `extract_qb_transactionprocessingtypes_data`
 9. **task** `extract_qb_guidedselling_products_data`
+10. **task** `extract_qb_tax_data`  `when: project_config.project__custom__tax and project_config.project__custom__qb`
+11. **task** `extract_qb_billing_data`  `when: project_config.project__custom__billing and project_config.project__custom__qb`
+12. **task** `extract_qb_prm_data`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
+13. **task** `extract_qb_approvals_data`  `when: project_config.project__custom__qb and project_config.project__custom__approvals`
+14. **task** `extract_qb_prm_pricing_data`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb`
 
 ---
 
@@ -31,16 +36,18 @@ Run all QB data extract tasks (org → CSV). Use --org to specify source org.
 
 ### `run_q3_idempotency_tests`
 
-Run all Q3 data idempotency tests (load twice, assert no new records). Use --org to specify a feature-complete q3 org (q3-billing/q3-dro need Billing/DRO enabled).
+Run all Q3 data idempotency tests (load twice, assert no new records). Use --org to specify a feature-complete q3 org (q3-dro needs DRO; q3-tax/q3-billing need the qb-tax/qb-billing data loaded).
 
 **Steps:**
 
 1. **task** `test_q3_pcm_idempotency`
-2. **task** `test_q3_rating_idempotency`
-3. **task** `test_q3_rates_idempotency`
-4. **task** `test_q3_dro_idempotency`
-5. **task** `test_q3_tax_idempotency`  `when: project_config.project__custom__tax and project_config.project__custom__q3`
-6. **task** `test_q3_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__q3`
+2. **task** `test_q3_pricing_idempotency`
+3. **task** `test_q3_rating_idempotency`
+4. **task** `test_q3_rating_entitlements_idempotency`
+5. **task** `test_q3_rates_idempotency`
+6. **task** `test_q3_dro_idempotency`
+7. **task** `test_q3_tax_idempotency`  `when: project_config.project__custom__tax and project_config.project__custom__q3`
+8. **task** `test_q3_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__q3`
 
 ---
 
@@ -52,10 +59,10 @@ Run all QB data idempotency tests (load twice, assert no new records). Use --org
 
 1. **task** `test_qb_pcm_idempotency`
 2. **task** `test_qb_pricing_idempotency`
-3. **task** `test_qb_product_images_idempotency`
-4. **task** `test_qb_dro_idempotency`
-5. **task** `test_qb_clm_idempotency`
-6. **task** `test_qb_rating_idempotency`
+3. **task** `test_qb_dro_idempotency`
+4. **task** `test_qb_clm_idempotency`
+5. **task** `test_qb_rating_idempotency`
+6. **task** `test_qb_rating_entitlements_idempotency`
 7. **task** `test_qb_rates_idempotency`
 8. **task** `test_qb_transactionprocessingtypes_idempotency`
 9. **task** `test_qb_guidedselling_products_idempotency`
@@ -112,6 +119,17 @@ Assign feature-gated permission set licenses after pre-deploy metadata is in pla
 
 ---
 
+### `check_org_readiness`
+
+Post-spin readiness, read-only: every decision table's freshness verdict (a table whose last full sync predates the org reads Stale: never built here) and whether the search index was built in this org. Run it on a Trialforce-spun org after refresh_all_decision_tables and rebuild_search_index, allowing a few minutes for the index build. In Release 264 a refresh within a day of the template's full sync can run incremental and leave a table Stale (never built here) until a full one runs. Both steps report; to fail on a not-ready result pass each step's strict option, e.g. -o check_decision_table_freshness__param1 strict -o check_search_index_readiness__strict true.
+
+**Steps:**
+
+1. **task** `check_decision_table_freshness`
+2. **task** `check_search_index_readiness`
+
+---
+
 ### `deploy_post_prm_pricing`
 
 Deploy and configure the PRM pricing bundle in dependency order so context resources and recipe mappings exist before expression set deploy.
@@ -144,6 +162,7 @@ Deploy and configure the PRM pricing bundle in dependency order so context resou
 9. **task** `extend_context_rate_management`  `when: project_config.project__custom__rating`
 10. **task** `extend_context_rating_discovery`  `when: project_config.project__custom__rating`
 11. **task** `extend_context_asset`
+12. **task** `apply_context_contract_pricing`
 
 ---
 
@@ -154,7 +173,8 @@ Extract rating and rates data from an org into CSV files
 **Steps:**
 
 1. **task** `extract_qb_rating_data`
-2. **task** `extract_qb_rates_data`
+2. **task** `extract_qb_rating_entitlements_data`
+3. **task** `extract_qb_rates_data`
 
 ---
 
@@ -173,7 +193,7 @@ Extract rating and rates data from an org into CSV files
 8. **task** `activate_agents`  `when: project_config.project__custom__agents`
 9. **task** `deploy_agent_permission_sets`  `when: project_config.project__custom__agents`
 10. **task** `assign_permission_sets`  `when: project_config.project__custom__agents`
-   - `api_names`: `['RLM_QuotingAgent', 'RLM_QuotingAssistant', 'RLM_BillingEmployeeAgent']`
+   - `api_names`: `['RLM_QuotingAgent', 'RLM_QuotingAssistant', 'RLM_BillingEmployeeAgent', 'RLM_ApprovalAgent']`
 
 ---
 
@@ -211,9 +231,9 @@ Extract rating and rates data from an org into CSV files
 **Steps:**
 
 1. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
-2. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
+2. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and (project_config.project__custom__qb or (project_config.project__custom__q3 and project_config.project__custom__tax))`
 3. **task** `insert_q3_billing_data`  `when: project_config.project__custom__billing and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
-4. **task** `create_sequence_policies`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
+4. **task** `create_sequence_policies`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and (project_config.project__custom__qb or (project_config.project__custom__q3 and project_config.project__custom__tax))`
 5. **task** `activate_flow`  `when: project_config.project__custom__billing`
    - `developer_names`: `RLM_Order_to_Billing_Schedule_Flow`
 6. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
@@ -221,11 +241,14 @@ Extract rating and rates data from an org into CSV files
 8. **task** `enable_timeline`  `when: project_config.project__custom__billing_ui and not project_config.project__custom__tso`
 9. **task** `deploy_billing_id_settings`  `when: project_config.project__custom__billing`
 10. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
-11. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
-12. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
+11. **task** `create_default_invoice_email_template`  `when: project_config.project__custom__billing`
+12. **task** `deploy_billing_email_template_settings`  `when: project_config.project__custom__billing`
+13. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
+14. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
    - `api_names`: `['RLM_BillingUI']`
-13. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
-14. **flow** `prepare_billing_portal`
+15. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
+16. **flow** `prepare_billing_portal`
+17. **task** `recalculate_billing_psg_after_settings`  `when: project_config.project__custom__billing`
 
 ---
 
@@ -279,23 +302,17 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 4. **task** `apply_context_constraint_engine_node_status`  `when: project_config.project__custom__constraints`
 5. **task** `enable_constraints_settings`  `when: project_config.project__custom__constraints_data`
 6. **task** `validate_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
-   - `data_dirs`: `datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/q...`
+   - `data_dirs`: `datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitBundle`
 7. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
-   - `data_dir`: `datasets/constraints/qb/QuantumBitComplete`
-   - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
-8. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `data_dir`: `datasets/constraints/qb/Server2`
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
-9. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
-   - `data_dir`: `datasets/constraints/qb/QuantumBitPCM`
-   - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
-10. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
+8. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `data_dir`: `datasets/constraints/qb/QuantumBitBundle`
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
-11. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
+9. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `deactivate_versions`
-   - `version_full_names`: `QuantumBitComplete_V1,QuantumBitPCM_V1,QuantumBitBundle_V1,Server2_V1`
-12. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
+   - `version_full_names`: `QuantumBitBundle_V1,Server2_V1`
+10. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `activate_versions`
    - `version_full_names`: `Server2_V1,QuantumBitBundle_V1`
 
@@ -327,6 +344,8 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 15. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
 16. **flow** `assign_feature_permission_sets`
 17. **task** `enable_change_data_capture`
+18. **task** `deploy_quote_est_tax_settings`
+   - `deploy_when`: `off`
 
 ---
 
@@ -422,6 +441,20 @@ Deploy the In-App Learning framework, assign its permission set, and load the na
 
 ---
 
+### `prepare_mcp`
+
+Stand up the org-side MCP surface: deploy the ECA, then (with the mcp_custom_server flag on) the clone invocable and its permission set, assign that permission set to the running user, and activate the servers. Every step is gated on the mcp feature flag. This leaves one manual step per person — the browser OAuth login — which no flow can do for them; see .cursor/skills/mcp-integration/SKILL.md.
+
+**Steps:**
+
+1. **task** `deploy_post_mcp`  `when: project_config.project__custom__mcp`
+2. **task** `deploy_post_mcp_custom`  `when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__mcp and project_config.project__custom__mcp_custom_server`
+   - `api_names`: `['RLM_McpSalesTransactions']`
+4. **task** `configure_mcp_servers`  `when: project_config.project__custom__mcp`
+
+---
+
 ### `prepare_payments`
 
 **Steps:**
@@ -475,7 +508,13 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 12. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
    - `api_names`: `['RLM_RenewalQuotes']`
    - `user_alias`: `salesrep`
-13. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
+13. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
+   - `api_names`: `['RLM_UsageDatatables']`
+   - `user_alias`: `salesrep`
+14. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
+   - `api_names`: `['RLM_UsageUploader']`
+   - `user_alias`: `salesrep`
+15. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
 
 ---
 
@@ -491,10 +530,9 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 
 **Steps:**
 
-1. **task** `delete_quantumbit_pricing_data`  `when: project_config.project__custom__qb`
-2. **task** `insert_quantumbit_pricing_data`  `when: project_config.project__custom__qb`
-3. **task** `delete_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
-4. **task** `insert_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
+1. **task** `insert_quantumbit_pricing_data`  `when: project_config.project__custom__qb`
+2. **task** `insert_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
+3. **task** `insert_qb_price_revision_data`  `when: project_config.project__custom__qb`
 
 ---
 
@@ -553,7 +591,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 2. **task** `activate_procedure_plan_expression_sets`  `when: project_config.project__custom__procedureplans`
 3. **task** `create_procedure_plan_definition`  `when: project_config.project__custom__procedureplans`
 4. **task** `insert_procedure_plan_data`  `when: project_config.project__custom__procedureplans`
-5. **task** `activate_procedure_plan_version`  `when: project_config.project__custom__procedureplans`
+5. **task** `activate_procedure_plan_version`  `when: project_config.project__custom__procedureplans and project_config.project__custom__procedureplans_active`
 
 ---
 
@@ -563,7 +601,7 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 
 1. **task** `insert_quantumbit_pcm_data`  `when: project_config.project__custom__qb`
 2. **task** `insert_q3_pcm_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
-3. **task** `insert_quantumbit_product_image_data`  `when: project_config.project__custom__qb`
+3. **task** `insert_default_configurator_flow`
 
 ---
 
@@ -584,10 +622,16 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
    - `api_names`: `['RLM_DecisionTableManager']`
 8. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_RebuildSearchIndex']`
-9. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
-   - `api_names`: `['RLM_CALM_SObject_Access']`
-10. **task** `deploy_post_setup_guide`  `when: project_config.project__custom__quantumbit`
+9. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_UsageUploader']`
+10. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_UsageOrchestration']`
 11. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+   - `api_names`: `['RLM_UsageDatatables']`
+12. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
+   - `api_names`: `['RLM_CALM_SObject_Access']`
+13. **task** `deploy_post_setup_guide`  `when: project_config.project__custom__quantumbit`
+14. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_RenewalQuotes']`
 
 ---
@@ -596,16 +640,14 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 
 **Steps:**
 
-1. **task** `delete_qb_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__qb and not project_config.project__custom__refresh`
-2. **task** `delete_qb_rating_data`  `when: project_config.project__custom__rating and project_config.project__custom__qb and not project_config.project__custom__refresh`
-3. **task** `insert_qb_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb`
-4. **task** `delete_q3_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh`
-5. **task** `delete_q3_rating_data`  `when: project_config.project__custom__rating and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh`
-6. **task** `insert_q3_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
-7. **task** `insert_qb_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb`
-8. **task** `insert_q3_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
-9. **task** `activate_rating_records`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
-10. **task** `activate_rates`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
+1. **task** `insert_qb_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb`
+2. **task** `insert_qb_rating_entitlements_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb`
+3. **task** `insert_q3_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
+4. **task** `insert_q3_rating_entitlements_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
+5. **task** `insert_qb_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb`
+6. **task** `insert_q3_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
+7. **task** `activate_rating_records`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
+8. **task** `activate_rates`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
 
 ---
 
@@ -659,7 +701,9 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 32. **flow** `prepare_scratch`
 33. **flow** `refresh_all_decision_tables`
 34. **task** `rebuild_search_index`
-35. **flow** `stamp_git_commit`
+35. **task** `empty_recycle_bin`  `when: org_config.scratch`
+36. **flow** `prepare_mcp`
+37. **flow** `stamp_git_commit`
 
 ---
 
@@ -676,9 +720,11 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 **Steps:**
 
 1. **task** `create_tax_engine`  `when: project_config.project__custom__tax`
-2. **task** `insert_tax_data`  `when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb`
+2. **task** `insert_tax_data`  `when: project_config.project__custom__tax and not project_config.project__custom__refresh and (project_config.project__custom__qb or project_config.project__custom__q3)`
 3. **task** `insert_q3_tax_data`  `when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
 4. **task** `activate_tax_records`  `when: project_config.project__custom__tax`
+5. **task** `deploy_quote_est_tax_settings`
+   - `deploy_when`: `on`
 
 ---
 

@@ -57,10 +57,6 @@ variables:
     currentRecordId: mutable id
         description: "The ID of the record on the user's current page. Use this as the default target record for page-scoped requests. For quote-scoped requests on a Quote page, default quoteId to this value unless the user explicitly indicates a different quote."
         visibility: "External"
-    lastCreatedQuoteId: mutable string = ""
-        description: "Internal quote ID captured from the most recent successful quote creation action so the agent can deterministically render a native Quote record card."
-    pendingQuoteRecordLookup: mutable boolean = False
-        description: "Internal flag set after a quote creation action succeeds. When true, the subagent must run Get_Quote_Record_Card before responding."
 
 language:
     default_locale: "en_US"
@@ -81,15 +77,12 @@ start_agent agent_router:
               - If the user asks about active assets, renewable assets, amendment quotes, renewal quotes, cancellations, terminations, or asset-backed quote lifecycle work, route to QuoteLifecycleManagement.
               - If the user asks to create an initial quote, add products, update quote or quote line fields, apply line discounts, sync a quote, or unsync a quote, route to QuoteManagement.
               - If the user asks about usage, consumption, overages, entitlement balances, or current-cycle usage summaries, route to ConsumptionManagement.
-              - If the user asks to configure a product, change product attributes, set attribute values, or modify configurator options on a quote line item, always route to ProductConfiguration.
-              - If the user is on a Quote page and the request references quote line item product configuration, route to ProductConfiguration and preserve the page-context quote ID.
 
         actions:
             go_to_ProductSelection: @utils.transition to @subagent.ProductSelection
             go_to_QuoteManagement: @utils.transition to @subagent.QuoteManagement
             go_to_QuoteLifecycleManagement: @utils.transition to @subagent.QuoteLifecycleManagement
             go_to_ConsumptionManagement: @utils.transition to @subagent.ConsumptionManagement
-            go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
             go_to_ambiguous_question: @utils.transition to @subagent.ambiguous_question
             go_to_off_topic: @utils.transition to @subagent.off_topic
 
@@ -291,18 +284,11 @@ subagent QuoteManagement:
 
     reasoning:
         instructions: ->
-            if @variables.pendingQuoteRecordLookup == True:
-                run @actions.Get_Quote_Record_Card
-                    with quoteId = @variables.lastCreatedQuoteId
-                set @variables.pendingQuoteRecordLookup = False
-                set @variables.lastCreatedQuoteId = ""
-
             | Manage quote operations for new business and in-flight quotes: create initial quotes, add quote lines, apply line discounts, update quote/line fields, and sync or unsync quotes to opportunities.
               Hard constraints:
               - BIAS TOWARD ACTION. When the user's intent and the target record(s) are clear, perform the requested action in the same turn instead of asking the user to confirm. Ask a confirming or clarifying question ONLY when something required is genuinely ambiguous (which record, which line, what value). Never ask the user to confirm something they have already clearly requested.
-              - Treat a clear affirmative reply to your own proposal — "yes", "go ahead", "apply it", "discount all of them", "do it" — as final confirmation. On that reply, immediately call the corresponding action(s) and do NOT restate the plan, re-list records, or ask again. If applying to multiple lines, resolve the target lines (call Get_QuoteLineItem_from_Quote if you do not already hold their IDs) and then loop the action over every line in the same turn.
+              - Treat a clear affirmative reply to your own proposal — "yes", "go ahead", "apply it", "discount all of them", "do it" — as final confirmation. On that reply, immediately call the corresponding action(s) and do NOT restate the plan, re-list records, or ask again. If applying to multiple lines, resolve the target lines (call QueryQuoteLineRecords if you do not already hold their IDs) and then loop the action over every line in the same turn.
               - When updating a quote or quote line (UpdateQuoteDetails, UpdateQuoteLineItemDetails, UpdateRecordFields), briefly state the exact change you are making, then apply it when the requested change and target record are clear.
-              - Do not handle product attribute configuration here; transition to ProductConfiguration for configurator requests.
               - Do not handle amendment, renewal, cancellation, termination, active asset, or renewable asset requests here; transition to QuoteLifecycleManagement for asset-backed quote lifecycle work.
               - Do not handle usage, consumption, overage, or entitlement-balance questions here; transition to ConsumptionManagement for consumption insight requests.
               - Never delete quotes.
@@ -321,14 +307,13 @@ subagent QuoteManagement:
               - Add quote line: ensure quoteId, productId, quantity, and default product selling model are resolved; if no default selling model exists, explain and stop. Once those are resolved and the user has asked to add the product, call AddQuoteLineItemToQuote directly — do not ask the user to confirm a clear, intentional add. Confirm only if the product, quantity, or target quote is ambiguous.
               - Quote line dates: for Evergreen, use start date (default current date if missing). For Term-Defined, set both start and end dates (default start date to current date if missing).
               - Discounts (apply only to explicitly selected quote lines; never header-level):
-                - When the user asks to discount but the target line(s) are not yet identified, call Get_QuoteLineItem_from_Quote to resolve them. Pass a productName when the user named a product; leave productName blank to list every line on the quote for selection.
-                - If a single line is returned with isFound=true, that is the target. If needsDisambiguation=true, show candidateQuoteLineItems and candidateQuoteLineSummariesDisplay to the user, and use candidateQuoteLineSummariesJson as the authoritative source of quoteLineItemId values when applying discounts. Accept "all", several numbers/names, or one.
-                - Apply the discount by calling ApplyDiscountToQuoteLine once per selected quoteLineItemId, reusing the same discountPercentage. For "all", loop over every line in candidateQuoteLineSummariesJson.
-                - Before applying, summarize the exact discount and the specific line(s) it will affect, and ask the user to confirm. Once the user confirms (e.g. "yes", "apply it", "discount all of them"), immediately call ApplyDiscountToQuoteLine for each target line — for "all", loop over every line in candidateQuoteLineSummariesJson without re-listing or asking again. Do not re-resolve lines or re-prompt after a clear confirmation.
+                - When the user asks to discount but the target line(s) are not yet identified, resolve the product with Find Products or QueryRecords, then call QueryQuoteLineRecords with the quoteId and productIds to get the quote line items. If the user wants every line, query the quote's lines with QueryRecords. If more than one line matches, present the matches by product name and line number and let the user pick one, several, or all.
+                - Apply the discount by calling ApplyDiscountToQuoteLine once per selected quoteLineItemId, reusing the same discountPercentage. For "all", loop over every resolved line.
+                - Before applying, summarize the exact discount and the specific line(s) it will affect, and ask the user to confirm. Once the user confirms (e.g. "yes", "apply it", "discount all of them"), immediately call ApplyDiscountToQuoteLine for each target line — for "all", loop over every resolved line without re-listing or asking again. Do not re-resolve lines or re-prompt after a clear confirmation.
                 - After applying, report per-line and overall results using product names, not raw IDs.
               - Quote sync/unsync: use GetRecordDetails to resolve related opportunity, then update only SyncedQuoteId through UpdateRecordFields.
               Response guidance:
-              - For quote creation, rely on the displayable Quote record card returned by Get_Quote_Record_Card for the clickable record summary. For update/sync operations, use concise confirmations with links like [Quote](/{quoteId}).
+              - For quote creation, give the user a link to the new quote. For update/sync operations, use concise confirmations with links like [Quote](/{quoteId}).
               - Use human-readable names as link text whenever available.
               - Do not ask the same clarifying question repeatedly.
 
@@ -354,10 +339,6 @@ subagent QuoteManagement:
             QueryQuoteLineRecords: @actions.QueryQuoteLineRecords
                 with quoteId=...
                 with productIds=...
-            Get_QuoteLineItem_from_Quote: @actions.Get_QuoteLineItem_from_Quote
-                with quoteId=...
-                with productName=...
-                with autoSelectThresholdPercent=...
             AddQuoteLineItemToQuote: @actions.AddQuoteLineItemToQuote
                 with productId=...
                 with quantity=...
@@ -375,15 +356,12 @@ subagent QuoteManagement:
                 with opportunityID=...
                 with priceBookName=...
                 with quoteName=...
-                set @variables.lastCreatedQuoteId = @outputs.quoteId
-                set @variables.pendingQuoteRecordLookup = @outputs.isSuccess
             UpdateQuoteLineItemDetails: @actions.UpdateQuoteLineItemDetails
                 with inputFieldValues=...
                 with quoteId=...
                 with quoteLineItemId=...
             go_to_QuoteLifecycleManagement: @utils.transition to @subagent.QuoteLifecycleManagement
             go_to_ConsumptionManagement: @utils.transition to @subagent.ConsumptionManagement
-            go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
 
 
 
@@ -424,29 +402,6 @@ subagent QuoteManagement:
                     is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__booleanType"
-
-        Get_Quote_Record_Card:
-            description: "Looks up a Quote record by ID and returns it as a native Agentforce record card. Use only after a quote creation action returns a quote ID."
-            label: "Get Quote Record Card"
-            require_user_confirmation: False
-            include_in_progress_indicator: False
-            target: "flow://RLM_AI_Get_Quote_Record_Card"
-
-            inputs:
-                "quoteId": string
-                    description: "The 18-character Salesforce ID of the Quote record to render."
-                    label: "quoteId"
-                    is_required: True
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-
-            outputs:
-                "quoteRecord": object
-                    description: "The Quote record, rendered as a native Agentforce record card."
-                    label: "Quote"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__recordInfoType"
 
         SummarizeRecord:
             description: "Summarizes a single Salesforce CRM record. You must call summarizeRecord only if the user explicitly asks for a summary (e.g: 'Summary', 'Recap', 'Highlights'). This action should be called only when there isn't a more specific summarization action."
@@ -731,96 +686,6 @@ subagent QuoteManagement:
                     filter_from_agent: False
                     complex_data_type_name: "lightning__booleanType"
 
-        Get_QuoteLineItem_from_Quote:
-            description: "Resolves quote line item(s) on a Quote by product name using scored matching. Pass a productName to find a specific line (auto-selects when confidence meets the threshold, otherwise returns disambiguation candidates). Leave productName blank to return every line on the quote as candidates — use this to let the user choose which line(s) to discount, including 'all'. Returns candidateQuoteLineSummariesJson (productName, quantity, netUnitPrice, netTotalPrice) for presenting a numbered selection list."
-            label: "Get QuoteLineItem from Quote"
-            require_user_confirmation: False
-            include_in_progress_indicator: True
-            progress_indicator_message: "Looking up quote line items ..."
-            target: "flow://RLM_AI_Get_QuoteLineItem_from_Quote"
-
-            inputs:
-                "quoteId": string
-                    description: "The 18-character Salesforce ID of the Quote record (starts with '0Q0'). Never pass a QuoteLineItem ID here."
-                    label: "quoteId"
-                    is_required: True
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-                "productName": string
-                    description: "The name or partial name of the product to find on the quote (contains/partial match). Leave blank to return every line on the quote for selection. Do not pass a Salesforce ID here."
-                    label: "productName"
-                    is_required: False
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-                "autoSelectThresholdPercent": number
-                    description: "Optional confidence threshold (0-100) required for auto-selection. Defaults to 80. Ignored when productName is blank (list-all mode never auto-selects)."
-                    label: "autoSelectThresholdPercent"
-                    is_required: False
-                    is_user_input: False
-                    complex_data_type_name: "lightning__numberType"
-
-            outputs:
-                "quoteLineItemId": string
-                    description: "The 18-character Salesforce ID of the single matched QuoteLineItem record (starts with '0QL'). Populated only when one high-confidence match is found."
-                    label: "quoteLineItemId"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "productNameFound": string
-                    description: "The full name of the matched QuoteLineItem record as it appears on the quote."
-                    label: "productNameFound"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "isFound": boolean
-                    description: "True if exactly one matching QuoteLineItem was auto-selected. False for no-match, list-all, or disambiguation outcomes."
-                    label: "isFound"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__booleanType"
-                "matchConfidencePercent": number
-                    description: "Confidence score (0-100) for the best match candidate."
-                    label: "matchConfidencePercent"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__numberType"
-                "needsDisambiguation": boolean
-                    description: "True when the user must choose from multiple candidates — either ambiguous matches or list-all mode."
-                    label: "needsDisambiguation"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__booleanType"
-                "candidateProductNamesJson": string
-                    description: "JSON array of candidate product names to present when needsDisambiguation is true."
-                    label: "candidateProductNamesJson"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "candidateQuoteLineItems": list[object]
-                    description: "Displayable candidate QuoteLineItem records for disambiguation."
-                    label: "candidateQuoteLineItems"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__recordInfoType"
-                "candidateQuoteLineSummariesDisplay": string
-                    description: "Formatted numbered summary of candidate quote lines (product, quantity, net unit price, net total price) for user-facing selection."
-                    label: "candidateQuoteLineSummariesDisplay"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__richTextType"
-                "candidateQuoteLineSummariesJson": string
-                    description: "JSON array of candidate quote line summaries. Each item includes quoteLineItemId, productName, quantity, netUnitPrice, and netTotalPrice. Use this as the authoritative source for selected quoteLineItemId values."
-                    label: "candidateQuoteLineSummariesJson"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "errorMessage": string
-                    description: "Error message if the lookup could not run, plus guidance on how to present results."
-                    label: "errorMessage"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-
         ApplyDiscountToQuoteLine:
             description: "Apply a discount, expressed as a percentage, to a single quote line item on a Revenue Cloud quote. Apply the discount only to the quote line item that the user has specified. To discount multiple lines (or all lines), call this action once per quoteLineItemId."
             label: "Apply Discount To Quote Line Item"
@@ -988,15 +853,9 @@ subagent QuoteLifecycleManagement:
 
     reasoning:
         instructions: ->
-            if @variables.pendingQuoteRecordLookup == True:
-                run @actions.Get_Quote_Record_Card
-                    with quoteId = @variables.lastCreatedQuoteId
-                set @variables.pendingQuoteRecordLookup = False
-                set @variables.lastCreatedQuoteId = ""
-
             | Manage asset-backed quote lifecycle tasks for amendments, renewals, active asset lookup, renewable asset lookup, and future cancellation or termination flows.
               Hard constraints:
-              - Do not create initial quotes, add products, apply discounts, update quote or quote line fields, sync quotes, or handle product configuration here; route those requests to the appropriate quote operations or product configuration subagent.
+              - Do not create initial quotes, add products, apply discounts, update quote or quote line fields, or sync quotes here; route those requests to the quote operations subagent.
               - Do not handle usage, consumption, overage, or entitlement-balance questions here; transition to ConsumptionManagement for consumption insight requests.
               - Never delete quotes or assets.
               - Do not perform cancellation or termination actions unless a supported cancellation action is available in this subagent. If the user asks to cancel or terminate and no supported action is available, explain that this agent cannot perform cancellation yet and offer to help with amendment or renewal workflows instead.
@@ -1011,7 +870,7 @@ subagent QuoteLifecycleManagement:
               - Renewal quote: use renewable or active assets as eligible, collect renewal start and end dates if provided, and create one renewal quote for all selected assets.
               - For cancellation or termination requests, do not improvise by deleting or negatively amending assets. Explain the current limitation clearly.
               Response guidance:
-              - For quote creation, rely on the displayable Quote record card returned by Get_Quote_Record_Card for the clickable record summary.
+              - For quote creation, give the user a link to the new quote, e.g. [Quote](/{quoteId}).
               - Use human-readable names as link text whenever available.
               - Do not expose raw Salesforce IDs in user-facing text.
 
@@ -1020,8 +879,6 @@ subagent QuoteLifecycleManagement:
                 with assetIds=...
                 with renewalEndDate=...
                 with renewalStartDate=...
-                set @variables.lastCreatedQuoteId = @outputs.renewalQuoteId
-                set @variables.pendingQuoteRecordLookup = @outputs.isSuccess
             IdentifyRecordByName: @actions.IdentifyRecordByName
                 with recordName=...
                 with objectApiName=...
@@ -1032,11 +889,8 @@ subagent QuoteLifecycleManagement:
                 with amendmentDate=...
                 with assetIds=...
                 with quantityChange=...
-                set @variables.lastCreatedQuoteId = @outputs.amendmentQuoteId
-                set @variables.pendingQuoteRecordLookup = @outputs.isSuccess
             go_to_QuoteManagement: @utils.transition to @subagent.QuoteManagement
             go_to_ConsumptionManagement: @utils.transition to @subagent.ConsumptionManagement
-            go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
 
 
 
@@ -1169,29 +1023,6 @@ subagent QuoteLifecycleManagement:
                     is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__numberType"
-
-        Get_Quote_Record_Card:
-            description: "Looks up a Quote record by ID and returns it as a native Agentforce record card. Use only after an amendment or renewal quote creation action returns a quote ID."
-            label: "Get Quote Record Card"
-            require_user_confirmation: False
-            include_in_progress_indicator: False
-            target: "flow://RLM_AI_Get_Quote_Record_Card"
-
-            inputs:
-                "quoteId": string
-                    description: "The 18-character Salesforce ID of the Quote record to render."
-                    label: "quoteId"
-                    is_required: True
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-
-            outputs:
-                "quoteRecord": object
-                    description: "The Quote record, rendered as a native Agentforce record card."
-                    label: "Quote"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__recordInfoType"
 
         CreateAmendmentQuote:
             description: "Create an amendment quote, also known as an add-on or change quote on an account with active assets."
@@ -1337,385 +1168,6 @@ subagent ConsumptionManagement:
                     is_displayable: True
                     filter_from_agent: False
                     complex_data_type_name: "lightning__recordInfoType"
-
-subagent ProductConfiguration:
-
-    label: "Product Configuration"
-    description: "Guides a sales rep through the step-by-step configuration of any configurable product on a quote. Retrieves available attribute options dynamically from the product catalog, presents them to the rep, validates each selection against the product constraint model (CML), and loops until all required attributes are valid. Works for any product that has attributes and a configuration rule defined in the org. Does not create quotes, add products to quotes, or apply pricing — those are handled by the Quote Management subagent."
-
-    reasoning:
-        instructions: ->
-            | Handle quote-line product configuration with runtime attribute metadata and constraint validation.
-              Core behavior:
-              - Distinguish discovery ("what can I configure?") from direct updates ("set X to Y").
-              - For direct updates, do not re-ask for values already provided; call Configure_Product_Attributes immediately.
-              - For discovery/guidance, call Get_Product_Attribute_Options and present available attributes/options clearly.
-              - If hasConfigurableAttributes is false, inform the user and stop configuration flow.
-              Context and record resolution:
-              - If currentObjectApiName is Quote or currentRecordId starts with 0Q0, use currentRecordId as quoteId by default unless the user indicates a different quote.
-              - Never pass Quote Id where QuoteLineItem Id is required.
-              - Resolve quoteLineItemId by reusing recent action output when available; otherwise call Get_QuoteLineItem_from_Quote with quoteId and productName.
-              - Reuse product name from recent user context when present; ask only if missing.
-              - If Get_QuoteLineItem_from_Quote returns needsDisambiguation=true, show candidateQuoteLineItems and candidateQuoteLineSummariesDisplay to help selection, and use candidateQuoteLineSummariesJson as the source of truth for the selected quoteLineItemId.
-              - Never show raw JSON to the user.
-              Error recovery guidance:
-              - If a product configuration action returns isSuccess=false or an errorMessage, do not expose raw IDs, JSON, stack traces, or internal platform wording. Turn the message into a short corrective prompt, such as asking the user to select the quote line from the current quote or provide the product name again.
-              - If the action says the quote line item is invalid or does not belong to the quote, guide the user back to the quote-line selection step and call Get_QuoteLineItem_from_Quote again when they provide a product or line choice.
-              Validation and completion:
-              - Apply selections incrementally with Configure_Product_Attributes so validation can happen in real time.
-              - If isValid is false, show validation errors by attribute and ask for corrected values.
-              - Show warnings, but allow continuation when appropriate.
-              - After successful updates, report updated unit/total pricing when available.
-              - Call Confirm_Product_Configuration_Summary only after explicit user confirmation to review final summary.
-              Safety rules:
-              - Never hardcode product names, attribute names, or valid values.
-              - Never construct or guess Salesforce IDs; use action outputs or QueryRecords to resolve required IDs.
-
-        actions:
-            Get_QuoteLineItem_from_Quote: @actions.Get_QuoteLineItem_from_Quote
-                with quoteId=...
-                with productName=...
-                with autoSelectThresholdPercent=...
-            QueryRecords: @actions.QueryRecords
-                with query=...
-                with customizationInstructions=...
-            Get_Product_Attribute_Options: @actions.Get_Product_Attribute_Options
-                with quoteLineItemId=...
-            Configure_Product_Attributes: @actions.Configure_Product_Attributes
-                with quoteLineItemId=...
-                with quoteId=...
-                with attributeSelectionsJson=...
-            Confirm_Product_Configuration_Summary: @actions.Confirm_Product_Configuration_Summary
-                with quoteLineItemId=...
-                with quoteId=...
-
-
-
-    actions:
-        Get_QuoteLineItem_from_Quote:
-            description: "Looks up the QuoteLineItem ID for a product on a given quote using scored matching. Auto-selects when confidence meets the threshold (default 80, configurable via autoSelectThresholdPercent) and otherwise returns candidate names for disambiguation. Call this action when you have a Quote ID and product name but need the QuoteLineItem ID (starts with '0QL') before calling Get_Product_Attribute_Options."
-            label: "Get QuoteLineItem from Quote"
-            require_user_confirmation: False
-            include_in_progress_indicator: True
-            progress_indicator_message: "Looking up quote line item ..."
-            target: "flow://RLM_AI_Get_QuoteLineItem_from_Quote"
-
-            inputs:
-                "quoteId": string
-                    description: "The 18-character Salesforce ID of the Quote record (starts with '0Q0'). Never pass a QuoteLineItem ID here."
-                    label: "quoteId"
-                    is_required: True
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-                "productName": string
-                    description: "The name or partial name of the product to find on the quote (e.g. 'FESBA Generator Set' or 'Generator'). Used as a contains/partial match — do not pass a Salesforce ID here."
-                    label: "productName"
-                    is_required: True
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-                "autoSelectThresholdPercent": number
-                    description: "Optional confidence threshold (0-100) required for auto-selection. Defaults to 80. Increase to require stricter matches; decrease to auto-select more aggressively."
-                    label: "autoSelectThresholdPercent"
-                    is_required: False
-                    is_user_input: False
-                    complex_data_type_name: "lightning__numberType"
-
-            outputs:
-                "quoteLineItemId": string
-                    description: "The 18-character Salesforce ID of the QuoteLineItem record (starts with '0QL'). Pass this value directly to Get_Product_Attribute_Options and Configure_Product_Attributes."
-                    label: "quoteLineItemId"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "productNameFound": string
-                    description: "The full name of the QuoteLineItem record as it appears on the quote."
-                    label: "productNameFound"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "isFound": boolean
-                    description: "True if a matching QuoteLineItem was found on the quote. False if no match was found or an error occurred."
-                    label: "isFound"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__booleanType"
-                "matchConfidencePercent": number
-                    description: "Confidence score (0-100) for the best match candidate. The service auto-selects only when this score is greater than or equal to autoSelectThresholdPercent (default 80)."
-                    label: "matchConfidencePercent"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__numberType"
-                "needsDisambiguation": boolean
-                    description: "True when no candidate met the auto-selection threshold or when duplicate quote lines require explicit user selection."
-                    label: "needsDisambiguation"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__booleanType"
-                "candidateProductNamesJson": string
-                    description: "JSON array of top candidate product names to present when needsDisambiguation is true."
-                    label: "candidateProductNamesJson"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "candidateProducts": list[object]
-                    description: "A displayable list of candidate Product records for ambiguous matches. Present these as radio-button record cards and ask the user to select one."
-                    label: "candidateProducts"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__recordInfoType"
-                "candidateQuoteLineItems": list[object]
-                    description: "Candidate QuoteLineItem records for ambiguous matches."
-                    label: "candidateQuoteLineItems"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__recordInfoType"
-                "candidateQuoteLineSummariesDisplay": string
-                    description: "Formatted numbered summary of candidate quote lines (product, quantity, net unit price, net total price) for user-facing selection."
-                    label: "candidateQuoteLineSummariesDisplay"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__richTextType"
-                "candidateQuoteLineSummariesJson": string
-                    description: "JSON array of candidate quote line summaries for disambiguation. Each item includes quoteLineItemId, productName, quantity, netUnitPrice, and netTotalPrice. Use this output as the authoritative source for selected quoteLineItemId values."
-                    label: "candidateQuoteLineSummariesJson"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "errorMessage": string
-                    description: "Error message if the QuoteLineItem could not be found or an unexpected error occurred."
-                    label: "errorMessage"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-
-        QueryRecords:
-            description: "Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type. e.g. 'Find all open opportunities created in the last 5 days sorted by created date.'"
-            label: "Query Records"
-            require_user_confirmation: False
-            include_in_progress_indicator: True
-            progress_indicator_message: "Searching ..."
-            source: "EmployeeCopilot__QueryRecords"
-            target: "standardInvocableAction://queryRecords"
-
-            inputs:
-                "query": string
-                    description: "The question or request from the user's input. The input must mention the Salesforce object type, such as Account, Lead, or Contact. Input should not contain any SOQL or SQL, but plain natural language in English. Do not generate SQL or SOQL."
-                    label: "query"
-                    is_required: True
-                    is_user_input: True
-                    complex_data_type_name: "lightning__textType"
-                "customizationInstructions": string
-                    description: "Custom instructions for the action from the user's input to optimize the query."
-                    label: "customizationInstructions"
-                    is_required: False
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-
-            outputs:
-                "result": list[object]
-                    description: "A list of matching Salesforce CRM records with details about each record."
-                    label: "result"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__recordInfoType"
-
-        Get_Product_Attribute_Options:
-            description: "Retrieves all configurable attributes for a given product, including each attribute's name, data type, whether it is required, and its available picklist values. Use this action when discovery or guidance is needed (for example, user asks what can be configured). If the user already provided explicit attribute/value selections, call Configure_Product_Attributes directly instead of calling this action first. Works generically for any product in the product catalog — the attribute definitions are determined entirely at runtime from the product record."
-            label: "Get Product Attribute Options"
-            require_user_confirmation: False
-            include_in_progress_indicator: True
-            progress_indicator_message: "Retrieving product configuration options ..."
-            target: "flow://RLM_AI_Get_Product_Attribute_Options"
-
-            inputs:
-                "quoteLineItemId": string
-                    description: "The 18-character Salesforce ID of the QuoteLineItem record (starts with '0QL'). This is NOT the Quote ID (which starts with '0Q0'). If you only have the Quote ID, you must first call Get_QuoteLineItem_from_Quote to obtain the QuoteLineItem Id."
-                    label: "quoteLineItemId"
-                    is_required: True
-                    is_user_input: True
-                    complex_data_type_name: "lightning__textType"
-
-            outputs:
-                "productName": string
-                    description: "The display name of the product."
-                    label: "productName"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "attributesJson": string
-                    description: "JSON string representing an array of attribute objects for this product. Each object contains: name (display label), developerName (key for Configure_Product_Attributes), dataType (Picklist/Number/Text/Checkbox), isRequired (boolean), picklistValues (array of strings, present when dataType is Picklist). Use developerName values when building attributeSelectionsJson for Configure_Product_Attributes."
-                    label: "attributesJson"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "attributeSummary": string
-                    description: "Pre-formatted, human-readable summary of all configurable attributes and their valid values. Use this when presenting the available options to the user."
-                    label: "attributeSummary"
-                    is_displayable: False
-                    is_used_by_planner: True
-                    complex_data_type_name: "lightning__textType"
-                "hasConfigurableAttributes": boolean
-                    description: "True if the product has at least one configurable attribute. False if the product has no configurable attributes."
-                    label: "hasConfigurableAttributes"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__booleanType"
-                "errorMessage": string
-                    description: "Error message if the product could not be found or attributes could not be retrieved."
-                    label: "errorMessage"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-
-        Configure_Product_Attributes:
-            description: "Saves the user's selected attribute values to a quote line item and executes the product's configuration rules via the Run Config Rules action. Returns whether the configuration is valid, any validation errors or warnings, and the current saved attribute values. Use this action each time the user selects or changes an attribute value on any configurable product. Works generically for any product that has a CML constraint model configured in the org."
-            label: "Configure Product Attributes"
-            require_user_confirmation: False
-            include_in_progress_indicator: True
-            progress_indicator_message: "Validating configuration ..."
-            target: "flow://RLM_AI_Configure_Product_Attributes"
-
-            inputs:
-                "quoteLineItemId": string
-                    description: "The 18-character Salesforce ID of the QuoteLineItem record to apply attribute selections to."
-                    label: "quoteLineItemId"
-                    is_required: True
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-                "quoteId": string
-                    description: "The 18-character Salesforce ID of the parent Quote record. Required to run the CML constraint model."
-                    label: "quoteId"
-                    is_required: True
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-                "attributeSelectionsJson": string
-                    description: "JSON string representing an object where each key is an attribute developerName and each value is the selected value chosen by the user."
-                    label: "attributeSelectionsJson"
-                    is_required: True
-                    is_user_input: True
-                    complex_data_type_name: "lightning__textType"
-
-            outputs:
-                "isSuccess": boolean
-                    description: "True if the action ran without a system-level error (the configuration rules executed). False if the action itself failed. Distinct from isValid, which reports whether the selections passed the business rules."
-                    label: "isSuccess"
-                    is_displayable: False
-                    is_used_by_planner: True
-                    complex_data_type_name: "lightning__booleanType"
-                "isValid": boolean
-                    description: "True if the current attribute selections pass all configuration rules. False if there are validation errors that must be resolved."
-                    label: "isValid"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__booleanType"
-                "validationErrorsJson": string
-                    description: "JSON string representing an array of validation error objects from the CML constraint model. Each object contains: attributeName, message, severity (Error or Warning). Empty array if isValid is true."
-                    label: "validationErrorsJson"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "savedAttributesJson": string
-                    description: "JSON string representing the attribute values that were saved. Keys are attribute developerNames, values are the saved values."
-                    label: "savedAttributesJson"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "errorMessage": string
-                    description: "System-level error message if the action itself failed. Distinct from validationErrorsJson which represents business rule violations."
-                    label: "errorMessage"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "unitPrice": number
-                    description: "The updated unit price of the product after configuration rules and pricing procedures ran. Use this to tell the customer the new price."
-                    label: "unitPrice"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__currencyType"
-                "totalPrice": number
-                    description: "The updated total price (unit price x quantity, after discounts) after configuration rules and pricing procedures ran."
-                    label: "totalPrice"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__currencyType"
-                "listPrice": number
-                    description: "The catalog list price of the product before any discounts."
-                    label: "listPrice"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__currencyType"
-                "grandTotal": number
-                    description: "The Grand Total of the entire Quote including all BOM-expanded line items, discounts, and taxes. This is the full price the customer will pay and is the most important pricing figure to show in the confirmation email."
-                    label: "grandTotal"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__currencyType"
-                "quoteSubtotal": number
-                    description: "The subtotal of the Quote before discounts and taxes, representing the sum of all BOM line items at list price."
-                    label: "quoteSubtotal"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__currencyType"
-                "lineItemCount": number
-                    description: "Total number of line items on the Quote after BOM expansion."
-                    label: "lineItemCount"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__numberType"
-
-        Confirm_Product_Configuration_Summary:
-            description: "Confirms and reads back the currently persisted product configuration after all required attributes have been set and validated successfully. Returns a human-readable summary of configured attribute values and a link to the quote line item. This action does not perform an additional persistence step; persistence occurs during Configure_Product_Attributes. Only call this action after Configure_Product_Attributes has returned isValid = true and the user has confirmed they are done selecting attributes. Works for any configurable product."
-            label: "Confirm Product Configuration Summary"
-            require_user_confirmation: True
-            include_in_progress_indicator: True
-            progress_indicator_message: "Confirming configuration summary ..."
-            target: "flow://RLM_AI_Confirm_Product_Configuration_Summary"
-
-            inputs:
-                "quoteLineItemId": string
-                    description: "The 18-character Salesforce ID of the QuoteLineItem record whose current persisted configuration should be summarized."
-                    label: "quoteLineItemId"
-                    is_required: True
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-                "quoteId": string
-                    description: "The 18-character Salesforce ID of the parent Quote record."
-                    label: "quoteId"
-                    is_required: True
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-
-            outputs:
-                "isSuccess": boolean
-                    description: "True if the configuration summary was retrieved successfully."
-                    label: "isSuccess"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__booleanType"
-                "configurationSummary": string
-                    description: "Human-readable summary of the final configured attribute values as a list of attribute name and value pairs."
-                    label: "configurationSummary"
-                    is_displayable: True
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "quoteLineItemIdOut": string
-                    description: "The ID of the configured QuoteLineItem record."
-                    label: "quoteLineItemIdOut"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "quoteIdOut": string
-                    description: "The ID of the parent Quote record."
-                    label: "quoteIdOut"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "errorMessage": string
-                    description: "Error message if retrieving the configuration summary failed."
-                    label: "errorMessage"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
 
 subagent ambiguous_question:
 

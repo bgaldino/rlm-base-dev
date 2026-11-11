@@ -48,7 +48,7 @@ ownership details.
 ### Permission Sets (2)
 
 - `RLM_PRM.permissionset-meta.xml` - Grants access to the baseline PRM channel-program fields
-- `RLM_Partner_Community_User_Perm_Set.permissionset-meta.xml` - Comprehensive permissions for partner community users (107KB)
+- `RLM_Partner_Community_User_Perm_Set.permissionset-meta.xml` - Comprehensive permissions for partner community users (107KB). It holds no grants for the Quote and QuoteLineItem estimated-tax fields, which exist only with estimated tax on. With `quote_est_tax` and `tax` both true, `deploy_post_prm` splices them in at the `<!-- QUOTE_EST_TAX_GRANTS -->` marker (the grants are in `cumulusci.yml`; see `tasks/rlm_deploy_with_fragments.py`); keep that marker. The fields exist only after `prepare_tax` step 5 turns estimated tax on, so `deploy_post_prm` checks that `Quote.TotalPriceWithTax` exists first and deploys without the grants (with a warning) if it doesn't. Run `prepare_tax` before a standalone `prepare_prm` to get them
 
 ### Profile
 
@@ -202,7 +202,7 @@ sf data query --query "SELECT EntityDefinition.QualifiedApiName, QualifiedApiNam
 cci task run insert_quantumbit_prm_data --org dev
 
 # Verify data loaded
-sf data query --query "SELECT Name, IsPartner FROM Account WHERE Type='Partner'" --target-org dev
+sf data query --query "SELECT Name, Type, IsPartner FROM Account WHERE IsPartner = true" --target-org dev
 
 # Test idempotency
 cci task run test_qb_prm_idempotency --org dev

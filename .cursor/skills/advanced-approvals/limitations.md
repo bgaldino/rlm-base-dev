@@ -1,0 +1,113 @@
+# Limitations and Open Questions
+
+Read this before relying on Smart Approvals, Preview, email, delegation or Slack, and
+before telling anyone how approvals behave where the docs are unclear. Parent:
+[advanced-approvals](SKILL.md).
+
+## Setup
+
+- **Settings:** Setup → Approval Settings: Use Flow Approval Process, Use Advanced
+  Approvals, the email options, Use Advanced Approval Delegation, Use Dynamic Approval
+  Notifications [Help: `ind.approvals_set_up_advanced_approvals`], and the Slack toggles
+  [Help: `ind.approvals_turn_on_slack_notifs`]. Email replies are a separate setting, under
+  Process Automation Settings [Help: `ind.approvals_set_up_advanced_approvals`].
+- **Repo coverage:** the repo ships no settings metadata for these toggles. On a
+  QuantumBit build the shipped approval ran end to end with whatever the scratch org
+  defaults to [Measured: 2026-11-10, 264].
+- **Personas:**
+    - Designer: Manage Flow, Approval Designer, Read on Approval Submission.
+    - Submitter, reviewer, delegate: Run Flows plus Read on Approval Submission.
+    - Administrator: also Approval Admin.
+
+  [Help: `ind.approvals_personas`]. One quote walkthrough says approving needs Approval
+  Admin [Help: `ind.approvals_use_advanced_approvals_in_a_quote`]; the personas table says
+  otherwise. Test with a reviewer who has no admin permissions.
+- **Supported objects:** the docs publish no list of supported objects
+  [Help: `ind.approvals_objects_considerations`]. Quotes, orders and custom objects are named
+  [Help: `ind.approvals_advanced_approvals`], and contracts have their own setup
+  [Help: `ind.sf_contracts_aa_configure`].
+- **Sandboxes:** run Match Production License after a release
+  [Help: `ind.approvals_environment_setup`].
+
+## Smart Approvals (auto-approval on resubmission)
+
+A step is eligible only if all of these hold [Help: `ind.approvals_smart_approval_limitations`,
+`ind.approvals_smart_approvals`, `ind.approvals_smart_or_rule_based_approvals`]:
+- conditions are Number or Text, with at most 30 per step and no NOT operator;
+- no evaluation-flow entry or exit condition (that makes the whole flow ineligible);
+- no Decision before a stage whose steps start "when the stage starts";
+- the earlier submission was Rejected or Recalled, reached at least 2 steps, and had at
+  least 1 approved;
+- the active flow version hasn't changed since;
+- no work item was reassigned during the original submission.
+
+After a full approval, the next submission is a new request, not a resubmission.
+
+## Preview
+
+- Works only with the Autolaunched Flow Approval Process (No Trigger) type.
+- Skips steps whose entry conditions depend on asynchronous evaluations, such as subflows
+  in background steps.
+- Treats every referenced step as a required dependency, without telling AND from OR.
+- Doesn't show dependencies across chains, and fails on approvers of type Resource.
+
+[Help: `ind.approvals_preview_feature_limitations`]. A real submission is the test.
+
+## Email and alerts
+
+- Eight notification reasons. One template per flow, step and reason
+  [Help: `ind.approvals_email_templates`, `ind.approvals_email_notification_behavior`].
+- The template must be Available for Use, and its entity must match the record.
+- Deselect "Don't send approver notifications" on the step to get emails.
+- Queue emails go to at most 1,000 recipients.
+- The repo's alert rows go in `datasets/sfdmu/qb/en-US/qb-approvals` (`sfdmu-data-plans`).
+
+## Delegation, Slack, execution
+
+- **Delegation:** one active delegation per reviewer; delegations can't overlap and
+  can't be deleted (end them instead); delegates get no Slack notifications
+  [Help: `ind.approvals_delegation_considerations`].
+- **Errored runs:** usually two steps locking the same record, or a work-item screen that
+  failed to render. Check Paused and Failed Interviews
+  [Help: `ind.approvals_approval_process_execution`].
+- **Concurrent reviews:** when two group members review at once, the first wins and the
+  second is rejected.
+
+## Open questions (not settled by the docs or a measured run)
+
+- Where "First Response" vs "All Must Approve" is configured for a group or queue step.
+- Whether approving and recalling need Approval Admin, or only Run Flows plus Read. For
+  recall, the dev guide requires Approval Admin plus being the submitter, while the Help
+  personas table gives submitters Run Flows plus Read. For approving, only the Help quote
+  walkthrough requires Approval Admin. Measured runs used an admin holding Approval Admin
+  (through its profile and `RLM_CLM`), which the personas table allows to review any work item, so they don't
+  settle what an ordinary reviewer needs.
+- Which Approval Settings a fresh scratch org has on, and whether Metadata API can set them.
+- Whether a Resource-type approver works at runtime, and whether there is a
+  manager-hierarchy approver.
+- Whether Smart Approvals accepts roll-up summary, Percent, Currency or picklist
+  conditions as Number or Text.
+- Whether `ApprovalDelegation` appears once delegation is turned on.
+- Whether a step that Smart Approvals skips on resubmission counts as approved for a later
+  step whose entry condition reads its outcome (the shipped Director step reads
+  `Manager_Approver.Outputs.approvalDecision`). No recorded run shows the shipped flow
+  skipping a step on resubmission.
+- Whether the shipped steps' `ActionInput__CanUseSmartApproval` input is the Use Smart
+  Approval property in Flow Builder; the design doc treats it as the step's Smart Approval
+  input, and the docs don't name it.
+- Whether a line's margin values reflect a header discount that `DiscountDistributionService`
+  spreads to lines; the shipped procedure computes margin before the header discount steps.
+- Whether `ApprovalWorkItem` standard fields accept a sObject `update()`: the Help says no
+  [Help: `ind.approvals_design_build_activation`]; the dev guide lists `update()` and marks
+  `ApprovalChainName` and the Smart Approval fields updatable
+  [Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`].
+- How to tell a round's bulk line discount from an individual line override. No documented
+  field or flag records which edit set a line's discount, and the repo ships none; whether a
+  marker field set by a second bulk edit, an API call or a flow stays accurate after a rep's
+  later edit is unmeasured. Also unmeasured: whether a discount entered on a group row stays
+  on the group's `Discount` field or is written to each line's `Discount`, which the shipped
+  level bands.
+- On an amendment quote: which records give the contract value after the change, for a
+  threshold that must read it (the quote's own totals carry the change); and whether the
+  shipped discount level fires on amendment lines, which depends on what their `Discount`
+  field carries. No amendment submission is recorded.

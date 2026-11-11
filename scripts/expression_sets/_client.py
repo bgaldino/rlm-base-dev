@@ -53,6 +53,10 @@ class ExpressionSetClientError(RuntimeError):
         return code in self.error_codes
 
 
+# Platform error codes that mean the session or credentials are the problem.
+_AUTH_ERROR_CODES = frozenset({"INVALID_SESSION_ID", "INVALID_AUTH_HEADER"})
+
+
 def _extract_error_codes(text: str) -> List[str]:
     """Pull Salesforce ``errorCode`` values from a CLI error payload."""
     try:
@@ -175,12 +179,19 @@ def connect_request(
         error_codes = _extract_error_codes(stdout)
         detail = stdout or (result.stderr or "").strip()
         code_note = f" [{', '.join(error_codes)}]" if error_codes else ""
+        # The alias/auth hint only where it can be the cause: no platform error code (a
+        # CLI-level failure such as an unknown alias), or an auth code. A payload error such
+        # as INVALID_INPUT would otherwise send the operator to re-login.
+        hint = ""
+        if not error_codes or _AUTH_ERROR_CODES.intersection(error_codes):
+            hint = (
+                f"\n\nConfirm the SF CLI alias is correct (this is the *sf* alias, e.g. "
+                f"'rlm-base__beta', not the CCI alias) and that you are "
+                f"authenticated (`sf org login web --alias {target_org}`)."
+            )
         raise ExpressionSetClientError(
             f"sf api request {method} '{path}' failed for org '{target_org}'"
-            f"{code_note}:\n{detail}\n\n"
-            f"Confirm the SF CLI alias is correct (this is the *sf* alias, e.g. "
-            f"'rlm-base__beta', not the CCI alias) and that you are "
-            f"authenticated (`sf org login web --alias {target_org}`).",
+            f"{code_note}:\n{detail}{hint}",
             error_codes=error_codes,
             body=stdout,
             returncode=result.returncode,

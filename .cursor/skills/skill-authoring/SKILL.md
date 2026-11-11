@@ -294,7 +294,10 @@ rule.
 
 Update `AGENTS.md` for:
 
-- New top-level skill rows in **AI Agent Skill Index**.
+- A new top-level skill: add its **name** to its area in the **AI Agent Skill Index**
+  list. Names only; the "I need to..." intent lives in the router row in
+  `.cursor/skills/README.md`. `analyze_agent_tooling.py check` (skill index parity)
+  fails when either list is missing a skill.
 - A new *directory* of helper scripts, as one row in **Script Reference** naming
   the owning skill — never the individual commands.
 - New universal safety guards or project-wide conventions.
@@ -392,7 +395,8 @@ client smoke tests below; they do not establish native client discovery.
    - Parse the entry point's YAML frontmatter. Check that `name` matches the
      directory and that both fields meet the constraints above. Read the
      description alone to confirm it identifies when to choose this skill.
-   - For a **top-level skill**: confirm `AGENTS.md` Skill Index lists it.
+   - For a **top-level skill**: confirm the `AGENTS.md` Skill Index lists its name and
+     the router links it (the skill index parity check enforces both).
    - For a **sub-file**: confirm the parent `SKILL.md` describes it. That is the
      only registry — `AGENTS.md` deliberately has no second-level index, so a
      sub-file its parent omits cannot be found from any entry point. This is
@@ -431,7 +435,7 @@ Do:
 2. Include Quick Rules, DO NOT, Entry Conditions, Examples, and Validation
    Checks.
 3. Add a Skill Router row in `.cursor/skills/README.md`.
-4. Add an AI Agent Skill Index row in `AGENTS.md`.
+4. Add the skill's name to its area in the `AGENTS.md` AI Agent Skill Index.
 5. Add a manifest entry if PMOS or cross-repo consumers should discover it.
 6. Run validation checks and commit all touched files together.
 
@@ -473,7 +477,7 @@ python scripts/validate_sfdmu_v5_datasets.py
 Also review:
 
 - `git diff --stat` for unintended generated or runtime files.
-- `AGENTS.md` Skill Index and Script Reference tables, plus `wc -c AGENTS.md`
+- `AGENTS.md` Skill Index list and Script Reference table, plus `wc -c AGENTS.md`
   against the 25,000-byte repository ceiling; check a fresh client session for
   truncation after changing root instructions.
 - `.cursor/skills/README.md` Skill Router and File-Specific Rules tables.

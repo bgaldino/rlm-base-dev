@@ -11,7 +11,7 @@ scenario_anchor: infinitech-cloud-deal
 prerequisites:
   - "`cci flow run prepare_rlm_org` completed against the target org"
   - "QuantumBit catalog loaded (`qb=true`) — 162 products, 18 classifications, 3 catalogs, 18 categories, 5 bundles, 27 component groups"
-  - "QuantumBitBundle + Server2 CML constraint models active (default in QB orgs with `constraints=true`, `constraints_data=true`); QuantumBitComplete and QuantumBitPCM imported but inactive"
+  - "QuantumBitBundle + Server2 CML constraint models active (default in QB orgs with `constraints=true`, `constraints_data=true`)"
 sources:
   - "docs/enablement/master/qb-scenario-reference.md — canonical QB scenario reference"
   - ".cursor/skills/release-enablement/authoring-patterns.md"
@@ -84,7 +84,7 @@ For the full scenario context — customer accounts, partner channel, multi-LE s
 | Product Classifications | 18 classifications — Server, Memory, CPU, NIC, Storage, API Type, Software, Database, Subscription, Bundles, Services |
 | Top-level bundles | `QB-COMPLETE` (Software flagship) · `QB-QRack-750` (Hardware with nested groups) · `QB-BDL-R750` (Server) · `QB-BDL-STND` (Starter) · `QB-BDL-SRVC` (Pro Services) |
 | Component groups | 27 groups, including nested (Computing → Cooling, Storage → Hard Drives, PCIe → GPUs/I/O/Networking) |
-| Constraint Rules | **QuantumBitBundle CML** (61 ESC, 33 software products; QuantumBitComplete bundle + QuantumBitPCM cart rules) + **Server2 CML** (81 ESC, 41 hardware products) — active on default. QuantumBitComplete (57 ESC) and QuantumBitPCM (12 ESC) imported but inactive. |
+| Constraint Rules | **QuantumBitBundle CML** (61 ESC, 33 software products) + **Server2 CML** (81 ESC, 41 hardware products) — active on default. |
 | Attributes | 39 Attribute Definitions, 17 Product Attribute Definitions, 87 Picklist Values |
 | Sample products | 162 commercial products, 5 bundles |
 
@@ -284,7 +284,7 @@ A **Bundle** is a Product2 with `Type = Bundle` that groups other products toget
 
 | SKU | Name | Profile |
 |---|---|---|
-| `QB-COMPLETE` | QuantumBit Complete Solution | Flagship multi-domain (Software + Add-Ons + Services + Maintenance + Training + Usage). 7 component groups, ~25 child products. **Constraints: QuantumBitComplete CML applied.** |
+| `QB-COMPLETE` | QuantumBit Complete Solution | Flagship multi-domain (Software + Add-Ons + Services + Maintenance + Training + Usage). 7 component groups, ~25 child products. **Constraints: QuantumBitBundle CML applied.** |
 | `QB-QRack-750` | QuantumBit Q-Rack 750 | Hardware bundle with **nested component groups** (Computing, PCIe, Storage, Cooling — multi-level). **Constraints: Server2 CML applied.** |
 | `QB-BDL-R750` | PowerSwerve R750 Rack Server | Single-server bundle (4 flat groups: CPU, Memory, HDD, NIC, each min/max=1) |
 | `QB-BDL-STND` | QuantumBit Starter | Entry-tier bundle (Maintenance + Training, each min/max=1) |
@@ -384,7 +384,7 @@ QB-QRack-750 (Bundle)
 
 258 introduced the **Constraint tab in PCM** for viewing constraint rules associated with a product directly from the product record. This complements the Configurator-side constraint authoring.
 
-**For Infinitech:** the catalog admin can open `QB-COMPLETE` → Constraint tab and see all rules from the **QuantumBitComplete CML** that apply to it. Same for `QB-QRack-750` → Constraint tab → all **Server2 CML** rules.
+**For Infinitech:** the catalog admin can open `QB-COMPLETE` → Constraint tab and see all rules from the **QuantumBitBundle CML** that apply to it. Same for `QB-QRack-750` → Constraint tab → all **Server2 CML** rules.
 
 **Cross-area pointer:** detailed constraint authoring lives in the **master Configurator exercise** (`docs/enablement/master/03-product-configurator.md`). This section in PCM covers the *visibility* of constraints in the product record context.
 
@@ -705,7 +705,7 @@ The capstone exercise of this master. Set up the QuantumBit catalog so it's read
 ### Discussion prompts for the workshop
 
 - Why does QB-COMPLETE require exactly 1 Usage product? What would change if it allowed 0 or many?
-- How does the QuantumBitComplete CML differ from Server2 CML? When would you author a new CML model vs reuse an existing one?
+- How does the QuantumBitBundle CML differ from Server2 CML? When would you author a new CML model vs reuse an existing one?
 - Walk through the search/filter configuration limits — when do customers hit the 100-combined-fields cap, and what's the workaround?
 - Cache management: when do you Re-Generate vs Clear the cache?
 - Auto-Renewal default — does Infinitech want it on for software, off for hardware? Why?

@@ -1,41 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <actionCalls>
-        <name>applyPayment</name>
-        <label>applyPayment</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <actionName>applyPayment</actionName>
-        <actionType>applyPayment</actionType>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>amount</name>
-            <value>
-                <elementReference>Payments.firstSelectedRow.Amount</elementReference>
-            </value>
-        </inputParameters>
-        <inputParameters>
-            <name>appliedToId</name>
-            <value>
-                <elementReference>getInvoice.Id</elementReference>
-            </value>
-        </inputParameters>
-        <inputParameters>
-            <name>paymentId</name>
-            <value>
-                <elementReference>Payments.firstSelectedRow.Id</elementReference>
-            </value>
-        </inputParameters>
-        <inputParameters>
-            <name>associatedAccountId</name>
-            <value>
-                <elementReference>getInvoice.BillingAccountId</elementReference>
-            </value>
-        </inputParameters>
-        <nameSegment>applyPayment</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
+    <!-- Invoice "Apply Payment" quick action. The selected payment is applied by the
+         RLM_Apply_Payment_To_Invoice_Lines subflow, which spreads it over the invoice's lines
+         (at Line Level, which post_billing sets, applyPayment takes invoice lines, not the
+         invoice). It applies up to the smaller of the payment's and the invoice's balance,
+         and the last screen shows the amount applied or why nothing was. If a line fails, the
+         lines already applied in this run are rolled back (Roll Back Records). -->
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <customProperties>
@@ -44,7 +14,66 @@
             <stringValue>{&quot;location&quot;:&quot;top&quot;,&quot;type&quot;:&quot;simple&quot;}</stringValue>
         </value>
     </customProperties>
+    <decisions>
+        <name>anyPayments</name>
+        <label>Any Payments?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>noPaymentsScreen</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <rules>
+            <name>hasPayments</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>getPayments</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>paymentsTable</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>lineFailedCheck</name>
+        <label>A Line Failed?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>resultScreen</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <rules>
+            <name>lineFailed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>applyToLines.lineFailed</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>rollBackApplied</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
     <environments>Default</environments>
+    <formulas>
+        <name>resultMessage</name>
+        <dataType>String</dataType>
+        <expression>IF(ISBLANK({!applyToLines.errorMessage}),
+  &quot;Applied &quot; &amp; TEXT({!applyToLines.appliedAmount}) &amp; &quot; from the payment to this invoice.&quot;
+    &amp; IF({!applyToLines.unappliedAmount} &gt; 0, &quot; &quot; &amp; TEXT({!applyToLines.unappliedAmount}) &amp; &quot; couldn&apos;t be applied: the invoice lines have no more balance.&quot;, &quot;&quot;),
+  {!applyToLines.errorMessage}
+    &amp; IF({!applyToLines.lineFailed}, &quot; The run was rolled back; check the invoice&apos;s payment lines.&quot;, &quot;&quot;))</expression>
+    </formulas>
     <interviewLabel>RLM Apply Payments on Invoice {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Apply Payments on Invoice</label>
     <processMetadataValues>
@@ -94,7 +123,7 @@
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>paymentsTable</targetReference>
+            <targetReference>anyPayments</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -122,6 +151,15 @@
         <object>Payment</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
+    <recordRollbacks>
+        <name>rollBackApplied</name>
+        <label>Roll Back Applied Lines</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>resultScreen</targetReference>
+        </connector>
+    </recordRollbacks>
     <screens>
         <name>paymentsTable</name>
         <label>paymentsTable</label>
@@ -131,7 +169,7 @@
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
         <connector>
-            <targetReference>applyPayment</targetReference>
+            <targetReference>applyToLines</targetReference>
         </connector>
         <fields>
             <name>Payments</name>
@@ -150,13 +188,13 @@
             <inputParameters>
                 <name>selectionMode</name>
                 <value>
-                    <stringValue>MULTI_SELECT</stringValue>
+                    <stringValue>SINGLE_SELECT</stringValue>
                 </value>
             </inputParameters>
             <inputParameters>
                 <name>minRowSelection</name>
                 <value>
-                    <numberValue>0.0</numberValue>
+                    <numberValue>1.0</numberValue>
                 </value>
             </inputParameters>
             <inputParameters>
@@ -192,6 +230,38 @@
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
     </screens>
+    <screens>
+        <name>noPaymentsScreen</name>
+        <label>No Payments</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>noPaymentsText</name>
+            <fieldText>&lt;p&gt;This invoice&apos;s billing account has no processed payment with a balance to apply.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>resultScreen</name>
+        <label>Result</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>resultText</name>
+            <fieldText>&lt;p&gt;{!resultMessage}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
     <start>
         <locationX>0</locationX>
         <locationY>0</locationY>
@@ -200,6 +270,29 @@
         </connector>
     </start>
     <status>Active</status>
+    <subflows>
+        <name>applyToLines</name>
+        <label>Apply to Invoice Lines</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>lineFailedCheck</targetReference>
+        </connector>
+        <flowName>RLM_Apply_Payment_To_Invoice_Lines</flowName>
+        <inputAssignments>
+            <name>invoiceId</name>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <name>paymentId</name>
+            <value>
+                <elementReference>Payments.firstSelectedRow.Id</elementReference>
+            </value>
+        </inputAssignments>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </subflows>
     <variables>
         <name>recordId</name>
         <dataType>String</dataType>

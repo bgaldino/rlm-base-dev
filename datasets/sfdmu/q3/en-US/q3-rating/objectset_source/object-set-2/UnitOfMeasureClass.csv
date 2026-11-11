@@ -1,12 +1,11 @@
-Code,Status
-CALLUNITS01,Active
-CAS01,Active
-COUNT,Active
-CURRENCY,Active
-DAT01,Active
-DSU,Active
-GB,Active
-Grams,Active
-Litre,Active
-SMS01,Active
-Unit,Inactive
+BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Type
+m,TIME,m,,Time,Usage
+EACH,CAS01,EACH,Support Cases,Case,Usage
+XFER,COUNT,XFER,,Count,Usage
+USD,CURRENCY,USD,,Currency,Currency
+GB,DATAVOL,GB,,Data Volume,Usage
+,DSU,Basic: Data Units,,Basic: Data Storage Token Units,Token
+,GB,BASIC-GB,,Basic: Data Storage Class,Usage
+,Grams,GRAMS,,Grams,Usage
+,Litre,LITRE,,Litre,Usage
+Count,SMS01,Count,Class for SMS,SMS,Usage

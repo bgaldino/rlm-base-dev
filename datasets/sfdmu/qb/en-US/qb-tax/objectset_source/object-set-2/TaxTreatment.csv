@@ -1,3 +1,10 @@
-$$Name$LegalEntity.Name$TaxPolicy.Name,LegalEntity.Name,Name,Status,TaxPolicy.Name
-Default Tax Policy;Default Legal Entity - US;Default Tax Policy,Default Legal Entity - US,Default Tax Policy,Active,Default Tax Policy
-Non Taxable Tax Treatment;Default Legal Entity - US;Non Taxable Tax Policy,Default Legal Entity - US,Non Taxable Tax Treatment,Active,Non Taxable Tax Policy
+LegalEntity.Name,Name,Status,TaxPolicy.Name
+Default Legal Entity - US,Default Tax Policy,Active,Default Tax Policy
+Default Legal Entity - US,Non Taxable Tax Treatment,Active,Non Taxable Tax Policy
+Default Legal Entity - US,Tax Treatment for US LE,Active,Tax Policy for LE
+Default Legal Entity - Canada,Tax Treatment for Canada LE,Active,Tax Policy for LE
+Default Legal Entity - EU,Tax Treatment for EU LE,Active,Tax Policy for LE
+Default Legal Entity - UK,Tax Treatment for UK LE,Active,Tax Policy for LE
+Default Legal Entity - Australia,Tax Treatment for Australia LE,Active,Tax Policy for LE
+Default Legal Entity - Switzerland,Tax Treatment for Switzerland LE,Active,Tax Policy for LE
+Default Legal Entity - Japan,Tax Treatment for Japan LE,Active,Tax Policy for LE

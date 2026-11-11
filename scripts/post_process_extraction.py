@@ -474,7 +474,18 @@ def build_composite_key_column(row_dict: dict, components: list) -> str:
     This function is retained for backward compatibility with older plan formats.
     """
     values = [resolve_component_value(row_dict, c) for c in components]
-    return ";".join(values)
+    return join_composite_parts(values)
+
+
+def join_composite_parts(values) -> str:
+    """Join composite key parts the way SFDMU builds the target-side value.
+
+    SFDMU 5.8.0 (``MigrationJobTask._getRecordFieldValue``) drops every empty part before
+    joining with ``;``, so a target record with a blank ``UpperBound`` keys as ``A;B;0``, not
+    ``A;B;0;``. A source ``$$`` value that keeps the empty part never matches, and Upsert
+    inserts a duplicate (todo 298: qb-rates RateAdjustmentByTier, qb-pcm ProductRelatedComponent).
+    """
+    return ";".join(v for v in values if v != "")
 
 
 def parse_composite_key_header(header: str) -> list:
@@ -517,7 +528,7 @@ def align_columns(extracted_headers: list, extracted_rows: list,
             if h in ext_idx:
                 # Column exists in extraction -- use the original value directly.
                 # This preserves SFDMU's composite key formatting (e.g., omitting
-                # trailing empty parts in Parent.$$Field1$Field2 values).
+                # empty parts in Parent.$$Field1$Field2 values).
                 idx = ext_idx[h]
                 aligned_row.append(row[idx] if idx < len(row) else "")
             elif h.startswith("$$"):
@@ -568,9 +579,8 @@ def normalize_na_values(rows: list, headers: list) -> list:
                 # Normalize #N/A components within composite key values
                 parts = v.split(";")
                 parts = ["" if p == na_marker else p for p in parts]
-                # Collapse to empty if all components are empty
-                joined = ";".join(parts)
-                new_row.append("" if all(p == "" for p in parts) else joined)
+                # Drop the emptied parts, as SFDMU does on the target (all empty -> "")
+                new_row.append(join_composite_parts(parts))
             else:
                 new_row.append(v)
         new_rows.append(new_row)
@@ -835,6 +845,16 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
 
     code_map = load_code_map(code_map_file)
 
+    # Objects whose column schema this plan keeps even when aligning to a reference plan.
+    declared = export_json.get("$ownSchemaObjects", [])
+    if not isinstance(declared, list) or not all(isinstance(o, str) for o in declared):
+        print(f"CRITICAL: $ownSchemaObjects in {plan_dir}/export.json must be a list of object names; "
+              f"got {declared!r}")
+        raise SystemExit(1)
+    own_schema_objects = set(declared)
+    for name in sorted(own_schema_objects - set(plan_structure)):
+        print(f"  WARNING: $ownSchemaObjects names {name}, which the plan doesn't declare")
+
     # Find extracted CSV files
     extracted_files = [f for f in os.listdir(extraction_dir) if f.endswith(".csv")]
     extracted_objects = {os.path.splitext(f)[0]: f for f in extracted_files}
@@ -883,7 +903,18 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
         template_headers = plan_headers
         if reference_plan_dir:
             ref_headers, _ = load_plan_csv(reference_plan_dir, obj_name)
-            if ref_headers is not None:
+            if ref_headers is not None and plan_headers is not None and obj_name in own_schema_objects:
+                # The plan declares this object's schema its own ($ownSchemaObjects in its
+                # export.json): it keys the object, or a parent the object references,
+                # differently from the reference (q3-rates adds the selling model to
+                # RateCardEntry, which its tiers reference). The reference's headers would drop
+                # that key part, so keep the plan's own columns for it (todo 319).
+                print(f"    {obj_name}: plan keeps its own schema ($ownSchemaObjects); "
+                      f"not aligning to {reference_plan_dir}")
+            elif ref_headers is not None:
+                if obj_name in own_schema_objects:
+                    print(f"    WARNING: {obj_name} is in $ownSchemaObjects but the plan has no CSV "
+                          f"for it yet; aligning to {reference_plan_dir}")
                 template_headers = ref_headers
                 if verbose:
                     print(f"    Aligning to reference schema from {reference_plan_dir}")
@@ -930,7 +961,7 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
     # Handle objectset_source for multi-pass plans
     if not diff_only:
         generate_objectset_source(extraction_dir, plan_dir, output_dir, all_passes,
-                                  verbose, reference_plan_dir)
+                                  verbose, reference_plan_dir, code_map)
         # Place the processed extraction into the plan dir as its tracked CSV set
         # (processed plan objects + cleaned incidental + header-only placeholders).
         if copy_to_plan:
@@ -940,9 +971,21 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
     print_diff_summary(diff_report)
 
 
+def _rebuild_composite_exact(header: str, ext_idx: dict, value_of) -> str:
+    """A `$$A$B` (or nested `Parent.$$A$B`) column's value, built only when every component
+    column is present verbatim; "" otherwise. No suffix fallback (see generate_objectset_source)."""
+    if "$$" not in header:
+        return ""
+    prefix, _, composite = header.partition("$$")
+    components = [f"{prefix}{c}" for c in parse_composite_key_header("$$" + composite)]
+    if any(c not in ext_idx for c in components):
+        return ""
+    return join_composite_parts(value_of(c) for c in components)
+
+
 def generate_objectset_source(extraction_dir: str, plan_dir: str, output_dir: str,
                                 all_passes: dict, verbose: bool,
-                                reference_plan_dir: str = None) -> None:
+                                reference_plan_dir: str = None, code_map: dict = None) -> None:
     """Generate objectset_source CSVs for Pass 2+ objects.
 
     For objects that appear in multiple passes, create stripped-down CSVs
@@ -986,18 +1029,29 @@ def generate_objectset_source(extraction_dir: str, plan_dir: str, output_dir: st
             if ext_headers is None:
                 continue
 
-            # Build rows with only the columns needed for this pass
+            # Build this pass's rows from the RAW extraction, deliberately NOT from the
+            # processed root: the root's status rewrite (Active -> Draft) would undo what a
+            # pass-N override exists for (qb-billing / qb-tax set Status=Active in pass 2/3).
+            # A plain column pick leaves composite-key columns blank, because the extraction
+            # never writes them, and copy_to_plan then wrote the blanks into the tracked
+            # override (#659 review). So composite columns are rebuilt, but only from EXACT
+            # component columns, all or nothing: align_columns' suffix fallback would resolve
+            # e.g. `BillingTreatment.BillingPolicy.Name` to the row's own `Name` and write a
+            # plausible-looking wrong key. #N/A is normalised as in the root.
+            ext_rows = backfill_relationship_codes(ext_headers, ext_rows, obj_name, code_map, verbose)
             ext_idx = {h: i for i, h in enumerate(ext_headers)}
             source_rows = []
             for row in ext_rows:
+                def value_of(h, row=row):
+                    return row[ext_idx[h]] if ext_idx[h] < len(row) else ""
                 source_row = []
                 for h in source_headers:
                     if h in ext_idx:
-                        idx = ext_idx[h]
-                        source_row.append(row[idx] if idx < len(row) else "")
+                        source_row.append(value_of(h))
                     else:
-                        source_row.append("")
+                        source_row.append(_rebuild_composite_exact(h, ext_idx, value_of))
                 source_rows.append(source_row)
+            source_rows = normalize_na_values(source_rows, source_headers)
 
             # Write to output objectset_source
             out_dir = os.path.join(output_dir, "objectset_source", set_name)

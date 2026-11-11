@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
+      Apex class access for the custom MCP server's cloneSalesTransaction tool.
+      The tool is bound ApiSource=CLASSIC at /actions/custom/apex/RLM_CloneSalesTransaction,
+      and that endpoint authorizes the OAuth user against the Apex class, not against the
+      MCP server. Without this, a non-admin user who passes the server's AllSelfAuthorized
+      gate can use the other tools but gets an authorization failure on clone.
+      Class access only: the clone itself runs `with sharing` as the user, so record and
+      object access still come from the user's normal Revenue Cloud permission sets.
+    -->
+    <classAccesses>
+        <apexClass>RLM_CloneSalesTransaction</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM MCP Sales Transactions</label>
+</PermissionSet>

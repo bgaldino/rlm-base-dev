@@ -8,7 +8,7 @@ with base Python:
     python tests/test_qb_multicurrency_data.py
 
 Exits 0 when all checks pass, 1 otherwise. Reads only the committed CSVs in
-``datasets/sfdmu/qb/en-US/{qb-rating,qb-rates,qb-pricing}`` — no org needed, so
+``datasets/sfdmu/qb/en-US/{qb-rating,qb-rating-entitlements,qb-rates,qb-pricing}`` — no org needed, so
 this is safe to run in CI and as a pre-merge gate.
 
 Each check corresponds to a defect that actually shipped (or nearly did) during
@@ -58,7 +58,11 @@ from decimal import Decimal, ROUND_HALF_UP
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 RATING = os.path.join(REPO_ROOT, "datasets/sfdmu/qb/en-US/qb-rating")
+# Policies and grants on each ProductUsageResource load from this sibling plan (todo 298).
+ENTITLEMENTS = os.path.join(REPO_ROOT, "datasets/sfdmu/qb/en-US/qb-rating-entitlements")
 RATES = os.path.join(REPO_ROOT, "datasets/sfdmu/qb/en-US/qb-rates")
+# q3-rates has the same two-pass RateCardEntry shape (todo 319); the pass-2 and orphan-RABT checks read it.
+Q3_RATES = os.path.join(REPO_ROOT, "datasets/sfdmu/q3/en-US/q3-rates")
 PRICING = os.path.join(REPO_ROOT, "datasets/sfdmu/qb/en-US/qb-pricing")
 
 BASE_CURRENCY = "USD"
@@ -128,8 +132,12 @@ def load():
         "uom": read(RATING, "UnitOfMeasure.csv"),
         "product": read(RATING, "Product2.csv"),
         "pur": read(RATING, "ProductUsageResource.csv"),
-        "purp": read(RATING, "ProductUsageResourcePolicy.csv"),
+        "purp": read(ENTITLEMENTS, "ProductUsageResourcePolicy.csv"),
         "rce": read(RATES, "RateCardEntry.csv"),
+        "rce_pass2": read(RATES, os.path.join("objectset_source", "object-set-2", "RateCardEntry.csv")),
+        "q3_rce": read(Q3_RATES, "RateCardEntry.csv"),
+        "q3_rce_pass2": read(Q3_RATES, os.path.join("objectset_source", "object-set-2", "RateCardEntry.csv")),
+        "q3_rabt": read(Q3_RATES, "RateAdjustmentByTier.csv"),
         "rabt": read(RATES, "RateAdjustmentByTier.csv"),
         "currency": read(PRICING, "CurrencyType.csv"),
         "urbp": read(RATING, "UsageResourceBillingPolicy.csv"),
@@ -182,13 +190,23 @@ def check_tier_rce_has_adjustment(d):
 
 
 def check_no_orphan_rabt(d):
-    """Every tier adjustment must point at a rate card entry that exists."""
-    rce_ids = {r[list(r)[0]] for r in d["rce"]}
-    parent_col = list(d["rabt"][0])[8]
-    orphans = [r[parent_col] for r in d["rabt"] if r[parent_col] not in rce_ids]
-    check("no_orphan_rabt", not orphans,
-          f"{len(orphans)} adjustment(s) with a missing parent: {orphans[:3]}" if orphans
-          else f"all {len(d['rabt'])} adjustments resolve to a rate card entry")
+    """Every tier adjustment must point at a rate card entry that exists. q3-rates is checked too:
+    its entry key has a fifth part (ProductSellingModel.Name, todo 319), so the adjustments'
+    reference column has to carry it as well."""
+    problems, counts = [], []
+    for plan, rce, rabt in (("qb-rates", d["rce"], d["rabt"]), ("q3-rates", d["q3_rce"], d["q3_rabt"])):
+        key_col = next(c for c in rce[0] if c.startswith("$$"))
+        ref_col = "RateCardEntry." + key_col
+        if ref_col not in rabt[0]:
+            problems.append(f"{plan}: no {ref_col} column, so the adjustments can't match the entry key")
+            continue
+        rce_ids = {r[key_col] for r in rce}
+        orphans = [r[ref_col] for r in rabt if r[ref_col] not in rce_ids]
+        if orphans:
+            problems.append(f"{plan}: {len(orphans)} adjustment(s) with a missing parent: {orphans[:3]}")
+        counts.append(f"{plan} {len(rabt)}")
+    check("no_orphan_rabt", not problems, "; ".join(problems) if problems
+          else f"every adjustment resolves to a rate card entry ({', '.join(counts)})")
 
 
 def check_pack_products_have_no_purp(d):
@@ -515,6 +533,27 @@ def check_overrides_derived_from_base(d):
           else f"all {checked} non-base override tiers match their derived value")
 
 
+def check_rce_pass2_matches_root(d):
+    """Pass 2 updates RateCardEntry from objectset_source/object-set-2, after pass 1 inserts the
+    root rows. The override must be the root CSV minus Status, row for row, or pass 2 writes its
+    stale values over a fresh build's entries before activate_rates (todo 298). q3-rates has the
+    same shape (todo 319) and is held to the same rule."""
+    problems, counts = [], []
+    for plan, root, pass2 in (("qb-rates", d["rce"] or [], d["rce_pass2"]),
+                              ("q3-rates", d["q3_rce"] or [], d["q3_rce_pass2"])):
+        if pass2 is None:
+            problems.append(f"{plan}: objectset_source/object-set-2/RateCardEntry.csv is missing")
+            continue
+        want = [{k: v for k, v in r.items() if k != "Status"} for r in root]
+        if pass2 and "Status" in pass2[0]:
+            problems.append(f"{plan}: the override carries Status, which pass 2 must never send")
+        if [{k: v for k, v in r.items() if k != "Status"} for r in pass2] != want:
+            problems.append(f"{plan}: {len(pass2)} override rows differ from the {len(root)} root rows minus Status")
+        counts.append(f"{plan} {len(root)}")
+    check("rce_pass2_matches_root", not problems, "; ".join(problems) if problems
+          else f"every row matches the root CSV minus Status ({', '.join(counts)})")
+
+
 def check_period_ordering_descending(d):
     """Billing >= Rating > Accumulation, or the summary batch rejects the record.
 
@@ -571,7 +610,7 @@ def check_counts_match_readme(d):
     """
     problems = []
     checked = 0
-    for plan in (RATES, RATING):
+    for plan in (RATES, RATING, ENTITLEMENTS):
         readme = os.path.join(plan, "README.md")
         if not os.path.isfile(readme):
             continue
@@ -643,6 +682,7 @@ def main():
                check_money_conversion_sane,
                check_rates_derived_from_base,
                check_overrides_derived_from_base,
+               check_rce_pass2_matches_root,
                check_period_ordering_descending,
                check_counts_match_readme,
                # Counts itself: the docs advertise the total including this check.

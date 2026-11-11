@@ -3,4 +3,5 @@
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Billing Admin</label>
     <permissionSets>force__RevenueLifecycleManagementBillingAdmin</permissionSets>
+    <permissionSets>RLM_BillingAccountFieldAccess</permissionSets>
 </PermissionSetGroup>

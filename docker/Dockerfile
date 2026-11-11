@@ -15,6 +15,7 @@
 
 FROM python:3.13-slim-bookworm
 
+# The major line pinned in the repo's .nvmrc (tests/test_node_line.py checks they agree).
 ARG NODE_MAJOR=24
 ARG DEBIAN_FRONTEND=noninteractive
 

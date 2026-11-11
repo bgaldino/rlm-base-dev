@@ -2,16 +2,23 @@
 # update-toolchain.sh — refresh the local dev toolchain for rlm-base-dev.
 #
 # Updates, in order:
-#   1. Homebrew packages (direnv, nvm, pyenv, pipx, etc.), keeping openssl@3
-#      installed on request first
+#   1. Homebrew formulae (direnv, nvm, pyenv, pipx, etc.), keeping openssl@3
+#      installed on request first. Casks (Git Credential Manager, Docker
+#      Desktop, Chrome) aren't upgraded: a .pkg cask needs sudo, which would
+#      stop the run. Upgrade them yourself with `brew upgrade --cask`
 #   2. Python — latest patch in the 3.13 line (via pyenv); stops if it can't
 #      import ssl. pyenv's global follows it from an older 3.13 patch that holds
 #      no packages of its own; anything else is left alone, with a warning when
 #      it's an older patch that does
-#   3. Node — latest LTS (via nvm), carrying npm globals forward
-#   4. sf CLI — npm-installed under the active nvm Node
+#   3. Node — latest patch of the major line pinned in .nvmrc (via nvm:
+#      Homebrew's, or nvm's own installer's), carrying npm globals forward
+#   4. sf CLI — the one that runs: npm install -g for an npm global, else
+#      `sf update`; other copies on PATH are named, not updated
 #   5. CCI — pipx (reinstall is required after any Python patch bump), then
-#      robot/requirements.txt re-injected (CCI's own pins downgrade selenium)
+#      robot/requirements.txt re-injected (CCI's own pins downgrade selenium).
+#      pipx's own scripts are rewritten for the new patch, and other pipx apps
+#      still on an older 3.13 patch are named, not changed. So is pipx's shared
+#      venv on another Python, and an app whose pip comes from another Python
 #   6. sf plugins (SFDMU, etc.)
 #   7. Gate interpreter — <main checkout>/.venv, if it exists (rebuilt after a
 #      Python patch bump, or when it isn't built on pyenv's Python, with its
@@ -26,13 +33,19 @@
 # the script exits nonzero rather than printing "Done".
 #
 # Designed to be idempotent. Re-run after any tool emits a "new version" notice.
-# Major-line pins live in this script (PY_LINE, NODE_LINE) — edit them to bump.
+# Major-line pins: PY_LINE lives in this script; the Node line lives in .nvmrc.
 
 set -euo pipefail
 
 PY_LINE="3.13"
-NODE_LINE="lts/*"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# The Node major line, from .nvmrc: the single source shared with .envrc, the
+# Dockerfile's NODE_MAJOR, CI's setup-node and package.json's engines. A bare
+# major only: `lts/*` would jump a major the day the next one becomes LTS.
+NODE_LINE="$(tr -d '[:space:]' < "$REPO_ROOT/.nvmrc" 2>/dev/null || true)"
+case "$NODE_LINE" in
+  ''|*[!0-9]*) printf '\n\033[1;31m[fail]\033[0m  .nvmrc must hold a bare Node major (e.g. 24), found "%s"\n' "$NODE_LINE" >&2; exit 1 ;;
+esac
 
 # Ensure pipx-managed bins (cci, snowfakery, etc.) are findable. pipx
 # ensurepath only updates shell rc files for future shells; we need PATH in
@@ -67,7 +80,11 @@ brew update
 brew list --versions openssl@3 >/dev/null 2>&1 || brew install openssl@3
 brew tab --installed-on-request openssl@3 >/dev/null \
   || die "couldn't mark openssl@3 installed on request (brew tab), so brew upgrade could remove it"
-brew upgrade
+# Formulae only. A cask (Docker Desktop, say) can need sudo, which a run with no
+# terminal can't answer; brew then exits nonzero and set -e would end the whole
+# update in this step, before anything the toolchain needs. A formula that fails
+# is recorded and the run carries on.
+brew upgrade --formula || fail_later "brew upgrade --formula failed (output above) — rerun it by hand"
 
 # ── 2. Python (pyenv) ───────────────────────────────────────────────────────
 command -v pyenv >/dev/null || die "pyenv not found"
@@ -103,11 +120,13 @@ PY_TARGET_BIN="$(pyenv prefix "$PY_TARGET")/bin/python3"
 # gone. Steps 2, 7 and 8 all use it.
 gate_python() { (cd "$REPO_ROOT" && "$PY_TARGET_BIN" scripts/ai/gate_python.py "$@"); }
 
-# pyenv's global version (~/.pyenv/version) is the `python` every shell gets
-# outside a project that pins its own. It moves with the line, as step 3 moves
-# nvm's default Node, but only from an older patch of $PY_LINE, and only when
-# that interpreter holds no packages of its own: anything pip-installed straight
-# into it would disappear from `python` and the pyenv shims after the switch.
+# pyenv's global version (~/.pyenv/version) is what `pyenv exec`, `pyenv prefix`
+# and pyenv's shims resolve to outside a project that pins its own. (With the
+# guide's layout no shims are on PATH outside the repo, so a bare `python` there
+# isn't pyenv's.) It moves with the line, as step 3 moves nvm's default Node, but
+# only from an older patch of $PY_LINE, and only when that interpreter holds no
+# packages of its own: anything pip-installed straight into it would disappear
+# from `pyenv exec python` and the shims after the switch.
 # Virtualenvs built on it are unaffected either way (they record its path), so
 # none of them needs rebuilding for this. A global set to `system`, another
 # line or several versions is a deliberate choice and is left alone.
@@ -118,8 +137,8 @@ if [ "$PY_GLOBAL" = "$PY_TARGET" ]; then
 elif [[ "$PY_GLOBAL" =~ $PY_LINE_RE ]] \
     && [ "$(printf '%s\n%s\n' "$PY_GLOBAL" "$PY_TARGET" | sort -V | head -1)" = "$PY_GLOBAL" ]; then
   if [ ! -d "$(pyenv root)/versions/$PY_GLOBAL" ]; then
-    # Already uninstalled: every shell outside a pinned project gets "version
-    # not installed", so moving it on is a repair with nothing to lose.
+    # Already uninstalled: `pyenv exec`/`pyenv prefix` outside a pinned project
+    # get "version not installed", so moving it on is a repair with nothing to lose.
     pyenv global "$PY_TARGET"
     log "Python: pyenv global $PY_GLOBAL -> $PY_TARGET ($PY_GLOBAL isn't installed)"
   elif ! PY_GLOBAL_PKGS="$(gate_python --carry-over "$(pyenv root)/versions/$PY_GLOBAL")"; then
@@ -135,42 +154,96 @@ else
 fi
 
 # ── 3. Node (nvm) ───────────────────────────────────────────────────────────
-export NVM_DIR="$HOME/.nvm"
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+# Homebrew's nvm first; else nvm's own installer, which puts nvm.sh in $NVM_DIR
+# ($XDG_CONFIG_HOME/nvm when that variable was set at install time).
+NVM_SH=""
 NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
-[ -n "$NVM_PREFIX" ] && [ -s "$NVM_PREFIX/nvm.sh" ] || die "nvm.sh not found via 'brew --prefix nvm' — is nvm installed?"
-# shellcheck disable=SC1091
-. "$NVM_PREFIX/nvm.sh"
+if [ -n "$NVM_PREFIX" ] && [ -s "$NVM_PREFIX/nvm.sh" ]; then
+  NVM_SH="$NVM_PREFIX/nvm.sh"
+elif [ -s "$NVM_DIR/nvm.sh" ]; then
+  NVM_SH="$NVM_DIR/nvm.sh"
+elif [ -n "${XDG_CONFIG_HOME:-}" ] && [ -s "$XDG_CONFIG_HOME/nvm/nvm.sh" ]; then
+  NVM_DIR="$XDG_CONFIG_HOME/nvm"
+  NVM_SH="$NVM_DIR/nvm.sh"
+fi
+[ -n "$NVM_SH" ] || die "nvm.sh not found via 'brew --prefix nvm', in $NVM_DIR or under \$XDG_CONFIG_HOME/nvm — is nvm installed?"
+# shellcheck disable=SC1090
+. "$NVM_SH"
 
 OLD_NODE="$(nvm current 2>/dev/null || echo none)"
+# Where to carry npm globals from. `nvm current` isn't a version when another
+# node is ahead of nvm's on PATH ("system"), so use nvm's `default` alias, the
+# Node new shells get and whose globals the user relies on, and only without one
+# the newest Node nvm has installed.
+CARRY_FROM="$OLD_NODE"
+[ "${CARRY_FROM#v}" != "$CARRY_FROM" ] || CARRY_FROM="$(nvm version default 2>/dev/null || true)"
+[ "${CARRY_FROM#v}" != "$CARRY_FROM" ] || CARRY_FROM="$(nvm version node 2>/dev/null || true)"
 log "Node: installing $NODE_LINE (current: $OLD_NODE)"
-# Drive install from NODE_LINE so changes at the top of this script take effect.
-# `lts/*` resolves to the active LTS line; explicit majors (e.g. `24`) also work.
+# Drive install from NODE_LINE (.nvmrc) so a bump there takes effect: the newest
+# patch of that major, which also becomes nvm's `default` alias for new shells.
 nvm install "$NODE_LINE" --latest-npm
 nvm alias default "$NODE_LINE" >/dev/null
 NEW_NODE="$(nvm current)"
 # Carry `sf` and other globals forward, only when the version changed. Passing
 # --reinstall-packages-from=current to `nvm install` instead fails (exit 2) on a
 # re-run where Node is already on the latest LTS.
-if [ "$NEW_NODE" != "$OLD_NODE" ] && [ "${OLD_NODE#v}" != "$OLD_NODE" ]; then
-  log "Node: reinstalling global packages from $OLD_NODE"
-  nvm reinstall-packages "$OLD_NODE" \
-    || fail_later "couldn't carry npm globals over from $OLD_NODE — reinstall them under $NEW_NODE by hand"
+if [ "$NEW_NODE" != "$CARRY_FROM" ] && [ "${CARRY_FROM#v}" != "$CARRY_FROM" ]; then
+  log "Node: reinstalling global packages from $CARRY_FROM"
+  nvm reinstall-packages "$CARRY_FROM" \
+    || fail_later "couldn't carry npm globals over from $CARRY_FROM — reinstall them under $NEW_NODE by hand"
 fi
 log "Node: now on $NEW_NODE"
 
 # ── 4. sf CLI ───────────────────────────────────────────────────────────────
-# sf lives in nvm's npm globals, and `sf update` refuses npm-based installs
-# ("not updatable") while still exiting 0, so update it through npm.
-if [ -d "$(npm root -g)/@salesforce/cli" ]; then
+# Update the `sf` that runs (the first on PATH), through the tool that installed
+# it. Routing on whether an npm copy merely exists updated that copy even when a
+# standalone install ran first, and then logged the standalone's unchanged
+# version as "now". An npm install needs npm: `sf update` refuses it ("not
+# updatable") while still exiting 0. `-ef` compares the files, so the npm bin
+# symlink matches however PATH spells its directory (bash 3.2 has it).
+RUN_SF="$(command -v sf 2>/dev/null || true)"
+# `|| true`: a plain assignment from a failing npm would end the script here
+# under `set -e`. With no prefix there is no npm copy to match, so NPM_SF stays
+# empty rather than becoming `/bin/sf` (on Linux often the same file as a
+# system /usr/bin/sf).
+NPM_PREFIX="$(npm prefix -g 2>/dev/null || true)"
+NPM_SF=""
+if [ -n "$NPM_PREFIX" ]; then NPM_SF="$NPM_PREFIX/bin/sf"; fi
+if [ -z "$RUN_SF" ]; then
+  warn "sf not found on PATH for $NEW_NODE — installing"
+  npm install -g @salesforce/cli@latest || fail_later "sf CLI install failed — try: npm install -g @salesforce/cli@latest"
+elif [ -n "$NPM_SF" ] && [ "$RUN_SF" -ef "$NPM_SF" ]; then
   log "sf CLI: npm install -g @salesforce/cli@latest (was $(sf --version 2>/dev/null | head -1 | cut -d' ' -f1))"
   npm install -g @salesforce/cli@latest || fail_later "sf CLI update failed — try: npm install -g @salesforce/cli@latest"
   log "sf CLI: now $(sf --version 2>/dev/null | head -1 | cut -d' ' -f1)"
-elif command -v sf >/dev/null 2>&1; then
-  log "sf CLI: installer-based install at $(command -v sf) — sf update"
-  sf update || fail_later "sf update failed"
 else
-  warn "sf not found on PATH for $NEW_NODE — installing"
-  npm install -g @salesforce/cli@latest
+  log "sf CLI: installer-based install at $RUN_SF — sf update"
+  sf update || fail_later "sf update failed"
+fi
+# Name every other `sf` on PATH: no update above reaches it, so it drifts in
+# version, and it runs instead whenever PATH puts it first (validate_setup WARNs
+# about the same). Listed once each by file, not by spelling, so a directory
+# PATH repeats, or reaches through a symlink, still counts once.
+OTHER_SF=""   # one path per line
+RUN_SF="$(command -v sf 2>/dev/null || true)"
+while IFS= read -r p; do
+  [ -n "$p" ] || continue
+  if [ -n "$RUN_SF" ] && [ "$p" -ef "$RUN_SF" ]; then continue; fi
+  SEEN=0
+  while IFS= read -r q; do
+    if [ -n "$q" ] && [ "$p" -ef "$q" ]; then SEEN=1; fi
+  done <<LISTED
+$OTHER_SF
+LISTED
+  if [ "$SEEN" = 0 ]; then OTHER_SF="$OTHER_SF$p
+"; fi
+done <<FOUND
+$(type -ap sf 2>/dev/null || true)
+FOUND
+if [ -n "$OTHER_SF" ]; then
+  OTHER_SHOWN="$(printf '%s' "$OTHER_SF" | tr '\n' ' ')"
+  warn "sf CLI: other copies on PATH were not updated: ${OTHER_SHOWN% } — keep one (dev-environment-setup.md, Troubleshooting → More than one \`sf\` install)"
 fi
 
 # ── 5. CCI (pipx) ───────────────────────────────────────────────────────────
@@ -181,6 +254,12 @@ fi
 # under the current target Python (idempotent) repairs this proactively.
 log "pipx: refresh under Python $PY_TARGET"
 "$PY_TARGET_BIN" -m pip install --user --upgrade pipx
+# Rewrite pipx's own scripts in ~/.local/bin (pipx, userpath, the argcomplete
+# helpers) for this patch. Every 3.13 patch shares ~/.local/lib/python3.13, so an
+# upgrade that finds them current leaves their shebangs on the old patch, and
+# uninstalling that patch would break them.
+"$PY_TARGET_BIN" -m pip install --user --force-reinstall --no-deps --quiet pipx userpath argcomplete \
+  || fail_later "couldn't rewrite pipx's scripts in ~/.local/bin for Python $PY_TARGET"
 "$PY_TARGET_BIN" -m pipx ensurepath >/dev/null 2>&1 || true
 
 # Pin pipx invocation to the target Python so subsequent calls aren't subject
@@ -245,6 +324,7 @@ log "CCI: ensuring setuptools>=75.4"
 log "CCI: re-applying robot/requirements.txt"
 "${PIPX[@]}" inject --force cumulusci -r "$REPO_ROOT/robot/requirements.txt" \
   || fail_later "couldn't inject robot/requirements.txt — run: pipx inject --force cumulusci -r robot/requirements.txt (validate_setup only flags selenium below 4.10)"
+
 
 # ── 6. sf plugins ───────────────────────────────────────────────────────────
 log "sf plugins: update"
@@ -387,6 +467,46 @@ while IFS= read -r wt <&4; do
   refresh_venv "$wt/.harness/tui-venv" "TUI venv" || true  # in use: recorded, left
 done 4< <(git -C "$REPO_ROOT" worktree list --porcelain 2>/dev/null | sed -n 's/^worktree //p')
 log "TUI venv: $TUI_SEEN found, each on pyenv's Python $PY_TARGET unless a warning above says otherwise"
+
+# Other pipx apps are the owner's, so only name the ones on a superseded patch of
+# this line: they break when that patch is uninstalled. An app kept on another
+# line (3.12, 3.14) or a non-pyenv Python is a choice, not stale. Repeated
+# before "Done".
+for v in "$(dirname "$CCI_VENV")"/*/; do
+  v="${v%/}"
+  [ -f "$v/pyvenv.cfg" ] || continue
+  [ "$(venv_base "$v")" = "$PY_TARGET_BASE" ] && continue
+  v_home="$(venv_home "$v")"
+  case "$v_home" in */versions/"$PY_LINE".*) ;; *) continue ;; esac
+  notice_later "pipx app $(basename "$v") is on ${v_home:-an unknown Python}, not $PY_TARGET. Before uninstalling that Python: pipx reinstall $(basename "$v") --python \"$PY_TARGET_BIN\""
+done
+
+# pipx's shared venv holds the pip every pipx venv uses for installs, injects and
+# upgrades. pipx builds it on whichever Python first ran pipx and rebuilds it only
+# once that Python is gone, so nothing above moves it (`pipx upgrade-shared` only
+# upgrades pip in place). Each venv's pipx_shared.pth names the shared venv's
+# lib/pythonX.Y, so a rebuild on another line leaves it pointing at nothing. The
+# fix depends on whether the old Python must stay, so it's only named here. An app
+# kept on another line always loads pip from another lib (there's one shared venv),
+# so only a missing directory is named for it.
+PIPX_SHARED="$("${PIPX[@]}" environment --value PIPX_SHARED_LIBS 2>/dev/null || true)"
+SHARED_DOC="docs/guides/dev-environment-setup.md (pipx's shared venv is on another Python)"
+if [ -f "$PIPX_SHARED/pyvenv.cfg" ] && [ "$(venv_base "$PIPX_SHARED")" != "$PY_TARGET_BASE" ]; then
+  notice_later "pipx's shared venv (the pip every pipx app uses) is on $(venv_home "$PIPX_SHARED"), not $PY_TARGET, and no pipx command moves it while that Python is installed. Don't uninstall that Python before reading $SHARED_DOC"
+fi
+for v in "$(dirname "$CCI_VENV")"/*/; do
+  v="${v%/}"
+  for pth in "$v"/lib/python*/site-packages/pipx_shared.pth; do
+    [ -f "$pth" ] || continue
+    shared_site="$(head -1 "$pth")"
+    own_lib="$(basename "$(dirname "$(dirname "$pth")")")"  # pythonX.Y
+    if [ ! -d "$shared_site" ]; then
+      notice_later "pipx app $(basename "$v") loads pip from $shared_site, which doesn't exist, so pipx inject and upgrade fail for it. See $SHARED_DOC"
+    elif [ "$own_lib" = "python$PY_LINE" ] && [ "$(basename "$(dirname "$shared_site")")" != "$own_lib" ]; then
+      notice_later "pipx app $(basename "$v") runs $own_lib but loads pip from $shared_site, another Python's site-packages. It works now, but loses pip once the shared venv is rebuilt. See $SHARED_DOC"
+    fi
+  done
+done
 
 # ── 9. Verify ───────────────────────────────────────────────────────────────
 log "Running validate_setup"

@@ -59,6 +59,18 @@ one nearly every additive plan in this repo targets:
   `QuoteEntitiesMapping` → `QuoteLineItem.RLM_RampMode__c` **and** to
   `OrderEntitiesMapping` → `OrderItem.RLM_RampMode__c`. Same attribute, two
   lenses, because a quote line and an order line are different SObjects.
+  **Skipping the Order lens breaks Order-output lifecycle actions**: amend, cancel
+  and renew with `outputRecordType: Order` price on `OrderEntitiesMapping`, and a
+  custom attribute the pricing procedure reads that is mapped only on
+  `QuoteEntitiesMapping` fails with the generic UNKNOWN_EXCEPTION "We couldn't
+  fetch the data for RLM_SalesTransactionContext context definition" (Quote output
+  still works). Map every custom attribute on both lenses; `validate_context_plan.py`
+  errors on a `__c` attribute mapped on Quote only. The ContractPricing,
+  PartnerAccount, PrmPricing and mfg plans map their Order lens to `Order`/`OrderItem`
+  with no `sObjectField`, because those objects have no matching custom field. That
+  makes the attribute resolvable but leaves it empty on Order-output actions, so a
+  procedure that depends on its value prices differently there; add an `OrderItem`
+  field and map it if that matters.
 
 ### Combinations — what yields *working* functionality
 
@@ -99,28 +111,31 @@ Management, Rating Discovery, Contracts, Contracts Extraction. Three do **not**
 set the flag and will hard-fail if their base is missing:
 `extend_context_sales_transaction` and `extend_context_product_discovery` (both
 foundational — always present, so the flag is unnecessary) and
-`extend_context_asset` (`cumulusci.yml:698`). The Asset omission is an
+`extend_context_asset`. The Asset omission is an
 **asymmetry**: Asset availability varies by edition, so if an Asset extend fails
 on a lean edition, that is the likely cause — add `allow_skip_if_unavailable:
 true` there to match the others, or gate the task with a `when:` edition guard.
 This bites only on lean editions that lack an Asset context — on editions where
 Asset is provisioned the omission is harmless.
 
-## Task sequence (extend → apply → deploy)
+## Task sequence (extend → apply)
 
 The typical order when standing up context configuration on an org:
 
 1. **`extend_context_*`** (live, Connect/SObject REST) — establish the extended
    layer on each standard base first. Run via the **`extend_context_definitions`**
-   flow (`cumulusci.yml:3794`).
+   flow.
 2. **`apply_context_*` / `manage_context_definition`** (live) — apply this repo's
    additive plans (attributes, mappings, tags, traversal hydration) onto those
-   bases. These are standalone tasks, not currently bundled into a flow.
-3. **`deploy_context_definitions`** (MDAPI, `cumulusci.yml:925`) — deploy the
-   file-based `.contextDefinition` metadata under
-   `force-app/main/default/contextDefinitions/`. Also a **standalone task**, not
-   in a flow. Note: activation state and default-mapping designation are **not
-   packageable**, so an MDAPI deploy still needs a follow-up activation step.
+   bases. The feature flows run them where a plan belongs to that feature
+   (`prepare_docgen`, `prepare_billing`, `prepare_prm`, `deploy_post_prm_pricing`,
+   `prepare_approvals_pricing`, `prepare_constraints`); they also run standalone.
+3. **No MDAPI path.** The `deploy_context_definitions` task was retired on 2026-10-28.
+   Its files were pre-264 snapshots that would delete attributes 264 added if deployed
+   (a definition deploys as one atomic unit); they now live, reference-only, in
+   `docs/references/context-definitions/`. Activation state and
+   default-mapping designation aren't packageable anyway, so an MDAPI deploy would
+   still need a follow-up activation step.
 
 ## Activation & deactivation
 
@@ -203,7 +218,8 @@ with the likely one for your change):
   context node, or ContextRules referencing it. No enumerating query — trace by
   type.
 - **PricingActionParameters** — pricing actions that name the context. No
-  enumerating query.
+  enumerating query. What a pricing action is and where it is set up:
+  `.cursor/skills/pricing-setup/pricing-actions.md`.
 
 Fix order: unlink/deactivate consumers in dependency order (consumer → context),
 then deactivate the definition. Reactivate the definition before re-linking.

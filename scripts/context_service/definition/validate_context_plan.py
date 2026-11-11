@@ -4,7 +4,7 @@
 This validates this repo's context **plan** format (the JSON consumed by
 ``manage_context_definition`` / ``ExtendStandardContext`` under
 ``datasets/context_plans/``) — NOT the MDAPI ``.contextDefinition`` file format
-under ``force-app/main/default/contextDefinitions/``.
+(reference-only copies in ``docs/references/context-definitions/``).
 
 It is a static, offline check (no org, no network), modeled on
 ``scripts/validate_sfdmu_v5_datasets.py`` (offline validator) and
@@ -382,6 +382,40 @@ def _validate_mapping_rules(plan: Dict[str, Any], result: PlanResult, loc: str):
         )
 
 
+def _validate_quote_order_parity(plan: Dict[str, Any], result: PlanResult, loc: str):
+    """A custom attribute mapped on QuoteEntitiesMapping needs an OrderEntitiesMapping rule too.
+
+    Order-output lifecycle actions (amend, cancel, renew with outputRecordType Order) price on
+    OrderEntitiesMapping. A custom attribute the pricing procedure reads that is mapped only on
+    the Quote lens fails them with a generic "couldn't fetch the data for <context> context
+    definition" error that hides the cause. Create-new plans define their own mappings, so skip.
+    """
+    rules = plan.get("mappingRules")
+    if _is_create_new(plan) or not isinstance(rules, list):
+        return
+
+    def lens(name):
+        return {
+            (r.get("contextNode"), r.get("contextAttribute"))
+            for r in rules
+            if isinstance(r, dict)
+            and r.get("mappingName") == name
+            and isinstance(r.get("contextNode"), str)
+            and isinstance(r.get("contextAttribute"), str)
+        }  # malformed rules are reported by _validate_mapping_rules
+
+    for node, attr in sorted(lens("QuoteEntitiesMapping") - lens("OrderEntitiesMapping")):
+        if attr.endswith("__c"):
+            result.add(
+                Severity.ERROR,
+                f"custom attribute {node}.{attr} is mapped on QuoteEntitiesMapping but not "
+                f"OrderEntitiesMapping — Order-output amend/cancel/renew fail with a generic "
+                f"context-fetch error; add an OrderEntitiesMapping rule (sObject Order/OrderItem; "
+                f"sObjectField optional)",
+                loc,
+            )
+
+
 def _validate_child_parent_reference_mappings(
     plan: Dict[str, Any], result: PlanResult, loc: str
 ):
@@ -537,6 +571,7 @@ def _validate_plan_object(plan: Dict[str, Any], result: PlanResult, loc: str):
     _validate_nodes(plan, result, loc)
     _validate_attributes(plan, result, loc)
     _validate_mapping_rules(plan, result, loc)
+    _validate_quote_order_parity(plan, result, loc)
     _validate_child_parent_reference_mappings(plan, result, loc)
     _validate_tags(plan, result, loc)
 

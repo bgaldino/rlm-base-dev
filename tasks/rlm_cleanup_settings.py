@@ -9,14 +9,14 @@ from pathlib import Path
 from typing import Dict, Any, Set, Optional
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object
+    BaseSalesforceTask = object
     TaskOptionsError = Exception
 
 
-class CleanupSettingsForDev(BaseTask):
+class CleanupSettingsForDev(BaseSalesforceTask):
     """Remove problematic settings fields based on org feature availability.
 
     Note: Despite the "ForDev" in the class name (legacy), this task runs before

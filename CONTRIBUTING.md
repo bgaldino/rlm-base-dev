@@ -110,8 +110,12 @@ re-sign that branch's commits too and add them to your PR.
 base=main            # or preview/<n>, release/<n>: the branch your PR targets
 git fetch upstream
 git rebase --exec 'git commit --amend --no-edit --no-verify -S' "$(git merge-base HEAD "upstream/$base")"
-git push --force-with-lease
+git push --force-with-lease origin HEAD
 ```
+
+The push names `origin` and `HEAD` because a branch pushed without `-u` (step 7) has no upstream, so
+a bare `git push --force-with-lease` stops with "has no upstream branch". The lease still checks
+against `origin/<branch>`, so it refuses if someone else pushed there meanwhile.
 
 This rewrites your branch as a straight line. If you merged the base branch into it, redo that as a
 rebase instead.
@@ -170,9 +174,19 @@ For LWC work, check the files you touched rather than the whole repo:
 ```sh
 npx eslint <changed-lwc-files>
 npx prettier --check <changed-files>
-npm test -- --passWithNoTests                              # Jest — the repo has no LWC suites yet,
-                                                           # so a bare `npm test` exits 1
+npm test                                                   # Jest suites (`lwc/<component>/__tests__/`)
 ```
+
+Jest suites live in `__tests__/` beside the component and mock its Apex imports. Neither
+deploy path ships them: `.forceignore` excludes `**/__tests__/**` from `sf` deploys, and
+CumulusCI's package builder skips `lwc/**/__*`. `rlmDecisionTableManager` has the first
+suite. It pins the dialog's focus trap, the `_connected` guards in `queueRefresh` and
+`poll`, the derived dialog row and error reading. `pr_gate.py` runs every suite as the
+`lwc_jest` check whenever a change touches a path under any `lwc/` directory, the Jest config,
+`package.json`, `package-lock.json`, `sfdx-project.json` or `.nvmrc`. CI's required
+`Mechanical checks` job does the same. Install first with `npm ci --ignore-scripts`, the
+command CI runs, under the Node line in `.nvmrc`. Without Node or `node_modules` the check
+reports MISSING-DEP, which fails the gate. A skipped or todo test fails it too.
 
 `prettier --check` formats Apex but never compiles or runs it. **Apex changes
 need an org**: deploy, then run the tests, then confirm the permission set is
@@ -224,8 +238,12 @@ This repository uses [Conventional Commits](https://www.conventionalcommits.org/
 ## 7. Push Your Branch
 
 ```sh
-git push -u origin my-feature-name
+git push origin my-feature-name
 ```
+
+Name the branch rather than passing `-u`: `-u` writes tracking into the
+repository's shared `.git/config`, which every worktree and every
+`scripts/ai/pr_gate.py` run reads.
 
 GitHub will display a **Compare & pull request** button.
 
@@ -275,7 +293,7 @@ To update your PR:
 ```sh
 git add .
 git commit -m "fix: address review feedback"
-git push
+git push origin my-feature-name
 ```
 
 Your PR updates automatically.
@@ -288,8 +306,11 @@ current without pushing to any `main` branch — which
 
 ```sh
 git fetch upstream
-git checkout -b my-next-feature upstream/main
+git checkout --no-track -b my-next-feature upstream/main
 ```
+
+`--no-track` keeps the new branch from tracking `upstream/main`: that tracking entry would otherwise
+be written into the shared `.git/config`, the same write step 7 avoids.
 
 Nothing in this workflow reads your fork's own `main`, so it can stay as it is.
 If you would rather keep it current, use your fork's **Sync fork** button on

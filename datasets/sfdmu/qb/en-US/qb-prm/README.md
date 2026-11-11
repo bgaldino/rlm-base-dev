@@ -16,7 +16,7 @@ This plan is executed as **step 8** of the `prepare_prm` flow (when `prm=true` a
 |------|-----------------------------------|------------------------------|-------------|
 | 1    | `create_partner_central`          | —                            | Create Partner Central community |
 | 2    | `patch_network_email_for_deploy`  | `prm_exp_bundle` and `tso`   | Replace placeholder email in rlm.network-meta.xml with Network's actual EmailSenderAddress (immutable) |
-| 3    | `deploy_post_prm`                 | `prm_exp_bundle` and `tso`   | Deploy PRM Experience Bundle metadata |
+| 3    | `deploy_post_prm`                 | `prm_exp_bundle` and `tso`   | Deploy PRM Experience Bundle metadata (with `quote_est_tax` and `tax`, also the partner permission set's Quote and QuoteLineItem estimated-tax grants) |
 | 5    | `revert_network_email_after_deploy` | `prm_exp_bundle` and `tso` | Restore placeholder email in rlm.network-meta.xml |
 | 6    | `publish_community`               | —                            | Publish the Partner Central community |
 | 7    | `assign_permission_sets`          | `prm_exp_bundle` and `tso`   | Assign `RLM_PRM` permission set |
@@ -66,6 +66,10 @@ ChannelProgramMember (Upsert)
 ### Account — 2-pass IsPartner enablement
 
 `Account.IsPartner` is `createable: false, updateable: true`. On a fresh org, pass 1 inserts the Account (IsPartner is ignored), then pass 2 updates it to `IsPartner=true`. This ensures the Account is partner-enabled before `ChannelProgramMember` links to it via `PartnerId`.
+
+### Shared with qb-prm-pricing (todo 337)
+
+`qb-prm-pricing` also upserts the Robot Resellers account and the Reseller Program, so both plans carry the same values for them: Type `Reseller`, Phone `+1 (415) 555-9521`, BillingCountry `United States`, and program Category `Reseller`. A reload of either plan on its own leaves them unchanged. Both Account passes select the account by `Name`, not `Type`: an org loaded before todo 337 has it as `Partner` or `Reseller` depending on which plan loaded last, and a Type filter that missed it would make an Upsert reload insert a second account of the same name. `check_sfdmu_layering.py` fails if two plans of one shape write different values to the same field again.
 
 ### ChannelProgramLevel (Pass 1)
 

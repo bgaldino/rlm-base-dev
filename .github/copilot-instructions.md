@@ -13,7 +13,7 @@ AI agent instructions file. Read it for:
 ## Quick Start
 
 1. Read `AGENTS.md` at the repo root
-2. Find the relevant skill in the Skill Index section
+2. Find the relevant skill by task in the router, `.cursor/skills/README.md` (`AGENTS.md`'s Skill Index lists every skill by area)
 3. Read that skill's `SKILL.md` for detailed guidance
 4. When creating, updating, registering, or testing skills, read `.cursor/skills/skill-authoring/SKILL.md`
 5. For a focused topic, use the skill's **sub-files** — each `SKILL.md` lists its own, which is the only registry (`AGENTS.md` carries no second-level index). E.g. Robot setup UI + shadow DOM (`.cursor/skills/robot-testing/setup-ui-shadow-dom.md`), UX assembly vs retrieve (`.cursor/skills/repo-integration/ux-assembly-retrieve.md`)

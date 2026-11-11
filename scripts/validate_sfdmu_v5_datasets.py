@@ -132,40 +132,26 @@ class ValidationResult:
 class SFDMUValidator:
     """Validator for SFDMU v5 datasets."""
 
-    # Known objects that use deleteOldData strategy (from sfdmu_composite_key_optimizations.md)
+    # Objects whose live `deleteOldData` is documented, one per declaration that still deletes
+    # (todo 216; re-checked 2026-11-05 against every tracked export.json). Each is set to go:
+    # todo 331 found none needs to stay (mfg-dro FWI: todo 111; mfg-aaf: todo 327; inapp's went in
+    # todo 334). Remove an entry when its delete goes, so a delete reintroduced later is reported.
     DELETE_OLD_DATA_OBJECTS = {
-        "FulfillmentWorkspaceItem",
-        "PriceBookRateCard",
-        "RateCardEntry",
-        "RateAdjustmentByTier",
-        # MFG AAF — forecast facts use deleteOldData for full refresh
-        "AdvAccountForecastFact",
-        "AdvAcctForecastSetPartner",
-        # Guided selling — OmniProcess/AssessmentQuestion objects require deleteOldData
-        # due to complex self-referential keys that SFDMU v5 cannot upsert safely
-        "AssessmentQuestionAssignment",
-        "AssessmentQuestionVersion",
-        "OmniProcessElement",
-        "OmniProcessAsmtQuestionVer",
-        # Rating usage grants require deleteOldData due to composite key structure
-        "ProductUsageResource",
-        "ProductUsageResourcePolicy",
-        "ProductUsageGrant",
+        "FulfillmentWorkspaceItem",     # mfg-dro (qb-dro dropped its copy, #678)
+        "AdvAccountForecastFact",       # mfg-aaf
+        "AdvAcctForecastSetPartner",    # mfg-aaf
     }
 
-    # Known excluded objects (from optimization doc)
+    # Objects declared `excluded` in some plan (re-checked 2026-11-05, todo 216).
     KNOWN_EXCLUDED_OBJECTS = {
         "PricebookEntryDerivedPrice",
-        "ProductUsageResourcePolicy",
-        "ProductUsageGrant",
         "ProductDecompEnrichmentRule",
         "ProductComponentGrpOverride",
         "ProductRelComponentOverride",
-        # CostBookEntry excluded in qb-pricing (no cost book data in base dataset)
-        "CostBookEntry",
     }
 
-    # Objects with known empty CSVs (0 records placeholders)
+    # Objects with known empty CSVs (0 records placeholders). Pruned of objects no plan ships
+    # empty any more on 2026-11-05 (todo 216).
     KNOWN_EMPTY_CSV_OBJECTS = {
         "ValTfrmGrp",
         "ValTfrm",
@@ -174,62 +160,32 @@ class SFDMUValidator:
         "ProductDisqualification",
         "ProductCategoryDisqual",
         "ProductCategoryQualification",
-        "CostBook",
         "CostBookEntry",
         "GeneralLedgerJrnlEntryRule",
         "ProductRelComponentOverride",
-        "PriceAdjustmentTier",
         "BundleBasedAdjustment",
         "PricebookEntryDerivedPrice",
         "ProductRampSegment",
-        "UsagePrdGrantBindingPolicy",
     }
 
     # Frozen snapshot of the header-only CSVs currently shipping under the deprioritized
-    # `q3` / `mfg` plan families (todo pack 162). These are DEFERRED — not real placeholders
-    # — until the 264 upgrade re-seeds those plans: the `q3-billing` set is real data lost
-    # in commit 3bff2389's "fresh 262 refresh" (recoverable from git @ 3bff2389~1), and
-    # `q3-dro` / `mfg-guidedselling` / the rest are never-populated stubs. The priority
+    # `mfg` plan family (todo pack 162). These are DEFERRED — not real placeholders — until
+    # the mfg re-seed: they are never-populated stubs. The q3 entries left this list in todo
+    # 210, when q3-billing and q3-dro were cut down to their product mappings. The priority
     # datasets are the `qb` series (verified clean of this shape, 0 findings).
     #
     # Enumerated by EXACT plan-relative path (relative to datasets/sfdmu), deliberately NOT
-    # by family prefix: a family-wide skip would also silently swallow a NEWLY added q3/mfg
+    # by family prefix: a family-wide skip would also silently swallow a NEWLY added mfg
     # object, or one of these plans' currently-POPULATED CSVs later truncated to its header
-    # (e.g. q3-billing/PaymentTerm still ships a data row) — exactly the data-loss shape this
+    # (e.g. mfg-guidedselling/AssessmentQuestion.csv) — exactly the data-loss shape this
     # check exists to catch. Only these specific files are exempt; anything else still
     # produces the gating HIGH. Regenerate the set from the live tree (validator findings
     # with this deferral disabled), and delete entries as each plan is re-seeded.
-    #
-    # KNOWN EXCEPTION (pack 162 log): q3-dro/FulfillmentWorkspaceItem carries
-    # `deleteOldData: true`, so its header-only CSV is DESTRUCTIVE — running q3-dro would
-    # delete existing FulfillmentWorkspaceItem records and insert nothing. It is intentionally
-    # kept in this set (this shape was silent before pack 162 too; q3 is frozen until the
-    # post-264 re-seed by explicit project decision, and un-deferring it would block every PR
-    # on a plan the team chose not to run). The re-seed MUST re-populate this CSV or drop the
-    # deleteOldData/plan wiring; the destructive shape is tracked in the pack 162 log, not lost.
     _DEFERRED_EMPTY_CSV_PATHS = frozenset({
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionAssignment.csv",
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionSet.csv",
         "mfg/en-US/mfg-guidedselling/AssessmentQuestionSetConfig.csv",
         "mfg/en-US/mfg-pcm/UnitOfMeasureClass.csv",
-        "q3/en-US/q3-billing/AccountingPeriod.csv",
-        "q3/en-US/q3-billing/BillingPolicy.csv",
-        "q3/en-US/q3-billing/BillingTreatment.csv",
-        "q3/en-US/q3-billing/BillingTreatmentItem.csv",
-        "q3/en-US/q3-billing/GeneralLedgerAccount.csv",
-        "q3/en-US/q3-billing/GeneralLedgerAcctAsgntRule.csv",
-        "q3/en-US/q3-billing/LegalEntyAccountingPeriod.csv",
-        "q3/en-US/q3-billing/PaymentRetryRule.csv",
-        "q3/en-US/q3-billing/PaymentRetryRuleSet.csv",
-        "q3/en-US/q3-dro/FulfillmentFalloutRule.csv",
-        "q3/en-US/q3-dro/FulfillmentStepDefinition.csv",
-        "q3/en-US/q3-dro/FulfillmentStepDefinitionGroup.csv",
-        "q3/en-US/q3-dro/FulfillmentStepDependencyDef.csv",
-        "q3/en-US/q3-dro/FulfillmentStepJeopardyRule.csv",
-        "q3/en-US/q3-dro/FulfillmentWorkspace.csv",
-        "q3/en-US/q3-dro/FulfillmentWorkspaceItem.csv",
-        "q3/en-US/q3-dro/ProductFulfillmentDecompRule.csv",
-        "q3/en-US/q3-dro/ProductFulfillmentScenario.csv",
     })
 
     def _report_empty_csv_no_header(self, result, obj_name: str, csv_path: Path,
@@ -255,8 +211,8 @@ class SFDMUValidator:
             ))
 
     def _is_deferred_empty_csv_plan(self, csv_path: Path) -> bool:
-        """True if csv_path is one of the enumerated known-empty q3/mfg CSVs deferred
-        pending the post-264 re-seed (pack 162 / _DEFERRED_EMPTY_CSV_PATHS). Matched by
+        """True if csv_path is one of the enumerated known-empty mfg CSVs deferred
+        pending the mfg re-seed (pack 162 / _DEFERRED_EMPTY_CSV_PATHS). Matched by
         EXACT path relative to datasets/sfdmu, so only those specific files are exempt —
         a new object, or a currently-populated sibling in the same plan later truncated to
         its header, still produces the gating HIGH.
@@ -276,24 +232,19 @@ class SFDMUValidator:
     # surfaced four pre-existing shipped cases. Three (the qb-clm ObjectState* objects, whose `Name`
     # recurred under different `ObjectStateDefinition` parents so an Upsert collapsed distinct
     # records) were fixed in pack 193 by re-keying to the composite `Name;ObjectStateDefinition.Name`
-    # — the guard skips composite keys, so they need no entry here. The one that remains,
-    # q3-rating/RatingFrequencyPolicy, is a pair of BYTE-IDENTICAL `Monthly` rows — a benign
-    # redundant row, not a wrong-row overwrite — deduped in pack 194.
+    # — the guard skips composite keys. The fourth, q3-rating/RatingFrequencyPolicy (a pair of
+    # byte-identical `Monthly` rows), was allowlisted here until pack 194 removed the duplicate on
+    # 2026-10-28. The allowlist is empty now.
     #
-    # Allowlisted here so this offline-tooling guard lands green rather than turning the validator
-    # red repo-wide. The exemption is scoped three ways so it grandfathers only the exact collision
-    # present today, never a future regression in the same file: by EXACT plan-relative path (a NEW
-    # plan with the same object still produces the gating HIGH — deliberately not by object name); by
-    # the specific single-field key non-unique today (a re-key to a different single field fires
-    # again); and by the exact duplicate SIGNATURE — the full frozenset of (duplicated value, count)
-    # pairs. Pinning the signature rather than just a total count catches a wholesale swap (one
-    # duplicate removed while a different value becomes duplicated) that would leave a bare count
-    # unchanged. Regenerate a signature from the live CSV; delete the entry when pack 194's fix lands.
-    _KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = {
-        "q3/en-US/q3-rating/RatingFrequencyPolicy.csv": ("RatingPeriod", frozenset({
-            ('Monthly', 2),
-        })),
-    }
+    # Keep the mechanism for a future grandfathered collision. An entry must be scoped three ways,
+    # so it exempts only that exact collision and never a later regression in the same file: by
+    # EXACT plan-relative path (a new plan with the same object still produces the gating HIGH —
+    # deliberately not by object name); by the specific single-field key (a re-key to a different
+    # single field fires again); and by the exact duplicate SIGNATURE, the full frozenset of
+    # (duplicated value, count) pairs, so a wholesale swap that keeps a bare count unchanged still
+    # fires. Take the signature from the live CSV, and delete the entry when its fix lands. The
+    # scoping is pinned in tests/test_sfdmu_csv_expectation.py against a fixture entry.
+    _KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS: dict = {}
 
     # SFDMU 5.8.0's CSV reader imports these tokens as null, not a literal string, matched
     # case-insensitively on the trimmed cell (`Common._CSV_NULL_TOKENS` +
@@ -1964,7 +1915,7 @@ class SFDMUValidator:
                 message=f"externalId uses legacy $$ notation: '{external_id}'. SFDMU v5 requires semicolon-delimited format (e.g., 'Field1;Field2')"
             ))
 
-        # Check for nested relationship paths (v5 flattening issue).
+        # Check for nested relationship paths (extraction may write their segments as #N/A).
         # Skip for Insert operations: externalId is only used for CSV composite key
         # matching, not for SOQL traversal, so nested paths do not cause runtime errors.
         # Skip for plain Delete too, for a stronger reason: its query never runs at all
@@ -1980,10 +1931,19 @@ class SFDMUValidator:
                 # Count dots (more than 1 = nested relationship)
                 dot_count = field.count(".")
                 if dot_count > 1:
+                    # Info, not Medium (todo 216): on the 5.6.4+ floor a nested path matches
+                    # correctly on Upsert/Update (Bug 2 fixed in 5.6.3, Bugs 3/5 in 5.6.4; todo
+                    # 216 records the qb-rates and qb-pricing reloads at 0 diff). What remains is
+                    # that an extraction can write the nested segments as `#N/A`, and
+                    # post_process_extraction.py backfills only the code columns it has a
+                    # Name->Code map for (it blanks the rest). Still reported, never suppressed.
                     result.add_issue(Issue(
-                        severity=Severity.MEDIUM,
+                        severity=Severity.INFO,
                         object_name=obj_name,
-                        message=f"externalId contains nested relationship path '{field}' which may cause v5 flattening errors"
+                        message=f"externalId contains nested relationship path '{field}': it matches "
+                                f"on SFDMU 5.6.4+, but an extraction can write its nested segments as "
+                                f"#N/A; post_process_extraction.py backfills only the code columns it "
+                                f"has a Name->Code map for, so check the extracted CSV before reloading"
                     ))
 
         # Validate that composite key components are in the query.
@@ -2048,7 +2008,7 @@ class SFDMUValidator:
                 # yields an empty (or all-blank) first record, so `headers` normalizes to
                 # all-empty here. That is still a no-header file: report it exactly like the
                 # StopIteration case above, and BEFORE the family deferral, so the no-header
-                # guarantee holds for q3/mfg too (the deferral covers only the header-only
+                # guarantee holds for mfg too (the deferral covers only the header-only
                 # finding, a strictly weaker signal).
                 if not any(h for h in headers):
                     self._report_empty_csv_no_header(result, obj_name, csv_path, pass_prefix)
@@ -2075,7 +2035,7 @@ class SFDMUValidator:
                 # lost its data rows (bad export, or a file truncated to just its header) passed
                 # validation cleanly. Mirror the severity split:
                 #   - allowlisted object → benign (this IS the expected placeholder state), DEBUG only.
-                #   - enumerated deferred q3/mfg file → this finding only is skipped (see
+                #   - enumerated deferred mfg file → this finding only is skipped (see
                 #     _DEFERRED_EMPTY_CSV_PATHS; other empty/key checks still fire, and a new
                 #     or newly-truncated file in the same plan is NOT exempt).
                 #   - any other object   → HIGH. Not CRITICAL: a present header is a weaker failure
@@ -2085,7 +2045,7 @@ class SFDMUValidator:
                         self.log(f"  Object {obj_name} has 0 data rows (known placeholder)", level="DEBUG")
                     elif self._is_deferred_empty_csv_plan(csv_path):
                         self.log(f"  {obj_name} has 0 data rows in a deferred plan tree "
-                                 "(pending post-264 refresh) — not flagged", level="DEBUG")
+                                 "(pending the mfg re-seed) — not flagged", level="DEBUG")
                     else:
                         result.add_issue(Issue(
                             severity=Severity.HIGH,
@@ -2428,10 +2388,11 @@ class SFDMUValidator:
             fields: List of field names to concatenate
 
         Returns:
-            Composite key value with semicolon separators
+            Composite key value with semicolon separators. Empty parts are dropped, as SFDMU
+            drops them when it builds the target-side value; a kept empty part never matches.
         """
-        values = [str(row.get(field, "")) for field in fields]
-        return ";".join(values)
+        values = [str(row.get(field) or "") for field in fields]
+        return ";".join(v for v in values if v != "")
 
     def _fix_missing_composite_key(self, csv_path: Path, fields: List[str], obj_name: str) -> bool:
         """Add composite key column to a CSV file.

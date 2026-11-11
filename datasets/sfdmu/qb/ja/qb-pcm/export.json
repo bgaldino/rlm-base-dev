@@ -11,9 +11,11 @@
       "externalId": "Code"
     },
     {
+      "$comment": "Inserts missing classes as Draft (the platform creates a class only in Draft) and skips existing ones, so a reload never sends Status=Draft to a class activate_rating_records has activated; without the skip, a reload reverted all five to Draft (measured on a JPY-corporate 264 org, todo 212). qb-rating's pass 1 uses the same skip; ja has no correcting pass 2. qb/en-US and q3 pcm still revert (todo 342).",
       "query": "SELECT BaseUnitOfMeasureId, Code, DefaultUnitOfMeasureId, Description, Id, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
       "operation": "Upsert",
-      "externalId": "Code"
+      "externalId": "Code",
+      "skipExistingRecords": true
     },
     {
       "query": "SELECT ConversionFactor, Description, Id, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId FROM UnitOfMeasure ORDER BY UnitCode ASC",
@@ -66,12 +68,12 @@
       "externalId": "Name"
     },
     {
-      "query": "SELECT Id, IsDefault, Product2Id, ProductSellingModelId, ProrationPolicyId, Product2.StockKeepingUnit, ProductSellingModel.Name FROM ProductSellingModelOption ORDER BY Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC",
+      "query": "SELECT Id, IsDefault, Product2Id, ProductSellingModelId, ProrationPolicyId, Product2.StockKeepingUnit, ProductSellingModel.Name, ProductSellingModel.SellingModelType FROM ProductSellingModelOption ORDER BY Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC",
       "operation": "Upsert",
-      "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name"
+      "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType"
     },
     {
-      "query": "SELECT DurationType, Id, Name, ProductId, ProductSellingModelId, SegmentType, TrialDuration, Product.StockKeepingUnit, ProductSellingModel.SellingModelType FROM ProductRampSegment ORDER BY Product.StockKeepingUnit ASC, ProductSellingModel.SellingModelType ASC, SegmentType ASC",
+      "query": "SELECT DurationType, Id, ProductId, ProductSellingModelId, SegmentType, TrialDuration, Product.StockKeepingUnit, ProductSellingModel.SellingModelType FROM ProductRampSegment ORDER BY Product.StockKeepingUnit ASC, ProductSellingModel.SellingModelType ASC, SegmentType ASC",
       "operation": "Upsert",
       "externalId": "Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType"
     },
@@ -81,9 +83,9 @@
       "externalId": "Name"
     },
     {
-      "query": "SELECT Code, Description, Id, MaxBundleComponents, MinBundleComponents, Name, ParentGroupId, ParentProductId, Sequence, ParentProduct.StockKeepingUnit FROM ProductComponentGroup ORDER BY ParentProduct.StockKeepingUnit ASC, Code ASC",
+      "query": "SELECT Code, Description, Id, MaxBundleComponents, MinBundleComponents, Name, ParentGroupId, ParentGroup.Code, ParentProductId, Sequence, ParentProduct.StockKeepingUnit FROM ProductComponentGroup ORDER BY ParentProduct.StockKeepingUnit ASC, Code ASC",
       "operation": "Upsert",
-      "externalId": "Code;ParentProduct.StockKeepingUnit"
+      "externalId": "Code"
     },
     {
       "query": "SELECT ChildProductClassificationId, ChildProductId, ChildProductRole, ChildSellingModelId, DoesBundlePriceIncludeChild, Id, IsComponentRequired, IsDefaultComponent, IsQuantityEditable, MaxQuantity, MinQuantity, ParentProductId, ParentProductRole, ParentSellingModelId, ProductComponentGroupId, ProductRelationshipTypeId, Quantity, QuantityScaleMethod, QuoteVisibility, Sequence, UnitOfMeasureId, ChildProductClassification.Code, ChildProduct.StockKeepingUnit, ParentProduct.StockKeepingUnit, ProductComponentGroup.Code, ProductRelationshipType.Name FROM ProductRelatedComponent ORDER BY ChildProductClassification.Code ASC, ChildProduct.StockKeepingUnit ASC, ParentProduct.StockKeepingUnit ASC, ProductComponentGroup.Code ASC, ProductRelationshipType.Name ASC",

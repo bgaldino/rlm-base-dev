@@ -59,7 +59,38 @@ Key endpoints (see the reference doc for exact request shapes):
 - `POST /connect/rev/sales-transaction/actions/clone` — Clone a sales transaction
 - `POST /connect/revenue-management/assets/actions/amend` — Amend asset
 - `POST /connect/revenue-management/assets/actions/renew` — Renew asset
+- `POST /connect/revenue-management/assets/actions/cancel` — Cancel asset
 - `POST /industries/cpq/quotes/actions/get-instant-price` — Instant pricing
+
+**Backdated asset changes** (amend, cancel, renew, transfer, swap, upgrade, downgrade with an
+effective date in the past; rollback's refusal): the invocable inputs, activation prerequisites,
+UI-flow (`RLM_ARC_Assets`) behaviour, and invoice/credit-memo verification are in
+[backdated-asset-lifecycle.md](backdated-asset-lifecycle.md), with the end-to-end verifier
+`scripts/backdated_arc/verify_backdated_billing.py`.
+
+**Where an ARC line's price lives.** On a renewal, a cancel or a negative-quantity amendment, the
+platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemDetail`** rows
+("Order Product Detail") and leaves `UnitPrice` and `NetUnitPrice` **null** on the parent
+`QuoteLineItem` / `OrderItem`. Totals on the parent stay correct.
+
+- Integrations, document templates, formulas and Apex must read the detail rows (or coalesce)
+  and must never trust the parent's `NetUnitPrice` on these lines (renewal, cancel, negative
+  amendment).
+- A positive-quantity amendment placed through the API and new business keep the price on the
+  parent and have no detail rows. A positive amendment edited inline in the quote UI was measured
+  with its price on detail rows (`asset-lifecycle-changes` → Quick Rule 4).
+- This repo keeps **as-is renewals on** (`enableAsIsRenewals=true` in
+  `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`), so renewals behave this way
+  too. Turning it off moves a plain renewal's price back to the parent, but leaves cancels and
+  negative amendments unchanged (measured, todo 157).
+- Advanced Detail Line Pricing does not change any of it.
+
+```bash
+sf data query -o <sf-alias> -q "SELECT QuoteLineItemId, Quantity, UnitPrice, NetUnitPrice, \
+    TotalPrice FROM QuoteLineDetail WHERE QuoteLineItem.QuoteId = '<quote>'"
+sf data query -o <sf-alias> -q "SELECT OrderItemId, Quantity, UnitPrice, NetUnitPrice, \
+    TotalPrice FROM OrderItemDetail WHERE OrderItem.OrderId = '<order>'"
+```
 
 ### Pricing APIs
 - `POST /connect/core-pricing/pricing` — Calculate prices for a transaction

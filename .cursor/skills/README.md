@@ -32,14 +32,18 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | Understand RLM objects/relationships | Revenue Cloud Data Model | [revenue-cloud-data-model/SKILL.md](revenue-cloud-data-model/SKILL.md) |
 | Use Revenue Cloud REST APIs | Business APIs | [rlm-business-apis/SKILL.md](rlm-business-apis/SKILL.md) |
 | Ground claims against Salesforce Help | Revenue Cloud Docs | [revenue-cloud-docs/SKILL.md](revenue-cloud-docs/SKILL.md) |
+| Set up, query, author, or troubleshoot Salesforce Contracts CLM | Salesforce Contracts | [salesforce-contracts/SKILL.md](salesforce-contracts/SKILL.md) |
 
 ### Product configuration and pricing
 
 | I need to... | Skill | Entry Point |
 |-------------|-------|-------------|
+| Model a product catalog: product vs attribute vs component, bundles and cardinality, classifications, selling models, lifecycle flags, catalogs and categories | Product Catalog Modeling | [product-catalog-modeling/SKILL.md](product-catalog-modeling/SKILL.md) |
 | Edit/ship/debug Constraint models (CML) — configurator bundle rules, `.ffxblob` | Constraint Models | [constraint-models/SKILL.md](constraint-models/SKILL.md) |
+| Set up Salesforce Pricing in an org: enablement, permissions, price/cost books, adjustment schedules, recipes, proration, revision policies, pricing actions | Pricing Setup | [pricing-setup/SKILL.md](pricing-setup/SKILL.md) |
 | Wire pricing recipes, procedures, or lookup table mappings | Pricing Wiring | [pricing-wiring/SKILL.md](pricing-wiring/SKILL.md) |
 | Author/CRUD Expression Sets (Connect/Metadata API) and build step overlays | Expression Sets | [expression-sets/SKILL.md](expression-sets/SKILL.md) |
+| Configure pricing elements (Aggregate Price, discounts, Price Revision, DDS, …), element ordering, and day-2 pricing-procedure operations | Pricing Procedures | [pricing-procedures/SKILL.md](pricing-procedures/SKILL.md) |
 | Inspect/author/manage, refresh, diagnose, or verify decision tables | Decision Tables | [decision-tables/SKILL.md](decision-tables/SKILL.md) |
 | Read/extend/apply/deploy/upgrade Context Definitions; inspect/validate context plans | Context Service | [context-service/SKILL.md](context-service/SKILL.md) |
 
@@ -47,6 +51,12 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 
 | I need to... | Skill | Entry Point |
 |-------------|-------|-------------|
+| Design/create/load CSV/SFDMU DRO plans and maintain existing fulfillment configuration | DRO Plans | [dro-plans/SKILL.md](dro-plans/SKILL.md) |
+| Model, build, run or verify **Advanced Approvals**: sign-off matrices, cumulative levels, chains, submit/review/recall, the shipped quote approval | Advanced Approvals | [advanced-approvals/SKILL.md](advanced-approvals/SKILL.md) |
+| Configure or use the quote/order **line editor** (columns, Adjustment Type, groups, action buttons, Instant Pricing, auto-refresh, configure from a line, amendment lines) | Transaction Line Editor | [transaction-line-editor/SKILL.md](transaction-line-editor/SKILL.md) |
+| Model **negotiation or bid rounds** as quote versions: deep clone a quote, what carries over, an internal-only round, per-round discounts and approvals, which round syncs and becomes the order | Quote Negotiation Rounds | [quote-negotiation-rounds/SKILL.md](quote-negotiation-rounds/SKILL.md) |
+| Model and verify **amend, swap, cancel and renew** on sold assets: change policies, where prices and attributes land, credits, end-to-end tests | Asset Lifecycle Changes | [asset-lifecycle-changes/SKILL.md](asset-lifecycle-changes/SKILL.md) |
+| Set up **billing**: billing frequency vs selling model, advance or arrears treatments, milestone billing for services, payment terms and the approval, what the repo's billing build ships | Billing Setup | [billing-setup/SKILL.md](billing-setup/SKILL.md) |
 | Build / verify a multi-year group **ramp** quote + per-segment (compound) uplift | Ramped Quotes | [ramped-quotes/SKILL.md](ramped-quotes/SKILL.md) |
 | Create renewal-ready assets across the 4 expiry windows + layer lifecycle event history | Renewal Asset Creation | [renewal-asset-creation/SKILL.md](renewal-asset-creation/SKILL.md) |
 | Build, rate, and verify metered consumption demos | Usage & Consumption | [usage-consumption/SKILL.md](usage-consumption/SKILL.md) |
@@ -59,12 +69,13 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | I need to... | Skill | Entry Point |
 |-------------|-------|-------------|
 | Add new code, features, metadata | Repository Integration | [repo-integration/SKILL.md](repo-integration/SKILL.md) |
-| Work with CCI tasks, flows, or CLI | CCI Orchestration | [cci-orchestration/SKILL.md](cci-orchestration/SKILL.md) |
+| Work with CCI tasks/flows/CLI, or clean expired orgs and stale SF auth | CCI Orchestration | [cci-orchestration/SKILL.md](cci-orchestration/SKILL.md) |
 | Write a Python CCI task class | Custom Task Authoring | [cci-orchestration/custom-task-authoring.md](cci-orchestration/custom-task-authoring.md) |
 | Create/modify SFDMU data plans | SFDMU Data Plans | [sfdmu-data-plans/SKILL.md](sfdmu-data-plans/SKILL.md) |
 | Run build harness profiles/resume/report | Build Harness | [build-harness/SKILL.md](build-harness/SKILL.md) |
 | Set up, audit, update or verify the local dev toolchain (incl. managed workstations) | Toolchain | [toolchain/SKILL.md](toolchain/SKILL.md) |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | PDE Org Build | [pde-org-build/SKILL.md](pde-org-build/SKILL.md) |
+| Stand up / inspect / debug the MCP surface on an org (hosted + custom servers, ECA, proxy) | MCP Integration | [mcp-integration/SKILL.md](mcp-integration/SKILL.md) |
 | Capture/apply UX drift from org | UX Assembly & Retrieve | [repo-integration/ux-assembly-retrieve.md](repo-integration/ux-assembly-retrieve.md) |
 | Validate / refresh / certify the ERD against orgs and Core source | Schema Validation | [schema-validation/SKILL.md](schema-validation/SKILL.md) |
 | Write Robot Framework tests | Robot Testing | [robot-testing/SKILL.md](robot-testing/SKILL.md) |
@@ -133,7 +144,7 @@ This table is the canonical list — `AGENTS.md` points here rather than repeati
 
 | Rule | Triggers On | Equivalent Skill |
 |------|-------------|------------------|
-| `analysis-artifacts.mdc` | (always applies) | *(stand-alone — AI-generated analysis must go to `.agents/artifacts/`, never the public repo)* |
+| `analysis-artifacts.mdc` | (always applies) | *(stand-alone — AI-generated working docs go in `.agents/artifacts/` under `todos/attachments/<id>/`, an existing `topics/<slug>/` or else `inbox/`; never its root or the public repo)* |
 | `sfdmu-export-json.mdc` | `**/export.json` | `sfdmu-data-plans/SKILL.md` |
 | `sfdmu-csv-data.mdc` | `datasets/sfdmu/**/*.csv` | `sfdmu-data-plans/SKILL.md` |
 | `cci-task-definitions.mdc` | `cumulusci.yml` | `cci-orchestration/SKILL.md` |

@@ -28,8 +28,8 @@ python scripts/ai/check_plan_readme_consistency.py --strict  # README ↔ export
 
 ## Offline invariants — the fast gate
 
-17 checks, no org needed, runs in under a second. Run it before every commit that
-touches `qb-rating`, `qb-rates`, or `qb-pricing` data.
+18 checks, no org needed, runs in under a second. Run it before every commit that
+touches `qb-rating`, `qb-rating-entitlements`, `qb-rates`, or `qb-pricing` data.
 
 | Invariant | Guards against |
 |-----------|----------------|
@@ -47,6 +47,7 @@ touches `qb-rating`, `qb-rates`, or `qb-pricing` data.
 | `money_conversion_sane` | Converted rates that drift from `ConversionRate`, or tiers that collapse into each other |
 | `rates_derived_from_base` | A non-base rate that does not match its derived value |
 | `overrides_derived_from_base` | A non-base **Override tier value** that does not match its derived value — these are money and are converted, but were unchecked by the two rules above |
+| `rce_pass2_matches_root` | The qb-rates pass-2 RateCardEntry override drifting from the root CSV — pass 2 runs last, so a stale copy overwrites the rates pass 1 just loaded |
 | `period_ordering_descending` | `billing >= rating > accumulation` violated |
 | `counts_match_readme` | Plan README file-tree counts drifting from the CSVs |
 | `docs_state_the_real_count` | This page and `AGENTS.md` advertising a number of invariants that is no longer true — it counts itself, so adding a check means updating both |
@@ -93,7 +94,11 @@ python scripts/qb_usage.py report --org <sf-alias>   # runtime: buckets, drawdow
 
 `validateRatedUsage.apex` is the assertion pass — run it after orchestration settles.
 It aggregates the journals and checks the arithmetic rather than printing numbers for
-a human to eyeball.
+a human to eyeball. Set `USAGE_PERIOD_START` / `USAGE_PERIOD_END` to the period you
+recorded into: journals, summaries **and** drawdown buckets are all scoped to that
+window. A linked commitment that drew nothing while its anchor rated overage in the
+window FAILS — see `building-usage-assets.md` for the backdated case that produces it.
+`qb_usage.py report` lists buckets unscoped, every period together.
 
 ## Reading a suspicious result
 

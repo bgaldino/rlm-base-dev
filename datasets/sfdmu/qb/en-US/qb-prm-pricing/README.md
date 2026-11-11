@@ -57,6 +57,14 @@ partner/customer Account records; pass 3 is the authoritative self-lookup pass
 for `RLM_Primary_Distributor__c` and `RLM_Primary_Reseller__c` after both sides
 of the Account relationship exist.
 
+### Shared records (todo 337)
+
+`Robot Resellers` and `Reseller Program` are also loaded by `qb-prm`, and `Apex Dynamics` by the
+sample-data plan (`scratch_data`). Each record carries the same values in every plan that writes it
+(Robot Resellers: Type `Reseller`, Phone `+1 (415) 555-9521`, BillingCountry `United States`;
+Reseller Program: Category `Reseller`; Apex Dynamics: BillingCountry `US`), so a reload of any one
+plan leaves them unchanged. `check_sfdmu_layering.py` fails if they drift apart again.
+
 ## Idempotency
 
 This plan is verified idempotent. Running it multiple times against the same org

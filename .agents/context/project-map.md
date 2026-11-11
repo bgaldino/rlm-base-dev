@@ -14,7 +14,8 @@
 ## Agent Memory Files
 
 - `.agents/context/project-memory.json` — deterministic machine-readable project memory.
-- `.agents/schemas/project-memory.schema.json` — JSON Schema for validating future updates.
+- `.agents/schemas/project-memory.schema.json` — JSON Schema for the memory file, enforced by
+  `tests/test_project_memory_schema.py`.
 - `.agents/context/project-map.md` — human-readable orientation map for agents.
 
 ## Ownership Map
@@ -34,7 +35,6 @@
 | `datasets/tooling/` | Tooling API metadata exports | Treat as metadata snapshots. |
 | `scripts/apex/` | Apex activation/deletion scripts | Keep scripts bulk-safe and avoid unsafe single-record loops. |
 | `scripts/ai/` | Agent support utilities | Includes CCI reference generation and ERD/manifest helpers. |
-| `scripts/cml/` | CML utilities | Export/import/validation helpers for constraint model work. |
 | `scripts/erd/` | Schema and ERD tooling | Use for cross-release schema comparisons (260/262/264) and ERD generation. |
 | `scripts/soql/` | Reusable SOQL queries | Prefer checked-in query files for repeatable analysis. |
 | `tasks/` | Custom Python CCI tasks | Use `org_config.username` for `sf` CLI; reserve tokens for REST. |
@@ -81,7 +81,8 @@ Tracked generated references currently recorded in project memory:
 
 1. Read `AGENTS.md` and any nested `AGENTS.md` files in paths you will edit.
 2. Read `.agents/context/project-memory.json` for deterministic repo memory.
-3. Use `.agents/schemas/project-memory.schema.json` to validate memory edits.
+3. Validate memory edits against `.agents/schemas/project-memory.schema.json` with
+   `python tests/test_project_memory_schema.py` (also run by `pr_gate.py`).
 4. Inspect `git status --short` before and after changes.
 5. Run the smallest relevant validation command for the files you touched.
 6. Commit changes on the current branch and open a PR when code or documentation changes are made.

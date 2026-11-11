@@ -10,10 +10,9 @@ Documentation     End-to-end Quote-to-Order flow combining setup_quote and order
 ...
 ...               Requires a fully provisioned org with qb=true (run prepare_rlm_org first).
 ...
-...               Run via CCI (the robot_* tasks reject --org, issue #320 — select the org first):
-...                 cci org default beta
-...                 cci task run robot_e2e
-...                 cci task run robot_e2e_debug -o pause_for_recording true   (headed + CDP debug)
+...               Run via CCI:
+...                 cci task run robot_e2e --org beta
+...                 cci task run robot_e2e_debug --org beta -o pause_for_recording true   (headed + CDP debug)
 Resource          ../../resources/E2ECommon.robot
 Resource          ../../variables/E2EVariables.robot
 Suite Setup       Setup Quote To Order Test
@@ -26,6 +25,9 @@ ${OPPORTUNITY_ID}       ${EMPTY}
 ${QUOTE_ID}             ${EMPTY}
 ${ORDER_ID}             ${EMPTY}
 ${CONTRACT_ID}          ${EMPTY}
+# The contract-first test's contract-price option (None, Discount or Net Unit Price). Net Unit
+# Price gives every priced line a ContractItemPrice, so the dates check covers them all.
+${CONTRACT_PRICE_OPTION}    Net Unit Price
 
 *** Test Cases ***
 
@@ -101,6 +103,7 @@ Run Quote To Order Flow
     # Order (and the renewal Opportunity the flow creates from it) carries a real ContractId.
     IF    ${with_contract}
         ${contract_id}=    Create Contract From Quote    ${QUOTE_ID}
+        ...    contract_price_option=${CONTRACT_PRICE_OPTION}
         Set Suite Variable    ${CONTRACT_ID}    ${contract_id}
     END
 

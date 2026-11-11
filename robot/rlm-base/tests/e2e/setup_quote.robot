@@ -6,9 +6,8 @@ Documentation     Resets the test Account and creates an Opportunity and Quote.
 ...
 ...               Requires a fully provisioned org (run prepare_rlm_org first).
 ...
-...               Run via CCI (the robot_* tasks reject --org, issue #320 — select the org first):
-...                 cci org default beta
-...                 cci task run robot_setup_quote
+...               Run via CCI:
+...                 cci task run robot_setup_quote --org beta
 Resource          ../../resources/E2ECommon.robot
 Resource          ../../variables/E2EVariables.robot
 Suite Setup       Setup Quote Test

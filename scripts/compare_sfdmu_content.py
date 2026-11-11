@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Compare SFDMU CSV content (not just row counts) for qb-pcm, qb-pricing, qb-product-images.
+Compare SFDMU CSV content (not just row counts) for qb-pcm and qb-pricing.
 Compares main vs qb-extractdata and main vs qb-migrate with row order normalized.
 """
 import csv
@@ -11,7 +11,7 @@ MAIN = ROOT / "datasets/sfdmu/qb/en-US"
 EXTRACT = ROOT / "datasets/sfdmu/reconcile/qb-extractdata/en-US"
 MIGRATE = ROOT / "datasets/sfdmu/reconcile/qb-migrate/en-US"
 
-PLANS = ["qb-pcm", "qb-pricing", "qb-product-images"]
+PLANS = ["qb-pcm", "qb-pricing"]  # qb-product-images was folded into qb-pcm (todo 336)
 SKIP = {"MissingParentRecordsReport.csv"}
 
 
@@ -97,7 +97,7 @@ def compare_content(plan: str) -> None:
 
 def main():
     print("=" * 80)
-    print("Content comparison (qb-pcm, qb-pricing, qb-product-images)")
+    print("Content comparison (qb-pcm, qb-pricing)")
     print("Rows normalized by sorting before compare.")
     print("=" * 80)
     for plan in PLANS:

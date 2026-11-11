@@ -2,14 +2,15 @@
 """
 build_erds.py — Patch the interactive ERD HTML with updated entity data.
 
-Reads docs/erds/erd-data.json and patches the embedded D= data block in
+Reads docs/erds/erd-data.json and the optional Contracts CLM extension, then patches
+the embedded D= data block in
 docs/erds/revenue-cloud-erd.html with the current entity inventory and
 relationships. Preserves the existing HTML/CSS/JS template.
 
 Can also add new entities and relationships to erd-data.json.
 
 Usage:
-    # Regenerate HTML from erd-data.json
+    # Regenerate HTML from erd-data.json plus contracts-erd-data.json when present
     python3 scripts/erd/build_erds.py
 
     # Verify current state without modifying
@@ -43,6 +44,7 @@ DOMAIN_MAP = {
     "Usage Management (Core Object)": {"short": "Usage", "color": "#5c6bc0"},
     "Billing": {"short": "Billing", "color": "#ef5350"},
     "Billing (Core Object)": {"short": "Billing", "color": "#ef5350"},
+    "Contracts & CLM": {"short": "Contracts", "color": "#14b8a6"},
 }
 
 
@@ -113,6 +115,7 @@ def erd_data_to_html_nodes(erd_data: dict) -> list:
             "id": name,
             "dom": short_dom,
             "std": is_standard,
+            "q": obj.get("queryable"),
             "fc": fc,
             "rf": rf,
             "df": df,
@@ -151,7 +154,7 @@ def patch_version_strings(html: str, metadata: dict) -> tuple:
 
     Returns `(html, patched, expected)`. **Compare the last two and fail if they
     differ** — a count alone is not enough. Each pattern targets a different piece of
-    chrome, so if a template edit breaks one of them the other two still match and the
+    chrome, so if a template edit breaks one of them the other patterns still match and the
     build reports success while shipping a half-updated banner. That is the same
     silent drift this function exists to prevent, so a partial patch has to be loud.
 
@@ -170,13 +173,16 @@ def patch_version_strings(html: str, metadata: dict) -> tuple:
     """
     release = str(metadata.get("release") or "")
     api = str(metadata.get("apiVersion") or "")
+    viewer_title = metadata.get("viewerTitle") or "Revenue Cloud"
 
     label = RELEASE_NAMES.get(release)
     subtitle = f"{label} (Release {release})" if label else f"Release {release}"
 
     patterns = (
-        (r"<title>Revenue Cloud v[\d.]+ — Interactive ERD</title>",
-         f"<title>Revenue Cloud v{api} — Interactive ERD</title>"),
+        (r"<title>Revenue Cloud(?: \+ Contracts CLM)? v[\d.]+ — Interactive ERD</title>",
+         f"<title>{viewer_title} v{api} — Interactive ERD</title>"),
+        (r'<h1>Revenue Cloud(?: \+ Contracts CLM)? ERD<span class="ver-badge">',
+         f'<h1>{viewer_title} ERD<span class="ver-badge">'),
         (r'<span class="ver-badge">v[\d.]+</span>',
          f'<span class="ver-badge">v{api}</span>'),
         # Matches both subtitle forms this function can emit: the named
@@ -293,10 +299,12 @@ def verify(html_path: str):
 def main():
     base = Path(__file__).resolve().parent.parent.parent  # repo root (scripts/erd/build_erds.py → /)
     data_file = base / "docs" / "erds" / "erd-data.json"
+    clm_file = base / "docs" / "erds" / "contracts-erd-data.json"
     html_file = base / "docs" / "erds" / "revenue-cloud-erd.html"
 
     if not data_file.exists():
         data_file = Path("docs/erds/erd-data.json")
+        clm_file = Path("docs/erds/contracts-erd-data.json")
         html_file = Path("docs/erds/revenue-cloud-erd.html")
 
     if "--verify" in sys.argv:
@@ -316,6 +324,18 @@ def main():
     print(f"Loading {data_file}...")
     with open(data_file) as f:
         erd_data = json.load(f)
+
+    if clm_file.exists():
+        with open(clm_file) as f:
+            clm_data = json.load(f)
+        collisions = set(erd_data.get("objects", {})) & set(clm_data.get("objects", {}))
+        if collisions:
+            print(f"Error: CLM extension duplicates base objects: {sorted(collisions)}", file=sys.stderr)
+            return 1
+        erd_data["objects"].update(clm_data.get("objects", {}))
+        erd_data["relationships"] = list(erd_data.get("relationships", [])) + list(clm_data.get("relationships", []))
+        erd_data.setdefault("metadata", {})["viewerTitle"] = "Revenue Cloud + Contracts CLM"
+        print(f"Merged {len(clm_data.get('objects', {}))} Contracts CLM extension objects from {clm_file}.")
 
     print("Converting to HTML format...")
     nodes = erd_data_to_html_nodes(erd_data)

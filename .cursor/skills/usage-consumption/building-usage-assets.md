@@ -97,12 +97,34 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "<acct>" \
   post-activation poll instantly and be verified (or commitment-linked) as though it
   were the new one. A preflight refuses to run; `--allow-existing-asset` proceeds but
   requires a genuinely **new** asset id.
-- **Not every account can transact.** Several scratch accounts ship with no shipping
-  address or bill-to contact and fail with `FAILED_ACTIVATION`. The QuantumBit demo
-  accounts (Infinitech, Kingsbridge Digital, Coralbay Technologies, Helvetia Cloud,
-  Northlight Systems, Rheintech Solutions, Sakura Systems, Global Media) all have both.
+- **`FAILED_ACTIVATION` ("Enter the shipping address associated with the account") has two
+  causes.**
+  - The account has no shipping address or bill-to contact. Several scratch accounts ship
+    that way. The QuantumBit demo accounts (Infinitech, Kingsbridge Digital, Coralbay
+    Technologies, Helvetia Cloud, Northlight Systems, Rheintech Solutions, Sakura Systems,
+    Global Media) all have both.
+  - The account has one, but the order doesn't: an order created from a quote
+    (`createOrdersFromQuote`, as the chain above uses, or a graph-built one) doesn't copy the
+    account's shipping address. Measured on Infinitech, 2026-08-24 (264, ent-sb0): the account
+    had the address, and the order still failed. Copy the account's Shipping address fields onto
+    the `Order` before setting `Status = Activated` (Billing isn't gating for these new-sale
+    orders; in one measured run, amend/cancel/renew orders on 264 also needed the billing address
+    and a bill-to contact, see `rlm-business-apis/backdated-asset-lifecycle.md`). The txn harness does
+    this (`scripts/txn_data_harness/lifecycle.py`). `scripts/build_quote_to_asset.py` has no
+    address step; whether its path needs one hasn't been verified, given the Infinitech example
+    shown above. If activation stops with this message, check the account's
+    address first, then the order's Shipping fields.
 - **Backdate deliberately.** `--start` must be early enough that a billing period has
   closed, or there is nothing for rating to settle.
+- ⚠ **A backdated asset got a MONTHLY entitlement bucket for its first period only.**
+  Observed on 264 (2026-10-28, `QB-DB-TOKEN` anchor + linked `QB-CMT-TKN-TIER`, start
+  2026-06-01): only June's monthly buckets exist (`CompletedRollovers = 0`; the term-length
+  and open-ended buckets exist but carry zeros), and identical ×3 usage booked into July
+  rated at **full overage** — 52,500 overage tokens against June's 20,500, with neither the
+  commitment nor the grant drawn. The platform raises no error; `validateRatedUsage.apex`
+  run on the July window FAILS ("Linked commitment not applied"). Demo a drawdown in the
+  first period only; for a second period, check for its monthly bucket rather than
+  assuming it.
 
 ## Key options
 
@@ -118,6 +140,8 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "<acct>" \
 | `--billing-frequency` | Mandatory for TermDefined/Evergreen (default `Monthly`) |
 | `--billing-timing` | Substring picking among a currency's BillingTreatments (default `Advance`) |
 | `--period-boundary` | Default `Anniversary` |
+| `--ramp-years N` / `--ramp-quantities 1,2` | Make the single line a Yearly **line ramp** of N segments (`ramp-deal-create`, then a Place to save it), with a quantity per segment (required; only that form was measured). The product needs `Product2.CanRamp`, and `--start`/`--end` must span N years (checked). See `rlm-business-apis/backdated-asset-lifecycle.md` |
+| `--ramp-kind group` | With `--ramp-years`: a **group ramp** instead, with one `QuoteLineGroup` per year under a `RampScheduleGroup` (EditGroup, clone, then the parent; any term product). See `ramped-quotes/SKILL.md` |
 
 ## Related
 

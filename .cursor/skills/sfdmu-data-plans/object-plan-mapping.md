@@ -7,7 +7,7 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 > relationship-traversal Upsert bugs (Bugs 2/3/5), which are **fixed on the enforced
 > 5.6.4+ floor** — Upsert now matches on traversal externalIds. The plans still carry the
 > old operation until the gated `sfdmu-v5-optimization` migration. When authoring a *new*
-> plan on 5.6.4+, use `Upsert` for traversal externalIds; only Bug 4 (`$$` in lookup reference columns — self-referential and cross-object) is live.
+> plan on 5.6.4+, use `Upsert` for traversal externalIds; only Bug 4 (a `$$` lookup reference that's self-referential or doesn't match the parent's `externalId`) is live.
 
 ## qb-pcm (Product Catalog Management — 28 objects)
 
@@ -51,17 +51,17 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | ProductSellingModel | `Name;SellingModelType` | Readonly | From qb-pcm |
 | AttributeDefinition | `Code` | Readonly | From qb-pcm |
 | Product2 | `StockKeepingUnit` | Readonly | From qb-pcm |
-| CostBook | `Name;IsDefault` | Upsert | |
+| CostBook | `Name` | Upsert | |
 | Pricebook2 | `Name;IsStandard` | Upsert | |
-| PriceAdjustmentTier | 9-field composite | **Insert** | Bug 3: relationship traversal externalId — pre-5.6.4 record; fixed on floor |
-| PriceAdjustmentSchedule | `Name;CurrencyIsoCode` | Update | |
+| PriceAdjustmentTier | 9-field composite | Upsert | Matches on the traversal key; no delete step (todo 298) |
+| PriceAdjustmentSchedule | `Name` | Upsert | One per type, USD |
 | AttributeBasedAdjRule | `Name` | Upsert | |
-| AttributeAdjustmentCondition | 3-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
-| AttributeBasedAdjustment | 5-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
-| BundleBasedAdjustment | 8-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
-| PricebookEntry | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
-| PricebookEntryDerivedPrice | 8-field composite | **Insert** | Bug 2+3 — pre-5.6.4 record; fixed on floor |
-| CostBookEntry | 3-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
+| AttributeAdjustmentCondition | 3-field composite | Upsert | Matches on the traversal key; no delete step (todo 298) |
+| AttributeBasedAdjustment | 5-field composite | Upsert | Matches on the traversal key; no delete step (todo 298) |
+| BundleBasedAdjustment | 8-field composite | Upsert | Matches on the traversal key; no delete step (todo 298) |
+| PricebookEntry | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | Upsert | Matches on the traversal key; no delete step (todo 298) |
+| PricebookEntryDerivedPrice | 7-field composite | Upsert | 0 rows today; no delete step (todo 298) |
+| CostBookEntry | 3-field composite | Upsert | Matches on the traversal key; no delete step (todo 298) |
 
 ## qb-billing (3 passes)
 
@@ -104,31 +104,42 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | SObject | externalId | Operation | Pass | Notes |
 |---------|-----------|-----------|------|-------|
 | UnitOfMeasure | `UnitCode` | Upsert | 1 | |
-| UnitOfMeasureClass | `Code` | Upsert | 1 | |
+| UnitOfMeasureClass | `Code` | Upsert + skipExistingRecords | 1 | Inserts missing rows as Draft |
 | UsageResourceBillingPolicy | `Code` | Upsert | 1 | |
-| UsageResource | `Code` | Upsert | 1 | Self-ref via TokenResourceId |
+| UsageResource | `Code` | Upsert + skipExistingRecords | 1 | Self-ref via TokenResourceId |
 | Product2 | `StockKeepingUnit` | Update | 1 | Sets UsageModelType |
 | UsageGrantRenewalPolicy | `Code` | Upsert | 1 | |
 | UsageGrantRolloverPolicy | `Code` | Upsert | 1 | |
 | UsageOveragePolicy | `Name` | Upsert | 1 | |
 | UsageCommitmentPolicy | `Name` | Upsert | 1 | |
-| ProductUsageResource (PUR) | `Product.StockKeepingUnit;UsageResource.Code` | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor |
+| ProductUsageResource (PUR) | `Product.StockKeepingUnit;UsageResource.Code` | Upsert + skipExistingRecords | 1 | Inserts missing PURs as Draft (todo 298) |
 | UsagePrdGrantBindingPolicy | `Name;Product2.StockKeepingUnit` | Upsert | 1 | |
 | RatingFrequencyPolicy | `RatingPeriod` | Upsert | 1 | |
-| ProductUsageResourcePolicy (PURP) | `ProductUsageResourceId` | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor |
-| ProductUsageGrant (PUG) | 3-field composite | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor. Upsert migration is not operation-only: the 3-field key is intentionally non-unique across parent PURs, so it must first add a PUR component (e.g. `ProductUsageResourceId`) |
-| UnitOfMeasureClass | — | Update | 2 | Activate |
-| UsageResource | — | Update | 2 | Activate |
+| UnitOfMeasure, Product2 | — | Readonly | 2 | Lookup targets for the pass-2 updates |
+| UnitOfMeasureClass | `Code` | Update | 2 | Corrections, without Status |
+| UsageResource | `Code` | Update | 2 | Corrections, without Status |
+| ProductUsageResource (PUR) | `Product.StockKeepingUnit;UsageResource.Code` | Update | 2 | Corrections, without Status or TokenResource |
 
-## qb-rates
+Nothing in qb-rating is deleted or activated by SFDMU; `activateRatingRecords.apex` activates.
 
-| SObject | externalId | Operation | Notes |
-|---------|-----------|-----------|-------|
-| Product2 | `StockKeepingUnit` | Update | Sets UsageModelType |
-| RateCard | `Name;Type` | Upsert | |
-| PriceBookRateCard | `PriceBook.Name;RateCard.Name;RateCardType` | Upsert + deleteOldData | Auto-number Name |
-| RateCardEntry | 4-field composite | **Insert** + deleteOldData | Bug 2 (multi-hop traversal) — pre-5.6.4 record; fixed on floor |
-| RateAdjustmentByTier | 6-field composite | **Insert** + deleteOldData | Bug 2 (multi-hop traversal) — pre-5.6.4 record; fixed on floor |
+## qb-rating-entitlements (2 passes; runs after qb-rating)
+
+| SObject | externalId | Operation | Pass | Notes |
+|---------|-----------|-----------|------|-------|
+| Policies, UoM, UoMClass, Product2 | — | Readonly | 1, 2 | Owned by qb-rating |
+| ProductUsageResource (PUR) | `Id` | Readonly | 1, 2 | CSV generated per load from the target org (`parent_id_lookups.json`) |
+| ProductUsageResourcePolicy (PURP) | `ProductUsageResourceId` | Upsert + skipExistingRecords, then Update | 1, 2 | Id resolved per org from the portable SKU + Code columns (upstream #1218 blocks the traversal key) |
+| ProductUsageGrant (PUG) | `ProductUsageResourceId` | Upsert + skipExistingRecords, then Update without Status | 1, 2 | Same; one grant per PUR in this dataset |
+
+## qb-rates (2 passes)
+
+| SObject | externalId | Operation | Pass | Notes |
+|---------|-----------|-----------|------|-------|
+| Product2 | `StockKeepingUnit` | Update, then Readonly | 1, 2 | Sets UsageModelType |
+| RateCard | `Name;Type` | Upsert, then Readonly | 1, 2 | |
+| PriceBookRateCard | `PriceBook.Name;RateCard.Name;RateCardType` | Upsert | 1 | Auto-number Name; matches on the traversal key |
+| RateCardEntry | 4-field composite | Upsert + skipExistingRecords, then Update without Status | 1, 2 | Missing entries insert as Draft; an Active entry accepts only Status edits |
+| RateAdjustmentByTier | 6-field composite | Upsert | 1 | `$$` value omits a blank UpperBound; can't be edited under an Active entry |
 
 ## qb-dro (17 objects)
 
@@ -147,10 +158,17 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | FulfillmentStepDependencyDef | `Name` | Upsert | |
 | ProductFulfillmentScenario | `Name` | Upsert | |
 | FulfillmentWorkspace | `Name` | Upsert | |
-| FulfillmentWorkspaceItem | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name` | Upsert + deleteOldData | Bug 5 — auto-number Name |
+| FulfillmentWorkspaceItem | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name` | Upsert | Auto-number Name; matches on the 5.6.4+ floor (todo 326) |
 | FulfillmentFalloutRule | `Name` | Upsert | |
 | FulfillmentStepJeopardyRule | `Name` | Upsert | |
 | FulfillmentTaskAssignmentRule | `Name` | Upsert | |
+
+## qb-price-revision
+
+| SObject | externalId | Operation |
+|---------|-----------|-----------|
+| IndexRate | `Name` | Upsert |
+| PriceRevisionPolicy | `Name` | Upsert |
 
 ## qb-clm
 
@@ -177,7 +195,6 @@ Product2 guided-selling field values are loaded as a separate decorator plan aft
 | Plan | SObject | externalId | Operation |
 |------|---------|-----------|-----------|
 | qb-transactionprocessingtypes | TransactionProcessingType | `DeveloperName` | Upsert |
-| qb-product-images | Product2 | `StockKeepingUnit` | Update (DisplayUrl) |
 | qb-approvals | ApprovalAlertContentDef | `Name` | Upsert |
 | qb-approvals | EmailTemplate | — | ReadOnly |
 | scratch_data | Account | `Name` | Upsert |

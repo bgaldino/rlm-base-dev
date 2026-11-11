@@ -68,6 +68,6 @@ ProrationPolicy ← ProcedurePlanCriterion (ProrationPolicyId)
 
 16 objects across 1 pass with objectSets. Upstream: `qb-pcm` (Product2, PSM, ProrationPolicy, AttributeDefinition).
 
-Key pattern: Most junction/adjustment objects in the **shipped** plan use plain `Insert` (idempotency comes from the `delete_quantumbit_pricing_data` step that runs first, **not** `deleteOldData`) due to composite relationship-traversal externalIds — a **pre-5.6.4 workaround** (Bug 3 is fixed on the 5.6.4+ floor; new plans use `Upsert`, and migrating the shipped plan is the gated `sfdmu-v5-optimization` initiative).
+Key pattern: every junction/adjustment object is `Upsert` on its composite relationship-traversal externalId (todo 298), so the plan reloads into a built org without deleting anything. `delete_quantumbit_pricing_data` is a manual full teardown only. On a built org the platform blocks deleting `AttributeAdjustmentCondition` and entries referenced by quotes.
 
 Read-only references: ProductSellingModel, AttributeDefinition, Product2 (loaded by qb-pcm).

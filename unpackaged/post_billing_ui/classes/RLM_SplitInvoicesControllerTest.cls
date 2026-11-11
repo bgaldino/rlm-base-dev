@@ -3,7 +3,7 @@ private class RLM_SplitInvoicesControllerTest {
 
     @isTest
     static void getCurrentInvoiceBillingInfo_blankAndUnknown_returnsEmptyInfo() {
-        Id fakeInvoice = Id.valueOf(Invoice.SObjectType.getDescribe().getKeyPrefix() + '000000000000');
+        Id fakeInvoice = fakeId('Invoice', 0);
         Test.startTest();
         RLM_SplitInvoicesController.CurrentInvoiceBillingInfo blank =
             RLM_SplitInvoicesController.getCurrentInvoiceBillingInfo('');
@@ -23,15 +23,11 @@ private class RLM_SplitInvoicesControllerTest {
             RLM_SplitInvoicesController.getInvoicesByCorrelation('');
         System.assertEquals(0, blank.size(), 'Blank correlation id yields an empty list.');
 
-        // The correlation query joins BillingArrangement/BillingProfile lookups that may be
-        // absent in some orgs; accept either an empty list or a graceful AuraHandledException.
-        try {
-            List<RLM_SplitInvoicesController.InvoiceRow> unknown =
-                RLM_SplitInvoicesController.getInvoicesByCorrelation('RLM-NO-SUCH-CORRELATION');
-            System.assertEquals(0, unknown.size(), 'Unknown correlation id yields an empty list when queryable.');
-        } catch (AuraHandledException e) {
-            // Billing lookup schema not present in this org; the query path still executed.
-        }
+        // The correlation query must run: it once selected BillingArrangement, which is not an
+        // Invoice field, and failed with "No such column" on every call.
+        List<RLM_SplitInvoicesController.InvoiceRow> unknown =
+            RLM_SplitInvoicesController.getInvoicesByCorrelation('RLM-NO-SUCH-CORRELATION');
+        System.assertEquals(0, unknown.size(), 'Unknown correlation id yields an empty list.');
         Test.stopTest();
     }
 
@@ -50,5 +46,193 @@ private class RLM_SplitInvoicesControllerTest {
         System.assertEquals('RLM Split Invoices Test', result.accountNames.get(acc.Id),
             'Account name should resolve by id.');
         System.assertEquals(0, result.arrangementNames.size(), 'Null arrangement ids resolve to an empty map.');
+    }
+
+    // With a list of an object that has no Name field (Case; the id need not exist), the call
+    // does not throw, and the contact list still resolves by name. Nothing is asserted on the
+    // Case (profile) list: with a fake id it is empty whatever the controller does.
+    @isTest
+    static void getRelatedNames_resolvesContactsAndToleratesNamelessObjects() {
+        Account acc = new Account(Name = 'RLM Split Invoices Contact Test');
+        insert acc;
+        Contact con = new Contact(FirstName = 'Ana', LastName = 'Rivera', AccountId = acc.Id);
+        insert con;
+        // Name order depends on the locale, so compare against the stored full name.
+        String contactName = [SELECT Name FROM Contact WHERE Id = :con.Id].Name;
+
+        Test.startTest();
+        RLM_SplitInvoicesController.RelatedNamesResult result =
+            RLM_SplitInvoicesController.getRelatedNames(
+                new List<String>{ acc.Id }, null, new List<String>{ fakeId('Case', 1) }, new List<String>{ con.Id });
+        Test.stopTest();
+
+        Assert.areEqual('RLM Split Invoices Contact Test', result.accountNames.get(acc.Id),
+            'The account resolves by name.');
+        Assert.areEqual(contactName, result.contactNames.get(con.Id),
+            'The contact list still resolves to its full name.');
+    }
+
+    // A list holding only blank ids resolves to an empty map without running a query.
+    @isTest
+    static void getRelatedNames_blankIds_resolveToNothingWithoutAQuery() {
+        Test.startTest();
+        Integer queriesBefore = Limits.getQueries();
+        RLM_SplitInvoicesController.RelatedNamesResult result =
+            RLM_SplitInvoicesController.getRelatedNames(null, new List<String>{ '', null }, null, null);
+        Integer queriesAfter = Limits.getQueries();
+        Test.stopTest();
+
+        Assert.isTrue(result.arrangementNames.isEmpty(), 'Blank ids resolve to an empty map.');
+        Assert.areEqual(queriesBefore, queriesAfter, 'Blank ids must not run a query.');
+    }
+
+    // InvoiceRow maps a queried invoice, including the names on its three lookups. Invoices
+    // are not insertable, so the row is built from an invoice deserialized with its
+    // relationships, the shape the correlation query returns.
+    @isTest
+    static void invoiceRow_mapsFieldsAndLookupNames() {
+        Id invoiceId = fakeId('Invoice', 1);
+        Id accountId = fakeId('Account', 1);
+        Id arrangementId = fakeId('BillingArrangement', 1);
+        Id profileId = fakeId('BillingAccount', 1);
+        Date invoiceDate = Date.newInstance(2026, 1, 15);
+        SObject inv = invoiceFromJson(new Map<String, Object>{
+            'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
+            'Id' => invoiceId,
+            'DocumentNumber' => 'INV-0001',
+            'InvoiceDate' => invoiceDate,
+            'Balance' => 250,
+            'Status' => 'Posted',
+            'BillingAccountId' => accountId,
+            'BillingAccount' => related('Account', accountId, 'RLM Split Account'),
+            'BillingArrangementId' => arrangementId,
+            'BillingArrangement' => related('BillingArrangement', arrangementId, 'RLM Split Arrangement'),
+            'BillingProfileId' => profileId,
+            'BillingProfile' => related('BillingAccount', profileId, 'RLM Split Profile'),
+            'BillingArrangementVerNumber' => 3
+        });
+
+        Test.startTest();
+        RLM_SplitInvoicesController.InvoiceRow row = new RLM_SplitInvoicesController.InvoiceRow(inv);
+        Test.stopTest();
+
+        Assert.areEqual(String.valueOf(invoiceId), String.valueOf(row.Id), 'Invoice id.');
+        Assert.areEqual('INV-0001', row.DocumentNumber, 'Document number.');
+        Assert.areEqual(invoiceDate, row.InvoiceDate, 'Invoice date.');
+        Assert.areEqual(250, row.Balance, 'Balance.');
+        Assert.areEqual('Posted', row.Status, 'Status.');
+        Assert.areEqual(String.valueOf(accountId), row.billingAccountId, 'Billing account id.');
+        Assert.areEqual('RLM Split Account', row.billingAccountName, 'Billing account name.');
+        Assert.areEqual(String.valueOf(arrangementId), row.billingArrangementId, 'Billing arrangement id.');
+        Assert.areEqual('RLM Split Arrangement', row.billingArrangementName, 'Billing arrangement name.');
+        Assert.areEqual(String.valueOf(profileId), row.billingProfileId, 'Billing profile id.');
+        Assert.areEqual('RLM Split Profile', row.billingProfileName, 'Billing profile name.');
+        Assert.areEqual('3', row.billingArrangementVerNumber, 'The version number is shown as text.');
+    }
+
+    // An invoice with no lookups set leaves every id and name null rather than failing.
+    @isTest
+    static void invoiceRow_withoutLookups_leavesIdsAndNamesNull() {
+        SObject inv = invoiceFromJson(new Map<String, Object>{
+            'attributes' => new Map<String, Object>{ 'type' => 'Invoice' },
+            'Id' => fakeId('Invoice', 2),
+            'Status' => 'Draft'
+        });
+
+        Test.startTest();
+        RLM_SplitInvoicesController.InvoiceRow row = new RLM_SplitInvoicesController.InvoiceRow(inv);
+        Test.stopTest();
+
+        Assert.areEqual('Draft', row.Status, 'Status.');
+        Assert.isNull(row.billingAccountId, 'No billing account id.');
+        Assert.isNull(row.billingAccountName, 'No billing account name.');
+        Assert.isNull(row.billingArrangementId, 'No billing arrangement id.');
+        Assert.isNull(row.billingArrangementName, 'No billing arrangement name.');
+        Assert.isNull(row.billingProfileId, 'No billing profile id.');
+        Assert.isNull(row.billingProfileName, 'No billing profile name.');
+        Assert.isNull(row.billingArrangementVerNumber, 'No version number.');
+    }
+
+    // For an admin an unknown correlation id is an empty list (see above). A user who cannot
+    // read invoices gets a handled error from the correlation list instead.
+    @isTest
+    static void getInvoicesByCorrelation_userWithoutInvoiceAccess_throwsAHandledError() {
+        // Minimum Access with no license or permission set: no billing object is readable.
+        User u = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
+        Id fakeInvoice = fakeId('Invoice', 3);
+        Boolean premise = false;
+        Boolean listThrew = false;
+        RLM_SplitInvoicesController.CurrentInvoiceBillingInfo info;
+        Test.startTest();
+        System.runAs(u) {
+            try {
+                Database.query('SELECT Id FROM Invoice LIMIT 1', AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                premise = true;
+            }
+            try {
+                RLM_SplitInvoicesController.getInvoicesByCorrelation('RLM-NO-ACCESS');
+            } catch (AuraHandledException e) {
+                listThrew = true;
+            }
+            // Coverage-only check: getCurrentInvoiceBillingInfo catches every exception, so it
+            // returns an info instead of throwing. Its fields are not asserted: they would be
+            // null for any user, because the fake id matches no invoice.
+            info = RLM_SplitInvoicesController.getCurrentInvoiceBillingInfo(fakeInvoice);
+        }
+        Test.stopTest();
+        Assert.isTrue(premise, 'PRECONDITION: this user must be unable to read Invoice.');
+        Assert.isTrue(listThrew, 'An unreadable invoice query must surface as an AuraHandledException.');
+        Assert.isNotNull(info,
+            'getCurrentInvoiceBillingInfo returns an empty info instead of throwing for a user who cannot read Invoice.');
+    }
+
+    // The positive path as a billing operations user rather than the deploying admin
+    // (RLM_BillingUI is assigned only after this bundle deploys): the user can run the
+    // correlation query's exact field list in USER_MODE, and an unknown correlation id returns
+    // an empty list without throwing.
+    @isTest
+    static void getInvoicesByCorrelation_billingOperationsUser_runsTheQuery() {
+        User u = RLM_BillingUITestUsers.create(
+            new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        String readError;
+        List<RLM_SplitInvoicesController.InvoiceRow> rows;
+        Test.startTest();
+        System.runAs(u) {
+            try {
+                Database.query(
+                    'SELECT Id, DocumentNumber, InvoiceDate, Balance, Status, CorrelationIdentifier, '
+                    + 'BillingAccountId, BillingAccount.Name, BillingArrangementId, BillingArrangement.Name, '
+                    + 'BillingProfileId, BillingProfile.Name, BillingArrangementVerNumber FROM Invoice LIMIT 1',
+                    AccessLevel.USER_MODE);
+            } catch (QueryException e) {
+                readError = e.getMessage();
+            }
+            Assert.isNull(readError,
+                'PRECONDITION: a billing operations user can run the correlation query\'s fields: ' + readError);
+            rows = RLM_SplitInvoicesController.getInvoicesByCorrelation('RLM-NO-SUCH-CORRELATION');
+        }
+        Test.stopTest();
+        Assert.isNotNull(rows, 'The correlation list is returned.');
+        Assert.areEqual(0, rows.size(), 'An unknown correlation id yields an empty list.');
+    }
+
+    private static Id fakeId(String objectName, Integer n) {
+        String prefix = Schema.getGlobalDescribe().get(objectName).getDescribe().getKeyPrefix();
+        return Id.valueOf(prefix + String.valueOf(n).leftPad(12, '0'));
+    }
+
+    private static Map<String, Object> related(String objectName, Id recordId, String name) {
+        return new Map<String, Object>{
+            'attributes' => new Map<String, Object>{ 'type' => objectName },
+            'Id' => recordId,
+            'Name' => name
+        };
+    }
+
+    // Read-only fields and relationships cannot be set on a constructed sObject; JSON can.
+    private static SObject invoiceFromJson(Map<String, Object> fields) {
+        return (SObject) JSON.deserialize(JSON.serialize(fields), Invoice.class);
     }
 }

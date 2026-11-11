@@ -30,7 +30,7 @@ mechanically per Salesforce release rather than hand-edited.
    template; don't redesign them.
 4. **Personas are stable across releases.** The 6-persona inventory (names,
    roles, bios) is currently sourced from the prior-release canvas at
-   `.agents/artifacts/qb-canvas-{prior_release}-source.md` because the
+   `.agents/artifacts/topics/qb-demo-script/qb-canvas-{prior_release}-source.md` because the
    canonical `docs/enablement/master/qb-scenario-reference.md` doesn't yet
    include personas. Migrating personas into the scenario reference is a
    tracked follow-up so future regenerations don't depend on a local-only
@@ -49,12 +49,12 @@ mechanically per Salesforce release rather than hand-edited.
 ## DO NOT
 
 - **DO NOT** scrape the existing Slack canvas at runtime. Read the saved source
-  at `.agents/artifacts/qb-canvas-{release}-source.md` if present, or the
+  at `.agents/artifacts/topics/qb-demo-script/qb-canvas-{release}-source.md` if present, or the
   `qb-scenario-reference.md` directly.
 - **DO NOT** invent customer accounts, products, SKUs, bundles, or constraint
   models. Pull them from `docs/enablement/master/qb-scenario-reference.md`.
 - **DO NOT** invent personas. Pull the 6-persona inventory (name + role + bio)
-  from `.agents/artifacts/qb-canvas-{prior_release}-source.md` (see Quick
+  from `.agents/artifacts/topics/qb-demo-script/qb-canvas-{prior_release}-source.md` (see Quick
   Rule 4 — the canonical scenario reference does not yet contain personas;
   migration is tracked separately). If the prior-canvas source is absent,
   omit the Demo Personas section rather than fabricate one.
@@ -84,7 +84,7 @@ and without the cross-repo manifest being live in PMOS.
 | Feature index for target release | `docs/salesforce/{release}/feature-index.md` | manifest `foundations.grounding.feature_index_active` | Required |
 | Help portal mirror for target release | `docs/salesforce/{release}/help/articles/` + `manifest.json` | manifest `foundations.grounding.help_corpus_active` | Required |
 | Capability roadmap (PMOS-side) | `context/CAPABILITIES.md` | manifest `pmos.context_files.capabilities` | Optional but recommended for "what's new" framing |
-| Prior-release canvas source | `.agents/artifacts/qb-canvas-{prior_release}-source.md` | direct | Optional — used as structural template |
+| Prior-release canvas source | `.agents/artifacts/topics/qb-demo-script/qb-canvas-{prior_release}-source.md` | direct | Optional — used as structural template |
 | Active CCI feature flags for target release | `cumulusci.yml` `project.custom` block | direct | Required for "Setup steps" and "Available features" sections |
 
 ## Outputs
@@ -119,7 +119,7 @@ images and substitutes the placeholder markers with real Slack file IDs.
 
 1. **Resolve target release** — argument (e.g., `262`) determines which
    `feature-index.md` and `help/articles/` directory to consume.
-2. **Resolve prior canvas source** — if `.agents/artifacts/qb-canvas-{prior}-source.md`
+2. **Resolve prior canvas source** — if `.agents/artifacts/topics/qb-demo-script/qb-canvas-{prior}-source.md`
    exists, use it as a structural template. Otherwise generate from scratch
    using the canonical section order.
 3. **Read `docs/enablement/master/qb-scenario-reference.md`** — extract:
@@ -129,8 +129,8 @@ images and substitutes the placeholder markers with real Slack file IDs.
    - Per-bundle SKU lists
    - Pricing-feature wiring (Software Maintenance derivation, API quantity
      auto-add, etc.)
-   - Constraint models (QuantumBitComplete, Server2)
-3a. **Read `.agents/artifacts/qb-canvas-{prior_release}-source.md`** — extract
+   - Constraint models (QuantumBitBundle, Server2)
+3a. **Read `.agents/artifacts/topics/qb-demo-script/qb-canvas-{prior_release}-source.md`** — extract
     the 6-persona inventory (name + role + bio). This is intentionally a
     second source today; see Quick Rule 4 for the migration note. If the
     prior-canvas source is absent, skip the Demo Personas section rather
@@ -166,7 +166,7 @@ The canvas covers 10 main sections. Generation must keep them in this order:
 |---|---|---|---|
 | 1 | Demo Setup [required] | Help: enable RC + setup; CCI feature flags | n/a (admin) |
 | 2 | Known Bugs & Issues to Avoid | Hand-curated; SME pass | n/a |
-| 3 | Demo Personas | `.agents/artifacts/qb-canvas-{prior_release}-source.md` (6 personas; migration into `qb-scenario-reference.md` is a tracked follow-up — see Quick Rule 4) | n/a |
+| 3 | Demo Personas | `.agents/artifacts/topics/qb-demo-script/qb-canvas-{prior_release}-source.md` (6 personas; migration into `qb-scenario-reference.md` is a tracked follow-up — see Quick Rule 4) | n/a |
 | 4 | Opportunity to Order | Includes Configuration sub-sections, Pricing, Ramping & Grouping, Document Generation, Advanced Approvals, Quoting Agent | Kristen O'Reilly (AE) |
 | 5 | Usage Management & Rating | Help: Usage + Rating; QB DataBase product | Anne Wei (SalesOps) |
 | 6 | Order Entry, Fulfillment, & DRO | Help: DRO; QB pre-staged ramped order | Beth Henderson (Order Mgmt) |
@@ -215,7 +215,7 @@ backs up the prior file to `.bak.{timestamp}` first).
 > **Today (2026-05-24):** This skill does NOT invoke PMOS. PMOS is read-only
 > from the Foundations side and the cross-repo manifest exists only in
 > Foundations. PMOS adoption is Sandy's call (see
-> `.agents/artifacts/pmos-side-manifest-draft.md` for the proposal handed to
+> `.agents/artifacts/topics/pmos-integration/pmos-side-manifest-draft.md` for the proposal handed to
 > Sandy). When/if PMOS ships its manifest half AND completes Tier 0 hygiene
 > (see `pmos-tier-0-hygiene-ask.md`), the patterns below become viable.
 
@@ -260,7 +260,7 @@ default state for every consumer.
 - `revenue-cloud-docs` skill — Help portal mirror access patterns; this skill
   consumes that corpus.
 - `qb-scenario-reference.md` — canonical demo data dictionary; mandatory read.
-- `.agents/artifacts/skills-consolidation-plan.md` — the consolidation context
+- `.agents/artifacts/topics/skills/skills-consolidation-plan.md` — the consolidation context
   this skill is the first concrete instance of (Cluster C1).
 - `.claude/skill-manifest.yml` — cross-repo discovery for Phase 6.3+ PMOS
   consumption.

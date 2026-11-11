@@ -35,6 +35,10 @@ docs/salesforce/*/release-notes/index.md linguist-generated=true
 docs/salesforce/*/dev-guide/articles/** linguist-generated=true
 docs/salesforce/*/dev-guide/manifest.json linguist-generated=true
 docs/salesforce/*/dev-guide/index.md linguist-generated=true
+# The Contracts atlas deliverable has its own output root.
+docs/salesforce/*/dev-guide-contracts/articles/** linguist-generated=true
+docs/salesforce/*/dev-guide-contracts/manifest.json linguist-generated=true
+docs/salesforce/*/dev-guide-contracts/index.md linguist-generated=true
 docs/salesforce/*/dev-guide-industries/articles/** linguist-generated=true
 docs/salesforce/*/dev-guide-industries/manifest.json linguist-generated=true
 docs/salesforce/*/dev-guide-industries/index.md linguist-generated=true

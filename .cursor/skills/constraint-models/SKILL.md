@@ -25,12 +25,15 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
 
 1. **The `.ffxblob` is plain text and it IS the artifact.** `import_cml` uploads it
    verbatim. Edit the blob.
-2. **`scripts/cml/*.cml` is reference only.** Editing it changes nothing in any org. Where
-   a model ships one, keep it byte-identical to the blob (`cp` from the blob) — not every
-   model does.
+2. **Validate the dataset you will import.** Pass `validate_cml -o data_dirs <directory>`
+   to check its shipped blob against its own associations. Standalone `.cml` files
+   require an explicit `cml_dir`; they are not deployment artifacts.
 3. **Importing into an ACTIVE version does not redeploy the model.** The version must be
-   cycled — deactivate then reactivate — after the upload. `prepare_constraints` does this
-   for the models it names. **A standalone `import_cml` does not**, so cycle it yourself.
+   cycled — deactivate then reactivate — after the upload, **through the constraint-version
+   resource**, which is what `manage_expression_sets` uses for constraint models. A plain
+   `ExpressionSetVersion.IsActive` update (sObject API, `sf data update`) flips the record but
+   never reaches the solver, so the org keeps running the old model. `prepare_constraints`
+   cycles the models it names. **A standalone `import_cml` does not**, so cycle it yourself.
    See [Making a change reach an org](#making-a-change-reach-an-org).
 4. **Only the configurator proves deployment.** Reading `ConstraintModel` back proves the
    blob was *stored* — it is the same field `import_cml` writes. It cannot tell you the
@@ -43,17 +46,23 @@ Sets generally — constraint models are Expression Sets with `UsageType=Constra
    but **it half-applies first**: rows that did resolve are already created and the old
    ESC rows are not deleted. The blob is not uploaded, and a clean rerun clears the mix,
    so fix the cause and run it again.
-7. **Exactly one model per family may be active** — for QuantumBit that means
-   `QuantumBitBundle` *or* `Complete` *or* `PCM`, currently Bundle. Unrelated models
-   (`Server2`, and the mfg models when they land) are active alongside it, so **discover
-   what is active before deactivating anything** rather than reading a name out of a
-   document. See [Discovering what you are working with](#discovering-what-you-are-working-with).
+7. **Do not activate overlapping models.** The shipped QB build uses Bundle for
+   software and Server2 for hardware. Discover the org's active models before
+   changing versions; unrelated model families can be active together.
+8. **Runtime users must be able to see the model's `ExpressionSet` record.** On a cold
+   solver (every template-spun org, since the cache is keyed by org; also any org whose models
+   were activated by an `IsActive` update), the first configuration-rules run redeploys
+   the models as the running user and reads the `ExpressionSet` rows in user mode. The
+   criteria sharing rule `ExpressionSet.RLM_Constraint_Models_Read` in `post_constraints`
+   shares `UsageType = Constraint` sets Read with all internal users. Without it, every
+   non-admin fails with "Something went wrong while running configuration rules" until an
+   admin runs the rules once. See [troubleshooting → Constraints / CML Errors](../troubleshooting/SKILL.md#constraints--cml-errors).
 
 ---
 
 ## DO NOT
 
-- **DO NOT** edit `scripts/cml/*.cml` and expect an org to change. It is documentation.
+- **DO NOT** edit a standalone `.cml` file and expect an org to change. Edit the dataset blob.
 - **DO NOT** treat `.ffxblob` as binary. It is ASCII CML source (`file` reports it as
   "c program text").
 - **DO NOT** report a model change as verified because `import_cml` succeeded, **or**
@@ -83,7 +92,9 @@ Use this skill when you are:
 - debugging "product fails Product Validation when selected" in the configurator;
 - debugging a model change that deployed but did not take effect;
 - adding a whole new constraint model (see `datasets/constraints/README.md` →
-  *Adding New Models*).
+  *Adding New Models*);
+- sizing a bundle's component quantities from attribute answers (see
+  [Sub-Files](#sub-files)).
 
 ---
 
@@ -120,8 +131,7 @@ ls -d datasets/constraints/*/*/          # one directory per model, grouped by v
 find datasets/constraints -name '*.ffxblob'
 ```
 
-The **blob** set is the real inventory. A model can ship a blob with no matching
-`scripts/cml/<Model>.cml` reference copy.
+The **blob** set is the model inventory and the only checked-in CML source.
 
 **3. What the flow imports and activates** — authoritative for what a build will end up
 with, and the list to edit when adding a model:
@@ -148,9 +158,6 @@ datasets/constraints/<vertical>/<Model>/     # e.g. qb/QuantumBitBundle, mfg/fue
 ├── ProductRelatedComponent.csv              # legacy Id -> composite key map
 └── blobs/
     └── ESDV_<Model>_V1.ffxblob              # THE MODEL. Plain text CML.
-
-scripts/cml/<Model>.cml                      # reference copy, byte-identical to the blob
-                                             # (optional — QuantumBitPCM ships without one)
 ```
 
 Ids in these CSVs are from the **authoring** org and are placeholders. `import_cml` remaps
@@ -158,32 +165,12 @@ them: `Product2` by **Name**, `ProductRelatedComponent` by **composite key**. So
 placeholder Id only has to be internally consistent, and mnemonic ones are conventional
 (`01tWt000009CMTE` → Each, `...CMTF` → Flat, `...CMTB` → Bounded).
 
-⚠️ `QuantumBitPCM` has a blob and **no** reference `.cml`, so the blob set — not the
-`.cml` set — is the authoritative inventory of shipped models.
-
 ### What this repo ships today
 
-Concrete instances, correct as of Release 262 — **verify with the queries above rather
-than trusting this table**, which is a snapshot and will age:
-
-| Model | Data dir | Reference `.cml` | Activated by `prepare_constraints`? |
-|---|---|---|---|
-| `QuantumBitBundle` | `datasets/constraints/qb/QuantumBitBundle` | yes | **yes** — the active QB model |
-| `QuantumBitComplete` | `datasets/constraints/qb/QuantumBitComplete` | yes | no — imported inactive, kept for A/B |
-| `QuantumBitPCM` | `datasets/constraints/qb/QuantumBitPCM` | **no** | no — imported inactive, kept for A/B |
-| `Server2` | `datasets/constraints/qb/Server2` | yes | **yes** — a separate model, not part of the QuantumBit family |
-
-Two models are active at once, and that is correct: **`Server2` is not a QuantumBit
-model.** The one-active-model rule is scoped to a family — exactly one of
-`QuantumBitBundle` / `QuantumBitComplete` / `QuantumBitPCM` may be active — and says
-nothing about unrelated models alongside it. Read "active" per family, not per org, before
-deactivating anything.
-
-(`Server2` lives under `datasets/constraints/qb/` for historical reasons; the directory it
-sits in does not make it a QuantumBit model.)
-
-Manufacturing adds `datasets/constraints/mfg/…` when that series lands, which is exactly
-why the discovery queries matter more than this table.
+The 264 QB build imports and activates `QuantumBitBundle` and `Server2`, from their
+respective directories under `datasets/constraints/qb/`. Manufacturing examples
+remain under `datasets/constraints/mfg/` for standalone import. Discover live state
+with the queries above; the blob and flow inventories supersede this snapshot.
 
 ---
 
@@ -213,14 +200,8 @@ Port count tracks `relation` count, not `type` count:
 
 | Model | Type | Port | `relation`s in the CML |
 |---|---:|---:|---:|
-| `QuantumBitComplete` | 29 | 28 | 28 |
 | `Server2` | 41 | 40 | 40 |
 | `QuantumBitBundle` | 33 | 28 | 29 |
-| `QuantumBitPCM` | 12 | **0** | — |
-
-`QuantumBitPCM` is the case that disproves any "every type needs a Port" rule: it is a
-virtual-quote model whose types are cart line items, not bundle components, so it has
-**zero** Ports and is correct that way.
 
 Bundle's 29 relations against 28 Ports is the same distinction in miniature — the odd one
 is `lineitems` on the `@(virtual = "true") Quote` container, a cart-level relation rather
@@ -307,86 +288,75 @@ worth reading rather than just checking its exit code.
 keeps running the old one — and the import reports success.
 
 ```bash
-# manage_expression_sets does NOT accept --org (see Known gaps) -- it uses the DEFAULT org.
-# Set the default first so all three steps hit the same org.
-cci org default <cci_alias>
-
+# Pass the same --org to all three steps so they hit the same org.
 # <Version>  = the ApiName from the discovery query, e.g. QuantumBitBundle_V1
 # <DataDir>   = the model's directory under datasets/constraints/, from `ls -d`
 # <PlanDir>   = the SFDMU plan that loaded the ESC's Product2/PRC rows into the org
 #               (it supplies the names that scope import_cml's lookup queries)
-cci task run manage_expression_sets -o operation deactivate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
     -o version_full_names "<Version>"
 
 cci task run import_cml --org <cci_alias> \
     -o data_dir <DataDir> \
     -o dataset_dirs "<PlanDir>"
 
-cci task run manage_expression_sets -o operation activate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
     -o version_full_names "<Version>"
 ```
 
 <details><summary>Filled in for the QuantumBit bundle, as an example</summary>
 
 ```bash
-cci task run manage_expression_sets -o operation deactivate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 cci task run import_cml --org <cci_alias> \
     -o data_dir datasets/constraints/qb/QuantumBitBundle \
     -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm"
-cci task run manage_expression_sets -o operation activate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
     -o version_full_names "QuantumBitBundle_V1"
 ```
 
 </details>
 
-`prepare_constraints` does this for you at steps 11-12; a standalone `import_cml` does
+`prepare_constraints` does this for you at steps 9-10; a standalone `import_cml` does
 not. See below.
 
-### How the flow handles it, and why step 11 looks redundant
+### How the flow handles active-version reruns
 
-`manage_expression_sets` is the right tool: `_update_version_status` queries
-`ExpressionSetVersion` by `ApiName` and PATCHes `IsActive`
-(`tasks/rlm_manage_expression_sets.py:527-591`) — the same record and field the Constraint
-Builder UI toggles.
+`manage_expression_sets` queries `ExpressionSetVersion` by ApiName. For a constraint model
+(`ExpressionSet.UsageType = 'Constraint'`) it PATCHes
+`/services/data/v<api>/industries/constraints/{expressionSetId}/versions/{versionId}` with
+`{"status": "Active"}` or `{"status": "Inactive"}`. That resource deploys the model to the
+constraint solver on activation (along with every other active constraint model) and removes
+it on deactivation. It returns HTTP 200 with `success: false` on a failed deploy, so the task
+checks `success`. Every other expression set gets an `IsActive` PATCH.
 
-`prepare_constraints` orders it like this:
+An **already-Active** version is skipped, and for a constraint model the task warns that
+the skip doesn't redeploy anything: `activate_versions` alone never picks up a re-import, so
+always deactivate first. Cycling only the model you changed is enough, even on a cold
+solver, because activating one constraint model deploys every active one (checked live in
+both directions with QuantumBitBundle and Server2, todo 313).
 
-```
- 7-10. import_cml  Complete, Server2, PCM, Bundle
-11.    deactivate  -> QuantumBitComplete_V1, QuantumBitPCM_V1, QuantumBitBundle_V1, Server2_V1
-12.    activate    -> Server2_V1, QuantumBitBundle_V1
-```
+The resource is not in the public developer guide; it is the route Constraint Builder uses,
+and nothing else deploys a model (todo 064). Measured live on 2026-10-29: when the task still
+PATCHed `IsActive` for constraint models, a model re-imported into an active version kept
+running the old one through this exact cycle, and a cold org stayed cold after activation.
 
-Those names are the flow's current configuration, not a rule — read them from
-`cci flow info prepare_constraints` rather than from here.
-
-**Every version step 12 activates also appears in step 11 — deliberately.**
-That is the invariant to preserve: `QuantumBitBundle_V1` and `Server2_V1` are both
-activated, so both must be deactivated first. Steps 7–10 upload into a
-version that may already be active, which stores the blob without redeploying the runtime
-model; step 11 then deactivates Bundle and step 12 reactivates it, giving the
-deactivate/reactivate cycle that makes the platform pick the new model up. Removing Bundle
-from step 11 would make step 12 a no-op on an already-active version and the flow would
-report success while the org kept running the old model. It is a no-op on a fresh build,
-where versions are created inactive.
-
-> Verified at step level on a scratch org: Bundle `true` → deactivated → `true`, with
-> Complete and PCM left `false`. **Not yet verified end-to-end** — that a full flow run
-> against an org with an already-active model carries a change through to the configurator
-> still needs a real build, and is tracked separately.
+`prepare_constraints` imports Server2 and Bundle in steps 7-8, deactivates their
+versions in step 9, and activates both in step 10. Every activated version must
+also be deactivated first: an import into an active version stores the blob without
+redeploying the runtime, and activation alone would be a no-op. The cycle is a
+no-op on a fresh build where imports create inactive versions.
 
 **A standalone `import_cml` gets none of this** — it uploads and stops. That is the normal
 way to ship a model change, so cycle the version yourself afterwards:
 
 ```bash
-cci org default <cci_alias>   # manage_expression_sets does not accept --org, see Known gaps
-
 # <Version> is the ApiName from the discovery query — e.g. QuantumBitBundle_V1,
 # Server2_V1, or whatever the org actually reports as active for the model you changed.
-cci task run manage_expression_sets -o operation deactivate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation deactivate_versions \
     -o version_full_names "<Version>"
-cci task run manage_expression_sets -o operation activate_versions \
+cci task run manage_expression_sets --org <cci_alias> -o operation activate_versions \
     -o version_full_names "<Version>"
 ```
 
@@ -410,28 +380,80 @@ Salesforce documents the requirement:
 
 ---
 
+## Ramp groups and segments
+
+Rules can target quote groups, ramp groups and ramp segments through the
+`SalesTransactionItemGroup` context tag. Use the 264 dev guide for syntax:
+[Define Constraints for Quote Groups, Ramps, and Ramp Segments](../../../docs/salesforce/264/dev-guide/articles/cml_quote_group_ramp_segment_constraints.htm.md).
+Three attributes do the work:
+
+- `SalesTransactionItemGroup` on a `groupBy` container (`@(virtual = true, groupBy = SalesTransactionItemGroup)`)
+  scopes the rule to one group. The engine runs one virtual container for each group that
+  contains one or more products from the `QuoteGroup` container.
+- `IsLineGroupRamped__std` in a `require` restricts a rule to ramp groups; `!(...)` restricts it to unramped groups.
+- `ItemSegmentType` tests the segment type of a ramped line. `RLM_SalesTransactionContext` maps it from
+  `QuoteLineItem.SegmentType` (`OrderItem.SegmentType` for orders), so it carries that picklist's value
+  (`Yearly`, `Custom`, `FreeTrial` or `Prorated` on the 264 org tested). The dev guide's example tests
+  `ItemSegmentType != "Trial"`; `Trial` is not a value, so that test never excludes a segment. Test
+  `"FreeTrial"`. Measured on one 264 org (2026-11-06): in a FreeTrial segment a rule on `== "FreeTrial"`
+  fired and one on `== "Yearly"` did not; `== "Yearly"` rules fired in Yearly segments.
+
+Groups don't support rules such as `hide`, `disable` or `recommend`, which act on a condition. Use `require` in groups.
+
+Measured with a test `groupBy` container on one 264 org (2026-11-06; standalone Term Annual products, Place API):
+
+- **Declare the group container on the transaction container.** The rules fired only after `type Quote` had
+  `relation quotegroup : QuoteGroup;`, as in the dev guide's quote-group example. The ramp and segment
+  examples omit it. Without it nothing fired and nothing reported an error.
+- **Set `configurationMethod: Force` to make a Place call run the rules.** The method defaults to `Skip`
+  (dev guide, *Configurator Preference Input*), so `configurationOptions.executeConfigurationRules: true` on
+  its own ran nothing. Group-level rules were tested through Place with `Force` only. `System` lets the
+  platform decide: with the shipped QuantumBitBundle model (a quote-level `require`, no group container) it
+  ran the rule in the call that added the triggering line, and on a quote-only PATCH of a quote missing the
+  required product. So `System` doesn't limit rules to calls that add lines.
+- **A Connect clone ran group rules with no configuration preference.** Rules keyed on
+  `IsLineGroupRamped__std` and `ItemSegmentType == "Yearly"` fired during the clone calls, with every
+  Place call `Skip`.
+- **Products a group `require` adds outside `AddProducts` have no ramp ids.** Added during a clone, or by
+  a `Force` Place without `groupRampAction`, they had blank `RampIdentifier`, `SegmentIdentifier` and
+  `SegmentType`. An EditGroup with `Force` added nothing. A `Force` Place with
+  `groupRampAction: AddProducts` stamped the products it added, each with its own `RampIdentifier` and the
+  segment's `SegmentType` (Yearly, or FreeTrial in a FreeTrial segment). It did not stamp blank lines
+  already on the quote. How the blank lines behave at order and amend was not measured.
+
+Configuration rules don't recognize quote or order groups (Help, *Considerations for Ramp Deals*). A rule that adds a standalone
+product to a ramp segment doesn't ramp it or add it to later segments; a rule-added child of a ramped parent is
+ramped and carried forward. The shipped QuantumBit models have no group-level container. For the ramp side, see
+the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
+[Cloning a segment that holds a bundle](../ramped-quotes/bundle-children-lifecycle.md#cloning-a-segment-that-holds-a-bundle).
+
+---
+
+## Sub-Files
+
+| File | Read this when… |
+|---|---|
+| [`quantities-from-attributes.md`](quantities-from-attributes.md) | A model must set component quantities from answers on the bundle: one per site, an optional add-on per site, per N rounded up, zero unless a choice is made, chained derivations such as service hours and a percentage for project management. Covers cardinality vs read-only quantity, rounding and `int` vs `decimal`, per-instance scope, exclusions, non-blocking `Info` messages and headless testing, with a fictional worked example. Read it before writing `ceil()`, `/` or `^` in CML: its DO NOT list and measured table cover how they behave on 264. |
+
+---
+
 ## Examples
 
 ### Add a product to a configurable bundle
 
-Worked example — adding `QB-CMT-TKN-BND` to `QB-COMPLETE` in the `QuantumBitBundle` and
-`QuantumBitComplete` models. Substitute your own model and product; the shape is the same
+Worked example — adding `QB-CMT-TKN-BND` to `QB-COMPLETE` in the `QuantumBitBundle` model. Substitute your own model and product; the shape is the same
 for any vertical.
 
 ```bash
 # 1. Confirm the PRC row exists and note its Sequence (here: 25)
 grep QB-CMT-TKN-BND datasets/sfdmu/qb/en-US/qb-pcm/ProductRelatedComponent.csv
 
-# 2. Edit the BLOB (not the .cml): add a relation and a type next to the siblings
+# 2. Edit the dataset BLOB: add a relation and a type next to the siblings
 #      relation quantumbitdatabasetokencommitbounded : QuantumBitDatabaseTokenCommitBounded;
 #      type     QuantumBitDatabaseTokenCommitBounded : LineItem;
 
-# 3. Re-sync the reference copy
-cp datasets/constraints/qb/QuantumBitBundle/blobs/ESDV_QuantumBitBundle_V1.ffxblob \
-   scripts/cml/QuantumBitBundle.cml
-
-# 4. Add Product2 + both ESC rows (Type and Port), reusing Sequence 25 on the PRC row
-# 5. Dry run, then deactivate -> import -> activate (above)
+# 3. Add Product2 + both ESC rows (Type and Port), reusing Sequence 25 on the PRC row
+# 4. Validate the shipped blob, then deactivate -> import -> activate (above)
 ```
 
 ### Read the deployed model back out of an org
@@ -455,10 +477,7 @@ Before calling a constraint-model change done:
    fails the task). This checks each dir's shipped `.ffxblob`, the exact file `import_cml`
    uploads, against its own ESC rows (warnings are largely
    pre-existing; the error count is the signal).
-2. Blob and reference `.cml` byte-identical — **only for a model that ships one**
-   (`QuantumBitPCM` does not): `diff -q <blob> scripts/cml/<Model>.cml`. A model with no
-   reference copy skips this check; the blob is the artifact, so its absence is not a
-   failure.
+2. Check the shipped blob directly; there is no reference-copy sync step.
 3. Dry-run import resolves your new rows to **real org Ids**, and you queried those Ids
    back to confirm they are the records you meant — not just that something resolved.
 4. Deactivate → import → activate actually run, in that order.
@@ -466,8 +485,7 @@ Before calling a constraint-model change done:
    does **not** prove: `import_cml` writes that same field, so it confirms the upload was
    stored and nothing more. It cannot distinguish "stored" from "deployed".
 6. Diff the **expected** set against the org rather than listing what is there — and
-   **scope the query to the model you changed**. Models deliberately share most tags
-   (Bundle is a graft of Complete plus PCM), so an unscoped query lets a tag missing from
+   **scope the query to the model you changed**. Model tags can overlap, so an unscoped query lets a tag missing from
    one model be masked by another model's row:
    ```bash
    sf data query --target-org <sf_alias_or_username> -q "
@@ -478,30 +496,25 @@ Before calling a constraint-model change done:
    then assert every product you expect has **both** a `Type` and a `Port` row.
 7. **Exercise the configuration rules.** This is what proves the runtime model was
    rebuilt — nothing above distinguishes a deployed model from a stored one. It does
-   **not** require the UI: activation only flips `IsActive`, and the model is compiled
-   when config rules run, so POSTing the Product Configurator `configure` action with
-   `executeConfigurationRules: true` against a quote line that uses the model exercises
-   the same path headlessly. A valid model returns `success: true`,
+   **not** require the UI: POSTing the Product Configurator `configure` action with
+   `executeConfigurationRules: true` against a quote line that uses the model runs the
+   solver's current model headlessly. To prove a specific change, make it observable (for
+   example a `message(true, "<marker>", "warning")` rule) and look for it in the response's
+   `messages`. A valid model returns `success: true`,
    `solverStatus: "success"`, `errors: []`; an invalid one returns `Model '…' is invalid`.
-   Full recipe: `datasets/constraints/README.md` → *Validating the combined model
-   (headless)*.
+   Full recipe: [Runtime verification](../../../datasets/constraints/README.md#runtime-verification).
 
 ---
 
 ## Known gaps
 
-- **`manage_expression_sets` rejects `--org`** and runs against the default org. One
-  instance of a repo-wide problem (102 of 193 custom tasks). `import_cml`, `export_cml`
-  and `validate_cml`'s siblings do accept it.
 - **`validate_cml`'s warning stream is not clean enough to gate on.** Most of the old
-  "missing association" noise came from checking every `scripts/cml` copy against one
+  "missing association" noise came from checking historical reference copies against one
   model's ESC rows, and from looking those rows up by display `Name` instead of
-  `ApiName`. `data_dirs` fixes both: the four QuantumBit/Server2 models now report about
-  300 warnings, mostly unsupported-annotation notes, against roughly 1,900 the old
-  `cml_dir` run produced. Treat the **error** count as the signal and check the warning
+  `ApiName`. `data_dirs` fixes both: the retained QuantumBit/Server2 models can report unsupported-annotation notes. Treat the **error** count as the signal and check the warning
   count against a known-good baseline for the models you are touching.
 - **A standalone `import_cml` never cycles the version.** `prepare_constraints` covers
-  this at steps 11-12, but shipping a model change usually means running `import_cml` on
+  this at steps 9-10, but shipping a model change usually means running `import_cml` on
   its own — where the upload lands and nothing redeploys. There is no single task that
   does import-and-cycle.
 - **No *passive* signal distinguishes "stored" from "deployed".** `ConstraintModel` is the

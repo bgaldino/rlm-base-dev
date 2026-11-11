@@ -118,6 +118,10 @@
                 <behavior>Edit</behavior>
                 <field>UnitPriceUplift</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>PricingContractId</field>
+            </layoutItems>
         </layoutColumns>
         <layoutColumns>
             <layoutItems>

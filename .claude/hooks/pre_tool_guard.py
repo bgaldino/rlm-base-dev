@@ -37,6 +37,21 @@ that can be checked from a diff belongs in `scripts/ai/pr_gate.py` as well.
    `$LOOP_RUN_DIR/STOP` refuses every tool call of that one run (a remote cancel of one run);
    `<main checkout>/.loop/STOP` refuses every loop agent on the workstation (`make stop`).
    Either takes effect at the agent's next tool call; neither aborts a tool already running.
+4. Private artifacts placement (`.cursor/rules/analysis-artifacts.mdc`), for Write, Edit,
+   MultiEdit and NotebookEdit, judged on the path as spelled (absolute and normalised, as Claude
+   Code hands it to hooks; anything else is resolved the same way). The private tree is
+   `.agents/artifacts/` at a work-tree root, a clone with its own `.git` (or a link to one), and
+   everything under it, nested `.agents/` folders included, is just part of it.
+   - Deny, inside a git work tree: a name under `.agents/` that starts with `artifacts` but is
+     not exactly `artifacts` (siblings such as `artifacts.old`, case or Unicode variants); a
+     `.agents/artifacts` below the repository root, not cloned, or not a clone; and a new
+     top-level entry of the clone (not in ARTIFACTS_ROOT, not already on disk).
+   - Ask: a write under the clone's `archive/` (frozen history) or into its own tooling
+     (ARTIFACTS_TOOLING: `.git/`, `.githooks/`, `tools/`), or a case variant of either that
+     the disk resolves to the existing entry; a write a link inside the clone resolves to a
+     location outside it (the one check that follows links, on the final location only); and
+     any event or path the guard fails to judge.
+   Existing top-level entries keep accepting writes until the reorg moves them.
 
 What this guard does not catch, and what backs it up:
 - Commands hidden in `$(...)`, `bash -c`, `eval`, `env -S '…'`, `xargs` or `find -exec`, a
@@ -55,19 +70,30 @@ What this guard does not catch, and what backs it up:
   `main`, `preview/*` and `release/*` requires a PR and blocks force-pushes and deletion,
   and its admin bypass applies to pull-request merges only, so a direct push with the
   owner's credentials is rejected. This guard refuses it earlier and says why.
+- Artifacts writes made through Bash (`>`, `cp`, `mv`, a script) rather than Edit/Write, and
+  writes whose path does not spell `.agents/artifacts`: a link into the clone, a
+  linked clone addressed at its real location, a clone link that points at another checkout
+  or at a directory above it (`-> ..`), an inode path (macOS `/.vol`) or a hard link. Rule 4 catches the misplaced write an agent
+  spells out; the private repository's pre-commit hook (`tools/check_layout.py`, once enabled as
+  its README describes) is the backstop for layout, and `.gitignore` ignores every
+  `.agents/artifacts*` path, so a copy is not staged by accident.
 - SFDMU edits made through Bash (`sed -i`, a script) rather than Edit/Write. No diff-level
   check for destructive operations exists in `pr_gate.py` yet; adding one is planned with the
   defect registry work, and until then a person reviewing the diff is the only backstop.
 
 Stdlib only, Python 3.9-safe: it runs under whatever `python3` the shell provides.
 Exit 0 = allow (or a JSON `ask` decision on stdout) · exit 2 = deny, reason on stderr.
+Fails closed: any error while judging an event asks (main()), because a crashed or timed-out
+hook lets the tool call through unchecked.
 """
 from __future__ import annotations
 
 import json
 import os
+from itertools import accumulate
 import re
 import shlex
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -189,7 +215,7 @@ def git(cwd: str, *args: str, opts: Sequence[str] = ()) -> Optional[str]:
     try:
         out = subprocess.run(["git", *opts, "-C", cwd, *args], capture_output=True, text=True,
                              timeout=10)
-    except (OSError, subprocess.TimeoutExpired):
+    except (OSError, ValueError, subprocess.TimeoutExpired):  # ValueError: a NUL in an argument
         return None
     return out.stdout.strip() if out.returncode == 0 else None
 
@@ -480,27 +506,66 @@ def push_decision(push: Push) -> Tuple[str, str]:
     return "allow", ""
 
 
-def text_change(tool: str, tool_input: dict) -> Optional[Tuple[str, str, Optional[str], str, str]]:
-    """(path, whole file before, whole file after or None, snippet before, snippet after)."""
-    path = tool_input.get("file_path") or ""
-    if tool not in ("Write", "Edit", "MultiEdit"):
-        return None
+# Over ten times the largest SFDMU plan in the repo. Plans are parsed only up to this size,
+# before and after the edit, so the parse stays well inside the hook's timeout.
+MAX_PLAN_BYTES = 1 << 20
+
+
+class Unreadable(Exception):
+    """The current plan exists but cannot be judged (not a regular UTF-8 file, or too large)."""
+
+
+def current_text(path: str) -> str:
+    """The text of `path` ("" if there is no such file), with line endings read as read_text()
+    reads them (Claude Code matches edits against LF text). Raises Unreadable for a file that is
+    there but cannot be judged. Never blocks: a FIFO or device would hold the hook past its
+    timeout, which lets the tool call through unchecked."""
     try:
-        before = Path(path).read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        before = ""
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOCTTY", 0))
+    except FileNotFoundError:
+        return ""
+    except (OSError, ValueError) as exc:  # ValueError: a NUL byte, or a lone surrogate
+        raise Unreadable(type(exc).__name__) from exc
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise Unreadable("not a regular file")
+        with os.fdopen(fd, "rb", closefd=False) as f:
+            data = f.read(MAX_PLAN_BYTES + 1)
+        if len(data) > MAX_PLAN_BYTES:
+            raise Unreadable(f"larger than {MAX_PLAN_BYTES} bytes")
+        return data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n")
+    except (OSError, ValueError) as exc:  # UnicodeDecodeError is a ValueError
+        raise Unreadable(type(exc).__name__) from exc
+    finally:
+        os.close(fd)
+
+
+def text_change(tool: str, tool_input: dict, path: str) -> Tuple[str, Optional[str], str, str]:
+    """(whole file before, whole file after or None, snippet before, snippet after) for a Write,
+    Edit or MultiEdit of `path`. `after` is None when the edit cannot be replayed: the snippets
+    are then compared instead. Raises Unreadable when the result would exceed MAX_PLAN_BYTES,
+    predicting a replay's size before building it."""
+    before = current_text(path)
+    utf8 = lambda s: len(s.encode("utf-8"))  # noqa: E731
+    too_large = Unreadable(f"the edited plan would be larger than {MAX_PLAN_BYTES} bytes")
     if tool == "Write":
-        after = tool_input.get("content") or ""
-        return path, before, after, before, after
+        after: Optional[str] = tool_input.get("content") or ""
+        if utf8(after) > MAX_PLAN_BYTES:
+            raise too_large
+        return before, after, before, after
     edits = [tool_input] if tool == "Edit" else (tool_input.get("edits") or [])
-    after: Optional[str] = before
+    after, size = before, utf8(before)
     for edit in edits:
         old, new = edit.get("old_string") or "", edit.get("new_string") or ""
         if after is None or not old or old not in after:
             after = None  # the edit can't be replayed here; fall back to the snippets
             continue
+        times = after.count(old) if edit.get("replace_all") else 1
+        size += times * (utf8(new) - utf8(old))
+        if size > MAX_PLAN_BYTES:
+            raise too_large
         after = after.replace(old, new) if edit.get("replace_all") else after.replace(old, new, 1)
-    return (path, before, after, "".join(e.get("old_string") or "" for e in edits),
+    return (before, after, "".join(e.get("old_string") or "" for e in edits),
             "".join(e.get("new_string") or "" for e in edits))
 
 
@@ -537,12 +602,13 @@ def _objects(sfdmu, plan) -> Optional[Dict[Tuple[str, int], Tuple[bool, Optional
     return out
 
 
-def sfdmu_decision(path: str, before: str, after: Optional[str], old: str,
-                   new: str) -> Tuple[str, str]:
-    if "datasets/" not in path.replace(os.sep, "/") or not path.endswith(".json"):
-        return "allow", ""
-    was = destructive_objects(before) if before else {}
+def is_sfdmu_plan(path: str) -> bool:
+    return "datasets/" in path.replace(os.sep, "/") and path.endswith(".json")
+
+
+def sfdmu_decision(before: str, after: Optional[str], old: str, new: str) -> Tuple[str, str]:
     now = destructive_objects(after) if after is not None else None
+    was = (destructive_objects(before) if before else {}) if now else None
     # A document that parses but declares no objects isn't a plan the parsers understand, so
     # it gets the conservative text comparison below rather than a vacuous "nothing changed".
     if was is not None and now:
@@ -571,6 +637,105 @@ def sfdmu_decision(path: str, before: str, after: Optional[str], old: str,
                        "doesn't parse, or the edit can't be replayed), and it adds deleteOldData "
                        "or an Insert where an Upsert was. AGENTS.md CRITICAL rule: explicit "
                        "approval is required")
+    return "allow", ""
+
+
+# Top-level names the private artifacts repo allows (its README and tools/check_layout.py are
+# authoritative; this copy only has to stop agents creating new top-level entries).
+ARTIFACTS_ROOT = frozenset({
+    "README.md", "MOVED.tsv", ".gitignore", ".ignore", ".githooks", "tools", "inbox", "topics",
+    "archive", "reports", "todos", "todo-audit", "memory",
+})
+# The private repository's own machinery: its git dir, the hooks it runs (core.hooksPath) and the
+# layout check they call. A write there can switch that backstop off, so it asks.
+ARTIFACTS_TOOLING = (".git", ".githooks", "tools")
+ARTIFACTS_HINT = ("file it under todos/attachments/<id>/, an existing topics/<slug>/, or else "
+                  "inbox/<yyyy-mm-dd>-<name>; do not invent a topic "
+                  "(.cursor/rules/analysis-artifacts.mdc)")
+# An implementation limit, not part of the contract: Linux PATH_MAX (4096 bytes) allows no deeper
+# path, and it keeps every scan below short.
+MAX_JUDGED_COMPONENTS = 4096
+
+
+def resolve_path(path: str, cwd: str) -> str:
+    """`path` as Claude Code hands it to hooks: absolute, `~` expanded, normalised. It already
+    is; anything else is resolved the same way, lexically (links are not followed)."""
+    return os.path.abspath(os.path.join(cwd, os.path.expanduser(path)))
+
+
+def artifacts_decision(path: str, cwd: str) -> Tuple[str, str]:
+    """Rule 4."""
+    if not path:
+        return "allow", ""
+    resolved = resolve_path(path, cwd)
+    if resolved.count(os.sep) > MAX_JUDGED_COMPONENTS:
+        return "ask", (f"`{path}` is deeper than {MAX_JUDGED_COMPONENTS} components, so the "
+                       "private-tree check does not judge it; confirm where it lands")
+    parts = Path(resolved).parts
+    # Every `.agents/artifacts*` pair the path names (casefold(): a case or Unicode case-fold
+    # variant is the tree on a case-insensitive disk and a different folder on a sensitive one).
+    pairs = [i for i in range(len(parts) - 1) if parts[i].casefold() == ".agents"
+             and parts[i + 1].casefold().startswith("artifacts")]
+    if not pairs:
+        return "allow", ""
+    # Only inside a git work tree can a misplaced folder reach a commit: find the shallowest
+    # directory with a `.git`.
+    repo = next((k for k, d in enumerate(accumulate(parts[:pairs[-1]], os.path.join), 1)
+                 if os.path.exists(os.path.join(d, ".git"))), None)
+    if repo is None:
+        return "allow", ""
+    i = next(i for i in pairs if i >= repo)  # the outermost: a tree inside the clone is a folder
+    name = parts[i] + "/" + parts[i + 1]
+    if name != ".agents/artifacts":
+        return "deny", (f"`{name}` is not `.agents/artifacts` exactly, so it is not the private "
+                        "repository: nothing written there is versioned, and a forced add would "
+                        "publish it. Write inside `.agents/artifacts/` itself, and keep backups "
+                        "outside the repository")
+    tree = Path(*parts[:i + 2])
+    if not os.path.exists(tree.parent.parent / ".git"):
+        return "deny", (f"`{tree}` is below the repository root; only the repo-root "
+                        "`.agents/artifacts/` is the private tree, so nothing written there is "
+                        "versioned with it")
+    if not os.path.isdir(tree):  # a public contributor's checkout, or a worktree without one
+        return "deny", ("`.agents/artifacts/` (the private repository) is not cloned in this "
+                        "checkout; do not create it. Maintainers clone it here (todo-tracker "
+                        "skill, First run); otherwise use $TMPDIR for scratch, or say where the "
+                        "content should live")
+    if not os.path.exists(tree / ".git"):  # a clone is a repository of its own
+        return "deny", (f"`{tree}` is not the private clone (a git repository of its own), so "
+                        "nothing written there is versioned; replace it with a clone "
+                        "(todo-tracker skill, First run), or use $TMPDIR for scratch")
+    placement = _placement(parts[i + 2:], tree)
+    # Where the write finally lands, links resolved: a link inside the clone can lead out of it,
+    # into the public checkout. Only the end state is judged, so it asks rather than refuses.
+    clone = os.path.realpath(tree)
+    if placement[0] != "deny" and os.path.commonpath([os.path.realpath(resolved), clone]) != clone:
+        reason = ("this path is spelled inside `.agents/artifacts/` but a link resolves it outside "
+                  "the private clone, so the file would not be private. Confirm where it lands")
+        return "ask", reason + (f". Also: {placement[1]}" if placement[0] == "ask" else "")
+    return placement
+
+
+def _placement(rest: Tuple[str, ...], tree: Path) -> Tuple[str, str]:
+    """Where a write lands in the clone, by the top-level entry it names: the name itself, or
+    a case variant that the disk resolves to an existing entry (`ARCHIVE/` on a
+    case-insensitive disk). A variant that does not exist would be a new entry."""
+    if not rest:
+        return "allow", ""
+    top = rest[0]
+    # Fold only to classify an existing entry: an existing `README.md` stays itself below.
+    known = top.casefold() if os.path.lexists(tree / top) else top
+    if known in ARTIFACTS_TOOLING:
+        return "ask", ("this changes the private repository's own tooling (`.git/`, `.githooks/` "
+                       "or `tools/`), which runs its pre-commit layout check. Confirm it is "
+                       "deliberate")
+    if known == "archive":
+        return "ask", ("this writes under `.agents/artifacts/archive/`, which is frozen history "
+                       "(moves and per-entry READMEs only). Confirm it is a deliberate archive "
+                       "edit")
+    if top not in ARTIFACTS_ROOT and not os.path.lexists(tree / top):
+        return "deny", (f"`{top}` would be a new top-level entry of `.agents/artifacts/`, whose "
+                        f"top level is closed; {ARTIFACTS_HINT}")
     return "allow", ""
 
 
@@ -748,28 +913,53 @@ def decide(event: dict) -> Tuple[str, str]:
                                 "the push runs can't be resolved; run it as "
                                 "`git -C <dir> push …` instead")
             directories = [cwd]
+        # Each command is judged on its own, so an error in one cannot hide a later deny.
         for directory in directories:
             for argv in simple_commands(command):
-                push = git_push(argv, directory)
-                if push:
-                    decision = push_decision(push)
-                    if decision[0] == "deny":
-                        return decision
-                    if decision[0] == "ask":
-                        worst = decision
+                try:
+                    push = git_push(argv, directory)
+                    decision = push_decision(push) if push else ("allow", "")
+                except Exception as exc:  # noqa: BLE001  recorded as an ask; a deny still wins
+                    decision = ("ask", f"the push check could not judge `{argv[0]}` "
+                                       f"({type(exc).__name__}); confirm it")
+                if decision[0] == "deny":
+                    return decision
+                if decision[0] == "ask":
+                    worst = decision
         return worst
-    change = text_change(tool, tool_input)
-    if change:
-        return sfdmu_decision(*change)
-    return "allow", ""
+    if tool == "NotebookEdit":
+        return artifacts_decision(tool_input.get("notebook_path") or "", cwd)
+    if tool not in ("Write", "Edit", "MultiEdit"):
+        return "allow", ""
+    path = tool_input.get("file_path") or ""
+    placement = artifacts_decision(path, cwd)
+    if placement[0] == "deny":
+        return placement
+    # Rule 2 reads the current file only for an SFDMU plan, the one case it judges, and only
+    # through current_text(), which cannot block.
+    try:
+        plan = resolve_path(path, cwd)
+        sfdmu = (sfdmu_decision(*text_change(tool, tool_input, plan)) if is_sfdmu_plan(plan)
+                 else ("allow", ""))
+    except Unreadable as exc:
+        sfdmu = ("ask", f"the SFDMU plan check cannot compare this edit ({exc}); confirm it adds "
+                        "no deleteOldData and no Insert where an Upsert was")
+    asks = [reason for decision, reason in (placement, sfdmu) if decision == "ask"]
+    return ("ask", ". Also: ".join(asks)) if asks else ("allow", "")
 
 
 def main() -> int:
+    # Bytes decoded as UTF-8, whatever the locale: Claude Code sends UTF-8 JSON, and a locale
+    # codec (cp1252 on a Windows pipe) can fail on it and skip every rule.
     try:
-        event = json.load(sys.stdin)
-    except ValueError:
-        return 0
-    return respond(*decide(event))
+        event = json.loads(sys.stdin.buffer.read().decode("utf-8"))
+        if not isinstance(event, dict):
+            raise ValueError("not a JSON object")
+        decision = decide(event)
+    except Exception as exc:  # an unreadable event or a guard bug: ask, never fail open
+        decision = ("ask", f"the guard hook could not judge this tool call "
+                           f"({type(exc).__name__}); confirm it")
+    return respond(*decision)
 
 
 if __name__ == "__main__":

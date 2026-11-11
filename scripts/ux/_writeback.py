@@ -13,6 +13,9 @@ Requires ``ux_tool.py retrieve`` to have populated ``unpackaged/post_ux/`` with
 the org's current flexipage state. Dry run by default: nothing under
 ``templates/`` changes unless ``apply=True`` (``ux_tool.py writeback --apply``).
 """
+import copy
+import re
+import textwrap
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -211,21 +214,34 @@ def _refresh_patch_files(
         if not patches:
             continue
         label = f"    [patch] {feature}/{fname}"
-        new_patches = []
+        originals = copy.deepcopy(patches)  # the file's entries, whatever refresh_patch does
+        refreshed_each: List[Optional[Dict[str, Any]]] = []
         for patch in patches:
             refreshed = refresh_patch(patch, page)
             if refreshed is None:
                 ctx.logger.info(f"{label}: {describe_patch(patch)} no longer applies to the org, removing patch entry")
-            else:
-                new_patches.append(refreshed)
+            refreshed_each.append(refreshed)
+        new_patches = [p for p in refreshed_each if p is not None]
         if new_patches == patches:
             continue
         if not new_patches:
             ctx.logger.info(f"{label}: all patches removed, deleting patch file")
             patch_path.unlink()
             continue
+        original = patch_path.read_text(encoding="utf-8")
         patch_data["patches"] = new_patches
-        _write_patch_yaml(patch_path, patch_data)
+        notes: List[str] = []
+        edited = rewrite_patch_entries(original, originals, refreshed_each, patch_data, notes)
+        for note in notes:
+            ctx.logger.warning(f"{label}: {note}; restore them from git diff if they still apply")
+        if edited is None:
+            ctx.logger.warning(
+                f"{label}: layout not recognised, rewriting the whole file "
+                "(its comments are not kept)"
+            )
+            _write_patch_yaml(patch_path, patch_data, original)
+        else:
+            patch_path.write_text(edited, encoding="utf-8")
         ctx.logger.info(f"{label}: updated ({len(new_patches)} patches)")
 
 
@@ -238,22 +254,353 @@ def _block_repr(dumper, data):
 
 
 class _PatchDumper(yaml.SafeDumper):
-    pass
+    def increase_indent(self, flow=False, indentless=False):
+        # Indent list items under their key (``key:\n  - item``), as the
+        # hand-written patch files do, rather than PyYAML's flush-left default.
+        return super().increase_indent(flow, False)
 
 
-_PatchDumper.add_representer(_BlockStr, _block_repr)
+class _QuotedStr(str):
+    """A string YAML writes double-quoted, as the patch file it goes into does."""
 
 
-def _write_patch_yaml(path: Path, data: Dict[str, Any]) -> None:
-    """Write patch YAML, with multi-line ``xml``/``anchor`` values as block strings."""
-    for patch in data.get("patches", []):
-        for key in ("xml", "anchor"):
-            if key in patch and "\n" in str(patch[key]):
-                patch[key] = _BlockStr(patch[key])
-    path.write_text(
-        yaml.dump(
-            data, Dumper=_PatchDumper, default_flow_style=False,
-            sort_keys=False, allow_unicode=True, width=120,
-        ),
-        encoding="utf-8",
+def _quoted_repr(dumper, data):
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style='"')
+
+
+class _FlushPatchDumper(yaml.SafeDumper):
+    """PyYAML's own layout, list items flush with their key, for files written that way."""
+
+
+for _dumper in (_PatchDumper, _FlushPatchDumper):
+    _dumper.add_representer(_BlockStr, _block_repr)
+    _dumper.add_representer(_QuotedStr, _quoted_repr)
+
+_QUOTED_KEY = re.compile(
+    r'''^[ \t]*(?:- )?(?:"([^"\n]+)"|'([^'\n]+)'|([A-Za-z_][\w-]*)):[ \t]+"''', re.M)
+_QUOTED_ITEM = re.compile(r'^[ \t]*- "', re.M)
+
+
+def _in_file_style(value: Any, text: str) -> Any:
+    """``value`` with its strings styled as the patch file ``text`` writes them.
+
+    The hand-written files quote by key: ``after``, ``field`` and list items are
+    double-quoted, ``type`` and ``component`` are not. A string under a key that
+    the file quotes, or a list item where the file quotes its items, is written
+    double-quoted, so a re-rendered entry does not change quoting it never meant
+    to. Multi-line ``xml``/``anchor`` values stay block strings.
+    """
+    # A key may itself be quoted (``"after": "Edit"``); its value's quoting counts all the same.
+    quoted_keys = {next(k for k in groups if k) for groups in _QUOTED_KEY.findall(text)}
+    quote_items = bool(_QUOTED_ITEM.search(text))
+
+    def style(v: Any, key: Optional[str], in_list: bool) -> Any:
+        if isinstance(v, dict):
+            return {k: style(x, k, False) for k, x in v.items()}
+        if isinstance(v, list):
+            return [style(x, key, True) for x in v]
+        if isinstance(v, str):
+            if "\n" in v:
+                return _BlockStr(v) if key in ("xml", "anchor") else v
+            if (quote_items if in_list else key in quoted_keys):
+                return _QuotedStr(v)
+        return v
+
+    return style(value, None, False)
+
+
+def _dump(data: Any, flush: bool = False) -> str:
+    """YAML for ``data``; ``flush`` writes list items flush with their key."""
+    return yaml.dump(
+        data, Dumper=_FlushPatchDumper if flush else _PatchDumper, default_flow_style=False,
+        sort_keys=False, allow_unicode=True, width=120,
     )
+
+
+def _write_patch_yaml(path: Path, data: Dict[str, Any], text: str = "") -> None:
+    """Write a whole patch file: multi-line ``xml``/``anchor`` values as block
+    strings, other strings quoted the way ``text`` (the file it replaces) quotes them."""
+    data = dict(data)
+    data["patches"] = [_in_file_style(p, text) for p in data.get("patches", [])]
+    path.write_text(_dump(data), encoding="utf-8")
+
+
+_PATCHES_KEY = re.compile(r"^patches:[ \t]*(#.*)?$")
+
+
+def _rstrip_blank(lines: List[str]) -> List[str]:
+    end = len(lines)
+    while end and not lines[end - 1].strip():
+        end -= 1
+    return lines[:end]
+
+
+def _indent_of(line: str) -> int:
+    return len(line) - len(line.lstrip(" "))
+
+
+def _entry_spans(lines: List[str]) -> Optional[Tuple[List[Tuple[int, int, int]], int]]:
+    """Locate each entry of the top-level ``patches:`` list in ``lines``.
+
+    Return ``([(start, item, end), ...], indent)``: an entry spans
+    ``lines[start:end]``, where ``start`` takes in the comment lines directly
+    above its ``- `` line (``item``), at or left of the entries' indent, so a
+    removed entry takes its own comment with it. Comments deeper inside an entry
+    stay part of it. None when the file does not have that shape.
+    """
+    key = next((i for i, line in enumerate(lines) if _PATCHES_KEY.match(line.rstrip("\n"))), None)
+    if key is None:
+        return None
+    end = len(lines)
+    for i in range(key + 1, len(lines)):
+        text = lines[i].rstrip("\n")
+        # A flush-left item (``- type:`` at column 0, PyYAML's default) is still
+        # the list; any other unindented line is the next top-level key.
+        if text.strip() and not text.startswith((" ", "\t", "#", "- ")):
+            end = i
+            break
+    first = next((i for i in range(key + 1, end) if lines[i].lstrip(" ").startswith("- ")), None)
+    if first is None:
+        return None
+    indent = _indent_of(lines[first])
+    marker = " " * indent + "- "
+    items = [i for i in range(key + 1, end) if lines[i].startswith(marker)]
+
+    def is_entry_comment(line: str) -> bool:
+        return line.lstrip(" ").startswith("#") and _indent_of(line) <= indent
+
+    starts = []
+    for item in items:
+        start = item
+        while start - 1 > key and is_entry_comment(lines[start - 1]):
+            start -= 1
+        starts.append(start)
+    # A column-0 comment block right above the next top-level key is about that
+    # key (or, after indented entries, about the file), not the last entry, so
+    # it stays in the untouched rest of the file when that entry is dropped.
+    if end < len(lines) or indent > 0:
+        top = end
+        while top - 1 > items[-1] and not lines[top - 1].strip():
+            top -= 1  # blank lines between that block and the key
+        if top - 1 > items[-1] and lines[top - 1].startswith("#"):
+            while top - 1 > items[-1] and lines[top - 1].startswith("#"):
+                top -= 1
+            end = top
+    spans = [
+        (start, item, starts[n + 1] if n + 1 < len(starts) else end)
+        for n, (start, item) in enumerate(zip(starts, items))
+    ]
+    return spans, indent
+
+
+_KEY = re.compile(r"""(?:"[^"\n]*"|'[^'\n]*'|[A-Za-z_][\w-]*):""")
+
+
+def _indented(rendered: str, pad: int) -> List[str]:
+    return [" " * pad + line if line.strip("\n") else line
+            for line in rendered.splitlines(keepends=True)]
+
+
+def _key_chunks(body: List[str], indent: int) -> Optional[List[Tuple[str, List[str], int]]]:
+    """Split one entry's lines into ``(key, lines, key_line)`` per top-level key.
+
+    The first key sits on the ``- `` line; the rest start at ``indent + 2``.
+    Comment lines directly above a key, no deeper than it, go with that key.
+    None when the entry does not have that shape.
+    """
+    at = indent + 2
+    if not (body and body[0].startswith(" " * indent + "- ") and _KEY.match(body[0][at:])):
+        return None
+    heads = [0] + [i for i in range(1, len(body))
+                   if body[i].startswith(" " * at) and _KEY.match(body[i][at:])]
+    starts = []
+    for head in heads:
+        start = head
+        while start - 1 > 0 and body[start - 1].lstrip(" ").startswith("#") \
+                and _indent_of(body[start - 1]) <= at and start - 1 not in heads:
+            start -= 1
+        starts.append(start)
+    chunks = []
+    for n, (start, head) in enumerate(zip(starts, heads)):
+        stop = starts[n + 1] if n + 1 < len(starts) else len(body)
+        key = _KEY.match(body[head][at:]).group(0)[:-1].strip("\"'")
+        chunks.append((key, body[start:stop], head - start))
+    return chunks
+
+
+def _as_mapping(chunk: List[str], key_line: int, indent: int) -> Any:
+    """Load one key's lines as a mapping, with the entry's ``- `` turned into spaces."""
+    lines = list(chunk)
+    line = lines[key_line]
+    if line[indent:indent + 2] == "- ":
+        lines[key_line] = line[:indent] + "  " + line[indent + 2:]
+    return yaml.safe_load(textwrap.dedent("".join(lines)))
+
+
+_BLOCK_HEADER = re.compile(r"(?:^|[:-])[ \t]+[|>]([1-9+-]{0,2})[ \t]*$|^[ \t]*[|>]([1-9+-]{0,2})[ \t]*$")
+
+
+def _has_comment(lines: List[str]) -> bool:
+    """True when ``lines`` (part of a YAML block) hold a comment, whole-line or inline.
+
+    A ``#`` starts a comment only at the start of a line or after whitespace, and
+    never inside a quoted string (which may span lines) or a block scalar's
+    content, so the hashes in an ``xml: |`` value or in ``"a # b"`` don't count.
+    """
+    block_parent: Optional[int] = None  # inside a block scalar owned by the node at this column
+    content: Optional[int] = None  # that scalar's content indent, once known
+    quote: Optional[str] = None  # an open quoted scalar carried from an earlier line
+    for raw in lines:
+        text = raw.rstrip("\r\n")
+        if block_parent is not None:
+            if not text.strip():
+                continue
+            if content is None and _indent_of(text) > block_parent:
+                content = _indent_of(text)  # no indicator: the first content line sets it
+            if content is not None and _indent_of(text) >= content:
+                continue
+            # Less indented than the content (even if deeper than its key): the scalar
+            # has ended, and this line is YAML again, possibly a comment.
+            block_parent = content = None
+        last = None  # the last non-blank character before position i on this line
+        i = 0
+        while i < len(text):
+            c = text[i]
+            if quote == '"':
+                if c == "\\":
+                    i += 2
+                    continue
+                if c == '"':
+                    quote = None
+            elif quote == "'":
+                if c == "'":
+                    if text[i + 1:i + 2] == "'":
+                        i += 2
+                        continue
+                    quote = None
+            elif c == "#" and (i == 0 or text[i - 1] in " \t"):
+                return True
+            elif c in "\"'" and last in (None, ":", "-", "[", "{", ",") \
+                    and (i == 0 or text[i - 1] in " \t[{,"):
+                quote = c  # a quoted scalar starts a node; a quote mid-word is plain text
+            if c not in " \t":
+                last = c
+            i += 1
+        header = _BLOCK_HEADER.search(text) if quote is None else None
+        if header:
+            # The scalar belongs to its key, or for a bare ``- |`` item, the dash. Its
+            # content sits at that column plus an explicit indentation indicator (``|2``),
+            # or else at the indent of its first content line.
+            col = _indent_of(text)
+            while text[col:col + 2] == "- " and ":" in text[col + 2:]:
+                col += 2 + _indent_of(text[col + 2:])
+            digits = [d for d in (header.group(1) or header.group(2) or "") if d.isdigit()]
+            block_parent = col
+            content = col + int(digits[0]) if digits else None
+    return False
+
+
+def _changed_entry(
+    body: List[str], indent: int, before: Dict[str, Any], after: Dict[str, Any], text: str,
+    notes: List[str],
+) -> List[str]:
+    """The new lines for one changed entry.
+
+    Each key whose value is unchanged keeps its exact lines, comments and odd
+    indentation included, and only changed or new keys are rendered, in the
+    file's quoting. When the entry's keys cannot be told apart, the whole entry
+    is rendered instead. Each comment that cannot be kept that way is named in
+    ``notes``, so it is never dropped silently.
+    """
+    flush = indent == 0  # the file writes its lists flush with their key
+
+    def whole() -> List[str]:
+        if _has_comment(body):
+            notes.append(f"comments inside {describe_patch(before)} were not kept")
+        return _indented(_dump([_in_file_style(after, text)], flush), indent)
+
+    chunks = _key_chunks(body, indent)
+    if chunks is None or [k for k, _, _ in chunks] != list(before):
+        return whole()
+    by_key = {}
+    for key, chunk, key_line in chunks:
+        try:
+            if _as_mapping(chunk, key_line, indent) != {key: before[key]}:
+                return whole()
+        except yaml.YAMLError:
+            return whole()
+        by_key[key] = (chunk, key_line)
+    out: List[str] = []
+    for n, (key, value) in enumerate(after.items()):
+        if key in by_key and before[key] == value:
+            chunk, key_line = by_key[key]
+            piece = list(chunk)
+        else:
+            lead = by_key[key][0][: by_key[key][1]] if key in by_key else []
+            if key in by_key and _has_comment(by_key[key][0][by_key[key][1]:]):
+                notes.append(f"comments inside `{key}` of {describe_patch(before)} were not kept")
+            piece = lead + _indented(_dump(_in_file_style({key: value}, text), flush), indent + 2)
+            key_line = len(lead)
+        line = piece[key_line]
+        piece[key_line] = line[:indent] + ("- " if n == 0 else "  ") + line[indent + 2:]
+        out.extend(piece)
+    for key, (chunk, _) in by_key.items():
+        if key not in after and _has_comment(chunk):
+            notes.append(f"comments on the removed `{key}` of {describe_patch(before)} were not kept")
+    return out
+
+
+def rewrite_patch_entries(
+    text: str,
+    old: List[Dict[str, Any]],
+    refreshed: List[Optional[Dict[str, Any]]],
+    expected: Dict[str, Any],
+    notes: Optional[List[str]] = None,
+) -> Optional[str]:
+    """Edit only the changed entries of patch file ``text`` in place.
+
+    ``refreshed[n]`` is the new value of ``old[n]``, or None to drop it. An
+    unchanged entry keeps its exact text, and a dropped one goes with the
+    comments directly above it. A changed one keeps those comments and the
+    exact lines of every key whose value did not change; only its changed or new
+    keys are rendered (see ``_changed_entry``). The rest of the file is untouched,
+    so a writeback's diff shows only what changed. Return None when the file's layout is not recognised or
+    the result would not load as ``expected``; the caller then rewrites it whole.
+    """
+    lines = text.splitlines(keepends=True)
+    found = _entry_spans(lines)
+    if found is None:
+        return None
+    spans, indent = found
+    if len(spans) != len(old) or len(refreshed) != len(old):
+        return None
+    found_notes: List[str] = []
+    out = lines[: spans[0][0]]
+    for (start, item, end), before, after in zip(spans, old, refreshed):
+        chunk = lines[start:end]
+        try:
+            # Proves the span is this entry, and nothing more, before reusing it.
+            if yaml.safe_load("".join(chunk)) != [before]:
+                return None
+        except yaml.YAMLError:
+            return None
+        if after is None:
+            continue
+        if after == before:
+            out.extend(chunk)
+            continue
+        out.extend(lines[start:item])
+        body = _rstrip_blank(lines[item:end])
+        out.extend(_changed_entry(body, indent, before, after, text, found_notes))
+        # Keep the blank lines that separated it from the next entry.
+        out.extend(lines[item + len(body):end])
+    out.extend(lines[spans[-1][2]:])
+    edited = "".join(out)
+    try:
+        if yaml.safe_load(edited) != expected:
+            return None
+    except yaml.YAMLError:
+        return None
+    if notes is not None:
+        notes.extend(found_notes)
+    return edited

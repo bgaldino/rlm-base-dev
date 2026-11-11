@@ -32,7 +32,7 @@ or verify the local toolchain itself (shell config, PATH order, corporate CA,
 
 ## Quick Diagnosis: Which Step Failed?
 
-The `prepare_rlm_org` flow runs 35 steps. Identify the failing step from
+The `prepare_rlm_org` flow runs 37 steps. Identify the failing step from
 CCI output, then jump to the relevant section below.
 
 | Step Range | Category | Section |
@@ -65,7 +65,7 @@ Run this first — it checks everything:
 | CumulusCI not found | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` |
 | SF CLI < v2 | `npm install -g @salesforce/cli` (NOT `brew install sf`) |
 | SFDMU plugin missing/outdated | Auto-fixed by default (`auto_fix=true`). Manual: `sf plugins install sfdmu` |
-| Node.js not found | `nvm install --lts && nvm alias default lts/*` |
+| Node.js not found | `nvm install 24 && nvm alias default 24` (the line pinned in `.nvmrc`) |
 | Robot Framework deps missing | Auto-fixed by default. Manual: `pipx inject cumulusci --force -r robot/requirements.txt` |
 | Chrome/ChromeDriver missing | Install Chrome; `pip install webdriver-manager` |
 | Chrome/ChromeDriver versions mismatch, a browser override has no `CHROMEDRIVER_PATH`, or an override path is not executable or does not run cleanly (wrong architecture, nonzero `--version` exit) | Install the matching driver and point `CHROMEDRIVER_PATH` at it, or fix/unset `CHROME_BINARY` / `CHROME_BIN` / `CHROMEDRIVER_PATH` |
@@ -74,10 +74,16 @@ Run this first — it checks everything:
 
 ### `sf` or `node` not found in IDE / CI
 
-**Cause:** `~/.zshenv` is missing nvm/pyenv init blocks. Non-interactive
-shells (IDE terminals, CI runners) don't source `~/.zshrc`.
+**Cause:** `~/.zshenv` doesn't load nvm or put pyenv on PATH. Non-interactive
+shells (IDE tasks, CI runners, Claude Code's Bash tool) don't source `~/.zshrc`.
 
-**Fix:** Add both nvm and pyenv init to `~/.zshenv` AND `~/.zshrc`.
+**Fix:** Merge the `~/.zshenv` template's Homebrew, NVM and pyenv blocks from
+`docs/guides/dev-environment-setup.md` §2, in its order: the NVM block finds
+Homebrew's nvm through `brew`, which a non-login shell has only from the Homebrew
+block (`~/.zshrc` needs only the nvm completion lines). Don't add an `nvm.sh`
+source line of your own to `~/.zshrc` or `~/.zshenv`: without `--no-use`, nvm's
+auto-use runs in every shell, and a line in both files loads nvm twice in an
+interactive shell.
 
 ### "Org not found" or "auth failed" errors
 
@@ -146,8 +152,7 @@ refuses scratch-only commands. CCI's own `org_config.scratch` is unaffected, so
 **Fix (standalone, when running CLI commands outside the flow):**
 
 ```bash
-cci org default ent-r1                      # this CCI build uses the default org (no --org)
-cci task run fix_scratch_org_identity        # sets isScratch=true (when false or missing) if devHubUsername is present
+cci task run fix_scratch_org_identity --org ent-r1   # sets isScratch=true (when false or missing) if devHubUsername is present
 ```
 
 The task is idempotent (no-op when already correct) and only sets
@@ -170,7 +175,28 @@ Check the SFDMU stdout for the specific object and error. Common causes:
 | `REQUIRED_FIELD_MISSING` | Parent records not loaded yet | Check plan dependency order (PCM before pricing/billing) |
 | `DUPLICATE_VALUE` | Composite key mismatch | Verify `$$` column in CSV matches `externalId` fields |
 
+### Load task fails: "SFDMU reported success, but Salesforce rejected N row(s)"
+
+**Cause:** `LoadSFDMUData` read the plan's `target/*_target.csv` files after an exit-0
+run and found rows whose `Errors` value is neither `#N/A` nor empty. SFDMU's own log said
+`Inserted N` — that counts rows attempted, not created. The message names each
+object, operation, the rejected-row count, the target file and the first errors.
+
+**Fix:** Treat it as the load error it is — the platform message is in the target
+file's `Errors` column (common ones are in the table above). Only if the rejection is
+understood and harmless, add it to the task's `ignore_row_errors_for` as
+`Object: "expected error substring"` with a comment saying why: those rows are then
+logged as a warning, while a different error or any other object still fails. `fail_on_row_errors: false` turns the whole check into a warning.
+
 ### Idempotency test fails (record count increased)
+
+(It also fails, before comparing counts, on rejected rows other than the task's
+`ignore_row_errors_for`, and on a rejected insert in the second load: a rerun whose inserts
+are rejected instead of matched leaves the counts flat and would otherwise read as
+idempotent. The one exception is a listed insert rejection that the same target file already had
+on the first load, at least as many times, such as qb-pcm's ProrationPolicy duplicating the platform default on
+every load; that row never inserts, so it can't hide a missed match. A rejected update
+can't create a record, so a known update rejection is tolerated on both loads.)
 
 **Cause:** Missing or mismatched `$$` composite key column in the CSV. The
 second load inserts instead of matching.
@@ -263,12 +289,74 @@ then polls. If it times out:
 2. Manually trigger recalculation
 3. Increase `timeout_seconds` option (default 300s)
 
+### PSG reads "Updated" but its users lack fields a member set grants
+
+**Cause:** a group's aggregate is recomputed when its *components* change, not when a
+member permission set's own permissions grow. `RLM_RCB` is deployed in `deploy_pre`;
+its managed Billing Admin set gains the Dispute/DisputeItem billing fields only when
+`post_billing` turns on dispute management, so the group can read **Updated** while the
+admin lacks `DisputeItem.ApprovedAmount` (Dispute Details save fails: "Approved Amount
+field not found"). Timing-dependent: some builds aren't stale.
+
+**Diagnose:** compare the group's aggregate (`SELECT Field FROM FieldPermissions WHERE
+ParentId IN (SELECT Id FROM PermissionSet WHERE PermissionSetGroup.DeveloperName =
+'<PSG>')`) with its components' grants. `FieldDefinition` and describe hide fields the
+user can't read, so a missing field there is not proof the field doesn't exist.
+
+**Fix:** a Description edit does NOT recalculate an Updated group. A component change
+does: `recalculate_permission_set_groups` with `force_recalc: true` adds and removes an
+empty probe permission set (`RLM_PSG_Recalc_Probe`) and, with `verify_fields`, fails if
+the fields are still absent. The build runs it for `RLM_RCB` as `prepare_billing` step 17
+(`recalculate_billing_psg_after_settings`); on an older org, run that task once. The
+empty `RLM_PSG_Recalc_Probe` permission set it creates stays in the org by design: it
+grants nothing and is safe to leave (or delete; the task recreates it).
+
 ### PSG recalculation fails with "Failed" status
 
 **Cause:** Conflicting permissions in the PSG's member permission sets.
 
 **Fix:** Check Setup → Permission Set Groups → the failing PSG for conflict
 details. Remove conflicting permission set members.
+
+### A standard field is on the layout but missing from the form, describe and SOQL
+
+**Example:** in a fresh 264 org, New Billing Account shows only Primary Billing
+Address, with no Shipping Address, Bill Day of Month or Payment Term.
+`SELECT ShippingStreet FROM BillingAccount` fails with "No such column".
+
+**Cause:** missing FLS, not missing schema. Describe, data-API `FieldDefinition`
+and SOQL all hide fields the running user can't read. That makes a hidden field
+look as if it doesn't exist. The standard Billing permission sets don't grant
+these three fields, and fresh orgs don't always give profiles FLS on fields a
+release adds. Opening the object in Setup → Object Manager was seen to
+back-fill profile FLS, so an org you've browsed in Setup is no longer evidence.
+
+**Diagnose:**
+- Check the schema without the FLS filter: run
+  `sf data query --use-tooling-api -q "SELECT QualifiedApiName FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName='BillingAccount'"`.
+- Then compare `FieldPermissions` for the user's permission sets.
+
+**Fix:** grant FLS through a permission set, never a custom field. For
+BillingAccount the build does this with `RLM_BillingAccountFieldAccess` (in
+`RLM_RCB` and the billing persona PSGs). On an org built before that change,
+set the field's FLS in Setup, then hard-refresh Lightning.
+
+### The sales rep persona sees no usage records (`TransactionJournal`), but `UserRecordAccess` says Read
+
+**Example:** on the Account page's View Usage, the sales rep persona gets "No records found" in
+the **Usage** table, even for usage it uploaded itself. The admin sees the rows.
+
+**Cause:** without View All on `TransactionJournal`, the persona sees none of its rows. The object
+has no owner field. Its org-wide default reads Read/Write, and `UserRecordAccess` reports Read, but
+the user's SOQL returns nothing and a retrieve by Id returns `NOT_FOUND` (checked live on 264, todo
+315). Object Read, FLS, the usage licenses and a `LegalEntityId` don't change it; the admin sees
+the rows through its profile's View All.
+
+**Fix:** none in the build, by design: View All exposes every account's usage records, so the
+persona keeps an empty Usage table (see `docs/references/revenue-cloud-permissions.md` → *Record
+sharing*). Don't re-check OWD, FLS or PSLs for this symptom. For a user who should see all usage,
+the standard Accounts Receivables Admin permission set (`RevenueLifecycleManagementAccountingAdmin`,
+Billing license) includes View All on the object.
 
 ---
 
@@ -310,11 +398,14 @@ cci task run check_decision_table_freshness --org beta
 ```
 Runs `scripts/apex/checkDecisionTableFreshness.apex` and reports every table with
 a verdict and a reason. Read-only. Add `-o param1 strict` to fail a build on any
-stale table — only where no data load follows the refresh.
+stale table — only where no data load follows the refresh. To list every table
+that reads a given object, use `-o param1 json`
+(`.cursor/skills/decision-tables/SKILL.md` → **Examples**).
 
 ⚠ **"Not comparable" is not a failure.** It means the check declined to guess.
 Only **Stale** is a positive finding. Verdicts are scoped to the running user's
-visible rows, so run it as an operator with org-wide read.
+visible rows, so run it as an operator with org-wide read. Run as a user whom sharing can
+hide rows from, it reports those tables Not comparable rather than Fresh.
 
 Full detail — what each verdict means, the timing rule for automatic refreshes,
 and why a lookup goes stale without its own row changing:
@@ -377,7 +468,10 @@ step you know is in the procedure (a new formula, a constant control such as
 
 **Cause:** check `ProcedurePlanDefinitionVersion.IsActive` **first**. An inactive
 procedure plan is skipped: pricing falls back to the Revenue Settings default
-procedure and none of the plan's other procedures run. Measured on 264, a
+procedure and none of the plan's other procedures run. Inactive is the build
+default (`procedureplans_active: false`), so this is only a fault when the
+change you expect lives in a procedure only the plan runs (for example
+`RLM_PRM_DISTI_Pricing_Procedure`). Measured on 264, a
 discounted quote line still priced correctly with the plan off, but produced 3
 `PricingProcessExecution` rows instead of 9. A failed expression-set import
 used to leave the plan in this state (pack 170). By contrast, an active plan
@@ -388,8 +482,13 @@ procedure has at least one active version."
 expression-set version is **not confirmed inactive** after a failed PATCH, the
 version may be half-written: inspect it and deactivate it before touching the
 plan, because an active plan would route pricing to it. Then query the plan
-(`SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion`) and reactivate it with `sf data update record --target-org <sf_alias_or_username>
---sobject ProcedurePlanDefinitionVersion --record-id <1Cv...> --values "IsActive=true"`, and re-check with a constant
+(`SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion`). If the change belongs
+to `RLM_DefaultPricingProcedure`, leave the plan inactive: the plan is not the cause,
+so check that procedure's active version and the Revenue Settings default procedure.
+Activate the plan only when you need a plan-only procedure, and accept the trade-off in
+`datasets/sfdmu/procedure-plans/README.md` → *Activation* (price revision applied
+twice, waterfall shows only the last procedure): `sf data update record --target-org <sf_alias_or_username>
+--sobject ProcedurePlanDefinitionVersion --record-id <1Cv...> --values "IsActive=true"`. Re-check with a constant
 control. Do not conclude "pricing works" from a plausible number.
 
 ---
@@ -398,13 +497,17 @@ control. Do not conclude "pricing works" from a plausible number.
 
 ### PUR activation fails: "effective period overlaps"
 
-**Cause:** Duplicate Draft PURs exist (from re-running the plan without
-deleting first).
+**Cause:** Duplicate Draft PURs exist (copies made by hand, or a load from an older plan
+revision; the qb and q3 rating plans match existing PURs).
 
 **Fix:**
-1. Delete rates data first: `cci task run delete_qb_rates_data --org beta`
-2. Delete rating data: `cci task run delete_qb_rating_data --org beta`
-3. Re-load: `cci task run insert_qb_rating_data --org beta`
+1. Delete rates data first: `cci task run delete_qb_rates_data --org beta` (manual teardown;
+   `prepare_rating` no longer runs it)
+2. Delete rating data: `cci task run delete_qb_rating_data --org beta` (manual teardown;
+   `prepare_rating` no longer runs it)
+3. Re-load: `cci flow run prepare_rating --org beta` (or run `insert_qb_rating_data`,
+   `insert_qb_rating_entitlements_data`, `insert_qb_rates_data`, then
+   `activate_rating_records` and `activate_rates`)
 
 **Critical:** Always delete rates before rating (FK constraint).
 
@@ -535,6 +638,20 @@ stay `PENDING`** — a platform issue, not a data defect. **Re-verified on a fre
 billing records must be deactivated before deletion (if the platform allows),
 or the org must be recreated.
 
+### Account Reset keeps posted invoices, debit memos or payments
+
+**Cause:** Delete Billing deletes invoices that are not Draft or Canceled only
+for a user with **Delete Invoice and Invoice Lines** (`BillingInvoiceSuperUser`,
+from `RLM_DeleteInvoices` in the `RLM_RCB` group). Payments are never deleted:
+Salesforce refuses to delete a processed payment. Posted and void debit memos
+are never deleted either: Salesforce refuses to delete them, even with that
+permission, and a posted one can be voided but not canceled.
+
+**Fix:** The reset's result screen lists what it kept and why. For invoices,
+assign `RLM_DeleteInvoices` to the user running the reset and run it again;
+invoices that are still processing need another run once they finish. Kept
+payments and posted or void debit memos are expected, not a failure.
+
 ### BillingTreatment missing BillingPolicyId
 
 **Cause:** Data load ordering issue — BillingTreatment loaded before its
@@ -633,6 +750,65 @@ import.
 1. Load PCM data: `cci task run insert_quantumbit_pcm_data --org beta`
 2. Retry import: `cci task run import_cml -o data_dir <path> --org beta`
 
+### A non-admin's quote fails: "Something went wrong while running configuration rules"
+
+**Example:** on an org spun from a template, the sales rep's first quote with configuration rules on
+(the default) fails with `UNKNOWN_EXCEPTION`, for any product, on every retry. The admin's
+quote succeeds, and after that the rep's do too.
+
+**Cause:** the constraint-solver cache is keyed by org, so a template-spun org always starts
+with it empty. So does an org whose models were activated by an `ExpressionSetVersion.IsActive`
+update instead of through the constraint-version resource (builds before todo 064's fix). The first configuration-rules run catches `MODEL_NOT_FOUND` and
+redeploys the active models as the **running user**. Part of that redeploy reads the
+constraint-model `ExpressionSet` records in user mode. `ExpressionSet` sharing is
+Private, so a user who can't see those rows fails, and the error surfaces as the generic
+message. The admin can see them, so the admin's run fills the cache for everyone.
+
+**Diagnose:** in the user's debug log, `RLM_CONFIGURATOR_END` shows
+`MODEL_NOT_FOUND_EXCEPTION` "Found no constraint models" while `RLM_CONFIGURATOR_BEGIN`
+reports `activeModelCount` > 0. As the user,
+`SELECT COUNT() FROM ExpressionSet WHERE UsageType = 'Constraint'` returns 0.
+
+**Fix:** the build shares constraint-model Expression Sets Read with all internal users
+through the criteria sharing rule `ExpressionSet.RLM_Constraint_Models_Read`
+(`unpackaged/post_constraints/sharingRules/`). Pricing procedures and other Expression Sets
+stay Private. The rule covers internal users only; external (Experience Cloud) users get no
+access from it. On an org built before that change, deploy only the rule, not the whole
+`post_constraints` bundle (that bundle re-applies the repo's IndustriesConstraints and
+ProductDiscovery settings over any later org changes, and redeploys `RLM_QuoteItemTrigger` and its
+test class; a deploy that contains Apex runs all local Apex tests on a production-type org):
+
+```bash
+sf project deploy start --source-dir unpackaged/post_constraints/sharingRules --target-org <sf_alias>
+```
+
+As a one-off, an admin quoting one configured product also fills the cache, and so does
+cycling any one constraint model with `manage_expression_sets` (`deactivate_versions`, then
+`activate_versions`): one activation deploys every active model (todo 313). Do **not** turn
+off `executeConfigurationRules`: that skips the rules.
+
+### `manage_expression_sets` fails: "Constraint version status update failed"
+
+**Cause:** the constraint-version resource refused to deploy (or remove) the model and said
+so in its response body; HTTP was still 200. `manage_expression_sets` activates constraint
+models through that resource, so `prepare_constraints` step 10 fails instead of reporting
+success while the solver keeps the old model. The `errors` in the message come from the
+platform. Typical causes: the model doesn't compile (check it with `validate_cml`), a product
+in it has no `Type`/`Port` association (see *Unresolved ESC associations*), or the context
+definition the model uses is inactive.
+
+**Fix:** correct the model or its associations, re-run `import_cml`, then cycle the version
+again (deactivate, then activate).
+
+A cold solver (a template-spun org, or one built before todo 064's fix) is not a cause.
+Checked live on 2026-10-29 (todo 313) on an org whose solver held no models, with both
+versions still Active: step 9's deactivate returned `success: true` for both, and step 10 left
+the solver warm (the sales rep's next quote needed one configurator pass, with no
+`MODEL_NOT_FOUND`). Cycling only `QuantumBitBundle_V1` also succeeded, and the next quote,
+for a `Server2` product, solved in one pass; cycling only `Server2_V1` did the same for a
+`QuantumBitBundle` product. Activating one constraint model deploys every active one, so a
+single-model cycle is enough.
+
 ---
 
 ## DRO Errors
@@ -696,7 +872,7 @@ cci task run assemble_and_deploy_ux -o deploy false
 rm -rf .sf/orgs/<org-id>/localSourceTracking
 
 # Validate each CML model's shipped blob against its own ESC rows (no org needed)
-cci task run validate_cml -o data_dirs "datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitPCM,datasets/constraints/qb/QuantumBitBundle"
+cci task run validate_cml -o data_dirs "datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitBundle"
 ```
 
 ---

@@ -1,31 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <actionCalls>
-        <name>Refresh_Decision_Table_Action</name>
-        <label>Refresh Decision Table Action</label>
+    <apiVersion>68.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <description>Returns a fault from the table lookup to the caller instead of faulting it. A subflow element cannot take a fault path, so a fault left unhandled here would fault RLM_Account_Utilities in the reset&apos;s own transaction and roll the reset back.</description>
+        <name>Note_Lookup_Fault</name>
+        <label>Note Lookup Fault</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <actionName>refreshDecisionTable</actionName>
-        <actionType>refreshDecisionTable</actionType>
-        <connector>
-            <targetReference>Loop_Through_Decision_Tables</targetReference>
-        </connector>
-        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
-        <inputParameters>
-            <name>DecisionTableApiName</name>
+        <assignmentItems>
+            <assignToReference>faultMessage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.FaultMessage</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <assignments>
+        <description>Collects one matched table&apos;s API name for the bulk refresh.</description>
+        <name>Add_Api_Name</name>
+        <label>Add Api Name</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>decisionTableApiNames</assignToReference>
+            <operator>Add</operator>
             <value>
                 <elementReference>Loop_Through_Decision_Tables.DeveloperName</elementReference>
             </value>
-        </inputParameters>
-        <nameSegment>refreshDecisionTable</nameSegment>
-        <offset>0</offset>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </actionCalls>
-    <apiVersion>68.0</apiVersion>
-    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Through_Decision_Tables</targetReference>
+        </connector>
+    </assignments>
+    <description>Queues a full refresh for every active decision table with the given UsageType. It only selects the tables: the refresh itself is RLM_Refresh_Decision_Tables_Bulk, the same flow the Decision Table Manager uses, so a table whose refresh throws is counted rather than abandoning the tables after it. Called as a subflow by RLM_Account_Utilities, and invocable through the actions REST API. Returns queuedCount, failedCount and failedApiNames; queued means accepted, not finished. Zero queued and zero failed means no active table carries that UsageType, unless faultMessage is set: the lookup faulted and nothing was refreshed. This flow absorbs its own faults because a subflow element in the caller cannot take a fault path.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Refresh Decision Tables By Usage Type {!$Flow.CurrentDateTime}</interviewLabel>
-    <isTemplate>true</isTemplate>
     <label>RLM Refresh Decision Tables By Usage Type</label>
     <loops>
         <name>Loop_Through_Decision_Tables</name>
@@ -35,8 +45,11 @@
         <collectionReference>Get_Decision_Tables_to_Refresh</collectionReference>
         <iterationOrder>Asc</iterationOrder>
         <nextValueConnector>
-            <targetReference>Refresh_Decision_Table_Action</targetReference>
+            <targetReference>Add_Api_Name</targetReference>
         </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Refresh_Decision_Tables</targetReference>
+        </noMoreValuesConnector>
     </loops>
     <processMetadataValues>
         <name>BuilderType</name>
@@ -58,6 +71,7 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
+        <description>Active tables only: refreshDecisionTable faults on an inactive table.</description>
         <name>Get_Decision_Tables_to_Refresh</name>
         <label>Get Decision Tables to Refresh</label>
         <locationX>0</locationX>
@@ -66,12 +80,22 @@
         <connector>
             <targetReference>Loop_Through_Decision_Tables</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Note_Lookup_Fault</targetReference>
+        </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>UsageType</field>
             <operator>EqualTo</operator>
             <value>
                 <elementReference>decisionTableUsageType</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Status</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Active</stringValue>
             </value>
         </filters>
         <getFirstRecordOnly>false</getFirstRecordOnly>
@@ -86,7 +110,41 @@
         </connector>
     </start>
     <status>Active</status>
+    <subflows>
+        <name>Refresh_Decision_Tables</name>
+        <label>Refresh Decision Tables</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <flowName>RLM_Refresh_Decision_Tables_Bulk</flowName>
+        <inputAssignments>
+            <name>decisionTableApiNames</name>
+            <value>
+                <elementReference>decisionTableApiNames</elementReference>
+            </value>
+        </inputAssignments>
+        <outputAssignments>
+            <assignToReference>failedApiNames</assignToReference>
+            <name>failedApiNames</name>
+        </outputAssignments>
+        <outputAssignments>
+            <assignToReference>failedCount</assignToReference>
+            <name>failedCount</name>
+        </outputAssignments>
+        <outputAssignments>
+            <assignToReference>queuedCount</assignToReference>
+            <name>queuedCount</name>
+        </outputAssignments>
+    </subflows>
     <variables>
+        <description>API names of the matched tables, handed to the bulk refresh.</description>
+        <name>decisionTableApiNames</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>UsageType to match against DecisionTable.UsageType.</description>
         <name>decisionTableUsageType</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -94,6 +152,46 @@
         <isOutput>true</isOutput>
         <value>
             <stringValue>PricingDiscovery</stringValue>
+        </value>
+    </variables>
+    <variables>
+        <description>Set when the table lookup faulted, in which case nothing was refreshed.</description>
+        <name>faultMessage</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>API names whose refresh threw.</description>
+        <name>failedApiNames</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>Number of tables whose refresh threw.</description>
+        <name>failedCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+        <scale>0</scale>
+        <value>
+            <numberValue>0.0</numberValue>
+        </value>
+    </variables>
+    <variables>
+        <description>Number of tables accepted for refresh. Not a completion count.</description>
+        <name>queuedCount</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+        <scale>0</scale>
+        <value>
+            <numberValue>0.0</numberValue>
         </value>
     </variables>
 </Flow>

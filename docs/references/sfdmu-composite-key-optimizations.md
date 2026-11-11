@@ -22,7 +22,7 @@ before reloading existing data.
 > shipped plans; migrating them back to Upsert is the separate, gated
 > `sfdmu-v5-optimization` initiative (needs live verification + approval). Do **not**
 > apply the patterns below when authoring *new* plans on 5.6.4+; author them as `Upsert`.
-> Only the Bug 4 (`$$` lookup references — self-referential and cross-object) simplifications remain live guidance.
+> Only the Bug 4 (a `$$` lookup reference that's self-referential, or doesn't match the parent's `externalId`) simplifications remain live guidance.
 
 ### Key v5 behavioral changes
 
@@ -73,7 +73,7 @@ before reloading existing data.
 - **FulfillmentStepDefinition**: externalId simplified to `Name`; `$$` column removed; 2 duplicate-Name pairs disambiguated with group-name suffix
 - **FulfillmentStepDependencyDef**: externalId simplified to `Name`; `$$` column removed; parent references updated to use renamed FSD Names
 - **ProductFulfillmentScenario**: externalId simplified to `Name`; `$$` column removed
-- **FulfillmentWorkspaceItem**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Names make direct-field matching impossible); `$$` column removed
+- **FulfillmentWorkspaceItem**: the `$$FulfillmentWorkspace.Name$FulfillmentStepDefinitionGroup.Name` column is back (todo 326), for Upsert matching on its composite key. Its pre-5.6.4 `deleteOldData: true` (auto-number Names make direct-field matching impossible) was dropped on the 5.6.4+ floor (todo 326): the all-traversal key matches
 - **ProductDecompEnrichmentRule**: excluded (0 records)
 - **Single plan for scratch and TSO:** The qb-dro plan uses the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv` (AssignedTo.Name), `User.csv`, and `UserAndGroup.csv` (Name). The task `insert_qb_dro_data` runs with `dynamic_assigned_to_user: true`, which queries the target org for the default user's Name and replaces the placeholder before running SFDMU.
 
@@ -83,30 +83,29 @@ before reloading existing data.
 - **RateAdjustmentByTier**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Name, all-relationship externalId)
 
 #### qb-tax
-- **TaxPolicy**: `DefaultTaxTreatmentId` removed from Pass 2 query — SFDMU v5 cannot resolve the circular `DefaultTaxTreatment.Name` reference. The `activateTaxRecords.apex` script now sets `DefaultTaxTreatmentId` before activating.
+- **TaxPolicy (Pass 2)**: queries `DefaultTaxTreatmentId` with a single-field `DefaultTaxTreatment.Name` lookup (verified live on 264, 2026-10-30), so the default treatment is set in the same update that activates the policy. The earlier failure was Bug 4: the CSV's `$$` lookup didn't match how the plan keyed the treatment. Before the fix, the query omitted the field and `activateTaxRecords.apex` set it afterwards. The script still backfills it for any policy left without one; no tracked plan relies on that since q3-tax became a product mapping (todo 210).
+- **NamedCredential**: read as a `Readonly` object (`RLM_MockTax`) so `TaxEngine.MerchantCredential.DeveloperName` resolves.
 
 #### qb-rating
 - **Historical migration:** ProductUsageResourcePolicy and ProductUsageGrant were initially excluded because of traversal-key issues.
-- **Current plan:** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant are included with `operation: Insert` and `deleteOldData: true`. These deletes have no WHERE filter and target all records of each object. See the [rating plan's reload prerequisites](../../datasets/sfdmu/qb/en-US/qb-rating/README.md#idempotency) before reloading; active records and downstream references can block deletion.
+- **Current plan (todo 298):** nothing is deleted. ProductUsageResource is `Upsert` on `Product.StockKeepingUnit;UsageResource.Code`, two passes (insert missing rows as Draft with `skipExistingRecords`, then update without Status). ProductUsageResourcePolicy and ProductUsageGrant moved to the sibling plan [`qb-rating-entitlements`](../../datasets/sfdmu/qb/en-US/qb-rating-entitlements/README.md), keyed on `ProductUsageResourceId`, which `LoadSFDMUData` resolves on the target org before the load, because Upsert on the parent's composite traversal key fails on 5.8.0 (upstream #1218).
 
 ### Idempotency
 
 The historical Release 260 verification recorded zero record-count changes across
 47 objects in 10 QB data tasks on a fresh scratch org. That result does not certify
-the current plans against an org with live transactional data. In particular,
-`qb-pricing` requires its separate delete task before Insert operations, and
-`qb-rating`/`qb-rates` retain delete-and-reinsert operations that live references
-can block. Use the per-plan instructions and the live-org guidance linked above.
+the current plans against an org with live transactional data. Since todo 298 the qb
+pricing, rates and rating plans match existing rows and delete nothing, so they reload a
+built org without duplicates. Live records can still lock fields: an Active rate card entry
+accepts only Status changes. Use the per-plan instructions and the live-org guidance linked above.
 
 Current examples below are classified by object, because a plan can mix operations.
 Consult each plan's `export.json` and README for its full object list and load sequence.
 
 | Strategy | Objects |
 |----------|---------|
-| Upsert without `deleteOldData` (keys vary) | Examples: UnitOfMeasure (`UnitCode`) and UsageResource (`Code`) in qb-rating; FulfillmentWorkspace (`Name`) in qb-dro |
-| Upsert with `deleteOldData: true` (deletes before loading) | FulfillmentWorkspaceItem (qb-dro), PriceBookRateCard (qb-rates) |
-| Insert with `deleteOldData: true` (delete + reinsert) | ProductUsageResource, ProductUsageResourcePolicy, ProductUsageGrant (qb-rating); RateCardEntry, RateAdjustmentByTier (qb-rates) |
-| Insert requiring the separate pricing delete task before reload | PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice, CostBookEntry (qb-pricing) |
+| Upsert without `deleteOldData` (keys vary) | Examples: UnitOfMeasure (`UnitCode`), UsageResource (`Code`) and ProductUsageResource (`Product.StockKeepingUnit;UsageResource.Code`) in qb-rating; ProductUsageResourcePolicy and ProductUsageGrant (`ProductUsageResourceId`, resolved per org) in qb-rating-entitlements; FulfillmentWorkspace (`Name`) and FulfillmentWorkspaceItem (`FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`) in qb-dro; every qb-pricing adjustment, entry and cost object; PriceBookRateCard, RateCardEntry and RateAdjustmentByTier in qb-rates |
+| Upsert with `deleteOldData: true` (deletes before loading) | None in the qb plans (mfg-dro's FulfillmentWorkspaceItem still does; todo 111) |
 
 ### Known limitations (v5)
 
@@ -134,36 +133,23 @@ and its README before deciding which objects need separate handling.
 **Root cause (pre-5.6.4):** SFDMU's upsert matching engine could not resolve composite keys composed entirely of relationship-traversal fields against target org data. 5.6.4's `_getNestedRecordFieldValue` fix (commit `50be987`) resolves this.
 
 **Historical workaround:** `deleteOldData: true` bypassed matching for objects
-whose logical key used parent lookups. The current qb-dro, qb-rates, and qb-rating
-plans retain deletion on the following objects; this inventory does not imply
-that every operation choice was caused by Bug 5 (the rating policy uses a direct FK):
-
-- `FulfillmentWorkspaceItem` (qb-dro) — Upsert + deleteOldData
-- `PriceBookRateCard` (qb-rates) — Upsert + deleteOldData
-- `RateCardEntry` (qb-rates) — Insert + deleteOldData
-- `RateAdjustmentByTier` (qb-rates) — Insert + deleteOldData
-- `ProductUsageResource` (qb-rating) — Insert + deleteOldData
-- `ProductUsageResourcePolicy` (qb-rating) — Insert + deleteOldData; `externalId: ProductUsageResourceId`
-- `ProductUsageGrant` (qb-rating) — Insert + deleteOldData
+whose logical key used parent lookups. No qb plan carries it any more: qb-rating and qb-rates
+dropped it in todo 298, and qb-dro's `FulfillmentWorkspaceItem` in todo 326. mfg-dro's copy
+goes with the mfg series (todo 111).
 
 **Current rule (5.6.4+):** Use `Upsert` for all-traversal composite externalIds — matching works. Reserve `deleteOldData: true` for a concrete *current* reason + explicit approval, not this (now-fixed) bug.
 
-### Bug 4 — `$$` composite notation fails for lookup reference columns (discovered 2026-04-02)
+### Bug 4 — a `$$` lookup reference column that doesn't match its parent's key (discovered 2026-04-02, narrowed 2026-11-03)
 
-**Problem:** `$$` composite key notation works for primary record matching (externalId ↔ `$$` CSV column) but **fails when used as a lookup reference column** in the CSV. SFDMU cannot decompose a composite `$$` value to resolve the referenced record.
+**Problem:** `$$` composite key notation works for primary record matching (externalId ↔ `$$` CSV column). As a lookup reference column it resolves only when its parts are exactly the parent object's `externalId` in the same pass. It fails when the reference is self-referential, or when the parent is keyed differently.
 
-**Discovered on:** `ProductComponentGroup.ParentGroup.$$Code$ParentProduct.StockKeepingUnit` — SFDMU ran 3 passes but left all `ParentGroupId` fields null. MissingParentRecordsReport showed anonymized hashes instead of resolved records.
+**Discovered on:** `ProductComponentGroup.ParentGroup.$$Code$ParentProduct.StockKeepingUnit` (self-referential) — SFDMU ran 3 passes but left all `ParentGroupId` fields null. MissingParentRecordsReport showed anonymized hashes instead of resolved records.
 
 **Fix applied:** Replaced composite `ParentGroup.$$Code$ParentProduct.StockKeepingUnit` with simple `ParentGroup.Code`, changed externalId from `Code;ParentProduct.StockKeepingUnit` to `Code` (unique in this dataset). After fix, all 7 nested parent group assignments resolved correctly.
 
-**Impact — audit required across all plans:**
-All data plan CSVs that use `$$` composite notation in *lookup reference columns* (not just the primary `$$` key column) need to be reviewed. This includes:
-- Self-referential lookups (e.g., `ParentGroup.$$...`, `ParentCategory.$$...`)
-- Cross-object lookups using `$$` (e.g., `ProductComponentGroup.$$Code$ParentProduct.StockKeepingUnit` referenced from `ProductRelatedComponent`)
+**Rule:** For a self-reference, use a simple single-field reference. For a cross-object reference, either do the same or key the parent on exactly the `$$` parts, declared in the same pass.
 
-The primary `$$` column (first column, used for record matching) is unaffected — only lookup references to other objects or self-references are broken.
-
-**Rule:** Always use simple field references for lookup columns. If the target object's externalId is composite, simplify to a unique single field if possible.
+**Narrowed 2026-11-03 (todo 325).** This section used to say cross-object `$$` lookups fail too. That was inferred from the self-referential case, not observed. On built orgs, a cross-object `$$` lookup whose parts are exactly the parent's `externalId` loads correctly: qb-pricing's `Pricebook2.$$Name$IsStandard` and `ProductSellingModel.$$Name$SellingModelType`, qb-rates' `RateCardEntry.$$…` (128 RABT, none with a null entry) and qb-billing's `AccountingPeriod.$$Name$FinancialYear` (588 rows, none null). What fails is a self-reference, or a `$$` lookup whose parts don't match how the plan keys the parent (the TaxPolicy case below). `scripts/ai/check_sfdmu_layering.py` flags both.
 
 ### Validation and Fixing Tools
 

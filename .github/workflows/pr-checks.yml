@@ -52,7 +52,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           # At or above the highest min_python in the check matrix, not the language feature any
           # one script needs: a check below its floor reports MISSING-DEP, and a missing dependency
@@ -61,6 +61,18 @@ jobs:
           # would forbid testing on anything newer, but it does mean CI exercises only this one
           # version. A regression that only appears on the 3.11 floor is invisible here.
           python-version: "3.13"
+
+      # Always set up, though only the LWC Jest check uses it: a step skipped by `if:` reports
+      # success, and the install step below decides whether to `npm ci`. If that decision is ever
+      # wrong, the Jest check reports MISSING-DEP and fails; it cannot pass without Node.
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          # .nvmrc is the single source for the Node line (tests/test_node_line.py).
+          node-version-file: .nvmrc
+          # Off explicitly: setup-node turns npm caching on by itself once package.json gains a
+          # packageManager field, and a restored cache is state this job did not build.
+          package-manager-cache: false
 
       - name: Resolve the base ref
         id: base
@@ -110,6 +122,13 @@ jobs:
             set +f
           else
             echo "No extra dependencies needed."
+          fi
+          # Node packages, only when a selected check needs them. From the committed lockfile, and
+          # with install scripts off: nothing the Jest check uses needs one, and a dependency's
+          # postinstall is code this job would otherwise run unreviewed.
+          node="$(python scripts/ai/pr_gate.py --needs-node ${SEL})"
+          if [ "${node}" = "true" ]; then
+            npm ci --ignore-scripts --no-audit --no-fund
           fi
 
       - name: Run the gate

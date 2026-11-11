@@ -97,6 +97,23 @@ def issues(passes, root_files=None, per_pass_files=None, severity=None, use_sepa
                 if severity is None or i.severity == severity]
 
 
+# The allowlist mechanism's own fixture. The shipped allowlist has been empty since pack 194
+# removed the last known duplicate, so the scoping rules are pinned against this entry instead.
+_FIXTURE_NONUNIQUE_ALLOWLIST = {
+    "q3/en-US/q3-rating/RatingFrequencyPolicy.csv": ("RatingPeriod", frozenset({("Monthly", 2)})),
+}
+
+
+def allowlisted_issues(*args, **kwargs):
+    """`deferral_issues` with `_FIXTURE_NONUNIQUE_ALLOWLIST` in place of the shipped allowlist."""
+    saved = V.SFDMUValidator._KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS
+    V.SFDMUValidator._KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = _FIXTURE_NONUNIQUE_ALLOWLIST
+    try:
+        return deferral_issues(*args, **kwargs)
+    finally:
+        V.SFDMUValidator._KNOWN_NONUNIQUE_SINGLE_FIELD_KEY_PATHS = saved
+
+
 def deferral_issues(rel_plan_dir, passes, root_files, severity=None):
     """Run the validator END-TO-END with the plan materialized at its real
     `datasets/sfdmu/<rel_plan_dir>` location, so `_is_deferred_empty_csv_plan` (which
@@ -510,6 +527,12 @@ NUMERIC_OPERATION_GATING = [
      True, [i for i in issues([[dict(UPSERT, operation=2, externalId="A.B.C")]],
                                {"Widget__c.csv": HEADER})
             if "nested relationship path" in i]),
+    ("a nested path on Upsert is Info, not Medium: it matches on 5.6.4+, and only extraction drops "
+     "its segments (todo 216)",
+     True, bool([i for i in issues([[dict(UPSERT, externalId="A.B.C")]], {"Widget__c.csv": HEADER},
+                                   severity=V.Severity.INFO) if "nested relationship path" in i])
+     and not [i for i in issues([[dict(UPSERT, externalId="A.B.C")]], {"Widget__c.csv": HEADER},
+                                severity=V.Severity.MEDIUM) if "nested relationship path" in i]),
     # A prior round of this PR treated a resolved-but-"unknown" operation (index 8 / the string
     # "Unknown") — and a genuinely-unresolvable one (typo/Boolean/out-of-range) — as not-writable,
     # on the theory that SFDMU resets an unresolved `operation` to its Readonly class default.
@@ -1426,11 +1449,20 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
                                 {"query": "SELECT Id FROM Widget__c", "operation": "Upsert", "externalId": "1"}]],
                               {"Widget__c.csv": "1\ndup\ndup\n"}, severity=V.Severity.HIGH)
             if "duplicate value" in i]),
-    # The pre-existing non-unique shipped files (packs 193/194) are allowlisted by EXACT path so the
-    # guard lands green. Materialized at its real location via `deferral_issues`, RatingFrequencyPolicy
-    # (frozen signature {("Monthly", 2)}) is suppressed only when its collision matches that signature...
+    # Pack 194 removed the last shipped duplicate, so the shipped allowlist is empty and the old
+    # RatingFrequencyPolicy collision now fires like any other.
+    ("the shipped allowlist exempts nothing: the old RatingFrequencyPolicy duplicate fires HIGH",
+     True, [i for i in deferral_issues(
+         "q3/en-US/q3-rating",
+         [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
+            "externalId": "RatingPeriod"}]],
+         {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Monthly\n2,Monthly\n"},
+         severity=V.Severity.HIGH)
+         if "duplicate value" in i]),
+    # The allowlist mechanism, against `_FIXTURE_NONUNIQUE_ALLOWLIST`: an entry is matched by EXACT
+    # path, and suppresses a collision only when it matches the frozen signature {("Monthly", 2)}...
     ("an allowlisted path whose duplicate signature matches the frozen one is suppressed",
-     False, [i for i in deferral_issues(
+     False, [i for i in allowlisted_issues(
          "q3/en-US/q3-rating",
          [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
             "externalId": "RatingPeriod"}]],
@@ -1440,7 +1472,7 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
     # the frozen 2), the observed signature diverges and the guard fires — a regression cannot hide
     # behind the allowlist. (Copilot's exact scenario: "gains ... another Monthly row".)
     ("an allowlisted path that gains a NEW duplicate beyond the frozen signature fires HIGH",
-     True, [i for i in deferral_issues(
+     True, [i for i in allowlisted_issues(
          "q3/en-US/q3-rating",
          [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
             "externalId": "RatingPeriod"}]],
@@ -1451,31 +1483,34 @@ SINGLE_FIELD_KEY_UNIQUENESS = [
     # number of extra duplicate rows (here "Weekly" ×2 instead of "Monthly" ×2 — total extra still 1)
     # is a DIFFERENT collision, so its signature {("Weekly", 2)} != {("Monthly", 2)} and it fires.
     ("an allowlisted path whose duplicate value is swapped (same total) fires HIGH",
-     True, [i for i in deferral_issues(
+     True, [i for i in allowlisted_issues(
          "q3/en-US/q3-rating",
          [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
             "externalId": "RatingPeriod"}]],
          {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Weekly\n2,Weekly\n"},
          severity=V.Severity.HIGH)
          if "duplicate value" in i]),
-    # ...but the SAME object with the SAME duplicate in a DIFFERENT (non-allowlisted) plan still
-    # fires — the allowlist is keyed on exact path, not object name, so a new plan is not exempted.
-    ("the same object+duplicate in a non-allowlisted plan still fires HIGH",
-     True, [i for i in deferral_issues(
-         "qb/en-US/qb-newplan",
-         [[{"query": "SELECT Id, Name FROM ObjectStateValue", "operation": "Upsert",
-            "externalId": "Name"}]],
-         {"ObjectStateValue.csv": "Id,Name\n1,dup\n2,dup\n"}, severity=V.Severity.HIGH)
+    # ...but the fixture's exact object, key and duplicate in a DIFFERENT plan still fires: the
+    # allowlist is keyed on exact path, not object name, so a new plan is not exempted.
+    ("the allowlisted object+key+duplicate in a non-allowlisted plan still fires HIGH",
+     True, [i for i in allowlisted_issues(
+         "q3/en-US/q3-rating-copy",
+         [[{"query": "SELECT Id, RatingPeriod FROM RatingFrequencyPolicy", "operation": "Upsert",
+            "externalId": "RatingPeriod"}]],
+         {"RatingFrequencyPolicy.csv": "Id,RatingPeriod\n1,Monthly\n2,Monthly\n"},
+         severity=V.Severity.HIGH)
          if "duplicate value" in i]),
-    # The allowlist is scoped to the SPECIFIC known-bad key, not the file wholesale: the exempt
-    # qb-clm ObjectStateValue path is allowlisted for key "Name" only. Re-keyed to a DIFFERENT single
-    # field ("Code") with a duplicate, the collision is unknown and still fires HIGH.
+    # The allowlist is scoped to the SPECIFIC known-bad key, not the file wholesale: the fixture path
+    # is allowlisted for key "RatingPeriod" only. Re-keyed to a DIFFERENT single field
+    # ("RatingDelayDuration") with a duplicate, the collision is unknown and still fires HIGH.
     ("an allowlisted path re-keyed to a DIFFERENT single field with a duplicate still fires HIGH",
-     True, [i for i in deferral_issues(
-         "qb/en-US/qb-clm",
-         [[{"query": "SELECT Id, Code FROM ObjectStateValue", "operation": "Upsert",
-            "externalId": "Code"}]],
-         {"ObjectStateValue.csv": "Id,Code\n1,dup\n2,dup\n"}, severity=V.Severity.HIGH)
+     True, [i for i in allowlisted_issues(
+         "q3/en-US/q3-rating",
+         [[{"query": "SELECT Id, RatingDelayDuration FROM RatingFrequencyPolicy", "operation": "Upsert",
+            "externalId": "RatingDelayDuration"}]],
+         # The fixture's own duplicate value, so the signature matches and only the key differs.
+         {"RatingFrequencyPolicy.csv": "Id,RatingDelayDuration\n1,Monthly\n2,Monthly\n"},
+         severity=V.Severity.HIGH)
          if "duplicate value" in i]),
 ]
 
@@ -1796,9 +1831,10 @@ HEADER_ONLY_CSV_REPORTED = [
      False, [i for i in issues([[{"query": "SELECT Id, Name FROM Widget__c", "operation": "Upsert",
                                   "externalId": "Name"}]], {"Widget__c.csv": "Id,Name\n1,a\n"})
             if "header row but 0 data rows" in i]),
-    ("...and an allowlisted object (CostBook) shipping header-only stays benign — control",
-     False, [i for i in issues([[{"query": "SELECT Id, Name FROM CostBook", "operation": "Upsert",
-                                  "externalId": "Name"}]], {"CostBook.csv": "Id,Name\n"})
+    ("...and an allowlisted object (GeneralLedgerJrnlEntryRule) shipping header-only stays benign — control",
+     False, [i for i in issues([[{"query": "SELECT Id, JournalEntryRuleName FROM GeneralLedgerJrnlEntryRule",
+                                  "operation": "Upsert", "externalId": "JournalEntryRuleName"}]],
+                               {"GeneralLedgerJrnlEntryRule.csv": "Id,JournalEntryRuleName\n"})
             if "header row but 0 data rows" in i]),
 ]
 
@@ -1830,18 +1866,18 @@ NO_HEADER_AND_BLANK_ROWS_DETECTED = [
             if "header row but 0 data rows" in i]),
 ]
 
-# The `q3` and `mfg` plan trees carry 22 live header-only CSVs (q3-billing's are real data lost
-# in commit 3bff2389; q3-dro / mfg-guidedselling are never-populated stubs) — all deferred until
-# the 264 upgrade re-seeds them (pack 162). The deferral is ENUMERATED by exact plan-relative path
+# The `mfg` plan tree carries 4 live header-only CSVs (mfg-guidedselling / mfg-pcm never-populated
+# stubs), all deferred until the mfg re-seed (pack 162). The q3-billing and q3-dro entries left
+# the list in todo 210. The deferral is ENUMERATED by exact plan-relative path
 # (not family-wide, per the Codex #427 finding): it protects the priority `qb` datasets AND still
-# fires on a new object or a currently-populated q3/mfg CSV later truncated to its header. Tested on
+# fires on a new object or a currently-populated mfg CSV later truncated to its header. Tested on
 # the method directly: the synthetic-plan harness writes under a temp dir outside `sfdmu_base`, so
 # it can't reach the path predicate.
 _DEFER_V = V.SFDMUValidator(base_dir=str(REPO))
 DEFERRED_PLAN_SKIP = [
-    ("an enumerated q3 header-only CSV is deferred — not flagged",
+    ("an enumerated mfg header-only CSV is deferred — not flagged",
      True, _DEFER_V._is_deferred_empty_csv_plan(
-         REPO / "datasets/sfdmu/q3/en-US/q3-billing/BillingTreatment.csv")),
+         REPO / "datasets/sfdmu/mfg/en-US/mfg-pcm/UnitOfMeasureClass.csv")),
     ("an enumerated mfg header-only CSV is deferred too",
      True, _DEFER_V._is_deferred_empty_csv_plan(
          REPO / "datasets/sfdmu/mfg/en-US/mfg-guidedselling/AssessmentQuestionSet.csv")),
@@ -1850,9 +1886,9 @@ DEFERRED_PLAN_SKIP = [
          REPO / "datasets/sfdmu/qb/en-US/qb-pricing/CostBook.csv")),
     # The whole point of enumerating: a NON-enumerated file in a deferred plan is still checked, so
     # a new object or a currently-populated CSV later truncated to its header is NOT masked.
-    ("a NON-enumerated file in a deferred q3 plan is NOT exempt — new/truncated data still fires",
+    ("a NON-enumerated file in a deferred mfg plan is NOT exempt — new/truncated data still fires",
      False, _DEFER_V._is_deferred_empty_csv_plan(
-         REPO / "datasets/sfdmu/q3/en-US/q3-billing/PaymentTerm.csv")),
+         REPO / "datasets/sfdmu/mfg/en-US/mfg-guidedselling/AssessmentQuestion.csv")),
 ]
 
 # End-to-end (not predicate-in-isolation, per the Codex #427 coverage finding): the deferral must
@@ -1861,23 +1897,23 @@ DEFERRED_PLAN_SKIP = [
 # enumerated plan stays CRITICAL, and a non-enumerated sibling still fires HIGH. Moving the
 # no-header check below the deferral (the regression this pins) would flip case 2 from present to
 # absent.
-_Q3B = "q3/en-US/q3-billing"
+_DEFERRED_PLAN = "mfg/en-US/mfg-guidedselling"
 DEFERRAL_END_TO_END = [
-    ("an enumerated q3 header-only CSV is suppressed end-to-end through validate_dataset",
+    ("an enumerated mfg header-only CSV is suppressed end-to-end through validate_dataset",
      False, [i for i in deferral_issues(
-         _Q3B, [[{"query": "SELECT Id, Name FROM BillingTreatment", "operation": "Upsert",
-                  "externalId": "Name"}]], {"BillingTreatment.csv": "Id,Name\n"})
+         _DEFERRED_PLAN, [[{"query": "SELECT Id, Name FROM AssessmentQuestionSet", "operation": "Upsert",
+                  "externalId": "Name"}]], {"AssessmentQuestionSet.csv": "Id,Name\n"})
          if "header row but 0 data rows" in i]),
     ("...but a no-header (whitespace-only) CSV for that same enumerated object is STILL Critical "
      "— the deferral does not cover the no-header shape",
      True, [i for i in deferral_issues(
-         _Q3B, [[{"query": "SELECT Id, Name FROM BillingTreatment", "operation": "Upsert",
-                  "externalId": "Name"}]], {"BillingTreatment.csv": "\n"})
+         _DEFERRED_PLAN, [[{"query": "SELECT Id, Name FROM AssessmentQuestionSet", "operation": "Upsert",
+                  "externalId": "Name"}]], {"AssessmentQuestionSet.csv": "\n"})
          if "no header row" in i]),
     ("...and a NON-enumerated header-only sibling in the same deferred plan still fires HIGH",
      True, [i for i in deferral_issues(
-         _Q3B, [[{"query": "SELECT Id, Name FROM PaymentTerm", "operation": "Upsert",
-                  "externalId": "Name"}]], {"PaymentTerm.csv": "Id,Name\n"})
+         _DEFERRED_PLAN, [[{"query": "SELECT Id, Name FROM AssessmentQuestion", "operation": "Upsert",
+                  "externalId": "Name"}]], {"AssessmentQuestion.csv": "Id,Name\n"})
          if "header row but 0 data rows" in i]),
 ]
 
@@ -1950,6 +1986,22 @@ TRAILING_SEMICOLON_EMPTY_SEGMENT = [
 # still holds for a doubled ';': the fixer and validator agree on the same (dropped) column name,
 # so a real run's second pass is a no-op, the same guarantee UNSTRIPPED_EXTERNAL_ID already pins
 # for a stray space.
+
+# The fixer writes a `$$` value the way SFDMU 5.8.0 builds the target key
+# (`MigrationJobTask._getRecordFieldValue` drops every empty part). A kept empty part (`a;;c` for a
+# blank middle field, `a;b;` for a blank last one) never matches, and an Upsert inserts a duplicate
+# (todo 298: qb-rates RateAdjustmentByTier, qb-pcm ProductRelatedComponent). Expect-finding False:
+# each case's third element lists the wrong values, so an empty list is the pass.
+_CKV = V.SFDMUValidator(base_dir=".", verbose=False)._build_composite_key_value
+COMPOSITE_VALUE_DROPS_EMPTY_PARTS = [
+    ("the fixer drops a blank middle part from a $$ value, as SFDMU does on the target",
+     False, [v for v in [_CKV({"A": "a", "B": "", "C": "c"}, ["A", "B", "C"])] if v != "a;c"]),
+    ("the fixer drops a blank last part from a $$ value",
+     False, [v for v in [_CKV({"A": "a", "B": "b", "C": ""}, ["A", "B", "C"])] if v != "a;b"]),
+    ("a field absent from the row counts as blank, not as the text 'None'",
+     False, [v for v in [_CKV({"A": "a", "B": None}, ["A", "B"])] if v != "a"]),
+]
+
 TRAILING_SEMICOLON_COMPOSITE_KEY = [
     ("a doubled ';' in externalId does not cause a false missing-composite-key-column finding "
      "when the CSV header already has the dropped-empty-segment column name",
@@ -2231,7 +2283,7 @@ def main() -> int:
                  ("a header-only (0-row) CSV for a non-allowlisted object is reported HIGH, "
                   "not silently passed",
                   HEADER_ONLY_CSV_REPORTED),
-                 ("the deferred q3/mfg plan trees skip the header-only check; qb is still checked",
+                 ("the deferred mfg plan files skip the header-only check; qb is still checked",
                   DEFERRED_PLAN_SKIP),
                  ("the deferral fires end-to-end and covers only header-only, not no-header, "
                   "and only for enumerated files",
@@ -2249,6 +2301,8 @@ def main() -> int:
                  ("a doubled ';' in externalId does not break composite-key-column convergence "
                   "between the fixer and the validator",
                   TRAILING_SEMICOLON_COMPOSITE_KEY),
+                 ("the fixer's $$ value drops empty parts, as SFDMU does on the target",
+                  COMPOSITE_VALUE_DROPS_EMPTY_PARTS),
                  ("the documented live baseline still holds", BASELINE)]
     # +1 for the self-count check appended below, which needs the total it asserts against.
     total = sum(len(c) for _, c in all_cases) + 1

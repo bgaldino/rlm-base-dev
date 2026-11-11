@@ -9,8 +9,8 @@ alwaysApply: false
 Repo **plan JSON** consumed by `manage_context_definition` / `apply_context_*`
 (class `rlm_context_service.ManageContextDefinition`) and `ExtendStandardContext`.
 This is our additive format — **not** the MDAPI `.contextDefinition` file format
-under `force-app/main/default/contextDefinitions/`, and not a Salesforce-native
-artifact. Full guidance: `.cursor/skills/context-service/SKILL.md`
+(reference-only, pre-264 copies in `docs/references/context-definitions/`, never
+deployed), and not a Salesforce-native artifact. Full guidance: `.cursor/skills/context-service/SKILL.md`
 (+ `data-model-and-api.md` for the authoritative schema).
 
 ## Always

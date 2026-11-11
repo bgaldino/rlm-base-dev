@@ -42,9 +42,8 @@
         },
         {
           "query": "SELECT RLM_Learning_Order_Sequence__c, RLM_Learning_Section__c, RLM_Learning_Block__c, RLM_Learning_Section__r.Name, RLM_Learning_Block__r.Name FROM RLM_Learning_SectionBlock__c ORDER BY RLM_Learning_Section__r.Name ASC, RLM_Learning_Block__r.Name ASC, RLM_Learning_Order_Sequence__c ASC",
-          "operation": "Insert",
-          "externalId": "RLM_Learning_Section__r.Name;RLM_Learning_Block__r.Name;RLM_Learning_Order_Sequence__c",
-          "deleteOldData": true,
+          "operation": "Upsert",
+          "externalId": "RLM_Learning_Section__r.Name;RLM_Learning_Block__r.Name",
           "excluded": false
         }
       ]

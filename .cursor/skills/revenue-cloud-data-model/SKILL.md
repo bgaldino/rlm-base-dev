@@ -3,8 +3,8 @@ name: revenue-cloud-data-model
 description: >-
   Revenue Cloud (RLM) data model reference covering 263 objects across 9 domains.
   Use when working with Revenue Cloud objects, understanding object relationships,
-  writing SOQL queries, building data plans, or answering questions about the
-  RLM schema. Covers PCM, Pricing, Rates, Configurator, Transactions, DRO,
+  writing SOQL queries, or answering questions about the RLM schema (for data
+  plan authoring, use sfdmu-data-plans). Covers PCM, Pricing, Rates, Configurator, Transactions, DRO,
   Usage, Billing, and Approvals domains.
 ---
 
@@ -23,7 +23,7 @@ The ERD reflects **canonical Revenue Cloud platform schema only**. Custom fields
   the same artifact the previous refresh was built from, and the same org shape, so
   the delta is not confounded by shape differences.
 - Core UDD source and the 127-entity orphan classification carried forward from the
-  262 pass (`.agents/artifacts/orphan-fields/`); not re-run for 264.
+  262 pass (`.agents/artifacts/topics/orphan-fields/`); not re-run for 264.
 
 **262 → 264 delta:** **70 fields added, 8 removed**, 0 type changes, 1 polymorphic
 reference-target change, 270 picklist values added and 18 removed, across 62 changed
@@ -194,7 +194,7 @@ For cross-domain FK mappings: [cross-domain-relationships.md](cross-domain-relat
 
 ## Querying the Data Model
 
-Use `scripts/ai/query_erd.py` for targeted lookups against the full 263-object schema:
+Use `scripts/ai/query_erd.py` for targeted lookups across the Revenue Cloud baseline and Contracts CLM extension:
 
 ```bash
 python scripts/ai/query_erd.py describe Product2         # fields, relationships, domain
@@ -210,6 +210,7 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 ## Source Data
 
 - `docs/erds/erd-data.json` — canonical machine-readable schema (263 objects, 4,252 fields, 674 relationships, custom fields excluded)
+- `docs/erds/contracts-erd-data.json` — separately sourced Contracts CLM viewer extension; see its 264 schema provenance before treating feature-gated visibility as universal
 - `docs/erds/*.mermaid` — per-domain ERD diagrams
 - `docs/erds/revenue-cloud-erd.html` — interactive force-directed graph viewer
 - `docs/erds/validation-report.md` — most recent ERD vs org schema gap analysis; records the **expected** feature-gated baseline (9 objects unfindable in a default RLM scratch profile, **0** objects with field gaps, **58** ERD-side fields absent from a stock org — the feature-gated / cross-cloud set carried forward from the 262 pass). Use this file as the diff target for new validation runs — a clean refresh produces zero NEW gaps vs this baseline, not zero gaps absolute. The 262 baseline was 33 objects and 822 fields. The object figure fell to 0 because `--patch` added every field the org had; the field figure fell to 58 through deliberate removal (orphan-cleanup batches plus the 8 fields 264 retired), because `--patch` only ever adds and cannot reduce it. Trust the generated report over any count quoted in prose.
@@ -232,5 +233,5 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 - `scripts/erd/schema_diff/260-vs-262-diff.md` — previous release delta, kept for history
 
 Internal-only (not committed; intentionally git-ignored):
-- `.agents/artifacts/orphan-fields/orphan-field-ownership.json` — per-entity ownership classification for 127 verified entities (used by the `orphan_batch_helper.py` workflow; not required to audit any claim in this skill).
+- `.agents/artifacts/topics/orphan-fields/orphan-field-ownership.json` — per-entity ownership classification for 127 verified entities (used by the `orphan_batch_helper.py` workflow; not required to audit any claim in this skill).
 - `docs/erds/orphan-candidates-after-batch*.md` — per-batch orphan classification reports produced by the cleanup workflow. The final outcome of the cleanup is already baked into `erd-data.json` and `validation-report.md`; the intermediate batch reports are local artifacts only.

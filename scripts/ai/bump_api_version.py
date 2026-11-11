@@ -85,11 +85,6 @@ EXCLUDED_PREFIXES: dict[str, str] = {
     "docs/enablement/260/": "frozen per-release enablement extract",
     "docs/enablement/262/": "frozen per-release enablement extract",
     "postman/": "collection is version-branded end to end; regenerate, do not sed",
-    # Arrives via forward-merge of PR #356. The bundle is intentionally kept at
-    # the older version as the base copy against a `post_mcp_264` overlay, and
-    # tests/test_mcp_overlay_parity.py asserts exactly that split -- a blanket
-    # sweep would silently collapse the design and break the test.
-    "unpackaged/post_mcp/": "deliberate dual-baseline overlay split (see PR #356)",
     # Arrives via forward-merge of PR #289. Its low pins (61-63) may be
     # deliberate for the Babylon.js/RenderDraw prototype; confirm before sweeping.
     "unpackaged/post_manufacturing_visualization/": (

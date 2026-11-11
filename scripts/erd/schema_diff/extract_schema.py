@@ -40,8 +40,8 @@ That distinction matters twice over. Object *describe* is case-insensitive — i
 structurally cannot see an ERD object key whose casing is not canonical, and reports it
 as present. Only a describeGlobal listing surfaces those. Three such keys are known to
 be in `erd-data.json` today (`PriceBookEntry`, `PriceBook2`, `PricingAPIExecution`);
-because these snapshots are keyed off the ERD, they inherit that casing too. See
-`.agents/artifacts/todos/open/143-erd-cannot-discover-objects.md`.
+because these snapshots are keyed off the ERD, they inherit that casing too. See todo 143
+(the private tracker).
 
 Options:
     --org ALIAS         sf CLI target org alias (required)

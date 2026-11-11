@@ -1,19 +1,19 @@
 # Winter '27 Salesforce Help Snapshot
 
-Captures **10 functional areas** of Revenue Cloud Help: agents, approvals, billing, configurator, dro, pcm, pricing, rating, transaction_mgmt, usage.
+Captures **11 functional areas** of Revenue Cloud Help: agents, approvals, billing, configurator, dro, pcm, pricing, rating, salesforce_contracts, transaction_mgmt, usage.
 
 **Release:** Winter '27 (264)
-**Last updated:** 2026-09-07T22:13:05Z
+**Last updated:** 2026-10-13T15:04:27Z
 
 ## Overall Stats
 
 | Metric | Value |
 |:--|--:|
-| Discovered | 1134 |
-| Captured | 1131 |
+| Discovered | 1562 |
+| Captured | 1559 |
 | Pending | 0 |
 | Errored | 3 |
-| Total captured body chars | 2,729,487 |
+| Total captured body chars | 3,555,023 |
 
 ## Per-Area Coverage
 
@@ -27,6 +27,7 @@ Captures **10 functional areas** of Revenue Cloud Help: agents, approvals, billi
 | **pcm** | [ind.product_catalog_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_catalog_introduction.htm&type=5&release=264) | `ind.product_catalog` | 142 | 2026-09-04T22:35:52Z |
 | **pricing** | [ind.pricing_salesforce_pricing.htm](https://help.salesforce.com/s/articleView?id=ind.pricing_salesforce_pricing.htm&type=5&release=264) | `ind.pricing` | 155 | 2026-09-07T19:45:55Z |
 | **rating** | [ind.rm_rate_management.htm](https://help.salesforce.com/s/articleView?id=ind.rm_rate_management.htm&type=5&release=264) | `ind.rm` | 70 | 2026-09-07T20:15:19Z |
+| **salesforce_contracts** | [ind.sf_contracts_salesforce_contracts_overview_2.htm](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_salesforce_contracts_overview_2.htm&type=5&release=264) | `ind.sf_contracts` | 428 | 2026-10-13T15:04:27Z |
 | **transaction_mgmt** | [ind.qocal_sales_transactions_rev_cloud.htm](https://help.salesforce.com/s/articleView?id=ind.qocal_sales_transactions_rev_cloud.htm&type=5&release=264) | `ind.qocal` | 208 | 2026-09-04T21:48:54Z |
 | **usage** | [ind.um_usage_management.htm](https://help.salesforce.com/s/articleView?id=ind.um_usage_management.htm&type=5&release=264) | `ind.um` | 52 | 2026-09-07T22:09:38Z |
 
@@ -941,6 +942,439 @@ Captures **10 functional areas** of Revenue Cloud Help: agents, approvals, billi
 | [Rating Procedures](./articles/ind.rm_rating_procedures.htm.md) | `ind.rm_rating_procedures.htm` | 1,177 |
 | [Simulate and Activate Your Rating Procedure](./articles/ind.rm_simulate_activate_rating_procedure.htm.md) | `ind.rm_simulate_activate_rating_procedure.htm` | 1,819 |
 
+## Captured — salesforce_contracts (428)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
+| [Create New Contract Status Values](./articles/ind.sf_contracts__create_new_contract_status_values.htm.md) | `ind.sf_contracts__create_new_contract_status_values.htm` | 1,075 |
+| [Review and Approve a Contract](./articles/ind.sf_contracts_aa_approve.htm.md) | `ind.sf_contracts_aa_approve.htm` | 1,858 |
+| [Configure Advanced Approvals for Salesforce Contracts](./articles/ind.sf_contracts_aa_configure.htm.md) | `ind.sf_contracts_aa_configure.htm` | 4,891 |
+| [Advanced Approvals Troubleshooting and FAQ for Salesforce Contracts](./articles/ind.sf_contracts_aa_faq.htm.md) | `ind.sf_contracts_aa_faq.htm` | 2,091 |
+| [Advanced Approval Workflow for Salesforce Contracts](./articles/ind.sf_contracts_aa_overview.htm.md) | `ind.sf_contracts_aa_overview.htm` | 5,107 |
+| [Advanced Approvals for Salesforce Contracts Components](./articles/ind.sf_contracts_aa_reference.htm.md) | `ind.sf_contracts_aa_reference.htm` | 2,452 |
+| [Submit a Contract for Approval by Using Advanced Approvals for Salesforce Contracts](./articles/ind.sf_contracts_aa_submit.htm.md) | `ind.sf_contracts_aa_submit.htm` | 1,520 |
+| [Actions Available for a Section in Salesforce Contracts](./articles/ind.sf_contracts_actions_available_for_a_section.htm.md) | `ind.sf_contracts_actions_available_for_a_section.htm` | 598 |
+| [Activate Obligations Based on Contract Status](./articles/ind.sf_contracts_activate_obligations_based_on_contract_status.htm.md) | `ind.sf_contracts_activate_obligations_based_on_contract_status.htm` | 1,467 |
+| [Add Clauses to Draft State or Clause Library](./articles/ind.sf_contracts_add_clauses_to_draft_state_or_clause_library.htm.md) | `ind.sf_contracts_add_clauses_to_draft_state_or_clause_library.htm` | 1,591 |
+| [Add Description for User-Defined Fields](./articles/ind.sf_contracts_add_description_for_userdefined_fields.htm.md) | `ind.sf_contracts_add_description_for_userdefined_fields.htm` | 1,119 |
+| [Add Non-Standard Clauses to the Clause Library To Ensure Reusability](./articles/ind.sf_contracts_add_non_standard_clauses_to_the_clause_library_to_ensure_enhanced_reusability.htm.md) | `ind.sf_contracts_add_non_standard_clauses_to_the_clause_library_to_ensure_enhanced_reusability.htm` | 1,159 |
+| [Add E-Signature Recipients](./articles/ind.sf_contracts_add_recipients.htm.md) | `ind.sf_contracts_add_recipients.htm` | 1,496 |
+| [Add Salesforce Contracts Licenses and Install Omnistudio Package](./articles/ind.sf_contracts_add_salesforce_contracts_licenses_and_install_omnistudio_package.htm.md) | `ind.sf_contracts_add_salesforce_contracts_licenses_and_install_omnistudio_package.htm` | 1,335 |
+| [Additional Set Up for Salesforce Contracts](./articles/ind.sf_contracts_additional_post_install_set_ups.htm.md) | `ind.sf_contracts_additional_post_install_set_ups.htm` | 4,335 |
+| [Contract Approval Processes in Salesforce Contracts](./articles/ind.sf_contracts_approvals_concept.htm.md) | `ind.sf_contracts_approvals_concept.htm` | 1,455 |
+| [Attach a Role to a User](./articles/ind.sf_contracts_attach_a_role_to_a_user.htm.md) | `ind.sf_contracts_attach_a_role_to_a_user.htm` | 759 |
+| [Attach Additional Documents for Enhanced Contract E-Signature Experience](./articles/ind.sf_contracts_attach_additional_documents_for_enhanced_contract_e-signature_experience.htm.md) | `ind.sf_contracts_attach_additional_documents_for_enhanced_contract_e-signature_experience.htm` | 625 |
+| [Attachments in Salesforce Contracts](./articles/ind.sf_contracts_attachments.htm.md) | `ind.sf_contracts_attachments.htm` | 2,410 |
+| [Auto Generate Document On Contract Creation](./articles/ind.sf_contracts_auto_generate_document_on_contract_creation.htm.md) | `ind.sf_contracts_auto_generate_document_on_contract_creation.htm` | 946 |
+| [Auto Generate Document On Contract Update](./articles/ind.sf_contracts_auto_generate_document_on_contract_update.htm.md) | `ind.sf_contracts_auto_generate_document_on_contract_update.htm` | 944 |
+| [Automate Clause Generation and Quickly Modify Clauses with Contracts AI](./articles/ind.sf_contracts_automate_clause_generation_and_quickly_modify_clauses.htm.md) | `ind.sf_contracts_automate_clause_generation_and_quickly_modify_clauses.htm` | 1,225 |
+| [B2B Sales Home Dashboard for Salesforce Contracts](./articles/ind.sf_contracts_b2b_sales_home.htm.md) | `ind.sf_contracts_b2b_sales_home.htm` | 581 |
+| [Billing Considerations for Contract Search](./articles/ind.sf_contracts_billing_considerations_for_contract_agent.htm.md) | `ind.sf_contracts_billing_considerations_for_contract_agent.htm` | 3,995 |
+| [Build Your Salesforce Contracts Team](./articles/ind.sf_contracts_build_your_team.htm.md) | `ind.sf_contracts_build_your_team.htm` | 1,158 |
+| [Compare Bulk and Single Document Extraction](./articles/ind.sf_contracts_bulk_extra_compare.htm.md) | `ind.sf_contracts_bulk_extra_compare.htm` | 1,637 |
+| [Create a Bulk Extraction Configuration](./articles/ind.sf_contracts_bulk_extra_configuration.htm.md) | `ind.sf_contracts_bulk_extra_configuration.htm` | 2,216 |
+| [Delete a Bulk Extraction Configuration](./articles/ind.sf_contracts_bulk_extra_delete.htm.md) | `ind.sf_contracts_bulk_extra_delete.htm` | 597 |
+| [Connect an External Repository for Bulk Contract Extraction](./articles/ind.sf_contracts_bulk_extra_external_repo.htm.md) | `ind.sf_contracts_bulk_extra_external_repo.htm` | 1,932 |
+| [Bulk Extraction with Contracts AI](./articles/ind.sf_contracts_bulk_extra_overview.htm.md) | `ind.sf_contracts_bulk_extra_overview.htm` | 2,500 |
+| [Change Ownership of Bulk Extraction Results](./articles/ind.sf_contracts_bulk_extra_ownership.htm.md) | `ind.sf_contracts_bulk_extra_ownership.htm` | 810 |
+| [Set Up Bulk Contract Extraction](./articles/ind.sf_contracts_bulk_extra_prepare.htm.md) | `ind.sf_contracts_bulk_extra_prepare.htm` | 1,273 |
+| [Considerations for Bulk Extraction](./articles/ind.sf_contracts_bulk_extra_ref_info.htm.md) | `ind.sf_contracts_bulk_extra_ref_info.htm` | 578 |
+| [Verify Bulk Extraction Results and Create a Contract Record](./articles/ind.sf_contracts_bulk_extra_review_results.htm.md) | `ind.sf_contracts_bulk_extra_review_results.htm` | 2,044 |
+| [View Review Status and Cancel Internal Review](./articles/ind.sf_contracts_cancel_review_and_view_review_status.htm.md) | `ind.sf_contracts_cancel_review_and_view_review_status.htm` | 1,716 |
+| [Change in Processing Time to Check In and Save Documents in Microsoft 365 Editor](./articles/ind.sf_contracts_change_in_processing_time_to_check_in_and_save_documents_in_microsoft_365_editor.htm.md) | `ind.sf_contracts_change_in_processing_time_to_check_in_and_save_documents_in_microsoft_365_editor.htm` | 748 |
+| [Change Obligation Owner](./articles/ind.sf_contracts_change_obligation_owner.htm.md) | `ind.sf_contracts_change_obligation_owner.htm` | 700 |
+| [Check In a Contract Document](./articles/ind.sf_contracts_check_in_a_contract_document.htm.md) | `ind.sf_contracts_check_in_a_contract_document.htm` | 292 |
+| [Clause Approval Workflow](./articles/ind.sf_contracts_clause_approval_workflow.htm.md) | `ind.sf_contracts_clause_approval_workflow.htm` | 2,317 |
+| [Clause Drafting with Contracts AI](./articles/ind.sf_contracts_clause_drafting_with_contracts_ai.htm.md) | `ind.sf_contracts_clause_drafting_with_contracts_ai.htm` | 2,828 |
+| [Customize Clause Generation in Contracts AI](./articles/ind.sf_contracts_clause_gen_ptbuilder_modify.htm.md) | `ind.sf_contracts_clause_gen_ptbuilder_modify.htm` | 1,387 |
+| [Turn On Clause Generation in Contracts AI](./articles/ind.sf_contracts_clause_generation_enable.htm.md) | `ind.sf_contracts_clause_generation_enable.htm` | 808 |
+| [Clone the ContractsExtractionContext Context Definition for Extraction](./articles/ind.sf_contracts_clone_the_contractsextractioncontext_context_definition.htm.md) | `ind.sf_contracts_clone_the_contractsextractioncontext_context_definition.htm` | 3,125 |
+| [Collaborate with External Users in the Contract Management Process](./articles/ind.sf_contracts_collaborate_with_external_users_in_the_contract_management_process_.htm.md) | `ind.sf_contracts_collaborate_with_external_users_in_the_contract_management_process_.htm` | 597 |
+| [Compare Two Versions of a Contract Document from the Microsoft 365 Editor](./articles/ind.sf_contracts_compare_contract_document_from_microsoft_365_editor.htm.md) | `ind.sf_contracts_compare_contract_document_from_microsoft_365_editor.htm` | 1,973 |
+| [Compare Two Versions of a Contract Document from the Contract Record Page](./articles/ind.sf_contracts_compare_contract_document_from_the_record_page.htm.md) | `ind.sf_contracts_compare_contract_document_from_the_record_page.htm` | 2,290 |
+| [Comparing Contract Document Versions](./articles/ind.sf_contracts_comparison_of_contract_document_versions.htm.md) | `ind.sf_contracts_comparison_of_contract_document_versions.htm` | 1,231 |
+| [Configuration of Fields for Extraction From a File](./articles/ind.sf_contracts_configuration_of_fields_for_extraction_from_a_file.htm.md) | `ind.sf_contracts_configuration_of_fields_for_extraction_from_a_file.htm` | 2,390 |
+| [Configure a Microsoft Azure App and Create a SharePoint Site Using Guided Setup](./articles/ind.sf_contracts_configure_a_microsoft_azure_app_and_create_a_sharepoint_site_site.htm.md) | `ind.sf_contracts_configure_a_microsoft_azure_app_and_create_a_sharepoint_site_site.htm` | 4,671 |
+| [Configure a Named Credential and External Credential for Industries Einstein AI Extraction](./articles/ind.sf_contracts_configure_a_named_credential_and_external_credential_for_contracts_ai.htm.md) | `ind.sf_contracts_configure_a_named_credential_and_external_credential_for_contracts_ai.htm` | 1,318 |
+| [Configure an Auth Provider for Salesforce Contracts Using Guided Setup](./articles/ind.sf_contracts_configure_an_auth_provider.htm.md) | `ind.sf_contracts_configure_an_auth_provider.htm` | 3,447 |
+| [Configure an Auth Provider for Salesforce Contracts Microsoft Integration](./articles/ind.sf_contracts_configure_an_auth_provider_for_microsoft_app.htm.md) | `ind.sf_contracts_configure_an_auth_provider_for_microsoft_app.htm` | 4,213 |
+| [Configure an Integration User for Manual Contract Search Set Up](./articles/ind.sf_contracts_configure_an_integration_user_for_contract_search.htm.md) | `ind.sf_contracts_configure_an_integration_user_for_contract_search.htm` | 1,157 |
+| [Configure Clause Category](./articles/ind.sf_contracts_configure_clause_category.htm.md) | `ind.sf_contracts_configure_clause_category.htm` | 1,280 |
+| [Configure Context Service to Create and Update Contracts](./articles/ind.sf_contracts_configure_context_services_to_create_and_update_contracts.htm.md) | `ind.sf_contracts_configure_context_services_to_create_and_update_contracts.htm` | 2,389 |
+| [Configure Context Use Case Mapping to Create and Update Contracts](./articles/ind.sf_contracts_configure_context_use_case_mapping_for_contracts.htm.md) | `ind.sf_contracts_configure_context_use_case_mapping_for_contracts.htm` | 2,369 |
+| [Design and Configure Document Templates for Salesforce Contracts](./articles/ind.sf_contracts_configure_design_document_template.htm.md) | `ind.sf_contracts_configure_design_document_template.htm` | 1,035 |
+| [Configure Document Generation Notifications for Salesforce Contracts](./articles/ind.sf_contracts_configure_document_generation_notification.htm.md) | `ind.sf_contracts_configure_document_generation_notification.htm` | 2,657 |
+| [Configure E-Signature](./articles/ind.sf_contracts_configure_e-signature.htm.md) | `ind.sf_contracts_configure_e-signature.htm` | 961 |
+| [Configure External Document Storage for Contracts Manually](./articles/ind.sf_contracts_configure_external_document_storage_for_contracts.htm.md) | `ind.sf_contracts_configure_external_document_storage_for_contracts.htm` | 1,534 |
+| [Configure External Document Storage for Document Templates Manually](./articles/ind.sf_contracts_configure_external_document_storage_for_document_templates.htm.md) | `ind.sf_contracts_configure_external_document_storage_for_document_templates.htm` | 1,454 |
+| [Configure Fields for Extraction With Contracts AI](./articles/ind.sf_contracts_configure_fields_for_extraction_with_contracts_ai.htm.md) | `ind.sf_contracts_configure_fields_for_extraction_with_contracts_ai.htm` | 1,390 |
+| [Configure File Upload and Download Security for Salesforce Contracts](./articles/ind.sf_contracts_configure_file_upload_and_download_security.htm.md) | `ind.sf_contracts_configure_file_upload_and_download_security.htm` | 376 |
+| [Obligation Management Configuration](./articles/ind.sf_contracts_configure_obligation_management.htm.md) | `ind.sf_contracts_configure_obligation_management.htm` | 1,264 |
+| [Configuration of Obligation Notifications](./articles/ind.sf_contracts_configure_obligation_notifications.htm.md) | `ind.sf_contracts_configure_obligation_notifications.htm` | 963 |
+| [Connect with Salesforce Contracts Console App](./articles/ind.sf_contracts_connect_with_salesforce_contracts_console_app.htm.md) | `ind.sf_contracts_connect_with_salesforce_contracts_console_app.htm` | 605 |
+| [Considerations for Salesforce Contracts on Lightning Platform Licenses](./articles/ind.sf_contracts_considerations_lpp_licenses.htm.md) | `ind.sf_contracts_considerations_lpp_licenses.htm` | 1,456 |
+| [Considerations for Tokens Across Contract Authoring and Document Generation](./articles/ind.sf_contracts_considerations_tokens_contract_authoring_and_document_generation.htm.md) | `ind.sf_contracts_considerations_tokens_contract_authoring_and_document_generation.htm` | 2,167 |
+| [Context Definitions to Create and Update Contracts](./articles/ind.sf_contracts_context_definitions_to_create_and_update_contracts.htm.md) | `ind.sf_contracts_context_definitions_to_create_and_update_contracts.htm` | 1,140 |
+| [Context Use Case Mapping to Create and Update Contracts](./articles/ind.sf_contracts_context_use_case_mapping_to_create_and_update_contracts.htm.md) | `ind.sf_contracts_context_use_case_mapping_to_create_and_update_contracts.htm` | 1,559 |
+| [Contract and Clause Extraction with Contracts AI](./articles/ind.sf_contracts_contract_and_clause_extraction_with_contracts_ai.htm.md) | `ind.sf_contracts_contract_and_clause_extraction_with_contracts_ai.htm` | 2,495 |
+| [Standard Approval Workflow for Salesforce Contracts](./articles/ind.sf_contracts_contract_approval_workflow.htm.md) | `ind.sf_contracts_contract_approval_workflow.htm` | 1,906 |
+| [Contract Authoring in Microsoft 365 Editor](./articles/ind.sf_contracts_contract_authoring.htm.md) | `ind.sf_contracts_contract_authoring.htm` | 2,282 |
+| [Create and Manage Contracts in Salesforce Contracts](./articles/ind.sf_contracts_contract_creation.htm.md) | `ind.sf_contracts_contract_creation.htm` | 3,350 |
+| [Agentforce for Contract Search](./articles/ind.sf_contracts_contract_document_overview.htm.md) | `ind.sf_contracts_contract_document_overview.htm` | 3,386 |
+| [Use Salesforce Contracts Application](./articles/ind.sf_contracts_contract_documnet_actions_overview.htm.md) | `ind.sf_contracts_contract_documnet_actions_overview.htm` | 3,104 |
+| [Contract Extraction Results](./articles/ind.sf_contracts_contract_extraction_results.htm.md) | `ind.sf_contracts_contract_extraction_results.htm` | 788 |
+| [Contract Lifecycle Analytics for Contract Administrators](./articles/ind.sf_contracts_contract_lifecycle_analytics_for_contract_administrators.htm.md) | `ind.sf_contracts_contract_lifecycle_analytics_for_contract_administrators.htm` | 1,358 |
+| [Contract Lifecycle Analytics for Sales Operations](./articles/ind.sf_contracts_contract_lifecycle_analytics_for_sales_operations.htm.md) | `ind.sf_contracts_contract_lifecycle_analytics_for_sales_operations.htm` | 1,196 |
+| [Contract Line Items](./articles/ind.sf_contracts_contract_line_items.htm.md) | `ind.sf_contracts_contract_line_items.htm` | 650 |
+| [Contract Review in Microsoft 365](./articles/ind.sf_contracts_contract_review.htm.md) | `ind.sf_contracts_contract_review.htm` | 2,338 |
+| [Enable Efficient Contract Reviews with Easy View of Edits at Each Stage](./articles/ind.sf_contracts_contract_reviews_easy_with_streamlined_section_clause_mgmt.htm.md) | `ind.sf_contracts_contract_reviews_easy_with_streamlined_section_clause_mgmt.htm` | 1,718 |
+| [Deploy the Contract Document Data Kit for Contract Search](./articles/ind.sf_contracts_contract_search_datakit_deploy.htm.md) | `ind.sf_contracts_contract_search_datakit_deploy.htm` | 1,735 |
+| [Set Up a Contract Search Integration User for Data Kit Deployment](./articles/ind.sf_contracts_contract_search_datakit_integration_user.htm.md) | `ind.sf_contracts_contract_search_datakit_integration_user.htm` | 2,091 |
+| [Manually Configure Contract Search](./articles/ind.sf_contracts_contract_search_datakit_manual_overview.htm.md) | `ind.sf_contracts_contract_search_datakit_manual_overview.htm` | 1,883 |
+| [Set Up Contract Search By Using Prebuilt Data Kit](./articles/ind.sf_contracts_contract_search_datakit_overview.htm.md) | `ind.sf_contracts_contract_search_datakit_overview.htm` | 3,875 |
+| [Contract Search Limitations](./articles/ind.sf_contracts_contract_search_limitations.htm.md) | `ind.sf_contracts_contract_search_limitations.htm` | 1,167 |
+| [Contract Stage Insights in Salesforce Contracts Analytics](./articles/ind.sf_contracts_contract_stage_insights.htm.md) | `ind.sf_contracts_contract_stage_insights.htm` | 717 |
+| [Contract Type Config Settings](./articles/ind.sf_contracts_contract_type_config_settings.htm.md) | `ind.sf_contracts_contract_type_config_settings.htm` | 7,238 |
+| [Contract Types, Contract Record Types, and Contract Type Configs](./articles/ind.sf_contracts_contract_types_contract_record_types_and_contract_type_configs.htm.md) | `ind.sf_contracts_contract_types_contract_record_types_and_contract_type_configs.htm` | 3,045 |
+| [ContractCache and SalesContractLineCache Nodes](./articles/ind.sf_contracts_contractcache_and_salescontractlinecache_nodes.htm.md) | `ind.sf_contracts_contractcache_and_salescontractlinecache_nodes.htm` | 1,570 |
+| [Account Dashboard for Salesforce Contracts Analytics](./articles/ind.sf_contracts_contracts_account.htm.md) | `ind.sf_contracts_contracts_account.htm` | 652 |
+| [Contracts AI](./articles/ind.sf_contracts_contracts_ai.htm.md) | `ind.sf_contracts_contracts_ai.htm` | 1,418 |
+| [Contracts AI Overview](./articles/ind.sf_contracts_contracts_ai_overview.htm.md) | `ind.sf_contracts_contracts_ai_overview.htm` | 2,075 |
+| [Quote Dashboard for Salesforce Contracts Analytics](./articles/ind.sf_contracts_contracts_quote.htm.md) | `ind.sf_contracts_contracts_quote.htm` | 503 |
+| [Create a Contract Extraction Template for Extraction](./articles/ind.sf_contracts_create_a_contract_extraction_template_for_extraction.htm.md) | `ind.sf_contracts_create_a_contract_extraction_template_for_extraction.htm` | 3,344 |
+| [Create a Contract from an Opportunity, Order, or Quote](./articles/ind.sf_contracts_create_a_contract_from_an_opportunity_order_or_quote.htm.md) | `ind.sf_contracts_create_a_contract_from_an_opportunity_order_or_quote.htm` | 1,168 |
+| [Create a Custom Report Type and Clause History Report](./articles/ind.sf_contracts_create_a_custom_report_type_and_build_a_report_for_clause_history.htm.md) | `ind.sf_contracts_create_a_custom_report_type_and_build_a_report_for_clause_history.htm` | 3,489 |
+| [Configure a Microsoft Azure App for Salesforce Contracts](./articles/ind.sf_contracts_create_a_microsoft_azure_app.htm.md) | `ind.sf_contracts_create_a_microsoft_azure_app.htm` | 2,042 |
+| [Create a Named Credential for DocuSign](./articles/ind.sf_contracts_create_a_named_credential_for_docusign.htm.md) | `ind.sf_contracts_create_a_named_credential_for_docusign.htm` | 1,601 |
+| [Create a Named Credential for Salesforce Contracts Connector for Word Add-in Manually](./articles/ind.sf_contracts_create_a_named_credential_for_sf_connector_for_word_add-in_app.htm.md) | `ind.sf_contracts_create_a_named_credential_for_sf_connector_for_word_add-in_app.htm` | 1,894 |
+| [Create a Contract Document by Using Clauses](./articles/ind.sf_contracts_create_a_new_contract_document_with_clauses.htm.md) | `ind.sf_contracts_create_a_new_contract_document_with_clauses.htm` | 1,452 |
+| [Create a Document Template by Using Clauses](./articles/ind.sf_contracts_create_a_new_document_template_with_clauses.htm.md) | `ind.sf_contracts_create_a_new_document_template_with_clauses.htm` | 1,454 |
+| [Create a Record Type for Salesforce Contracts Document Templates](./articles/ind.sf_contracts_create_a_record_type_for_document_templates.htm.md) | `ind.sf_contracts_create_a_record_type_for_document_templates.htm` | 943 |
+| [Create a SharePoint Site for Salesforce Contracts](./articles/ind.sf_contracts_create_a_site.htm.md) | `ind.sf_contracts_create_a_site.htm` | 1,621 |
+| [Create a Vector Search Index for Contract Documents for Manual Contract Search Set Up](./articles/ind.sf_contracts_create_a_vector_search_index_for_contract_documents.htm.md) | `ind.sf_contracts_create_a_vector_search_index_for_contract_documents.htm` | 1,612 |
+| [Create an Alternate Document Clause](./articles/ind.sf_contracts_create_alternate_document_clause.htm.md) | `ind.sf_contracts_create_alternate_document_clause.htm` | 1,557 |
+| [Create an Apex Class for Object State Action Definition](./articles/ind.sf_contracts_create_an_apex_class_for_object_state_action_definition.htm.md) | `ind.sf_contracts_create_an_apex_class_for_object_state_action_definition.htm` | 4,543 |
+| [Create an Auth Provider for DocuSign](./articles/ind.sf_contracts_create_an_auth_provider_for_docusign.htm.md) | `ind.sf_contracts_create_an_auth_provider_for_docusign.htm` | 2,171 |
+| [Create an Experience Cloud Site for Customer Community Plus Users](./articles/ind.sf_contracts_create_an_experience_cloud_site_for_customer_community_plus_users.htm.md) | `ind.sf_contracts_create_an_experience_cloud_site_for_customer_community_plus_users.htm` | 2,243 |
+| [Create an External Credential and Named Credential](./articles/ind.sf_contracts_create_an_external_credential_and_named_credential.htm.md) | `ind.sf_contracts_create_an_external_credential_and_named_credential.htm` | 2,295 |
+| [Create a Document Template Library for Salesforce Contracts](./articles/ind.sf_contracts_create_and_add_users_to_document_template_library.htm.md) | `ind.sf_contracts_create_and_add_users_to_document_template_library.htm` | 1,585 |
+| [Create and Update Contracts with Enhanced Parent and Child Mappings](./articles/ind.sf_contracts_create_and_update_contracts_using_enhanced_parent_and_child_support_mappings.htm.md) | `ind.sf_contracts_create_and_update_contracts_using_enhanced_parent_and_child_support_mappings.htm` | 898 |
+| [Configure Contract Creation and Updates for Salesforce Contracts](./articles/ind.sf_contracts_create_contract_and_update_contracts.htm.md) | `ind.sf_contracts_create_contract_and_update_contracts.htm` | 1,262 |
+| [Create Contract Record](./articles/ind.sf_contracts_create_contract_record.htm.md) | `ind.sf_contracts_create_contract_record.htm` | 971 |
+| [Create Contract Record Type](./articles/ind.sf_contracts_create_contract_record_type.htm.md) | `ind.sf_contracts_create_contract_record_type.htm` | 965 |
+| [Create Contract Type and Map to a Contract Record Type](./articles/ind.sf_contracts_create_contract_type_and_map_to_a_contract_record_type.htm.md) | `ind.sf_contracts_create_contract_type_and_map_to_a_contract_record_type.htm` | 1,192 |
+| [Create Contract Type Config to Compare Contract Versions](./articles/ind.sf_contracts_create_contract_type_config_compare_contract_versions.htm.md) | `ind.sf_contracts_create_contract_type_config_compare_contract_versions.htm` | 955 |
+| [Create Custom Context Definitions to Create and Update Contracts](./articles/ind.sf_contracts_create_custom_context_definitions_to_create_and_update_contracts.htm.md) | `ind.sf_contracts_create_custom_context_definitions_to_create_and_update_contracts.htm` | 1,656 |
+| [Create a Document Clause](./articles/ind.sf_contracts_create_document_clause.htm.md) | `ind.sf_contracts_create_document_clause.htm` | 1,516 |
+| [Create a Version of a Document Clause](./articles/ind.sf_contracts_create_document_clause_version.htm.md) | `ind.sf_contracts_create_document_clause_version.htm` | 1,567 |
+| [Create Electronic Signature Envelope Configurations for Standard and Custom Objects](./articles/ind.sf_contracts_create_electronic_signature_envelope_configurations_for_standard_and_custom_objects.htm.md) | `ind.sf_contracts_create_electronic_signature_envelope_configurations_for_standard_and_custom_objects.htm` | 669 |
+| [Create Hydration Mapping to Create and Update Contracts](./articles/ind.sf_contracts_create_hydration_mapping_to_create_and_update_contracts.htm.md) | `ind.sf_contracts_create_hydration_mapping_to_create_and_update_contracts.htm` | 1,981 |
+| [Create New Contract Document Versions](./articles/ind.sf_contracts_create_new_contract_document_versions_.htm.md) | `ind.sf_contracts_create_new_contract_document_versions_.htm` | 2,412 |
+| [Create Obligation Status Picklist Value](./articles/ind.sf_contracts_create_obligation_status_picklist_value.htm.md) | `ind.sf_contracts_create_obligation_status_picklist_value.htm` | 703 |
+| [Create Other Versions of Salesforce Contracts Analytics](./articles/ind.sf_contracts_create_other_versions_of_salesforce_contracts_analytics.htm.md) | `ind.sf_contracts_create_other_versions_of_salesforce_contracts_analytics.htm` | 1,477 |
+| [Create Persistence Mapping to Create and Update Contracts](./articles/ind.sf_contracts_create_persistence_mapping_to_create_and_update_contracts.htm.md) | `ind.sf_contracts_create_persistence_mapping_to_create_and_update_contracts.htm` | 2,484 |
+| [Create a Permission Set for External Credential Principal Access](./articles/ind.sf_contracts_create_ps_for_external_credential_principal_access.htm.md) | `ind.sf_contracts_create_ps_for_external_credential_principal_access.htm` | 1,819 |
+| [Create Section in Contract Document](./articles/ind.sf_contracts_create_section_in_contract_document.htm.md) | `ind.sf_contracts_create_section_in_contract_document.htm` | 865 |
+| [Create Section in Document Template](./articles/ind.sf_contracts_create_section_in_document_template.htm.md) | `ind.sf_contracts_create_section_in_document_template.htm` | 975 |
+| [Create Templates by Using Microsoft 365 Word in Document Template Designer](./articles/ind.sf_contracts_create_template_using_microsoft_365_word.htm.md) | `ind.sf_contracts_create_template_using_microsoft_365_word.htm` | 1,655 |
+| [Custom Context Definitions to Create and Update Contracts](./articles/ind.sf_contracts_custom_context_definitions_to_create_and_update_contracts.htm.md) | `ind.sf_contracts_custom_context_definitions_to_create_and_update_contracts.htm` | 1,544 |
+| [Use Custom Actions To Change Contract Status](./articles/ind.sf_contracts_custom_contract_actions.htm.md) | `ind.sf_contracts_custom_contract_actions.htm` | 837 |
+| [Customize Prompt Templates for Contract Search](./articles/ind.sf_contracts_customize_prompt_template_for_contract_search.htm.md) | `ind.sf_contracts_customize_prompt_template_for_contract_search.htm` | 945 |
+| [Customize the Contract Document Overview Topic for Contract Search](./articles/ind.sf_contracts_customize_the_contract_document_overview_topic_for_contract_search.htm.md) | `ind.sf_contracts_customize_the_contract_document_overview_topic_for_contract_search.htm` | 862 |
+| [Data Model Overview for Salesforce Contracts](./articles/ind.sf_contracts_data_model_overview.htm.md) | `ind.sf_contracts_data_model_overview.htm` | 569 |
+| [Datasets in Salesforce Contracts Analytics](./articles/ind.sf_contracts_datasets_in_salesforce_contracts_analytics.htm.md) | `ind.sf_contracts_datasets_in_salesforce_contracts_analytics.htm` | 1,168 |
+| [Data True-Up Actions and Statuses](./articles/ind.sf_contracts_datatrueup_actions_status.htm.md) | `ind.sf_contracts_datatrueup_actions_status.htm` | 1,564 |
+| [Compare and Sync Token Values in a Document](./articles/ind.sf_contracts_datatrueup_compare_sync_values.htm.md) | `ind.sf_contracts_datatrueup_compare_sync_values.htm` | 1,846 |
+| [Enable Data True-Up](./articles/ind.sf_contracts_datatrueup_enable.htm.md) | `ind.sf_contracts_datatrueup_enable.htm` | 1,221 |
+| [Limitations for Data True-Up](./articles/ind.sf_contracts_datatrueup_limitations.htm.md) | `ind.sf_contracts_datatrueup_limitations.htm` | 5,635 |
+| [How to Keep Contract Line Items in Sync with Data True-Up](./articles/ind.sf_contracts_datatrueup_lineitems.htm.md) | `ind.sf_contracts_datatrueup_lineitems.htm` | 2,492 |
+| [Nested and Related Record Tokens in Data True-Up](./articles/ind.sf_contracts_datatrueup_nestedtokens.htm.md) | `ind.sf_contracts_datatrueup_nestedtokens.htm` | 2,268 |
+| [Keep Data in Sync by Using Data True-Up](./articles/ind.sf_contracts_datatrueup_overview.htm.md) | `ind.sf_contracts_datatrueup_overview.htm` | 4,212 |
+| [Data True-Up Tokens in Document Templates](./articles/ind.sf_contracts_datatrueup_tokens.htm.md) | `ind.sf_contracts_datatrueup_tokens.htm` | 1,957 |
+| [Use Cases for Data True-Up](./articles/ind.sf_contracts_datatrueup_usecases.htm.md) | `ind.sf_contracts_datatrueup_usecases.htm` | 3,454 |
+| [Default Transitions and Actions in Salesforce Contracts](./articles/ind.sf_contracts_default_contract_states_and_predefined_contract_actions_relationship.htm.md) | `ind.sf_contracts_default_contract_states_and_predefined_contract_actions_relationship.htm` | 4,514 |
+| [Contract Status Picklist Values in Salesforce Contracts](./articles/ind.sf_contracts_default_contract_status_picklist_values.htm.md) | `ind.sf_contracts_default_contract_status_picklist_values.htm` | 1,622 |
+| [Default Contract Type Config Settings for E-Signature](./articles/ind.sf_contracts_default_contract_type_config_settings_for_e-signature.htm.md) | `ind.sf_contracts_default_contract_type_config_settings_for_e-signature.htm` | 3,156 |
+| [Default Electronic Signature Envelope Configurations for Contracts](./articles/ind.sf_contracts_default_electronic_signature_envelope_configurations_for_contracts.htm.md) | `ind.sf_contracts_default_electronic_signature_envelope_configurations_for_contracts.htm` | 2,478 |
+| [Default Object State Definition in Salesforce Contracts](./articles/ind.sf_contracts_default_object_state_definition_for_contract.htm.md) | `ind.sf_contracts_default_object_state_definition_for_contract.htm` | 3,014 |
+| [Default Obligation Values](./articles/ind.sf_contracts_default_obligation_values.htm.md) | `ind.sf_contracts_default_obligation_values.htm` | 656 |
+| [Define a Clause Approval Process Name](./articles/ind.sf_contracts_define_a_clause_approval_process_name.htm.md) | `ind.sf_contracts_define_a_clause_approval_process_name.htm` | 1,733 |
+| [Define a Contract Approval Process](./articles/ind.sf_contracts_define_a_contract_approval_process_name.htm.md) | `ind.sf_contracts_define_a_contract_approval_process_name.htm` | 2,818 |
+| [Define Field Mappings to Create and Update Contracts from sObjects with an Intuitive UI](./articles/ind.sf_contracts_define_field_mappings_to_create_and_update_contracts.htm.md) | `ind.sf_contracts_define_field_mappings_to_create_and_update_contracts.htm` | 1,410 |
+| [Define New Contract Object State Values](./articles/ind.sf_contracts_define_new_contract_object_state_values.htm.md) | `ind.sf_contracts_define_new_contract_object_state_values.htm` | 575 |
+| [Define Sharing Settings for Clause Sets and Clauses](./articles/ind.sf_contracts_define_sharing_settings_for_clause_sets_and_clauses.htm.md) | `ind.sf_contracts_define_sharing_settings_for_clause_sets_and_clauses.htm` | 1,003 |
+| [Define Sharing Settings for Obligations](./articles/ind.sf_contracts_define_sharing_settings_for_obligations.htm.md) | `ind.sf_contracts_define_sharing_settings_for_obligations.htm` | 1,076 |
+| [Delete a Document Clause](./articles/ind.sf_contracts_delete_a_document_clause.htm.md) | `ind.sf_contracts_delete_a_document_clause.htm` | 586 |
+| [Delete an Obligation](./articles/ind.sf_contracts_delete_an_obligation.htm.md) | `ind.sf_contracts_delete_an_obligation.htm` | 445 |
+| [Deploy Salesforce Contracts Connector for Microsoft Word Using Guided Setup](./articles/ind.sf_contracts_deploy_salesforce_contracts_connector.htm.md) | `ind.sf_contracts_deploy_salesforce_contracts_connector.htm` | 228 |
+| [Deploy Salesforce Contracts Connector for Word Add-In App to Users Manually](./articles/ind.sf_contracts_deploy_salesforce_contracts_connector_for_word_add-in_app_to_users.htm.md) | `ind.sf_contracts_deploy_salesforce_contracts_connector_for_word_add-in_app_to_users.htm` | 1,206 |
+| [Design Templates and Create and Edit Contract Documents with Microsoft 365 Word Features](./articles/ind.sf_contracts_design_templates_create_and_edit_contract_documents_using_microsoft_365_word_features.htm.md) | `ind.sf_contracts_design_templates_create_and_edit_contract_documents_using_microsoft_365_word_features.htm` | 1,430 |
+| [Generate Contract Documents On Digital Experience Partner Sites](./articles/ind.sf_contracts_digital_experience_partner_user_license.htm.md) | `ind.sf_contracts_digital_experience_partner_user_license.htm` | 432 |
+| [Disable Automatic Synchronization of Username and Email Address Using Guided Setup](./articles/ind.sf_contracts_disable_automatic_synchronization_of_username_and_email_address.htm.md) | `ind.sf_contracts_disable_automatic_synchronization_of_username_and_email_address.htm` | 861 |
+| [Disable Vlocity State Models Trigger](./articles/ind.sf_contracts_disable_vlocity_state_models_trigger.htm.md) | `ind.sf_contracts_disable_vlocity_state_models_trigger.htm` | 988 |
+| [Assign Document Playbook Licenses and Permission Sets](./articles/ind.sf_contracts_docplaybook_assign_perms.htm.md) | `ind.sf_contracts_docplaybook_assign_perms.htm` | 1,388 |
+| [Configure Document Playbook Indexing](./articles/ind.sf_contracts_docplaybook_configure_indexing.htm.md) | `ind.sf_contracts_docplaybook_configure_indexing.htm` | 1,162 |
+| [Create a Document Playbook and Activate a Version](./articles/ind.sf_contracts_docplaybook_create_activate.htm.md) | `ind.sf_contracts_docplaybook_create_activate.htm` | 2,044 |
+| [Deploy the Document Playbook Data Kit](./articles/ind.sf_contracts_docplaybook_deploy_datakit.htm.md) | `ind.sf_contracts_docplaybook_deploy_datakit.htm` | 2,824 |
+| [Manually Configure Document Playbook Data Streams](./articles/ind.sf_contracts_docplaybook_manual_datastreams.htm.md) | `ind.sf_contracts_docplaybook_manual_datastreams.htm` | 3,814 |
+| [Manually Configure Document Playbook Data Streams and Search Index](./articles/ind.sf_contracts_docplaybook_manual_index.htm.md) | `ind.sf_contracts_docplaybook_manual_index.htm` | 3,218 |
+| [Manually Create a Document Playbook Search Index](./articles/ind.sf_contracts_docplaybook_manual_search_index.htm.md) | `ind.sf_contracts_docplaybook_manual_search_index.htm` | 3,073 |
+| [Permission Set Licenses for Document Playbook](./articles/ind.sf_contracts_docplaybook_psls.htm.md) | `ind.sf_contracts_docplaybook_psls.htm` | 1,242 |
+| [Set Up Document Playbook](./articles/ind.sf_contracts_docplaybook_setup.htm.md) | `ind.sf_contracts_docplaybook_setup.htm` | 3,556 |
+| [Create a Document Playbook Sharing Rule](./articles/ind.sf_contracts_docplaybook_sharing_rule.htm.md) | `ind.sf_contracts_docplaybook_sharing_rule.htm` | 1,052 |
+| [Turn On Document Playbook Management](./articles/ind.sf_contracts_docplaybook_turn_on.htm.md) | `ind.sf_contracts_docplaybook_turn_on.htm` | 1,905 |
+| [Create a Document Playbook by Uploading a File](./articles/ind.sf_contracts_docplaybook_upload.htm.md) | `ind.sf_contracts_docplaybook_upload.htm` | 1,316 |
+| [How Document Playbook Works](./articles/ind.sf_contracts_docplaybook_work_with.htm.md) | `ind.sf_contracts_docplaybook_work_with.htm` | 6,611 |
+| [Document Clauses](./articles/ind.sf_contracts_document_clause.htm.md) | `ind.sf_contracts_document_clause.htm` | 3,156 |
+| [Tokens for Document Clauses and Document Templates](./articles/ind.sf_contracts_document_clause_and_document_templates_tokens.htm.md) | `ind.sf_contracts_document_clause_and_document_templates_tokens.htm` | 3,602 |
+| [Document Clause Library](./articles/ind.sf_contracts_document_clause_library.htm.md) | `ind.sf_contracts_document_clause_library.htm` | 2,162 |
+| [Document Clause Lifecycle](./articles/ind.sf_contracts_document_clause_lifecycle.htm.md) | `ind.sf_contracts_document_clause_lifecycle.htm` | 1,420 |
+| [Document Clause Sets](./articles/ind.sf_contracts_document_clause_sets.htm.md) | `ind.sf_contracts_document_clause_sets.htm` | 3,068 |
+| [Document Template Filtering for Salesforce Contracts](./articles/ind.sf_contracts_document_template_filtering.htm.md) | `ind.sf_contracts_document_template_filtering.htm` | 432 |
+| [DocuSign Job to Poll for Document Signed Status](./articles/ind.sf_contracts_docusign_job_to_poll_document_signed_status.htm.md) | `ind.sf_contracts_docusign_job_to_poll_document_signed_status.htm` | 487 |
+| [Draft Clauses in Microsoft 365 Word Add-In with Contracts AI](./articles/ind.sf_contracts_draft_clauses_in_microsoft_365_word_add-in_with_contracts_ai.htm.md) | `ind.sf_contracts_draft_clauses_in_microsoft_365_word_add-in_with_contracts_ai.htm` | 1,522 |
+| [Instantly Draft Clauses in Microsoft 365 Word Add-in with Contracts AI](./articles/ind.sf_contracts_draft_clauses_instantly_with_contracts_ai_in_microsoft_365_word_add-in.htm.md) | `ind.sf_contracts_draft_clauses_instantly_with_contracts_ai_in_microsoft_365_word_add-in.htm` | 811 |
+| [Draft Clauses with Contracts AI](./articles/ind.sf_contracts_draft_clauses_with_contracts_ai.htm.md) | `ind.sf_contracts_draft_clauses_with_contracts_ai.htm` | 1,566 |
+| [E-Signatures for Salesforce Contracts](./articles/ind.sf_contracts_e-signature_overview.htm.md) | `ind.sf_contracts_e-signature_overview.htm` | 1,867 |
+| [E-Signature Workflows](./articles/ind.sf_contracts_e-signature_workflows.htm.md) | `ind.sf_contracts_e-signature_workflows.htm` | 989 |
+| [Create and Maintain Document Clauses in a Centralized Library](./articles/ind.sf_contracts_easy_document_clause_creation_and_maintenance_within_a_centralized_clause_library.htm.md) | `ind.sf_contracts_easy_document_clause_creation_and_maintenance_within_a_centralized_clause_library.htm` | 1,517 |
+| [Edit a Draft Clause](./articles/ind.sf_contracts_edit_a_draft_clause.htm.md) | `ind.sf_contracts_edit_a_draft_clause.htm` | 760 |
+| [Edit an Obligation](./articles/ind.sf_contracts_edit_an_obligation.htm.md) | `ind.sf_contracts_edit_an_obligation.htm` | 717 |
+| [Edit a Document Clause](./articles/ind.sf_contracts_edit_document_clause.htm.md) | `ind.sf_contracts_edit_document_clause.htm` | 505 |
+| [Edit Electronic Signature Envelope Configurations for Contracts](./articles/ind.sf_contracts_edit_electronic_signature_envelope_configurations_for_contracts.htm.md) | `ind.sf_contracts_edit_electronic_signature_envelope_configurations_for_contracts.htm` | 779 |
+| [Edit Electronic Signature Envelope Configurations for Standard and Custom Objects](./articles/ind.sf_contracts_edit_electronic_signature_envelope_configurations_for_standard_and_custom_objects.htm.md) | `ind.sf_contracts_edit_electronic_signature_envelope_configurations_for_standard_and_custom_objects.htm` | 398 |
+| [Edit or Delete a Contract Type](./articles/ind.sf_contracts_edit_or_delete_a_contract_type.htm.md) | `ind.sf_contracts_edit_or_delete_a_contract_type.htm` | 1,441 |
+| [Effective Ways to Provide Context for Contracts AI Clause Generation](./articles/ind.sf_contracts_effective_ways_to_provide_context_for_contracts_ai_clause_generation.htm.md) | `ind.sf_contracts_effective_ways_to_provide_context_for_contracts_ai_clause_generation.htm` | 3,035 |
+| [Effortlessly Digitalize Legacy Contracts and Create Contract Records with Contracts AI](./articles/ind.sf_contracts_effortlessly_digitalize_legacy_contracts_and_create_contract_records.htm.md) | `ind.sf_contracts_effortlessly_digitalize_legacy_contracts_and_create_contract_records.htm` | 1,521 |
+| [Electronic Signature Envelope Configuration for Salesforce Contracts](./articles/ind.sf_contracts_electronic_signature_envelope_config.htm.md) | `ind.sf_contracts_electronic_signature_envelope_config.htm` | 1,638 |
+| [Salesforce Contracts Analytics Dashboard Attributes](./articles/ind.sf_contracts_embed_salesforce_contracts_analytics_dashboards.htm.md) | `ind.sf_contracts_embed_salesforce_contracts_analytics_dashboards.htm` | 1,864 |
+| [Embed Salesforce Contracts Analytics Dashboards](./articles/ind.sf_contracts_embed_salesforce_contracts_analytics_dashboards_main.htm.md) | `ind.sf_contracts_embed_salesforce_contracts_analytics_dashboards_main.htm` | 1,140 |
+| [Embedded Analytics for Salesforce Contracts](./articles/ind.sf_contracts_embedded_analytics.htm.md) | `ind.sf_contracts_embedded_analytics.htm` | 2,328 |
+| [Enable Customer Community Plus for Salesforce Contracts Setting](./articles/ind.sf_contracts_enable_customer_community_plus_for_salesforce_contracts_setting.htm.md) | `ind.sf_contracts_enable_customer_community_plus_for_salesforce_contracts_setting.htm` | 614 |
+| [Enable Design Document Templates in Salesforce](./articles/ind.sf_contracts_enable_design_document_templates_in_salesforce_setting_.htm.md) | `ind.sf_contracts_enable_design_document_templates_in_salesforce_setting_.htm` | 650 |
+| [Turn On Industries Einstein AI Single Document Extraction](./articles/ind.sf_contracts_enable_einstein_and_contracts_ai_settings.htm.md) | `ind.sf_contracts_enable_einstein_and_contracts_ai_settings.htm` | 5,528 |
+| [Enable Salesforce Contracts Analytics](./articles/ind.sf_contracts_enable_salesforce_contracts_analytics.htm.md) | `ind.sf_contracts_enable_salesforce_contracts_analytics.htm` | 1,764 |
+| [Enable Salesforce Contracts Connector for Word (Microsoft 365) Setting](./articles/ind.sf_contracts_enable_salesforce_contracts_connector_for_word_microsoft_365_setting.htm.md) | `ind.sf_contracts_enable_salesforce_contracts_connector_for_word_microsoft_365_setting.htm` | 526 |
+| [Enable Salesforce Contracts Console App](./articles/ind.sf_contracts_enable_salesforce_contracts_console_app.htm.md) | `ind.sf_contracts_enable_salesforce_contracts_console_app.htm` | 1,076 |
+| [Enable Salesforce Contracts Setting](./articles/ind.sf_contracts_enable_salesforce_contracts_setting.htm.md) | `ind.sf_contracts_enable_salesforce_contracts_setting.htm` | 583 |
+| [Salesforce Contracts End To End Flow](./articles/ind.sf_contracts_end_to_end_flow.htm.md) | `ind.sf_contracts_end_to_end_flow.htm` | 4,463 |
+| [Access Versions of a Template and Filter Templates More Intuitively](./articles/ind.sf_contracts_enhanced_design_document_template_management.htm.md) | `ind.sf_contracts_enhanced_design_document_template_management.htm` | 524 |
+| [E-Signature APIs](./articles/ind.sf_contracts_esignature_apis.htm.md) | `ind.sf_contracts_esignature_apis.htm` | 8,797 |
+| [Electronic Signature Configuration for Salesforce Contracts](./articles/ind.sf_contracts_esignature_configuration.htm.md) | `ind.sf_contracts_esignature_configuration.htm` | 4,083 |
+| [External Review in Salesforce Contracts](./articles/ind.sf_contracts_external_review.htm.md) | `ind.sf_contracts_external_review.htm` | 1,717 |
+| [External Reviewer Type in Salesforce Contracts](./articles/ind.sf_contracts_external_reviewer_type.htm.md) | `ind.sf_contracts_external_reviewer_type.htm` | 423 |
+| [Extract the AWS Account ID and Access Keys](./articles/ind.sf_contracts_extract_aws_account_id_and_access_keys.htm.md) | `ind.sf_contracts_extract_aws_account_id_and_access_keys.htm` | 1,268 |
+| [Extract the ARN Value for a User](./articles/ind.sf_contracts_extract_the_arn_value_for_a_user.htm.md) | `ind.sf_contracts_extract_the_arn_value_for_a_user.htm` | 1,105 |
+| [Extract the Clause Category ID for Clause Approval](./articles/ind.sf_contracts_extract_the_clause_category_id.htm.md) | `ind.sf_contracts_extract_the_clause_category_id.htm` | 737 |
+| [Facilitate Collaborative Negotiations with External Reviewers](./articles/ind.sf_contracts_facilitate_collaborative_negotiations_with_external_reviewers.htm.md) | `ind.sf_contracts_facilitate_collaborative_negotiations_with_external_reviewers.htm` | 660 |
+| [FLS Requirements for Contract Document Generation](./articles/ind.sf_contracts_fls_requirements_for_doc_gen.htm.md) | `ind.sf_contracts_fls_requirements_for_doc_gen.htm` | 1,682 |
+| [Document Generation Settings for Salesforce Contracts](./articles/ind.sf_contracts_general_settings_for_document_generation.htm.md) | `ind.sf_contracts_general_settings_for_document_generation.htm` | 1,295 |
+| [Generate Contract Document Versions](./articles/ind.sf_contracts_generate_a_contract_document.htm.md) | `ind.sf_contracts_generate_a_contract_document.htm` | 1,862 |
+| [Contract Lifecycle Stages](./articles/ind.sf_contracts_generic_contract_lifecycle_stages.htm.md) | `ind.sf_contracts_generic_contract_lifecycle_stages.htm` | 2,478 |
+| [Get Started With Salesforce Contracts Implementation](./articles/ind.sf_contracts_get_started_with_salesforce_contracts_implementation.htm.md) | `ind.sf_contracts_get_started_with_salesforce_contracts_implementation.htm` | 1,055 |
+| [Salesforce Contracts Glossary](./articles/ind.sf_contracts_glossary.htm.md) | `ind.sf_contracts_glossary.htm` | 13,049 |
+| [Grant Dataspace, File, and Contract Object Access](./articles/ind.sf_contracts_grant_dataspace_file_and_contract_object_access.htm.md) | `ind.sf_contracts_grant_dataspace_file_and_contract_object_access.htm` | 2,911 |
+| [Export and Import Document Templates Between Salesforce Orgs](./articles/ind.sf_contracts_import_and_export_document_templates_between_salesforce_orgs.htm.md) | `ind.sf_contracts_import_and_export_document_templates_between_salesforce_orgs.htm` | 505 |
+| [Reviewer Actions in External Reviews](./articles/ind.sf_contracts_in_external_review.htm.md) | `ind.sf_contracts_in_external_review.htm` | 1,173 |
+| [In Internal Review](./articles/ind.sf_contracts_in_review.htm.md) | `ind.sf_contracts_in_review.htm` | 1,277 |
+| [Incorporate Reviewer Changes from Private External Review](./articles/ind.sf_contracts_incorporate_private_external_reviewer_changes.htm.md) | `ind.sf_contracts_incorporate_private_external_reviewer_changes.htm` | 1,666 |
+| [Initiate Non-Private External Review](./articles/ind.sf_contracts_initiate_online_external_review.htm.md) | `ind.sf_contracts_initiate_online_external_review.htm` | 2,116 |
+| [Initiate Online External Review](./articles/ind.sf_contracts_initiate_online_external_review_concept.htm.md) | `ind.sf_contracts_initiate_online_external_review_concept.htm` | 1,030 |
+| [Initiate Private External Review](./articles/ind.sf_contracts_initiate_private_external_review.htm.md) | `ind.sf_contracts_initiate_private_external_review.htm` | 2,930 |
+| [Initiate Internal Review](./articles/ind.sf_contracts_initiate_review.htm.md) | `ind.sf_contracts_initiate_review.htm` | 2,910 |
+| [Insert DocuSign Signature Tags](./articles/ind.sf_contracts_insert_docusign_signature_tags.htm.md) | `ind.sf_contracts_insert_docusign_signature_tags.htm` | 867 |
+| [Insert Salesforce Contracts Connector for Word Add-In App Into Microsoft 365 Word](./articles/ind.sf_contracts_insert_sf_connector_for_word_add-in_app_into_microsoft_365_word.htm.md) | `ind.sf_contracts_insert_sf_connector_for_word_add-in_app_into_microsoft_365_word.htm` | 1,312 |
+| [Integrate DocuSign with Salesforce Contracts](./articles/ind.sf_contracts_integrate_docusign_with_salesforce_contracts_2.htm.md) | `ind.sf_contracts_integrate_docusign_with_salesforce_contracts_2.htm` | 742 |
+| [Integrate Microsoft 365 and Azure with Salesforce Contracts Manually](./articles/ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm.md) | `ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm` | 2,989 |
+| [Integration of Salesforce Contracts in Vlocity Managed Packages](./articles/ind.sf_contracts_integrate_salesforce_contracts_in_vlocity_managed_packages.htm.md) | `ind.sf_contracts_integrate_salesforce_contracts_in_vlocity_managed_packages.htm` | 1,526 |
+| [Ways to Set Up Microsoft 365 and Azure Integration with Salesforce](./articles/ind.sf_contracts_integration_ms365_overview.htm.md) | `ind.sf_contracts_integration_ms365_overview.htm` | 4,270 |
+| [Internal and External Reviewer Statuses in Salesforce Contracts](./articles/ind.sf_contracts_internal_and_external_reviewer_statuses.htm.md) | `ind.sf_contracts_internal_and_external_reviewer_statuses.htm` | 465 |
+| [Internal Review in Salesforce Contracts](./articles/ind.sf_contracts_internal_review.htm.md) | `ind.sf_contracts_internal_review.htm` | 1,211 |
+| [Invocable Actions for Salesforce Contracts](./articles/ind.sf_contracts_invocable_actions_for_salesforce_contracts.htm.md) | `ind.sf_contracts_invocable_actions_for_salesforce_contracts.htm` | 7,881 |
+| [Understand the Salesforce Contracts Lifecycle](./articles/ind.sf_contracts_key_capabilities.htm.md) | `ind.sf_contracts_key_capabilities.htm` | 1,919 |
+| [Key Performance Indicators in Salesforce Contracts Analytics](./articles/ind.sf_contracts_key_performance_indicators.htm.md) | `ind.sf_contracts_key_performance_indicators.htm` | 1,803 |
+| [General Considerations for Salesforce Contracts](./articles/ind.sf_contracts_known_limitation_for_salesforce_contracts.htm.md) | `ind.sf_contracts_known_limitation_for_salesforce_contracts.htm` | 1,575 |
+| [Considerations and Limitations with Salesforce Contracts](./articles/ind.sf_contracts_known_limitations.htm.md) | `ind.sf_contracts_known_limitations.htm` | 688 |
+| [Limitations for Create Contract and Update Contracts APIs](./articles/ind.sf_contracts_known_limitations_for_create_contract_and_update_contracts_apis.htm.md) | `ind.sf_contracts_known_limitations_for_create_contract_and_update_contracts_apis.htm` | 201 |
+| [Integration Limitations with Microsoft 365](./articles/ind.sf_contracts_known_limitations_for_microsoft_365_integration.htm.md) | `ind.sf_contracts_known_limitations_for_microsoft_365_integration.htm` | 4,042 |
+| [Implement Salesforce Contracts](./articles/ind.sf_contracts_learn_about_and_implement_salesforce_contracts.htm.md) | `ind.sf_contracts_learn_about_and_implement_salesforce_contracts.htm` | 2,358 |
+| [Set Up Salesforce Contracts for Lightning Platform Licenses](./articles/ind.sf_contracts_lightning_platform_licenses.htm.md) | `ind.sf_contracts_lightning_platform_licenses.htm` | 3,037 |
+| [Limitations for Clause and Content Tokens](./articles/ind.sf_contracts_limitations_for_clause_and_content_tokens.htm.md) | `ind.sf_contracts_limitations_for_clause_and_content_tokens.htm` | 1,995 |
+| [Limitations of Contract Comparison Previewer](./articles/ind.sf_contracts_limitations_for_contract_comparison_previewer.htm.md) | `ind.sf_contracts_limitations_for_contract_comparison_previewer.htm` | 1,143 |
+| [Limitations for Contracts AI](./articles/ind.sf_contracts_limitations_for_contracts_ai.htm.md) | `ind.sf_contracts_limitations_for_contracts_ai.htm` | 1,197 |
+| [Limitations with Microsoft 365 Editor](./articles/ind.sf_contracts_limitations_for_microsoft_365.htm.md) | `ind.sf_contracts_limitations_for_microsoft_365.htm` | 1,604 |
+| [Lock and Unlock a Contract Document Version](./articles/ind.sf_contracts_lock_and_unlock_a_contract_document_version.htm.md) | `ind.sf_contracts_lock_and_unlock_a_contract_document_version.htm` | 476 |
+| [Lock Sections Within a Document](./articles/ind.sf_contracts_lock_section.htm.md) | `ind.sf_contracts_lock_section.htm` | 2,364 |
+| [Manage and Test Contract Extraction Instructions](./articles/ind.sf_contracts_manage_and_test_contract_extraction_instructions.htm.md) | `ind.sf_contracts_manage_and_test_contract_extraction_instructions.htm` | 2,361 |
+| [Manage Notification Delivery Settings for Obligations](./articles/ind.sf_contracts_manage_notification_delivery_settings_for_obligations.htm.md) | `ind.sf_contracts_manage_notification_delivery_settings_for_obligations.htm` | 2,020 |
+| [Map Context Definitions to Create and Update Contracts](./articles/ind.sf_contracts_map_context_definitions_to_create_and_update_contracts.htm.md) | `ind.sf_contracts_map_context_definitions_to_create_and_update_contracts.htm` | 1,564 |
+| [Limitations of Field Values Extraction Using Contracts AI](./articles/ind.sf_contracts_map_extracted_contract_fields_to_salesforce.htm.md) | `ind.sf_contracts_map_extracted_contract_fields_to_salesforce.htm` | 4,359 |
+| [Map New Contract Status Value to a New Contract Object State Transition](./articles/ind.sf_contracts_map_new_contract_status_value_to_a_new_contract_object_state_transition.htm.md) | `ind.sf_contracts_map_new_contract_status_value_to_a_new_contract_object_state_transition.htm` | 1,114 |
+| [Map Your Business Requirements to Salesforce Contracts Features](./articles/ind.sf_contracts_map_your_business_requirements_with_sfcontract_features.htm.md) | `ind.sf_contracts_map_your_business_requirements_with_sfcontract_features.htm` | 3,593 |
+| [Mapping Contract Record Type to Contract Type](./articles/ind.sf_contracts_mapping_contract_record_type_to_contract_type.htm.md) | `ind.sf_contracts_mapping_contract_record_type_to_contract_type.htm` | 209 |
+| [Mark as Clause](./articles/ind.sf_contracts_mark_as_clause.htm.md) | `ind.sf_contracts_mark_as_clause.htm` | 1,118 |
+| [Microsoft 365 Frequently Asked Questions (FAQs)](./articles/ind.sf_contracts_microsoft_365_frequently_asked_questions_faqs.htm.md) | `ind.sf_contracts_microsoft_365_frequently_asked_questions_faqs.htm` | 15,481 |
+| [Microsoft 365 Integration Troubleshooting Guide](./articles/ind.sf_contracts_microsoft_365_integration_troubleshooting_guide.htm.md) | `ind.sf_contracts_microsoft_365_integration_troubleshooting_guide.htm` | 655 |
+| [Considerations When Migrating Microsoft 365 Word Templates Across Environments](./articles/ind.sf_contracts_migrate_ms_templates.htm.md) | `ind.sf_contracts_migrate_ms_templates.htm` | 2,117 |
+| [Modify a Section in a Salesforce Contract Document](./articles/ind.sf_contracts_modify_section.htm.md) | `ind.sf_contracts_modify_section.htm` | 618 |
+| [Modularize Documents with Sections and Clause Marking](./articles/ind.sf_contracts_modularize_documents_with_sections_and_clause_marking.htm.md) | `ind.sf_contracts_modularize_documents_with_sections_and_clause_marking.htm` | 775 |
+| [Configure an Auth Provider for Microsoft App Manually Through Minimum Privilege Setup](./articles/ind.sf_contracts_ms365_minimum_pri_auth_provider.htm.md) | `ind.sf_contracts_ms365_minimum_pri_auth_provider.htm` | 4,183 |
+| [Configure a Microsoft Azure App Manually Through Minimum Privilege Setup](./articles/ind.sf_contracts_ms365_minimum_pri_azure_app.htm.md) | `ind.sf_contracts_ms365_minimum_pri_azure_app.htm` | 2,083 |
+| [Deploy and Configure the Microsoft 365 Word Add-In for Salesforce Contracts](./articles/ind.sf_contracts_ms365_minimum_pri_deploy_addin.htm.md) | `ind.sf_contracts_ms365_minimum_pri_deploy_addin.htm` | 1,222 |
+| [Update Microsoft App Registration to Use Minimum-Privilege Permissions](./articles/ind.sf_contracts_ms365_minimum_pri_existing_customers.htm.md) | `ind.sf_contracts_ms365_minimum_pri_existing_customers.htm` | 3,206 |
+| [Configure External Document Storage for Document Templates Manually Through Minimum Privilege Setup](./articles/ind.sf_contracts_ms365_minimum_pri_external_doc_storage.htm.md) | `ind.sf_contracts_ms365_minimum_pri_external_doc_storage.htm` | 1,799 |
+| [Configure External Document Storage for Contracts Manually Through Minimum Privilege Setup](./articles/ind.sf_contracts_ms365_minimum_pri_external_storage_contracts.htm.md) | `ind.sf_contracts_ms365_minimum_pri_external_storage_contracts.htm` | 1,482 |
+| [Create a Named Credential for Salesforce Contracts Connector for Word Add-in Manually Through Minimum Privilege Setup](./articles/ind.sf_contracts_ms365_minimum_pri_named_credential.htm.md) | `ind.sf_contracts_ms365_minimum_pri_named_credential.htm` | 1,776 |
+| [Manual Integration of Microsoft 365 Azure with Salesforce Through Minimum Privilege Setup](./articles/ind.sf_contracts_ms365_minimum_pri_overview.htm.md) | `ind.sf_contracts_ms365_minimum_pri_overview.htm` | 2,747 |
+| [Create a SharePoint Site Manually Through Minimum Privilege Setup](./articles/ind.sf_contracts_ms365_minimum_pri_sharepoint.htm.md) | `ind.sf_contracts_ms365_minimum_pri_sharepoint.htm` | 1,848 |
+| [Salesforce Contracts APIs](./articles/ind.sf_contracts_na_1.htm.md) | `ind.sf_contracts_na_1.htm` | 1,054 |
+| [New and Changed Salesforce Contracts Connect APIs](./articles/ind.sf_contracts_new_and_changed_connectapis_spring24.htm.md) | `ind.sf_contracts_new_and_changed_connectapis_spring24.htm` | 1,751 |
+| [New and Changed Salesforce Contracts Objects](./articles/ind.sf_contracts_new_and_changed_salesforce_contracts_objects_winter24.htm.md) | `ind.sf_contracts_new_and_changed_salesforce_contracts_objects_winter24.htm` | 976 |
+| [New Invocable Actions in Salesforce Contracts](./articles/ind.sf_contracts_new_invocable_actions.htm.md) | `ind.sf_contracts_new_invocable_actions.htm` | 653 |
+| [Review a Contract Document in Non-Private External Review Mode](./articles/ind.sf_contracts_non_private_external_review_mode.htm.md) | `ind.sf_contracts_non_private_external_review_mode.htm` | 3,348 |
+| [Object State Action Definition in Salesforce Contracts](./articles/ind.sf_contracts_object_state_action_definition.htm.md) | `ind.sf_contracts_object_state_action_definition.htm` | 4,173 |
+| [Object State Transition Action in Salesforce Contracts](./articles/ind.sf_contracts_object_state_transition_action.htm.md) | `ind.sf_contracts_object_state_transition_action.htm` | 1,398 |
+| [Object State Transition Action Scenarios in Salesforce Contracts](./articles/ind.sf_contracts_object_state_transition_action_scenarios.htm.md) | `ind.sf_contracts_object_state_transition_action_scenarios.htm` | 4,378 |
+| [Obligation Actions](./articles/ind.sf_contracts_obligation_actions.htm.md) | `ind.sf_contracts_obligation_actions.htm` | 611 |
+| [Obligation Creation](./articles/ind.sf_contracts_obligation_creation.htm.md) | `ind.sf_contracts_obligation_creation.htm` | 3,018 |
+| [Obligation Management](./articles/ind.sf_contracts_obligation_management.htm.md) | `ind.sf_contracts_obligation_management.htm` | 3,395 |
+| [Obligation Management Personas and Supported Actions](./articles/ind.sf_contracts_obligation_management_personas_and_supported_actions.htm.md) | `ind.sf_contracts_obligation_management_personas_and_supported_actions.htm` | 1,575 |
+| [Initiate Offline External Review](./articles/ind.sf_contracts_offline_external_review.htm.md) | `ind.sf_contracts_offline_external_review.htm` | 1,172 |
+| [Org Settings and Object Requirements for Salesforce Contracts Analytics](./articles/ind.sf_contracts_org_settings_and_object_requirements_for_salesforce_contracts_analytics.htm.md) | `ind.sf_contracts_org_settings_and_object_requirements_for_salesforce_contracts_analytics.htm` | 881 |
+| [Permission Set Licenses for Contracts AI](./articles/ind.sf_contracts_permission_set_licenses_for_contracts_ai.htm.md) | `ind.sf_contracts_permission_set_licenses_for_contracts_ai.htm` | 1,388 |
+| [Personas and Permission Set Licenses for Salesforce Contracts](./articles/ind.sf_contracts_permission_set_licenses_for_salesforce_contracts_.htm.md) | `ind.sf_contracts_permission_set_licenses_for_salesforce_contracts_.htm` | 6,877 |
+| [Permission Sets Combination for Salesforce Contracts](./articles/ind.sf_contracts_permission_sets_combination_for_salesforce_contracts.htm.md) | `ind.sf_contracts_permission_sets_combination_for_salesforce_contracts.htm` | 710 |
+| [Permission Sets For DocuSign](./articles/ind.sf_contracts_permission_sets_for_docusign.htm.md) | `ind.sf_contracts_permission_sets_for_docusign.htm` | 985 |
+| [Journey Map Example by User Type in Salesforce Contracts](./articles/ind.sf_contracts_personas_in_salesforce_contracts.htm.md) | `ind.sf_contracts_personas_in_salesforce_contracts.htm` | 2,092 |
+| [Plan Your Salesforce Contracts Implementation](./articles/ind.sf_contracts_plan_your_contract_lifecycle.htm.md) | `ind.sf_contracts_plan_your_contract_lifecycle.htm` | 6,325 |
+| [Get Started With Salesforce Contracts](./articles/ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm.md) | `ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm` | 3,228 |
+| [Prepare for Microsoft 365 and Azure Integration Using Guided Setup](./articles/ind.sf_contracts_prepare_for_microsoft_365_and_azure_integration.htm.md) | `ind.sf_contracts_prepare_for_microsoft_365_and_azure_integration.htm` | 1,442 |
+| [Prepare Your Org for Contract Search](./articles/ind.sf_contracts_prepare_your_org_for_contract_search.htm.md) | `ind.sf_contracts_prepare_your_org_for_contract_search.htm` | 1,260 |
+| [Prerequisites For Setting Up State Models, State Transitions, and Actions](./articles/ind.sf_contracts_prerequisites_for_setting_up_state_models_state_transitions_and_actions.htm.md) | `ind.sf_contracts_prerequisites_for_setting_up_state_models_state_transitions_and_actions.htm` | 473 |
+| [Permission Set Licenses for Salesforce Contracts Analytics](./articles/ind.sf_contracts_psl_for_salesforce_contracts_analytics.htm.md) | `ind.sf_contracts_psl_for_salesforce_contracts_analytics.htm` | 1,966 |
+| [Quickly Design Document Templates Without a Managed Package](./articles/ind.sf_contracts_quickly_design_document_templates_without_a_managed_package.htm.md) | `ind.sf_contracts_quickly_design_document_templates_without_a_managed_package.htm` | 505 |
+| [Quickly Create, and Manage Contracts from Salesforce Contracts Console App](./articles/ind.sf_contracts_quickly_view_create_and_manage_contracts_from_salesforce_contracts_console_app.htm.md) | `ind.sf_contracts_quickly_view_create_and_manage_contracts_from_salesforce_contracts_console_app.htm` | 551 |
+| [Recipes in Salesforce Contracts Analytics](./articles/ind.sf_contracts_recipes_in_salesforce_contracts_analytics.htm.md) | `ind.sf_contracts_recipes_in_salesforce_contracts_analytics.htm` | 254 |
+| [Records that Need Attention in Salesforce Contracts Analytics](./articles/ind.sf_contracts_records_that_need_attention.htm.md) | `ind.sf_contracts_records_that_need_attention.htm` | 662 |
+| [Records that Need Attention (Sales) in Salesforce Contracts Analytics](./articles/ind.sf_contracts_records_that_need_attention_sales.htm.md) | `ind.sf_contracts_records_that_need_attention_sales.htm` | 667 |
+| [Redraft Extracted Clause](./articles/ind.sf_contracts_redraft_extracted_clause.htm.md) | `ind.sf_contracts_redraft_extracted_clause.htm` | 925 |
+| [Relation Between Contract Status and Obligation State](./articles/ind.sf_contracts_relation_between_contract_status_and_obligation_state.htm.md) | `ind.sf_contracts_relation_between_contract_status_and_obligation_state.htm` | 813 |
+| [Remove Visualforce Components from Vlocity Contract Lifecycle Management](./articles/ind.sf_contracts_remove_visualforce_components_from_vlocity_clm.htm.md) | `ind.sf_contracts_remove_visualforce_components_from_vlocity_clm.htm` | 891 |
+| [Restart Private External Review](./articles/ind.sf_contracts_restart_private_external_review.htm.md) | `ind.sf_contracts_restart_private_external_review.htm` | 1,497 |
+| [Retry Contract Document Generation](./articles/ind.sf_contracts_retry_contract_document_generation.htm.md) | `ind.sf_contracts_retry_contract_document_generation.htm` | 975 |
+| [Review a Contract Document in Private External Review Mode](./articles/ind.sf_contracts_review_as_an_external_reviewer.htm.md) | `ind.sf_contracts_review_as_an_external_reviewer.htm` | 1,423 |
+| [Review Extracted Clause](./articles/ind.sf_contracts_review_extracted_clause.htm.md) | `ind.sf_contracts_review_extracted_clause.htm` | 757 |
+| [Reviewer Type and Access Mode in Salesforce Contracts](./articles/ind.sf_contracts_reviewer_type_and_access_mode.htm.md) | `ind.sf_contracts_reviewer_type_and_access_mode.htm` | 1,012 |
+| [Analyze Contract Risks After a Review](./articles/ind.sf_contracts_riskanalysis_analyze.htm.md) | `ind.sf_contracts_riskanalysis_analyze.htm` | 4,751 |
+| [How Contract Risk Analysis Works](./articles/ind.sf_contracts_riskanalysis_how.htm.md) | `ind.sf_contracts_riskanalysis_how.htm` | 4,509 |
+| [Set Up Contract Risk Analysis](./articles/ind.sf_contracts_riskanalysis_setup.htm.md) | `ind.sf_contracts_riskanalysis_setup.htm` | 3,556 |
+| [Run Salesforce Contracts Invocable Actions](./articles/ind.sf_contracts_run_salesforce_contracts_invocable_actions.htm.md) | `ind.sf_contracts_run_salesforce_contracts_invocable_actions.htm` | 1,210 |
+| [Licenses and Permissions for Salesforce Contracts Analytics](./articles/ind.sf_contracts_salesforce_analytics_licenses_and_permissions.htm.md) | `ind.sf_contracts_salesforce_analytics_licenses_and_permissions.htm` | 1,055 |
+| [Salesforce Contracts Analytics](./articles/ind.sf_contracts_salesforce_contracts_analytics.htm.md) | `ind.sf_contracts_salesforce_contracts_analytics.htm` | 994 |
+| [Salesforce Contracts Analytics Dashboards](./articles/ind.sf_contracts_salesforce_contracts_analytics_dashboards.htm.md) | `ind.sf_contracts_salesforce_contracts_analytics_dashboards.htm` | 1,359 |
+| [Salesforce Contracts Analytics Post-Installation Steps](./articles/ind.sf_contracts_salesforce_contracts_analytics_post-installation_steps.htm.md) | `ind.sf_contracts_salesforce_contracts_analytics_post-installation_steps.htm` | 1,317 |
+| [Design Document Templates in Microsoft 365 Editor](./articles/ind.sf_contracts_salesforce_contracts_connector_for_word.htm.md) | `ind.sf_contracts_salesforce_contracts_connector_for_word.htm` | 1,326 |
+| [Salesforce Contracts Licenses](./articles/ind.sf_contracts_salesforce_contracts_licenses.htm.md) | `ind.sf_contracts_salesforce_contracts_licenses.htm` | 2,205 |
+| [Learn and Explore Salesforce Contracts](./articles/ind.sf_contracts_salesforce_contracts_overview.htm.md) | `ind.sf_contracts_salesforce_contracts_overview.htm` | 3,548 |
+| [Salesforce Contracts](./articles/ind.sf_contracts_salesforce_contracts_overview_2.htm.md) | `ind.sf_contracts_salesforce_contracts_overview_2.htm` | 3,109 |
+| [Salesforce Contracts Release Notes](./articles/ind.sf_contracts_salesforce_contracts_release_notes.htm.md) | `ind.sf_contracts_salesforce_contracts_release_notes.htm` | 2,295 |
+| [Salesforce Contracts Spring '23 Release Notes](./articles/ind.sf_contracts_salesforce_contracts_spring_23_release_notes.htm.md) | `ind.sf_contracts_salesforce_contracts_spring_23_release_notes.htm` | 1,106 |
+| [Salesforce Contracts Spring '24 Release Notes](./articles/ind.sf_contracts_salesforce_contracts_spring_24_release_notes.htm.md) | `ind.sf_contracts_salesforce_contracts_spring_24_release_notes.htm` | 2,729 |
+| [Salesforce Contracts Summer '23 Release Notes](./articles/ind.sf_contracts_salesforce_contracts_summer_23_release_notes.htm.md) | `ind.sf_contracts_salesforce_contracts_summer_23_release_notes.htm` | 2,635 |
+| [Salesforce Contracts Summer '24 Release Notes](./articles/ind.sf_contracts_salesforce_contracts_summer_24_release_notes.htm.md) | `ind.sf_contracts_salesforce_contracts_summer_24_release_notes.htm` | 3,288 |
+| [Salesforce Contracts Troubleshooting Reference](./articles/ind.sf_contracts_salesforce_contracts_troubleshooting_guide.htm.md) | `ind.sf_contracts_salesforce_contracts_troubleshooting_guide.htm` | 901 |
+| [Salesforce Contracts Winter '23 Release Notes](./articles/ind.sf_contracts_salesforce_contracts_winter_23_release_notes.htm.md) | `ind.sf_contracts_salesforce_contracts_winter_23_release_notes.htm` | 3,445 |
+| [Salesforce Contracts Winter '24 Release Notes](./articles/ind.sf_contracts_salesforce_contracts_winter_24_release_notes.htm.md) | `ind.sf_contracts_salesforce_contracts_winter_24_release_notes.htm` | 2,603 |
+| [Salesforce Contracts Release Notes Winter '25 and Later](./articles/ind.sf_contracts_salesforce_contracts_winter_25_release_notes_2.htm.md) | `ind.sf_contracts_salesforce_contracts_winter_25_release_notes_2.htm` | 341 |
+| [Sample Clause Report](./articles/ind.sf_contracts_sample_clause_report.htm.md) | `ind.sf_contracts_sample_clause_report.htm` | 1,051 |
+| [Sample Code To Update Out-of-Sync Contract Type Mapping](./articles/ind.sf_contracts_sample_code_to_update_out-of-sync_contract_type_mapping.htm.md) | `ind.sf_contracts_sample_code_to_update_out-of-sync_contract_type_mapping.htm` | 6,343 |
+| [Sample Contract Queries and Follow-Up Questions for AI Interactions](./articles/ind.sf_contracts_sample_contract_queries_and_follow_up_questions_for_ai_interactions.htm.md) | `ind.sf_contracts_sample_contract_queries_and_follow_up_questions_for_ai_interactions.htm` | 2,634 |
+| [Sample Salesforce Contracts API Sequence](./articles/ind.sf_contracts_sample_salesforce_contracts_api_sequence.htm.md) | `ind.sf_contracts_sample_salesforce_contracts_api_sequence.htm` | 8,612 |
+| [Sample Workflows to Create and Customize Contract Object State Definitions](./articles/ind.sf_contracts_sample_workflows_to_create_and_customize_contract_object_state_definitions.htm.md) | `ind.sf_contracts_sample_workflows_to_create_and_customize_contract_object_state_definitions.htm` | 1,398 |
+| [Schedule a DocuSign Job to Poll for Document Signed Status](./articles/ind.sf_contracts_schedule_a_docusign_job_to_poll_for_document_signed_status.htm.md) | `ind.sf_contracts_schedule_a_docusign_job_to_poll_for_document_signed_status.htm` | 2,036 |
+| [Schedule the Salesforce Contracts Analytics App](./articles/ind.sf_contracts_schedule_the_app.htm.md) | `ind.sf_contracts_schedule_the_app.htm` | 259 |
+| [Search for Standard Clauses in Clause Library](./articles/ind.sf_contracts_search_standard_clauses.htm.md) | `ind.sf_contracts_search_standard_clauses.htm` | 1,626 |
+| [Search, Summarize, and Interact with Contracts Using AI](./articles/ind.sf_contracts_search_summarize_and_interact_with_contracts_using_ai.htm.md) | `ind.sf_contracts_search_summarize_and_interact_with_contracts_using_ai.htm` | 3,425 |
+| [Configure Section Access Control Permissions in Salesforce Contracts](./articles/ind.sf_contracts_section_control.htm.md) | `ind.sf_contracts_section_control.htm` | 934 |
+| [Section Management in Salesforce Contracts](./articles/ind.sf_contracts_section_management.htm.md) | `ind.sf_contracts_section_management.htm` | 2,326 |
+| [Select a SharePoint Site and Drive Using Guided Setup](./articles/ind.sf_contracts_select_a_sharepoint_site_and_drive.htm.md) | `ind.sf_contracts_select_a_sharepoint_site_and_drive.htm` | 917 |
+| [Set Default Contract Record Type for User Profiles](./articles/ind.sf_contracts_set_default_contract_record_type_for_user_profiles.htm.md) | `ind.sf_contracts_set_default_contract_record_type_for_user_profiles.htm` | 578 |
+| [Set Up a Named Credential for Salesforce Contracts Using Guided Setup](./articles/ind.sf_contracts_set_up_a_named_credential.htm.md) | `ind.sf_contracts_set_up_a_named_credential.htm` | 1,821 |
+| [Set Up a Contract Agent](./articles/ind.sf_contracts_set_up_agentforce_employee_agent_aea_for_contract.htm.md) | `ind.sf_contracts_set_up_agentforce_employee_agent_aea_for_contract.htm` | 1,730 |
+| [Set Up Approval Process Detail Page For Contracts](./articles/ind.sf_contracts_set_up_approval_process_detail_page.htm.md) | `ind.sf_contracts_set_up_approval_process_detail_page.htm` | 3,771 |
+| [Set Up Approval Process Detail Page For Clause](./articles/ind.sf_contracts_set_up_approval_process_for_clause.htm.md) | `ind.sf_contracts_set_up_approval_process_for_clause.htm` | 2,492 |
+| [Optional: Set Up Contract Approval Workflow](./articles/ind.sf_contracts_set_up_contract_approval_workflow.htm.md) | `ind.sf_contracts_set_up_contract_approval_workflow.htm` | 600 |
+| [Configure Contract Search](./articles/ind.sf_contracts_set_up_contract_search_for_contract_ai.htm.md) | `ind.sf_contracts_set_up_contract_search_for_contract_ai.htm` | 4,625 |
+| [Set Up Contracts AI](./articles/ind.sf_contracts_set_up_contracts_ai.htm.md) | `ind.sf_contracts_set_up_contracts_ai.htm` | 1,792 |
+| [Set Up Data Governance for Contract Search](./articles/ind.sf_contracts_set_up_data_governance_for_contract_search.htm.md) | `ind.sf_contracts_set_up_data_governance_for_contract_search.htm` | 4,940 |
+| [Set Up External Document Storage for Salesforce Contracts Using Guided Setup](./articles/ind.sf_contracts_set_up_external_document_storage.htm.md) | `ind.sf_contracts_set_up_external_document_storage.htm` | 1,527 |
+| [Set Up Microsoft 365 and Azure Integration Using Guided Setup](./articles/ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm.md) | `ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm` | 3,052 |
+| [Set Up Salesforce Contract Document Indexing in Data Cloud for Manual Contract Search Set Up](./articles/ind.sf_contracts_set_up_salesforce_contract_document_indexing_in_data_cloud.htm.md) | `ind.sf_contracts_set_up_salesforce_contract_document_indexing_in_data_cloud.htm` | 3,411 |
+| [Set Up Salesforce Contracts Analytics](./articles/ind.sf_contracts_set_up_salesforce_contracts_analytics.htm.md) | `ind.sf_contracts_set_up_salesforce_contracts_analytics.htm` | 1,675 |
+| [Set Up the Remote Site for Salesforce Contracts E-Signature](./articles/ind.sf_contracts_set_up_the_remote_site.htm.md) | `ind.sf_contracts_set_up_the_remote_site.htm` | 807 |
+| [Set Up Salesforce Contracts Customer Community Plus User](./articles/ind.sf_contracts_setup_cc_plus_user.htm.md) | `ind.sf_contracts_setup_cc_plus_user.htm` | 3,711 |
+| [Set Up Salesforce Contracts Partner Community User](./articles/ind.sf_contracts_setup_clm_partner_community_user.htm.md) | `ind.sf_contracts_setup_clm_partner_community_user.htm` | 7,137 |
+| [Set Up Digital Experience Sites for Salesforce Contracts](./articles/ind.sf_contracts_setup_digital_experience_sites.htm.md) | `ind.sf_contracts_setup_digital_experience_sites.htm` | 1,284 |
+| [Enable Private Online External Review](./articles/ind.sf_contracts_setup_private_external_review_four.htm.md) | `ind.sf_contracts_setup_private_external_review_four.htm` | 794 |
+| [Configure Private Online External Review](./articles/ind.sf_contracts_setup_private_external_review_one.htm.md) | `ind.sf_contracts_setup_private_external_review_one.htm` | 1,043 |
+| [Create a Private External Review Setting](./articles/ind.sf_contracts_setup_private_external_review_three.htm.md) | `ind.sf_contracts_setup_private_external_review_three.htm` | 871 |
+| [Create a Digital Experience Site for Private Online External Review](./articles/ind.sf_contracts_setup_private_external_review_two.htm.md) | `ind.sf_contracts_setup_private_external_review_two.htm` | 2,066 |
+| [Single Document Extraction Methods and Licensing Requirements for Contracts AI](./articles/ind.sf_contracts_singleext_comparison.htm.md) | `ind.sf_contracts_singleext_comparison.htm` | 3,371 |
+| [Context Definitions and Prompts for Document Contract Extraction](./articles/ind.sf_contracts_singleext_concept_one.htm.md) | `ind.sf_contracts_singleext_concept_one.htm` | 1,355 |
+| [Turn On Document AI for Single Document Contract Extraction](./articles/ind.sf_contracts_singleext_documentai_enable.htm.md) | `ind.sf_contracts_singleext_documentai_enable.htm` | 1,207 |
+| [Single Document Extraction Methods Fallback Behavior](./articles/ind.sf_contracts_singleext_extraction_methods.htm.md) | `ind.sf_contracts_singleext_extraction_methods.htm` | 1,045 |
+| [Turn On Multimodal Single Document Contract Extraction](./articles/ind.sf_contracts_singleext_multimodal_enable.htm.md) | `ind.sf_contracts_singleext_multimodal_enable.htm` | 1,051 |
+| [Single Document Extraction with Contracts AI](./articles/ind.sf_contracts_singleext_overview.htm.md) | `ind.sf_contracts_singleext_overview.htm` | 4,201 |
+| [Customize Multimodal Document Extraction with Prompt Builder](./articles/ind.sf_contracts_singleext_promptbuilder_extraction.htm.md) | `ind.sf_contracts_singleext_promptbuilder_extraction.htm` | 1,796 |
+| [State Models and Transitions in Salesforce Contracts](./articles/ind.sf_contracts_state_models_transitions_and_actions.htm.md) | `ind.sf_contracts_state_models_transitions_and_actions.htm` | 4,124 |
+| [Easily Ensure Superior Contract Performance and Compliance](./articles/ind.sf_contracts_stay_compliant_meet_contractual_commitments_and_mitigate_risks_.htm.md) | `ind.sf_contracts_stay_compliant_meet_contractual_commitments_and_mitigate_risks_.htm` | 589 |
+| [Submit a Contract for E-Signature](./articles/ind.sf_contracts_submit_a_contract_for_esignature.htm.md) | `ind.sf_contracts_submit_a_contract_for_esignature.htm` | 1,967 |
+| [Support for Template Designer in Core and Server-Side Document Generation](./articles/ind.sf_contracts_support_for_designer_in_core_and_ss_document_generation.htm.md) | `ind.sf_contracts_support_for_designer_in_core_and_ss_document_generation.htm` | 1,694 |
+| [Supported Browsers and Devices for Salesforce Contracts Connector for Word Add-In](./articles/ind.sf_contracts_supported_browsers_and_devices_for_salesforce_contracts_connector_for_word.htm.md) | `ind.sf_contracts_supported_browsers_and_devices_for_salesforce_contracts_connector_for_word.htm` | 1,578 |
+| [System Administration and Set Up for ​Salesforce Contracts](./articles/ind.sf_contracts_system_administration_for_salesforce_contracts.htm.md) | `ind.sf_contracts_system_administration_for_salesforce_contracts.htm` | 5,242 |
+| [Tailor Your Default and New Field Prompts for Effective Data Extraction with Contracts AI](./articles/ind.sf_contracts_tailor_and_define_field_prompts_for_extraction_with_contracts_ai.htm.md) | `ind.sf_contracts_tailor_and_define_field_prompts_for_extraction_with_contracts_ai.htm` | 1,412 |
+| [Maintain the Consistency and Resilience of Server-Side Document Generation](./articles/ind.sf_contracts_throttling.htm.md) | `ind.sf_contracts_throttling.htm` | 757 |
+| [Track and Manage Your Contracts Better](./articles/ind.sf_contracts_track_and_manage_your_contracts_better.htm.md) | `ind.sf_contracts_track_and_manage_your_contracts_better.htm` | 1,175 |
+| [Troubleshoot Salesforce Contracts](./articles/ind.sf_contracts_troubleshooting.htm.md) | `ind.sf_contracts_troubleshooting.htm` | 184 |
+| [Turn On Context Service for Extracting Contract Details in Salesforce Contracts](./articles/ind.sf_contracts_turn_on_context_service_for_extracting_contract_details.htm.md) | `ind.sf_contracts_turn_on_context_service_for_extracting_contract_details.htm` | 1,296 |
+| [Enable Context Service for Salesforce Contracts](./articles/ind.sf_contracts_turn_on_context_service_for_salesforce_contracts.htm.md) | `ind.sf_contracts_turn_on_context_service_for_salesforce_contracts.htm` | 1,376 |
+| [Enable Salesforce Contracts](./articles/ind.sf_contracts_turn_on_salesforce_contracts.htm.md) | `ind.sf_contracts_turn_on_salesforce_contracts.htm` | 537 |
+| [Unlock Sections in a Document](./articles/ind.sf_contracts_unlock_section.htm.md) | `ind.sf_contracts_unlock_section.htm` | 1,592 |
+| [Modify the Clauses in Contract Documents](./articles/ind.sf_contracts_update_contract_document_with_clauses.htm.md) | `ind.sf_contracts_update_contract_document_with_clauses.htm` | 1,510 |
+| [Update Contracts from Opportunity, Order, or Quote](./articles/ind.sf_contracts_update_contracts_from_opportunity_order_or_quote.htm.md) | `ind.sf_contracts_update_contracts_from_opportunity_order_or_quote.htm` | 1,207 |
+| [Modify the Clauses in Document Templates](./articles/ind.sf_contracts_update_document_template_with_clauses.htm.md) | `ind.sf_contracts_update_document_template_with_clauses.htm` | 1,714 |
+| [Update Sharing Settings for Object State Definition in Salesforce Contracts](./articles/ind.sf_contracts_update_sharing_settings_for_object_state_definition.htm.md) | `ind.sf_contracts_update_sharing_settings_for_object_state_definition.htm` | 431 |
+| [Update Sharing Settings for Omni Objects in Salesforce Contracts](./articles/ind.sf_contracts_update_sharing_settings_for_omni_objects.htm.md) | `ind.sf_contracts_update_sharing_settings_for_omni_objects.htm` | 992 |
+| [Use Case: Customize the Contract Agent Experience](./articles/ind.sf_contracts_use_case_customize_the_contract_agent_experience.htm.md) | `ind.sf_contracts_use_case_customize_the_contract_agent_experience.htm` | 2,343 |
+| [Use Case: Extract Key Terms from Contracts Using AI](./articles/ind.sf_contracts_use_case_extract_key_terms_from_contracts_using_ai.htm.md) | `ind.sf_contracts_use_case_extract_key_terms_from_contracts_using_ai.htm` | 2,893 |
+| [Use Case Mapping Parameters To Create and Update Contracts](./articles/ind.sf_contracts_use_case_mapping_parameters_for_contracts.htm.md) | `ind.sf_contracts_use_case_mapping_parameters_for_contracts.htm` | 1,497 |
+| [Use Context Definitions to Extract Contract Details](./articles/ind.sf_contracts_use_context_definitions_to_extract_contract_details.htm.md) | `ind.sf_contracts_use_context_definitions_to_extract_contract_details.htm` | 896 |
+| [Use Custom Document Template Filtering for Salesforce Contracts](./articles/ind.sf_contracts_use_custom_document_template_filtering.htm.md) | `ind.sf_contracts_use_custom_document_template_filtering.htm` | 2,741 |
+| [Create a Salesforce Task for an Obligation](./articles/ind.sf_contracts_use_salesforce_task_for_obligations.htm.md) | `ind.sf_contracts_use_salesforce_task_for_obligations.htm` | 1,091 |
+| [Use Suggest More Option to Draft Clauses](./articles/ind.sf_contracts_use_suggest_more_option_to_draft_clauses.htm.md) | `ind.sf_contracts_use_suggest_more_option_to_draft_clauses.htm` | 1,061 |
+| [Verify Permissions for Salesforce Contracts Analytics](./articles/ind.sf_contracts_verify_your_permission_settings.htm.md) | `ind.sf_contracts_verify_your_permission_settings.htm` | 622 |
+| [View Associated Clauses](./articles/ind.sf_contracts_view_associated_clauses_.htm.md) | `ind.sf_contracts_view_associated_clauses_.htm` | 971 |
+| [View Contract Documents](./articles/ind.sf_contracts_view_contract_documents.htm.md) | `ind.sf_contracts_view_contract_documents.htm` | 501 |
+| [View 'Is Associated With CLM'](./articles/ind.sf_contracts_view_is_associated_with_clm.htm.md) | `ind.sf_contracts_view_is_associated_with_clm.htm` | 1,523 |
+| [View Obligations Associated with a Contract](./articles/ind.sf_contracts_view_obligations_associated_with_a_contract.htm.md) | `ind.sf_contracts_view_obligations_associated_with_a_contract.htm` | 1,576 |
+| [View Review Status and Cancel External Review](./articles/ind.sf_contracts_view_review_status_and_cancel_external_review.htm.md) | `ind.sf_contracts_view_review_status_and_cancel_external_review.htm` | 1,284 |
+| [View the Standard ContractsContextDefinition Mapping](./articles/ind.sf_contracts_view_the_standard_contractscontextdefinition_mapping.htm.md) | `ind.sf_contracts_view_the_standard_contractscontextdefinition_mapping.htm` | 1,682 |
+| [View the Standard ContractsExtractionContext Mapping](./articles/ind.sf_contracts_view_the_standard_contractsextractioncontext_mapping.htm.md) | `ind.sf_contracts_view_the_standard_contractsextractioncontext_mapping.htm` | 1,650 |
+| [Why Can't I Add a Line in a Section in a Microsoft 365 Document?](./articles/ind.sf_contracts_why_am_i_unable_to_add_a_line_inside_a_section_in_the_microsoft_365_document.htm.md) | `ind.sf_contracts_why_am_i_unable_to_add_a_line_inside_a_section_in_the_microsoft_365_document.htm` | 372 |
+| [Why Can’t I Create or Edit a Contract using Microsoft 365 Word?](./articles/ind.sf_contracts_why_cant_i_create_a_contract_using_microsoft_365.htm.md) | `ind.sf_contracts_why_cant_i_create_a_contract_using_microsoft_365.htm` | 903 |
+| [Why Can’t I Edit the Document Template in Microsoft 365?](./articles/ind.sf_contracts_why_cant_i_edit_the_document_template_in_microsoft_365_editor.htm.md) | `ind.sf_contracts_why_cant_i_edit_the_document_template_in_microsoft_365_editor.htm` | 333 |
+| [Workflow for Revoking an Envelope Status](./articles/ind.sf_contracts_workflow_for_revoking_an_envelope_status.htm.md) | `ind.sf_contracts_workflow_for_revoking_an_envelope_status.htm` | 552 |
+| [Workflow for Signing a Contract Via E-Signature](./articles/ind.sf_contracts_workflow_for_sending_a_contract_for_esignature.htm.md) | `ind.sf_contracts_workflow_for_sending_a_contract_for_esignature.htm` | 943 |
+| [Workflow for Submitting a Contract for E-Signature](./articles/ind.sf_contracts_workflow_for_submitting_a_contract_for_e-signature.htm.md) | `ind.sf_contracts_workflow_for_submitting_a_contract_for_e-signature.htm` | 1,501 |
+| [Workflow for Updating an Envelope Status](./articles/ind.sf_contracts_workflow_for_updating_an_envelope_status.htm.md) | `ind.sf_contracts_workflow_for_updating_an_envelope_status.htm` | 967 |
+| [Workflow to Configure New Contract Status Values and Map To Contract Object State Definition](./articles/ind.sf_contracts_workflow_to_configure_new_contract_status_values_and_map_to_contract_object_state_definition.htm.md) | `ind.sf_contracts_workflow_to_configure_new_contract_status_values_and_map_to_contract_object_state_definition.htm` | 912 |
+| [Workflow to Create a Custom Object State Action Definition](./articles/ind.sf_contracts_workflow_to_create_a_custom_object_state_action_definition.htm.md) | `ind.sf_contracts_workflow_to_create_a_custom_object_state_action_definition.htm` | 5,235 |
+| [Workflow to Create a New Contract Object State Definition and Map it to a New Record Type](./articles/ind.sf_contracts_workflow_to_create_a_new_contract_object_state_definition_and_map_it_to_a_new_record_type_.htm.md) | `ind.sf_contracts_workflow_to_create_a_new_contract_object_state_definition_and_map_it_to_a_new_record_type_.htm` | 3,711 |
+| [Workflow to Remove Contract Status Values From A Contract Object State Definition](./articles/ind.sf_contracts_workflow_to_remove_contract_status_values_from_a_contract_object_state_definition.htm.md) | `ind.sf_contracts_workflow_to_remove_contract_status_values_from_a_contract_object_state_definition.htm` | 2,411 |
+| [Workflow to Setup E-Signature for Contract Object](./articles/ind.sf_contracts_workflow_to_setup_esignature_for_contract_object.htm.md) | `ind.sf_contracts_workflow_to_setup_esignature_for_contract_object.htm` | 2,142 |
+| [Workflow to Setup E-Signature for Standard and Custom Objects](./articles/ind.sf_contracts_workflow_to_setup_esignature_for_standard_and_custom_objects.htm.md) | `ind.sf_contracts_workflow_to_setup_esignature_for_standard_and_custom_objects.htm` | 1,128 |
+| [Contracts AI](./articles/ind.sf_contractscontracts_ai_summer24.htm.md) | `ind.sf_contractscontracts_ai_summer24.htm` | 712 |
+
 ## Captured — transaction_mgmt (208)
 
 | Article | ID | Bytes |
@@ -1219,4 +1653,4 @@ Captures **10 functional areas** of Revenue Cloud Help: agents, approvals, billi
 
 ---
 
-*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-09-07T22:13:05Z.*
+*Generated by `scripts/doc_snapshot help` on 2026-10-13T15:04:27Z.*

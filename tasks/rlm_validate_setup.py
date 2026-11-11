@@ -229,24 +229,174 @@ class ValidateSetup(BaseTask):
         except ImportError:
             return self._fail(label, "not importable in current environment")
 
+    def _pinned_node_major(self) -> Optional[int]:
+        """The Node major line in the repo's .nvmrc, or None without a readable bare major."""
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        try:
+            with open(os.path.join(repo_root, ".nvmrc"), encoding="utf-8") as fh:
+                value = fh.read().strip()
+        except OSError:
+            return None
+        return int(value) if re.fullmatch(r"\d+", value) else None
+
+    def _nvm_default_version(self) -> Optional[str]:
+        """What nvm's `default` alias resolves to (`v24.22.0`, or `N/A`), or None without nvm.
+
+        nvm.sh is found where .envrc and update-toolchain.sh look: Homebrew's, then nvm's own
+        installer's in $NVM_DIR (default ~/.nvm), then $XDG_CONFIG_HOME/nvm.
+        """
+        nvm_dir = os.environ.get("NVM_DIR") or os.path.expanduser("~/.nvm")
+        candidates = []
+        # `brew shellenv` exports HOMEBREW_PREFIX; reading it saves starting Homebrew.
+        homebrew = os.environ.get("HOMEBREW_PREFIX")
+        prefix = os.path.join(homebrew, "opt", "nvm") if homebrew else ""
+        if not prefix and shutil.which("brew"):
+            try:
+                prefix = subprocess.run(
+                    ["brew", "--prefix", "nvm"], capture_output=True, text=True, timeout=20
+                ).stdout.strip()
+            except (OSError, subprocess.TimeoutExpired):
+                prefix = ""
+        if prefix:
+            candidates.append((os.path.join(prefix, "nvm.sh"), nvm_dir))
+        candidates.append((os.path.join(nvm_dir, "nvm.sh"), nvm_dir))
+        xdg = os.environ.get("XDG_CONFIG_HOME")
+        if xdg:
+            candidates.append((os.path.join(xdg, "nvm", "nvm.sh"), os.path.join(xdg, "nvm")))
+        found = next(((sh, d) for sh, d in candidates if os.path.isfile(sh) and os.path.getsize(sh)), None)
+        if not found or not shutil.which("bash"):
+            return None
+        nvm_sh, nvm_dir = found
+        result = subprocess.run(
+            # `;`, not `&&`: Homebrew's nvm.sh returns 1 when it can't create $NVM_DIR or its
+            # symlinks there, after nvm's functions are already loaded.
+            ["bash", "-c", '. "$1" --no-use; nvm version default', "bash", nvm_sh],
+            capture_output=True, text=True, timeout=30, env={**os.environ, "NVM_DIR": nvm_dir},
+        )
+        version = result.stdout.strip().splitlines()
+        return version[-1].strip() if version else None
+
+    def _nvm_default_note(self, pinned: int) -> Optional[str]:
+        """Why nvm's `default` alias needs fixing, or None when it resolves to the pinned major
+        (or nvm isn't installed: the Node check itself covers that)."""
+        try:
+            default = self._nvm_default_version()
+        except Exception:
+            return None
+        if default is None:
+            return None
+        m = re.match(r"v?(\d+)\.", default)
+        if m and int(m.group(1)) == pinned:
+            return None
+        return (
+            f"nvm's default alias resolves to {default or 'nothing'}, not the line pinned in .nvmrc "
+            f"({pinned}): shells outside the repo run that Node, and so does a shell started from a repo "
+            f"shell when ~/.zshenv prepends it without the template's inherited-Node check "
+            f"(docs/guides/dev-environment-setup.md). Run scripts/bash/update-toolchain.sh, which points "
+            f"the alias at .nvmrc's line."
+        )
+
     def _check_node(self) -> Dict[str, str]:
+        """Node runs, and its major is the line pinned in .nvmrc.
+
+        A lower major FAILs: it's below package.json's engines floor, and it's what a shell gets
+        when .envrc couldn't select the pinned line and the shell's own default is an old Node.
+        A higher major WARNs: it may work (a deliberate test of the next line), but the
+        toolchain is verified on the pinned one. nvm's `default` alias resolving to another
+        major WARNs too (skipped when nvm isn't installed): the repo shell is right, but a
+        shell outside it, or one whose startup file prepends `default`, isn't.
+        """
         label = "Node.js"
         try:
             result = subprocess.run(
                 ["node", "--version"], capture_output=True, text=True, timeout=10
             )
-            if result.returncode == 0:
-                return self._ok(label, result.stdout.strip())
-            return self._warn(label, "installed but returned a non-zero exit code")
+            if result.returncode != 0:
+                return self._warn(label, "installed but returned a non-zero exit code")
+            version = result.stdout.strip()
+            pinned = self._pinned_node_major()
+            m = re.match(r"v?(\d+)\.", version)
+            if pinned is None or not m:
+                return self._ok(label, version)
+            major = int(m.group(1))
+            if major < pinned:
+                return self._fail(
+                    label,
+                    f"{version} is below the Node line pinned in .nvmrc ({pinned}). Run `nvm install {pinned}` "
+                    "(or scripts/bash/update-toolchain.sh), then `direnv allow` in the repo if .envrc is blocked.",
+                )
+            note = self._nvm_default_note(pinned)
+            if major > pinned:
+                return self._warn(
+                    label,
+                    f"{version}, not the line pinned in .nvmrc ({pinned}). It may work, but the toolchain is "
+                    f"verified on {pinned}: the repo's .envrc selects it." + (f" Also, {note}" if note else ""),
+                )
+            if note:
+                return self._warn(label, f"{version}; but {note}")
+            return self._ok(label, version)
         except FileNotFoundError:
             return self._warn(
                 label,
-                "not found — Node.js is required to run the npm-installed sf CLI and its plugins (including SFDMU). "
+                "not found — Node.js runs an npm-installed sf CLI and the LWC tooling (npm ci, Jest, ESLint); "
+                "a standalone sf installer bundles its own Node, but the LWC tooling still needs one. "
                 "Download from https://nodejs.org or use a version manager such as nvm "
-                "(on macOS: brew install nvm && nvm install --lts).",
+                "(on macOS: brew install nvm && nvm install 24, the line pinned in .nvmrc).",
             )
         except Exception as exc:
             return self._warn(label, f"check failed: {exc}")
+
+    @staticmethod
+    def _sf_installs() -> List[str]:
+        """Every distinct `sf` on PATH, first (the one that runs) first, by resolved path."""
+        seen, found = set(), []
+        for directory in os.environ.get("PATH", "").split(os.pathsep):
+            candidate = os.path.join(directory or ".", "sf")
+            if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+                real = os.path.realpath(candidate)
+                if real not in seen:
+                    seen.add(real)
+                    found.append(candidate)
+        return found
+
+    @staticmethod
+    def _sf_install_method(path: str) -> str:
+        """How an `sf` was installed, from where it resolves; "" when it can't be told."""
+        real = os.path.realpath(path).replace(os.sep, "/")
+        if "/node_modules/@salesforce/cli/" in real:
+            return "npm"
+        if "/Cellar/" in real or "/homebrew/" in real.lower():
+            return "Homebrew"
+        if real.endswith("/sf/bin/sf") or "/share/sf/client/" in real:
+            return "standalone installer"
+        return ""
+
+    def _sf_version_of(self, path: str) -> str:
+        try:
+            out = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=20).stdout
+        except Exception:
+            return "unknown version"
+        m = re.search(r"@salesforce/cli/(\d+\.\d+\.\d+)", out or "")
+        return m.group(1) if m else "unknown version"
+
+    def _sf_location_note(self) -> Tuple[str, str]:
+        """(where the running sf is, a shadowing warning or "")."""
+        installs = self._sf_installs()
+        if not installs:
+            return "", ""
+        method = self._sf_install_method(installs[0])
+        where = f" at {installs[0]}" + (f" ({method})" if method else "")
+        if len(installs) < 2:
+            return where, ""
+        others = "; ".join(
+            f"{p} ({self._sf_version_of(p)}" + (f", {self._sf_install_method(p)}" if self._sf_install_method(p) else "") + ")"
+            for p in installs[1:]
+        )
+        return where, (
+            f"another sf is later on PATH: {others}. `sf` runs the first; an update (`npm install -g`, "
+            "`brew upgrade` or `sf update`) reaches only the one it targets, while plugins are shared. Keep one "
+            "install (see dev-environment-setup.md, Troubleshooting → More than one `sf` install)."
+        )
 
     def _check_sf_cli(self) -> Dict[str, str]:
         label = "Salesforce CLI (sf)"
@@ -265,9 +415,12 @@ class ValidateSetup(BaseTask):
             if match:
                 major = int(match.group(1))
                 ver_str = f"{match.group(1)}.{match.group(2)}.{match.group(3)}"
-                if major >= MIN_SF_MAJOR:
-                    return self._ok(label, ver_str)
-                return self._fail(label, f"{ver_str} — requires v{MIN_SF_MAJOR}+")
+                where, shadowed = self._sf_location_note()
+                if major < MIN_SF_MAJOR:
+                    return self._fail(label, f"{ver_str}{where} — requires v{MIN_SF_MAJOR}+")
+                if shadowed:
+                    return self._warn(label, f"{ver_str}{where}; {shadowed}")
+                return self._ok(label, f"{ver_str}{where}")
             return self._ok(label, first_line)
         except FileNotFoundError:
             return self._fail(

@@ -78,7 +78,7 @@ The credential is piped straight host→container (never written to host disk or
 shown in a terminal), used by `sf`, and shredded. Drop `--devhub` (and use a
 different alias) to import a regular org you want to customize.
 
-`rlm build` creates a scratch org and runs the full 35-step `prepare_rlm_org`
+`rlm build` creates a scratch org and runs the full 37-step `prepare_rlm_org`
 flow. It can take a while. If a step fails (usually transient), just run
 `./docker/rlm resume` to continue from where it stopped.
 
@@ -261,7 +261,7 @@ Compose, uncomment the `../:/work` line in [`compose.yaml`](compose.yaml).
 | [`test/smoke.sh`](test/smoke.sh) | Non-destructive regression suite (28 checks): toolchain, state wiring (both paths), org-aware read-only checks, safe-error guards, launcher, and the `up`/`exec`/`down` lifecycle. Run `docker/test/smoke.sh` after changes. |
 | [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) | Cursor / VS Code Dev Container definition (image, `/work` mount, extensions). |
 | [`.github/workflows/docker-publish.yml`](../.github/workflows/docker-publish.yml) | Opt-in CI to build + push the image to GHCR. |
-| `.dockerignore` (repo root) | Keeps secrets, caches, and large runtime outputs out of the baked snapshot. |
+| `.dockerignore` (repo root) | Keeps secrets, caches, large runtime outputs, and git-ignored local state out of the baked snapshot, so a local build bakes what a CI checkout would. `tests/test_dockerignore.py` fails when a `.gitignore` entry is not mirrored with the same scope (any depth vs. root-anchored). |
 
 The persistent-workspace lifecycle (`up`/`attach`/`down`) keeps a named
 container alive via the entrypoint's `serve` mode (`exec sleep infinity`), so

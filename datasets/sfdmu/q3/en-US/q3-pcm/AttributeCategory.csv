@@ -5,7 +5,7 @@ GRA,,Graphics
 MEM,,Memory
 P001,,Printer
 PP001,,Paper
-PRO,,Processor
+AC-QB-CPU,,Processor
 PSR67832,Ratio of the standard color composition.,Paste Ratio
 SP001,,Support
 STO,,Storage

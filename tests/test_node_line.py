@@ -1,0 +1,899 @@
+"""Offline check: every place that names the Node major line agrees with `.nvmrc`.
+
+`.nvmrc` is the single source for the Node major line. `.envrc` (its newest installed patch) and
+`scripts/bash/update-toolchain.sh` read it; the Dockerfile's `NODE_MAJOR`, every
+`actions/setup-node` step and `package.json`'s `engines.node` floor restate it, because
+neither Docker nor Actions reads `.nvmrc` unless told to. Bumping the line is a deliberate
+change to all of them at once (docs/guides/dev-environment-setup.md, "Bumping a major
+line"), and this suite fails the gate until they agree. It also refuses a float back to
+`lts/*`, which would jump a major the day the next one becomes LTS, with no test step. And it
+covers the lines that tell a person which Node to install (the setup guides, the skills, the
+`validate_setup` hint), so a bump can't leave the guides installing the old line.
+
+`.envrc` must find nvm where update-toolchain.sh does (Homebrew's, then nvm's own installer's
+in `$NVM_DIR` or `$XDG_CONFIG_HOME/nvm`), or a workstation with the installer's nvm never gets
+the pin, and the guide's `.envrc` template must carry the same code. The block also runs here
+against fake nvm installs, to show which one it picks and what it says when there is none.
+
+The setup guides must not teach a second way to load nvm: no line that sources `nvm.sh`
+without `--no-use` (nvm's auto-use then runs in every shell, and a shell started from the repo
+can lose the repo's Node), and no `echo`/heredoc that writes nvm lines into a shell startup
+file. The one way is the `~/.zshenv` NVM block in dev-environment-setup.md §2, which the
+installation guide's Step 3 points to rather than copying. pyenv gets the same rule: no command
+writes pyenv lines (`pyenv init` above all) into a startup file. The `~/.zshenv` template's pyenv
+block puts only pyenv's `bin` on PATH, with no global init, and Step 4 points to it.
+
+Each rule is a function over text, with a positive control beside the real-file check, so a
+parser that matches nothing can't pass by finding nothing to compare.
+Stdlib only. Run with: python tests/test_node_line.py
+"""
+import json
+import logging
+import os
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO))
+
+from tasks.rlm_validate_setup import FAIL, PASS, WARN, ValidateSetup  # noqa: E402
+
+
+def nvmrc_major(text):
+    """The bare major in `.nvmrc`, or None when it holds anything else (`lts/*`, `24.1`, …)."""
+    value = text.strip()
+    return int(value) if re.fullmatch(r"\d+", value) else None
+
+
+def dockerfile_major(text):
+    """`ARG NODE_MAJOR=<n>`, or None when the Dockerfile doesn't declare it."""
+    m = re.search(r"^ARG NODE_MAJOR=(\d+)\s*$", text, re.M)
+    return int(m.group(1)) if m else None
+
+
+def setup_node_lines(text):
+    """(line number, 'version' | 'file', value) for each actions/setup-node step's Node input.
+
+    Reads the lines after each `uses: actions/setup-node@` up to the next step (`- `). A step
+    with neither input is reported as ('version', '') so it can't slip through unchecked.
+    """
+    lines = text.splitlines()
+    found = []
+    for i, line in enumerate(lines):
+        if not re.search(r"uses:\s*actions/setup-node@", line):
+            continue
+        entry = (i + 1, "version", "")
+        for later in lines[i + 1:]:
+            if re.match(r"\s*- ", later):
+                break
+            m = re.match(r"\s*node-version(-file)?:\s*[\"']?([^\"'#]+?)[\"']?\s*(?:#.*)?$", later)
+            if m:
+                entry = (i + 1, "file" if m.group(1) else "version", m.group(2))
+                break
+        found.append(entry)
+    return found
+
+
+def engines_floor_major(package_json_text):
+    """The major in `engines.node`'s `>=` floor, or None without one."""
+    spec = (json.loads(package_json_text).get("engines") or {}).get("node", "")
+    m = re.search(r">=\s*v?(\d+)", spec)
+    return int(m.group(1)) if m else None
+
+
+# The phrasings the guides, skills and validate_setup hint use to name the line. Each instruction
+# file must match at least one, so a reworded line drops out loudly instead of silently.
+INSTRUCTION_FILES = (
+    "docs/guides/local-installation.md",
+    "docs/guides/dev-environment-setup.md",
+    ".cursor/skills/troubleshooting/SKILL.md",
+    ".cursor/skills/toolchain/SKILL.md",
+    ".cursor/skills/toolchain/workstation-audit.md",
+    ".cursor/skills/toolchain/verification-handoff.md",
+    "tasks/rlm_validate_setup.py",
+)
+# Every setup guide, where the nvm rc-file rules below also apply.
+GUIDE_FILES = tuple(sorted(p.relative_to(REPO).as_posix()
+                           for p in (REPO / "docs" / "guides").glob("*.md")))
+# Where a stale floor ("Node LTS >=22", "release **22 or later**", "an LTS ≥ 22") could survive a
+# bump: every instruction file above plus the docs that describe the toolchain without an install
+# line. Phrasings vary, so this rule isn't phrase-bound: any major written near "Node", "LTS",
+# "engines" or an nvm command that is *lower* than .nvmrc's fails. A higher one is allowed, for
+# forward-looking text such as "when Node 26 becomes LTS".
+STALE_SCAN_FILES = INSTRUCTION_FILES + (
+    ".cursor/skills/toolchain/managed-workstations.md",
+    "README.md",
+    "CONTRIBUTING.md",
+    "docker/README.md",
+)
+NODE_MAJOR_NEAR = re.compile(
+    r"(?:Node(?:\.js)?|LTS|engines(?:\.node)?|nvm (?:install|alias default|use))"
+    r"[^|`\n]{0,40}?(?<![\d.])(\d{2})(?![\d])")
+INSTRUCTION_PATTERNS = (
+    r"nvm (?:install|alias default) (\d+)\b",
+    r"\.nvmrc`? \(`?(\d+)`?",
+    r"Node(?:\.js)? (\d+), the line pinned",
+    r"Node (\d+) \(the line pinned in",
+    r"Node's \((\d+)\) is `\.nvmrc`",
+    r"Use \*\*Node (\d+)\*\*",
+    r"\bv(\d+)\.x \((?:nvm; )?the line",
+    r"Should show v(\d+)\.x",
+)
+
+
+def instructed_majors(text):
+    """Every Node major an instruction names, in the phrasings above."""
+    return [int(m) for pat in INSTRUCTION_PATTERNS for m in re.findall(pat, text)]
+
+
+def lower_majors(text, major):
+    """Majors below `major` written near a Node word: a stale floor left behind by a bump."""
+    return [int(n) for n in NODE_MAJOR_NEAR.findall(text) if int(n) < major]
+
+
+def floats_on_lts(text):
+    """Non-comment lines naming an `lts/` alias (`lts/*`, `lts/krypton`, `--lts`)."""
+    return [line.strip() for line in text.splitlines()
+            if not line.lstrip().startswith("#") and re.search(r"lts/|--lts\b", line)]
+
+
+# `. …nvm.sh` or `source …nvm.sh` as a command (start of line, after a separator or a quote),
+# stopping at a separator or a comment so `source ~/.zshrc  # loads nvm.sh` isn't one.
+NVM_SH_SOURCE = re.compile(r"""(?:^|[\s;&|('"])(?:\\?\.|source)\s+[^;&|#\n]*?nvm\.sh\b""")
+STARTUP_FILE = (r"(?:~|\$HOME|\$\{HOME\}|\$ZDOTDIR|\$\{ZDOTDIR[^}]*\})"
+                r"/\.(?:zshenv|zshrc|zprofile|bashrc|bash_profile|profile)\b")
+STARTUP_FILE_WRITE = re.compile(
+    rf"""(?:>>?\s*["']?{STARTUP_FILE}|\btee\s+(?:-a\s+)?["']?{STARTUP_FILE})""")
+
+
+def sources_nvm_with_auto_use(text):
+    """Lines that source `nvm.sh` without `--no-use`, which makes nvm switch Node on load."""
+    return [line.strip() for line in text.splitlines()
+            if NVM_SH_SOURCE.search(line) and "--no-use" not in line]
+
+
+def writes_to_startup_file(text, tool):
+    """Commands that write `tool`'s lines into a shell startup file: a line redirected or `tee`d
+    to one that mentions it, or one that appends a heredoc (`cat >> ~/.zshenv <<'EOF'`) whose
+    body does."""
+    lines = text.splitlines()
+    found = []
+    for i, line in enumerate(lines):
+        if not STARTUP_FILE_WRITE.search(line):
+            continue
+        written = line
+        heredoc = re.search(r"<<-?\s*\\?['\"]?([^\s'\"<>;&|]+)", line)
+        if heredoc:
+            # The body ends at its terminator, or at the code fence when a guide leaves it out.
+            end = next((j for j in range(i + 1, len(lines))
+                        if lines[j].strip() in (heredoc.group(1), "```")), len(lines))
+            written = "\n".join(lines[i:end])
+        if re.search(tool, written, re.I):
+            found.append(line.strip())
+    return found
+
+
+def writes_nvm_to_startup_file(text):
+    """Commands that write nvm lines into a shell startup file."""
+    return writes_to_startup_file(text, r"nvm")
+
+
+def writes_pyenv_to_startup_file(text):
+    """Commands that write pyenv lines (`PYENV_ROOT`, `pyenv init`) into a shell startup file."""
+    return writes_to_startup_file(text, r"pyenv")
+
+
+PYENV_INIT = re.compile(r"\bpyenv\s+init\b")
+
+
+def active_pyenv_init(text):
+    """Code lines (not comments) that run `pyenv init`."""
+    return [line for line in code_lines(text) if PYENV_INIT.search(line)]
+
+
+def startup_templates():
+    """The rc-file templates in dev-environment-setup.md §2, by file: the first ```sh block
+    under each ~/.zshenv, ~/.zprofile and ~/.zshrc heading ("#### `~/.zshenv` ...")."""
+    guide = read("docs/guides/dev-environment-setup.md")
+    templates = {}
+    for name in ("~/.zshenv", "~/.zprofile", "~/.zshrc"):
+        heading = guide.index(f"#### `{name}`")
+        # Stop at the next Markdown heading (`## `, `### `, `#### `), not at a `#` comment
+        # inside the template's own code.
+        nxt = re.compile(r"\n#{2,4} ").search(guide, heading + 1)
+        start = guide.index("```sh\n", heading, nxt.start() if nxt else len(guide)) + len("```sh\n")
+        templates[name] = guide[start:guide.index("```", start)]
+    return templates
+
+
+NVM_SH_TEST = re.compile(r'\[ -s "([^"]*/nvm\.sh)" \]')
+
+
+def nvm_sh_candidates(text):
+    """The nvm.sh paths a script tests with `[ -s … ]`, in order; a leading `_` on a variable
+    name is dropped, so .envrc's `$_NVM_PREFIX` compares equal to the update script's `$NVM_PREFIX`."""
+    return [p.replace("$_", "$") for p in NVM_SH_TEST.findall(text)]
+
+
+def section(text, start, end):
+    """The lines from the one containing `start` up to (not including) the one containing `end`."""
+    lines = text.splitlines()
+    first = next((i for i, line in enumerate(lines) if start in line), None)
+    if first is None:
+        raise ValueError(f"no line contains the start marker {start!r}")
+    last = next((i for i, line in enumerate(lines[first:], first) if end in line), None)
+    if last is None:
+        raise ValueError(f"no line after {start!r} contains the end marker {end!r}")
+    return "\n".join(lines[first:last]) + "\n"
+
+
+def code_lines(text):
+    """Non-blank, non-comment lines, stripped: the code two copies of a block must share."""
+    return [line.strip() for line in text.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")]
+
+
+def envrc_node_block():
+    return section(read(".envrc"), "# ── Node via nvm", "# ── Per-workstation")
+
+
+def envrc_python_block():
+    return section(read(".envrc"), "# ── Python via pyenv", "# ── Node via nvm")
+
+
+def guide_node_block():
+    return section(read("docs/guides/dev-environment-setup.md"), "# Node via nvm", "# Per-workstation")
+
+
+def read(rel):
+    return (REPO / rel).read_text(encoding="utf-8")
+
+
+class Parsers(unittest.TestCase):
+    """Positive controls: each rule sees what it is meant to, and refuses what it must."""
+
+    def test_nvmrc(self):
+        self.assertEqual(nvmrc_major("24\n"), 24)
+        for bad in ("lts/*", "24.1", "v24", "", "node"):
+            with self.subTest(bad=bad):
+                self.assertIsNone(nvmrc_major(bad))
+
+    def test_dockerfile(self):
+        self.assertEqual(dockerfile_major("FROM x\n# note\nARG NODE_MAJOR=26\nRUN y\n"), 26)
+        self.assertIsNone(dockerfile_major("FROM x\nARG NODE_VERSION=24\n"))
+
+    def test_setup_node(self):
+        wf = ("steps:\n"
+              "  - uses: actions/setup-node@abc  # v5\n"
+              "    with:\n"
+              "      # pinned\n"
+              "      node-version: \"24.16.0\"\n"
+              "  - uses: actions/setup-node@abc\n"
+              "    with:\n"
+              "      node-version-file: .nvmrc\n"
+              "  - uses: actions/setup-node@abc\n"
+              "  - run: echo node-version: 99\n"
+              "  - uses: actions/setup-node@abc\n"
+              "    with:\n"
+              "      node-version: ${{ matrix.node }}  # from the matrix\n")
+        self.assertEqual(setup_node_lines(wf), [
+            (2, "version", "24.16.0"), (6, "file", ".nvmrc"), (9, "version", ""),
+            (11, "version", "${{ matrix.node }}")])
+
+    def test_engines(self):
+        self.assertEqual(engines_floor_major('{"engines": {"node": ">=24"}}'), 24)
+        self.assertEqual(engines_floor_major('{"engines": {"node": ">= 24.0.0"}}'), 24)
+        self.assertIsNone(engines_floor_major('{"engines": {"node": "^24"}}'))
+        self.assertIsNone(engines_floor_major("{}"))
+
+    def test_instructions(self):
+        text = ("nvm install 26\nnvm alias default 26\n| `.nvmrc` (`26`) |\n"
+                "Node.js 26, the line pinned\nNode's (26) is `.nvmrc`\nUse **Node 26**\n"
+                "→ v26.x (the line pinned\n# Should show v26.x\n")
+        self.assertEqual(instructed_majors(text), [26] * 8)
+        self.assertEqual(instructed_majors("Node 24 → 26 is a deliberate change\n"), [])
+
+    def test_lower_majors(self):
+        for text in ("# Check CLI >=2 and Node LTS >=22\n", "use an LTS Node.js release **22 or later**\n",
+                     "| Node from nvm | `node -v` | an LTS ≥ 22 |\n", "v<LTS ≥ 22>.x (nvm)\n",
+                     "engines.node: >=22\n", "nvm install 22\n"):
+            with self.subTest(text=text):
+                self.assertEqual(lower_majors(text, 24), [22])
+        for text in ("Node 24 → 26 is deliberate\n", "when Node 26 becomes LTS\n",
+                     "Node, but only from an older 3.13 patch\n", "Node 24.16.0 is pinned\n"):
+            with self.subTest(text=text):
+                self.assertEqual(lower_majors(text, 24), [])
+
+    def test_nvm_sh_candidates(self):
+        script = ('NVM_PREFIX="$(brew --prefix nvm)"\n'
+                  'if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then x\n'
+                  'elif [ -s "$NVM_DIR/nvm.sh" ]; then y\n'
+                  'elif [ -n "${XDG_CONFIG_HOME:-}" ] && [ -s "$XDG_CONFIG_HOME/nvm/nvm.sh" ]; then z\n'
+                  '[ -s "$NVM_PREFIX/etc/bash_completion.d/nvm" ]\n')
+        self.assertEqual(nvm_sh_candidates(script), [
+            "$NVM_PREFIX/nvm.sh", "$NVM_DIR/nvm.sh", "$XDG_CONFIG_HOME/nvm/nvm.sh"])
+        self.assertEqual(nvm_sh_candidates('[ -s "$(brew --prefix nvm)/etc/x" ]\n'), [])
+
+    def test_section_and_code_lines(self):
+        text = "a\n# ── Node\n  # note\n\n  x=1\n# ── Next\nb\n"
+        block = section(text, "# ── Node", "# ── Next")
+        self.assertEqual(block, "# ── Node\n  # note\n\n  x=1\n")
+        self.assertEqual(code_lines(block), ["x=1"])
+        with self.assertRaisesRegex(ValueError, "start marker"):
+            section(text, "# ── Gone", "# ── Next")
+        with self.assertRaisesRegex(ValueError, "end marker"):
+            section(text, "# ── Node", "# ── Gone")
+
+    def test_sources_nvm_with_auto_use(self):
+        # The installation guide's old Step 3, in both of its forms.
+        old_step = ("echo '[ -s \"$(brew --prefix nvm)/nvm.sh\" ] && \\. \"$(brew --prefix nvm)/nvm.sh\"' >> ~/.zshrc\n"
+                    "echo '    \\. \"$NVM_PREFIX/nvm.sh\"' >> ~/.zshenv\n")
+        self.assertEqual(len(sources_nvm_with_auto_use(old_step)), 2)
+        for text in ("source ~/.nvm/nvm.sh\n", 'x && . "$NVM_DIR/nvm.sh"\n', "  source $HOME/.nvm/nvm.sh\n"):
+            with self.subTest(text=text):
+                self.assertEqual(len(sources_nvm_with_auto_use(text)), 1)
+        for text in ('[ -n "$_NVM_SH" ] && . "$_NVM_SH" --no-use\n',
+                     '\\. "$(brew --prefix nvm)/nvm.sh" --no-use\n',
+                     '[ -s "$NVM_DIR/nvm.sh" ] && x\n', "source ~/.zshrc  # loads nvm.sh\n",
+                     "the block that sources `nvm.sh`\n", "(`$NVM_DIR/nvm.sh`, or `~/.nvm/nvm.sh`)\n"):
+            with self.subTest(text=text):
+                self.assertEqual(sources_nvm_with_auto_use(text), [])
+
+    def test_writes_nvm_to_startup_file(self):
+        for text in ("echo 'export NVM_DIR=\"$HOME/.nvm\"' >> ~/.zshenv\n",
+                     "echo '  NVM_PREFIX=x' >>\"$HOME/.zshrc\"\n",
+                     "printf '%s\\n' 'nvm use' | tee -a ~/.zshrc\n",
+                     "cat >> ~/.zshenv <<'EOF'\nexport PATH=x\n. \"$NVM_DIR/nvm.sh\"\nEOF\n",
+                     "cat <<\\EOF >> \"${ZDOTDIR:-$HOME}/.zshenv\"\nexport NVM_DIR=x\nEOF\n"):
+            with self.subTest(text=text):
+                self.assertEqual(len(writes_nvm_to_startup_file(text)), 1)
+        for text in ("echo 'eval \"$(pyenv init -)\"' >> ~/.zshenv\n",
+                     "cat >> ~/.zshrc <<'EOF'\neval x\nEOF\nnvm install 24\n",
+                     "cp ~/.zshenv ~/.zshenv.bak  # before the NVM block\n",
+                     "cat >> ~/.zshrc <<'END-RC'\neval x\nEND-RC\nnvm install 24\n",
+                     "```bash\ncat >> ~/.zshrc <<EOF\neval x\n```\nnvm install 24\n",
+                     "echo 'nvm use' > /tmp/notes\n"):
+            with self.subTest(text=text):
+                self.assertEqual(writes_nvm_to_startup_file(text), [])
+
+    def test_active_pyenv_init(self):
+        self.assertEqual(active_pyenv_init('eval "$(pyenv init -)"\n'), ['eval "$(pyenv init -)"'])
+        self.assertEqual(active_pyenv_init('  eval "$(pyenv  init - zsh)"\n'), ['eval "$(pyenv  init - zsh)"'])
+        self.assertEqual(active_pyenv_init("# No global `pyenv init` here.\n"
+                                           'export PATH="$PYENV_ROOT/bin:$PATH"\n'), [])
+
+    def test_writes_pyenv_to_startup_file(self):
+        # The installation guide's old Step 4: three lines into each of ~/.zshrc and ~/.zshenv.
+        old_step = "".join(f"echo '{line}' >> ~/.{rc}\n" for rc in ("zshrc", "zshenv") for line in (
+            'export PYENV_ROOT="$HOME/.pyenv"',
+            '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"',
+            'eval "$(pyenv init -)"'))
+        self.assertEqual(len(writes_pyenv_to_startup_file(old_step)), 6)
+        for text in ("echo 'eval \"$(pyenv init - zsh)\"' >>\"$HOME/.zprofile\"\n",
+                     "pyenv init - | tee -a ~/.bashrc\n",
+                     "cat >> ~/.zshrc <<'EOF'\nexport PATH=x\neval \"$(pyenv init -)\"\nEOF\n"):
+            with self.subTest(text=text):
+                self.assertEqual(len(writes_pyenv_to_startup_file(text)), 1)
+        for text in ("echo 'export NVM_DIR=\"$HOME/.nvm\"' >> ~/.zshenv\n",
+                     "cat >> ~/.zshenv <<'EOF'\nexport NVM_DIR=x\nEOF\npyenv install 3.13\n",
+                     "cp ~/.zshenv ~/.zshenv.bak  # before the pyenv block\n",
+                     "don't add `eval \"$(pyenv init -)\"` to `~/.zshenv`\n",
+                     "pyenv init - > /tmp/notes\n"):
+            with self.subTest(text=text):
+                self.assertEqual(writes_pyenv_to_startup_file(text), [])
+
+    def test_lts_float(self):
+        self.assertEqual(floats_on_lts("# don't use lts/* here\nnvm use\n"), [])
+        self.assertEqual(floats_on_lts("  nvm use --silent lts/\\* >/dev/null\n"),
+                         ["nvm use --silent lts/\\* >/dev/null"])
+        self.assertEqual(floats_on_lts('NODE_LINE="lts/*"\n'), ['NODE_LINE="lts/*"'])
+        self.assertEqual(floats_on_lts("nvm install --lts\n"), ["nvm install --lts"])
+
+
+class NodeLine(unittest.TestCase):
+    """The real files agree with `.nvmrc`."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.major = nvmrc_major(read(".nvmrc"))
+
+    def test_nvmrc_is_a_bare_major(self):
+        self.assertIsNotNone(self.major, ".nvmrc must hold a bare Node major such as 24")
+
+    def test_dockerfile_matches(self):
+        self.assertEqual(dockerfile_major(read("docker/Dockerfile")), self.major,
+                         "docker/Dockerfile's ARG NODE_MAJOR must equal .nvmrc")
+
+    def test_every_setup_node_step_matches(self):
+        workflows = sorted((REPO / ".github" / "workflows").glob("*.y*ml"))
+        steps = [(wf, step) for wf in workflows
+                 for step in setup_node_lines(wf.read_text(encoding="utf-8"))]
+        self.assertTrue(steps, "no actions/setup-node step found; this rule would check nothing")
+        for wf, (line, kind, value) in steps:
+            with self.subTest(workflow=wf.name, line=line):
+                if kind == "file":
+                    self.assertEqual(value, ".nvmrc", "node-version-file must be .nvmrc")
+                elif value.startswith("${{"):
+                    self.fail(f"node-version {value} is an expression this check can't resolve: "
+                              "use node-version-file: .nvmrc, or a literal version on its line")
+                else:
+                    self.assertRegex(value, r"^\d+", "node-version must name a version")
+                    self.assertEqual(int(value.split(".")[0]), self.major,
+                                     f"node-version {value} isn't on the .nvmrc line")
+
+    def test_engines_floor_matches(self):
+        self.assertEqual(engines_floor_major(read("package.json")), self.major,
+                         "package.json engines.node must be >=<.nvmrc major>")
+
+    def test_instructions_match(self):
+        for rel in INSTRUCTION_FILES:
+            with self.subTest(file=rel):
+                majors = instructed_majors(read(rel))
+                self.assertTrue(majors, f"{rel} no longer names the Node line in a known phrasing")
+                self.assertEqual(set(majors), {self.major},
+                                 f"{rel} tells people to install a Node line other than .nvmrc's")
+
+    def test_no_stale_lower_major(self):
+        for rel in STALE_SCAN_FILES:
+            with self.subTest(file=rel):
+                self.assertEqual(lower_majors(read(rel), self.major), [],
+                                 f"{rel} still names a Node line below .nvmrc's")
+
+    def test_guides_load_nvm_one_way(self):
+        # The installation guide once echoed its own nvm lines, with auto-use, into both rc
+        # files: ~0.1s more per shell on one workstation, nvm's Node twice on PATH in interactive
+        # shells, and a nested shell kept the repo's Node only by nvm's auto-use. The ~/.zshenv
+        # NVM block is the one way.
+        files = sorted(set(STALE_SCAN_FILES + GUIDE_FILES))
+        self.assertIn("docs/guides/cci-sf-cli-token-workaround.md", files, "no guides found")
+        for rel in files:
+            with self.subTest(file=rel):
+                text = read(rel)
+                self.assertEqual(sources_nvm_with_auto_use(text), [],
+                                 f"{rel} sources nvm.sh without --no-use; point to the ~/.zshenv NVM "
+                                 "block in dev-environment-setup.md §2 instead")
+                self.assertEqual(writes_nvm_to_startup_file(text), [],
+                                 f"{rel} writes nvm lines into a shell startup file; point to the "
+                                 "templates in dev-environment-setup.md §2 instead")
+        self.assertIn("dev-environment-setup.md#zshenv--runs-in-every-shell",
+                      section(read("docs/guides/local-installation.md"), "### Step 3", "### Step 4"),
+                      "local-installation.md Step 3 must point to the ~/.zshenv template")
+
+    def test_guides_write_no_pyenv_lines(self):
+        # The installation guide's Step 4 once echoed PYENV_ROOT, pyenv's PATH line and
+        # `eval "$(pyenv init -)"` into both rc files, so every interactive shell ran pyenv init
+        # twice: the cause of stale .pyenv-shim locks. The ~/.zshenv template's pyenv block has
+        # no global init; .envrc puts the shims on PATH per project.
+        files = sorted(set(STALE_SCAN_FILES + GUIDE_FILES))
+        for rel in files:
+            with self.subTest(file=rel):
+                self.assertEqual(writes_pyenv_to_startup_file(read(rel)), [],
+                                 f"{rel} writes pyenv lines into a shell startup file; point to the "
+                                 "pyenv block of the ~/.zshenv template in dev-environment-setup.md §2")
+        step4 = section(read("docs/guides/local-installation.md"), "### Step 4", "### Step 5")
+        self.assertIn("dev-environment-setup.md#zshenv--runs-in-every-shell", step4,
+                      "local-installation.md Step 4 must point to the ~/.zshenv template")
+        self.assertIn("# pyenv binary on PATH", step4,
+                      "local-installation.md Step 4 must name the template's pyenv block")
+        self.assertIn("# pyenv binary on PATH", read("docs/guides/dev-environment-setup.md"),
+                      "the ~/.zshenv template's pyenv block, which Step 4 names, is gone")
+
+    def test_startup_templates_run_no_pyenv_init(self):
+        # The scan above only sees commands that write into an rc file; the §2 templates are
+        # the rc files' code itself, so a `pyenv init` added to one of them would bring the
+        # global init back for everyone who copies it. .envrc puts pyenv's shims on PATH per
+        # project instead.
+        templates = startup_templates()
+        self.assertIn("# pyenv binary on PATH", templates["~/.zshenv"])
+        for name, code in list(templates.items()) + [(".envrc", read(".envrc"))]:
+            with self.subTest(file=name):
+                where = name if name == ".envrc" else f"dev-environment-setup.md §2's {name} template"
+                self.assertEqual(active_pyenv_init(code), [], f"{where} must not run `pyenv init`")
+
+    def test_envrc_has_no_default_fallback(self):
+        # Falling back to nvm's `default` would silently select an older line when .nvmrc's
+        # isn't installed; .envrc warns instead (and validate_setup fails a lower major).
+        for name, text in ((".envrc", read(".envrc")), ("the guide's .envrc", guide_node_block())):
+            with self.subTest(file=name):
+                self.assertNotRegex(text, r"nvm use[^\n]*\bdefault\b",
+                                    f"{name} must not fall back to nvm's default alias")
+
+    def test_envrc_finds_nvm_like_the_update_script(self):
+        # Homebrew's nvm alone would leave a workstation with nvm's own installer outside the pin.
+        envrc = nvm_sh_candidates(envrc_node_block())
+        self.assertEqual(envrc, nvm_sh_candidates(read("scripts/bash/update-toolchain.sh")),
+                         ".envrc must test for nvm.sh where update-toolchain.sh does, in its order")
+        self.assertIn("$NVM_PREFIX/nvm.sh", envrc, ".envrc must look for Homebrew's nvm")
+        self.assertIn("$NVM_DIR/nvm.sh", envrc, ".envrc must look for nvm's own installer's nvm")
+
+    def test_zshenv_template_finds_nvm_like_envrc(self):
+        # The guide's ~/.zshenv NVM block once knew Homebrew's nvm only, so on a workstation
+        # with nvm's own installer it did nothing (pack 285).
+        guide = read("docs/guides/dev-environment-setup.md")
+        start = guide.index("# NVM —")
+        block = guide[start:guide.index("# pyenv binary", start)]
+        self.assertEqual(nvm_sh_candidates(block), nvm_sh_candidates(envrc_node_block()),
+                         "the ~/.zshenv template must test for nvm.sh where .envrc does, in its order")
+        self.assertIn('NVM_DIR="${NVM_DIR:-$HOME/.nvm}"', block,
+                      "the ~/.zshenv template must keep an inherited NVM_DIR")
+
+    def test_guide_template_mirrors_envrc(self):
+        self.assertEqual(code_lines(guide_node_block()), code_lines(envrc_node_block()),
+                         "dev-environment-setup.md's .envrc template must carry .envrc's Node code")
+
+    def test_nothing_floats_on_lts(self):
+        for rel in (".envrc", "scripts/bash/update-toolchain.sh"):
+            with self.subTest(file=rel):
+                self.assertEqual(floats_on_lts(read(rel)), [],
+                                 f"{rel} must take the Node line from .nvmrc, not lts/*")
+
+    def test_update_script_reads_nvmrc(self):
+        self.assertRegex(read("scripts/bash/update-toolchain.sh"), r'NODE_LINE="\$\(.*\.nvmrc',
+                         "update-toolchain.sh must read NODE_LINE from .nvmrc")
+
+
+FAKE_NVM_SH = """\
+echo "sourced ${BASH_SOURCE[0]} ${1:-}" >> "$NVM_LOG"
+nvm() { echo "nvm $*" >> "$NVM_LOG"; [ -n "${FAKE_NODE_INSTALLED:-}" ]; }
+"""
+
+
+@unittest.skipUnless(shutil.which("bash"), "needs bash, which direnv runs .envrc under")
+class EnvrcNodeBlock(unittest.TestCase):
+    """.envrc's Node block run under bash against fake nvm installs: which Node dir it puts
+    first, without loading nvm, for a bare major in .nvmrc; which nvm.sh it sources (each fake
+    logs its own path) and what it tells nvm for anything else; the NVM_DIR, NVM_BIN, NVM_INC
+    and PATH it leaves, and what it prints."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        self.log = self.root / "nvm.log"
+        (self.root / "repo").mkdir()
+        (self.root / "repo" / ".nvmrc").write_text("24\n")
+        (self.root / "bin").mkdir()
+
+    def fake_nvm(self, rel):
+        path = self.root / rel
+        path.mkdir(parents=True, exist_ok=True)
+        (path / "nvm.sh").write_text(FAKE_NVM_SH)
+        return str(path)
+
+    def fake_brew(self, prefix):
+        brew = self.root / "bin" / "brew"
+        brew.write_text(f"#!/bin/sh\n[ \"$*\" = '--prefix nvm' ] && echo '{prefix}'\n")
+        brew.chmod(brew.stat().st_mode | stat.S_IXUSR)
+
+    def install(self, nvm_dir, *versions, node=True):
+        """Node `versions` under `nvm_dir`; their bin dirs, in the order given."""
+        bins = []
+        for version in versions:
+            bin_dir = Path(nvm_dir) / "versions" / "node" / version / "bin"
+            bin_dir.mkdir(parents=True)
+            if node:
+                (bin_dir / "node").write_text("#!/bin/sh\n")
+                (bin_dir / "node").chmod(0o755)
+            bins.append(str(bin_dir))
+        return bins
+
+    def run_block(self, path=None, **env):
+        script = self.root / "block.sh"
+        script.write_text(envrc_node_block()
+                          + 'printf "%s\\n" "NVM_DIR=$NVM_DIR" "NVM_BIN=${NVM_BIN:-}" '
+                            '"NVM_INC=${NVM_INC:-}" "PATH=$PATH"\n')
+        full_env = {"PATH": path or f"{self.root / 'bin'}:/usr/bin:/bin",
+                    "HOME": str(self.root / "home"), "NVM_LOG": str(self.log), **env}
+        result = subprocess.run(["bash", str(script)], cwd=self.root / "repo", env=full_env,
+                                capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        log = self.log.read_text().splitlines() if self.log.exists() else []
+        out = dict(line.split("=", 1) for line in result.stdout.splitlines())
+        return out, result.stderr, log
+
+    def assert_selected(self, out, bin_dir):
+        self.assertEqual(out["NVM_BIN"], bin_dir)
+        self.assertEqual(out["NVM_INC"], bin_dir[:-len("/bin")] + "/include/node")
+        self.assertEqual(out["PATH"].split(":")[0], bin_dir)
+
+    def test_installer_nvm_in_nvm_dir(self):
+        nvm_dir = self.fake_nvm("custom-nvm")
+        [v24] = self.install(nvm_dir, "v24.0.0")
+        out, err, log = self.run_block(NVM_DIR=nvm_dir)
+        self.assertEqual(log, [], "a bare major in .nvmrc must not load nvm")
+        self.assertEqual(out["NVM_DIR"], nvm_dir)
+        self.assert_selected(out, v24)
+        self.assertEqual(err, "")
+
+    def test_installer_nvm_in_default_dir(self):
+        nvm_dir = self.fake_nvm("home/.nvm")
+        [v24] = self.install(nvm_dir, "v24.0.0")
+        out, err, log = self.run_block()
+        self.assertEqual(log, [])
+        self.assertEqual(out["NVM_DIR"], nvm_dir)
+        self.assert_selected(out, v24)
+
+    def test_installer_nvm_under_xdg_config_home(self):
+        nvm_dir = self.fake_nvm("config/nvm")
+        [v24] = self.install(nvm_dir, "v24.0.0")
+        out, err, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"))
+        self.assertEqual(log, [])
+        self.assertEqual(out["NVM_DIR"], nvm_dir)
+        self.assert_selected(out, v24)
+
+    def test_picks_the_newest_release_of_the_line(self):
+        # Compared as numbers (24.10 is newer than 24.9), and only a vMAJOR.MINOR.PATCH dir
+        # holding a `node` counts: not a prerelease, an empty dir or another major.
+        nvm_dir = self.fake_nvm("home/.nvm")
+        self.install(nvm_dir, "v24.2.0", "v24.9.9", "v26.0.0", "v240.0.0", "v24.11.0-rc.1")
+        self.install(nvm_dir, "v24.12.0", node=False)
+        [newest] = self.install(nvm_dir, "v24.10.0")
+        out, err, log = self.run_block()
+        self.assertEqual(log, [])
+        self.assert_selected(out, newest)
+        self.assertEqual(err, "")
+
+    def test_a_v_prefixed_major_takes_the_same_path(self):
+        (self.root / "repo" / ".nvmrc").write_text("v24")
+        nvm_dir = self.fake_nvm("home/.nvm")
+        [v24] = self.install(nvm_dir, "v24.0.0")
+        out, _, log = self.run_block()
+        self.assertEqual(log, [])
+        self.assert_selected(out, v24)
+
+    def test_leaves_one_nvm_node_on_path(self):
+        # Every other nvm Node dir leaves PATH (the shell's `default` from ~/.zshenv first
+        # among them), which is stricter than `nvm use`: that edits the first nvm entry in
+        # place and leaves the rest. The rest keeps its order, empty entries too, and a
+        # package's bin dir under a version isn't a Node dir, so it stays.
+        nvm_dir = self.fake_nvm("home/.nvm")
+        v26, v24_old, v24 = self.install(nvm_dir, "v26.0.0", "v24.0.0", "v24.1.0")
+        bin_dir = self.root / "bin"
+        pkg = f"{v26.rsplit('/', 1)[0]}/lib/node_modules/pkg/bin"
+        out, _, _ = self.run_block(path=f"{v26}::{bin_dir}:{pkg}:{v24_old}:/usr/bin:/bin:{v24}")
+        self.assertEqual(out["PATH"], f"{v24}::{bin_dir}:{pkg}:/usr/bin:/bin")
+
+    def test_order_is_brew_then_nvm_dir_then_xdg(self):
+        # Observed through nvm.sh, so .nvmrc holds something other than a bare major here.
+        (self.root / "repo" / ".nvmrc").write_text("lts/jod\n")
+        nvm_dir = self.fake_nvm("home/.nvm")
+        self.fake_nvm("config/nvm")
+        _, _, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"), FAKE_NODE_INSTALLED="1")
+        self.assertEqual(log[:1], [f"sourced {nvm_dir}/nvm.sh --no-use"])
+        self.log.unlink()
+        brew_nvm = self.fake_nvm("brew/opt/nvm")
+        self.fake_brew(brew_nvm)
+        out, _, log = self.run_block(XDG_CONFIG_HOME=str(self.root / "config"), FAKE_NODE_INSTALLED="1")
+        # Homebrew's nvm.sh wins, but nvm still keeps its versions in $NVM_DIR.
+        self.assertEqual(log, [f"sourced {brew_nvm}/nvm.sh --no-use", "nvm use --silent"])
+        self.assertEqual(out["NVM_DIR"], nvm_dir)
+
+    def test_anything_but_a_bare_major_goes_to_nvm_use(self):
+        (self.root / "repo" / ".nvmrc").write_text("lts/jod\n")
+        nvm_dir = self.fake_nvm("home/.nvm")
+        self.install(nvm_dir, "v24.0.0")
+        _, err, log = self.run_block(FAKE_NODE_INSTALLED="1")
+        self.assertEqual(log, [f"sourced {nvm_dir}/nvm.sh --no-use", "nvm use --silent"])
+        self.assertEqual(err, "")
+        self.log.unlink()
+        _, err, log = self.run_block()
+        self.assertEqual(log[1:], ["nvm use --silent"])
+        self.assertIn("Node lts/jod (from .nvmrc) isn't installed", err)
+
+    def test_uninstalled_line_warns_without_falling_back(self):
+        nvm_dir = self.fake_nvm("home/.nvm")
+        [v26] = self.install(nvm_dir, "v26.0.0")
+        path = f"{v26}:{self.root / 'bin'}:/usr/bin:/bin"
+        out, err, log = self.run_block(path=path)
+        self.assertEqual(log, [], "no fallback through nvm, to `default` or anything else")
+        self.assertEqual((out["NVM_BIN"], out["PATH"]), ("", path))
+        self.assertIn("Node 24 (from .nvmrc) isn't installed", err)
+
+    def test_no_nvm_names_the_guide(self):
+        self.install(self.root / "home" / ".nvm", "v24.0.0")
+        out, err, log = self.run_block()
+        self.assertEqual(log, [])
+        self.assertEqual(out["NVM_BIN"], "")
+        self.assertEqual(len(err.splitlines()), 1, err)
+        self.assertIn("nvm not found", err)
+        self.assertIn("docs/guides/local-installation.md, Step 3", err)
+
+
+@unittest.skipUnless(shutil.which("bash"), "needs bash, which direnv runs .envrc under")
+class EnvrcPythonBlock(unittest.TestCase):
+    """.envrc's Python block run under bash against a fake pyenv root: the PYENV_VERSION it
+    picks from the versions dir (pyenv itself isn't run), the shims dir it puts on PATH
+    (direnv's PATH_add stands in as a prepend) and what it prints."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        (self.root / "bin").mkdir()
+        pyenv = self.root / "bin" / "pyenv"
+        pyenv.write_text("#!/bin/sh\necho \"pyenv must not run: $*\" >&2\nexit 1\n")
+        pyenv.chmod(0o755)
+
+    def install(self, root, *versions, python=True):
+        for version in versions:
+            bin_dir = Path(root) / "versions" / version / "bin"
+            bin_dir.mkdir(parents=True)
+            if python:
+                (bin_dir / "python3").write_text("#!/bin/sh\n")
+                (bin_dir / "python3").chmod(0o755)
+
+    def run_block(self, pyenv=True, **env):
+        script = self.root / "block.sh"
+        script.write_text('PATH_add() { PATH="$1:$PATH"; }\n' + envrc_python_block()
+                          + 'printf "%s\\n" "PYENV_VERSION=${PYENV_VERSION:-}" "PATH=$PATH"\n')
+        path = f"{self.root / 'bin'}:/usr/bin:/bin" if pyenv else "/usr/bin:/bin"
+        full_env = {"PATH": path, "HOME": str(self.root / "home"), **env}
+        result = subprocess.run(["bash", str(script)], cwd=self.root, env=full_env,
+                                capture_output=True, text=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        out = dict(line.split("=", 1) for line in result.stdout.splitlines())
+        return out, result.stderr, path
+
+    def test_picks_the_newest_plain_patch(self):
+        # Compared as numbers (3.13.10 is newer than 3.13.9); a free-threaded, prerelease or
+        # empty build doesn't count, and neither does another line.
+        root = self.root / "home" / ".pyenv"
+        self.install(root, "3.13.2", "3.13.9", "3.13.10", "3.13.11t", "3.13.12rc1", "3.14.0", "3.12.20")
+        self.install(root, "3.13.13", python=False)
+        out, err, path = self.run_block()
+        self.assertEqual(out["PYENV_VERSION"], "3.13.10")
+        self.assertEqual(out["PATH"], f"{root}/shims:{path}")
+        self.assertEqual(err, "")
+
+    def test_uses_pyenv_root(self):
+        root = self.root / "elsewhere"
+        self.install(root, "3.13.4")
+        self.install(self.root / "home" / ".pyenv", "3.13.5")
+        out, _, path = self.run_block(PYENV_ROOT=str(root))
+        self.assertEqual(out["PYENV_VERSION"], "3.13.4")
+        self.assertEqual(out["PATH"], f"{root}/shims:{path}")
+
+    def test_no_patch_of_the_line_warns(self):
+        self.install(self.root / "home" / ".pyenv", "3.14.0", "3.13.1t")
+        out, err, path = self.run_block()
+        self.assertEqual((out["PYENV_VERSION"], out["PATH"]), ("", path))
+        self.assertIn("no Python 3.13.x installed via pyenv", err)
+        self.assertIn("pyenv install $(pyenv latest -k 3.13)", err)
+
+    def test_no_pyenv_does_nothing(self):
+        self.install(self.root / "home" / ".pyenv", "3.13.4")
+        out, err, path = self.run_block(pyenv=False)
+        self.assertEqual((out["PYENV_VERSION"], out["PATH"], err), ("", path, ""))
+
+    def test_line_matches_the_update_script(self):
+        envrc = re.search(r"\b_PY_LINE=(\S+)", envrc_python_block())
+        script = re.search(r'^PY_LINE="([^"]+)"', read("scripts/bash/update-toolchain.sh"), re.M)
+        self.assertTrue(envrc and script, "_PY_LINE in .envrc or PY_LINE in update-toolchain.sh is gone")
+        self.assertEqual(envrc.group(1), script.group(1),
+                         ".envrc's _PY_LINE must be update-toolchain.sh's PY_LINE")
+
+    def test_guide_template_mirrors_envrc(self):
+        guide = section(read("docs/guides/dev-environment-setup.md"), "# Python via pyenv", "# Node via nvm")
+        self.assertEqual(code_lines(guide), code_lines(envrc_python_block()),
+                         "dev-environment-setup.md's .envrc template must carry .envrc's Python code")
+
+
+class ValidateSetupNode(unittest.TestCase):
+    """validate_setup's Node check enforces the .nvmrc line: lower FAILs, higher WARNs, and so
+    does an nvm `default` alias that resolves to another major (skipped without nvm)."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.saved_path = os.environ.get("PATH", "")
+        self.addCleanup(os.environ.__setitem__, "PATH", self.saved_path)
+        self.task = object.__new__(ValidateSetup)
+        self.task.logger = logging.getLogger("validate_setup_node_test")
+        self.task._pinned_node_major = lambda: 24
+        self.task._nvm_default_version = lambda: None  # no nvm, unless a test says otherwise
+
+    def run_with_node(self, version_line):
+        node = Path(self.tmp.name) / "node"
+        node.write_text(f"#!/bin/sh\necho '{version_line}'\n")
+        node.chmod(node.stat().st_mode | stat.S_IXUSR)
+        os.environ["PATH"] = f"{self.tmp.name}{os.pathsep}/usr/bin:/bin"
+        return self.task._check_node()
+
+    def test_pinned_major_passes(self):
+        self.assertEqual(self.run_with_node("v24.22.0")["status"], PASS)
+
+    def test_lower_major_fails_with_the_fix(self):
+        result = self.run_with_node("v22.20.0")
+        self.assertEqual(result["status"], FAIL)
+        self.assertIn("nvm install 24", result["detail"])
+
+    def test_higher_major_warns(self):
+        self.assertEqual(self.run_with_node("v26.12.0")["status"], WARN)
+
+    def test_unreadable_version_or_no_pin_passes(self):
+        self.assertEqual(self.run_with_node("weird")["status"], PASS)
+        self.task._pinned_node_major = lambda: None
+        self.assertEqual(self.run_with_node("v18.0.0")["status"], PASS)
+
+    def test_missing_node_warns(self):
+        os.environ["PATH"] = self.tmp.name
+        self.assertEqual(self.task._check_node()["status"], WARN)
+
+    def test_nvm_default_on_the_pinned_major_passes(self):
+        self.task._nvm_default_version = lambda: "v24.15.0"
+        self.assertEqual(self.run_with_node("v24.22.0")["status"], PASS)
+
+    def test_nvm_default_on_another_major_warns_with_the_fix(self):
+        for default in ("v26.12.0", "v22.20.0", "N/A", ""):
+            with self.subTest(default=default):
+                self.task._nvm_default_version = lambda d=default: d
+                result = self.run_with_node("v24.22.0")
+                self.assertEqual(result["status"], WARN)
+                self.assertIn("nvm's default alias resolves to", result["detail"])
+                self.assertIn("update-toolchain.sh", result["detail"])
+
+    def test_nvm_default_note_joins_the_other_verdicts(self):
+        self.task._nvm_default_version = lambda: "v26.12.0"
+        result = self.run_with_node("v26.12.0")
+        self.assertEqual(result["status"], WARN)
+        self.assertIn("Also, nvm's default alias resolves to v26.12.0", result["detail"])
+        self.assertEqual(self.run_with_node("v22.20.0")["status"], FAIL)
+
+    def test_nvm_default_lookup_failure_is_quiet(self):
+        def broken():
+            raise subprocess.TimeoutExpired("bash", 30)
+        self.task._nvm_default_version = broken
+        self.assertEqual(self.run_with_node("v24.22.0")["status"], PASS)
+
+    def fake_nvm_sh(self, rel):
+        path = Path(self.tmp.name) / rel / "nvm.sh"
+        path.parent.mkdir(parents=True)
+        path.write_text(f'nvm() {{ [ "$*" = "version default" ] && echo "v26.12.0 via {rel}"; }}\n')
+        return path.parent
+
+    def nvm_env(self, **extra):
+        """os.environ without nvm or Homebrew settings and with no brew on PATH, plus `extra`."""
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("NVM_DIR", "XDG_CONFIG_HOME", "HOMEBREW_PREFIX")}
+        env.update(PATH="/usr/bin:/bin", **extra)
+        return mock.patch.dict(os.environ, env, clear=True)
+
+    def test_nvm_default_version_sources_nvm_from_nvm_dir(self):
+        # No Homebrew, so nvm comes from $NVM_DIR, as .envrc would find it.
+        task = object.__new__(ValidateSetup)
+        nvm_dir = self.fake_nvm_sh("nvm")
+        with self.nvm_env(NVM_DIR=str(nvm_dir)):
+            self.assertEqual(task._nvm_default_version(), "v26.12.0 via nvm")
+        with self.nvm_env(NVM_DIR=str(Path(self.tmp.name) / "none")):
+            self.assertIsNone(task._nvm_default_version())
+
+    def test_nvm_default_version_prefers_homebrew_from_homebrew_prefix(self):
+        # $HOMEBREW_PREFIX (exported by `brew shellenv`) finds Homebrew's nvm without starting brew.
+        task = object.__new__(ValidateSetup)
+        nvm_dir = self.fake_nvm_sh("nvm")
+        self.fake_nvm_sh("brew/opt/nvm")
+        with self.nvm_env(NVM_DIR=str(nvm_dir), HOMEBREW_PREFIX=str(Path(self.tmp.name) / "brew")):
+            self.assertEqual(task._nvm_default_version(), "v26.12.0 via brew/opt/nvm")
+
+    def test_nvm_default_version_survives_a_failing_source(self):
+        # Homebrew's nvm.sh returns 1 when it can't create $NVM_DIR's symlinks, after nvm loaded.
+        task = object.__new__(ValidateSetup)
+        nvm_dir = self.fake_nvm_sh("nvm")
+        with open(nvm_dir / "nvm.sh", "a") as fh:
+            fh.write("false\n")
+        with self.nvm_env(NVM_DIR=str(nvm_dir)):
+            self.assertEqual(task._nvm_default_version(), "v26.12.0 via nvm")
+
+    def test_pinned_major_reads_the_real_nvmrc(self):
+        self.assertEqual(object.__new__(ValidateSetup)._pinned_node_major(), nvmrc_major(read(".nvmrc")))
+
+
+if __name__ == "__main__":
+    unittest.main()

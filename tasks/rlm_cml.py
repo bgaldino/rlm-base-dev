@@ -6,10 +6,6 @@ Provides three CCI tasks for managing constraint model data:
   - ImportCML:   Import constraint model metadata + blob into a Salesforce org
   - ValidateCML: Validate CML file structure and ESC association coverage
 
-Replaces the standalone scripts:
-  - scripts/cml/export_cml.py  (DEPRECATED)
-  - scripts/cml/import_cml.py  (DEPRECATED)
-  - scripts/cml/validate_cml.py (DEPRECATED)
 """
 
 import base64
@@ -43,6 +39,9 @@ ID_PREFIX_MAP = {
 # ---------------------------------------------------------------------------
 # CML validation regex patterns
 # ---------------------------------------------------------------------------
+# The leading annotation prefix is `(?:@\(.*\)\s*)?`, not `*`: the greedy `.*` already
+# spans every `@(...)` on the line, and repeating the group made a non-matching line
+# backtrack exponentially in its annotation count (CodeQL py/redos).
 TYPE_RE = re.compile(
     r"^\s*type\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?::\s*([A-Za-z_][A-Za-z0-9_]*))?\s*(\{|;)\s*$"
 )
@@ -51,14 +50,14 @@ RELATION_RE = re.compile(
     r"^\s*relation\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)"
 )
 EXTERN_RE = re.compile(
-    r"^\s*(?:@\(.*\)\s*)*extern\s+([A-Za-z0-9_()]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(=\s*[^;]+)?;"
+    r"^\s*(?:@\(.*\)\s*)?extern\s+([A-Za-z0-9_()]+)\s+([A-Za-z_][A-Za-z0-9_]*)\s*(=\s*[^;]+)?;"
 )
 CONSTRAINT_LINE_RE = re.compile(
-    r"^\s*(?:@\(.*\)\s*)*(constraint|message|preference|require|exclude|rule|setdefault)\b"
+    r"^\s*(?:@\(.*\)\s*)?(constraint|message|preference|require|exclude|rule|setdefault)\b"
 )
 ORDER_RE = re.compile(r"order\s*\(([^)]*)\)")
 FIELD_RE = re.compile(
-    r"^\s*(?:@\(.*\)\s*)*(string|int|boolean|decimal(?:\(\d+\))?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);"
+    r"^\s*(?:@\(.*\)\s*)?(string|int|boolean|decimal(?:\(\d+\))?)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*([^;]+);"
 )
 DEFAULT_RE = re.compile(r"defaultValue\s*=\s*(\"[^\"]*\"|[^,\)]+)")
 RANGE_RE = re.compile(r"\[\s*(\d+)\s*\.\.\s*(\d+)\s*\]")
@@ -688,7 +687,7 @@ class ImportCML(CMLBaseTask):
         # ExpressionSetDefinitionVersion + ExpressionSetVersion (all inactive). This is
         # why Step 2 can *resolve* the ESDV by DeveloperName even on a fresh org where no
         # ExpressionSetDefinition metadata is deployed -- the version was just provisioned
-        # here. (All four QB constraint models rely on this; none ship ESD metadata.)
+        # here. (Both shipped QB constraint models rely on this; none ship ESD metadata.)
         ess.pop("Id", None)
         ess_id = self._upsert_expression_set(ess, dry_run)
         if not ess_id:
@@ -1064,15 +1063,15 @@ class ValidateCML(BaseTask):
     """Validate CML constraint model files and ESC association coverage.
 
     This task does NOT require Salesforce org access -- it validates
-    local .cml files and optionally cross-references them against
-    ExpressionSetConstraintObj CSV data.
+    dataset blobs against their ExpressionSetConstraintObj CSV data, or
+    explicitly selected local .cml files with optional association checks.
 
     Extends BaseTask (not CMLBaseTask) since no org connection is needed.
     """
 
     task_options = {
         "cml_dir": {
-            "description": "Directory containing .cml files (default: scripts/cml)",
+            "description": "Explicit directory containing standalone .cml files",
             "required": False,
         },
         "data_dir": {
@@ -1101,8 +1100,8 @@ class ValidateCML(BaseTask):
         The blob must be exactly the one ImportCML uploads (named from
         ``ExpressionSetDefinitionVersion.csv``), and no other may sit beside it:
         a stale or misnamed blob would otherwise pass here while the import
-        uploads nothing. Otherwise the ``cml_dir`` copies are checked against
-        the single optional ``data_dir``.
+        uploads nothing. Otherwise an explicit ``cml_dir`` is required and its
+        files are checked against the single optional ``data_dir``.
         """
         data_dirs = _split_list_values(self.options.get("data_dirs") or "")
         if data_dirs:
@@ -1111,7 +1110,7 @@ class ValidateCML(BaseTask):
             for dd in data_dirs:
                 # Every CSV import_cml reads unconditionally must be present with a
                 # row, so the flow fails here, before any import mutates the org,
-                # rather than part-way through steps 7-10.
+                # rather than part-way through steps 7-8.
                 rows_by_file = {}
                 for name in REQUIRED_MODEL_CSVS:
                     path = os.path.join(dd, name)
@@ -1150,7 +1149,12 @@ class ValidateCML(BaseTask):
                 raise TaskOptionsError("Incomplete model data: " + "; ".join(problems))
             return targets
 
-        cml_dir = self.options.get("cml_dir") or "scripts/cml"
+        cml_dir = self.options.get("cml_dir")
+        if not cml_dir:
+            raise TaskOptionsError(
+                "Specify data_dirs to validate shipped model blobs, or cml_dir "
+                "to validate standalone .cml files."
+            )
         data_dir = self.options.get("data_dir")
         dataset_dirs = [data_dir] if data_dir else []
         return [
@@ -1505,7 +1509,7 @@ class ValidateCML(BaseTask):
         # ApiName -> display Name from the same directory, so a row is reachable
         # by either: the inferred name is the ApiName, but an
         # expression_set_name override may pass the display Name
-        # ("QuantumBit PCM" vs QuantumBitPCM).
+        # (a display label vs its API name).
         display_names = {}
         expr_path = os.path.join(dataset_dir, "ExpressionSet.csv")
         if os.path.exists(expr_path):
@@ -1548,7 +1552,7 @@ class ValidateCML(BaseTask):
                 reader = csv.DictReader(handle)
                 for row in reader:
                     # ESC rows are keyed by ExpressionSet.ApiName, which differs
-                    # from the display Name for "QuantumBit PCM"/"QuantumBit Bundle".
+                    # from the display Name for models such as "QuantumBit Bundle".
                     name = (row.get("ApiName") or row.get("Name") or "").strip()
                     if name:
                         return name

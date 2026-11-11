@@ -21,6 +21,10 @@ Offline, no org: `python tests/test_post_process_extraction.py`.
 """
 import importlib.util
 import json
+import shutil
+import contextlib
+import io
+import csv
 import subprocess
 import sys
 import tempfile
@@ -262,6 +266,110 @@ def test_top_level_pass_subquery_uses_outer_object(m):
           m.parse_select_fields("SELECT Id, (SELECT Id FROM Contacts) FROM Account") == ["Id"])
 
 
+def test_pass2_override_rebuilds_composite_keys(m):
+    """A pass-2 objectset_source override is generated with its `$$` key and nested
+    `Parent.$$` reference rebuilt from component columns, not left blank (#659 review)."""
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        plan, ext, out = root / "plan", root / "ext", root / "out"
+        (plan / "objectset_source" / "object-set-2").mkdir(parents=True)
+        ext.mkdir()
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "$$Product.StockKeepingUnit$UsageResource.Code,Parent.$$Name$Type,Description\n")
+        (ext / "Child.csv").write_text(
+            "Product.StockKeepingUnit,UsageResource.Code,Parent.Name,Parent.Type,Description\n"
+            "QB-DB,UR-CPU,P1,Usage,hello\n")
+        passes = {"Child": [(0, {}), (1, {})]}
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
+        check("pass-2 override: $$ key rebuilt from its components", row[0] == "QB-DB;UR-CPU", repr(row))
+        check("pass-2 override: nested Parent.$$ reference rebuilt", row[1] == "P1;Usage", repr(row))
+        check("pass-2 override: plain columns still copied", row[2] == "hello", repr(row))
+        # #N/A is normalised to blank, and a pass-N Status is kept as extracted (Active),
+        # never rewritten to Draft the way the root CSV is: overrides that activate
+        # (qb-billing, qb-tax) depend on it.
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "$$Product.StockKeepingUnit$UsageResource.Code,Description,Status\n")
+        (ext / "Child.csv").write_text(
+            "Product.StockKeepingUnit,UsageResource.Code,Description,Status\n"
+            "QB-DB,UR-CPU,#N/A,Active\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
+        check("pass-2 override: #N/A normalised, Status kept as extracted",
+              row == ["QB-DB;UR-CPU", "", "Active"], repr(row))
+        # A nested reference whose components aren't all extracted verbatim stays blank;
+        # no suffix guess (BillingTreatment.BillingPolicy.Name must not become the row's Name).
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "BillingTreatment.$$Name$BillingPolicy.Name,Name\n")
+        (ext / "Child.csv").write_text("Name,BillingTreatment.Name\nItem A,Treatment A\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
+        check("pass-2 override: partial nested reference left blank, not guessed",
+              row == ["", "Item A"], repr(row))
+        # The P;P;P case: no component column at all, but the row has its own Name.
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "DefaultTaxTreatment.$$Name$LegalEntity.Name$TaxPolicy.Name,DefaultTaxTreatment.Name,Name\n")
+        (ext / "Child.csv").write_text("Name,DefaultTaxTreatment.Name\nPolicy P,Treatment T\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        row = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1].split(",")
+        check("pass-2 override: no components -> blank, never the row's own Name repeated",
+              row[0] == "", repr(row))
+        check("pass-2 override: plain columns copied as extracted",
+              row[1:] == ["Treatment T", "Policy P"], repr(row))
+        # The real qb-billing three-component nested reference, all components extracted.
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "BillingTreatment.$$Name$BillingPolicy.Name$LegalEntity.Name\n")
+        (ext / "Child.csv").write_text(
+            "BillingTreatment.Name,BillingTreatment.BillingPolicy.Name,BillingTreatment.LegalEntity.Name\n"
+            "BT USA,Billing Policy - Advance,Default Legal Entity - US\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False)
+        line = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1]
+        check("pass-2 override: three-component nested reference rebuilt",
+              line == "BT USA;Billing Policy - Advance;Default Legal Entity - US", repr(line))
+        # A code blanked by extraction is restored from the org code map before the key is built.
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "$$Product.StockKeepingUnit$UsageResource.Code\n")
+        (ext / "Child.csv").write_text(
+            "Product.StockKeepingUnit,UsageResource.Code,UsageResource.Name\nQB-DB,#N/A,CPU Time\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), passes, False,
+                                    code_map={"Child": {"UsageResource.Code": {"CPU Time": "UR-CPU"}}})
+        line = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1]
+        check("pass-2 override: code backfilled from the org map before the key is built",
+              line == "QB-DB;UR-CPU", repr(line))
+
+
+def test_composite_keys_drop_empty_parts(m):
+    """A `$$` value drops its empty parts, as SFDMU 5.8.0 does when it builds the target-side
+    key (`MigrationJobTask._getRecordFieldValue`). Keeping one (`A;B;0;` for a blank
+    UpperBound) never matches, so an Upsert inserts a duplicate (todo 298: qb-rates RABT,
+    qb-pcm ProductRelatedComponent)."""
+    check("join_composite_parts: trailing empty part dropped",
+          m.join_composite_parts(["P", "RC", "0", ""]) == "P;RC;0")
+    check("join_composite_parts: leading and middle empty parts dropped",
+          m.join_composite_parts(["", "QB-API", "", "PCG"]) == "QB-API;PCG")
+    check("join_composite_parts: all empty -> blank", m.join_composite_parts(["", ""]) == "")
+    # Root path: align_columns builds the absent $$ column from its components.
+    headers, rows = m.align_columns(
+        ["Product.StockKeepingUnit", "LowerBound", "UpperBound"], [["QB-DB", "0", ""]],
+        ["$$Product.StockKeepingUnit$LowerBound$UpperBound", "UpperBound"], "Child")
+    check("align_columns: built $$ key omits the blank UpperBound", rows[0][0] == "QB-DB;0", repr(rows))
+    # #N/A components normalised to blank are dropped too, not left as ';;'.
+    rows = m.normalize_na_values([["#N/A;QB-API;#N/A;PCG"]], ["$$A$B$C$D"])
+    check("normalize_na_values: #N/A parts dropped from a $$ value", rows[0][0] == "QB-API;PCG", repr(rows))
+    # Pass-N override path.
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        plan, ext, out = root / "plan", root / "ext", root / "out"
+        (plan / "objectset_source" / "object-set-2").mkdir(parents=True)
+        ext.mkdir()
+        (plan / "objectset_source" / "object-set-2" / "Child.csv").write_text(
+            "$$Product.StockKeepingUnit$LowerBound$UpperBound\n")
+        (ext / "Child.csv").write_text("Product.StockKeepingUnit,LowerBound,UpperBound\nQB-DB,0,\n")
+        m.generate_objectset_source(str(ext), str(plan), str(out), {"Child": [(0, {}), (1, {})]}, False)
+        line = (out / "objectset_source" / "object-set-2" / "Child.csv").read_text().splitlines()[1]
+        check("pass-2 override: rebuilt $$ key omits the blank part", line == "QB-DB;0", repr(line))
+
+
 def test_excluded_uses_js_truthiness(m):
     """pack 168 + round-7: `excluded` is read with SFDMU's JS truthiness. `[]`/`{}` are
     falsy in Python but truthy in JS, so SFDMU skips such a declaration — this parse must
@@ -285,6 +393,99 @@ def test_excluded_uses_js_truthiness(m):
           set(result2) == {"Account", "Product2"}, sorted(result2))
 
 
+def test_differently_keyed_object_keeps_plan_schema(m):
+    """An extraction aligned to a reference plan keeps the plan's own columns for an object the
+    plan lists in `$ownSchemaObjects` (todo 319, #666 review). q3-rates keys RateCardEntry with the selling
+    model, and qb-rates' four-part headers would drop it, so IS001's two entries (One Time 9.99,
+    none 3) came out with the same key and a reload duplicated one. Objects keyed the same way
+    still take the reference schema."""
+    repo = Path(__file__).resolve().parent.parent
+    q3 = repo / "datasets/sfdmu/q3/en-US/q3-rates"
+    qb = repo / "datasets/sfdmu/qb/en-US/qb-rates"
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        plan, extraction, out = td / "plan", td / "extraction", td / "out"
+        shutil.copytree(q3, plan, ignore=shutil.ignore_patterns("source", "target", "reports"))
+        extraction.mkdir()
+        # A raw extraction: individual columns only, no $$ keys (SFDMU never writes them).
+        (extraction / "RateCardEntry.csv").write_text(
+            "Product.StockKeepingUnit,RateCard.Name,RateCard.Type,UsageResource.Code,"
+            "RateUnitOfMeasure.UnitCode,ProductSellingModel.Name,Rate,Status\n"
+            "IS001,Internet Service Pack,Base,DS,USD,One Time,9.99,Active\n"
+            "IS001,Internet Service Pack,Base,DS,USD,,3,Active\n", encoding="utf-8")
+        # The header SFDMU writes for the q3 tier query (measured): it adds the parent entry's
+        # key fields, RateCardEntry.ProductSellingModel.Name included.
+        (extraction / "RateAdjustmentByTier.csv").write_text(
+            "AdjustmentType,AdjustmentValue,LowerBound,UpperBound,Product.StockKeepingUnit,"
+            "RateCardEntry.RateCard.Name,RateUnitOfMeasure.UnitCode,UsageResource.Code,"
+            "RateCardEntry.Product.StockKeepingUnit,RateCardEntry.UsageResource.Code,"
+            "RateCardEntry.RateUnitOfMeasure.UnitCode,RateCardEntry.ProductSellingModel.Name\n"
+            "Percentage,5,1,10,IS001,Internet Service Pack,USD,DS,IS001,DS,USD,One Time\n",
+            encoding="utf-8")
+        (extraction / "RateCard.csv").write_text(
+            "Name,Type,EffectiveFrom\nInternet Service Pack,Base,2025-01-01T00:00:00.000+0000\n",
+            encoding="utf-8")
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            m.process_extraction(str(extraction), str(plan), str(out), diff_only=False,
+                                 copy_to_plan=False, verbose=False, reference_plan_dir=str(qb))
+        with open(out / "RateCardEntry.csv", newline="", encoding="utf-8") as fh:
+            rows = list(csv.reader(fh))
+        key = "$$Product.StockKeepingUnit$RateCard.Name$UsageResource.Code$RateUnitOfMeasure.UnitCode$ProductSellingModel.Name"
+        check("RateCardEntry keeps the plan's five-part key column", key in rows[0], rows[0][:3])
+        if key in rows[0]:
+            i = rows[0].index(key)
+            vals = [r[i] for r in rows[1:]]
+            check("the two IS001 entries keep distinct keys", len(set(vals)) == 2, vals)
+        check("the run says why it kept the plan's schema",
+              "RateCardEntry: plan keeps its own schema" in buf.getvalue(), buf.getvalue()[-300:])
+        with open(out / "RateAdjustmentByTier.csv", newline="", encoding="utf-8") as fh:
+            rabt_headers = next(csv.reader(fh))
+        check("the tiers keep their five-part RateCardEntry reference",
+              "RateCardEntry." + key in rabt_headers, [h for h in rabt_headers if h.startswith("RateCardEntry.")])
+        if "RateCardEntry." + key in rabt_headers:
+            with open(out / "RateAdjustmentByTier.csv", newline="", encoding="utf-8") as fh:
+                rabt = list(csv.DictReader(fh))
+            got = rabt[0]["RateCardEntry." + key]
+            check("the tier's reference value matches its entry's key",
+                  got == "IS001;Internet Service Pack;DS;USD;One Time", got)
+        with open(out / "RateCard.csv", newline="", encoding="utf-8") as fh:
+            rc_headers = next(csv.reader(fh))
+        with open(qb / "RateCard.csv", newline="", encoding="utf-8") as fh:
+            qb_headers = next(csv.reader(fh))
+        check("a same-keyed object (RateCard) still takes the reference schema",
+              rc_headers == qb_headers, rc_headers)
+
+
+def test_own_schema_objects_is_validated(m):
+    """`$ownSchemaObjects` must be a list of names: a bare string would become a set of letters
+    and silently turn the opt-in off. An unknown name is reported rather than ignored."""
+    for value, should_fail in (("RateCardEntry", True), (["RateCardEntry", 3], True),
+                               (["NotAPlanObject"], False)):
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            plan, extraction = td / "plan", td / "extraction"
+            plan.mkdir(); extraction.mkdir()
+            (plan / "export.json").write_text(json.dumps({"$ownSchemaObjects": value, "objects": [
+                {"query": "SELECT Name FROM Account", "operation": "Upsert", "externalId": "Name"}]}),
+                encoding="utf-8")
+            (extraction / "Account.csv").write_text("Name\nAcme\n", encoding="utf-8")
+            buf = io.StringIO()
+            try:
+                with contextlib.redirect_stdout(buf):
+                    m.process_extraction(str(extraction), str(plan), str(td / "out"), diff_only=False,
+                                         copy_to_plan=False, verbose=False, reference_plan_dir=None)
+                failed = False
+            except SystemExit:
+                failed = True
+            if should_fail:
+                check(f"$ownSchemaObjects={value!r} is refused", failed and "CRITICAL" in buf.getvalue(),
+                      buf.getvalue()[-200:])
+            else:
+                check("an unknown $ownSchemaObjects name is reported",
+                      not failed and "NotAPlanObject" in buf.getvalue(), buf.getvalue()[-200:])
+
+
 def main():
     print("=" * 80)
     print("post_process_extraction.py regression guard (pack 182)")
@@ -298,6 +499,10 @@ def main():
     test_both_array_plan_prepends_top_level_pass(m)
     test_top_level_pass_subquery_uses_outer_object(m)
     test_excluded_uses_js_truthiness(m)
+    test_pass2_override_rebuilds_composite_keys(m)
+    test_composite_keys_drop_empty_parts(m)
+    test_differently_keyed_object_keeps_plan_schema(m)
+    test_own_schema_objects_is_validated(m)
     print("=" * 80)
     print(f"{_passed}/{_total} checks passed")
     return 0 if _passed == _total else 1

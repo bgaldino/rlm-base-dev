@@ -29,20 +29,20 @@ Read this when changing **`templates/`** UX sources, the **`scripts/ux/`** packa
 
 ```bash
 cci task run assemble_and_deploy_ux -o deploy false                    # dry-run assembly: local only, no org needed
-cci task run assemble_and_deploy_ux                                    # deploy: targets your DEFAULT cci org (no --org flag)
+cci task run assemble_and_deploy_ux --org beta                         # assemble + deploy to the CCI org
 python scripts/ux/ux_tool.py assemble                                  # same assembly without CCI
 python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>     # retrieve + diff
 python scripts/ux/ux_tool.py writeback                                 # dry-run writeback (add --apply to write)
 python scripts/ux/ux_tool.py apply-drift                               # writeback to templates + verify + reassemble
 ```
 
-`ux_tool.py` takes **`--target-org`** with the **SF CLI** alias or username (e.g. `rlm-base__beta`), never a CCI alias. See `AGENTS.md` — Org Identity. `assemble` takes its flags from `project.custom` in `cumulusci.yml`; the org-facing commands (`retrieve`, `diff`, `writeback`, `capture-drift`, `apply-drift`) take the flags recorded in `unpackaged/post_ux/assembly_manifest.json` by the last assembly, so they match what was deployed. `--flag name=value` overrides either. **Note:** the `assemble_and_deploy_ux` *task* has no `--org` option — its deploy step uses your **default** cci org (and raises if none is set); `-o deploy false` runs assembly locally with no org at all.
+`ux_tool.py` takes **`--target-org`** with the **SF CLI** alias or username (e.g. `rlm-base__beta`), never a CCI alias. See `AGENTS.md` — Org Identity. `assemble` takes its flags from `project.custom` in `cumulusci.yml`; the org-facing commands (`retrieve`, `diff`, `writeback`, `capture-drift`, `apply-drift`) take the flags recorded in `unpackaged/post_ux/assembly_manifest.json` by the last assembly, so they match what was deployed. `--flag name=value` overrides either. **Note:** the `assemble_and_deploy_ux` *task* takes the **CCI** alias in `--org` (the default cci org when omitted; it raises if neither is set); `-o deploy false` runs assembly locally with no org at all.
 
 ## DO NOT
 
 - **DO NOT** edit `unpackaged/post_ux/` to “fix” UX — fix **`templates/`** and re-run assembly (or follow drift writeback).
 - **DO NOT** add `EmailTemplatePage` flexipages to templates — they cannot deploy via Metadata API (`AGENTS.md`).
-- **DO NOT** commit a writeback-refreshed patch file without restoring its comments — the rewrite drops YAML comments (often the rationale for a visibility rule). Check `git diff templates/flexipages/patches/`.
+- **DO NOT** commit a writeback-refreshed patch file without reading `git diff templates/flexipages/patches/`. The rewrite edits only the changed entries and keys, so the file's comments and quoting stay, but a comment inside a value that changed (often the rationale for a visibility rule) is not kept, and a file whose layout it can't follow is rewritten whole, comments lost. Each case logs a warning naming it; restore those comments from the diff.
 - **DO NOT** treat Dynamic Forms `uiBehavior` drift (`none` → `readonly`/`required`) as a real edit by default — the org normalizes it on save.
 - **DO NOT** assume hand-copied org XML belongs in `post_ux` without going through retrieve + diff + writeback when aligning with templates.
 - **DO NOT** reference a feature-gated custom field/component (e.g. a `post_<feature>`-only field) from a **base/always-on** template (`layouts/base`, `flexipages/base`, `profiles/base`). It assembles into the default build and **breaks deploy** on a flag-off org where that field/component was never deployed. Put it in the feature's patch path.

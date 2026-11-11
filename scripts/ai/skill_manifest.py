@@ -3,14 +3,16 @@
 skill_manifest.py — Cross-repo skill-manifest resolver.
 
 Loads .claude/skill-manifest.yml from the current repo, resolves the local
-filesystem paths for both Foundations and PMOS clones (via env vars or
+filesystem path of every repo clone it declares (via env vars or
 sibling-directory fallback), and exposes lookup helpers for skills and
 grounding artifacts that need to read across the repo boundary.
 
+The declared repos are listed in ``REPO_KEYS``.
+
 Design references:
   - Schema: .claude/skill-manifest.yml (this repo)
-  - Pattern: .agents/artifacts/skills-consolidation-plan.md §3
-  - SSOT contract: .agents/artifacts/ssot-comparison.md §6
+  - Pattern: .agents/artifacts/topics/skills/skills-consolidation-plan.md §3
+  - SSOT contract: .agents/artifacts/topics/pmos-integration/ssot-comparison.md §6
   - Phase: 6.3 (per pmos-integration.md roadmap)
 
 Usage:
@@ -63,6 +65,12 @@ MANIFEST_FILENAME = ".claude/skill-manifest.yml"
 # `_audit_foundations` for how references into it are treated.
 LOCAL_ONLY_ROOT = ".agents/artifacts"
 LOCAL_ONLY_PREFIXES = (LOCAL_ONLY_ROOT + "/",)
+
+# Repo sections the resolver knows how to discover, in manifest order. Adding a
+# repo to the manifest means adding its key here too, or its clone is never
+# resolved. Only ``foundations`` is required; the rest declare ``optional: true``
+# and degrade to a ``[INFO]`` line when the clone is absent.
+REPO_KEYS = ("foundations", "pmos")
 
 PY_YAML_HELP = (
     "PyYAML is not available (not installed, or failed to import), so "
@@ -253,7 +261,7 @@ class RepoLocation:
     #   "verified-remote" — git remote matches repo_url
     #   "verified-self"   — the candidate IS the repo containing this manifest
     #                       AND carries this section's repo-specific surface
-    #                       (remote not consulted)
+    #                       (its remote only vetoes: a provable mismatch rejects)
     #   "unverified"      — structural match (strict or lenient) accepted, but
     #                       no remote/URL comparison was possible
     #   "unknown"         — no candidate accepted
@@ -286,6 +294,17 @@ def _git_remote_url(path: Path) -> str | None:
     return url or None
 
 
+# ssh://user@host/owner/repo or scp-style user@host:owner/repo (user is usually git).
+# Groups: host, path.
+_SSH_URL = re.compile(r"^(?:ssh://)?[^@/:]+@([^:/]+)[:/](.+)$")
+
+
+def _is_ssh_form(url: str) -> bool:
+    """True for an SSH remote, whose host may be an ``~/.ssh/config`` alias."""
+    u = url.strip()
+    return u.startswith("ssh://") or bool(_SSH_URL.match(u))
+
+
 def _normalize_repo_url(url: str) -> tuple[str, str] | None:
     """Reduce a git URL to ``(host, owner/repo)`` for identity comparison.
 
@@ -296,18 +315,25 @@ def _normalize_repo_url(url: str) -> tuple[str, str] | None:
     u = url.strip().rstrip("/")
     if u.endswith(".git"):
         u = u[: -len(".git")]
-    m = re.match(r"^(?:ssh://)?git@([^:/]+)[:/](.+)$", u)
+    m = _SSH_URL.match(u)
     if m:
         host, rest = m.group(1), m.group(2)
     else:
         m = re.match(r"^[a-z+]+://([^/]+)/(.+)$", u)
         if not m:
             return None
-        host, rest = m.group(1), m.group(2)
+        # Drop userinfo (https://user@host/...), which names an account, not a host.
+        host, rest = m.group(1).rsplit("@", 1)[-1], m.group(2)
     parts = [p for p in rest.split("/") if p]
     if len(parts) < 2:
         return None
     return (host.lower(), "/".join(parts[-2:]).lower())
+
+
+def _repo_name(url: str) -> str | None:
+    """The repo segment of a git URL (``rlm-base-dev``), or None if it won't normalize."""
+    n = _normalize_repo_url(url)
+    return n[1].split("/")[-1] if n else None
 
 
 def _urls_equivalent(a: str, b: str) -> bool | None:
@@ -318,11 +344,23 @@ def _urls_equivalent(a: str, b: str) -> bool | None:
     schemes). None means "cannot compare" — callers must treat it as
     unverifiable, never as a mismatch: rejecting a legitimate clone because
     its remote is a local mirror would be a false positive.
+
+    The same ``owner/repo`` on a different host is also None when either URL is
+    SSH-form: its host can be an alias from ``~/.ssh/config``
+    (``git@github.com-work:owner/repo``, common when juggling accounts), which
+    names the declared host under another name and can't be resolved offline.
+    Between two https URLs a different host is a different forge, so it stays
+    False, as does any different ``owner/repo`` — the stale/foreign-clone case
+    the rejection exists for.
     """
     na, nb = _normalize_repo_url(a), _normalize_repo_url(b)
     if na is None or nb is None:
         return None
-    return na == nb
+    if na[1] != nb[1]:
+        return False
+    if na[0] == nb[0]:
+        return True
+    return None if (_is_ssh_form(a) or _is_ssh_form(b)) else False
 
 
 def _discover_repo(
@@ -335,6 +373,11 @@ def _discover_repo(
     NOT the process cwd. This keeps ``--check`` and the documented sibling-
     directory fallback stable regardless of which subdirectory the caller is
     in (``docs/``, ``scripts/``, etc.).
+
+    For the section describing the repo that contains the manifest, that repo
+    itself is tried before any hint, env-var hints included: from inside a
+    Foundations checkout the Foundations clone is the tree being checked. The
+    env vars still direct discovery of the OTHER repo.
     """
     hints: list[str] = repo_section.get("local_path_hints", []) or []
     candidates: list[Path] = []
@@ -368,6 +411,36 @@ def _discover_repo(
     declared_url = repo_section.get("repo_url", "") or ""
     rejected: list[tuple[Path, str]] = []
 
+    def _is_this_section(cand: Path) -> bool:
+        """Whether ``cand`` carries the agent surface only this section's repo has.
+
+        The manifest ships identically in both repos, so being the repo that
+        contains it cannot say which section it satisfies. Foundations has
+        ``.cursor/skills`` and PMOS does not; Foundations ALSO has
+        ``.claude/skills`` (discovery links), so PMOS's surface alone would
+        match a Foundations checkout — PMOS requires the absence of Foundations'
+        too. The surface is only a first test: should PMOS grow ``.cursor/skills``
+        it would pass for Foundations here, which is why ``_identity_of`` still
+        rejects a self root whose remote names a different repo. The names
+        are matched literally, so a new section needs its surface added here or
+        it simply gets no self-first treatment.
+        """
+        has_cursor = (cand / ".cursor" / "skills").is_dir()
+        if repo_name == "pmos-revenue-cloud":
+            return (cand / ".claude" / "skills").is_dir() and not has_cursor
+        if repo_name == "rlm-base-dev":
+            return has_cursor
+        return False
+
+    # The repo containing this manifest is checked first for the section that
+    # describes it, ahead of every hint. A worktree, or a clone under another
+    # directory name, is otherwise not named by any hint: the sibling and home
+    # hints then point at a DIFFERENT checkout of the same repo (another branch,
+    # possibly someone's uncommitted tree), and the audit would run against it.
+    if manifest_root is not None and _is_this_section(manifest_root):
+        self_root = manifest_root.resolve()
+        candidates = [self_root] + [c for c in candidates if c.resolve() != self_root]
+
     def _identity_of(cand: Path) -> str | None:
         """Classify a structurally-matching candidate against repo_url.
 
@@ -378,37 +451,33 @@ def _discover_repo(
         readable remote that disagrees with the declared repo_url disqualifies
         the candidate outright.
         """
-        if manifest_root is not None and cand.resolve() == manifest_root.resolve():
-            # The repo containing this manifest is trivially itself — but only
-            # for the section that actually DESCRIBES this repo. The manifest
-            # is designed to ship identically in both repos, so containment
-            # alone cannot say which section it satisfies: a PMOS hint pointed
-            # at this Foundations checkout would otherwise be accepted as a
-            # "verified" PMOS clone. Require the section's repo-specific agent
-            # surface; on mismatch, fall through to remote comparison, which
-            # rejects a provably different repo.
-            self_is_this_section = (
-                repo_name == "pmos-revenue-cloud"
-                and (cand / ".claude" / "skills").is_dir()
-            ) or (
-                repo_name == "rlm-base-dev"
-                and (cand / ".cursor" / "skills").is_dir()
-            )
-            if self_is_this_section:
-                return "verified-self"
         remote = _git_remote_url(cand)
-        if remote is None or not declared_url:
-            return "unverified"
-        same = _urls_equivalent(remote, declared_url)
-        if same is None:
-            # Readable remote, but not comparable (local-path/file:// mirror,
-            # exotic scheme). Not a provable mismatch — fall back to the
-            # documented unverified acceptance rather than rejecting.
-            return "unverified"
+        same = _urls_equivalent(remote, declared_url) if remote and declared_url else None
+        if (
+            manifest_root is not None
+            and cand.resolve() == manifest_root.resolve()
+            and _is_this_section(cand)
+        ):
+            # The repo containing this manifest is itself — but only for the
+            # section that actually DESCRIBES this repo (see _is_this_section).
+            # Accepted when its remote can't be compared (an SSH alias) and when
+            # only the owner differs: a contributor's fork, which CONTRIBUTING.md
+            # has them clone, is this repo. A different repo NAME still rejects:
+            # the surface test is structural, and structure alone is what this
+            # check exists not to trust.
+            if same is False and _repo_name(remote) != _repo_name(declared_url):
+                rejected.append((cand, remote))
+                return None
+            return "verified-self"
+        if same is False:
+            rejected.append((cand, remote))
+            return None
         if same:
             return "verified-remote"
-        rejected.append((cand, remote))
-        return None
+        # No remote, no declared URL, or not comparable (local-path/file://
+        # mirror, exotic scheme, SSH alias). Not a provable mismatch — fall back
+        # to the documented unverified acceptance rather than rejecting.
+        return "unverified"
 
     for cand in candidates:
         if not cand.is_dir():
@@ -427,13 +496,16 @@ def _discover_repo(
                 identity=identity,
                 rejected=rejected,
             )
-        # Lenient match: directory exists with the expected agent surface.
-        # Foundations ships .cursor/skills/; PMOS ships .claude/skills/.
-        # If either is present at this candidate, treat it as the clone.
-        looks_like_pmos = (cand / ".claude" / "skills").is_dir()
-        looks_like_foundations = (cand / ".cursor" / "skills").is_dir()
-        if (repo_name == "pmos-revenue-cloud" and looks_like_pmos) or (
-            repo_name == "rlm-base-dev" and looks_like_foundations
+        # Lenient match: the directory exists and carries a marker this repo
+        # section declares as distinctive of itself (Foundations ships
+        # .cursor/skills/, PMOS ships .claude/skills/). Declaring the marker in the manifest keeps
+        # this generic — a new repo needs no code change here. A section with no
+        # `clone_markers` gets the strict match above and nothing else.
+        markers = repo_section.get("clone_markers") or []
+        if any(
+            (cand / marker).exists()
+            for marker in markers
+            if isinstance(marker, str) and marker
         ):
             identity = _identity_of(cand)
             if identity is None:
@@ -506,11 +578,12 @@ def load_manifest(path: Path | None = None) -> dict[str, Any]:
     manifest_root = manifest_path.parent.parent  # .claude/skill-manifest.yml -> repo root
     data["_self_repo_root"] = str(manifest_root)
 
-    # Discover both repos' clones, anchoring relative hints to the manifest's
-    # repo root (NOT process cwd) so discovery is stable from any subdirectory.
-    for key in ("foundations", "pmos"):
-        # An empty `foundations:`/`pmos:` section parses to None; only resolve
-        # when the section is actually a mapping.
+    # Discover each declared repo's clone, anchoring relative hints to the
+    # manifest's repo root (NOT process cwd) so discovery is stable from any
+    # subdirectory.
+    for key in REPO_KEYS:
+        # An empty repo section parses to None; only resolve when the section
+        # is actually a mapping.
         if isinstance(data.get(key), dict):
             data[key]["_resolved"] = _discover_repo(data[key], manifest_root)
 
@@ -631,7 +704,7 @@ def _cli_check(manifest: dict[str, Any]) -> int:
     print()
 
     overall_ok = True
-    for key in ("foundations", "pmos"):
+    for key in REPO_KEYS:
         section = manifest.get(key, {})
         resolved: RepoLocation | None = section.get("_resolved")
         is_optional = bool(section.get("optional", False))
@@ -672,15 +745,16 @@ def _cli_check(manifest: dict[str, Any]) -> int:
             elif resolved.identity == "verified-self":
                 print(
                     "          identity: verified (this clone contains this "
-                    "manifest and the section's repo surface; remote not "
-                    "consulted)"
+                    "manifest and the section's repo surface; its remote names "
+                    "the same repo, possibly a fork, or cannot be compared)"
                 )
             else:
                 print(
                     "          identity: UNVERIFIED — no remote/URL comparison "
                     "was possible (unreadable git remote, undeclared repo_url, "
-                    "or a remote form that does not normalize, e.g. a "
-                    "local-path/file:// mirror); structural match accepted. "
+                    "a remote form that does not normalize, e.g. a "
+                    "local-path/file:// mirror, or an SSH host alias such as "
+                    "git@github.com-work:owner/repo); structural match accepted. "
                     "Confirm this clone is the declared repo."
                 )
             if key == "pmos":
@@ -906,7 +980,7 @@ def main(argv: Iterable[str] | None = None) -> int:
     g.add_argument("--check", action="store_true", help="verify clone discovery")
     g.add_argument(
         "--list-skills",
-        choices=["foundations", "pmos"],
+        choices=list(REPO_KEYS),
         help="list declared skills for a repo",
     )
     g.add_argument(

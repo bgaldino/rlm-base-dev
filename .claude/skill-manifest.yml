@@ -16,7 +16,9 @@
 #      resolve_manifest() function — load and resolve are separate steps so a
 #      single load can back many lookups.)
 #   2. Local clone paths come from env vars (FOUNDATIONS_REPO_ROOT, PMOS_REPO_ROOT)
-#      OR sibling-directory fallback (../pmos-revenue-cloud, ../rlm-base-dev)
+#      OR sibling-directory fallback (../pmos-revenue-cloud, ../rlm-base-dev).
+#      The repo containing this file answers for its own section first, ahead
+#      of every hint, so a worktree or renamed clone audits itself.
 #   3. Each grounding artifact has a resolved local filesystem path
 #   4. CLI: `python scripts/ai/skill_manifest.py --check | --list-skills <repo> |
 #      --resolve <repo>/<kind>/<key>` exposes the same surface for diagnostics
@@ -26,9 +28,9 @@
 #   - ensure both repos commit the same file (CI gate planned for Phase 6.3.5)
 #
 # References:
-#   - Schema doc: .agents/artifacts/ssot-comparison.md §6
-#   - Consolidation pattern: .agents/artifacts/skills-consolidation-plan.md §3
-#   - Validation status: .agents/artifacts/integration-claim-validation.md
+#   - Schema doc: .agents/artifacts/topics/pmos-integration/ssot-comparison.md §6
+#   - Consolidation pattern: .agents/artifacts/topics/skills/skills-consolidation-plan.md §3
+#   - Validation status: .agents/artifacts/topics/pmos-integration/integration-claim-validation.md
 
 manifest_version: 2
 generated_at: "2026-05-23T00:00:00Z"
@@ -39,7 +41,7 @@ generated_at: "2026-05-23T00:00:00Z"
 # never been committed on any branch. `skill_manifest.py --check` did not catch any of
 # that at the time — it resolved repo roots only. It now audits every declared skill
 # and every path-shaped value, so re-stamping this date means running it.
-last_verified: "2026-07-26"
+last_verified: "2026-10-22"
 salesforce_release_active: "264"
 salesforce_release_prior_ga: "262"
 api_version_active: "v68.0"
@@ -61,10 +63,25 @@ foundations:
     - "$RC_WORKSPACE/foundations"
     - "${HOME}/Documents/GitHub/bgaldino/_bgaldino/rlm-base-dev"
     - "../rlm-base-dev"
+  # Paths that identify a candidate directory as THIS repo when it does not yet
+  # ship the manifest itself. Any one existing is enough.
+  clone_markers:
+    - ".cursor/skills"
 
   # Skills that Foundations holds canonically.
   # PMOS skills can read these via cross-repo resolution.
   skills:
+    - id: dro-plans
+      path: .cursor/skills/dro-plans/SKILL.md
+      purpose: "Author, load CSV/SFDMU, and maintain DRO order fulfillment configuration and handle affected in-flight plans"
+      consumed_by_pmos: []
+      sub_skills:
+        - .cursor/skills/dro-plans/objects-and-relationships.md
+        - .cursor/skills/dro-plans/authoring-and-deployment.md
+        - .cursor/skills/dro-plans/csv-and-sfdmu.md
+        - .cursor/skills/dro-plans/updates-and-runtime.md
+        - .cursor/skills/dro-plans/examples-and-grounding.md
+
     - id: revenue-cloud-data-model
       path: .cursor/skills/revenue-cloud-data-model/SKILL.md
       purpose: "Revenue Cloud object/field schema reference; backed by erd-data.json"
@@ -115,13 +132,58 @@ foundations:
         - "The Postman collection JSON under postman/ is still the v66.0 baseline pending regeneration against a live 264 org; cite docs/api/ Markdown, not collection payloads"
         - "The docs/api/index.html viewer (155 endpoints) is hand-maintained; the docs/api/ Markdown wins on any disagreement"
 
+    - id: advanced-approvals
+      path: .cursor/skills/advanced-approvals/SKILL.md
+      purpose: "Advanced Approvals: modeling sign-off matrices (cumulative levels, chains, conditions), submit/review/recall/reject actions, Smart Approvals and Preview limits, and the repo's shipped quote approval"
+      consumed_by_pmos: []
+      provenance: 264 Help and dev-guide snapshot, plus a live end-to-end run of the shipped quote approval on a QuantumBit build (2026-11-10)
+      sub_skills:
+        - .cursor/skills/advanced-approvals/matrix-modeling.md
+        - .cursor/skills/advanced-approvals/actions-and-objects.md
+        - .cursor/skills/advanced-approvals/limitations.md
+
+    - id: transaction-line-editor
+      path: .cursor/skills/transaction-line-editor/SKILL.md
+      purpose: "Configure and use the quote/order Sales Transaction Line Editor: columns, Adjustment Type, groups, action buttons, Instant Pricing, auto-refresh, configure from a line, amendment lines; repo page changes via templates/flexipages"
+      consumed_by_pmos: [demo-script, sales-enablement]
+      provenance: grounded in the 264 Help, dev-guide and release-notes snapshots plus the repo's page templates; demo traps measured on 264 orgs 2026-11
+      caveats:
+        - "Action-button configuration UI, run-time limit and the Manage Header Adjustment API name disagree across 264 Help articles and the release notes; settle on a live org before writing an action layout into a template"
+
+    - id: quote-negotiation-rounds
+      path: .cursor/skills/quote-negotiation-rounds/SKILL.md
+      purpose: "Negotiation or bid rounds as quote versions: deep clone of a quote and what carries over, naming and relating rounds, an internal-only round, per-round discounts and approvals, and which round syncs and becomes the order"
+      consumed_by_pmos: []
+      provenance: 264 Help and dev-guide snapshot, plus two live Connect API quote clones on a QuantumBit scratch org (2026-11-10)
+      sub_skills:
+        - .cursor/skills/quote-negotiation-rounds/deep-clone.md
+        - .cursor/skills/quote-negotiation-rounds/internal-round.md
+
+    - id: asset-lifecycle-changes
+      path: .cursor/skills/asset-lifecycle-changes/SKILL.md
+      purpose: "Model and verify amendments, swaps, cancellations and renewals: mapping a change policy, where prices and attributes land, bundle-component limits, credits by selling model, end-to-end verification"
+      consumed_by_pmos: []
+      provenance: 264 Help snapshot, repo skills, and live lifecycle runs on QuantumBit builds (2026-11-05)
+      sub_skills:
+        - .cursor/skills/asset-lifecycle-changes/change-policy-mapping.md
+        - .cursor/skills/asset-lifecycle-changes/verification.md
+
+    - id: billing-setup
+      path: .cursor/skills/billing-setup/SKILL.md
+      purpose: "Billing setup: billing frequency vs the selling model on quote, order and asset lines, billing policies and treatments (advance, arrears, exclude), milestone billing for services, payment terms and the shipped approval, and what the repo's billing build ships"
+      consumed_by_pmos: []
+      provenance: 264 Help and dev-guide snapshot, repo billing wiring, and headless quote-line placements on a QuantumBit build (2026-11-10)
+      sub_skills:
+        - .cursor/skills/billing-setup/shipped-billing.md
+        - .cursor/skills/billing-setup/measured-264.md
+
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md
       purpose: "Build/verify multi-year GROUP ramp quotes (place→EditGroup→clone) and per-segment (compound) price uplift"
       consumed_by_pmos: [demo-script, demo-flow, sales-enablement]
       provenance: live-verified on 264/v68.0 org 2026-07 (field legality + build sequence)
       caveats:
-        - "Compound-uplift ENGINE (PriceRevision element) lives in expression-sets skill; this skill covers the transaction build + prerequisites"
+        - "Compound-uplift ENGINE (PriceRevision element) lives in pricing-procedures skill (elements/price-revision-compound-uplift.md); this skill covers the transaction build + prerequisites"
         - "Headless scripts/ramp_deals/ toolkit is on unmerged branch feat/ramp-deals-core; skill documents the raw Connect calls until it lands"
 
     - id: txn-data-harness
@@ -186,6 +248,46 @@ foundations:
       caveats:
         - "Endpoints target 264 / v68.0; enums and behavior were live-verified on 262 / v67.0 and are NOT yet re-verified on 264 — re-verify against a 264 org"
 
+    - id: pricing-procedures
+      path: .cursor/skills/pricing-procedures/SKILL.md
+      purpose: "Pricing procedure element configuration (one sub-file per pricing element: Aggregate Price, Price Revision incl. compound ramp uplift, discounts, DDS, Rounding, …), element ordering rules, discovery, and day-2 operations"
+      consumed_by_pmos: [spec, technical-review]
+      provenance: hand-authored from the 264 Help corpus + dev guide + shipped expressionSetDefinition XML + core-source review of element parameters and validation
+      sub_skills:
+        - .cursor/skills/pricing-procedures/procedure-anatomy-and-ordering.md
+        - .cursor/skills/pricing-procedures/discovery-procedures.md
+        - .cursor/skills/pricing-procedures/operations-and-troubleshooting.md
+        - .cursor/skills/pricing-procedures/runtime-and-observability.md
+        - .cursor/skills/pricing-procedures/elements/price-revision-compound-uplift.md
+      caveats:
+        - "Element parameter names and rules are pinned to 264; claims are tagged [Help]/[Dev guide]/[Repo]/[Core] — only [Live]-tagged ones were exercised against an org"
+        - "Step graph CRUD and activation lifecycle stay in expression-sets; build sequencing stays in pricing-wiring"
+
+    - id: pricing-setup
+      path: .cursor/skills/pricing-setup/SKILL.md
+      purpose: "Configure Salesforce Pricing in any org: enablement, permissions and sharing, price and cost books, price adjustment schedules, pricing recipes, proration and selling models, price revision policies, pricing actions, pricing data sync and packaging, and Help end-to-end scenarios"
+      consumed_by_pmos: []
+      provenance: hand-authored from the 264 Help corpus (ind.pricing_* setup articles) + offline ERD + shipped settings and data plans
+      sub_skills:
+        - .cursor/skills/pricing-setup/org-enablement-and-permissions.md
+        - .cursor/skills/pricing-setup/price-books.md
+        - .cursor/skills/pricing-setup/cost-books.md
+        - .cursor/skills/pricing-setup/price-adjustment-schedules.md
+        - .cursor/skills/pricing-setup/import-export-and-bulk-data.md
+        - .cursor/skills/pricing-setup/pricing-recipes.md
+        - .cursor/skills/pricing-setup/proration-and-selling-models.md
+        - .cursor/skills/pricing-setup/price-revision-policies.md
+        - .cursor/skills/pricing-setup/pricing-actions.md
+        - .cursor/skills/pricing-setup/scenarios/README.md
+        - .cursor/skills/pricing-setup/scenarios/simple-pricing-procedure.md
+        - .cursor/skills/pricing-setup/scenarios/lowest-price-across-price-books.md
+        - .cursor/skills/pricing-setup/scenarios/sequential-discounts.md
+        - .cursor/skills/pricing-setup/scenarios/pricing-action-button.md
+      caveats:
+        - "Pinned to 264; claims are tagged [Help]/[Repo]/[Core]; only the [Repo, measured] items (sync scope, schedule activation) come from a live org"
+        - "Help states cost books are tracking-only; this repo reads them through a decision table and List Price, which is custom wiring"
+        - "Element configuration stays in pricing-procedures; this repo's build order and data loads stay in pricing-wiring"
+
     - id: decision-tables
       path: .cursor/skills/decision-tables/SKILL.md
       purpose: "BRE Decision Table inspect/author/manage: the definition-vs-data model, Tooling setup objects, Metadata and Tooling definition writes, explicit lifecycle commands, async refresh, CSV data, and recipe-mapping trace"
@@ -217,6 +319,20 @@ foundations:
         - "The CCI tasks remain the org-build path — the toolkit complements, does not duplicate, them"
         - "check_decision_table_freshness requires post_utils deployed; it delegates to RLM_DecisionTableManagerController rather than recomputing freshness"
         - "A table's own row count is not queryable — DecisionTableDataset/Recordset reject aggregates and partial filters; only source counts exist"
+
+    - id: product-catalog-modeling
+      path: .cursor/skills/product-catalog-modeling/SKILL.md
+      purpose: "Turn commercial offerings into a PCM catalog model: product vs attribute vs component, bundles and cardinality, classifications and attribute overrides, selling models, IsAssetizable/IsSoldOnlyWithOtherProds, catalogs, categories and Family"
+      consumed_by_pmos: []
+      sub_skills:
+        - .cursor/skills/product-catalog-modeling/bundles-and-cardinality.md
+        - .cursor/skills/product-catalog-modeling/attributes-and-classifications.md
+        - .cursor/skills/product-catalog-modeling/selling-models-and-lifecycle.md
+        - .cursor/skills/product-catalog-modeling/catalogs-and-loading.md
+      provenance: grounded in the 264 Help and dev-guide snapshots plus repo skills; load facts measured on live 264 builds 2026-11
+      caveats:
+        - "Several runtime behaviours are open and need live verification (IsSoldOnlyWithOtherProds enforcement, ProductCategory.Code uniqueness scope, the Discontinued vs End Of Life sale cut-off, among others); SKILL.md → Open questions lists them all"
+
     - id: constraint-models
       path: .cursor/skills/constraint-models/SKILL.md
       purpose: "CML constraint models for the Product Configurator: .ffxblob as the shipped plain-text artifact, the four records a bundle member needs, Sequence in the PRC composite key, and why importing into an ACTIVE version does not redeploy"
@@ -224,7 +340,7 @@ foundations:
       provenance: hand-authored from tasks/rlm_cml.py + live verification on a scratch org + 262 Help/dev-guide CML articles
       caveats:
         - "Endpoints target 264 / v68.0; behavior was live-verified on 262 / v67.0 and is NOT yet re-verified on 264"
-        - "A standalone import_cml uploads the blob but never cycles the version, so the runtime keeps the old model; prepare_constraints covers this at steps 11-12 but a one-off import does not"
+        - "A standalone import_cml uploads the blob but never cycles the version, so the runtime keeps the old model; prepare_constraints covers this at steps 9-10 but a one-off import does not"
 
     - id: pricing-wiring
       path: .cursor/skills/pricing-wiring/SKILL.md
@@ -257,6 +373,7 @@ foundations:
       tooling:
         - scripts/bash/update-toolchain.sh
         - scripts/ai/gate_python.py
+        - scripts/ai/toolchain_audit.py
       caveats:
         - "macOS + zsh + Homebrew; the containerized toolchain (docker/README.md) is separate"
 
@@ -383,6 +500,17 @@ foundations:
         - scripts/ai/skill_manifest.py
       governs: .claude/skill-manifest.yml
 
+    - id: mcp-integration
+      path: .cursor/skills/mcp-integration/SKILL.md
+      purpose: "The MCP surface on a built org — hosted + custom servers, the ECA, the clone invocable, the proxy. Foundations owns the whole surface: the org side (post_mcp + optional post_mcp_custom bundles, configure_mcp_servers, prepare_mcp flow) and the client tooling in scripts/mcp/. Carries the metadata-vs-Tooling-API constraint, and the rebuild-drift check"
+      consumed_by_pmos: []
+      tooling:
+        - tasks/rlm_mcp.py
+        - scripts/mcp/mcp_org.py
+        - scripts/mcp/mcp_auth.py
+        - scripts/mcp/mcp_multiplex_proxy.py
+        - scripts/mcp/write_connector_config.py
+
     - id: pde-org-build
       path: .cursor/skills/pde-org-build/SKILL.md
       purpose: "Build a PDE (or other org type) via runtime-only feature-flag overrides with a self-reverting script + Cloud-Agent command"
@@ -411,6 +539,15 @@ foundations:
         - scripts/docgen/docgen_template_manage.py
         - scripts/docgen/docgen_template_generate.py
 
+    - id: salesforce-contracts
+      path: .cursor/skills/salesforce-contracts/SKILL.md
+      purpose: "Salesforce Contracts CLM setup, org queries, clause and template authoring, lifecycle diagnosis, and migration"
+      consumed_by_pmos: []
+      sub_skills:
+        - .cursor/skills/salesforce-contracts/setup-and-diagnostics.md
+        - .cursor/skills/salesforce-contracts/content-and-migration.md
+        - .cursor/skills/salesforce-contracts/data-model-and-queries.md
+
     - id: df-workshop-setup
       path: .cursor/skills/df-workshop-setup/SKILL.md
       purpose: "Capture/replay DF Hands-On workshop org drift (seeded quotes, ramps, anchors, config) into a clone and verify it before TrialForce/OrgFarm templating"
@@ -430,7 +567,7 @@ foundations:
       class_path: tasks.check_pmos_prd.CheckPmosPrd  # NOT YET IMPLEMENTED
       purpose: "Validate PMOS PRD frontmatter against Foundations corpus"
       status: designed_not_built
-      see: .agents/artifacts/integration-staging/pmos-integration.md
+      see: .agents/artifacts/topics/integration-staging/pmos-integration.md
 
   # SFDMU shape registry
   sfdmu_shapes:
@@ -499,11 +636,13 @@ foundations:
     # consumers can resolve a release-specific canvas via
     # `resolve_grounding(..., 'qb_demo_script_{release}')`. Add a new entry
     # each release when the corresponding markdown file is generated.
-    qb_demo_script_262:
-      path: docs/enablement/262/qb-demo-script.md
-      purpose: "QuantumBit demo-script canvas, Release 262 (Summer '26)"
+    qb_demo_script_264:
+      # Relabeled from the 262 draft on 2026-10-29 (262 orgs no longer exist); only the
+      # core QB-COMPLETE quote-to-order steps are verified on 264 so far.
+      path: docs/enablement/264/qb-demo-script.md
+      purpose: "QuantumBit demo-script canvas, Release 264 (Winter '27)"
       produced_by_skill: qb-demo-script
-      release: "262"
+      release: "264"
       status: draft  # awaits SME pass for Setup-UI, Known Bugs, image capture, Slack publish
       consumed_by_pmos: []  # PMOS narrative-polish pass is Phase 6.3+, opt-in
 
@@ -553,6 +692,8 @@ pmos:
     - "$RC_WORKSPACE/pmos"
     - "${HOME}/Documents/GitHub/Enterprise/_bgaldino/pmos-revenue-cloud"
     - "../pmos-revenue-cloud"
+  clone_markers:
+    - ".claude/skills"
 
   # Skills that PMOS holds canonically (subset relevant to Foundations)
   # Foundations skills can read these via cross-repo resolution.
@@ -697,15 +838,15 @@ pmos:
 studio:
   cross_repo_decisions:
     - id: data_shape_consistency
-      see: .agents/artifacts/skills-consolidation-plan.md §5
+      see: .agents/artifacts/topics/skills/skills-consolidation-plan.md §5
       summary: "All orgs are built from Foundations data shapes (qb/q3/mfg+locale). Enablement materials MUST reference real built-org records, not fictional ones."
 
     - id: ssot_per_domain
-      see: .agents/artifacts/ssot-comparison.md
+      see: .agents/artifacts/topics/pmos-integration/ssot-comparison.md
       summary: "Foundations is canonical for Help mirror, APIs, schema. PMOS is canonical for PRDs, capability roadmap, PM frameworks. Cross-repo manifest is the wire."
 
   sibling_repos_known:
     - distill: not_modeled_in_manifest
     - aegis: not_modeled_in_manifest
-    # See revenue-cloud-platform.md for the 4-component picture; this manifest
-    # only covers the Foundations × PMOS bridge today.
+    # See revenue-cloud-platform.md for the 4-component picture. This manifest
+    # covers the Foundations × PMOS bridge only.

@@ -95,6 +95,12 @@ Check the return value and the exit code, not just the logic.
 **Silent scope narrowing.** A `WHERE` clause that quietly excludes rows the caller
 believes are included — filtering by status, type or ownership without saying so.
 
+**A step rewritten, its cross-references left behind.** When a guide step changes how it
+works (copies a template instead of `echo`-appending lines, say), other sections still
+describe it by number with the old mechanism: "the lines Steps 3 and 4 append", "the init
+blocks Steps 3 and 4 add". Search the guide and its companions for the step number and fix
+every sentence that restates what the step does.
+
 **Unverified numbers in documentation.** Arithmetic, record counts and rates asserted in
 a guide without a recorded live run behind them. Mark unverified figures as such rather
 than stating them plainly.

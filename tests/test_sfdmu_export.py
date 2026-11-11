@@ -182,6 +182,94 @@ delegates("validator._is_js_truthy calls module.is_js_truthy",
 check("validator SFDMU_OPERATION_BY_INDEX is the module tuple (same object, not a copy)",
       SFDMUValidator.SFDMU_OPERATION_BY_INDEX is se.SFDMU_OPERATION_BY_INDEX, True)
 
+# --- collect_target_row_errors (pack 286) -------------------------------------
+import os  # noqa: E402
+import tempfile  # noqa: E402
+import time  # noqa: E402
+
+
+def _write(plan, rel, text, mtime=None):
+    path = os.path.join(plan, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write(text)
+    if mtime is not None:
+        os.utime(path, (mtime, mtime))
+
+
+with tempfile.TemporaryDirectory() as plan:
+    check("no target/ dir -> nothing found", se.collect_target_row_errors(plan), [])
+    # All-success: SFDMU writes #N/A for a created row (measured 2026-10-21); empty is also success.
+    _write(plan, "target/Product2_insert_target.csv",
+           '\ufeff"Id","Name","Errors"\n"01t1","A","#N/A"\n"01t2","B",""\n')
+    # No Errors column at all records no rejections.
+    _write(plan, "target/Pricebook2_update_target.csv", '"Id","Name"\n"01s1","Std"\n')
+    check("#N/A, empty and no-Errors-column files are all clean",
+          se.collect_target_row_errors(plan), [])
+
+    # Mixed, in an object-set subdirectory, custom object with underscores in its name.
+    _write(plan, "target/object-set-2/RLM_Learning_Identity__c_upsert_target.csv",
+           '"Id","Errors"\n"a01","#N/A"\n"","duplicate value found"\n"","duplicate value found"\n'
+           '"","Required fields are missing: [Name]"\n')
+    # All-failure: the 2026-10-21 reproduction's shape.
+    _write(plan, "target/ProductConfigurationFlow_insert_target.csv",
+           '"Id","FlowIdentifier","IsDefault","Status","Errors"\n'
+           '"","RLM_Flow","true","Active","Wrong Flow API Name entered as input, or Flow API is not in Active status."\n')
+    found = se.collect_target_row_errors(plan)
+    check("only the two files with real errors are reported, sorted by path",
+          [f["file"] for f in found],
+          [os.path.join("target", "ProductConfigurationFlow_insert_target.csv"),
+           os.path.join("target", "object-set-2", "RLM_Learning_Identity__c_upsert_target.csv")])
+    mixed = found[1]
+    check("custom object name keeps its underscores; operation split off",
+          (mixed["object"], mixed["operation"]), ("RLM_Learning_Identity__c", "upsert"))
+    check("mixed file counts failed vs total rows", (mixed["failed"], mixed["rows"]), (3, 4))
+    check("samples are distinct, in first-seen order",
+          mixed["samples"], ["duplicate value found", "Required fields are missing: [Name]"])
+    check("max_samples caps the samples",
+          se.collect_target_row_errors(plan, max_samples=1)[1]["samples"], ["duplicate value found"])
+    check("format names object, operation, counts, file and the error",
+          "ProductConfigurationFlow (insert): 1 of 1 row(s) rejected" in se.format_target_row_errors(found)
+          and "Flow API is not in Active status" in se.format_target_row_errors(found), True)
+
+    # `since`: a file left by an earlier run (older mtime) is not this run's result.
+    old = time.time() - 3600
+    for f in found:
+        os.utime(os.path.join(plan, f["file"]), (old, old))
+    check("since skips files written before the run", se.collect_target_row_errors(plan, since=old + 60), [])
+    check("since=None still reads them", len(se.collect_target_row_errors(plan)), 2)
+
+    # `baseline`: only files new or rewritten since the snapshot are this run's result.
+    snap = se.snapshot_target_files(plan)
+    check("baseline taken after the files were written excludes all of them",
+          se.collect_target_row_errors(plan, baseline=snap), [])
+    _write(plan, "target/Pricebook2_update_target.csv", '"Id","Errors"\n"","bad"\n', mtime=old + 7200)
+    check("baseline: a rewritten file (changed mtime) is read again",
+          [f["object"] for f in se.collect_target_row_errors(plan, baseline=snap)], ["Pricebook2"])
+    check("errors maps each distinct message to its row count",
+          [f for f in se.collect_target_row_errors(plan) if f["object"] == "RLM_Learning_Identity__c"][0]["errors"],
+          {"duplicate value found": 2, "Required fields are missing: [Name]": 1})
+
+# --- parse_row_error_ignores / split_known_row_errors -------------------------
+check("ignores: YAML list", se.parse_row_error_ignores(["A", "B"]), {"A": None, "B": None})
+check("ignores: mapping with expected substrings",
+      se.parse_row_error_ignores({"A": "dup", "B": ""}), {"A": "dup", "B": None})
+check("ignores: comma string from -o", se.parse_row_error_ignores("A, B"), {"A": None, "B": None})
+check("ignores: JSON list pasted into -o", se.parse_row_error_ignores('["A"]'), {"A": None})
+check("ignores: JSON mapping pasted into -o", se.parse_row_error_ignores('{"A": "dup"}'), {"A": "dup"})
+check("ignores: empty", se.parse_row_error_ignores(None), {})
+
+_items = [
+    {"object": "A", "errors": {"duplicate value found: x": 1}},
+    {"object": "B", "errors": {"Required fields are missing: [Name]": 5, "something new": 1}},
+    {"object": "C", "errors": {"anything": 1}},
+]
+known, unknown = se.split_known_row_errors(_items, {"A": "duplicate value found", "B": "Required fields", "C": None})
+check("split: object listed with a matching substring is known", [i["object"] for i in known], ["A", "C"])
+check("split: a NEW kind of error on a listed object still fails", [i["object"] for i in unknown], ["B"])
+known, unknown = se.split_known_row_errors(_items, {})
+check("split: nothing listed -> everything fails", (len(known), len(unknown)), (0, 3))
+
 print("=" * 60)
 if _failures:
     print(f"FAIL: {len(_failures)} check(s) failed")

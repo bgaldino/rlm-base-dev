@@ -43,6 +43,7 @@ flow ordering and feature-flag conditions.
 | [DocGen Setup](guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
 | [Transaction Data Harness](guides/txn-data-harness.md) | Standalone tool that mints high-volume demo data (Quotes → Orders → Posted Invoices) by driving the real transaction lifecycle; usage, verification, cleanup |
 | [Usage & Consumption Runbook](guides/usage-consumption-runbook.md) | Step-by-step: build a backdated asset, record usage, orchestrate, verify, reset — plus a symptom→cause table for when a consumption demo misbehaves |
+| [Contract Pricing](guides/contract-pricing.md) | How contract prices and discounts reach quote lines through `RLM_DefaultPricingProcedure`, amendment behavior, changing the contract on a priced quote, setup checklist and known limits |
 | [QB Consumption Demo Scenarios](guides/qb-consumption-demo-scenarios.md) | Nine usage/consumption demo scenarios (1–8 historically verified on Release 262; scenario 6 requires re-verification with current grant sizes; 9 platform-blocked), with worked arithmetic and execution-order guidance |
 | [Post-Billing Portal](guides/post-billing-portal.md) | Billing portal module setup and deployment |
 | [Mock Billing Payment Gateway](guides/mock-billing-payment-gateway.md) | Opt-in synchronous test gateway, scenario saved methods, and setup tasks |
@@ -55,19 +56,21 @@ flow ordering and feature-flag conditions.
 | Document | Description |
 |----------|-------------|
 | [Composite Key Optimizations](references/sfdmu-composite-key-optimizations.md) | SFDMU v5 migration, composite key analysis, idempotency verification |
+| [SFDMU Data-Shape Layering](analysis/sfdmu-data-shape-layering.md) | How plans reload without deleting, shape ownership, adding a shape, remaining destructive operations |
 
 ## SFDMU Data Plan READMEs
 
 Each SFDMU data plan has its own detailed README documenting objects, fields, load order, external IDs, and optimization opportunities:
 
 - [qb-pcm README](../datasets/sfdmu/qb/en-US/qb-pcm/README.md) -- Product Catalog Management
-- [qb-product-images README](../datasets/sfdmu/qb/en-US/qb-product-images/README.md) -- Product Images
 - [qb-pricing README](../datasets/sfdmu/qb/en-US/qb-pricing/README.md) -- Pricing
+- [qb-price-revision README](../datasets/sfdmu/qb/en-US/qb-price-revision/README.md) -- CPI index rates and price revision policies
 - [qb-tax README](../datasets/sfdmu/qb/en-US/qb-tax/README.md) -- Tax
 - [qb-billing README](../datasets/sfdmu/qb/en-US/qb-billing/README.md) -- Billing
 - [qb-dro README](../datasets/sfdmu/qb/en-US/qb-dro/README.md) -- Dynamic Revenue Orchestration
 - [qb-transactionprocessingtypes README](../datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes/README.md) -- Transaction Processing Types
 - [qb-rating README](../datasets/sfdmu/qb/en-US/qb-rating/README.md) -- Rating
+- [qb-rating-entitlements README](../datasets/sfdmu/qb/en-US/qb-rating-entitlements/README.md) -- Rating policies and grants
 - [qb-rates README](../datasets/sfdmu/qb/en-US/qb-rates/README.md) -- Rates
 - [qb-prm README](../datasets/sfdmu/qb/en-US/qb-prm/README.md) -- Partner Relationship Management
 - [qb-prm-pricing README](../datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) -- PRM Pricing Overlay

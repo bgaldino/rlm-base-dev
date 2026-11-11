@@ -9,14 +9,14 @@ import json
 import os
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object
+    BaseSalesforceTask = object
     TaskOptionsError = Exception
 
 
-class ManageTransactionProcessingTypes(BaseTask):
+class ManageTransactionProcessingTypes(BaseSalesforceTask):
     task_options = {
         "operation": {
             "description": "Operation to perform: 'list', 'upsert'",

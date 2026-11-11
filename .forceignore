@@ -23,8 +23,6 @@ package.xml
 **/eslint.config.mjs
 
 # rlm-base specific entries
-# contextDefinitions (extended at runtime via extend_context_* tasks)
-force-app/main/default/contextDefinitions
 # default expressionSetDefinitions
 force-app/main/default/expressionSetDefinition/Default_Rating_Discovery_Procedure_Auto.expressionSetDefinition-meta.xml
 force-app/main/default/expressionSetDefinition/Product_Discovery_Pricing_Procedure_Auto.expressionSetDefinition-meta.xml
@@ -52,7 +50,6 @@ unpackaged/post_utils/flows/RLM_Event_Trigger.flow-meta.xml
 # prepare_tso deploys this separately when tso=true.
 unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
 
-unpackaged/post_constraints/classes
 unpackaged/post_docgen/omniDataTransforms/GetInvoiceDetails_1.rpt-meta.xml
 unpackaged/post_docgen/omniDataTransforms/BillingDocumentGenerationGetInvoiceDetails_1.rpt-meta.xml
 

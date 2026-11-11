@@ -116,6 +116,7 @@ public with sharing class RLM_UsageUploaderController {
               AND LifecycleStartDate <= TODAY
               AND LifecycleEndDate >= TODAY
               AND Product2.UsageModelType = 'Anchor'
+            WITH USER_MODE
             ORDER BY Name ASC
         ];
 
@@ -140,6 +141,7 @@ public with sharing class RLM_UsageUploaderController {
             SELECT Id, Product2Id
             FROM Asset
             WHERE Id = :assetId
+            WITH USER_MODE
             LIMIT 1
         ];
 
@@ -158,6 +160,7 @@ public with sharing class RLM_UsageUploaderController {
             FROM ProductUsageResource
             WHERE ProductId = :ast.Product2Id
               AND Status = 'Active'
+            WITH USER_MODE
             ORDER BY UsageResource.Name ASC
         ];
 
@@ -175,6 +178,7 @@ public with sharing class RLM_UsageUploaderController {
                 FROM UnitOfMeasure
                 WHERE UnitOfMeasureClassId IN :uomClassIds
                   AND Status = 'Active'
+                WITH USER_MODE
                 ORDER BY Name ASC
             ]) {
                 if (!uomsByClass.containsKey(uom.UnitOfMeasureClassId)) {
@@ -222,18 +226,40 @@ public with sharing class RLM_UsageUploaderController {
             throw new AuraHandledException('You do not have permission to create usage records.');
         }
 
+        if (quantity == null || quantity <= 0) {
+            throw new AuraHandledException('Quantity must be greater than 0');
+        }
+        if (transactionDate == null) {
+            throw new AuraHandledException('Transaction date is required');
+        }
+
         // Resolve the AccountId from the Asset
         Asset ast = [
-            SELECT Id, AccountId
+            SELECT Id, Product2Id, AccountId
             FROM Asset
             WHERE Id = :assetId
+            WITH USER_MODE
             LIMIT 1
         ];
+
+        List<ProductUsageResource> purMatches = [
+            SELECT Id
+            FROM ProductUsageResource
+            WHERE ProductId = :ast.Product2Id
+              AND UsageResourceId = :usageResourceId
+              AND Status = 'Active'
+            WITH USER_MODE
+            LIMIT 1
+        ];
+        if (purMatches.isEmpty()) {
+            throw new AuraHandledException('This usage resource is not available for the asset\'s product.');
+        }
 
         UsageResource ur = [
             SELECT Id, DefaultUnitOfMeasureId, UnitOfMeasureClassId
             FROM UsageResource
             WHERE Id = :usageResourceId
+            WITH USER_MODE
             LIMIT 1
         ];
 
@@ -247,6 +273,7 @@ public with sharing class RLM_UsageUploaderController {
                 FROM UnitOfMeasure
                 WHERE Id = :unitOfMeasureId
                   AND UnitOfMeasureClassId = :ur.UnitOfMeasureClassId
+                WITH USER_MODE
                 LIMIT 1
             ];
             if (candidates.isEmpty() || candidates[0].Status != 'Active') {
@@ -269,7 +296,7 @@ public with sharing class RLM_UsageUploaderController {
             new List<TransactionJournal>{ tj }
         );
         TransactionJournal sanitized = (TransactionJournal) accessDecision.getRecords()[0];
-        insert sanitized;
+        insert as user sanitized;
         return sanitized.Id;
     }
 
@@ -379,6 +406,7 @@ public with sharing class RLM_UsageUploaderController {
             SELECT Id, AccountId
             FROM Asset
             WHERE Id = :assetId
+            WITH USER_MODE
             LIMIT 1
         ];
 
@@ -420,7 +448,7 @@ public with sharing class RLM_UsageUploaderController {
                 toInsert
             );
             List<TransactionJournal> sanitized = (List<TransactionJournal>) accessDecision.getRecords();
-            Database.SaveResult[] saveResults = Database.insert(sanitized, false);
+            Database.SaveResult[] saveResults = Database.insert(sanitized, false, AccessLevel.USER_MODE);
             for (Integer i = 0; i < saveResults.size(); i++) {
                 if (saveResults[i].isSuccess()) {
                     result.successCount++;
@@ -466,6 +494,7 @@ public with sharing class RLM_UsageUploaderController {
                    RateUnitOfMeasureId
             FROM AssetRateCardEntry
             WHERE AssetId = :assetId
+            WITH USER_MODE
             ORDER BY UsageResourceId, RateCard.Name ASC
         ];
 
@@ -488,6 +517,7 @@ public with sharing class RLM_UsageUploaderController {
                    LowerBound, UpperBound, RateUnitOfMeasureName
             FROM RateAdjustmentByTier
             WHERE RateCardEntryId IN :rceIds
+            WITH USER_MODE
             ORDER BY LowerBound ASC
         ]) {
             if (!tiersByRce.containsKey(rat.RateCardEntryId)) {
@@ -499,7 +529,7 @@ public with sharing class RLM_UsageUploaderController {
         // Query Usage Resource names
         Map<Id, String> resourceNames = new Map<Id, String>();
         for (UsageResource ur : [
-            SELECT Id, Name FROM UsageResource WHERE Id IN :usageResourceIds
+            SELECT Id, Name FROM UsageResource WHERE Id IN :usageResourceIds WITH USER_MODE
         ]) {
             resourceNames.put(ur.Id, ur.Name);
         }
@@ -576,6 +606,7 @@ public with sharing class RLM_UsageUploaderController {
                    GrantType
             FROM TransactionUsageEntitlement
             WHERE AssetId = :assetId
+            WITH USER_MODE
             ORDER BY UsageResourceId ASC
         ];
 
@@ -594,7 +625,7 @@ public with sharing class RLM_UsageUploaderController {
         // Query Usage Resource names
         Map<Id, String> resourceNames = new Map<Id, String>();
         for (UsageResource ur : [
-            SELECT Id, Name FROM UsageResource WHERE Id IN :usageResourceIds
+            SELECT Id, Name FROM UsageResource WHERE Id IN :usageResourceIds WITH USER_MODE
         ]) {
             resourceNames.put(ur.Id, ur.Name);
         }
@@ -617,6 +648,7 @@ public with sharing class RLM_UsageUploaderController {
             FROM UsageEntitlementBucket
             WHERE TransactionUsageEntitlementId IN :tueIds
               AND ParentId != null
+            WITH USER_MODE
             ORDER BY EffectiveStartDateTime DESC
         ]) {
             // Keep only the most recent period bucket per TUE
@@ -693,7 +725,7 @@ public with sharing class RLM_UsageUploaderController {
             }
         } catch (QueryException e) {
             // USER_MODE throws when the caller lacks read on the policy chain, and nothing in
-            // this repo grants ProductUsageResourcePolicy or UsageOveragePolicy. Rates and
+            // this repo grants ProductUsageResourcePolicy or UsageOveragePolicy outside RLM_UsageUploader (and RLM_USG). Rates and
             // grants are the point of this screen, so a missing grant on one optional column
             // must not fail the whole wire: degrade to blank, exactly as an absent policy does.
             return new OverageLookup();

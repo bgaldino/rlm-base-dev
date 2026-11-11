@@ -53,6 +53,10 @@ class FixScratchOrgIdentity(BaseTask):
     default.
     """
 
+    # Flag only, not BaseSalesforceTask: cci offers --org, but this best-effort
+    # repair does not inherit an OAuth refresh that could fail before it runs.
+    salesforce_task = True
+
     task_options = {
         "raise_on_failure": {
             "description": (
@@ -64,6 +68,14 @@ class FixScratchOrgIdentity(BaseTask):
             "type": bool,
         },
     }
+
+    def _init_options(self, kwargs):
+        super()._init_options(kwargs)
+        # With the flag set and no org, BaseTask.__call__ raises before _run_task
+        # reaches its warn-and-continue branch. Drop it for this instance so the
+        # task stays non-fatal by default.
+        if not self.org_config and not self.options.get("raise_on_failure"):
+            self.salesforce_task = False
 
     def _run_task(self):
         if not getattr(self, "org_config", None):

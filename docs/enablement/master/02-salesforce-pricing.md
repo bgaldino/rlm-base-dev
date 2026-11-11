@@ -12,7 +12,7 @@ prerequisites:
   - "`cci flow run prepare_rlm_org` completed against the target org"
   - "QuantumBit catalog + pricing data loaded (`qb=true`, `prepare_pricing_data` flow run)"
   - "QuantumBitBundle CML constraint model active (default in QB orgs)"
-  - "Standard Price Book + 3 Price Adjustment Schedules active"
+  - "Standard Price Book; Attribute and Bundle Price Adjustment Schedules active (the volume schedule, Standard Price Adjustment Tier, stays Inactive by design)"
 sources:
   - "docs/enablement/master/qb-scenario-reference.md — canonical QB scenario reference"
   - ".cursor/skills/release-enablement/authoring-patterns.md — Patterns 9 (Scenario Threading) + 10 (Version-Aware Section Metadata)"
@@ -73,7 +73,7 @@ For the full scenario context — customer accounts (Infinitech, Global Media), 
 | Volume Adjustment | `QB-MSG-STRT` (Additional Messages) — tiered: 5–10 → 10% · 11–15 → 15% · 16+ → 25% |
 | Bundle-Based Adjustment | `QB-API` inside `QB-COMPLETE` — automatic 5% Percentage |
 | Attribute-Based Adjustment | `QB-API` with `ATTR-QB-API` attribute → Override prices: Flex $10K · Pre-Prod $12K · Prod $15K · Gov $8.5K |
-| Constraint validation | `QuantumBitComplete` CML enforces required usage product, valid software combinations |
+| Constraint validation | `QuantumBitBundle` CML enforces required usage product, valid software combinations |
 | Nested-bundle pricing (260) | `QB-QRack-750` Computing → Cooling, Storage → Hard Drives, PCIe → GPUs/I/O/Networking |
 | Customer | Infinitech (San Francisco, US LE) — sourced from `scratch_data` |
 
@@ -120,7 +120,7 @@ QB orgs ship with the **Standard Price Book** (the default and only price book i
 3. View the related **Price Book Entries** list. Filter for `QB-API` to see all the entries.
 4. You'll see entries for Term Annual, Term Monthly, Evergreen Annual, etc., each with a UnitPrice. The Term Annual entry is the one that matters for Infinitech's standard 3-year deal.
 
-**Cost Books** (`CostBook`) track internal costs and are linked to Price Books via the `CostBook2.CostBookId` field. QB doesn't load cost data by default — `CostBookEntry` is `excluded: true` in the data plan — but the schema is in place for customers who want to track internal margins.
+**Cost Books** (`CostBook`) track internal costs and are linked to Price Books via the `Pricebook2.CostBookId` field. The QuantumBit pricing plan loads a cost book and its `CostBookEntry` rows (`datasets/sfdmu/qb/en-US/qb-pricing/`), and the default pricing procedure turns them into line cost and margin (`.cursor/skills/pricing-setup/scenarios/cost-and-margin.md`).
 
 ---
 
@@ -201,7 +201,7 @@ A **Volume Adjustment** uses a **Price Adjustment Schedule** of type `Volume` to
 4. Edit the line and increase quantity to **13**. Run pricing. Observe the discount steps up to 15%.
 5. Edit the line again to quantity **20**. Run pricing. Observe the discount steps up to 25%.
 
-**Where to inspect the schedule:** Setup → Pricing → **Price Adjustment Schedules** → Standard Price Adjustment Tier → Tiers tab.
+**Where to inspect the schedule:** Setup → Pricing → **Price Adjustment Schedules** → Standard Price Adjustment Tier → Tiers tab. The schedule shows **Inactive**, which is expected in these orgs: the build keeps it inactive so the tiers can be reloaded, and the tiers still apply. Don't activate it; while it's active, the platform blocks adding or removing tiers.
 
 **Critical concept:** Volume tiers apply to the *line's* quantity. If Infinitech buys 8 units of QB-MSG-STRT in one line and 8 in a separate line, neither qualifies for the 11–15 tier. Use **Cumulative Quantity** (added in 256, see Section 10) to roll up across lines.
 

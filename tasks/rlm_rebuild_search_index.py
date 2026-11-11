@@ -12,7 +12,12 @@ and has no dependency on the Apex/VF page being deployed.
 
 The index build is asynchronous: this task initiates it and logs the snapshot
 id, but does not wait for the build to finish (matching the LWC behavior).
+
+``CheckSearchIndexReadiness`` answers the question the rebuild leaves open: has the
+index been built in this org, and did it complete? See its docstring for why the
+answer comes from the build logs and not the index status.
 """
+from datetime import datetime
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
     from cumulusci.core.exceptions import CumulusCIException
@@ -26,6 +31,95 @@ except ImportError:  # allow import without cumulusci (e.g. offline doc tooling)
 
 
 PCM_INDEX_DEPLOY_PATH = "connect/pcm/index/deploy"
+PCM_INDEX_SNAPSHOTS_PATH = "connect/pcm/index/snapshots"
+
+READY = "Ready"
+NOT_BUILT_HERE = "Not built in this org"
+BUILDING = "Building"
+FAILED = "Failed"
+NO_INDEX = "No index"
+
+
+def _parse_time(value):
+    """An API timestamp (``2026-10-27T22:18:30.000Z`` or ``…+0000``) as an aware datetime."""
+    if not value or not isinstance(value, str):
+        return None
+    text = value.replace("Z", "+00:00")
+    if len(text) > 5 and text[-5] in "+-" and text[-3] != ":":
+        text = text[:-2] + ":" + text[-2:]  # +0000 -> +00:00, for fromisoformat
+    try:
+        return datetime.fromisoformat(text)
+    except ValueError:
+        return None  # treated as undated, like a build still running
+
+
+def index_readiness(snapshots_response, org_created):
+    """
+    The search index verdict for one org, from ``GET connect/pcm/index/snapshots``.
+
+    Judged by the build LOGS of the active snapshot, not ``lastBuildStatus``: measured on a
+    264 org, that field read IN_PROGRESS before, during and after a full rebuild that the
+    logs show completing. A rebuild reuses the active snapshot: its log reads IN_PROGRESS
+    with no completion time, then COMPLETED.
+
+    A completed build counts only if it finished after the org was created. The entities
+    behind this endpoint are org data, so a spun org may show the template's build for an
+    index never built in it (unverified on a real spin; an org that copies none reads
+    "No index", which is not Ready either).
+
+    Returns (verdict, detail). ``org_created`` is the ``Organization.CreatedDate`` string.
+    """
+    created = _parse_time(org_created)
+    if created is None:
+        # Without it an inherited build would count as built here: the one false pass
+        # this check exists to prevent.
+        raise ValueError(f"Organization.CreatedDate is unreadable: {org_created!r}")
+    snapshots = (snapshots_response or {}).get("snapshots") or []
+
+    def logs_of(selected):
+        return [log for snapshot in selected
+                for index in snapshot.get("snapshotIndexes") or []
+                for log in index.get("indexLogs") or []]
+
+    def finished(log):
+        return _parse_time(log.get("completionTime"))
+
+    logs = logs_of([s for s in snapshots if s.get("activationStatus") == "ACTIVE"])
+    # In flight: not terminal and not finished. A first build may run on a snapshot that
+    # isn't active yet, so any snapshot counts except an expired one, whose builds are over.
+    terminal = {"COMPLETED", "FAILED"}
+    running = [l for l in logs_of([s for s in snapshots if s.get("activationStatus") != "EXPIRED"])
+               if l.get("indexBuildStatus") not in terminal and not finished(l)]
+    if not logs:
+        if running:
+            return BUILDING, "A build is in progress on a snapshot that is not active yet. Check again in a few minutes."
+        return NO_INDEX, "No active snapshot has an index build on record. Run rebuild_search_index."
+
+    dated = [l for l in logs if finished(l)]
+    newest = max(dated, key=finished) if dated else None
+    completed = [l for l in dated if l.get("indexBuildStatus") == "COMPLETED"]
+    here = [l for l in completed if finished(l) > created]
+    if here:
+        latest = max(here, key=finished)
+        detail = (f"{latest.get('indexBuildType', '?')} build completed "
+                  f"{latest.get('completionTime')}, after the org was created ({org_created}).")
+        if newest is not latest and newest.get("indexBuildStatus") != "COMPLETED":
+            detail += (f" A later build ended {newest.get('indexBuildStatus')} at {newest.get('completionTime')} "
+                       f"({newest.get('message') or 'no message'}); the completed one still serves.")
+        return READY, detail
+    if running:
+        statuses = sorted({str(l.get("indexBuildStatus")) for l in running})
+        return BUILDING, (f"A build is in progress ({', '.join(statuses)}) and none has completed in this org yet. "
+                          "Check again in a few minutes.")
+    if newest is not None and newest.get("indexBuildStatus") != "COMPLETED":
+        # FAILED, or a terminal status this check doesn't know, named as reported.
+        return FAILED, (f"The latest build ended {newest.get('indexBuildStatus')} at {newest.get('completionTime')}: "
+                        f"{newest.get('message') or 'no message'}. Run rebuild_search_index.")
+    if completed:
+        latest = max(completed, key=finished)
+        return NOT_BUILT_HERE, (f"The newest completed build ({latest.get('completionTime')}) predates the org "
+                                f"({org_created}): it was inherited, not built here. Run rebuild_search_index.")
+    return FAILED, "No build has completed. Run rebuild_search_index."
 
 
 class RebuildSearchIndex(BaseSalesforceApiTask):
@@ -127,4 +221,60 @@ class RebuildSearchIndex(BaseSalesforceApiTask):
             "'Build Catalog Index' component if needed."
         )
         self.return_values = {"snapshot_id": None, "activation_status": None}
+        return self.return_values
+
+
+class CheckSearchIndexReadiness(BaseSalesforceApiTask):
+    """Report whether the Product Catalog search index was built in this org and completed.
+
+    Reads ``connect/pcm/index/snapshots`` and ``Organization.CreatedDate``; the verdict
+    rules are in ``index_readiness``. Changes nothing. Pass ``strict`` to fail on any verdict
+    other than Ready.
+    """
+
+    task_options = {
+        "strict": {
+            "description": "If True, fail unless the index is Ready. Default: False (report only).",
+            "required": False,
+        },
+    }
+
+    def _run_task(self):
+        import requests
+
+        strict = process_bool_arg(self.options.get("strict", False))
+        api_version = self.project_config.project__package__api_version
+        base = f"{self.org_config.instance_url}/services/data/v{api_version}"
+        headers = {"Authorization": f"Bearer {self.org_config.access_token}"}
+
+        resp = requests.get(f"{base}/{PCM_INDEX_SNAPSHOTS_PATH}", headers=headers,
+                            params={"numberOfIndexLogs": 25}, timeout=60)
+        if not 200 <= resp.status_code < 300:
+            raise CumulusCIException(
+                f"Could not read the search index snapshots: HTTP {resp.status_code} - {resp.text}")
+        try:
+            snapshots = resp.json()
+        except ValueError:
+            raise CumulusCIException(f"The search index snapshots response was not JSON: {resp.text[:500]}")
+        org = requests.get(f"{base}/query", headers=headers,
+                           params={"q": "SELECT CreatedDate FROM Organization"}, timeout=60)
+        if not 200 <= org.status_code < 300:
+            raise CumulusCIException(
+                f"Could not read Organization.CreatedDate: HTTP {org.status_code} - {org.text}")
+        try:
+            created = org.json()["records"][0]["CreatedDate"]
+        except (ValueError, KeyError, IndexError):
+            raise CumulusCIException(f"Could not read Organization.CreatedDate from: {org.text[:500]}")
+
+        try:
+            verdict, detail = index_readiness(snapshots, created)
+        except ValueError as e:
+            raise CumulusCIException(str(e))
+        except (AttributeError, TypeError) as e:
+            raise CumulusCIException(f"Unexpected search index snapshots response ({e}): {resp.text[:500]}")
+        log = self.logger.info if verdict == READY else self.logger.warning
+        log(f"Search index: {verdict}. {detail}")
+        self.return_values = {"verdict": verdict, "detail": detail}
+        if strict and verdict != READY:
+            raise CumulusCIException(f"Search index is not ready: {verdict}. {detail}")
         return self.return_values

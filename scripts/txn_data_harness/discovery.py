@@ -503,14 +503,25 @@ def resolve_non_taxable_tax_treatment(client: SfRestClient) -> Optional[str]:
     ``TaxTreatment`` does not have an ``IsActive`` field; the active set is
     ``Status = 'Active'`` (verified via describe). Cached per org identity so
     repeat scenarios in the same run don't re-query.
+
+    Preference: the qb-tax 'Non Taxable Tax Treatment', then the oldest treatment
+    under a ``Default``-selection policy, then the oldest of any. qb-tax also ships
+    one non-taxable treatment per legal entity under 'Tax Policy for LE' (todo 210),
+    loaded in the same batch, so a CreatedDate order alone could pick another
+    entity's treatment.
     """
     cache_key = _org_cache_key(client)
     if cache_key is not None and cache_key in _NON_TAXABLE_TAX_TREATMENT_BY_ORG:
         return _NON_TAXABLE_TAX_TREATMENT_BY_ORG[cache_key]
     rows = client.query(
-        "SELECT Id FROM TaxTreatment "
+        "SELECT Id, Name, TaxPolicy.TreatmentSelection FROM TaxTreatment "
         "WHERE IsTaxable = false AND Status = 'Active' "
-        "ORDER BY CreatedDate ASC LIMIT 1"
+        "ORDER BY CreatedDate ASC"
+    )
+    rows = (
+        [r for r in rows if r.get("Name") == "Non Taxable Tax Treatment"]
+        or [r for r in rows if ((r.get("TaxPolicy") or {}).get("TreatmentSelection")) == "Default"]
+        or rows
     )
     treatment_id = rows[0]["Id"] if rows else None
     if cache_key is not None:

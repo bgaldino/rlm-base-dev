@@ -37,11 +37,13 @@ rlm-base-dev/
 │       └── patches/            # Feature-specific profile patches (billing, constraints, prm)
 ├── unpackaged/                 # Conditional metadata (deployed based on flags)
 │   ├── pre/                    # Pre-deployment metadata
-│   │   └── 5_decisiontables/   # Decision tables (structural edits to active ones: deactivate_changed_decision_tables)
+│   │   ├── 5_decisiontables/   # Decision tables (structural edits to active ones: deactivate_changed_decision_tables)
+│   │   └── 6_fields/           # Custom fields core context plans map before the first procedure deploy
 │   ├── post_approvals/         # Approvals metadata
 │   ├── post_billing/           # Billing metadata (objects, flows, settings, quickActions)
+│   ├── post_billing_email_template_settings/ # Selects the Default Invoice Email Template (prepare_billing step 12)
 │   ├── post_billing_id_settings/ # Billing settings with org-specific record IDs (XPath transforms)
-│   ├── post_billing_template_settings/ # Re-enable invoice toggles (template auto-creation cycle step 3)
+│   ├── post_billing_template_settings/ # Re-enable invoice toggles (preview/document template auto-creation, cycle step 3)
 │   ├── post_billing_ui/        # Billing UI components, controllers, actions, and permissions
 │   ├── post_commerce/          # Commerce metadata
 │   ├── post_constraints/       # Constraints metadata
@@ -87,8 +89,8 @@ rlm-base-dev/
 │   ├── sfdmu/                  # SFDMU data plans
 │   │   ├── qb/en-US/           # QuantumBit checked-in plans (see data-plan guide for usage)
 │   │   │   ├── qb-pcm/
-│   │   │   ├── qb-product-images/
 │   │   │   ├── qb-pricing/
+│   │   │   ├── qb-price-revision/
 │   │   │   ├── qb-tax/
 │   │   │   ├── qb-billing/
 │   │   │   ├── qb-dro/
@@ -106,9 +108,7 @@ rlm-base-dev/
 │   ├── constraints/            # CML constraint model data plans
 │   │   ├── qb/
 │   │   │   ├── QuantumBitBundle/
-│   │   │   ├── QuantumBitComplete/
-│   │   │   ├── Server2/
-│   │   │   └── QuantumBitPCM/
+│   │   │   └── Server2/
 │   │   └── README.md           # Constraints utility guide
 │   └── context_plans/          # Context definition update plans (JSON manifests)
 │       ├── ConstraintEngineNodeStatus/  # Adds ConstraintEngineNodeStatus to SalesTransaction context
@@ -126,6 +126,7 @@ rlm-base-dev/
 │   ├── expand_currency_rates_data.py   # Regenerate per-currency qb-rates rows
 │   ├── build_quote_to_asset.py    # Build a backdated Quote -> Order -> Asset chain for usage rating
 │   ├── qb_usage.py                # Audit / report / orchestrate the usage-rating pipeline
+│   ├── sfdmu_product_view.py      # Capture/compare what the configurator shows for a shape's products (layering check)
 │   └── validate_sfdmu_v5_datasets.py # Validate/fix SFDMU v5 compliance
 ├── docs/                       # Documentation
 │   ├── index.md                # Documentation entry point
@@ -156,6 +157,7 @@ rlm-base-dev/
 │   │   ├── sfdmu-composite-key-optimizations.md
 │   │   └── task-examples.md
 │   ├── analysis/               # Curated technical analysis (agent-generated artifacts live in .agents/artifacts/)
+│   │   ├── sfdmu-data-shape-layering.md
 │   │   └── tooling-optimization-report.md
 │   ├── integration/            # Cross-tool integration plans
 │   ├── features/               # Feature-specific design docs

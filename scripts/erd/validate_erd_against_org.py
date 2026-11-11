@@ -60,6 +60,7 @@ DOMAIN_MAP = {
     "Usage Management (Core Object)": {"short": "Usage", "color": "#5c6bc0"},
     "Billing": {"short": "Billing", "color": "#ef5350"},
     "Billing (Core Object)": {"short": "Billing", "color": "#ef5350"},
+    "Contracts & CLM": {"short": "Contracts", "color": "#14b8a6"},
 }
 
 # Fields to always skip (system/audit fields not useful in ERD)

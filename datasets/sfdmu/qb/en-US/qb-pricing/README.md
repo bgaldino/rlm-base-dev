@@ -2,55 +2,57 @@
 
 SFDMU data plan for QuantumBit (QB) pricing configuration. Creates pricebook entries, price adjustment schedules/tiers, attribute-based adjustments, bundle-based adjustments, derived prices, cost books, and currency types.
 
-> **SFDMU 5.6.4+ floor.** Seven objects (PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice, CostBookEntry) use `Insert` — a pre-5.6.4 workaround for relationship-traversal externalId matching, **fixed at/below the 5.6.4 floor**. Idempotency comes from the separate `delete_quantumbit_pricing_data` step that runs first (reverse plan order), **not** `deleteOldData`. Migrating these to `Upsert` is the gated `sfdmu-v5-optimization` initiative — do not flip operations without live verification and explicit approval.
+> **Reload-safe (todo 298).** Every object matches on its externalId: nothing is deleted before a load, and a reload into a built org changes nothing. The seven objects that used to load as `Insert` after a separate delete step (PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice, CostBookEntry) are `Upsert` on the same keys (owner-approved, 2026-11-02), and their traversal key fields are in each SELECT. A correction to a non-key field lands on the existing record.
 
 ## CCI Integration
 
 ### Flow: `prepare_pricing_data`
 
-This plan runs as two steps in the `prepare_pricing_data` flow (when `qb=true`). The delete step runs first to clear all Insert-operation records, enabling idempotent re-runs and support for layered data shapes.
+This plan runs as step 1 of the `prepare_pricing_data` flow (when `qb=true`). No delete step runs first; `delete_quantumbit_pricing_data` is a manual full teardown (see below).
 
 | Step | Task                                | Description                                                |
 |------|-------------------------------------|------------------------------------------------------------|
-| 1    | `delete_quantumbit_pricing_data`    | Deletes all Insert-operation records (shape-agnostic, reverse plan order) |
-| 2    | `insert_quantumbit_pricing_data`    | Runs this SFDMU plan                                       |
+| 1    | `insert_quantumbit_pricing_data`    | Runs this SFDMU plan                                       |
 
-A separate flow, `prepare_price_adjustment_schedules`, activates PriceAdjustmentSchedule records via Apex on scratch orgs:
+A separate flow, `prepare_price_adjustment_schedules`, activates the platform-seeded PriceAdjustmentSchedule records via Apex. It is `prepare_rlm_org` step 6 → `prepare_price_adjustment_schedules`, which runs **before** this plan (`prepare_rlm_org` step 9 → `prepare_pricing_data`):
 
 | Step | Task                                   | Description                                        |
 |------|----------------------------------------|----------------------------------------------------|
-| 1    | `activate_price_adjustment_schedules`  | Runs `activatePriceAdjustmentSchedules.apex` (scratch only) |
+| 1    | `activate_price_adjustment_schedules`  | Runs `activatePriceAdjustmentSchedules.apex`       |
+
+**The "Standard Price Adjustment Tier" volume schedule ends every build inactive, on purpose.**
+- **Why:** the platform rejects any insert, update or delete of a `PriceAdjustmentTier` while its schedule is active ("You can't update a price adjustment tier when there's an active price adjustment schedule"; measured on 264, 2026-10-30). A reload no longer deletes tiers, but a new tier or a corrected one is still written, so an active Tier schedule makes that load fail.
+- **How:** `activatePriceAdjustmentSchedules.apex` skips "Standard Price Adjustment Tier", and this plan's `PriceAdjustmentSchedule.csv` upserts it with `IsActive=false`. A build ends with the Attribute and Bundle schedules active and the Tier schedule inactive, and a `prepare_rlm_org` rerun can still reload the tiers. (Before 2026-10-30 the script activated it too, so a full rerun failed at the tier delete.)
+- **Don't** activate it, move the activation after this plan, or flip the CSV row to `true` (PR #498, closed). If you activate it by hand, deactivate it before the next pricing load.
+- **It still prices:** on a fresh 264 build, QB-MSG-STRT Term Annual (list 30,000) priced at 30,000 for quantity 2, 27,000 for quantity 8 (10%) and 25,500 for quantity 13 (15%) through Place Sales Transaction (2026-10-30, USD). Salesforce Help says to activate the schedule after adding tiers; on 264 the tiers price without it. Whether anything else depends on the flag is tracked internally.
+- **Scope:** this plan's tiers all hang off "Standard Price Adjustment Tier". So do the q3 tiers (todo 319): no procedure reads "Standard Tier Based Adjustment" or "Standard Volume Based Adjustment", so tiers on them never price, and the script no longer activates either. qb/ja's plan declares its "Standard Volume Based Adjustment" active (an Update, so only if the org already has it); its reload hasn't been verified (todo 212).
 
 ### Task Definitions
 
 ```yaml
-delete_quantumbit_pricing_data:
-  class_path: tasks.rlm_sfdmu.DeleteSFDMUData
-  options:
-    pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-pricing"
-
 insert_quantumbit_pricing_data:
   class_path: tasks.rlm_sfdmu.LoadSFDMUData
   options:
     pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-pricing"
 ```
 
-`DeleteSFDMUData` reads `export.json` at runtime, identifies all non-excluded `operation: Insert` objects, and deletes **all records** of those types in **reverse array order** (children first). No WHERE-clause filtering — shape-agnostic. See `tasks/rlm_sfdmu.py`.
+**Manual full teardown:** `delete_quantumbit_pricing_data` (`DeleteSFDMUData` with `sobjects:` naming the seven objects above, since the plan has no `Insert` objects any more) deletes **every record** of those types org-wide, in **reverse plan order** (children first). No flow runs it. On a built org the platform blocks some of these deletes: `AttributeAdjustmentCondition` can't be deleted through the API, and a `PricebookEntry` on a quote line can't be deleted. See `tasks/rlm_sfdmu.py`.
 
 ## Data Plan Overview
 
-The plan uses a **delete + insert** pattern across 16 objects. Seven objects use `Insert` (instead of `Upsert`) to work around SFDMU v5 bugs with relationship-traversal externalIds; all seven Insert objects are pre-cleared by `delete_quantumbit_pricing_data` before each load. Three objects are `Readonly` (Product2, ProductSellingModel, AttributeDefinition) — they provide SFDMU with lookup context for parent resolution without modifying them. `ProrationPolicy` uses `Update` (not Upsert) because those records are always pre-provisioned by the platform. `PriceAdjustmentSchedule` uses `Upsert` (ordered before its child adjustments) — there is exactly **one schedule per type** (Attribute / Bundle / Volume), in the corporate currency (USD), matching what the platform seeds; every currency's adjustment children reference that single schedule by `Name` and are disambiguated at pricing time by their own `CurrencyIsoCode`.
+The plan **matches existing records** across 16 objects in a single pass: twelve are `Upsert` on their externalId, nothing is deleted. Three objects are `Readonly` (Product2, ProductSellingModel, AttributeDefinition) — they provide SFDMU with lookup context for parent resolution without modifying them. `ProrationPolicy` uses `Update` (not Upsert) because those records are always pre-provisioned by the platform. `PriceAdjustmentSchedule` uses `Upsert` (ordered before its child adjustments) — there is exactly **one schedule per type** (Attribute / Bundle / Volume), in the corporate currency (USD), matching what the platform seeds; every currency's adjustment children reference that single schedule by `Name` and are disambiguated at pricing time by their own `CurrencyIsoCode`.
 
 ```
-Pre-Delete (DeleteSFDMUData)                    SFDMU Pass                              Apex Activation (scratch only)
-─────────────────────────────────           ────────────────────────────────────        ─────────────────────────────────
-Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly        ->     activatePriceAdjustmentSchedules.apex
-(reverse plan order, children first)        (Readonly parents for lookup context)       (activates 5 standard schedules)
+Apex Activation (step 6, earlier)          SFDMU Pass
+─────────────────────────────────    ────────────────────────────────────
+activatePriceAdjustmentSchedules  ->  Upsert/Update/Readonly
+(skips the Tier schedule)             (upserts the Tier schedule inactive,
+                                       then upserts its tiers)
 ```
 
 ### Objects
 
-| #  | Object                       | Operation | Pre-Deleted¹ | External ID                                                                                             | Records |
+| #  | Object                       | Operation | Was Insert¹  | External ID                                                                                             | Records |
 |----|------------------------------|-----------|--------------|---------------------------------------------------------------------------------------------------------|---------|
 | 1  | CurrencyType                 | Upsert    |              | `IsoCode`                                                                                               | 7       |
 | 2  | ProrationPolicy              | Update    |              | `Name`                                                                                                  | 1       |
@@ -60,19 +62,19 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 6  | CostBook                     | Upsert    |              | `Name`                                                                                                  | 1       |
 | 7  | Pricebook2                   | Upsert    |              | `Name;IsStandard`                                                                                       | 1       |
 | 8  | PriceAdjustmentSchedule      | Upsert    |              | `Name`                                                                                                 | 3        |
-| 9  | PriceAdjustmentTier          | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom` | 21 |
+| 9  | PriceAdjustmentTier          | Upsert    | ✓            | `PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom` | 21 |
 | 10 | AttributeBasedAdjRule        | Upsert    |              | `Name`                                                                                                  | 4       |
-| 11 | AttributeAdjustmentCondition | Insert    | ✓            | `AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit`                          | 4       |
-| 12 | AttributeBasedAdjustment     | Insert    | ✓            | `AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 28 |
-| 13 | BundleBasedAdjustment        | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 14 |
-| 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 1862     |
-| 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 0 |
-| 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 623      |
+| 11 | AttributeAdjustmentCondition | Upsert    | ✓            | `AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit`                          | 4       |
+| 12 | AttributeBasedAdjustment     | Upsert    | ✓            | `AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 28 |
+| 13 | BundleBasedAdjustment        | Upsert    | ✓            | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 14 |
+| 14 | PricebookEntry               | Upsert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 1862     |
+| 15 | PricebookEntryDerivedPrice   | Upsert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 0 |
+| 16 | CostBookEntry                | Upsert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 623      |
 
-¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: CBE → PEDP → PBE → BBA → ABA → AAC → PAT). Pre-5.6.4 workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components inserted instead of matching existing records; **fixed in the 5.6.4 release (commit `50be987`)**, retained pending the gated `sfdmu-v5-optimization` migration. (Issue [#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781) reported the symptom; the relationship-path fix landed in 5.6.4, not that issue.)
+¹ **Was Insert:** until todo 298 these loaded as `Insert` after `delete_quantumbit_pricing_data` cleared them, a workaround for SFDMU v5 Bug 3 (Upsert with relationship-traversal externalId components inserted instead of matching). Bug 3 is **fixed in the 5.6.4 release (commit `50be987`)**. Live-verified 2026-11-02 on a built 264 org with quotes: two reloads gave 0 diff with the same record Ids and no rejected rows, and a one-field correction per object landed on the existing record. (Issue [#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781) reported the symptom; the relationship-path fix landed in 5.6.4, not that issue.)
 
 **Other notes:**
-- ⚠ `PricebookEntryDerivedPrice.csv` is **intentionally header-only (0 records)** as of 2026-07-28. Its 14 rows all belonged to `QB-SUPP-2000` (Software Maintenance), which is now **fixed-price** instead of derived: activating an order that contained it failed with *"Your formula must contain the following fixed variables: UnitPrice, TotalPrice, ListPrice and HeaderTotal."* (issue #63). **Keep the object in `export.json`** — removing it would change the delete ordering. Two rules follow from this and must move together if derived pricing is ever restored: a derived product carries `UnitPrice = 0` in every currency (so re-adding formula rows without zeroing the prices double-counts, and deleting them without setting prices makes the product **free**), and `PricebookEntry.IsDerived` is system-maintained from this object but **evaluated at INSERT only** — a fresh build is correct by construction, an existing org needs its entries deleted and reinserted. Restoration is tracked in the private artifacts tracker as pack 089.
+- ⚠ `PricebookEntryDerivedPrice.csv` is **intentionally header-only (0 records)** as of 2026-07-28. Its 14 rows all belonged to `QB-SUPP-2000` (Software Maintenance), which is now **fixed-price** instead of derived: activating an order that contained it failed with *"Your formula must contain the following fixed variables: UnitPrice, TotalPrice, ListPrice and HeaderTotal."* (issue #63). **Keep the object in `export.json`** — the manual teardown task names it, and that name must be declared in the plan. Two rules follow from this and must move together if derived pricing is ever restored: a derived product carries `UnitPrice = 0` in every currency (so re-adding formula rows without zeroing the prices double-counts, and deleting them without setting prices makes the product **free**), and `PricebookEntry.IsDerived` is system-maintained from this object but **evaluated at INSERT only** — a fresh build is correct by construction, an existing org needs its entries deleted and reinserted (a reload won't recompute it). Restoration is tracked in the private artifacts tracker as pack 089.
 - `ProrationPolicy`: `Update` (not Upsert) — records are always pre-provisioned by the platform; SFDMU v5 TARGET SELECT fails for this managed object
 - `PriceAdjustmentSchedule`: `Upsert` with `WHERE ContractId = NULL` on the direct-field `Name` externalId, ordered **before** the child adjustments. There is **one schedule per type** (Attribute / Bundle / Volume), USD (corporate) — exactly what the platform seeds, so Upsert matches the seeded rows (no duplicates). Do **not** create per-currency schedule variants: `PriceAdjustmentTier` / `AttributeBasedAdjustment` / `BundleBasedAdjustment` of every currency reference this single schedule by `PriceAdjustmentSchedule.Name` and are disambiguated by their own `CurrencyIsoCode` at pricing time. The pricing procedure pins each adjustment step to one schedule Id via `find_replace` (`… WHERE name = 'Standard …' LIMIT 1`), so duplicating the schedule per currency makes non-USD adjustment lookups resolve nothing
 - `CostBook` is ordered before `Pricebook2` — `Pricebook2` has a `CostBookId` FK; processing it first produced `#N/A` in the target result
@@ -83,14 +85,13 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 
 **File:** `scripts/apex/activatePriceAdjustmentSchedules.apex`
 
-Activates 5 standard PriceAdjustmentSchedule records by name:
+Activates the standard PriceAdjustmentSchedule records it finds inactive, by name:
 - Standard Attribute Based Adjustment
 - Standard Bundle Based Adjustment
-- Standard Price Adjustment Tier
-- Standard Tier Based Adjustment
-- Standard Volume Based Adjustment
 
-This script only runs on **scratch orgs** (gated by `when: org_config.scratch` in the flow).
+A 264 org seeds both, plus "Standard Price Adjustment Tier", which the script skips on purpose (see above). It
+also skips "Standard Tier Based Adjustment" and "Standard Volume Based Adjustment", which no pricing procedure
+reads (todo 319). The flow step has no org-type condition, so it runs on every org.
 
 ## Key Object Groups
 
@@ -102,7 +103,9 @@ Currency types (7 currencies: USD, GBP, EUR, AUD, CAD, CHF, JPY) and proration p
 
 ### Pricebooks and Entries (Objects 6, 14)
 
-One non-standard pricebook with 1,862 pricebook entries (266 product/selling-model combinations × 7 currencies) mapping products to selling models with unit prices and currency.
+The Standard Price Book with 1,862 pricebook entries (266 product/selling-model combinations × 7 currencies) mapping products to selling models with unit prices and currency.
+
+**The `PricebookEntry` query is scoped to `Pricebook2.IsStandard = true`.** Every row belongs to the Standard Price Book, and the externalId (`Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`) has no price-book part. Unscoped, a custom price book's entry for the same SKU, selling model and currency is indistinguishable, and a reload can update it instead of the standard one (measured 2026-11-02: with a custom book named so it sorted first, a price change landed on the custom entry). Extraction reads the same scope.
 
 ### Price Adjustments (Objects 8-9, 10-12, 13)
 
@@ -220,27 +223,24 @@ qb-pricing/
 
 ## Idempotency
 
-**Org-backed idempotency validated (USD baseline)** — consecutive runs of
-`delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data` were verified
-to produce identical record counts on the prior single-currency plan (367 records:
-3 PAT, 4 AAC, 4 ABA, 2 BBA, 266 PBE, 2 PEDP, 88 CBE). The delete-then-insert
-mechanism is currency-agnostic — it clears all records of each type regardless of
-`CurrencyIsoCode` — so the multicurrency expansion keeps the same idempotency
-guarantee; the expected steady-state count is now **2,545 records** (21 PAT,
-4 AAC, 28 ABA, 14 BBA, 1,862 PBE, 14 PEDP, 616 CBE). ✅ **Live-verified 2026-07-23**
-on a scratch org: `delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data`
-ran to `SUCCESS` (exit 0) with **0 failed rows** across every object — including the
-single-per-type `PriceAdjustmentSchedule` (3 rows, `Upsert` on `Name`, ordered before
-the child adjustments; see *Currency and Proration*), `PriceAdjustmentTier` (21),
-`AttributeBasedAdjustment` (28), `BundleBasedAdjustment` (14), `PricebookEntry`
-(1,862), and `CostBookEntry` (616). The static SFDMU validator may still
-flag extraction-safety issues for relationship traversal fields in this plan;
-treat those as follow-up items before relying on extraction round-trips.
+**Reload-safe on a built org (live-verified 2026-11-02, SFDMU 5.8.0, 264).** Every object
+matches on its externalId; nothing is deleted. On an org with quotes:
 
-The `CostBookEntry` rows are part of the delete-then-insert set. The CSV resolves
-the parent CostBook through `CostBook.Name`; this preserves the idempotent load
-behavior (now 623 rows across 7 currencies) while avoiding an unnecessary
-composite lookup reference to the single seeded CostBook.
+- two loads, then a full `prepare_pricing_data`, gave 0 diff and the same record Ids across all
+  16 objects (21 PAT, 4 AAC, 28 ABA, 14 BBA, 1,862 PBE, 0 PEDP, 623 CBE), with no rejected rows;
+- a one-field correction per converted object (tier `EffectiveTo`, condition `StringValue`,
+  ABA/BBA `AdjustmentValue`, PBE `UnitPrice`, CBE `Description`) landed on the existing record,
+  and reverting the CSV restored 0 diff. A changed condition makes the platform recompute
+  `AttributeAdjConditionsHash` on every ABA of that rule; it reverts with the condition;
+- a fresh load after `delete_quantumbit_pricing_data` on a second org rebuilt the same data, and
+  `test_qb_pricing_idempotency` passes.
+
+Before todo 298 these seven objects were `Insert` after a delete step, which on an org with
+quotes failed to delete `PricebookEntry` rows on quote lines and every
+`AttributeAdjustmentCondition` (not API-deletable). A reload no longer depends on either delete.
+
+The `CostBookEntry` rows resolve the parent CostBook through `CostBook.Name`, avoiding an
+unnecessary composite lookup reference to the single seeded CostBook.
 
 **QB-SUPP-2000 (Software Maintenance) added 2026-09-02** — 7 rows, one per
 currency, following the same "cost below lowest positive price" rule the other
@@ -249,12 +249,6 @@ AUD 1544.6, CAD 1521.7, CHF 878.9, JPY 176134). The product went from
 derived (`UnitPrice = 0`, no cost coverage needed) to a permanent fixed price —
 see the `qb-supp-2000-fixed-price` pack — so it now qualifies for the coverage
 rule above and previously had none.
-
-The delete-then-insert pattern replaces the previous Upsert approach. `Readonly` objects ensure parent lookup resolution without modification. `Upsert` objects (`CurrencyType`, `CostBook`, `Pricebook2`, `PriceAdjustmentSchedule`, `AttributeBasedAdjRule`) are naturally idempotent via their direct-field externalIds.
-
-**Expected partial failures on orgs with active quotes:**
-- `PricebookEntry`: up to 7 records per run may fail deletion ("Products will not be deleted from quote lines") if QuoteLineItems reference them — the records remain and are not re-inserted, causing no count change
-- `AttributeAdjustmentCondition`: up to 4 records may show "insufficient access rights on object id" (same cause — QuoteLineItem lock bleed); resolves cleanly on scratch orgs or orgs without active quotes referencing this pricing data
 
 **Note on `PriceAdjustmentSchedule`:** Uses `Upsert` on the direct-field `Name` externalId, ordered **before** the child adjustments. There is **one schedule per type** (Attribute / Bundle / Volume), USD (corporate) — matching what the platform seeds, so Upsert matches the seeded rows (no duplicates). All currencies' tiers/adjustments reference this single schedule by `Name` and are disambiguated by their own `CurrencyIsoCode` at pricing time. Do **not** create per-currency schedule variants — the pricing procedure pins each adjustment step to one schedule Id (`find_replace … LIMIT 1`), so per-currency schedules make non-USD adjustment lookups resolve nothing.
 
@@ -366,5 +360,5 @@ This timestamp Name cascades to 2 dependent objects:
 3. **Investigate PriceAdjustmentTier key simplification**: Test whether a 4-5 field subset of the 9-field key is sufficient for uniqueness
 4. **Investigate PricebookEntryDerivedPrice key simplification**: Test whether fewer fields uniquely identify derived prices
 5. **Extraction available**: Use `extract_qb_pricing_data` (Data Management - Extract). Run all extracts: `cci flow run run_qb_extracts --org <org>`. Idempotency: `test_qb_pricing_idempotency` / `cci flow run run_qb_idempotency_tests --org <org>`.
-6. **Consider activation flow integration**: The `prepare_price_adjustment_schedules` flow is separate from `prepare_pricing_data` — consider whether they should be combined
+6. **Activation flow placement**: `prepare_price_adjustment_schedules` stays separate from, and before, `prepare_pricing_data`. Don't fold it in after the load (see CCI Integration above).
 7. **Consistency**: Uses `objectSets` wrapper — consider switching to flat `objects` array for consistency with qb-pcm

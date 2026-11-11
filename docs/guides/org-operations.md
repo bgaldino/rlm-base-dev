@@ -109,13 +109,13 @@ cci task run manage_flows --operation list --process_type ScreenFlow
 cci task run manage_expression_sets --operation list
 
 # Export a constraint model
-cci task run export_cml --org <org> -o developer_name QuantumBitComplete -o version 1 -o output_dir datasets/constraints/qb/QuantumBitComplete
+cci task run export_cml --org <org> -o developer_name QuantumBitBundle -o version 1 -o output_dir datasets/constraints/qb/QuantumBitBundle
 
 # Import a constraint model (with dry run)
-cci task run import_cml --org <org> -o data_dir datasets/constraints/qb/QuantumBitComplete -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm" -o dry_run true
+cci task run import_cml --org <org> -o data_dir datasets/constraints/qb/QuantumBitBundle -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm" -o dry_run true
 
 # Validate each model's shipped blob against its own ESC rows
-cci task run validate_cml -o data_dirs "datasets/constraints/qb/QuantumBitComplete,datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitPCM,datasets/constraints/qb/QuantumBitBundle"
+cci task run validate_cml -o data_dirs "datasets/constraints/qb/Server2,datasets/constraints/qb/QuantumBitBundle"
 ```
 
 For detailed examples and usage, see:
@@ -176,16 +176,16 @@ cci flow run prepare_rlm_org
 cci flow run prepare_constraints --org <org> -o constraints_data true
 ```
 
-This will validate CML files, import all four constraint models (QuantumBitComplete, Server2, QuantumBitPCM, and QuantumBitBundle), then deactivate all four versions and activate **two** of them — `Server2_V1` and `QuantumBitBundle_V1`. QuantumBitComplete and QuantumBitPCM are imported but left inactive for A/B comparison. See [Constraints Setup](../../docs/guides/constraints-setup.md) for flow details.
+This will validate CML files, import both constraint models (Server2 and QuantumBitBundle), then deactivate and reactivate both versions (`Server2_V1` and `QuantumBitBundle_V1`) so the rebuilt models take effect. See [Constraints Setup](../../docs/guides/constraints-setup.md) for flow details.
 
 ### Export a Constraint Model
 
 ```bash
 # Export from a source org to a local data plan directory
 cci task run export_cml --org <source_org> \
-    -o developer_name QuantumBitComplete \
+    -o developer_name QuantumBitBundle \
     -o version 1 \
-    -o output_dir datasets/constraints/qb/QuantumBitComplete
+    -o output_dir datasets/constraints/qb/QuantumBitBundle
 ```
 
 See the [Constraints Utility Guide](../../datasets/constraints/README.md) for full export/import/validate documentation.
@@ -203,18 +203,14 @@ cci flow run prepare_ux --org <org>
 # (reorder_app_launcher orders by its priority_app_labels option via Aura saveOrder; assemble_and_deploy_ux
 #  does NOT handle appMenus, and AppSwitcher can't deploy via the Metadata API when the AppMenu contains
 #  managed ConnectedApp/Network entries — the Trialforce case)
-cci org default <cci-alias>
-cci task run reorder_app_launcher
+cci task run reorder_app_launcher --org <cci-alias>
 ```
 
 ### Load Product Data
 
 ```bash
-# Load QuantumBit PCM data
+# Load QuantumBit PCM data (products carry their image URLs)
 cci task run insert_quantumbit_pcm_data
-
-# Load product images
-cci task run insert_quantumbit_product_image_data
 ```
 
 ### Load Billing Data
@@ -223,11 +219,13 @@ cci task run insert_quantumbit_product_image_data
 cci task run insert_billing_data
 ```
 
-The `prepare_billing` flow deploys Billing Settings in a 3-step cycle to properly configure ID-based fields and trigger default template auto-creation:
+The `prepare_billing` flow deploys Billing Settings in five steps: a three-step cycle (steps 1, 9 and 10) that configures ID-based fields and triggers auto-creation of the default invoice preview and document templates, then two steps (11 and 12) that create and select the email template, which the cycle doesn't create:
 
 1. **Step 1** (`deploy_post_billing`): Enable billing toggles (`enableInvoiceEmailDelivery`, `enableInvoicePdfGeneration` = `true`) and set `billingContextDefinition`
 2. **Step 9** (`deploy_billing_id_settings`): Set context mapping, DPE definition names, and record IDs via XPath transforms; disable invoice toggles (`false`)
 3. **Step 10** (`deploy_billing_template_settings`): Re-enable invoice toggles (`true`) to trigger Salesforce auto-creation of default invoice preview and document templates
+4. **Step 11** (`create_default_invoice_email_template`): Create the Default Invoice Email Template. Billing creates it only from the Setup toggle, never from a Metadata API deploy, so steps 9–10 leave Select Default Email Template empty
+5. **Step 12** (`deploy_billing_email_template_settings`): Select it as `defaultEmailTemplate`
 
 The ID fields (`defaultBillingTreatment`, `defaultLegalEntity`, `defaultTaxTreatment`) use XPath transform SOQL queries to resolve org-specific record IDs at deploy time. The `billingContextDefinition` must be deployed in step 1 (before step 9) because `billingContextSourceMapping` requires it to already be persisted.
 
@@ -239,7 +237,23 @@ separate scratch-specific **QuantumBit** DRO plan is required.
 
 For **Q3** (`dro=true`, `q3=true`, `qb=false`), the flow selects
 `insert_q3_dro_data_scratch` for scratch orgs and `insert_q3_dro_data_prod` for
-non-scratch orgs. The QB path takes precedence when `qb=true`.
+non-scratch orgs. The QB path takes precedence when `qb=true`. Both load the same
+q3-dro plan, which only sets the Q3 products' decomposition scope: the Q3 source org
+has no fulfillment design, so a Q3 org gets no step groups, steps or scenarios.
+
+A Q3 build keeps `quantumbit=true`. `create_tax_engine` (`prepare_tax` step 1) needs the
+`RLM_MockTax` named credential, and only the QuantumBit metadata deploys it. With
+`quantumbit=false` and `tax=true`, the build has no tax engine, and qb-tax's engine and taxable
+treatment are rejected.
+
+A Q3 build loads the qb tax and billing designs: `insert_tax_data` runs when `qb` or `q3` is on,
+and `insert_billing_data` when `qb` is on, or `q3` with `tax`. The q3-tax and q3-billing plans
+then only map the 78 Q3 products onto those policies, so `deploy_billing_id_settings` finds the
+qb record names it resolves. Billing on any build needs `tax=true`: qb-billing reads the legal
+entities that qb-tax creates, and `deploy_billing_id_settings` resolves two qb-tax records, the
+'Default Legal Entity - US' entity and the 'Default Tax Policy' treatment. An org built before
+Q3 moved onto the qb tax and billing data (todo 210) carries q3's own tax and billing records
+(with the Canada entity in USD) and can't be converted in place; build a fresh one.
 
 In `prepare_dro` step 5 → `update_product_fulfillment_decomp_rules`, an Apex
 update applies the workaround for the Release 260 ExecuteOnRuleId-on-insert bug.

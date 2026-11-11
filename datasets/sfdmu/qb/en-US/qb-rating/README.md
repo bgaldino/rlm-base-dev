@@ -1,21 +1,24 @@
 # qb-rating Data Plan
 
-SFDMU data plan for QuantumBit (QB) usage rating design-time configuration. Creates and activates all objects required for usage-based rating on QB products, including usage resources, product-to-resource associations, grants, and policies.
+SFDMU data plan for QuantumBit (QB) usage rating design-time configuration. Creates all objects required for usage-based rating on QB products: usage resources, units, policies, and the product-to-resource associations (ProductUsageResource). The policies and grants on each association (ProductUsageResourcePolicy, ProductUsageGrant) load from the sibling plan [`qb-rating-entitlements`](../qb-rating-entitlements/), which runs next. Activation is done by `activateRatingRecords.apex`.
 
-> **SFDMU 5.6.4+ floor.** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant use `Insert` + `deleteOldData: true` — a pre-5.6.4 workaround for relationship-traversal externalId matching (traversal-keyed Upsert failed to match target records, so re-runs duplicated). Those bugs are **fixed at/below the 5.6.4 floor**; the shipped plan keeps the workaround deliberately. Migrating these back to `Upsert` is the gated `sfdmu-v5-optimization` initiative — do not flip operations without live verification and explicit approval. **PUG is not operation-only**: its externalId triplet is intentionally non-unique across parent PURs (10 of this dataset's 12 PUG rows share 3 triplets), so it must first gain a PUR component (e.g. `ProductUsageResourceId`) before it can move to `Upsert`.
+> **SFDMU 5.6.4+ floor.** Nothing in this plan uses `Insert` + `deleteOldData` or a `deleteQuery`. Every object is `Upsert` (or `Update`/`Readonly`); objects with a `Status` (UnitOfMeasureClass, UsageResource, ProductUsageResource) also set `skipExistingRecords: true` in pass 1, so a reload never touches an existing row (see [Idempotency](#idempotency)). ProductUsageResource matches on its relationship-traversal key (`Product.StockKeepingUnit;UsageResource.Code`), which works on the 5.6.4+ floor. ProductUsageResourcePolicy and ProductUsageGrant moved to `qb-rating-entitlements` because SFDMU 5.8.0 cannot Upsert a child keyed on the parent's composite traversal key (upstream issue #1218: the child target query drops the `ProductUsageResource.` prefix, "Didn't understand relationship 'Product'"); that plan matches them on `ProductUsageResourceId`, which `LoadSFDMUData` resolves on the target org before SFDMU runs (todo 298).
 
 ## CCI Integration
 
 ### Flow: `prepare_rating`
 
-This plan is executed as **step 1** of the `prepare_rating` flow (when `rating=true`, `qb=true`, and `refresh=false`).
+This plan is executed as **step 1** of the `prepare_rating` flow (when `rating=true`, `qb=true`, and `refresh=false`). `qb-rating-entitlements` runs as step 2. There is no rating or rates cleanup step: the rating, entitlements and rates plans match existing rows and delete nothing, so a full flow run reloads in place (`delete_qb_rating_data` and `delete_qb_rates_data` remain as manual tasks for a full teardown).
 
-| Step | Task                     | Description                                        |
-|------|--------------------------|----------------------------------------------------|
-| 1    | `insert_qb_rating_data`  | Runs this SFDMU plan (2 passes)                    |
-| 3    | `insert_qb_rates_data`   | Runs qb-rates plan (single pass — all objects)     |
-| 5    | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
-| 6    | `activate_rates`         | Runs `activateRateCardEntries.apex`                |
+| Step | Task                                  | Description                                        |
+|------|---------------------------------------|----------------------------------------------------|
+| 1    | `insert_qb_rating_data`               | Runs this SFDMU plan (2 passes)                    |
+| 2    | `insert_qb_rating_entitlements_data`  | Runs the `qb-rating-entitlements` plan (PURP + PUG, 2 passes) |
+| 6    | `insert_qb_rates_data`                | Runs the qb-rates plan (2 passes, nothing deleted) |
+| 8    | `activate_rating_records`             | Runs `activateRatingRecords.apex`                  |
+| 9    | `activate_rates`                      | Activates Draft RateCardEntry records via the REST Composite API |
+
+Steps 4–6 and 8 are the q3 equivalents (they run only when `q3` is on and `qb` is off).
 
 ### Task Definition
 
@@ -26,45 +29,66 @@ insert_qb_rating_data:
     pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-rating"
 ```
 
+```yaml
+insert_qb_rating_entitlements_data:
+  class_path: tasks.rlm_sfdmu.LoadSFDMUData
+  options:
+    pathtoexportjson: "datasets/sfdmu/qb/en-US/qb-rating-entitlements"
+```
+
+`insert_qb_rating_entitlements_data` resolves each parent ProductUsageResource Id on the target org (from `parent_id_lookups.json`) into a temp copy of the plan before SFDMU runs; the tracked CSVs keep only the portable SKU + resource-code columns.
+
+`Product2.csv` also lists the five resource-definition products that `UsageResource` points at (and that the `ProductUsageGrant` rows in `qb-rating-entitlements` reference as `UsageDefinitionProduct`: QB-CPU-BLNG, QB-DATA-STORAGE-BLNG, QB-DATA-THPT-BLNG, QB-TOKEN-DEF, RES-USD-DEF), with their real
+names. Without them SFDMU adds those lookup targets to the Product2 Update set with no `Name`, and the platform
+rejects each one ("Required fields are missing: [Name]"). They're unchanged from qb-pcm.
+
 ## Data Plan Overview
 
-The plan uses **2 SFDMU object sets** (Pass 1 + Pass 2) followed by **Apex activation**:
+The plan uses **2 SFDMU object sets** (Pass 1 + Pass 2), followed by the `qb-rating-entitlements` plan and then **Apex activation**:
 
 ```
-Pass 1 (SFDMU)                              Pass 2 (SFDMU)       Apex Activation
-────────────────────────────────────────   ─────────────────     ─────────────────
-Insert+deleteOldData (PUR/PURP/PUG); Upsert others  Activate UoMClass  -> activateRatingRecords.apex
-                                            and UsageResource       (7-step PUR/PUG activation)
+Pass 1 (SFDMU)                    Pass 2 (SFDMU)              qb-rating-entitlements   Apex Activation
+───────────────────────────────   ─────────────────────────   ──────────────────────   ─────────────────────────
+Upsert everything; Status objects Update UoMClass, UsageResource,  PURP + PUG (Upsert,    activateRatingRecords.apex
+use skipExistingRecords           PUR without Status             skip existing)           (all activation)
 ```
 
-**PUR, PURP, and PUG idempotency (Insert+deleteOldData):** All three use `operation: Insert` with `deleteOldData: true` and **no WHERE clause**. Before the 5.6.4 floor, SFDMU v5 could not match records by relationship-traversal externalId components (even 1-hop like `Product.StockKeepingUnit`) and always inserted instead of updating, causing duplicates on re-run — the reason the shipped plan uses Insert+deleteOldData. Those traversal-match bugs are **fixed on the 5.6.4+ floor**; the workaround is retained pending the gated `sfdmu-v5-optimization` migration (see the floor note above). **PUG migration is not operation-only**: its externalId triplet is intentionally non-unique across parent PURs, so an `Upsert` move must first add a PUR component (e.g. `ProductUsageResourceId`) to the key. Mechanically, SFDMU processes deleteOldData in **reverse array order** (PUG → PURP → PUR), satisfying FK constraints (children deleted before parent). No WHERE clause means the plan is fully portable — extraction captures drift for any product in the org. PURP uses `externalId: ProductUsageResourceId` (direct FK, avoids SFDMU v5 validation error for all-multi-hop externalIds). The PURP and PUG CSVs provide `ProductUsageResource.Product.StockKeepingUnit` and `ProductUsageResource.UsageResource.Code` as two separate columns (no `$$` composite) so SFDMU can resolve `ProductUsageResourceId` without triggering the SOQL injection bug.
+**PUR idempotency (Upsert + skipExistingRecords):** ProductUsageResource is `Upsert` on `Product.StockKeepingUnit;UsageResource.Code` with `skipExistingRecords: true`. Pass 1 inserts missing PURs as Draft and never touches an existing one, so a reload neither deletes anything nor sends `Status` to an Active record (the platform rejects Active -> Draft on PUR). Pass 2 then updates the other fields of existing PURs (without `Status`, and without `TokenResource`, which `activateRatingRecords.apex` manages). The plan uses no `Insert` + `deleteOldData` and no `deleteQuery`. Before the 5.6.4 floor, SFDMU v5 could not match records by relationship-traversal externalId and inserted duplicates on re-run; that is fixed on the floor.
 
-### Pass 1 — Insert/Upsert with Draft Status
+**PURP and PUG** moved to the sibling plan `qb-rating-entitlements` (task `insert_qb_rating_entitlements_data`, `prepare_rating` step 2) because SFDMU 5.8.0 cannot Upsert a child keyed on the parent's composite traversal key (upstream issue #1218). That plan keys both on `ProductUsageResourceId`; `LoadSFDMUData` resolves it on the target org from the portable key columns (`ProductUsageResource.Product.StockKeepingUnit` + `ProductUsageResource.UsageResource.Code`) into a temp copy of the plan before SFDMU runs. Their CSVs live in that plan's directory.
 
-All records are created in `Draft` status. SFDMU resolves lookups across objects using composite external IDs.
+### Pass 1 — Upsert; insert missing rows as Draft
+
+New rows are created in `Draft` status. SFDMU resolves lookups across objects using composite external IDs.
 
 | # | Object                       | Operation | External ID                                          | Records |
 |---|------------------------------|-----------|------------------------------------------------------|---------|
 | 1 | UnitOfMeasure                | Upsert    | `UnitCode`                                           | 18      |
-| 2 | UnitOfMeasureClass           | Upsert    | `Code`                                               | 5       |
+| 2 | UnitOfMeasureClass           | Upsert¹   | `Code`                                               | 5       |
 | 3 | UsageResourceBillingPolicy   | Upsert    | `Code`                                               | 5       |
-| 4 | UsageResource                | Upsert    | `Code`                                               | 7       |
-| 5 | Product2                     | Update    | `StockKeepingUnit`                                   | 10       |
+| 4 | UsageResource                | Upsert¹   | `Code`                                               | 7       |
+| 5 | Product2                     | Update    | `StockKeepingUnit`                                   | 15      |
 | 6 | UsageGrantRenewalPolicy      | Upsert    | `Code`                                               | 1       |
 | 7 | UsageGrantRolloverPolicy     | Upsert    | `Code`                                               | 1       |
 | 8 | UsageOveragePolicy           | Upsert    | `Name`                                               | 2       |
 | 9 | UsageCommitmentPolicy        | Upsert    | `Name`                                               | 2       |
-| 10| ProductUsageResource         | Insert¹   | `Product.StockKeepingUnit;UsageResource.Code`        | 25      |
+| 10| ProductUsageResource         | Upsert¹   | `Product.StockKeepingUnit;UsageResource.Code`        | 25      |
 | 11| UsagePrdGrantBindingPolicy   | Upsert    | `Name;Product2.StockKeepingUnit`                     | 4       |
 | 12| RatingFrequencyPolicy        | Upsert    | `RatingPeriod`                                       | 2       |
-| 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 23      |
-| 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 12      |
 
-¹ Insert+deleteOldData (no WHERE). Pre-5.6.4, SFDMU v5 could not match by relationship-traversal externalId (Upsert inserted duplicates); **fixed on the 5.6.4+ floor**, retained pending the gated migration. PUG additionally needs a PUR component added to its (intentionally non-unique) externalId before any Upsert move — not operation-only. deleteOldData runs in reverse array order (PUG→PURP→PUR) to satisfy FK constraints.
+¹ `skipExistingRecords: true`: missing rows are inserted as Draft and existing rows are never touched, so a reload never sends `Status=Draft` to an Active row. Corrections to the other fields land through pass 2. ProductUsageResourcePolicy and ProductUsageGrant are loaded by `qb-rating-entitlements` (see above).
 
 **Currency units feed multicurrency rating (2026-07-24):** `UnitOfMeasure` carries **7 `CURRENCY`-class units** — `USD`, `GBP`, `EUR`, `AUD`, `CAD`, `CHF`, `JPY`. These are what denominate a rate: no rate object has a `CurrencyIsoCode`, so a `RateCardEntry` expresses its currency through its `RateUnitOfMeasure`, and a non-USD quote cannot rate without the matching unit here. Add a currency unit **before** expanding `qb-rates` — `scripts/expand_currency_rates_data.py` refuses to run if one is missing. `JPY` is the only unit with `RoundingMethod=Nearest` / `Scale=1` (whole-yen amounts); the other six are plain 2-decimal units. Note the units' own `CurrencyIsoCode` is `USD` throughout — that field is not the mechanism, `UnitCode` is. See the qb-rates README for the expansion rules.
 
-**Full delete+insert cycle:** PUR, PURP, and PUG all use `deleteOldData: true` with no WHERE clause. Every run deletes ALL records of each type and re-inserts from CSV — no duplicate risk, fully portable. The PURP and PUG CSVs use two separate traversal columns (`ProductUsageResource.Product.StockKeepingUnit` + `ProductUsageResource.UsageResource.Code`) for FK resolution; no `$$` composite column (which caused a SOQL injection bug in the deleteOldData DELETE phase).
+**Reload behaviour (live-verified 2026-10-30 on a built org and a fresh org):** a reload of a built org deletes nothing, inserts nothing, never sends `Status`, and leaves all 25 PUR, 23 PURP and 12 PUG Active and unchanged. The earlier Draft-duplicate cycle and the `activateRatingRecords.apex` step 2.5 cleanup no longer happen on reload (step 2.5 stays as a safety net). Corrections to non-Status fields of existing rows land through pass 2 (verified: `UnitOfMeasureClass.Description`, `UsageResource.Description`, `ProductUsageGrant.Quantity`).
+
+The platform rejects some changes on Active records, and the load then **fails** (it does not skip silently):
+
+- `ProductUsageResource.IsOptional = true` is rejected unless the product is Token / Monetary Commitment usage model.
+- Changing `ProductUsageResource.EffectiveEndDate` is rejected while its grant is Active ("Select a date and time later than the specified effective end date ... when the Product Usage Grant ... is active").
+- `UsageResource` fields tied to active Rate Card Entries or grants are locked.
+
+Changing a match key (SKU or Code) adds a new record and leaves the old one (nothing is deleted). `Status` is never changed by the plan.
 
 **Pack add-on products (2026-07-24):** `QB-TOKENS-PACK` (QuantumBit Tokens Pack) and `QB-DAT-THPT` (Additional Data Throughput) are `UsageModelType=Pack` add-ons that top up an anchor product's usage bucket. Each carries a `ProductUsageResource` and a `ProductUsageGrant` (**5,000 tokens; 100 GB**), and QB-DAT-THPT also has a Base Rate Card entry (in `qb-rates`). QB-DAT-THPT's `UsageDefinitionProduct` is the dedicated `QB-DATA-THPT-BLNG` throughput definition (matching `UR-DATAXFR`), so throughput usage draws down the correct bucket.
 
@@ -78,32 +102,37 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 >
 > Ten commit PURP rows briefly shipped with `rating=Monthly` + accumulation and were **silently dropped on every load**, leaving the org with 10 of the 20 rows this plan declares — while the CSV, the validator and the plan-consistency check all looked clean. Guarded offline now by `tests/test_qb_multicurrency_data.py::check_commitment_purp_has_no_periods`.
 
-### Pass 2 — Activate UnitOfMeasureClass and UsageResource
+### Pass 2 — Update existing rows, without Status
 
-| # | Object             | Operation | External ID | Records |
-|---|--------------------|-----------|-------------|---------|
-| 1 | UnitOfMeasureClass | Update    | `Code`      | 5       |
-| 2 | UsageResource      | Update    | `Code`      | 5       |
+| # | Object             | Operation | External ID                                   | Records |
+|---|--------------------|-----------|-----------------------------------------------|---------|
+| 1 | UnitOfMeasure      | Readonly  | `UnitCode`                                    | 18      |
+| 2 | Product2           | Readonly  | `StockKeepingUnit`                            | 15      |
+| 3 | UnitOfMeasureClass | Update    | `Code`                                        | 5       |
+| 4 | UsageResource      | Update    | `Code`                                        | 7       |
+| 5 | ProductUsageResource | Update  | `Product.StockKeepingUnit;UsageResource.Code` | 25      |
 
-Only UoMClass and UsageResource are activated in SFDMU Pass 2. PUR and PUG activation requires the Apex script (`activate_rating_records`) which enforces a strict dependency order — Token PURs must be Active before non-Token usage PURs, and all PURs must be Active before PUGs.
+The pass-2 CSVs in `objectset_source/object-set-2/` (UnitOfMeasureClass, UsageResource, ProductUsageResource) are each the root CSV minus `Status` (ProductUsageResource also minus `TokenResource.Code`, which `activateRatingRecords.apex` manages). UnitOfMeasure and Product2 are declared `Readonly` so the Update rows can resolve their lookups: a lookup whose parent object is not declared in the pass is sent as null, and without them pass 2 blanked `UnitOfMeasureClass.BaseUnitOfMeasure` / `DefaultUnitOfMeasure` on a built org (live-verified).
+
+Pass 2 no longer activates anything. Activation of UnitOfMeasureClass, UsageResource, PUR and PUG is entirely `activateRatingRecords.apex` (`prepare_rating` step 7), which enforces a strict dependency order: Token PURs must be Active before non-Token usage PURs, and all PURs must be Active before PUGs.
 
 ## Schema: ProductUsageResource (PUR) and product relationship
 
 Org describe confirms: on **ProductUsageResource**, `ProductId` has `relationshipName: Product` (not Product2). So in SOQL we use **Product.StockKeepingUnit** and **UsageResource.Code** on PUR, and **ProductUsageResource.Product.StockKeepingUnit** when traversing from PURP/PUG. UsagePrdGrantBindingPolicy uses **Product2**.StockKeepingUnit (it has Product2Id). **`RatingFrequencyPolicy.ProductId` and `.UsageResourceId` were removed in 264** (`#264-66`) — the object's query now selects only `Name`, `RatingDelayDuration`, `RatingPeriod`.
 
-PUR, PURP, and PUG all use `operation: Insert` with `deleteOldData: true` (no WHERE clause). PURP uses `externalId: ProductUsageResourceId` (direct FK — avoids SFDMU v5 validation error for all-multi-hop externalIds). The PURP and PUG CSVs have two separate traversal columns (`ProductUsageResource.Product.StockKeepingUnit` and `ProductUsageResource.UsageResource.Code`) for FK resolution — no `$$` composite (which caused a SOQL injection bug in the deleteOldData DELETE phase).
+PUR uses `Upsert` with `skipExistingRecords: true` on its traversal key. PURP and PUG live in `qb-rating-entitlements` and use `externalId: ProductUsageResourceId` (direct FK, resolved on the target org at load time). Their CSVs have two separate traversal columns (`ProductUsageResource.Product.StockKeepingUnit` and `ProductUsageResource.UsageResource.Code`) used to resolve that Id; no `$$` composite column.
 
 ## Apex Activation Script
 
 **File:** `scripts/apex/activateRatingRecords.apex`
 
-PUR and PUG activation follows a strict 7-step dependency order:
+PUR and PUG activation (and UoMClass / UsageResource activation) follows a strict 7-step dependency order. It runs as `prepare_rating` step 7:
 
 | Step | What                                      | Why                                                                |
 |------|-------------------------------------------|--------------------------------------------------------------------|
-| 1    | UnitOfMeasureClass -> Active              | Safety net (Pass 2 should already do this)                         |
-| 2    | UsageResource -> Active                   | Safety net (Pass 2 should already do this, including QB-TOKEN)     |
-| 2.5  | Delete childless duplicate Draft PURs     | Defensive step — PUR now uses Insert+deleteOldData so duplicates should never exist; this is a safety net for any edge cases |
+| 1    | UnitOfMeasureClass -> Active              | Sole activation path (pass 2 never sends Status)                   |
+| 2    | UsageResource -> Active                   | Sole activation path, including QB-TOKEN                           |
+| 2.5  | Delete duplicate Draft PURs (and their Draft PUG/PURP) | Safety net — a reload of a built org no longer creates duplicates, so this normally finds nothing |
 | 3    | Pre-populate TokenResourceId on Draft PURs| Ensures clear+activate works in Step 5 (see below)                 |
 | 4    | Token PUR -> Active                       | Must precede Step 5; products with Token PURs require them Active before usage PURs can activate |
 | 5    | ALL non-Token PUR -> clear+activate       | TokenResourceId=null + Status='Active' in single DML               |
@@ -111,7 +140,7 @@ PUR and PUG activation follows a strict 7-step dependency order:
 
 **Step 3 explained:** Some PURs (QB-DB;UR-\*, QB-QTY-CMT;UR-\*) don't get `TokenResourceId` auto-populated at SFDMU insert time. The clear+activate workaround in Step 5 only prevents auto-population when `TokenResourceId` changes from a non-null value to null -- a null-to-null assignment is a no-op that doesn't block auto-population. Step 3 pre-populates `TokenResourceId` from `UsageResource.TokenResourceId` on these Draft PURs so that Step 5's clear is a real change.
 
-The script is **idempotent** — all activation steps filter on `Status != 'Active'`. Step 2.5 is now a safety-net no-op (PUR uses Insert+deleteOldData, so no duplicates should exist). Re-running on an already-activated org is a safe no-op.
+The script is **idempotent** (when it runs; `activate_rating_records` is gated on `rating and rates`, so with rates off a standalone reload leaves any newly inserted Draft rows unactivated) — all activation steps filter on `Status != 'Active'`. Step 2.5 is a safety net: a reload of a built org inserts no duplicates, so it finds nothing, as on a fresh build. Re-running on an already-activated org is a safe no-op.
 
 ## Products and Usage Model Types
 
@@ -177,7 +206,7 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 
 ## ProductUsageGrant (PUG) Summary
 
-12 grant records across 5 usage definition products:
+12 grant records across 5 usage definition products (loaded by `qb-rating-entitlements`):
 
 | Usage Definition Product | Type   | Resource                    | Quantity | Validity |
 |--------------------------|--------|-----------------------------|----------|----------|
@@ -429,12 +458,12 @@ qb-rating/
 ├── export.json                          # SFDMU data plan (2 passes)
 ├── README.md                            # This file
 │
-│  Source CSVs (Pass 1 - Draft status)
+│  Source CSVs (Pass 1)
 ├── UnitOfMeasure.csv                    # 18 records
 ├── UnitOfMeasureClass.csv               # 5 records
 ├── UsageResourceBillingPolicy.csv       # 5 records
 ├── UsageResource.csv                    # 7 records
-├── Product2.csv                         # 10 records (Update only)
+├── Product2.csv                         # 15 records (Update only)
 ├── UsageGrantRenewalPolicy.csv          # 1 record
 ├── UsageGrantRolloverPolicy.csv         # 1 record
 ├── UsageOveragePolicy.csv               # 2 records
@@ -442,23 +471,24 @@ qb-rating/
 ├── ProductUsageResource.csv             # 25 records
 ├── UsagePrdGrantBindingPolicy.csv       # 4 records
 ├── RatingFrequencyPolicy.csv            # 2 records (Monthly, Daily)
-├── ProductUsageResourcePolicy.csv       # 23 records
-├── ProductUsageGrant.csv                # 12 records
 │
-│  Source CSVs (Pass 2 - Activate)
+│  Source CSVs (Pass 2 - Update without Status)
 ├── objectset_source/
 │   └── object-set-2/
-│       ├── UnitOfMeasureClass.csv       # 5 records (Status > Active)
-│       └── UsageResource.csv            # 5 records (Status > Active)
+│       ├── UnitOfMeasureClass.csv       # 5 records (root CSV minus Status)
+│       ├── UsageResource.csv            # 7 records (root CSV minus Status)
+│       └── ProductUsageResource.csv     # 25 records (minus Status and TokenResource.Code)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots
 └── target/                              # SFDMU-generated target snapshots
 ```
 
+The sibling plan `../qb-rating-entitlements/` (`prepare_rating` step 2) holds `export.json`, `parent_id_lookups.json` (parent PUR key to target Id resolution), and the PURP (23 records) and PUG (12 records) CSVs.
+
 ## Data Extraction
 
-This plan supports **bidirectional** operation: in addition to importing data (CSV > org), it can extract data from any org into portable CSVs.
+This plan supports **bidirectional** operation: in addition to importing data (CSV > org), it can extract data from any org into portable CSVs. `extract_qb_rating_data` covers this plan only; ProductUsageResourcePolicy and ProductUsageGrant extract via `extract_qb_rating_entitlements_data` (also step 2 of the `extract_rating` flow).
 
 ### Extraction via CCI
 
@@ -466,14 +496,17 @@ This plan supports **bidirectional** operation: in addition to importing data (C
 # These commands use the CCI default org. To target a specific org, add --org <org>.
 cci task run extract_qb_rating_data
 
-# Or use the extract_rating flow to extract both rating and rates
+# PURP and PUG extract separately (qb-rating-entitlements)
+cci task run extract_qb_rating_entitlements_data
+
+# Or use the extract_rating flow to extract rating, rating entitlements and rates
 cci flow run extract_rating
 
-# Or run all QB extract tasks (includes rating)
+# Or run all QB extract tasks (includes rating and rating entitlements)
 cci flow run run_qb_extracts
 ```
 
-To run the idempotency test for this plan: `cci task run test_qb_rating_idempotency --org <org>`. To run all QB idempotency tests: `cci flow run run_qb_idempotency_tests --org <org>`. Tasks are in the **Data Management - Extract** and **Data Management - Idempotency** groups. The rating idempotency test uses **extraction roundtrip** — loads from source CSVs, extracts from the org, post-processes, and re-imports — requiring a Draft-only org state. See [Idempotency](#idempotency) for prerequisites.
+To run the idempotency test for this plan: `cci task run test_qb_rating_idempotency --org <org>`. To run all QB idempotency tests (rating entitlements included): `cci flow run run_qb_idempotency_tests --org <org>`. Tasks are in the **Data Management - Extract** and **Data Management - Idempotency** groups. The rating idempotency test uses **extraction roundtrip** — loads from source CSVs, extracts from the org, post-processes, and re-imports — and all counts stay flat on a built org (live-verified 2026-10-30). See [Idempotency](#idempotency) for prerequisites.
 
 ### Extraction via SFDMU Directly
 
@@ -509,11 +542,17 @@ The SOQL queries in `export.json` include both raw ID fields (e.g., `ProductId`)
 
 ## Idempotency
 
-The plan is **fully idempotent**: every run deletes ALL PUR, PURP, and PUG records (deleteOldData, no WHERE) and re-inserts from CSV. Consecutive runs always produce PUR=25, PURP=23, PUG=12. No duplicate risk.
+The plan is idempotent on both fresh and built orgs. It uses no `deleteOldData` and no `deleteQuery`: pass 1 is `Upsert` (with `skipExistingRecords: true` for the Status objects UnitOfMeasureClass, UsageResource and ProductUsageResource) and pass 2 is `Update` without `Status`.
 
-The idempotency test (`test_qb_rating_idempotency`) uses **extraction roundtrip** (`use_extraction_roundtrip: true`): loads from source CSVs → extracts from org → post-processes → re-imports from the processed dir, confirming no record count increase. Extraction output is persisted to `datasets/sfdmu/extractions/qb-rating/<timestamp>/`.
+- **Fresh org:** pass 1 inserts the rows as Draft, and `activate_rating_records` (`prepare_rating` step 7) activates them: PUR=25, PURP=23, PUG=12. A full flow run on a built org reloads in place; `prepare_rating` no longer deletes rating data first.
+- **Reload on a built org (live-verified 2026-10-30):** deletes nothing, inserts nothing, never sends `Status`, and leaves all 25 PUR / 23 PURP / 12 PUG Active and unchanged. The Draft-duplicate cycle and the `activateRatingRecords.apex` step 2.5 cleanup no longer happen (step 2.5 stays as a safety net).
+- **Corrections to existing rows:** non-Status fields of existing rows are corrected through pass 2 (verified: `UnitOfMeasureClass.Description`, `UsageResource.Description`, `ProductUsageGrant.Quantity`).
+- **Platform rejections fail the load:** the platform rejects some changes on Active records, and the load then fails rather than skipping silently: `ProductUsageResource.IsOptional = true` unless the product is Token / Monetary Commitment usage model; a changed `ProductUsageResource.EffectiveEndDate` while its grant is Active; `UsageResource` fields tied to active Rate Card Entries or grants.
+- **Changed match key:** changing a key (SKU or Code) adds a new record and leaves the old one; nothing is deleted. `Status` is never changed by the plan.
 
-**Prerequisite — Draft-only org state**: SFDMU's `deleteOldData` sends a direct REST DELETE. Salesforce rejects deletion of Active PURs and PUGs (the entire batch fails; Active records stay while new Drafts are inserted on top, doubling counts). Before running the idempotency test, all PURs and PUGs must be in Draft status or absent. If `prepare_rating` has been run, clean up first:
+The idempotency test (`test_qb_rating_idempotency`) uses **extraction roundtrip** (`use_extraction_roundtrip: true`): loads from source CSVs → extracts from org → post-processes → re-imports from the processed dir, confirming no record count increase. It passes with all counts flat. Extraction output is persisted to `datasets/sfdmu/extractions/qb-rating/<timestamp>/`. The PURP/PUG side has its own `test_qb_rating_entitlements_idempotency` (requires qb-rating loaded).
+
+To start the test from a known state, clean up first:
 
 ```bash
 cci task run delete_qb_rates_data   # deactivate + delete rates (reference PURs via FK)
@@ -532,12 +571,13 @@ cci task run delete_qb_rating_data
 # 2. Load rating + rates and activate
 cci flow run prepare_rating   # ensure options rating=true, rates=true, qb=true match your project config
 
-# 3. Clean up Active records created by prepare_rating (required before idempotency tests)
+# 3. Optional: clear the Active records again to start the next test from a known state
 cci task run delete_qb_rates_data
 cci task run delete_qb_rating_data
 
-# 4. Run idempotency tests from clean Draft state
+# 4. Run idempotency tests
 cci task run test_qb_rating_idempotency
+cci task run test_qb_rating_entitlements_idempotency
 cci task run test_qb_rates_idempotency
 ```
 
@@ -669,9 +709,9 @@ All schema-unique fields are already correctly used as externalIds.
 
 | Object                       | Name Field Type          | Current ExternalId                                     | Assessment |
 |------------------------------|--------------------------|--------------------------------------------------------|------------|
-| ProductUsageResource         | `ProductUsageResourceNum` (auto-num) | `Product.StockKeepingUnit;UsageResource.Code` (Insert+deleteOldData — v5 can't match by traversal externalId) | ✅ Good |
-| ProductUsageGrant            | `ProductUsageGrantNum` (auto-num) | 3-field composite: `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` (Insert+deleteOldData) | ✅ Good |
-| ProductUsageResourcePolicy   | `ProductUsageResourcePolicyNum` (auto-num) | `ProductUsageResourceId` (direct FK, 1:1 with PUR) + `deleteOldData:true` | ✅ Good — SFDMU v5 safe pattern for all-multi-hop externalIds |
+| ProductUsageResource         | `ProductUsageResourceNum` (auto-num) | `Product.StockKeepingUnit;UsageResource.Code` (Upsert, `skipExistingRecords`) | ✅ Good |
+| ProductUsageGrant (in `qb-rating-entitlements`) | `ProductUsageGrantNum` (auto-num) | `ProductUsageResourceId` (resolved on the target org at load time; Upsert, `skipExistingRecords`) — one grant per PUR in this dataset; the UoM triplet alone is not unique across PURs | ✅ Good |
+| ProductUsageResourcePolicy (in `qb-rating-entitlements`) | `ProductUsageResourcePolicyNum` (auto-num) | `ProductUsageResourceId` (direct FK, 1:1 with PUR; Upsert, `skipExistingRecords`) | ✅ Good — SFDMU v5 safe pattern for all-multi-hop externalIds |
 | RatingFrequencyPolicy        | Auto-num                 | `RatingPeriod`                                          | ⚠️ Picklist only (see above) |
 
 ### Composite Key Complexity
@@ -683,8 +723,8 @@ All schema-unique fields are already correctly used as externalIds.
 | UsageResource                | 1 (`Code`) | Simple | No — schema-unique |
 | ProductUsageResource         | 2 (Product.StockKeepingUnit + UsageResource.Code) | Low | No — junction natural key |
 | UsagePrdGrantBindingPolicy   | 2 (Name + Product2.SKU) | Low | No |
-| ProductUsageResourcePolicy   | 1 (`ProductUsageResourceId` + `deleteOldData`) | Medium | No — SFDMU v5 requires direct field; `$$` composite caused SOQL injection |
-| ProductUsageGrant            | **5** fields | **High** | No — all 5 required for uniqueness (grant per product per UoM per PUR) |
+| ProductUsageResourcePolicy (qb-rating-entitlements) | 1 (`ProductUsageResourceId`, resolved at load time) | Medium | No — SFDMU v5 requires direct field; `$$` composite caused SOQL injection; a parent traversal-key Upsert fails on 5.8.0 (upstream #1218) |
+| ProductUsageGrant (qb-rating-entitlements) | 1 (`ProductUsageResourceId`, resolved at load time) | Medium | No — one grant per PUR; the UoM triplet alone is not unique across PURs |
 
 ## Optimization Opportunities
 
@@ -699,7 +739,7 @@ All schema-unique fields are already correctly used as externalIds.
 
 ### TODO: Multi-Shape / Overlay Support
 
-**Current limitation**: This plan uses `deleteOldData: true` with no WHERE clause on PUR, PURP, and PUG. That means each plan run deletes **all** records of each type and re-inserts only what is in these CSVs. The plan assumes it is the sole owner of all rating data on the org. Loading a second data shape (e.g., a different product family's rating config) on the same org will cause the first shape's records to be wiped on the next run of either plan.
+**Current limitation**: The plan deletes nothing, so it is not destructive to another shape, but it is not shape-owned either: a reload only adds missing rows and corrects fields of rows that match this plan's keys. Records of another shape with different keys are left alone, and records of this shape that were removed from the CSVs are not removed from the org (clear them with `delete_qb_rating_data`). Rows sharing a key with another shape would be updated by pass 2.
 
 **Requirements to investigate**:
 1. **Fresh build from scratch with multiple shapes** — support composing any number of data shapes on the same org without shapes overwriting each other. Each shape should be independently loadable and re-runnable without affecting sibling shapes.
@@ -710,7 +750,6 @@ All schema-unique fields are already correctly used as externalIds.
 4. **Downstream CCI overlay pattern** — investigate how to configure shape variants as overlays (additional plans, post-load Apex, or plan extensions) in downstream CCI projects that inherit this base.
 
 **Alternatives to investigate**:
-- **WHERE-clause scoped plans**: Filter deleteOldData by a discriminator (e.g., product family SKU prefix). SFDMU does not natively support dynamic WHERE on deleteOldData — would require pre-filtering CSVs or a wrapper task.
-- **Shape-discriminated externalIds**: Tag each PUR/PUG with a shape identifier, scope deletes to only that shape's records.
-- **Upsert-based approach**: Would eliminate the deleteOldData all-or-nothing problem, but requires SFDMU v5 traversal-externalId bug fixes (Bugs 2 & 3) or a workaround.
+- **Shape-owned cleanup**: Removing rows dropped from the CSVs would need a shape-scoped delete (SFDMU does not support a dynamic WHERE, so each shape would need its own plan or a wrapper task).
+- **Shape-discriminated externalIds**: Tag each PUR/PUG with a shape identifier, and scope any cleanup to only that shape's records.
 - **CCI project inheritance overlay**: Each shape defined as a separate plan in its own CCI project that extends this base, loaded in sequence after the base plan.

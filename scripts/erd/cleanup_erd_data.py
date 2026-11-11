@@ -65,12 +65,6 @@ RE_PAGE_FOOTER = re.compile(
 # Regex: SEE ALSO and everything after
 RE_SEE_ALSO = re.compile(r"\s*SEE ALSO[:\s].*$", re.DOTALL)
 
-# Regex: trailing incomplete bullet enumeration (ends with bullet item but no closing)
-# e.g. "• Active •" or "• CalculateTax"
-RE_TRAILING_BULLETS = re.compile(
-    r"\s*\u2022\s*[A-Za-z]+(?:\s*\u2022\s*[A-Za-z]*)*\s*$"
-)
-
 
 class ChangeTracker:
     """Accumulates change descriptions by category."""

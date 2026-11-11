@@ -9,10 +9,11 @@ control order):
 
 | Dir | Deploys | Why First |
 |-----|---------|-----------|
-| `1_objects/` | Custom fields | Fields must exist before PSGs/DTs that reference them |
-| `2_settings/` | Org settings | Features must be enabled before metadata that uses them |
-| `3_permissionsetgroups/` | PSGs | PSG metadata deploys here; references PSLs from `force-app/` |
+| `1_settings/`, `2_settings/` | Org settings (`2_settings/` is also the `enable_settings_path` some tasks redeploy) | Features must be enabled before metadata that uses them |
+| `3_permissionsetgroups/` | PSGs, plus repo-owned permission sets they include | PSG metadata deploys here; references PSLs from `force-app/`. A permission set a PSG includes (e.g. `RLM_BillingAccountFieldAccess`) lives in this folder so it deploys in the same bundle |
+| `4_tax/` | Tax adapter Apex | Must exist before the tax metadata and data that reference it |
 | `5_decisiontables/` | Decision table definitions | Must exist before expression sets or flows reference them |
+| `6_fields/` | Custom fields the context plans map (e.g. `QuoteLineItem.RLM_Contract_Applied_Unit_Price__c`) | A context plan's mapping needs its field, and `extend_context_definitions` runs before `prepare_expression_sets` deploys the procedure that reads the tag |
 
 ### Profile strip-and-build
 
@@ -48,11 +49,13 @@ paths are forceignored.
 |-----------|------|------------|
 | 1 | qb-pcm (products) | None |
 | 2 | qb-pricing | qb-pcm |
+| 2b | qb-price-revision | None (no lookups); loads right after qb-pricing (`prepare_pricing_data` step 3); refresh `Index_Rate_Decision_Table` after |
 | 3 | qb-dro | qb-pcm |
 | 4 | qb-tax | qb-pcm |
 | 5 | qb-billing | qb-pcm (LegalEntity shared with qb-tax) |
 | 6 | qb-clm | qb-pcm |
 | 7 | qb-rating | qb-pcm + qb-billing (UsageResourceBillingPolicy) |
+| 7b | qb-rating-entitlements | qb-rating (PURs must exist; their Ids are resolved on the target org at load time) |
 | 8 | qb-rates | qb-pcm + qb-rating (PURs must exist) + qb-pricing (PriceBook2) |
 | 9 | qb-approvals | post_approvals metadata + email templates |
 | 10 | qb-guidedselling-products | qb-pcm + `deploy_post_guidedselling` Product2 fields |
@@ -101,18 +104,18 @@ Reverse dependency order (children before parents):
 
 | Step | Sub-flow | What happens |
 |------|---------|--------------|
-| 1 | prepare_core | PSLs, PSGs, context defs, deploy_pre |
+| 1 | prepare_core | PSLs, PSGs, context defs, deploy_pre; then estimated tax off (unless `quote_est_tax` and `tax`; prepare_tax turns it on after the tax engine, before prepare_prm grants its fields) |
 | 2 | prepare_decision_tables | DT lifecycle |
 | 3 | prepare_expression_sets | ES lifecycle |
 | 4 | prepare_payments | Payments webhook + metadata |
 | 5 | deploy_full | `force-app/` bundle |
 | 6 | prepare_price_adjustment_schedules | PAS metadata |
 | 7 | prepare_quantumbit | QB metadata |
-| 8 | prepare_product_data | PCM, Q3, product images |
+| 8 | prepare_product_data | PCM (with product image URLs), Q3; sets the org-wide default configurator flow |
 | 9 | prepare_pricing_data | Pricing |
 | 10 | prepare_docgen | DocGen |
 | 11 | prepare_dro | DRO + fulfillment scope |
-| 12 | prepare_tax | Tax |
+| 12 | prepare_tax | Tax engine, data, activation; then estimated tax on (when `quote_est_tax` and `tax`) |
 | 13 | prepare_billing | Billing |
 | 14 | prepare_collections | Collections & Recovery: matrix + post_collections + case flow (when `collections`) |
 | 15 | prepare_analytics | CRM Analytics replication |
@@ -135,4 +138,6 @@ Reverse dependency order (children before parents):
 | 32 | prepare_scratch | Scratch-only data (Account, Contact, BillingAccount) |
 | 33 | refresh_all_decision_tables | DT cache refresh |
 | 34 | rebuild_search_index | PCM catalog search index build (async) |
-| 35 | stamp_git_commit | Always last |
+| 35 | empty_recycle_bin | Recycle Bin purge (scratch orgs only) |
+| 36 | prepare_mcp | MCP surface: ECA + server config (when `mcp`); clone invocable + custom server (when `mcp_custom_server`) |
+| 37 | stamp_git_commit | Always last |

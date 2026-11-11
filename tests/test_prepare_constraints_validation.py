@@ -8,11 +8,8 @@ Needs PyYAML; no org and no CumulusCI install required.
 
 Why this file exists
 --------------------
-Step 6 (``validate_cml``) once listed only QuantumBitComplete while steps 7-10
-imported four models, so three shipped unvalidated. ValidateCML's own tests
-only prove it handles the directories it is given; this reads the flow itself
-and fails if any ``import_cml`` step's ``data_dir`` is missing from the
-``validate_cml`` step's ``data_dirs``, or if validation runs after an import.
+Validation must cover both retained model imports before either one runs.
+The lifecycle must cycle both versions and must not reference retired models.
 """
 import sys
 from pathlib import Path
@@ -58,6 +55,25 @@ if len(validate) == 1 and imports:
     check("validation runs before every import", not late, f"imports before step {v_num}: {late}")
     same_when = all(s.get("when") == v_step.get("when") for _, s in imports)
     check("validate_cml runs under the same condition as the imports", same_when)
+
+expected_dirs = {"datasets/constraints/qb/Server2", "datasets/constraints/qb/QuantumBitBundle"}
+check("only the two retained models are imported", {
+    s["options"]["data_dir"] for _, s in imports
+} == expected_dirs)
+check("only retained model datasets are shipped", {
+    p.name for p in (REPO / "datasets/constraints/qb").iterdir() if p.is_dir()
+} == {"Server2", "QuantumBitBundle"})
+expected_versions = {"Server2_V1", "QuantumBitBundle_V1"}
+cycles = [(n, s) for n, s in ordered if s.get("task") == "manage_expression_sets"]
+check("one deactivate and one activate step", [s["options"]["operation"] for _, s in cycles]
+      == ["deactivate_versions", "activate_versions"])
+for n, s in cycles:
+    check(f"step {n} cycles only retained models", {
+        v.strip() for v in s["options"]["version_full_names"].split(",")
+    } == expected_versions)
+    check(f"step {n} preserves the import guard", s.get("when") == imports[0][1].get("when"))
+check("both lifecycle steps follow the imports", bool(cycles) and bool(imports)
+      and min(n for n, _ in cycles) > max(n for n, _ in imports))
 
 print()
 if FAILURES:

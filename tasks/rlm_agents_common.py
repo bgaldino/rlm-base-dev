@@ -18,28 +18,25 @@ except ImportError:
 
 
 # Bundles present on disk but deliberately excluded from *compilation* — i.e.
-# from ``publish_agents`` and ``activate_agents``.
-# See todo pack 187: on v68/264, ``RLM_Revenue_Quote_Management``'s
-# ``Configure_Product_Attributes`` action has five currency output params that
-# ``sf agent publish`` no longer accepts as scalars, aborting ``prepare_agents``.
-# The bundle is a standard agent template that changed 262→264 and has not yet
-# been recaptured, so it is omitted rather than hand-patched. The source stays
-# on disk (and is still deployed by ``deploy_agents``, which does not compile)
-# as the capture target — remove the entry once the 264 template is captured and
-# reintroduced.
+# from ``publish_agents`` and ``activate_agents``. Currently empty: all four
+# agents publish and activate. ``RLM_Revenue_Quote_Management`` was excluded
+# (todo pack 187) while its ``Configure_Product_Attributes`` action's currency
+# output params failed ``sf agent publish`` on v68/264; it now uses only
+# out-of-the-box actions and flows and publishes cleanly, so the entry was
+# removed. Add a bundle's api-name here only when it is on disk but cannot compile.
 #
 # The exclusion is *operation-specific*, not applied at every call site.
-# ``publish_agents``/``activate_agents`` skip the bundle (default), so nothing
-# tries to compile or activate it. ``deactivate_agents`` deliberately keeps it
-# (``include_excluded=True``): on a 262→264 *upgraded* org the old BotVersion may
-# already be published and active, and skipping it there would leave it active
-# indefinitely. Deactivation of a missing/inactive agent is a no-op, so including
-# it is safe on a fresh org too. (``test_agents`` does not discover from disk; it
-# maps a static suite list and never referenced this bundle. Its permission set's
-# ``<agentAccesses>`` binding is separately removed in
+# ``publish_agents``/``activate_agents`` skip excluded bundles (default), so
+# nothing tries to compile or activate them. ``deactivate_agents`` deliberately
+# keeps them (``include_excluded=True``): on a 262→264 *upgraded* org an old
+# BotVersion may already be published and active, and skipping it there would
+# leave it active indefinitely. Deactivation of a missing/inactive agent is a
+# no-op, so including it is safe on a fresh org too. (``test_agents`` does not
+# discover from disk; it maps a static suite list.) A permission set whose
+# ``<agentAccesses>`` names an excluded bundle must have that block removed in
 # unpackaged/post_agents/permissionsets, since that deploys via a directory
-# Deploy rather than this filter.)
-EXCLUDED_BUNDLES = frozenset({"RLM_Revenue_Quote_Management"})
+# Deploy rather than this filter.
+EXCLUDED_BUNDLES = frozenset()
 
 
 def discover_agent_bundles(bundles_root, *, include_excluded=False):
