@@ -140,7 +140,7 @@ patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` add
 | File | Read when |
 |------|-----------|
 | [`page-configuration.md`](page-configuration.md) | Changing columns, the Adjustment Type column, side panel or ramp fields, action buttons, the Transaction Summary, the settings the editor depends on, or auto-refresh, in Lightning App Builder or in this repo's templates |
-| [`runtime-behavior.md`](runtime-behavior.md) | Using the editor: Browse Catalogs, groups, Instant Pricing, Reprice All, header adjustments, configuring a bundle from a line, amendment, renewal and cancellation lines, filters, and the measured demo traps |
+| [`runtime-behavior.md`](runtime-behavior.md) | Using the editor: Browse Catalogs, groups, Instant Pricing, Reprice All, header adjustments, configuring a bundle from a line, amendment, renewal and cancellation lines, filters, bulk edit, a product-line discount inside a bundle, and the measured demo traps |
 
 ## Open — needs live verification
 
@@ -169,6 +169,20 @@ patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` add
    [Repo: `datasets/sfdmu/procedure-plans/README.md`].
 7. How renewal and cancellation lines display in the STLE (quantities, price columns, detail rows);
    only amendment lines were measured.
+8. Whether bundle child lines can be selected for a **bulk edit** or **Move Selected Items**, in the
+   TLE and the STLE. `ind.qocal_view_and_edit_quotes` describes bulk edit on "selected items" without
+   mentioning bundles. Help documents child lines being left out of the column filter results, and
+   hidden from the editor by the component's Quote Visibility; neither passage covers selection.
+9. How **Group By** (TLE) places bundle child lines, which columns count as groupable, and whether
+   the STLE's predefined and advanced filters include child lines
+   (`ind.qocal_filter_line_items_with_standard_and_advanced_filters` doesn't say).
+10. Whether a discount entered on a group row reaches bundle child lines in that group, and whether
+    a bundle's children can sit in a different group from their root. Group rows can carry Adjustment
+    Type fields (`ind.qocal_adjustment_type_column`), and the group-ramp articles show a rep entering
+    a discount on a group (`ind.qocal_basic_example_ramp_deals_for_groups`,
+    `ind.qocal_ramp_deals_for_groups_transition`,
+    `ind.qocal_ramp_schedule_with_trial_and_proration_segments`); the last says products added to a
+    segment inherit its Discount Percent, which doesn't settle bundle children in a non-ramp group.
 
 ## Examples
 
