@@ -439,7 +439,7 @@ type FieldOpsPlatform : LineItem {
     constraint(integrationHours == 40 * integrations, "Integration hours: 40 per integration.");
     constraint(pmHours * 100 >= 15 * (implHours + integrationHours)
             && (pmHours - 1) * 100 < 15 * (implHours + integrationHours),
-            "Project management hours: 15% of implementation and integration hours, rounded up.");
+            "Project management hours: 15 percent of implementation and integration hours, rounded up.");
     constraint(implementation[ImplementationService] == implHours, "Implementation hours: expected {}.", implHours);
     constraint(integrationSvc[IntegrationService] == integrationHours, "Integration hours: expected {}.", integrationHours);
     constraint(projectMgmt[ProjectManagement] == pmHours, "Project management hours: expected {}.", pmHours);
