@@ -38,6 +38,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 
 | I need to... | Skill | Entry Point |
 |-------------|-------|-------------|
+| Model a product catalog: product vs attribute vs component, bundles and cardinality, classifications, selling models, lifecycle flags, catalogs and categories | Product Catalog Modeling | [product-catalog-modeling/SKILL.md](product-catalog-modeling/SKILL.md) |
 | Edit/ship/debug Constraint models (CML) — configurator bundle rules, `.ffxblob` | Constraint Models | [constraint-models/SKILL.md](constraint-models/SKILL.md) |
 | Set up Salesforce Pricing in an org: enablement, permissions, price/cost books, adjustment schedules, recipes, proration, revision policies, pricing actions | Pricing Setup | [pricing-setup/SKILL.md](pricing-setup/SKILL.md) |
 | Wire pricing recipes, procedures, or lookup table mappings | Pricing Wiring | [pricing-wiring/SKILL.md](pricing-wiring/SKILL.md) |
