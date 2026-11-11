@@ -77,9 +77,8 @@ recurs (One Time, Term Defined or Evergreen), then check the source for these:
 
 One Time children renew as No Change, quantity 0, whatever the root's model. [Help: `ind.qocal_asset_lifecycle_considerations.htm`]
 No snapshot article says how a Term Defined or Evergreen root renews its Evergreen
-children. One shape is measured: a Term Defined root (a locked configurable bundle) renewed
-with no renewal term brought its Evergreen child at quantity 0 and its Term Defined child
-for one term of its selling model. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org; [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur)]
+children. One shape is measured, a locked configurable bundle with a Term Defined root: its
+Evergreen child came through at quantity 0 ([`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur)).
 An Evergreen root, and other bundle shapes: **Open — needs live verification**. Help's ramp-deal considerations list mixed root/child shapes
 (a term-defined parent with one-time or evergreen children; "a one-time evergreen parent,
 and a term-defined child"), but the snapshot drops the column that marks which are supported:
@@ -128,28 +127,20 @@ flag is exposed on product representations returned by the catalog APIs.
 
 Help does not say what enforces it. Measured [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
 
-| Where | Result |
+| Step | Result |
 |---|---|
-| Assign the product to a catalog category | **Refused**: `INVALID_OPERATION`, "This product can't be assigned to the category because the Sell only with other products checkbox is selected on the product." |
-| Product Discovery search; the line editor's Add Product (Quick Add) search | Not found (a control product in a category was found) |
+| Assign it to a catalog category | **Refused**: `INVALID_OPERATION`, "This product can't be assigned to the category because the Sell only with other products checkbox is selected on the product." |
+| Product Discovery search; the line editor's Quick Add search | Not found |
 | Make it a bundle component | Accepted |
-| Place it **alone** on a quote (Place Sales Transaction, rules on, `validateProductCatalog: true`) | Accepted and priced; `configure` reports success with no message |
-| Order and activate that quote | Ordered and activated; the asset is created |
+| Place it alone on a quote (rules on, `validateProductCatalog: true`), then order and activate | All accepted |
 
-So the only refusal is at category assignment. Product Discovery and Quick Add did not find
-the product on its own, while a control product created at the same time and placed in a
-category was found; whether that is the missing category or the flag itself: **Open —
-needs live verification.** Browse Catalogs lists category contents, so it should not show the product either,
-and a rep reaches it through a bundle (both inferred, not tested).
-None of the measured steps (Place, `configure`, order, activation) refused it, so a quote
-built by API can sell it alone; line-editor save, approval and CML rules were not tried.
-What amend, renew or cancel do when its companion is removed: **Open — needs live verification**. The
+**Modeling advice:** set the flag, make the add-on a bundle component, and keep it out of
+categories (the platform requires that). If no quote may sell it alone, add your own check
+(a configuration rule or a quote validation): the only refusal measured is at category
+assignment.
+Whether search hides it because of the flag or because it has no category, and what amend,
+renew or cancel do when its companion is removed: **Open — needs live verification.** The
 QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
-
-**Modeling advice:** set the flag and make the add-on a bundle component; leave it out of
-every category (the platform requires that anyway). If no quote may sell it alone, add your
-own check (a configuration rule or a validation on the quote): the flag's only measured
-enforcement is the category refusal.
 
 ## Other lifecycle fields on `Product2`
 

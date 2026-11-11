@@ -105,8 +105,8 @@ not list. [Repo: that file; `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv`; `data
 3. **Mark empty objects `excluded: true`.** [Repo: `sfdmu-data-plans/SKILL.md`]
 4. **Write a README** and run the plan checks (below).
 5. **Load twice into a fresh org.** [Measured: 2026-11, 264]
-6. **Refresh decision tables, then rebuild the search index, and wait for it before placing
-   a quote** (fact f; the refresh is `decision-tables` Quick Rule 1).
+6. **Run the `refresh_all_decision_tables` flow and the `rebuild_search_index` task** before
+   placing a quote (fact f; the refresh is `decision-tables` Quick Rule 1).
 
 ```bash
 # A new plan, through the generic loader (CCI alias, not sf alias). If the plan keeps
@@ -127,9 +127,9 @@ cci task run rebuild_search_index --org <cci_alias>   # async: wait minutes, the
 | **(c)** In a plan without `useSeparatedCSVFiles: true`, repeating an object across object sets: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] | For fact (a)'s second pass, run the plan again: that is the measured fix. |
 | **(d)** A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | See *Coding categories*. |
 | **(e)** A configurator test of a bundle must place the quote with configuration rules on. [Measured: 2026-11, 264] | See `constraint-models`. |
-| **(f)** Place Sales Transaction answered "Could not find product with ID …" for newly loaded products until `refresh_all_decision_tables` and `rebuild_search_index` had run and the asynchronous index build had finished (minutes on the measured scratch org); which of the two it waits on was not isolated. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | After every load that adds products, run `refresh_all_decision_tables` (any catalog change, `decision-tables` Quick Rule 1), then `rebuild_search_index`, and retry Place until the error stops. (`check_search_index_readiness` reads Ready once any build has completed in the org, so on a built org it does not confirm the post-load rebuild.) |
+| **(f)** Place Sales Transaction answered "Could not find product with ID …" for newly loaded products until `refresh_all_decision_tables` and `rebuild_search_index` had run and the index build had finished, minutes later. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | After a load that adds products, run both, then retry Place until the error stops. |
 | **(g)** A `Family` value outside the org's picklist is stored through the API but not offered in the UI. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | Deploy the picklist value with the plan; see [Family](#product-family-is-a-contract). |
-| **(h)** On `ProductRelatedComponent`, `ParentProductRole` and `ChildProductRole` are not writable (set from the relationship type), and `MinQuantity`, when given, must be at least 1; `QuantityScaleMethod` takes `Constant`, `Proportional` or blank, never `None`. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality) and [its quantity scaling section](bundles-and-cardinality.md#quantity-scaling-and-lifecycle). |
+| **(h)** On `ProductRelatedComponent`, `ParentProductRole` and `ChildProductRole` are not writable, `MinQuantity` must be at least 1 when given, and `QuantityScaleMethod` rejects `None`. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality). |
 
 In this repo `prepare_product_data` runs `insert_quantumbit_pcm_data` once.
 `test_qb_pcm_idempotency` loads the plan once, extracts the org, reloads the extraction and
