@@ -151,7 +151,7 @@ cancelling it alone is refused (Quick Rule 3), and removing it through an amendm
 bundle is unmeasured. Either sell it as its own line, or measure the amendment path first.
 Decide this in the plan, not on stage.
 
-**"Move 10 sites from Premier to Standard support."** If support is a bundle component, an
+**"Move some units of a component to another plan."** If support is a bundle component, an
 amendment has to act on the top-level asset (Quick Rule 3), and whether a swap takes the
 component asset is undocumented. None of the paths (an attribute amendment, separate
 component products, a swap of the component) is measured on a component.
