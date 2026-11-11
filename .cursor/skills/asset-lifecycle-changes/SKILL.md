@@ -50,10 +50,10 @@ in November 2026.
    product with an evergreen component gave a $0 quote with quantity 0 on every line
    [Measured: 2026-11-05, 264]; a standalone evergreen renewal wasn't measured. Model a
    renewable commitment with a Term Defined selling model.
-6. **Credits follow the selling model, not the effective date, on the quote.**
-    - Cancelling a one-time product credited its full price at any date.
-    - An evergreen annual or monthly component credited exactly one period at any date,
-      from +1 to +400 days.
+6. **Credits follow the selling model, not the effective date, on the quote.** At every
+   date tested (+1, +30, +180, +300 and +400 days):
+    - cancelling a one-time product credited its full price;
+    - an evergreen annual or monthly component credited exactly one period.
     - Both held on the Standard price book [Measured: 2026-11-05, 264]. Term Defined
       credits and the invoice-level values are separate measurements
       ([verification.md](verification.md) → Open).
