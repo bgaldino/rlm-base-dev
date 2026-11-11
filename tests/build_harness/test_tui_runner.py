@@ -338,3 +338,75 @@ def test_create_workspace_dir_uses_unique_suffixes(tmp_path, monkeypatch) -> Non
     assert first != second
     assert first.exists()
     assert second.exists()
+
+
+def _robot_workspace_build(
+    tmp_path, monkeypatch, *, step_exit: int, create_exit: int = 0, cancel: bool = False
+):
+    """Run run_build with the real workspace prepare/cleanup and a fake Robot step."""
+    (tmp_path / "robot" / "rlm-base" / "tests").mkdir(parents=True)
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    monkeypatch.setattr(runner, "load_cci", lambda _: {"project": {"custom": {}}, "flows": {"prepare_rlm_org": {"steps": {}}}, "orgs": {"scratch": {"ent": {"config_file": "orgs/ent.json", "days": 30}}}})
+    monkeypatch.setattr(
+        runner,
+        "load_prepare_steps",
+        lambda _: [SimpleNamespace(step_number=1, target_type="task", target_name="robot_step", when=None)],
+    )
+    monkeypatch.setattr(runner, "evaluate_when", lambda *_args, **_kwargs: True)
+    stop_event = Event()
+
+    def _run_command(command, *_args, **kwargs):
+        command = list(command)
+        if command[:3] == ["cci", "org", "scratch"]:
+            return {"duration_seconds": 0.01, "exit_code": create_exit, "failure_signature": ""}
+        if "robot_step" in command:
+            results = Path(kwargs["cwd"]) / "robot" / "rlm-base" / "results"
+            results.mkdir(parents=True, exist_ok=True)
+            (results / "output.xml").write_text("<robot/>\n", encoding="utf-8")
+            if cancel:
+                stop_event.set()
+            return {"duration_seconds": 0.01, "exit_code": step_exit, "failure_signature": "robot failed"}
+        return {"duration_seconds": 0.01, "exit_code": 0, "failure_signature": ""}
+
+    monkeypatch.setattr(runner, "_run_command", _run_command)
+    events: List[RunEvent] = []
+    code = runner.run_build(config=_build_config(overrides={}), stop_event=stop_event, emit=_emit_collector(events))
+    return code, tmp_path / ".harness" / "tui-runs"
+
+
+def _assert_robot_output_kept(tui_runs: Path) -> None:
+    workspaces = list(tui_runs.iterdir())
+    assert len(workspaces) == 1
+    # The kept folder is findable by the org alias the run log records.
+    assert "-ent-tui-a3f9-" in workspaces[0].name
+    assert sorted(path.name for path in workspaces[0].iterdir()) == ["robot_results"]
+    kept = workspaces[0] / "robot_results" / "output.xml"
+    assert kept.read_text(encoding="utf-8") == "<robot/>\n"
+
+
+def test_run_build_success_removes_workspace_and_robot_results(tmp_path, monkeypatch) -> None:
+    code, tui_runs = _robot_workspace_build(tmp_path, monkeypatch, step_exit=0)
+
+    assert code == 0
+    assert list(tui_runs.iterdir()) == [], "a successful build must not leave its workspace"
+
+
+def test_run_build_failure_keeps_robot_output(tmp_path, monkeypatch) -> None:
+    code, tui_runs = _robot_workspace_build(tmp_path, monkeypatch, step_exit=7)
+
+    assert code == 7
+    _assert_robot_output_kept(tui_runs)
+
+
+def test_run_build_cancel_keeps_robot_output(tmp_path, monkeypatch) -> None:
+    code, tui_runs = _robot_workspace_build(tmp_path, monkeypatch, step_exit=1, cancel=True)
+
+    assert code == 130
+    _assert_robot_output_kept(tui_runs)
+
+
+def test_run_build_failure_without_robot_output_removes_workspace(tmp_path, monkeypatch) -> None:
+    code, tui_runs = _robot_workspace_build(tmp_path, monkeypatch, step_exit=0, create_exit=5)
+
+    assert code == 5
+    assert list(tui_runs.iterdir()) == []

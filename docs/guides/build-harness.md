@@ -47,6 +47,14 @@ The harness materializes each scenario into a scenario-scoped CCI project root w
 an overridden `cumulusci.yml`, so CCI `when:` evaluation (including nested
 sub-flows/tasks) uses the scenario's effective flags at execution time.
 
+The workspace (`scenarios/<scenario_id>/cci_project/`) links most repo entries
+to the repo and copies `scripts/` and `robot/`. Robot output
+(`robot/rlm-base/results`) is linked to `scenarios/<scenario_id>/robot_results/`,
+so concurrent runs (each with its own `--run-id`) do not share Robot's
+`output.xml`. Other steps that write into linked repo folders (SFDMU
+`export.json`, `.forceignore`, site XML patches, `unpackaged/post_ux/`) are not
+isolated yet.
+
 ## Commands
 
 ### Run all scenarios
@@ -216,6 +224,7 @@ Each run writes:
 - `scenarios/<scenario_id>/checkpoint.json`
 - `scenarios/<scenario_id>/build_provenance.json`
 - `scenarios/<scenario_id>/scenario.log`
+- `scenarios/<scenario_id>/robot_results/` - Robot output of the scenario's last Robot-backed step (kept when the workspace is removed)
 
 `build_provenance.json` includes:
 

@@ -18,6 +18,8 @@ scenario runner, and the TUI:
 
 from __future__ import annotations
 
+import shutil
+
 import pytest
 
 import yaml
@@ -418,6 +420,15 @@ class TestPrepareScenarioProjectRoot:
         # An arbitrary other dir that should be symlinked through.
         (root / "force-app").mkdir()
         (root / "force-app" / "marker.txt").write_text("hi\n", encoding="utf-8")
+        # robot/ is copied, but its shared results folder is not.
+        (root / "robot" / "rlm-base" / "tests").mkdir(parents=True)
+        (root / "robot" / "rlm-base" / "tests" / "suite.robot").write_text(
+            "*** Test Cases ***\n", encoding="utf-8"
+        )
+        (root / "robot" / "rlm-base" / "results").mkdir()
+        (root / "robot" / "rlm-base" / "results" / "output.xml").write_text(
+            "<shared/>\n", encoding="utf-8"
+        )
         # Harness artifact roots must not be linked into cci_project.
         (root / ".harness").mkdir()
         (root / ".harness" / "marker.txt").write_text("keep-out\n", encoding="utf-8")
@@ -507,6 +518,85 @@ class TestPrepareScenarioProjectRoot:
         # Real source content is still materialized after the rebuild.
         assert (scenario_dir / "cci_project" / "scripts" / "noop.apex").exists()
         assert (scenario_dir / "cci_project" / "force-app").is_symlink()
+
+
+    def test_robot_directory_is_copied_not_symlinked(self, tmp_path, fake_repo) -> None:
+        scenario_dir = tmp_path / "scenarios" / "minimal"
+        scenario_dir.mkdir(parents=True)
+        prepare_scenario_project_root(
+            fake_repo, scenario_dir, {"project": {"custom": {}}}, {}
+        )
+        robot_dir = scenario_dir / "cci_project" / "robot"
+        assert robot_dir.is_dir()
+        assert not robot_dir.is_symlink(), "robot/ must be a real copy"
+        assert (robot_dir / "rlm-base" / "tests" / "suite.robot").is_file()
+
+    def test_robot_results_resolve_to_a_per_run_folder(self, tmp_path, fake_repo) -> None:
+        scenario_dir = tmp_path / "scenarios" / "minimal"
+        scenario_dir.mkdir(parents=True)
+        prepare_scenario_project_root(
+            fake_repo, scenario_dir, {"project": {"custom": {}}}, {}
+        )
+        results = scenario_dir / "cci_project" / "robot" / "rlm-base" / "results"
+        assert results.resolve() == (scenario_dir / "robot_results").resolve()
+        # The shared repo's old output is neither copied nor reachable.
+        assert not (results / "output.xml").exists()
+        (results / "output.xml").write_text("<run/>\n", encoding="utf-8")
+        assert (
+            fake_repo / "robot" / "rlm-base" / "results" / "output.xml"
+        ).read_text(encoding="utf-8") == "<shared/>\n"
+
+    def test_concurrent_workspaces_do_not_share_robot_output(
+        self, tmp_path, fake_repo
+    ) -> None:
+        # Two runs (distinct --run-id values) building at the same time must
+        # not write the same output.xml — a shared file corrupted Robot's XML
+        # and failed passing steps with exit 252.
+        paths = []
+        for run_id in ("run-a", "run-b"):
+            scenario_dir = tmp_path / run_id / "scenarios" / "same-scenario"
+            scenario_dir.mkdir(parents=True)
+            project_root = prepare_scenario_project_root(
+                fake_repo, scenario_dir, {"project": {"custom": {}}}, {}
+            )
+            output_xml = project_root / "robot" / "rlm-base" / "results" / "output.xml"
+            output_xml.write_text(f"<{run_id}/>\n", encoding="utf-8")
+            paths.append(output_xml)
+        assert paths[0].resolve() != paths[1].resolve()
+        assert paths[0].read_text(encoding="utf-8") == "<run-a/>\n"
+        assert paths[1].read_text(encoding="utf-8") == "<run-b/>\n"
+
+    def test_robot_results_survive_cleanup_and_rebuild(self, tmp_path, fake_repo) -> None:
+        # Resume rebuilds cci_project/ from clean and a successful run removes
+        # it; the failing step's Robot log must outlive both.
+        scenario_dir = tmp_path / "scenarios" / "minimal"
+        scenario_dir.mkdir(parents=True)
+        project_root = prepare_scenario_project_root(
+            fake_repo, scenario_dir, {"project": {"custom": {}}}, {}
+        )
+        log = project_root / "robot" / "rlm-base" / "results" / "log.html"
+        log.write_text("failed step\n", encoding="utf-8")
+
+        project_root = prepare_scenario_project_root(
+            fake_repo, scenario_dir, {"project": {"custom": {}}}, {}
+        )
+        assert (scenario_dir / "robot_results" / "log.html").read_text(
+            encoding="utf-8"
+        ) == "failed step\n"
+
+        assert cleanup_scenario_project_root(project_root) is None
+        assert not project_root.exists()
+        assert (scenario_dir / "robot_results" / "log.html").is_file()
+
+    def test_repo_without_robot_dir_still_materializes(self, tmp_path, fake_repo) -> None:
+        shutil.rmtree(fake_repo / "robot")
+        scenario_dir = tmp_path / "scenarios" / "minimal"
+        scenario_dir.mkdir(parents=True)
+        prepare_scenario_project_root(
+            fake_repo, scenario_dir, {"project": {"custom": {}}}, {}
+        )
+        assert not (scenario_dir / "cci_project" / "robot").exists()
+        assert not (scenario_dir / "robot_results").exists()
 
 
 class TestCleanupScenarioProjectRoot:

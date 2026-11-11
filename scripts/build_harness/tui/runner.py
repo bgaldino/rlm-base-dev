@@ -6,11 +6,13 @@ import time
 from pathlib import Path
 import os
 import re
+import shutil
 from threading import Event
 from typing import Callable, Dict, Iterable, List, Tuple
 
 from scripts.build_harness.harness.config import (
     CCI_FILE,
+    ROBOT_RESULTS_DIRNAME,
     ROOT,
     cleanup_scenario_project_root,
     compose_flags,
@@ -39,6 +41,24 @@ def _create_workspace_dir(root: Path, alias_slug: str, run_stamp: str) -> Path:
         except FileExistsError:
             continue
     raise RuntimeError("Unable to allocate a unique TUI workspace directory.")
+
+
+def _remove_workspace_dir(workspace_dir: Path, succeeded: bool) -> None:
+    """Remove a TUI workspace after its cci_project/ was cleaned up.
+
+    The workspace also holds the run's Robot output (``robot_results/``). A
+    successful build discards it. A build that did not succeed (failed or
+    cancelled) keeps it, with the workspace, when a Robot step wrote anything.
+    """
+    results_dir = workspace_dir / ROBOT_RESULTS_DIRNAME
+    if results_dir.is_dir() and not results_dir.is_symlink():
+        if succeeded or not any(results_dir.iterdir()):
+            shutil.rmtree(results_dir, ignore_errors=True)
+    try:
+        workspace_dir.rmdir()
+    except OSError:
+        # Keep parent workspace for troubleshooting if it's non-empty.
+        pass
 
 
 def load_tui_config() -> Tuple[
@@ -102,6 +122,7 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
     run_stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     alias_slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", config.org_alias).strip("-") or "org"
     workspace_dir = _create_workspace_dir(ROOT, alias_slug, run_stamp)
+    succeeded = False
 
     try:
         project_root = prepare_scenario_project_root(
@@ -307,6 +328,7 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
                 },
             )
         )
+        succeeded = True
         return 0
     finally:
         # project_root may be unbound if prepare_scenario_project_root() threw.
@@ -327,11 +349,7 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
                 )
             )
         else:
-            try:
-                workspace_dir.rmdir()
-            except OSError:
-                # Keep parent workspace for troubleshooting if it's non-empty.
-                pass
+            _remove_workspace_dir(workspace_dir, succeeded)
 
 def _run_command(
     command: Iterable[str],
