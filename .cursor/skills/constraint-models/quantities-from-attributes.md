@@ -157,8 +157,8 @@ read it.
 Use `@(split = false)` on each leaf type that is a sized component (in the worked example,
 every type but the abstract `Support`). Leave it off a type whose lines must carry
 different attribute values, which needs several instances; `split = false` allows only
-one `[Dev guide: cml_annotation_example_split]`. Whether `split = false` holds across group
-ramp segments wasn't run.
+one `[Dev guide: cml_annotation_example_split]`. Group ramps with `split = false` are
+[open item 15](#open-items).
 
 ---
 
@@ -446,17 +446,19 @@ in front of it (step 1 below).
    `FIELD_INTEGRITY_EXCEPTION`, "When the SellingModelType is Evergreen or Term-Defined,
    BillingFrequency can't be null", on the root line, which hides the rule. Valid
    configurations placed without it `[Measured: M32]`.
-4. **Call `configure` with `executeConfigurationRules: true`** and require
-   `success: true`, `solverStatus: "success"`, `errors: []`
-   `[Repo: .cursor/skills/constraint-models/SKILL.md]`. Check `solverStatus`, not only
+4. **Call `configure` with `executeConfigurationRules: true`.** For a valid answer set,
+   require `success: true`, `solverStatus: "success"`, `errors: []`
+   `[Repo: .cursor/skills/constraint-models/SKILL.md]`; rejection sets are step 6. Check `solverStatus`, not only
    `success`: a rejected configuration returned `success: true`, `solverStatus: "error"`,
    `errors: []`, with the rule's message in `messages` at type `error` `[Measured: M29]`.
-   A clean `configure` isn't enough either: also require that the quote has no
-   `RevenueTransactionErrorLog` rows of `Severity` Error, queried a few seconds after Place
-   `[Measured: M31]`. Rows of `Severity` Warning also appear, for bundle-validation
-   warnings `[Measured: M29]`; whether they block ordering is
-   [open item 1](#open-items). One rejection's message was only in the error log, and `configure`
-   then returned `solverStatus: "success"` `[Measured: M29]`.
+   A clean `configure` isn't enough either. One rejection's message was only in the error
+   log, and `configure` then returned `solverStatus: "success"` `[Measured: M29]`; a
+   bundle-validation log written seconds after Place blocked the order, and its `Severity`
+   wasn't recorded `[Measured: M31]`; bundle-validation warnings were logged at `Severity`
+   Warning `[Measured: M29]`. So for a valid answer set also require no
+   `RevenueTransactionErrorLog` rows of any `Severity` on the quote, queried a few seconds
+   after Place, or a successful `createOrdersFromQuote`. Whether a Warning row blocks
+   ordering is [open item 1](#open-items).
 5. **Assert every component's quantity**, including the zeros, against a hand-computed
    table (see the worked example), and assert one line per component. Pick answers on
    each rounding boundary: exact multiples (`sites = 10`) and one past (`sites = 11`). Add
@@ -747,6 +749,8 @@ Each needs a live 264 org:
     `maxInstanceQty=1` admits one plan line of quantity `sites`, given that the two dev-guide
     pages describe it differently. A candidate in neither source: one exclusion per pair of
     plans, such as `support[StandardSupport] > 0 -> support[PremiumSupport] == 0`. None run.
+15. Whether `@(split = false)` keeps one line per component in later group-ramp segments
+    (M24 measured only the unannotated case).
 
 ---
 
@@ -768,7 +772,7 @@ Each needs a live 264 org:
 6. Review notes use `Info`; nothing meant as advice uses `Warning` or `Error`.
 7. Headless test: placed with rules on and a `BillingFrequency` on every recurring line,
    answers that bind (checked against non-default values), every quantity asserted as one
-   line per component, no `RevenueTransactionErrorLog` rows of `Severity` Error for a valid answer set, every
+   line per component, no `RevenueTransactionErrorLog` rows (or a successful order) for a valid answer set, every
    rejection asserted by the message of a rule it breaks, read from `configure` and
    `RevenueTransactionErrorLog`. Then the parent
    skill's [Validation Checks](SKILL.md#validation-checks), including the configurator
