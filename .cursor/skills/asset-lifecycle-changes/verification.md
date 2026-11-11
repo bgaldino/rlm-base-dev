@@ -68,4 +68,12 @@ The Standard price book gave the same results.
   invoice. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 - **Whether the configurator can restore the reset attributes** on an amendment line.
 - **Removing a bundle component through an amendment** of the top-level asset.
-- **Renewing a standalone evergreen asset.**
+- **Renewing a standalone evergreen asset.** Help rules out uplift and end-date changes for
+  evergreen assets but doesn't say what the renewal quote does to the line
+  ([change-policy-mapping.md](change-policy-mapping.md)).
+- **Changing a bundle root's sizing attribute on an amendment:** do the children's
+  quantities re-derive through CML, and at what price?
+- **An earlier-dated change against a future-dated one:** the amend and cancel articles
+  refuse it, while *Future-Dated Changes* lets you pick a date before an existing future
+  asset state period ([change-policy-mapping.md](change-policy-mapping.md) → Replay the
+  source's changes in date order).
