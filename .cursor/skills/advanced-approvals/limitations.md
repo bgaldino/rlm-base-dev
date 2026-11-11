@@ -101,3 +101,13 @@ After a full approval, the next submission is a new request, not a resubmission.
   [Help: `ind.approvals_design_build_activation`]; the dev guide lists `update()` and marks
   `ApprovalChainName` and the Smart Approval fields updatable
   [Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`].
+- How to tell a round's bulk line discount from an individual line override. No documented
+  field or flag records which edit set a line's discount, and the repo ships none; whether a
+  marker field set by a second bulk edit, an API call or a flow stays accurate after a rep's
+  later edit is unmeasured. Also unmeasured: whether a discount entered on a group row stays
+  on the group's `Discount` field or is written to each line's `Discount`, which the shipped
+  level bands.
+- On an amendment quote: which records give the contract value after the change, for a
+  threshold that must read it (the quote's own totals carry the change); and whether the
+  shipped discount level fires on amendment lines, which depends on what their `Discount`
+  field carries. No amendment submission is recorded.
