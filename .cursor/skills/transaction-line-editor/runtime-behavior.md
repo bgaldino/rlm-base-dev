@@ -88,9 +88,11 @@ Measured traps:
 | **Refresh Prices** | Pricing, configuration and taxes | [Help: `ind.qocal_view_and_edit_quotes`] |
 | **Estimate Taxes** | Tax estimate; needs the Revenue Setting *Add Estimated Taxes to Quotes and Orders* | [Help: `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_turn_on_quote_and_order_capture`] |
 
-Use Reprice All when pricing was skipped at commit, validation errors stopped a run, discounts or bundle
-configuration need a refresh, or usage resource grants on a quote line were deleted (it rebuilds them)
-[Help: `ind.qocal_reprice_all_quotes_and_orders`]. Any update to an order or its products outside the
+Use Reprice All when pricing was skipped at commit, validation errors stopped a run, discounts or
+adjustments need a refresh, or usage resource grants on a quote line were deleted (it rebuilds them)
+[Help: `ind.qocal_reprice_all_quotes_and_orders`]. The same article also lists bundle configurations
+needing a refresh, though it says Reprice All skips configuration; for configuration use Refresh
+Prices (and see the parent's Open list). Any update to an order or its products outside the
 line editor, including Description, sets the validation result to Transaction Incomplete, and the order
 must be repriced before activation; the same applies to quote lines
 [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].

@@ -163,10 +163,10 @@ patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` add
    success toast read "The prices were refreshed and the configuration was validated."
    [Measured: early Nov 2026, 264].
 6. Which Setup label `enableRevInstPricingDefaultPref` maps to (assumed *Instant Pricing Active
-   by Default*), and whether any build step turns on **Header Adjustments**; the repo's Revenue
-   Settings file doesn't set it. A header discount did work on a fresh 264 build with the plan
-   inactive [Repo: `datasets/sfdmu/procedure-plans/README.md`], but how the setting got turned on
-   wasn't recorded.
+   by Default*), and whether `enableRevenueAdjustment`, which the repo's Revenue Settings file and
+   scratch definitions set to true, is the **Header Adjustments** setting. The 264 dev guide doesn't
+   document that field. A header discount did work on a fresh 264 build with the plan inactive
+   [Repo: `datasets/sfdmu/procedure-plans/README.md`].
 7. How renewal and cancellation lines display in the STLE (quantities, price columns, detail rows);
    only amendment lines were measured.
 

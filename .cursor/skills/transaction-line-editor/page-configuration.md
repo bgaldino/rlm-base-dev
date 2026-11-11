@@ -192,12 +192,14 @@ and capture the property with `ux_tool.py capture-drift`, so the template matche
 | Instant Pricing | Reprices price-impacting edits immediately | Toggled by `configure_revenue_settings` (Robot), flow `prepare_revenue_settings` [Repo: `cumulusci.yml`] |
 | Instant Pricing Active by Default | Starts each quote with Instant Pricing on; STLE only [Help: `ind.qocal_turn_on_quote_and_order_capture`] | `enableRevInstPricingDefaultPref` true; label mapping Open |
 | Delta Pricing | Header adjustments need Reprice All [Help: `ind.qocal_header_adjustments_use`] | `enableDeltaPricing` true [Repo] |
-| Header Adjustments | Manage Header Adjustment action; setup needs a Discount Distribution Service element in the pricing procedure [Help: `ind.qocal_header_adjustments_overview`] | Not set in the repo's settings file (Open); `RLM_DefaultPricingProcedure` has the DDS step [Repo: `.cursor/skills/pricing-procedures/elements/discount-distribution-service.md`] |
+| Header Adjustments | Manage Header Adjustment action; setup needs a Discount Distribution Service element in the pricing procedure [Help: `ind.qocal_header_adjustments_overview`] | Probably `enableRevenueAdjustment` true, unconfirmed (Open) [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]; `RLM_DefaultPricingProcedure` has the DDS step [Repo: `.cursor/skills/pricing-procedures/elements/discount-distribution-service.md`] |
 | Sales Price Amendments | Credit and charge detail lines on amended prices | `enableSalesPriceAmendments` true [Repo] |
 | Exclude Default and STT Pricing Procedures (`skipOrgSttPricing`) | With an active procedure plan: on, a header discount is distributed twice; off, the Revenue Settings procedure re-runs after the plan and a price revision doubles (section in `runtime-behavior.md`) [Repo: `datasets/sfdmu/procedure-plans/README.md`] | false [Repo] |
 
-The configurator the editor opens is the org's default Product Configuration Flow; the build
-registers `RLM_Product_Configurator_Flow` (non-blocking, instant pricing on) through
+The configurator the editor opens is the product's assigned Product Configuration Flow, or the org's
+default flow for products and classifications without one
+[Help: `ind.product_configurator_create_a_product_configuration_flow`]. The build
+registers `RLM_Product_Configurator_Flow` (non-blocking, instant pricing on) as the org default through
 `insert_default_configurator_flow` [Repo: `cumulusci.yml`].
 
 ## 7. Auto-refresh (STLE and Transaction Summary)
