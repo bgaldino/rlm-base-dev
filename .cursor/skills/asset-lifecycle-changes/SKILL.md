@@ -33,10 +33,23 @@ in November 2026.
    line's attributes to the product defaults. Activation keeps them on the asset, and the
    next amendment inherits them. The price stays right [Measured: 2026-11-05, 264]. Add
    quantity with `initiateAmendment` and `quantityChange`, which kept them.
-3. **Amend, renew and cancel act on top-level assets.** Cancelling or renewing a bundle
-   component alone is refused: "the asset is a bundle component. Provide the top-level
-   asset" [Measured: 2026-11-05, 264]. If a component must be cancellable on its own (a
-   support plan, a warranty), sell it as its own line, not as a bundle component.
+3. **Amend, renew and cancel act on top-level assets.** Help's amend, renew and cancel
+   procedures each say to select a bundle's parent asset, not the child [Help:
+   `ind.qocal_amend_assets`, `ind.qocal_renew_assets`, `ind.qocal_cancel_assets`].
+   Cancelling or renewing a bundle component alone is refused: "the asset is a bundle
+   component. Provide the top-level asset" [Measured: 2026-11-05, 264]. If a component must
+   be cancellable on its own (a support plan, a warranty), sell it as its own line, not as a
+   bundle component.
+    - `quantityChange` is the quantity to add to or reduce from the asset's existing
+      quantity, and the amend inputs take no attribute values [Dev guide:
+      `actions_obj_amend_assets`, `connect_requests_amend_input`]. On a bundle sized by a
+      root attribute (sites, users), "add 5 sites" is therefore not `quantityChange: 5`,
+      which changes the root's own quantity and leaves the sizing attribute as it was.
+    - Help's future-dated examples describe an attribute amendment as a new value set on
+      the line, processed as a cancel and reprice [Help:
+      `ind.qocal_fdo_examples_of_amendment_types_and_results`]. Whether changing the root's
+      sizing attribute on an amendment re-derives the children through CML is **Open**
+      ([verification.md](verification.md) → Open).
 4. **Know where the price lands.**
     - On a renewal, a cancellation or a negative amendment, the unit price moves to
       `QuoteLineDetail` / `OrderItemDetail` rows, and the parent line's `UnitPrice` is null
@@ -92,15 +105,17 @@ in November 2026.
 ## Sub-files
 
 - [change-policy-mapping.md](change-policy-mapping.md): read when a source states rules for
-  adds, swaps, cancellations and renewals. Each rule maps to a platform action and what to
-  check.
+  adds, swaps, cancellations and renewals, or gives a dated sequence of changes. Each rule
+  maps to a platform action and what to check.
 - [verification.md](verification.md): read when testing a change. It has the end-to-end
   test, the queries, the measured results, and what's still open.
 
 ## Examples
 
-**"Add 5 sites in month 7, co-termed."** Amend the top-level suite asset with
-`initiateAmendment`, using `quantityChange: 5` and `amendStartDate` set to month 7. Then
+**"Add 5 sites in month 7, co-termed."** If the suite's quantity counts sites, amend the
+top-level suite asset with `initiateAmendment`, using `quantityChange: 5` and
+`amendStartDate` set to month 7. If sites are a root attribute that sizes the children, a
+quantity change doesn't move it (Quick Rule 3); settle that path in the plan first. Then
 reprice, create the order and activate. Check:
 - the prorated value against the source's (months remaining ÷ 12 × annual for term lines);
 - the asset's new state period;
