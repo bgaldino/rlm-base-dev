@@ -206,11 +206,12 @@ A component that is `IsDefaultComponent` and whose quantity a CML rule sets (for
 quantity and the solver adds a second instance for the rest (measured with a default
 quantity of 1: 1 + (n − 1)). Measured in the
 UI configurator and on the API defaults path (Place with `addDefaultConfiguration: true`);
-a hand edit below the rule's quantity split the same way instead of being rejected. Totals
-stay right, but each split counts as two lines against its group's max (above). In a group
+a hand edit below the rule's quantity split the same way instead of being rejected. On a
+single quote the total quantity stays right, but each split counts as two lines against its
+group's max (above). In a group
 ramp, setting the first segment's component back to one line by hand did not fix the later
-segments: each still held two lines per component, adding up to one more than the rule's
-quantity, flagged only by the `bundlevalidation` range message. A component added without defaults (not
+segments: each still held two lines per component, with a total quantity of n + 1, flagged
+only by the `bundlevalidation` range message. A component added without defaults (not
 `IsDefaultComponent`, or the API sending the child lines itself) gave one instance.
 [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 

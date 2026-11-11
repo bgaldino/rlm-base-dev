@@ -140,7 +140,7 @@ the detail and the sources.
 | **Where an attribute value is set** | Definition → classification attr → product attr → bundle override. | Lower levels are more specific but must be reviewed when a higher level changes. | Bundle overrides break attribute-based pricing. [Help: `ind.product_catalog_attribute_fields.htm`; `ind.pricing_attribute_based_pricing_limits.htm`] |
 | **Selling model** | One Time / Term-Defined / Evergreen from the pricing basis. | Each extra model adds a PBE and an option per product. | Proration, renewal and the Subscription price element read it. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md) |
 | **`IsAssetizable`** | True when the sale must leave something to amend, renew or cancel. | False keeps the asset table clean for consumables. | Root value overrides children. [Help: `ind.product_catalog_create_bundled_products.htm`] |
-| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses to put it in a category, and Product Discovery and Quick Add did not find it; a bundle component row for it is accepted. | A quote or order holding it alone is **not** refused. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
+| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses to put it in a category, and Product Discovery and Quick Add did not find it; a bundle component row for it is accepted. | Placed alone through the API (Place, order, activation), it was **not** refused; other paths untested. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
 | **Catalog / category placement** | Catalogs by audience or business unit; categories for browsing. | More catalogs means more category rows to keep coded uniquely. | Drives Product Discovery browsing; categories, not catalogs, hold products. [`catalogs-and-loading.md`](catalogs-and-loading.md) |
 | **Family** | A coarse product line other systems filter on. | A free picklist value becomes a contract. | Whatever keys on it (search facets, Apex, rules) breaks on a rename. [`catalogs-and-loading.md`](catalogs-and-loading.md#product-family-is-a-contract) |
 
@@ -286,8 +286,8 @@ Review the CSVs for these, each a rule above:
 - No classification component is required or default.
 - Every group's `MinBundleComponents` ≤ distinct children, and required children ≤ `MaxBundleComponents`.
 - Every `Family` value is a value of the org's `Family` picklist (or the load adds it).
-- Every `QuantityScaleMethod` is `Constant`, `Proportional` or blank, never `None`; a blank on
-  a row with `IsQuantityEditable` false loads as `Proportional`, so write that value.
+- No `QuantityScaleMethod` is `None` (use blank). A blank on a row with `IsQuantityEditable`
+  false comes back from the org as `Proportional`; expect that difference in an extract.
 - Every product has at most one `IsDefault` selling model option; term-defined and
   evergreen options carry a proration policy where proration is wanted.
 - Category codes are unique across all levels and catalogs; no row's `ParentCategory.Code` equals its own `Code`.
