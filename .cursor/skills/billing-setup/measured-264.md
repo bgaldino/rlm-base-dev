@@ -22,7 +22,7 @@ All five products had *Billing Policy - Advance*. The test quotes were deleted a
 | Row | What was placed | Result |
 |---|---|---|
 | M1 | A new quote with the Evergreen and the Term Defined line, neither with `BillingFrequency` | Refused on the Term Defined line: *"When the SellingModelType is Evergreen or Term-Defined, BillingFrequency can't be null"*. An earlier request without `PeriodBoundary` on that line was refused first: *"Enter a start proration period with one of these values: AlignToCalendar, Anniversary, DayOfPeriod, or LastDayOfPeriod."* That refused request still created an empty quote header |
-| M2 | Evergreen Months line with Monthly, Term Defined Annual line with Annual (both with `PeriodBoundary` Anniversary), one-time line with none; no `BillingTreatmentId` on any line | Accepted. `BillingTreatmentId` stayed null on every line |
+| M2 | Evergreen Months line with Monthly, Term Defined Annual line with Annual (both with `PeriodBoundary` Anniversary), one-time line with none; no `BillingTreatmentId` on any line; every treatment in the org had Change Billing Frequency (M10) | Accepted. `BillingTreatmentId` stayed null on every line |
 | M3 | PATCH the Term Defined Annual line to Monthly (the same PATCH also set `SubscriptionTerm` to 1, which left the end date and total unchanged) | Without a treatment: refused, *"Add a Billing Treatment to make sure that you can change the Billing Frequency of its related Quote Line Item, and try again."* With `BillingTreatmentId` = *Billing Treatment - USA - Advance* (active, Change Billing Frequency selected): accepted |
 | M4 | A one-time line with Monthly and that same treatment | Refused: *"When the SellingModelType is One Time, BillingFrequency must be null or milestone plan"* |
 | M5 | A one-time line with `MilestonePlan` and *Milestone Billing Treatment* in `BillingTreatmentId`; and a PATCH giving an existing one-time line that treatment with no frequency | Both accepted |
@@ -36,7 +36,8 @@ M2 and M3 together narrow a statement in the qb-billing README, which says a Ter
 line needs an explicit `BillingTreatmentId` with Change Billing Frequency
 [Repo: `datasets/sfdmu/qb/en-US/qb-billing/README.md`]. In M2 a line whose frequency
 matched its pricing term was accepted without one; the treatment was needed only to differ
-(M3). Only these two frequency-to-model pairs were run.
+(M3). Only these two frequency-to-model pairs were run, and every treatment in the org had
+Change Billing Frequency selected (M10), so M2 says nothing about the README's flag-off case.
 
 ## Test
 
@@ -68,6 +69,8 @@ Repeat this for the frequencies a plan promises, on the route the demo will use:
 - `MilestonePlan` on a one-time line whose milestone treatment comes only from the product's
   billing policy, with no `BillingTreatmentId` on the line.
 - An Evergreen line placed without `PeriodBoundary`.
+- A line whose frequency matches its pricing term, when the product's policy treatments have
+  Change Billing Frequency off.
 - A one-time line with a milestone treatment and no frequency (accepted in M5): does
   activation build a milestone plan for it?
 - An approved Net 60 quote through order and invoice: which due date the invoice gets.

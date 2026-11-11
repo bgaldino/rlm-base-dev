@@ -34,8 +34,10 @@ read the row's scope before generalising it.
 2. **Set the frequency on every Term Defined and Evergreen line you place through the API.**
    Place Sales Transaction refused a Term Defined line without one rather than default it
    from the selling model [Measured: M1]. A frequency that matches the pricing term (Monthly on a
-   Months model, Annual on an Annual model) needed no billing treatment on the line
-   [Measured: M2].
+   Months model, Annual on an Annual model) needed no billing treatment on the line, in an
+   org where every treatment had Change Billing Frequency selected [Measured: M2]. With the
+   flag off on the product's treatments, the repo's data-plan README reports the line can't be
+   created at all [Repo: `datasets/sfdmu/qb/en-US/qb-billing/README.md`].
 3. **A frequency that differs from the pricing term needs a billing treatment on the line.**
    Changing a Term Defined Annual line to Monthly was refused until the line had one
    [Measured: M3]. Help also requires that treatment to have Change Billing Frequency
@@ -50,8 +52,9 @@ read the row's scope before generalising it.
    [Help: `ind.billing_policies_and_treatments_create`]. The product's billing policy picks
    the treatment ([Billing treatments](#billing-policies-and-treatments)).
 6. **Payment terms live on the order, not the quote.** `Order.PaymentTermId` feeds the
-   billing schedules and the invoice due date; an order without one uses the org's default
-   payment term [Help: `ind.billing_payment_terms`]. `Quote` has no standard payment-term
+   billing schedules and the invoice due date. An order without one falls back to its
+   billing profile, then the account's default billing profile, then the org's default
+   payment term [Help: `ind.billing_payment_terms`] [Help: `ind.billing_billing_profiles_create`]. `Quote` has no standard payment-term
    field [Measured: M9]. The shipped approval reads a custom quote picklist that nothing
    copies to the order ([Payment terms](#payment-terms)).
 7. **Billing starts at order activation.** One active flow creates billing schedules and
@@ -119,7 +122,7 @@ Plan; the API values match the labels except `MilestonePlan` [Measured: M9]. On 
 
 | Selling model | Frequency the API accepted | Billing treatment on the line |
 |---|---|---|
-| Term Defined, Evergreen | Required (the refusal names both; run on Term Defined, M1); the pricing term's own cadence (two models run) | Not needed [Measured: M2] |
+| Term Defined, Evergreen | Required (the refusal names both; run on Term Defined, M1); the pricing term's own cadence (two models run) | Not needed, with the flag on every treatment [Measured: M2] |
 | Term Defined, Evergreen | A different cadence | Needed (run on Term Defined, M3), with Change Billing Frequency (Help) |
 | One Time | Blank, or `MilestonePlan` with a milestone treatment on the line | Optional with a blank frequency [Measured: M2, M5] |
 
@@ -186,8 +189,9 @@ until they answer, list them as open decisions in the plan. The repo's milestone
 ([shipped-billing.md](shipped-billing.md)).
 
 Amendments, renewals and cancellations of milestone-billed assets have their own rules:
-by default no new milestone plan is made for amend or renew orders unless *Support Milestone
-Plans for Amended Billing Schedules* is on, and a cancellation cancels the date-based milestones
+by default no new milestone plan is made for amend or renew orders. Turning on *Support
+Milestone Plans for Amended Billing Schedules* makes or links one for amendment schedules
+(Help says nothing about renewals with it on), and a cancellation cancels the date-based milestones
 due on or after the cancellation date (event-based ones once the original order's event
 milestone is invoiced and posted). Billing then issues a credit memo for the part not
 invoiced [Help: `ind.billing_milestone_amended_renewed_canceled_assets`].
@@ -199,9 +203,11 @@ The repo turns that setting on (`enableMilestoneBillingForAmend`)
 A **payment term** (`PaymentTerm`) has one Standard **payment term item**: Period-Based
 (invoice date plus a period) or Derive End of Month and Add Period. Only active terms
 apply. The order's payment term carries to its billing schedules and sets each invoice's
-due date; with none on the order, the org default applies [Help: `ind.billing_payment_terms`]
-[Help: `ind.billing_payment_terms_usecase`]. Billing profiles (`BillingAccount.PaymentTermId`)
-also carry a payment term [Help: `ind.billing_billing_profiles_create`].
+due date [Help: `ind.billing_payment_terms`] [Help: `ind.billing_payment_terms_usecase`].
+Help states two fallbacks for an order without one. The payment-terms article names the org
+default. The billing-profiles article says a transaction missing values takes them from its
+billing profile (`BillingAccount.PaymentTermId`), then from the account's default billing
+profile, and only then from the org default [Help: `ind.billing_billing_profiles_create`].
 
 **As an approval input,** the shipped quote approval reads `Quote.RLM_Payment_Terms__c`, a
 custom picklist (Net 30 default, Net 45, Net 60, Net 90), and routes any value other than
@@ -213,8 +219,8 @@ billing [Repo: `unpackaged/post_approvals`, `datasets/sfdmu/qb/en-US/qb-billing`
 2. The data plan loads only *Default Payment Term* (30 days, the org default) and *Net 45*;
    Net 60 and Net 90 have no `PaymentTerm` record.
 
-So, by Help's rule above, an approved Net 60 quote's order is due on the default term
-unless something sets the order's payment term. That is inferred; it hasn't been run
+So, by Help's rules above, an approved Net 60 quote's order is due on its billing
+profile's term, or the org default, unless something sets the order's payment term. That is inferred; it hasn't been run
 through an invoice ([measured-264.md](measured-264.md) → Open).
 
 To make an approved term reach the invoice, create a `PaymentTerm` for each picklist value
@@ -232,6 +238,7 @@ For milestone-billed assets, see the milestone section above.
 **"Subscriptions billed annually in advance."** Give each subscription product a policy
 whose treatment item is Billing Type Advance; in this repo that is *Billing Policy -
 Advance*. Then:
+- keep Change Billing Frequency selected on the policy's treatments (Quick Rule 2);
 - on an Annual selling model, place lines with `BillingFrequency` Annual and no treatment
   on the line;
 - on a Monthly selling model, place Annual with a treatment that has Change Billing
