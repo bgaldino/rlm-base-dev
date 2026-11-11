@@ -27,7 +27,7 @@ One bullet per capability area, each phrased as something checkable. End with:
 
 ## 2. Decisions
 
-Decision tables keep `#` as their first column (the ledger reads those).
+Only decision tables start with a `#` column (the ledger reads every one here).
 
 | # | Decision | Recommendation |
 |---|---|---|

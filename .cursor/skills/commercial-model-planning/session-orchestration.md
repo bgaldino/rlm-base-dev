@@ -44,7 +44,8 @@ extraction → spikes → catalog → (configuration ∥ pricing) → negotiatio
    checkout, and each one owns specific folders; a session never writes outside them.
    Before running harness builds at the same time, read `build-harness` → Run several
    builds at once: a run id isolates only Robot output, and other steps still write to
-   the shared checkout.
+   the shared checkout. Build from it one at a time, or give each concurrent build its
+   own regular clone.
 3. **Only the main session commits,** after reviewing a session's files at its gate.
    This stops two sessions racing on one git index.
 4. **Every brief stands alone.** It names:

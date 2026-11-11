@@ -312,7 +312,8 @@ def report(args):
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--ledger", default="verification/ledger.json",
                    help="ledger file (default: verification/ledger.json); the scorecard is written beside it")
     sub = p.add_subparsers(dest="cmd", required=True)
