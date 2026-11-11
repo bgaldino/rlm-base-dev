@@ -75,8 +75,9 @@ After a full approval, the next submission is a new request, not a resubmission.
 ## Open questions (not settled by the docs or a measured run)
 
 - Where "First Response" vs "All Must Approve" is configured for a group or queue step.
-- Whether approving needs Approval Admin, or only Run Flows plus Read (measured runs used
-  an admin), and why that admin could review a work item assigned to an empty group.
+- Whether approving and recalling need Approval Admin, or only Run Flows plus Read (the
+  dev guide and the Help personas table disagree; measured runs used an admin), and why
+  that admin could review a work item assigned to an empty group.
 - Which Approval Settings a fresh scratch org has on, and whether Metadata API can set them.
 - Whether a dynamic (Resource) approver works at runtime, and whether there is a
   manager-hierarchy approver.

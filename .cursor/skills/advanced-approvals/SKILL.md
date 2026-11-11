@@ -145,7 +145,9 @@ needs a Manager, below 65% a Director, below 60% the VP.
 - Compute the quote margin in the pricing procedure, or in the approval data flow, and
   convert it to a level 0–3 number (`MarginApprovalLevel`) in `RLM_Quote_Approval_Data`.
 - Take the overall level as the maximum of the discount and margin levels
-  (`ApprovalLevel`), and drive the one serial chain from it. Everything that reads
+  (`ApprovalLevel`), returned by `RLM_Quote_Approval_Data` and declared as an output on the
+  `QueryApprovalData` step (`outputConfigParams`, like the shipped outputs), and drive the
+  one serial chain from it. Everything that reads
   `DiscountApprovalLevel` must switch to `ApprovalLevel`: the three step entry conditions,
   the `Requires_Approval` decision, and the stage's "not triggered" exit conditions (2, 4
   and 6). Otherwise a margin-only quote skips approval, or the stage exits before anyone

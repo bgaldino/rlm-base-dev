@@ -94,6 +94,9 @@ over $5M needs the VP. One approver ladder.
     - `MarginApprovalLevel`, from the quote's margin;
     - `ValueApprovalLevel`, 3 when net value is over 5,000,000;
     - `ApprovalLevel`, the maximum of the three.
+
+   Declare each new output on the `QueryApprovalData` background step
+   (`outputConfigParams`), as the shipped `DiscountApprovalLevel` and `PaymentTerms` are.
 3. Switch everything that reads `DiscountApprovalLevel` to `ApprovalLevel`:
     - the three step entry conditions;
     - the `Requires_Approval` decision;
