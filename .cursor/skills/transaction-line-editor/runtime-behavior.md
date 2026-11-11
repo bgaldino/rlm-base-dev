@@ -101,16 +101,37 @@ mention of configuration conflicts with Help's "skips configuration"; see the pa
 
 **Manage Header Adjustment** > type (**Amount**, **Percentage**, **Amount Override**) > value >
 distribution (**Equal**, or **Proportionate** to each line's list price × quantity). With Delta Pricing on
-(this repo), click **Reprice All** afterwards. The waterfall shows each line's share. It needs the
-Header Adjustments setting and a Discount Distribution Service element in the pricing procedure, or in a
-separate procedure run by a procedure plan when derived pricing is used; element detail is in
-[`pricing-procedures`](../pricing-procedures/SKILL.md). Users need Salesforce Pricing Run Time User.
+(this repo), click **Reprice All** afterwards. The waterfall shows each line's share. Users need
+Salesforce Pricing Run Time User.
+
+**The editor doesn't distribute the discount; the Discount Distribution Service (DDS) element does.**
+Manage Header Adjustment records the type, value and distribution logic, and the DDS element in the
+pricing procedure spreads them across the lines at pricing time [Help: `ind.qocal_header_adjustments_overview`].
+So the setup is:
+
+- **Header Adjustments** on in Revenue Settings.
+- A pricing procedure with a DDS element, fed by list groups that read the header discount type
+  (Amount, Percentage, Override). DDS must come last, with only Aggregate Price or Rounding after it,
+  and it can't share a procedure with Derived Price. When derived pricing is needed, put DDS in its own
+  procedure and run both through a procedure plan with Procedure Plan Orchestration for Pricing on
+  [Help: `ind.qocal_header_adjustments_overview`]. Element detail:
+  `pricing-procedures/elements/discount-distribution-service.md`.
+
+In this repo, `RLM_DefaultPricingProcedure` has the header-discount list groups (seq 36–38) and a DDS
+step (seq 39), followed by the aggregates. That is the Revenue Settings procedure, so header adjustments
+work with the procedure plan inactive. `RLM_Price_Distribution_Procedure` (`unpackaged/post_procedureplans`)
+has a second DDS, and the plan's Header Distribution section runs it after the default procedure
+[Repo: `.cursor/skills/pricing-procedures/elements/discount-distribution-service.md`,
+`datasets/sfdmu/procedure-plans/README.md`].
 
 Measured: **a 10% header discount was applied twice (19% total)** with an active pricing procedure plan
 and `skipOrgSttPricing` on; line discounts on the same quote were exact [Measured: early Nov 2026, 264].
-The repo's own measurement agrees: 10% on 5,240 gave 4,244.40, not 4,716
-[Repo: `datasets/sfdmu/procedure-plans/README.md`]. The repo builds the plan inactive and
-`skipOrgSttPricing` false, so a default build is not affected.
+Both DDS steps ran, the default procedure's and then the plan's distribution procedure's. The repo's own
+measurement agrees: 10% on 5,240 gave 4,244.40, not 4,716 [Repo: `datasets/sfdmu/procedure-plans/README.md`].
+The repo builds the plan inactive and `skipOrgSttPricing` false, so a default build runs one DDS.
+If the plan must be active, follow `pricing-procedures/operations-and-troubleshooting.md` section 3:
+with `skipOrgSttPricing` off the plan re-runs other steps too (a price revision doubles), so the fix is
+not only a question of where DDS sits.
 
 ## 6. Configuring a bundle from a line
 

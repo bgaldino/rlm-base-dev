@@ -183,7 +183,7 @@ and capture the property with `ux_tool.py capture-drift`, so the template matche
 | Instant Pricing | Reprices price-impacting edits immediately | Toggled by `configure_revenue_settings` (Robot), flow `prepare_revenue_settings` [Repo: `cumulusci.yml`] |
 | Instant Pricing Active by Default | Starts each quote with Instant Pricing on; STLE only [Help: `ind.qocal_turn_on_quote_and_order_capture`] | `enableRevInstPricingDefaultPref` true; label mapping Open |
 | Delta Pricing | Header adjustments need Reprice All [Help: `ind.qocal_header_adjustments_use`] | `enableDeltaPricing` true [Repo] |
-| Header Adjustments | Manage Header Adjustment action | Not set in the repo's settings file; Open |
+| Header Adjustments | Manage Header Adjustment action; the discount is spread by the pricing procedure's Discount Distribution Service element [Help: `ind.qocal_header_adjustments_overview`] | Not set in the repo's settings file (Open); `RLM_DefaultPricingProcedure` has the DDS step [Repo: `.cursor/skills/pricing-procedures/elements/discount-distribution-service.md`] |
 | Sales Price Amendments | Credit and charge detail lines on amended prices | `enableSalesPriceAmendments` true [Repo] |
 | Exclude Default and STT Pricing Procedures (`skipOrgSttPricing`) | With an active procedure plan, header discount distributed twice (section in `runtime-behavior.md`) | false [Repo] |
 

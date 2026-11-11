@@ -58,9 +58,13 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 6. **Don't demo an inline quantity edit on an amendment of a configured product.** With
    configuration rules on it resets the line's attributes to product defaults, and activation
    keeps them on the asset [Measured: early Nov 2026, 264]. Change the quantity in the configurator.
-7. **Keep the quote procedure plan inactive for header-adjustment demos.** An active plan with
-   `skipOrgSttPricing` on applied a 10% header discount twice (19%) [Measured: early Nov 2026, 264;
-   Repo: `datasets/sfdmu/procedure-plans/README.md`].
+7. **Header adjustments are applied by the Discount Distribution Service (DDS) element, so exactly
+   one DDS must run per pricing pass.** Manage Header Adjustment only records the discount; the DDS
+   element in the pricing procedure spreads it across the lines [Help: `ind.qocal_header_adjustments_overview`].
+   The repo's `RLM_DefaultPricingProcedure` has a DDS step, and so does `RLM_Price_Distribution_Procedure`,
+   which the procedure plan runs. With the plan active and `skipOrgSttPricing` on, both ran and a 10%
+   header discount came out at 19% [Measured: early Nov 2026, 264; Repo: `datasets/sfdmu/procedure-plans/README.md`].
+   Keep the plan inactive (the repo default) for header-adjustment demos.
 
 ## DO NOT
 
@@ -177,8 +181,9 @@ Sales Price and Net Unit Price are blank on the parent and the price sits on det
 example +2 and −1 at the unit price) while the line total is right [Measured: early Nov 2026, 264].
 Check the detail rows and the total before treating it as a pricing fault.
 
-**Prepare a header-discount demo.** Confirm Header Adjustments is on and the quote procedure plan is
-inactive (repo default), apply the discount from Manage Header Adjustment, then click Reprice All,
+**Prepare a header-discount demo.** Confirm Header Adjustments is on, the active pricing procedure has
+one DDS step (the repo's default procedure does), and the quote procedure plan is inactive (repo
+default). Apply the discount from Manage Header Adjustment, then click Reprice All,
 which Help requires when Delta Pricing is on, as it is in this repo
 [Help: `ind.qocal_header_adjustments_use`; Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`].
 
