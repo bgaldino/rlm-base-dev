@@ -33,7 +33,8 @@ extraction → spikes → catalog → (configuration ∥ pricing) → negotiatio
 
 ## Rules
 
-1. **One org per session,** built through the build harness and kept (`build-harness`).
+1. **One org per session,** built through the build harness and kept, with a lifetime
+   that covers the session (`build-harness` → Keep an org for a multi-day build).
    Each session reports its org alias. No one deletes an org without the user's yes.
 2. **No worktrees for CCI work.** Sessions share the checkout, and each one owns
    specific folders. A session never writes outside them.

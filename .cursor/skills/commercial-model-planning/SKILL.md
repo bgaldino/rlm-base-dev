@@ -266,9 +266,10 @@ options, a tab of discount tiers, and a calculator tab that prices a sample orde
 service plans and trade-in credits.
 - **Mapping:** one configurable root per model plus a root per preset; options as
   attributes with attribute-based price; service plans as bundle components with
-  their own selling models, unless the store lets them be cancelled or renewed on
-  their own, in which case they are separate lines (`asset-lifecycle-changes` Quick
-  Rule 3); option exclusions and dependencies as CML.
+  their own selling models, unless a plan must be renewed or cancelled. A component
+  alone is refused (`asset-lifecycle-changes` Quick Rule 3), and a one-time root
+  renewed to quantity 0 (Quick Rule 5), so a renewable plan under a one-time device
+  root is its own line. Option exclusions and dependencies as CML.
 - **Source handling:** captured with a browser; an independent re-capture of a sample
   verifies it.
 - **Golden tests:** every preset price and a sample of custom configurations, plus an
