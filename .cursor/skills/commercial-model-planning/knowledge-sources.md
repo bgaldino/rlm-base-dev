@@ -26,7 +26,7 @@ trigger (b).
 |---|---|
 | (a) The snapshot and the skills are both silent on the rule | A behaviour no article or skill describes |
 | (b) The repo measured, or a skill infers from shipped code, behaviour that contradicts the docs or is a defect or limitation the docs don't describe | A header discount applying twice with an active procedure plan and `skipOrgSttPricing` on; a quantity edit on an amendment line resetting its attributes; a cancellation credit that doesn't prorate; an API-built group-ramped bundle with a one-time or evergreen child that failed to amend (`asset-lifecycle-changes` Quick Rule 8) |
-| (c) The rule is about values across the lifecycle | Amend, cancel and renew values: Help describes setup, not values |
+| (c) The rule is about values across the lifecycle that no skill has measured for the build's selling models and shape | Amend, cancel and renew values: Help describes setup, not values |
 | (d) The docs disagree, describe a preview with limitations, or lost information in capture | A considerations page for a preview feature; a support table whose values were icons and came through the snapshot blank |
 
 While a release is pre-GA, a live org outranks its documentation (`AGENTS.md`). A live

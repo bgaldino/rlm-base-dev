@@ -175,7 +175,7 @@ Rules that need a live org become spikes, each with the source value it must hit
 
 ### 5. Golden tests
 
-- One set per area in the template's section 3, split where useful: sizing or
+- One set per area, in the template's section 4, split where useful: sizing or
   configuration, rules (with expected messages), standard pricing, programs and edges
   (every band boundary), currency, policies, cost and margin, negotiation, approvals,
   lifecycle changes, billing, plus the template's Reprice and Attributes sets.
@@ -241,7 +241,8 @@ options, a tab of discount tiers, and a calculator tab that prices a sample orde
 - **Mapping:** bundles → configurable bundles with component groups; options →
   attributes or components; tiers → volume and tier discounts.
 - **Knowledge sources:** run the sweep for each area and decide from what it finds:
-    - An area a skill documents with measurements is **Repo**.
+    - An area a skill documents with measurements is **Repo**, unless a live trigger
+      applies to one of its rules.
     - An area only the Help or developer guide documents is **Snapshot**, and a skill
       gap.
     - A rule that a skill's measured defect, or a measured contradiction of the docs,

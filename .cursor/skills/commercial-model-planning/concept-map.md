@@ -4,8 +4,8 @@ Read this when mapping a source with [commercial-model-planning](SKILL.md). Each
 names the feature to try first and the skill that covers it. It is a starting point,
 not a decision. For each rule, read the domain skill, including its open items, then
 decide the knowledge source with [knowledge-sources.md](knowledge-sources.md) after the
-coverage sweep. The open items change as skills are measured, so this map doesn't copy
-them.
+coverage sweep. A few rows note an open item that changes the choice; that note is a
+pointer, not the skill's full open list.
 
 ## Catalog
 
@@ -62,7 +62,7 @@ them.
 
 | Source concept | Try first | Where documented |
 |---|---|---|
-| Billing frequency (annual, monthly) | `BillingFrequency` set on every Term Defined and Evergreen line placed through the API (a line without one was refused). A cadence different from the pricing term needs a treatment that allows it | `billing-setup` |
+| Billing frequency (annual, monthly) | `BillingFrequency` set on every Term Defined and Evergreen line placed through the API (a Term Defined line without one was refused). A cadence different from the pricing term needs a treatment that allows it | `billing-setup` |
 | In advance vs in arrears; milestone billing | Billing policy and treatment. Milestones the source doesn't name are a decision for its owner, not invented | `billing-setup` |
 | Payment terms | `Order.PaymentTermId` for invoicing; the shipped approval reads a custom quote picklist, and nothing copies one to the other. Decide how they meet | `billing-setup`; `advanced-approvals` |
 | Non-standard billing as an approval trigger | A quote-level value computed from the lines' billing frequency (in the approval data flow, or a roll-up count of non-standard lines) that the approval condition tests | `advanced-approvals` → `matrix-modeling.md` |

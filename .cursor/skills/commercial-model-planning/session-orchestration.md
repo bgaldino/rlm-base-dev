@@ -67,6 +67,6 @@ extraction → spikes → catalog → (configuration ∥ pricing) → negotiatio
 
 | Session | Phase(s) | Org | Writes (owns) | Reads |
 |---|---|---|---|---|
-| main | P0, P1, P6–P8, integration | integration; a new org for P7 | plan, design, golden, tools, pack | everything |
+| main | P0, P1, P6–P8, P9 if chosen, integration | integration; a new org for P7 | plan, design, golden, tools, pack | everything |
 | \<area\> spikes | \<spike ids\> | own | `spikes/<area>/` | design, golden |
 | \<area\> build | \<phase\> | own (+ dependencies loaded) | its data plans, models, overlays | design, dependencies' plans |
