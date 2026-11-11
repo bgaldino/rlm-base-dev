@@ -50,8 +50,8 @@ drop the `.md` suffix of the snapshot file name.
    `ProductCategory.Code` resolves a parent by code, so a child that reuses its parent's
    code becomes its own parent. [Measured: 2026-11, 264; Repo: `datasets/sfdmu/qb/en-US/qb-pcm/export.json`]
 8. **Load a PCM plan twice into a fresh org, and never extract from an org that had only
-   one pass**: the first insert leaves classification attribute overrides at platform
-   defaults. [Measured: 2026-11, 264] See [Loading the model](#loading-the-model).
+   one pass**: the first insert left classification attributes' `AttributeNameOverride`
+   and `IsRequired` at platform defaults. [Measured: 2026-11, 264] See [Loading the model](#loading-the-model).
 
 ## DO NOT
 
@@ -129,7 +129,7 @@ the detail and the sources.
 | **Attribute vs product** | Attribute: a characteristic on one SKU, same price book entry. Product: needs its own SKU, price, selling model, asset or fulfillment line. | Attributes keep the catalog small; each product adds price book entries, options and category rows. | Attribute → priced only via attribute-based adjustments (classification-bound). Product → own PBE per selling model, own asset line. [Help: `ind.product_catalog_plan_catalog.htm`; `ind.pricing_attribute_based_pricing_limits.htm`] |
 | **Simple vs bundle** (`Type`) | Bundle when the thing sold is a set of priced/fulfilled parts. | Irreversible. | Only bundles carry groups, components, bundle-based adjustments, and CML bundle relations. [Help: `ind.product_catalog_create_simple_products.htm`] |
 | **Static vs configurable** (`ConfigureDuringSale`) | Static: a fixed kit. Configurable: the buyer picks parts, quantities or attributes. | Static needs a default for every attribute and fixes children and quantities; configurable needs groups and cardinality. Convertible both ways, but configurable → static also requires no classification components. | Configurable: buyers add or remove children, change quantities and attributes at run time, and CML bundle rules apply. Static: none of that. [Help: `ind.product_catalog_create_bundled_products.htm`; `ind.product_catalog_change_a_configurable_bundle_product_to_a_static_bundle_product.htm`; Repo: `constraint-models/SKILL.md`] |
-| **Component vs classification component** | One product per row vs "any product based on classification X". | Classification components grow with the catalog but cannot be required or default. | New products of that classification appear in the bundle without a PCM edit; CML sync does not pick up class membership changes. [Help: `ind.product_catalog_creation_of_a_bundled_product_structure.htm`; `ind.product_configurator_sync_cml_and_pcm.htm`] |
+| **Component vs classification component** | One product per row vs "any product based on classification X". | Classification components grow with the catalog but cannot be required or default. | New products of that classification appear in the bundle without a PCM edit; CML sync does not pick up class membership changes. [Help: `ind.product_catalog_creation_of_a_bundled_product_structure.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_configurator_sync_cml_and_pcm.htm`] |
 | **Cardinality** (group min/max, component min/max/default, required, default) | See [`bundles-and-cardinality.md`](bundles-and-cardinality.md). | Tight cardinality blocks bad quotes but can make a bundle unconfigurable. | CML sync carries component cardinality and *required*; group changes do not sync. [Help: `ind.product_configurator_sync_cml_and_pcm.htm`] |
 | **Where an attribute value is set** | Definition → classification attr → product attr → bundle override. | Lower levels are more specific but must be reviewed when a higher level changes. | Bundle overrides break attribute-based pricing. [Help: `ind.product_catalog_attribute_fields.htm`; `ind.pricing_attribute_based_pricing_limits.htm`] |
 | **Selling model** | One Time / Term-Defined / Evergreen from the pricing basis. | Each extra model adds a PBE and an option per product. | Proration, renewal and the Subscription price element read it. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md) |
@@ -156,9 +156,10 @@ Ask, in order, and stop at the first yes:
    you need to build". [Help: `ind.product_catalog_plan_catalog.htm`]
 
 Downstream checks for an attribute choice: if it changes price, it must be
-`IsPriceImpacting` on the **directly** assigned classification, must not be a picklist over
-a Boolean data type (use a Checkbox/Boolean attribute), and numeric values match in the
-`.0` form. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
+be active with `IsPriceImpacting` selected [Help: `ind.pricing_define_price_impacting_attributes.htm`],
+belong directly to the classification the adjustment names, must not be a picklist over a
+Boolean data type (use a Checkbox/Boolean attribute), and numeric values match in the `.0`
+form. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
 If a configuration rule must reason about it, CML needs it as an attribute variable; a
 change to an attribute *under a product class* does not sync to CML. [Help: `ind.product_configurator_sync_cml_and_pcm.htm`]
 
@@ -168,7 +169,8 @@ Loading is `sfdmu-data-plans`; derive a new plan from the QuantumBit one rather 
 scratch: copy `datasets/sfdmu/qb/en-US/qb-pcm/` (its `export.json` already orders
 attributes → classifications → products → selling models → bundles → catalogs, and its
 README documents each key), cut it to your objects, and keep its externalIds unless you
-have a reason in that skill's terms. PCM-specific facts measured on 264 builds:
+have a reason in that skill's terms. Load facts measured on 264 PCM builds (b and c are
+general SFDMU behaviour, seen on a PCM plan):
 
 | # | Fact | What to do |
 |---|---|---|
@@ -227,7 +229,7 @@ Why this shape: the training choice is a **component**, not an attribute, becaus
 course is priced and fulfilled on its own. "Exactly one" is a group rule, so it lives in
 group cardinality; the pre-selected choice is `IsDefaultComponent` on one child, not
 `IsComponentRequired` (which would forbid the alternative). The bundle root is
-assetizable, so every child becomes an asset whatever its own flag says.
+assetizable, so every child is assetizable whatever its own flag says. [Help: `ind.product_catalog_create_bundled_products.htm`]
 
 ### Routing examples
 

@@ -31,11 +31,11 @@ single SKU whose only choices are attributes. [Help: `ind.product_catalog_produc
 |---|---|---|
 | Groups | Optional | **Mandatory**; children only under groups, never under the root |
 | Group contents | Products only | Child groups, or products, or **one** classification component; never mixed in one group |
-| Nesting | — | Two levels: root group → child group; a child group holds products or one classification |
+| Nesting | Help conflicts: `creation_of_a_bundled_product_structure` says a static bundle's group holds only products; the static add-components and validation articles describe nested child groups | Two levels: root group → child group; a child group holds products or one classification |
 | Children | Static only; *Include by default* on, *Allow quantity changes* off | Static or configurable, simple or bundle |
 | Classification-based attributes | Every attribute of every component needs a default | Runtime-editable |
 
-Deleting a group deletes every component under it. [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_creation_of_a_bundled_product_structure.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
+Deleting a group deletes every component under it. [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_creation_of_a_bundled_product_structure.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`; `ind.product_catalog_bundled_product_validations.htm`]
 
 Separate from group nesting, **product-in-product depth** (a bundle inside a bundle) is
 capped by the org value `MaxBundleDepth`: default 3, ceiling 5. The QuantumBit plan has

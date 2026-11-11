@@ -86,7 +86,7 @@ scope configuration. [Help: `ind.dro_creating_a_technical_product.htm`]
 
 **Trade-off:** `true` everywhere is the safe default for lifecycle, at the cost of asset
 rows for things nobody amends. Because the root wins, a bundle that mixes one-off and
-ongoing children cannot make only some children assets; split the one-off part out, or
+ongoing children cannot make only some children assetizable; split the one-off part out, or
 accept assets for it. (The QuantumBit plan has 161 assetizable and 153 non-assetizable
 products. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`])
 

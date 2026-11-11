@@ -38,8 +38,8 @@ ProductAttributeDefinition (product level; OverrideContextId set = bundle-contex
 | One classification per product line | Simple, few rows | Every product of the line shares one attribute set; per-product differences need product-level configuration |
 | Classification as a bundle **classification component** | The bundle offers "any product of this class" | Group, not the class, limits how many; class membership changes do not reach CML. [Help: `ind.product_configurator_sync_cml_and_pcm.htm`] |
 
-**Rule of thumb:** a **price-impacting** attribute belongs on the classification that the
-products being priced are directly based on. Put purely descriptive or shared
+**Rule of thumb:** a **price-impacting** attribute belongs directly on the classification
+or subclassification the adjustment names, not on a parent it inherits from. Put purely descriptive or shared
 configuration attributes higher. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
 
 ## Four places a value can be set
@@ -53,10 +53,12 @@ configuration attributes higher. [Help: `ind.pricing_attribute_based_pricing_lim
 
 [Help: `ind.product_catalog_configure_product_attributes.htm`; `ind.product_catalog_override_product_component_attributes_in_bundles.htm`; Dev guide: `sforce_api_objects_productattributedefinition.htm`, `sforce_api_objects_productclassificationattr.htm`]
 
-Shared fields at each level: `AttributeNameOverride` (display name, e.g. Colour shown as
-"Laptop Colour"), `DefaultValue`, `IsRequired`, `IsHidden`, `IsReadOnly`, `IsPriceImpacting`,
-`DisplayType`, min/max value and character count, `StepValue`, `Sequence`, `Status`.
-Booleans default `false`; `Status` defaults to `Draft`. [Help: `ind.product_catalog_attribute_fields.htm`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
+Shared fields at the classification, product and override levels: `AttributeNameOverride`
+(display name, e.g. Colour shown as "Laptop Colour"), `DefaultValue`, `IsRequired`,
+`IsHidden`, `IsReadOnly`, `IsPriceImpacting`, `DisplayType`, min/max value and character
+count, `StepValue`, `Sequence`, `Status`. Booleans default `false`; `Status` defaults to
+`Draft`. The definition level carries only `DefaultValue` and `IsRequired` of these.
+[Dev guide: `sforce_api_objects_attributedefinition.htm`] [Help: `ind.product_catalog_attribute_fields.htm`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
 **Changes do not cascade for you.** After changing a definition, review the classification
 attributes; after changing a classification attribute, review the product attributes; after
@@ -64,7 +66,7 @@ changing a product attribute, review its bundle overrides. [Help: `ind.product_c
 
 **Picklist narrowing.** Every picklist value is included by default at classification
 level; exclude values there, at the product, or in a bundle override
-(`ExcludedPicklistValues` on the classification attribute). [Help: `ind.product_catalog_include_or_exclude_picklist_values_in_a_product_classification_attribute.htm`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
+(`ExcludedPicklistValues` on the classification attribute). [Help: `ind.product_catalog_include_or_exclude_picklist_values_in_a_product_classification_attribute.htm`; `ind.product_catalog_products.htm`; `ind.product_catalog_create_bundled_products.htm`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
 ### Bundle-context overrides: use sparingly
 
@@ -91,6 +93,7 @@ divide exactly by the step; default, min and max are all required. [Help: `ind.p
 
 **Attribute-based pricing** (Help: `ind.pricing_attribute_based_pricing_limits.htm`):
 
+- Only active attributes with Is Price Impacting selected. (Help: `ind.pricing_define_price_impacting_attributes.htm`)
 - Only attributes assigned directly to the selected classification or subclassification.
 - No picklist over a Boolean data type; use a Checkbox/Boolean attribute.
 - Numeric values match in the `.0` form (10 is stored as 10.0).
