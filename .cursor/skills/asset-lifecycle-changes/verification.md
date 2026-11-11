@@ -11,10 +11,18 @@ For each change, record the state after every step:
    `POST /services/data/v68.0/actions/standard/<action>` with `{"inputs":[{...}]}`, where
    the action is `initiateAmendment`, `initiateCancellation` or `initiateRenewal`. Use
    output type `Quote` to inspect before committing. The inputs are in
-   `rlm-business-apis` → `backdated-asset-lifecycle.md` → API path.
-2. **Read the quote:**
-    - each line's `Quantity`, `UnitPrice` and `TotalPrice`;
-    - its `QuoteLineDetail` rows;
+   `rlm-business-apis` → `backdated-asset-lifecycle.md` → API path. The 2026-11-11 runs
+   amended through Connect instead (`POST /connect/revenue-management/assets/actions/amend`
+   on the top-level asset, `quantityChange` 0, Quote output), then made the change with a
+   Place request.
+2. **Make the change and read the quote.** Edit an amendment line or answer through Place
+   with `configurationMethod: Force` (and `executeConfigurationRules: true` for rules on);
+   with `Skip` the edit was refused [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Then read:
+    - each line's `Quantity`, `UnitPrice` and `TotalPrice`. On an amendment quote
+      `Quantity` is the delta, and `StartQuantity` and `EndQuantity` the totals before and
+      after. A line's source asset is on `QuoteAction.SourceAssetId`; `QuoteLineItem` has
+      no `AssetId`;
+    - its `QuoteLineDetail` rows (dated by `EffectiveFrom` and `EffectiveTo`);
     - `QuoteLineItemAttribute` for configured products;
     - the header `Subtotal`, `Discount` and `TotalPrice`.
 3. **Reprice** (Place Sales Transaction with a Quote PATCH) and read again: nothing
@@ -23,7 +31,8 @@ For each change, record the state after every step:
    `OrderItemDetail` and `OrderItemAttribute`.
 5. **Activate the order.** Fill its bill-to contact and addresses first: backdated-change
    orders were refused without them [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`
-   → Activating the order].
+   → Activating the order]. An amendment quote's `AccountId` is null; its account is in
+   `QuoteAccountId` [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
 6. **Read the asset:**
     - `AssetStatePeriod` (`StartDate`, `EndDate`, `Quantity`, `Amount`, `Mrr`);
     - `AssetStatePeriodAttribute`;
@@ -58,29 +67,55 @@ Cancellation credits on the quote, by selling model, at +1, +30, +180, +300 and 
 
 The Standard price book gave the same results.
 
+## Measured results (fresh 264 `ent-sb0` scratch orgs, 2026-11-11)
+
+On a Term Defined bundle sized by CML root answers (sites, users), with Term Defined, evergreen
+monthly and one-time components, three annual periods, configuration rules on, and every
+asset's `PricingSource` `LastTransaction`. The ordered changes ran in date order, each
+through activation before the next; a reprice moved nothing at any step:
+
+| Change | Quote | After order and activation |
+|---|---|---|
+| Root answer changed (more sites), mid-period | Each CML-sized child as a delta line at its price; other children 0; root a −1 / +1 detail pair at 0.00. Term Defined lines at 2 + 184/365 terms | New state periods from the amendment date; "Change / Upsells" per delta, amounts equal to the line totals |
+| Second answer changed (more users) on a later amendment | The first answer reset to its CML default and its children came back negative, until restated in a second Place request (SKILL.md Quick Rule 2) | Ordered after the restatement; state periods carry both answers |
+| Added units on a `LastTransaction` asset | A plain delta line at the asset's last net price; no volume-band step; existing units unchanged | State period at the new total, MRR at the last price |
+| Term Defined component to 0 on an anniversary | −qty × net unit × 1 term, in two last-in-first-out detail rows | Component asset kept; state period 0 from the date; "Change / Downsells" for the credit |
+| The same, 184 days before a period's end (quote only) | Term count 1 + 184/366 (leap year), not 1.5 | Not ordered |
+| Plan answer changed while an add-on required the old plan | The add-on removed and the plan's lines moved, with no message | Not ordered |
+| Part of a component moved to another plan (−n, new +n line) | Refused by a CML rule; with rules off, a component-group (max one) Warning log; either log blocked `createOrdersFromQuote` | Not ordered |
+| Renewal with `renewalStartDate` and `renewalEndDate` | Term Defined lines per lot with the uplift agreed at the sale; evergreen component and one-time lines "No Change" at 0 | Same assets extended; `LifecycleEndDate` moved; "Change / Renewals" |
+| Price amendment on an evergreen component line, dated on the renewal's start | Amend / FieldAmendment; delta 0; credit per lot at the old price, charge at the new | New state period MRR at the new price; "Change / Upsells" for the difference |
+
+Amendments on a CML bundle depend on the configurator's node status: on these orgs
+`AssetActionSource.RLM_ConstraintEngineNodeStatus__c` was empty after every activation while
+`OrderItem.RLM_ConstraintEngineNodeStatus__c` was filled. Copying the order lines' value
+onto the asset action sources before amending stopped the reset.
+
 ## Open: measure before promising
 
-- **Term Defined cancellation credit:** prorated by months remaining, or not?
-- **Re-banding on amendment:** do new units price at the band for the new total, and do
-  existing units keep their price?
+- **Term Defined top-level cancellation** (`initiateCancellation`): a Term Defined
+  component's reduction to 0 prorated by day (above); the cancellation of a Term Defined
+  top-level asset wasn't measured.
+- **Re-banding on amendment:** on `LastTransaction` assets added units kept the last net
+  price and nothing re-banded (above). Whether and how added units can take the band for
+  the new total is open; `PricingSource` isn't writable through Place.
+- **Why the asset action sources lack the configurator node status** after activation, so
+  that unchanged answers reset on an amendment (above, and SKILL.md Quick Rule 2).
 - **Swap values with constraints in force.**
 - **Invoice values** for every change: the quote and order values above aren't the
   invoice. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 - **Whether the configurator can restore the reset attributes** on an amendment line.
-- **Removing a bundle component through an amendment** of the top-level asset.
-- **Changing a bundle component's plan or price:** through an amendment of the top-level
-  asset (an attribute or price amendment on the component's line, or a change to part of
-  its quantity, 10 of the sites), or through a swap of the component asset. Help documents
-  the price amendment on bundles; neither amendment is documented on a component's line
-  ([change-policy-mapping.md](change-policy-mapping.md)).
+- **Changing a bundle component's plan:** a plan held as an attribute on the component's
+  line, or a swap of the component asset. A price amendment on a component's line, a plan
+  held as a root answer, and a partial move under a one-plan group are measured (above;
+  [change-policy-mapping.md](change-policy-mapping.md)).
 - **Evergreen reductions and swaps:** what an amendment with `quantityChange` < 0, or a
   swap's outgoing side, credits on an evergreen line. The only evergreen credit measured is
   a cancellation's (above).
 - **Renewing a standalone evergreen asset.** Help rules out uplift and end-date changes for
   evergreen assets but doesn't say what the renewal quote does to the line
-  ([change-policy-mapping.md](change-policy-mapping.md)).
-- **Changing a bundle root's sizing attribute on an amendment:** do the children's
-  quantities re-derive through CML, and at what price?
+  ([change-policy-mapping.md](change-policy-mapping.md)). In a bundle renewal the evergreen
+  component was a "No Change" line at quantity 0 (above).
 - **An earlier-dated change against a future-dated one:** the amend and cancel articles
   say it's refused, while *Future-Dated Changes* and its examples allow it
   ([change-policy-mapping.md](change-policy-mapping.md) → Replay the source's changes in
@@ -91,8 +126,9 @@ The Standard price book gave the same results.
   earlier amend [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend date window],
   which matches the amend article for that case. That record doesn't cover a future-dated
   amendment or cancellation.
-- **Amendment dates at a term end or a renewal date:** the recorded amend date window was
-  measured on group-ramped bundles. Whether it holds for other assets, its upper bound for
-  assets with no end date, and what an amendment dated exactly on a renewal's start date
-  does, and at which price, are open ([change-policy-mapping.md](change-policy-mapping.md)
-  → Changes dated at or after the term end).
+- **Amendment dates at a term end:** the recorded amend date window was measured on
+  group-ramped bundles. Whether it holds for other assets, and its upper bound for assets
+  with no end date, are open. An amendment dated exactly on a renewal's start date was
+  accepted after the renewal was activated (above;
+  [change-policy-mapping.md](change-policy-mapping.md) → Changes dated at or after the term
+  end).
