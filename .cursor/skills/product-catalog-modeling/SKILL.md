@@ -196,8 +196,8 @@ from its CSV is **Open — needs live verification**: every `IsRequired` in the 
 first-insert value was not recorded. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
 After any load of new products, run `refresh_all_decision_tables` and then `rebuild_search_index`,
-and wait for the index build before placing a quote (`check_search_index_readiness` reports
-when it completed): until then, Place answers "Could not find product with ID" for them. Two more
+and wait a few minutes for the index build before placing a quote: until it finishes, Place
+answers "Could not find product with ID" for them. Two more
 load facts measured the same way, a `Family` value missing from the picklist and the
 component fields an insert cannot set, are in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264).
 [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
