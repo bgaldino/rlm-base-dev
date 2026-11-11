@@ -107,7 +107,8 @@ transaction line editor.
 `sum(attr)` multiplies each instance's value by its line quantity; `total(attr)` doesn't
 `[Dev guide: cml_relationship_variable_functions]`. When you derive one quantity from
 another component's per-unit attribute (hours per connector, say), choose deliberately.
-Using `sum()` on an attribute that is already a total counts it twice.
+Using `sum()` on an attribute that is already a line total multiplies it by the quantity a
+second time.
 
 ---
 
@@ -123,7 +124,7 @@ PCM attribute imported into CML takes the attribute's developer name as its vari
 | Per N, rounded up (bracket) | `constraint(rackQty * 10 >= sites && (rackQty - 1) * 10 < sites, "<message>");` | 23 → 3 `[Measured: 2026-11-10, 264]` |
 | Per N, rounded up (inline) | `int rackQty = ceil(sites / 10);` | 23 → 3, with an input that a constraint set, not a rep-edited answer `[Measured: 2026-11-10, 264]`. No explicit domain; see [Why `ceil()` isn't in a constraint here](#why-ceil-isnt-in-a-constraint-here) |
 | Zero unless a choice is made | `constraint(hosting != "OnPrem" -> rackQty == 0, "<message>");` | `[Dev guide: cml_logical_constraints]` |
-| Equal to another component's quantity | `constraint(mounts[GatewayMount] == gateways[Gateway], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]` |
+| Equal to another component's quantity | `constraint(mounts[GatewayMount] == gateways[Gateway], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead (see [Chained derivations](#chained-derivations)) |
 | A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
 
 `constraint()` makes the quantity a rule; `setdefault()` makes it a default. The engine
@@ -182,8 +183,8 @@ bracket for answers the rep edits.
 | Need | Documented | Measured on 264 |
 |---|---|---|
 | Round up | `ceil()`: smallest integer >= the argument `[Dev guide: cml_mathematical_functions_numerical_derivation]` | Works inline only; the identity inside `constraint(...)`. See above `[Measured: 2026-11-10, 264]` |
-| Integer division | `/` listed with no stated semantics `[Dev guide: cml_constraints]` | Inside a constraint, `int / int` truncates. Inline, the fraction survives until the result is stored, so `int q = 23 / 10` is 2 but `ceil(23 / 10)` is 3 `[Measured: 2026-11-10, 264]` |
-| Power | The math-functions page lists `^` as power; the Constraints page lists `^` as XOR `[Dev guide: cml_mathematical_functions_numerical_derivation]` `[Dev guide: cml_constraints]` | Both are right in different places: inline `2 ^ 3` = 8; inside a constraint `^` is a logic operator and the model fails to activate `[Measured: 2026-11-10, 264]`. Multiply instead |
+| Integer division | `/` listed with no stated semantics `[Dev guide: cml_constraints]` | Inside a constraint, `int / int` truncates. Inline, the fraction survives until the result is stored, so `int q = 23 / 10` is 2 but `ceil()` of an `int` variable holding 23, divided by 10, is 3 `[Measured: 2026-11-10, 264]` |
+| Power | The math-functions page lists `^` as power; the Constraints page lists `^` as XOR `[Dev guide: cml_mathematical_functions_numerical_derivation]` `[Dev guide: cml_constraints]` | Inline, `2 ^ 3` = 8, so the power reading holds there. Inside a constraint, `^` compiled to a false constraint and the model failed to activate `[Measured: 2026-11-10, 264]`; whether it acts as XOR there wasn't tested. Multiply instead |
 | Other arithmetic | `+ - * %` (`%` is remainder) `[Dev guide: cml_constraints]` | `+` and `*` in constraints and inline `[Measured: 2026-11-10, 264]` |
 | Round down, round to nearest, absolute value | Not documented | Round down is integer `/` inside a constraint. Write the others as a bracket or with `%` |
 | Decimal values | `decimal(n)` fixed-point; `double(n)` 64-bit. Each digit of scale multiplies the values the engine may test `[Dev guide: cml_variable_data_types]` `[Dev guide: cml_cml_best_practices]` | — |
@@ -339,7 +340,7 @@ Run the place-then-configure check from the parent skill
    breaks several rules, accept any of their messages and no other. The solver can reject
    the right case for a different reason. That is why every constraint in the worked
    example has its own message.
-6. **Expect rules errors at activation, not at configure.** A model the solver can't
+6. **Expect a model-level rules error at activation, not at configure.** A model the solver can't
    satisfy fails when the version is activated (`manage_expression_sets` reports the rule,
    for example "couldn't find a solution … for the rule …", or "extra variables
    [… FalseConstraint]"), and the version stays **inactive**. `configure` against an
@@ -365,7 +366,7 @@ by three answers on the root product, plus two choices:
 | Component | Quantity rule |
 |---|---|
 | Gateway | one per site |
-| Gateway mount | equal to the gateway quantity |
+| Gateway mount | one per site, so equal to the gateway quantity |
 | Rack | on-premises hosting only: ceil(sites / 10); otherwise 0 |
 | User license | one per user |
 | Connector | one per integration |
@@ -401,9 +402,9 @@ type FieldOpsPlatform : LineItem {
     relation projectMgmt : ProjectManagement[16..852];
     relation support : Support[1..1];
 
-    // One per site; equal to another component
+    // One per site; mounts follow the same answer, not the gateway cardinality
     constraint(gateways[Gateway] == sites, "One gateway per site: expected {}.", sites);
-    constraint(mounts[GatewayMount] == gateways[Gateway], "One mount per gateway.");
+    constraint(mounts[GatewayMount] == sites, "One mount per site: expected {}.", sites);
 
     // Per 10 sites, rounded up; zero unless on-premises.
     // Bracket, not ceil(): ceil() does nothing inside constraint().
@@ -455,9 +456,10 @@ Notes on the model:
   because `implHours` can't. Keep the two in step when you change an answer domain.
 - Each component is a bundle member, so it still needs the four records in the parent
   skill ([The four records a bundle member needs](SKILL.md#the-four-records-a-bundle-member-needs)).
-  Set each sized component's `ProductRelatedComponent` so its quantity can change. With
-  `IsQuantityEditable = false`, a CML-set quantity drew a `bundlevalidation` warning
-  `[Measured: 2026-11-10, 264]`.
+  With `IsQuantityEditable = false` on a sized component's `ProductRelatedComponent`, a
+  CML-set quantity drew a `bundlevalidation` warning `[Measured: 2026-11-10, 264]`. Whether
+  `IsQuantityEditable = true` clears it is open (see
+  [Cardinality vs reading quantity](#cardinality-vs-reading-quantity)).
 - The bracket forms used here gave 3 racks for 23 sites and 113 PM hours for a 752-hour
   base `[Measured: 2026-11-10, 264]`.
 - The derived `int` variables could carry `@(configurable = false)`. The dev guide
@@ -479,6 +481,7 @@ Expected quantities (hand-computed from the rules above; the whole model has not
 |---|---|---|---|---|---|---|---|---|---|
 | 23 sites, 180 users, 3 int., OnPrem, Standard | 23 / 23 | 3 | 180 | 3 | 632 | 120 | 113 (752 × 15% = 112.8) | Standard 1, Premium 0 | no |
 | 10 sites, 50 users, 12 int., OnPrem, Standard | 10 / 10 | 1 (exact multiple) | 50 | 12 | 320 | 480 | 120 (800 × 15% = 120, exact) | Standard 1 | **yes, Info** |
+| 11 sites, 50 users, 0 int., OnPrem, Premium | 11 / 11 | 2 (one past a multiple) | 50 | 0 | 344 | 0 | 52 (344 × 15% = 51.6) | Premium 1, Standard 0 | no |
 | 11 sites, 50 users, 0 int., Cloud, Premium | 11 / 11 | 0 (Cloud) | 50 | 0 | 344 | 0 | 52 (344 × 15% = 51.6) | Premium 1, Standard 0 | no |
 
 Rejections to assert by message. Where a state breaks more than one rule, accept any of
