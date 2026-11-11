@@ -64,8 +64,8 @@ changes). Note who has to answer it: the source's owner or the build's owner.
 - **Extraction** says what the converter (the script that reads the source) writes,
   and how it is accepted:
     - It writes the **design model and the golden values**, nothing else. The build
-      sessions write data plans, constraint models and procedure rows from the design
-      model (section 6), so each file has one owner.
+      sessions (laid out in section 6) write data plans, constraint models and procedure
+      rows from the design model, so each file has one owner.
     - **Acceptance** (the P1 gate), as tests the converter ships with: it refuses a
       source whose checksum isn't the pinned one; formula parity has 0 mismatches; every
       cached value equals its recomputation; every value the plan states (an anchor in

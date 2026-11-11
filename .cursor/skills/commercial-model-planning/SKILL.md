@@ -291,23 +291,28 @@ python3 "$L" report   # writes verification/scorecard.md
   the audit's edits; the blind text is kept), `added`, `intake` (answers given at intake) or
   `owner` (decisions a person settled after the blind plan: the source owner or the
   build owner). Intake and owner items aren't predictions and are excluded from
-  accuracy. With no blind plan, every item not
-  named by `--intake` or `--owner` is `blind`. `--blind`, `--intake` and `--owner` are
-  remembered, so a later `init` needs only `--plan`.
+  accuracy. With no blind plan, every item not named by `--intake` or `--owner` is
+  `blind`.
 - **Outcome,** set at each gate, against what the item predicts: a rule's native
-  feature, a decision's recommendation, a spike's must-hit at its enforcement point. A
-  rule with two "decided by" values takes the worse of its two parts; its Live part is
-  also measured by its spike. `affirmed`: it held and the goldens
-  pass. `modified`: it held with different values or configuration. `refuted`: it
-  failed, and a fallback or another route was used. Otherwise `inconclusive`.
+  feature, a decision's recommendation, a spike's must-hit at its enforcement point.
+    - `affirmed`: it held and the goldens pass.
+    - `modified`: it held with different values or configuration.
+    - `refuted`: it failed, whether or not a fallback was built.
+    - `inconclusive`: not tested, or no clear result.
+
+  A rule with two "decided by" values takes the worse of its two parts (refuted, then
+  modified, then inconclusive, then affirmed); its Live part is also measured by its
+  spike.
 - **`--blind-right`** (edited items only): whether the blind text would have held, so
   the audit's edits are measured too. Record it once; the report uses the latest
   answer given.
 - `init` finds the plan's sections by the names the template gives them ("2. Decisions",
   "Rule decision record", "P2 Live spikes"; see [plan-template.md](plan-template.md)). It
-  fails when it finds no rule or decision rows, and warns when it finds no spikes. Re-running it adds new rows, keeps every recorded outcome
-  and first prediction, and re-applies `--intake` and `--owner`, so a decision the source
-  owner settles later can still leave the accuracy count.
+  fails when it finds no rule or decision rows, and warns when it finds no spikes.
+- Re-running `init` adds new rows and keeps every recorded outcome and first
+  prediction. `--blind`, `--intake` and `--owner` are remembered, so a later `init` needs
+  only `--plan`. A new `--intake` or `--owner` list replaces the remembered one, so pass
+  the full list each time; a decision settled later then leaves the accuracy count.
 - **Sessions report; the main session records.** A session reports per item: outcome,
   path, evidence, and the skill file and line when a refutation traces to a skill claim.
 - **Findings go to the ledger and the evidence log.** The plan isn't rewritten to match

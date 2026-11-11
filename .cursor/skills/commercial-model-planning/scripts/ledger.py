@@ -30,13 +30,15 @@ Origins (set by init):
            build owner (--owner): not a prediction
 With no blind plan, every row not named by --intake or --owner is "blind". Intake and
 owner items are excluded from accuracy. --blind, --intake and --owner are remembered, so
-a later init needs only --plan.
+a later init needs only --plan; a new --intake or --owner list replaces the remembered
+one, so pass the full list each time.
 
 Outcomes (set by record), judged against what the item predicts (a rule's native
 feature, a decision's recommendation, a spike's must-hit at its enforcement point; a
-rule with two decided-by values takes the worse of its parts): affirmed (held, goldens pass),
-modified (held with different values or configuration), refuted (failed; a fallback or
-another route was used), inconclusive. New items are pending.
+rule with two decided-by values takes the worse of its parts, in the order refuted,
+modified, inconclusive, affirmed): affirmed (held, goldens pass), modified (held with
+different values or configuration), refuted (failed, whether or not a fallback was
+built), inconclusive (not tested, or no clear result). New items are pending.
 
 init keeps every recorded outcome and, for rows already in the ledger, the row it first
 recorded, so the blind measurement survives later plan revisions. Origins are worked out
@@ -352,8 +354,9 @@ def main(argv=None):
     i = sub.add_parser("init", help="build or update the ledger from the plan")
     i.add_argument("--plan", required=True, help="the plan the build follows")
     i.add_argument("--blind", help="the blind plan, as generated before any edit (remembered)")
-    i.add_argument("--intake", help="decision IDs given at intake, e.g. D1-D6 (remembered)")
-    i.add_argument("--owner", help="decision IDs the source owner settled, e.g. D7,D8 (remembered)")
+    i.add_argument("--intake", help="decision IDs given at intake, e.g. D1-D6 (remembered; a new list replaces it)")
+    i.add_argument("--owner", help="decision IDs a person settled after the blind plan, e.g. D7,D8 "
+                   "(remembered; a new list replaces it)")
     for k in KINDS:
         i.add_argument(f"--{k}s", help=f"text that marks the {k} section (default: '{DEFAULT_MARKERS[k]}')")
     i.add_argument("--rebuild", action="store_true", help="re-read every prediction from the plan")
