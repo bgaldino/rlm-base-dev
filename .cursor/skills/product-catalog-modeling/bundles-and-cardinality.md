@@ -51,6 +51,8 @@ bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child w
 [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_bundled_product_validations.htm`]
 On one measured component with `IsQuantityEditable = false`, a CML rule that set its
 quantity returned `success: true`, and the line drew a PCM `bundlevalidation` warning. [Repo: `constraint-models/quantities-from-attributes.md`, run M16]
+A hand edit of the same kind blocked order creation (below); whether the CML-set case writes
+the same error log: **Open — needs live verification.**
 
 Measured on a locked configurable bundle (Term Defined root at a zero price; one group whose
 min and max equal its four children, each required, default, quantity 1, not editable, with

@@ -115,7 +115,7 @@ not list. [Repo: that file; `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv`; `data
 cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> -o ignore_row_errors_for "{ProrationPolicy: duplicate value found}" --org <cci_alias>
 cci task run load_sfdmu_data -o pathtoexportjson datasets/sfdmu/<shape>/<locale>/<plan> -o ignore_row_errors_for "{ProrationPolicy: duplicate value found}" --org <cci_alias>   # second pass
 cci flow run refresh_all_decision_tables --org <cci_alias>
-cci task run rebuild_search_index --org <cci_alias>   # async: allow a few minutes before placing a quote
+cci task run rebuild_search_index --org <cci_alias>   # async: wait minutes, then retry Place until "Could not find product" stops
 ```
 
 ### PCM load facts (264)
@@ -127,7 +127,7 @@ cci task run rebuild_search_index --org <cci_alias>   # async: allow a few minut
 | **(c)** In a plan without `useSeparatedCSVFiles: true`, repeating an object across object sets: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] | For fact (a)'s second pass, run the plan again: that is the measured fix. |
 | **(d)** A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | See *Coding categories*. |
 | **(e)** A configurator test of a bundle must place the quote with configuration rules on. [Measured: 2026-11, 264] | See `constraint-models`. |
-| **(f)** Newly loaded products are invisible to Place Sales Transaction ("Could not find product with ID …") until `rebuild_search_index` has run and its asynchronous build has finished (minutes on the measured scratch org; build time grows with the catalog). [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | After every load that adds products, run `refresh_all_decision_tables` (any catalog change, `decision-tables` Quick Rule 1), then `rebuild_search_index`, and wait for the build before placing. (`check_search_index_readiness` reads Ready once any build has completed in the org, so on a built org it does not confirm the post-load rebuild.) |
+| **(f)** Newly loaded products are invisible to Place Sales Transaction ("Could not find product with ID …") until `rebuild_search_index` has run and its asynchronous build has finished (minutes on the measured scratch org). [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | After every load that adds products, run `refresh_all_decision_tables` (any catalog change, `decision-tables` Quick Rule 1), then `rebuild_search_index`, and retry Place until the error stops. (`check_search_index_readiness` reads Ready once any build has completed in the org, so on a built org it does not confirm the post-load rebuild.) |
 | **(g)** A `Family` value outside the org's picklist is stored through the API but not offered in the UI. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | Deploy the picklist value with the plan; see [Family](#product-family-is-a-contract). |
 | **(h)** On `ProductRelatedComponent`, `ParentProductRole` and `ChildProductRole` are not writable (set from the relationship type), and `MinQuantity`, when given, must be at least 1; `QuantityScaleMethod` takes `Constant`, `Proportional` or blank, never `None`. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality) and [its quantity scaling section](bundles-and-cardinality.md#quantity-scaling-and-lifecycle). |
 

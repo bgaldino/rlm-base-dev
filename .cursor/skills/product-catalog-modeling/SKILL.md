@@ -196,9 +196,9 @@ from its CSV is **Open — needs live verification**: every `IsRequired` in the 
 first-insert value was not recorded. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
 After any load of new products, run `refresh_all_decision_tables` and then `rebuild_search_index`,
-and wait for the index build before placing a quote (minutes on the measured scratch org;
-longer for a larger catalog): until it finishes, Place answers "Could not find product with
-ID" for them. Two more
+and wait for the index build before placing a quote (minutes on the measured scratch org):
+until it finishes, Place answers "Could not find product with ID" for them, so retry until
+that error stops. Two more
 load facts measured the same way, a `Family` value missing from the picklist and the
 component fields an insert cannot set, are in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264).
 [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
@@ -259,7 +259,8 @@ assetizable, so every child is assetizable whatever its own flag says. [Help: `i
 - "Place says *Could not find product with ID* for a product I just loaded." → first check
   that the search index was rebuilt after the load and has finished ([Loading the model](#loading-the-model)).
 - "A group I set to pick one says its number of child products is out of range, but I
-  picked one product." → the product is on two lines; see
+  picked one product." → check whether the product is on two lines (a CML-sized default
+  component splits); see
   [`bundles-and-cardinality.md`](bundles-and-cardinality.md#cml-sized-default-components).
 - "The configurator lets me pick two from a pick-one group." → check the group holds
   products, not child groups: only the lowest-level group's cardinality is enforced at run
@@ -285,7 +286,8 @@ Review the CSVs for these, each a rule above:
   or an editable quantity.
 - No classification component is required or default.
 - Every group's `MinBundleComponents` ≤ distinct children, and required children ≤ `MaxBundleComponents`.
-- Every `Family` value is a value of the org's `Family` picklist (or the load adds it).
+- Every `Family` value is a value of the org's `Family` picklist, or the same change adds it
+  to the `Product2Family` standard value set.
 - No `QuantityScaleMethod` is `None` (use blank). A blank on a row with `IsQuantityEditable`
   false comes back from the org as `Proportional`; expect that difference in an extract.
 - Every product has at most one `IsDefault` selling model option; term-defined and
@@ -324,9 +326,10 @@ Every item marked **Open — needs live verification** in this skill and its sub
   or Evergreen child is quoted, renewed and billed on; how a locked configurable bundle's
   children amend, and whether the lock holds on its renewal quote. (That it opens the
   configurator, and how its children renew, is measured.) See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur).
-- **Group range message and orders.** Whether a group's `bundlevalidation` range message
-  (a component split across two lines) blocks order creation. See
-  [`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality).
+- **Which `bundlevalidation` messages block an order.** A hand edit of a locked child's
+  quantity did (through its error log). Not measured: a group's range message (a component
+  split across two lines), and a CML-set quantity on a locked child (`constraint-models` run
+  M16). See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality).
 - **Bundle-based adjustments under a new static bundle**, whose component rows carry
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
