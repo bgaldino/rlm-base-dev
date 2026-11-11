@@ -81,8 +81,8 @@ applies to every child**, whatever the child's own flag. [Help: `ind.product_cat
 Amend, renew and cancel act on assets. [Help: `ind.qocal_asset_lifecycle.htm`] So a product
 that never becomes an asset has no asset to amend or renew (inferred). Usage buckets are
 created after the pack is bought and assetized. [Help: `ind.qocal_understanding_rate_on_packs.htm`]
-A technical (fulfillment) product marked assetizable needs an assetizable custom fulfillment
-scope configuration. [Help: `ind.dro_creating_a_technical_product.htm`]
+A technical (fulfillment) product marked assetizable, with a Custom decomposition scope, needs
+an assetizable custom fulfillment scope configuration. [Help: `ind.dro_creating_a_technical_product.htm`]
 
 **Trade-off:** `true` everywhere is the safe default for lifecycle, at the cost of asset
 rows for things nobody amends. Because the root wins, a bundle that mixes one-off and
