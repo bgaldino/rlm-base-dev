@@ -132,6 +132,16 @@ foundations:
         - "The Postman collection JSON under postman/ is still the v66.0 baseline pending regeneration against a live 264 org; cite docs/api/ Markdown, not collection payloads"
         - "The docs/api/index.html viewer (155 endpoints) is hand-maintained; the docs/api/ Markdown wins on any disagreement"
 
+    - id: advanced-approvals
+      path: .cursor/skills/advanced-approvals/SKILL.md
+      purpose: "Advanced Approvals: modeling sign-off matrices (cumulative levels, chains, conditions), submit/review/recall/reject actions, Smart Approvals and Preview limits, and the repo's shipped quote approval"
+      consumed_by_pmos: []
+      provenance: 264 Help and dev-guide snapshot, plus a live end-to-end run of the shipped quote approval on a QuantumBit build (2026-11-10)
+      sub_skills:
+        - .cursor/skills/advanced-approvals/matrix-modeling.md
+        - .cursor/skills/advanced-approvals/actions-and-objects.md
+        - .cursor/skills/advanced-approvals/limitations.md
+
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md
       purpose: "Build/verify multi-year GROUP ramp quotes (place→EditGroup→clone) and per-segment (compound) price uplift"

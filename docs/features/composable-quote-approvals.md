@@ -108,17 +108,21 @@ This pattern has been validated in scratch orgs and proves:
 Add dimensions as a recipe, not as a framework rewrite.
 
 1. Add the approval fact to `RLM_Quote_Approval_Data` if the step needs a new
-   quote-derived value.
-2. Add one `stageSteps` approval step to `RLM_Quote_Smart_Approval`.
-3. Give the step a unique `ActionInput__ApprovalChainName`.
-4. Add explicit `entryConditions`; do not use a stage-start entry rule.
-5. Add two stage exit conditions: `Step.Status = Completed` and the inverse of
+   quote-derived value, and declare it as an output on the `QueryApprovalData` step
+   (`outputConfigParams`) so conditions can read `QueryApprovalData.Outputs.<name>`.
+2. Add the new step's trigger condition as an OR condition on the `Requires_Approval`
+   decision. Without it, a quote that triggers only the new dimension takes the decision's
+   default path straight to `Update_Quote_Status_to_Approved`.
+3. Add one `stageSteps` approval step to `RLM_Quote_Smart_Approval`.
+4. Give the step a unique `ActionInput__ApprovalChainName`.
+5. Add explicit `entryConditions`; do not use a stage-start entry rule.
+6. Add two stage exit conditions: `Step.Status = Completed` and the inverse of
    the trigger condition.
-6. Add one grouped `(completed OR not triggered)` clause to the stage
+7. Add one grouped `(completed OR not triggered)` clause to the stage
    `exitConditionLogic`.
-7. Add the step to the `rejectedQuote` formula so any rejection routes to the
+8. Add the step to the `rejectedQuote` formula so any rejection routes to the
    rejected-status stage.
-8. Add one `ApprovalAlertContentDef.csv` row and one `EmailTemplate.csv` row in
+9. Add one `ApprovalAlertContentDef.csv` row and one `EmailTemplate.csv` row in
    `datasets/sfdmu/qb/en-US/qb-approvals/`.
 
 What should not change for a normal new dimension:
@@ -149,7 +153,24 @@ Run these checks before treating an approval-flow change as ready:
 
 - `cci flow run prepare_approvals --org <cci_alias>` succeeds on a scratch org.
 - Re-running `prepare_approvals` is idempotent.
-- Preview Approvals shows the expected chains and steps.
+- If the approval-flags overlay or the approvals context plan changed: on a fresh build,
+  `cci flow run prepare_approvals_pricing --org <cci_alias>` applies both. The thresholds
+  are step criteria in `approval_flags.json` `addSteps`; edit them there so fresh builds
+  get them. On an org that already has the overlay, a rerun fails on a changed step and
+  silently skips a changed existing variable. Change that org with a separate, uncommitted
+  overlay that keeps `expressionSetApiName` and `versionApiName` from `approval_flags.json`
+  and holds only the change: `updateSteps` for a changed step; for a changed variable, its
+  name in `removeVariables` and its new definition in `addVariables` (the task removes
+  before it adds, `tasks/rlm_expression_set_connect.py`). Apply it with
+  `cci task run apply_approval_flags_overlay -o overlay_file <one-off.json> --org <cci_alias>`.
+  Never add `updateSteps` for the overlay's own steps to the shipped file: on a fresh org
+  those steps don't exist yet, so the task fails. Deactivate the context version before changing a
+  mapping (`.cursor/skills/context-service/`). Reprice before testing.
+- Preview Approvals doesn't show steps whose entry conditions depend on the
+  `QueryApprovalData` background step's subflow. The Help workaround, mock output values set
+  in Flow Builder, edits the flow: do it only in a throwaway version that is never committed
+  or left active, since a new active version also ends Smart Approvals eligibility for
+  resubmissions (Help: `ind.approvals_smart_approval_limitations`). A real submission (below) is the deciding check.
 - **No-approval path**: Quotes with `DiscountApprovalLevel = 0` AND `PaymentTerms = "Net 30"` 
   route directly to `Approved` status without entering the approval stage.
 - **Single-dimension paths**: Discount-only and terms-only quotes complete correctly.
@@ -157,6 +178,9 @@ Run these checks before treating an approval-flow change as ready:
 - **Rejection handling**: Rejecting any active work item routes the quote to `Rejected`.
 - **Resubmission**: Resubmission after rejection or recall keeps expected work items Smart
   Approval eligible.
+- **Recall**: check the quote status after a recall. The flow has no recall path, so the
+  quote stays `Pending`; the `RLM_Approval_Status` value set already has a `Recalled` value
+  that nothing sets yet.
 - `python scripts/ai/check_plan_readme_consistency.py --strict datasets/sfdmu/qb/en-US/qb-approvals`
   reports zero errors, zero warnings after notification dataset changes.
 - `python scripts/validate_sfdmu_v5_datasets.py` reports no findings against the composable-approvals
