@@ -509,7 +509,7 @@ Before calling a constraint-model change done:
    example a `message(true, "<marker>", "warning")` rule) and look for it in the response's
    `messages`. A valid configuration returns `success: true`,
    `solverStatus: "success"`, `errors: []` **and** leaves no `RevenueTransactionErrorLog`
-   rows on the quote (query a few seconds after Place); an invalid model returns
+   rows of `Severity` Error on the quote (query a few seconds after Place); an invalid model returns
    `Model '…' is invalid`. A configuration the rules reject also returns `success: true`,
    usually with `solverStatus: "error"`, but its message can be only in the error log
    while `configure` reports `"success"`, so always read both. See

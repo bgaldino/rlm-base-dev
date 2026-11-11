@@ -104,9 +104,10 @@ Where the dev guide and the org disagree, this file follows the org and says so.
 
 `relation[Type] == n` sets a **quantity**. The dev guide's `count()` example satisfies
 `warranties[Warranty] == 2` by adding one warranty product with quantity 2, not two
-products `[Dev guide: cml_relationship_variable_functions]`. The org did the same when no
-line of that type was on the quote yet `[Measured: M14]`. When one already was, it added
-a second line unless the type was `@(split = false)`; see
+products `[Dev guide: cml_relationship_variable_functions]`. The org did the same `[Measured: M14]`.
+When a line of that type was already on the quote below the rule's quantity, it kept that
+line and added a second for the rest, unless the type was `@(split = false)`
+`[Measured: M22, M23]`; see
 [One line per component](#one-line-per-component-split--false).
 
 **Check the component's PCM quantity settings.** With `IsQuantityEditable = false` on the
@@ -451,8 +452,10 @@ in front of it (step 1 below).
    `success`: a rejected configuration returned `success: true`, `solverStatus: "error"`,
    `errors: []`, with the rule's message in `messages` at type `error` `[Measured: M29]`.
    A clean `configure` isn't enough either: also require that the quote has no
-   `RevenueTransactionErrorLog` rows, queried a few seconds after Place
-   `[Measured: M31]`. One rejection's message was only in the error log, and `configure`
+   `RevenueTransactionErrorLog` rows of `Severity` Error, queried a few seconds after Place
+   `[Measured: M31]`. Rows of `Severity` Warning also appear, for bundle-validation
+   warnings `[Measured: M29]`; whether they block ordering is
+   [open item 1](#open-items). One rejection's message was only in the error log, and `configure`
    then returned `solverStatus: "success"` `[Measured: M29]`.
 5. **Assert every component's quantity**, including the zeros, against a hand-computed
    table (see the worked example), and assert one line per component. Pick answers on
@@ -670,13 +673,13 @@ was run.
 | M20 | `configure` after the models in M7 and M12 failed activation | The version stayed inactive; `configure` returned `success: true` with no messages | 2026-11-10 |
 | M21 | A different model, placed with rules off, then `configure` | `success` for a combination the model rejects with rules on | 2026-11-03 |
 | M22 | Sized component types with no `split` annotation: Place with `addDefaultConfiguration: true`; a rep's optional add-on at quantity 1; a sized line edited down | Every case kept the line as placed and added a second line for the rest (1 + (n − 1); m + (n − m)); quantities totalled right, no rule message. Each split group drew a `bundlevalidation` "number of child products … isn't in the specified range" warning | 2026-11-11 |
-| M23 | The same with `@(split = false)` on every component type | One line per component at the rule's quantity; the add-on at 1 raised to `sites`. Edits of two sized lines, each down and up, rejected with the rule's message. The edited quantity stayed on the quote (read back for one downward edit) | 2026-11-11 |
+| M23 | The same with `@(split = false)` on every component type | One line per component at the rule's quantity; the add-on at 1 raised to `sites`. Edits of the add-on line and of an hours line, each down and up, rejected with the rule's message. The edited quantity stayed on the quote (read back for one downward edit) | 2026-11-11 |
 | M24 | Configurator UI (two orgs). Without the annotation: a default sized child. With it: an existing root line reconfigured (add-on ticked at 1, `sites` changed) and a fresh bundle add from Browse Catalogs | Without: two instances (1 + the rest); in a group ramp, later segments kept a stale split that broke the constraint, with only a group-range warning; non-default children were one instance. With: one line per child at the rule's quantity, the add-on raised to `sites`, each line resized when `sites` changed, defaults kept, no warning | 2026-11-11 |
 | M25 | A relation declared with an upper bound above 9,999, its cardinality set by a constraint from an `int` whose domain reaches the same bound, no `maxRelationSize` | A quantity just below 9,999 solved; one just above was rejected with the sizing rule's message, not a limit message. A CML-only `int` above 9,999 solved | 2026-11-11 |
 | M26 | The M25 case with the PRC `MaxQuantity` above the needed quantity; then with `property maxRelationSize` set to the relation's upper bound | `MaxQuantity`: still rejected. The property: the bound itself solved | 2026-11-11 |
 | M27 | `string region = parent(region);` in child types, no level; children in PCM component groups; no group types in the model; only the root's answer sent (two orgs) | Each child's attribute record held the root's value; editing the root's answer re-derived it and repriced; also in the configurator UI | 2026-11-11 |
 | M28 | The M27 child types under a bundle root that isn't a type in the model; one child placed alone | Under that root: the children kept their attribute default. Alone: no attribute record written. Solver success, no message, both | 2026-11-11 |
-| M29 | Place (rules on, `Force`) of configurations the rules reject | Place `isSuccess: true`, saving what it was sent. `configure`: `success: true`, `solverStatus: "error"`, `errors: []`, the rule's message in `messages` at type `error`; an error log with the message in `ConfiguratorErrorMessage`. In one case the message was only in the error log, and a later `configure` returned `solverStatus: "success"` | 2026-11-11 |
+| M29 | Place (rules on, `Force`) of configurations the rules reject | Place `isSuccess: true`, saving what it was sent. `configure`: `success: true`, `solverStatus: "error"`, `errors: []`, the rule's message in `messages` at type `error`; an error log with the message in `ConfiguratorErrorMessage`. Bundle-validation warnings in the same run were logged as a separate row of `Severity` Warning. In one case the message was only in the error log, and a later `configure` returned `solverStatus: "success"` | 2026-11-11 |
 | M30 | Place graph answers as `QuoteLineItemAttribute` with `AttributeDefinitionId`, `AttributeValue` and, for picklists, `AttributePicklistValueId`; no `AttributeName` | Bound to the CML variables named by the definitions' developer names; a number stored with a decimal (`"12.0"`) bound to an `int` | 2026-11-11 |
 | M31 | Place PATCH of a bundle child's quantity with `IsQuantityEditable = false` on its PRC (two quotes); then `createOrdersFromQuote`; then the quantity set back | `isSuccess: true`, the line saved and repriced; within seconds a `RevenueTransactionErrorLog` (BundleValidation: the quantity "can't be edited"); the order refused, "existing Revenue Transaction Error Logs". Setting it back deleted the log. The line editor saved the same edit with a warning icon and the same log | 2026-11-11 |
 | M32 | Place of a rejected configuration without `BillingFrequency` on Term-defined and Evergreen lines | `FIELD_INTEGRITY_EXCEPTION` on the root, "… BillingFrequency can't be null", instead of the rule. Valid configurations placed without it | 2026-11-11 |
@@ -691,7 +694,8 @@ Each needs a live 264 org:
 1. Whether `IsQuantityEditable = true` clears the `bundlevalidation` warning in M16, and
    whether a CML-set quantity on a component with `IsQuantityEditable = false`, with no
    hand edit, writes a `RevenueTransactionErrorLog` that blocks ordering (M31 measured
-   only a hand edit).
+   only a hand edit, and didn't record the log's `Severity`). Also whether a
+   `RevenueTransactionErrorLog` row of `Severity` Warning blocks ordering.
 2. How a large cardinality (600 service hours) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
@@ -764,7 +768,7 @@ Each needs a live 264 org:
 6. Review notes use `Info`; nothing meant as advice uses `Warning` or `Error`.
 7. Headless test: placed with rules on and a `BillingFrequency` on every recurring line,
    answers that bind (checked against non-default values), every quantity asserted as one
-   line per component, no `RevenueTransactionErrorLog` rows for a valid answer set, every
+   line per component, no `RevenueTransactionErrorLog` rows of `Severity` Error for a valid answer set, every
    rejection asserted by the message of a rule it breaks, read from `configure` and
    `RevenueTransactionErrorLog`. Then the parent
    skill's [Validation Checks](SKILL.md#validation-checks), including the configurator
