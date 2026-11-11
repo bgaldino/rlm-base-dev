@@ -433,7 +433,7 @@ the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
 
 | File | Read this when… |
 |---|---|
-| [`quantities-from-attributes.md`](quantities-from-attributes.md) | A model must set component quantities from answers on the bundle: one per site, an optional add-on per site, per N rounded up, zero unless a choice is made, chained derivations such as service hours and a percentage for project management. Covers cardinality vs read-only quantity, rounding and `int` vs `decimal`, per-instance scope, exclusions, non-blocking `Info` messages and headless testing, with a fictional worked example. Read it before writing `ceil()`, `/` or `^` in CML: its DO NOT list and measured table cover how they behave on 264. |
+| [`quantities-from-attributes.md`](quantities-from-attributes.md) | A model must set component quantities from answers on the bundle: one per site, an optional add-on per site, per N rounded up, zero unless a choice is made, chained derivations such as service hours and a percentage for project management. Covers cardinality vs read-only quantity, `@(split = false)` for one line per component, the 9,999 relation cap and `maxRelationSize`, rounding and `int` vs `decimal`, per-instance scope and `parent()`, exclusions, non-blocking `Info` messages and headless testing (where a rejection's message appears: `configure` and `RevenueTransactionErrorLog`), with a fictional worked example. Read it before writing `ceil()`, `/` or `^` in CML: its DO NOT list and measured table cover how they behave on 264. |
 
 ---
 
@@ -480,6 +480,13 @@ Before calling a constraint-model change done:
 2. Check the shipped blob directly; there is no reference-copy sync step.
 3. Dry-run import resolves your new rows to **real org Ids**, and you queried those Ids
    back to confirm they are the records you meant — not just that something resolved.
+   A dry run can't do this for a model the org doesn't have yet: it creates no
+   `ExpressionSet`, so it stops at "Could not find ExpressionSetDefinitionVersion for
+   <name>" before resolving any row (measured 2026-11-11, fresh 264 `ent-sb0` scratch org).
+   The task logs that at error level and returns without raising
+   (`tasks/rlm_cml.py`), so read the log, not the exit code. For a new model the first
+   import is a real run: read its resolution warnings, then query the ESC rows
+   (check 6).
 4. Deactivate → import → activate actually run, in that order.
 5. `ConstraintModel` reads back with your change in it (recipe above). Note what this
    does **not** prove: `import_cml` writes that same field, so it confirms the upload was
@@ -502,6 +509,10 @@ Before calling a constraint-model change done:
    example a `message(true, "<marker>", "warning")` rule) and look for it in the response's
    `messages`. A valid model returns `success: true`,
    `solverStatus: "success"`, `errors: []`; an invalid one returns `Model '…' is invalid`.
+   A configuration the rules reject also returns `success: true`, with
+   `solverStatus: "error"`, and its message can be only in the quote's
+   `RevenueTransactionErrorLog` rows; read `solverStatus` and the error log. See
+   [quantities-from-attributes.md → Testing it headlessly](quantities-from-attributes.md#testing-it-headlessly).
    Full recipe: [Runtime verification](../../../datasets/constraints/README.md#runtime-verification).
 
 ---
@@ -513,6 +524,12 @@ Before calling a constraint-model change done:
   model's ESC rows, and from looking those rows up by display `Name` instead of
   `ApiName`. `data_dirs` fixes both: the retained QuantumBit/Server2 models can report unsupported-annotation notes. Treat the **error** count as the signal and check the warning
   count against a known-good baseline for the models you are touching.
+  One such note is a false positive on every variable declaration with an initializer:
+  `int sites = [1..500];` warns "Unsupported annotation 'sites' on attribute 'sites'",
+  with or without an annotation above it, because the validator reads the declaration's
+  own `name =` as an annotation key (`ANNOTATION_KEY_RE` in `tasks/rlm_cml.py`; checked
+  against the validator locally, 2026-11-11). A model with these warnings imported,
+  activated and ran on fresh 264 `ent-sb0` scratch orgs (2026-11-11).
 - **A standalone `import_cml` never cycles the version.** `prepare_constraints` covers
   this at steps 9-10, but shipping a model change usually means running `import_cml` on
   its own — where the upload lands and nothing redeploys. There is no single task that
