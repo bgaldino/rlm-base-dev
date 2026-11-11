@@ -877,6 +877,60 @@ def check_instruction_budget(root: Path) -> CheckResult:
                        f"{AGENTS_PATH}: {size:,} bytes; repository ceiling {AGENTS_MAX_BYTES:,} (not a client context limit)")
 
 
+AGENTS_INDEX_HEADING = "## AI Agent Skill Index"
+SKILL_ROUTER_PATH = f"{SKILLS_ROOT}/README.md"
+
+
+def agents_index_skill_names(agents_text: str) -> set[str] | None:
+    """Skill names in the AGENTS.md index section, or None when the section is missing.
+
+    The index is a compact list of code spans: a bare skill name (`pricing-setup`) or a
+    path under a skill (`cci-orchestration/custom-task-authoring.md`) both count.
+    """
+    start = agents_text.find(AGENTS_INDEX_HEADING)
+    if start < 0:
+        return None
+    end = agents_text.find("\n## ", start + len(AGENTS_INDEX_HEADING))
+    section = strip_fenced_code(agents_text[start:end if end >= 0 else len(agents_text)])
+    names = set()
+    for token in re.findall(r"`([^`\n]+)`", section):
+        token = token.strip()
+        if token.startswith(f"{SKILLS_ROOT}/"):
+            token = token[len(SKILLS_ROOT) + 1:]
+        names.add(token.split("/", 1)[0])
+    return names
+
+
+def router_skill_names(router_text: str) -> set[str]:
+    """Skills the README router links to as `<name>/SKILL.md`."""
+    return set(re.findall(r"\]\(([a-z0-9][a-z0-9-]*)/SKILL\.md\)", router_text))
+
+
+def check_skill_index_parity(root: Path) -> CheckResult:
+    """Every skill directory is listed in the AGENTS.md index and linked from the router.
+
+    AGENTS.md carries only names; the router carries the "I need to..." intent. Each is
+    useless for discovery if it silently drops a skill, so both must cover every skill.
+    """
+    expected = {p.name for p in _skill_dirs(root) if (p / "SKILL.md").is_file()}
+    try:
+        agents_names = agents_index_skill_names((root / AGENTS_PATH).read_text(encoding="utf-8"))
+        router_names = router_skill_names((root / SKILL_ROUTER_PATH).read_text(encoding="utf-8"))
+    except (OSError, UnicodeError) as exc:
+        return CheckResult("skill index parity", False, str(exc))
+    failures = []
+    if agents_names is None:
+        failures.append(f"{AGENTS_PATH}: no '{AGENTS_INDEX_HEADING}' section")
+    elif expected - agents_names:
+        failures.append(f"{AGENTS_PATH} index is missing {sorted(expected - agents_names)}")
+    if expected - router_names:
+        failures.append(f"{SKILL_ROUTER_PATH} router is missing {sorted(expected - router_names)}")
+    return CheckResult("skill index parity", bool(expected) and not failures,
+                       "; ".join(failures) if failures
+                       else f"{len(expected)} skills listed in the AGENTS.md index and linked from the router"
+                       if expected else "no skills found")
+
+
 def check_native_skill_links(root: Path) -> CheckResult:
     expected = {p.name for p in _skill_dirs(root)}
     failures = []
@@ -1122,6 +1176,7 @@ def run_baseline_checks(root: Path) -> list[CheckResult]:
         check_rule_owners(root),
         check_skill_discovery_metadata(root),
         check_native_skill_links(root),
+        check_skill_index_parity(root),
         check_instruction_budget(root),
         check_skill_navigation_links(root),
     ]
