@@ -80,10 +80,12 @@ the filter must be the first child, one filter per group].
   [Dev guide: `sforce_api_objects_productsellingmodel.htm`]. A bundle can mix One Time, Term
   Defined and Evergreen lines, since each child keeps its own selling model options
   ([product-catalog-modeling → Selling models inside bundles](../../product-catalog-modeling/selling-models-and-lifecycle.md#selling-models-inside-bundles)).
-  As a precaution, add criterion 11, `PricingTermUnit` IsNotNull, to the AND chain
-  (`1 AND 2 AND 3 AND 4 AND 9 AND 10 AND 11 AND ((5 AND 6) OR (7 AND 8))`). The overlay and the
-  measured result below do not have it; what an unguarded criterion 2 does on a null value is
-  open (see [Open questions](#open-questions)).
+  As a precaution, add criterion 11, `PricingTermUnit` IsNotNull, ahead of the comparison it
+  guards, as in Help's example (`{LineItem equals isNotNull} AND {LineItem equals 100}`):
+  `1 AND 11 AND 2 AND 3 AND 4 AND 9 AND 10 AND ((5 AND 6) OR (7 AND 8))`. The guard only helps if
+  the engine evaluates the condition logic left to right and stops at the first false criterion,
+  which is not documented. The overlay and the measured result below do not have it; both points
+  are open (see [Open questions](#open-questions)).
 - Criterion 9 copies the shipped discount filters, which skip last-transaction lines so an amended
   or renewed line does not take a discount a second time [Repo: `RLM_DefaultPricingProcedure`,
   `Filterlineswithoutlasttransactionpricing`]. Without it, an amendment that keeps the prior net
@@ -261,10 +263,11 @@ expressed the rule.
 
 - One Time lines were not in the run. **Open — needs live verification:** what an unguarded
   criterion 2 does on a One Time line's null `PricingTermUnit`. Help says a null compared tag
-  returns an error, but whether criterion 1 (which already excludes the line) stops criterion 2
-  being evaluated, and what the error looks like, was not measured. Price a One Time line, alone
-  and inside a mixed bundle, through the clone with and without criterion 11. Until then keep
-  criterion 11.
+  returns an error, but whether the condition logic is evaluated left to right and stops at the
+  first false criterion (so that criterion 1, or criterion 11 placed before criterion 2, keeps
+  criterion 2 from being evaluated), and what the error looks like, was not measured. Price a One
+  Time line, alone and inside a mixed bundle, through the clone with and without criterion 11.
+  Until then keep criterion 11, placed before criterion 2.
 - Which `SubscriptionTermUnit` the quote line editor writes for an annual Term Defined line was not
   measured; the filter accepts both `Months` and `Annual`. Check a real quote line before relying
   on one.
