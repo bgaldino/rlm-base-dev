@@ -45,10 +45,11 @@ in November 2026.
     - A positive amendment edited in the UI also moved its price to detail rows (+2 and −1
       at the unit price) [Measured: 2026-11-05, 264].
     - Read detail rows, or coalesce them, in anything that reports line prices.
-5. **One-time and evergreen lines have no term to renew.** Renewing a one-time product
-   with an evergreen component gave a $0 quote with quantity 0 on every line
-   [Measured: 2026-11-05, 264]. Model a renewable commitment with a Term Defined selling
-   model.
+5. **One-time lines have no term to renew.** Renewing a one-time product sets its
+   quantity to zero [Help: `ind.qocal_asset_lifecycle_considerations`]. Renewing a one-time
+   product with an evergreen component gave a $0 quote with quantity 0 on every line
+   [Measured: 2026-11-05, 264]; a standalone evergreen renewal wasn't measured. Model a
+   renewable commitment with a Term Defined selling model.
 6. **Credits follow the selling model, not the effective date, on the quote.**
     - Cancelling a one-time product credited its full price at any date.
     - An evergreen annual or monthly component credited exactly one period at any date,

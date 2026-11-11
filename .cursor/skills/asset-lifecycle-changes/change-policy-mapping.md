@@ -10,7 +10,7 @@ the sale work. Parent: [asset-lifecycle-changes](SKILL.md).
 | "Swap plan A for plan B" | Swap (`/revenue/transaction-management/assets/actions/swap`), or an amendment that removes A and adds B | Each side's price; constraints between them | Run with configuration rules on; a constraint may force an order between changes |
 | "Downgrades must still obey sizing rules" | Amendment or swap, with configuration rules on | CML constraints evaluated on the amendment | The rejection's own message |
 | "Cancellations are credited for the months remaining" | Cancellation (`initiateCancellation`) on the top-level asset | Selling model of each line, and billing | On the quote: one-time = full price; evergreen = one period [Measured: 2026-11-05, 264]. Term Defined: **Open** |
-| "Renew for a new term at current net price plus N%" | Renewal (`initiateRenewal`); uplift through a price revision policy | Term Defined lines only; one-time and evergreen lines renew at quantity 0 | The renewal quote's value per line, read from the detail rows |
+| "Renew for a new term at current net price plus N%" | Renewal (`initiateRenewal`); uplift through a price revision policy | Term Defined lines (a one-time line renews at quantity 0, Quick Rule 5); the asset's `PricingSource` (below) | The renewal quote's value per line, read from the detail rows |
 | "Escalate N% each year" | Group ramp with uplift (`ramped-quotes`) | Segment uplift | Amending a ramped bundle with one-time or evergreen children fails when built by API |
 | "Remove a component but keep the bundle" | Cancelling the component alone is refused (Quick Rule 3); removing it through an amendment of the top-level asset | Model choice | **Open**: removal through an amendment is unmeasured; measure it or sell the component as its own line |
 
@@ -19,10 +19,10 @@ the sale work. Parent: [asset-lifecycle-changes](SKILL.md).
 - Which lines are bundle components, and must any be changeable on their own?
 - Which selling model does each line use? That decides renewals and credits.
 - Do changes run at the asset's last price, or at the current list price? The asset's
-  `PricingSource` picks one: `LastTransaction` or `PriceBookListPrice`
-  [Dev guide: `sforce_api_objects_asset`]. Help scopes it to positive-quantity amendments;
-  a negative amendment is priced from prior sale prices, last in first out
-  [Help: `ind.qocal_amend_assets`]. Map a source that prices additions "at standard pricing"
-  to `PriceBookListPrice`, and check which value the build's assets carry before comparing
-  numbers.
+  `PricingSource` (`LastTransaction` or `PriceBookListPrice`) decides this when amending or
+  renewing [Dev guide: `sforce_api_objects_asset`]. Two Help rules qualify it: a negative
+  amendment is priced from prior sale prices, last in first out [Help: `ind.qocal_amend_assets`],
+  and a list-price source drops the renewal uplift
+  [Help: `ind.qocal_consumer_price_index_and_uplifts_important_considerations`]. Check which
+  value the build's assets carry before comparing numbers.
 - Are changes backdated? If so, also read `rlm-business-apis` → `backdated-asset-lifecycle.md`.

@@ -68,3 +68,4 @@ The Standard price book gave the same results.
   invoice. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 - **Whether the configurator can restore the reset attributes** on an amendment line.
 - **Removing a bundle component through an amendment** of the top-level asset.
+- **Renewing a standalone evergreen asset.**
