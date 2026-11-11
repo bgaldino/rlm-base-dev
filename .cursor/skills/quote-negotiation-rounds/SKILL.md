@@ -29,8 +29,8 @@ cloning the previous round. Claims are tagged: `[Help: <article>]` and
    [Help: `ind.qocal_clone_quotes_and_orders`; Measured: 2026-11-10, 264]. Details and
    the measured carry-over table: [deep-clone.md](deep-clone.md).
 2. **Clone headlessly with the Connect API**, `POST /connect/rev/sales-transaction/actions/clone`
-   with the quote id as `recordIds[0]` and `salesTransactionId`
-   [Dev guide: `connect_resources_clone_sales_transaction`]. The invocable
+   [Dev guide: `connect_resources_clone_sales_transaction`]. For a whole quote, pass the quote
+   id as both `recordIds[0]` and `salesTransactionId` [Measured: 2026-11-10, 264]. The invocable
    `deepCloneSalesTransaction` was not available on the org measured
    [Measured: 2026-11-10, 264].
 3. **Check the clone before you edit it.** Wait for `CalculationStatus` to leave its clone
