@@ -37,8 +37,8 @@ files can use it.
    rule in [knowledge-sources.md](knowledge-sources.md): the per-area table holds the
    evidence, and the per-rule decision record holds each rule's decision.
 4. **Spike live only what the repo can't answer.** A live spike is for a corpus that
-   is silent, a repo measurement that differs from the docs, numbers across the
-   asset lifecycle, or docs that disagree. Everything else is modeled directly and
+   is silent, a repo measurement that contradicts the docs or shows a defect they
+   don't describe, values across the asset lifecycle, or docs that disagree. Everything else is modeled directly and
    proved at its build gate.
 5. **Golden tests come from the source's own worked examples.** Every expected value
    traces to a cell, a page or a sentence in the source. Recompute calculated values
@@ -160,8 +160,7 @@ Use [concept-map.md](concept-map.md). For every concept, write the feature to tr
 and the skill that covers it, and keep the source's own numbers next to it. Order
 matters as much as the features do: write down the source's order of application and
 where it rounds. Some sources round once at the end; a pricing procedure may round at
-each step, and most elements don't round at all
-(`pricing-procedures` → `elements/rounding-values.md`). Decide where each Rounding
+each step (`pricing-procedures` → `elements/rounding-values.md`). Decide where each Rounding
 Values step sits, and add a golden case off the source's own examples that would show a
 missing one.
 
@@ -246,8 +245,8 @@ options, a tab of discount tiers, and a calculator tab that prices a sample orde
     - An area a skill documents with measurements is **Repo**.
     - An area only the Help or developer guide documents is **Snapshot**, and a skill
       gap.
-    - An area where a skill records measured behaviour the docs don't show is
-      **Live (b)**.
+    - An area where a skill records a measured defect, or behaviour that contradicts
+      the docs, is **Live (b)**.
   Don't carry a decision over from another plan or release; sweep again.
 - **Golden tests:** the calculator's lines and totals, and every tier boundary
   (derived from the tier table).
@@ -275,12 +274,16 @@ Before presenting the plan:
 - Every skill named in the plan exists (this skill may still be on an unmerged
   branch while it is being tested):
 
+  Run from the Foundations repo root, with `PLAN` set to the plan's path (it may live
+  in a private repo):
+
   ```bash
+  PLAN=<path to plan.md>; test -f "$PLAN" || echo "no plan at $PLAN"
   # every hyphenated name in backticks that isn't a skill: check each by hand
-  for s in $(grep -oE '`[a-z0-9]+(-[a-z0-9]+)+`' plan.md | tr -d '`' | sort -u); do
+  for s in $(grep -oE '`[a-z0-9]+(-[a-z0-9]+)+`' "$PLAN" | tr -d '`' | sort -u); do
     [ -f ".cursor/skills/$s/SKILL.md" ] || echo "not a skill: $s"; done
   # every .md file named, with the skill it follows on its line, to check with ls
-  grep -oE '`[a-z0-9-]+` → `[^`]+\.md`|`[^` ]+\.md`' plan.md | sort -u
+  grep -oE '`[a-z0-9-]+` → `[^`]+\.md`|`[^` ]+\.md`' "$PLAN" | sort -u
   ```
 
 - Every sub-file named exists under its skill.

@@ -25,8 +25,8 @@ trigger (b).
 | Trigger | Typical cases |
 |---|---|
 | (a) The snapshot and the skills are both silent on the rule | A behaviour no article or skill describes |
-| (b) The repo measured behaviour that differs from, or isn't in, the docs | A header discount applying twice with an active procedure plan; a quantity edit on an amendment line resetting its attributes; a cancellation credit that doesn't prorate; an API-built ramped bundle that can't be amended (`ramped-quotes`) |
-| (c) The rule is about numbers across the lifecycle | Amend, cancel and renew values: Help describes setup, not values |
+| (b) The repo measured behaviour that contradicts the docs, or a defect or limitation the docs don't describe | A header discount applying twice with an active procedure plan; a quantity edit on an amendment line resetting its attributes; a cancellation credit that doesn't prorate; an API-built group-ramped bundle with a one-time or evergreen child that failed to amend (`asset-lifecycle-changes` Quick Rule 8) |
+| (c) The rule is about values across the lifecycle | Amend, cancel and renew values: Help describes setup, not values |
 | (d) The docs disagree, describe a preview with limitations, or lost information in capture | A considerations page for a preview feature; a support table whose values were icons and came through the snapshot blank |
 
 While a release is pre-GA, a live org outranks its documentation (`AGENTS.md`). A live
@@ -43,7 +43,7 @@ R=docs/salesforce/<release>
 cover() {  # cover <label> <extended regex, use \b word boundaries>
   h=$(grep -rliE "$2" $R/help/articles | wc -l | tr -d ' ')
   d=""; for c in $R/dev-guide*; do  # dev-guide, dev-guide-contracts, dev-guide-industries
-    d="$d ${c##*/}=$(grep -rliE "$2" "$c" | wc -l | tr -d ' ')"; done
+    d="$d ${c##*/}=$(grep -rliE "$2" "$c/articles" | wc -l | tr -d ' ')"; done
   a=$(grep -rliE "$2" $R/help/articles | head -3 | sed -E 's#.*/##; s#\.htm\.md$##' | tr '\n' ' ')
   s=$(grep -rliE "$2" .cursor/skills --exclude-dir=commercial-model-planning --exclude=README.md \
       | sed -E 's#^\.cursor/skills/##' | tr '\n' ' ')

@@ -12,10 +12,10 @@ release, and each domain skill's own open-items list says what is still unmeasur
 | Source concept | Try first | Where documented | Usual live trigger |
 |---|---|---|---|
 | Item with a list price and unit | `Product2` + price book entry | `product-catalog-modeling`; `sfdmu-data-plans` (loading) | — |
-| Pricing basis: one-time / annual subscription / monthly plan | Selling models: One-Time, Term Defined (annual), Evergreen (monthly) | `product-catalog-modeling` → `selling-models-and-lifecycle.md`; `pricing-setup` → `proration-and-selling-models.md` | (b) a term model under a configurable bundle |
+| Pricing basis: one-time / annual subscription / monthly plan | Selling models: One-Time, Term Defined (annual), Evergreen (monthly) | `product-catalog-modeling` → `selling-models-and-lifecycle.md`; `pricing-setup` → `proration-and-selling-models.md` | (a) a term model under a configurable bundle |
 | Package priced as the sum of its contents | Configurable bundle; component groups with min and max. Decide the root's own selling model | `product-catalog-modeling` → `bundles-and-cardinality.md`, `selling-models-and-lifecycle.md` | (c) how the root's selling model renews its children (`asset-lifecycle-changes`) |
 | Fixed kit | Static bundle | same | — |
-| Option the rep picks, priced | Attribute with attribute-based price, or a component | `product-catalog-modeling` → `attributes-and-classifications.md`; `pricing-procedures` → `elements/attribute-based-price.md` | (a) attribute on the parent, price on a child |
+| Option the rep picks, priced | Attribute with attribute-based price, or a component | `product-catalog-modeling` → `attributes-and-classifications.md`; `pricing-procedures` → `elements/attribute-based-price.md`; for an answer on the parent priced on a child, `elements/root-answer-child-price.md` | (a) whether a CML-set value is saved on the line and reaches pricing |
 | Not sold standalone | `IsSoldOnlyWithOtherProds` | `product-catalog-modeling` → `selling-models-and-lifecycle.md` | (a) what enforces it at run time |
 | Not tracked in the installed base | `IsAssetizable = false` | same | (c) its effect on amend, cancel and renew |
 | Product lines, categories, catalogs | Catalog categories and `Family` | `product-catalog-modeling` → `catalogs-and-loading.md` | — |
@@ -28,9 +28,9 @@ release, and each domain skill's own open-items list says what is still unmeasur
 | Sizing questions | Attributes on the bundle root | `constraint-models` → `quantities-from-attributes.md` | — |
 | Quantity derived from answers (per site, per 10 rounded up) | CML cardinality constraints driven by `int` variables, with an integer bracket for rounding up | `constraint-models` → `quantities-from-attributes.md` (`ceil()` doesn't round inside a constraint) | — |
 | Effort or hours estimator | Same, on service components | same | — (golden tests check each rounding step) |
-| "X only with Y", "exactly one of" | CML constraints with messages | `constraint-models` | (c) enforcement on amendments, not just new sales |
+| "X only with Y", "exactly one of" | CML constraints with messages | `constraint-models` | (a) enforcement on amendments, not just new sales |
 | Note that doesn't block | CML message with `Info` severity. `Warning` blocks the next step until the rep acts | `constraint-models` → `quantities-from-attributes.md` | (a) what `Info` shows in each surface |
-| Rep may change a quantity the rules size | Decide which wins: rule-owned sizing, or an editable line | `constraint-models` → `quantities-from-attributes.md` | (a) whether the rep can edit a constraint-sized line |
+| Rep may change a quantity the rules size | Decide which wins: rule-owned sizing, or an editable line | `constraint-models` → `quantities-from-attributes.md` | (d) whether the rep can edit a constraint-sized line (the sources qualify each other) |
 
 ## Pricing
 
@@ -54,7 +54,7 @@ release, and each domain skill's own open-items list says what is still unmeasur
 | Standard cost per item | Cost book entries | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md` | — |
 | Labour rates, loaded cost | Computed during extraction into cost entries | `pricing-setup` → `scenarios/cost-and-margin.md` (modeling costs from a source) | — |
 | Line and quote margin | The shipped cost-and-margin wiring, plus a roll-up for the quote total | `pricing-setup` → `scenarios/cost-and-margin.md` | (b) margin on multi-period subscription lines |
-| Full commitment value, with monthly lines counted "for comparison" | A computed value of its own; a quote total counts an Evergreen line for the Pricing Setup default term count (or, when that is blank, from the line's start and end dates), not the source's term | `pricing-setup` → `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` | — |
+| Full commitment value, with monthly lines counted "for comparison" | A computed value of its own; a quote total counts an Evergreen line for the Pricing Setup default term count (or, when that is blank, from the line's start and end dates), not the source's term `[inferred]` in that scenario | `pricing-setup` → `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` | — |
 | Partner or referral fee taken from net revenue | A computed value (a field or a formula), not a price adjustment. Check whether it applies on a direct deal | — | — |
 | Pass-through items (travel, expenses) | Priced near cost by design; decide how margin and below-cost guards treat them | `pricing-setup` → `scenarios/cost-and-margin.md`; `advanced-approvals` → `matrix-modeling.md` | — |
 
@@ -74,16 +74,16 @@ release, and each domain skill's own open-items list says what is still unmeasur
 | Rounds or versions of a bid | One quote per round, by deep clone; the winning round becomes the order | `quote-negotiation-rounds` | — |
 | An internal what-if round that must never be presented | A marker on the quote plus a guard on presenting and ordering it | `quote-negotiation-rounds` | — |
 | Discount per product line | Manual line discounts, or a group in the line editor | `pricing-procedures` → `elements/manual-discount.md`, `elements/discount-distribution-service.md`; `transaction-line-editor` → `runtime-behavior.md` | (b) a header discount was measured applying twice with an active procedure plan |
-| Approval matrix by discount, margin, size | Advanced Approvals: one level per dimension, the maximum drives a cumulative chain. State what "discount" is measured against (list, or a standard price after programs) | `advanced-approvals` → `matrix-modeling.md` | (d) Preview limits; (c) rejection, recall and resubmission paths |
+| Approval matrix by discount, margin, size | Advanced Approvals: one level per dimension, the maximum drives a cumulative chain. State what "discount" is measured against (list, or a standard price after programs) | `advanced-approvals` → `matrix-modeling.md` | (d) Preview limits |
 | Line-level guards (below floor, below cost) | A count of breaking lines as an approval condition, with a marker so a round's bulk discount and an individual override can be told apart | `advanced-approvals` → `matrix-modeling.md` | same |
-| "Resubmit from the start" after a rejection | Smart Approvals off for that flow, or accepted as a difference | `advanced-approvals` → `limitations.md` | — |
+| "Resubmit from the start" after a rejection | Smart Approval off on that chain's steps, or accepted as a difference | `advanced-approvals` → `matrix-modeling.md`, `limitations.md` | — |
 
 ## Lifecycle
 
 | Source concept | Try first | Where documented | Usual live trigger |
 |---|---|---|---|
 | Co-termed addition | Amendment of the top-level asset. On a bundle sized from root answers, decide how "add N" maps onto the root | `asset-lifecycle-changes` → `change-policy-mapping.md`; `rlm-business-apis` → `backdated-asset-lifecycle.md` | (c) values; (b) attributes after a UI quantity edit on an amendment line |
-| Swap one plan for another | Swap action | `asset-lifecycle-changes` | (c) constraints on the amendment |
+| Swap one plan for another | Swap action | `asset-lifecycle-changes` | (a) constraints on the amendment |
 | Cancellation credit | Cancellation | `asset-lifecycle-changes` → `change-policy-mapping.md` | (b)(c) credit by selling model and date |
 | Renewal at a new price | Renewal with a price revision policy | `asset-lifecycle-changes`, `renewal-asset-creation`, `pricing-setup` | (c) the renewal's value and term |
 | Proving a change end to end | Reprice, order, activate, check the asset | `asset-lifecycle-changes` → `verification.md` | — |
