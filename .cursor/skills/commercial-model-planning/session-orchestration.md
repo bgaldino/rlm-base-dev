@@ -9,8 +9,8 @@ Read this when a plan splits the build across sessions. Parent:
   integration, lifecycle and billing work (P6), the pack and every gate.
 - **Spike sessions.** Group the live spikes by area, for example pricing and
   lifecycle. Each session runs on its own kept org. Nothing from a spike goes into the
-  model or the pack; its results go in `spikes/<area>/` and the plan's rule decision
-  record.
+  model or the pack; its results go in `spikes/<area>/`, and the session reports each
+  outcome to the main session, which records it in the verification ledger.
 - **Build sessions.** One per independent area, for example catalog and configuration,
   pricing and cost, negotiation and approvals. Each runs on its own org and writes its
   data plans, models and overlays from the design model; extraction doesn't write them.

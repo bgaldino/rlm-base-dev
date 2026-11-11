@@ -280,7 +280,7 @@ folder:
 
 ```bash
 L=<Foundations root>/.cursor/skills/commercial-model-planning/scripts/ledger.py
-python3 "$L" init --plan plan.md --blind <blind plan> --intake <IDs, e.g. D1-D6> --owner <IDs>
+python3 "$L" init --plan plan.md --blind <blind plan> [--intake <IDs, e.g. D1-D6>] [--owner <IDs>]
 python3 "$L" record <ID> <outcome> "<org, record ids, values>" [--path "<what was built>"] \
   [--skill "<skill/file: claim>"] [--blind-right yes|no]
 python3 "$L" report   # writes verification/scorecard.md
@@ -293,9 +293,11 @@ python3 "$L" report   # writes verification/scorecard.md
 - **Outcome,** set at each gate: `affirmed` (built as predicted, goldens pass),
   `modified` (works with a changed path or values), `refuted` (the prediction was wrong;
   a fallback or another path was needed) or `inconclusive`.
-- `init` reads the plan's own section names (`## 2. Decisions`, the rule decision record,
-  the P2 spike table; see [plan-template.md](plan-template.md)). Re-running it adds new
-  rows and keeps every recorded outcome and first prediction.
+- `init` finds the plan's sections by the template's headings and labels ("2. Decisions",
+  "Rule decision record", "P2 Live spikes"; see [plan-template.md](plan-template.md)) and
+  warns when one has no rows. Re-running it adds new rows, keeps every recorded outcome
+  and first prediction, and re-applies `--intake` and `--owner`, so a decision the source
+  owner settles later can still leave the accuracy count.
 - **Sessions report; the main session records.** A session reports per item: outcome,
   path, evidence, and the skill file and line when a refutation traces to a skill claim.
 - **Findings go to the ledger and the evidence log.** The plan isn't rewritten to match

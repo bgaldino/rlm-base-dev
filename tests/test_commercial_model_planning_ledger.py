@@ -29,6 +29,13 @@ BLIND = """# Example on Revenue Cloud — Build Plan
 | D2 | Which band edge? | Inclusive |
 | D3 | Round where? | At the end |
 
+What D2 changes:
+
+| Choice | Total |
+|---|---|
+| Inclusive | 100.00 |
+| Exclusive | 90.00 |
+
 ## 3. Architecture: source mapped to Revenue Cloud
 
 ### 3.10 Rule decision record
@@ -46,6 +53,11 @@ BLIND = """# Example on Revenue Cloud — Build Plan
 | pricing | Repo |
 
 ## 5. Phases, gates, skills
+
+| Phase | Typical content |
+|---|---|
+| P2 Live spikes | Only the Live rules |
+| P3 Catalog | Plans |
 
 **P2 Live spikes** (each on its own org)
 
@@ -99,6 +111,23 @@ class LedgerTest(unittest.TestCase):
         self.assertIn("At the end", items["decision:D3"]["blind_prediction"])
         self.assertIsNone(items["decision:D2"]["blind_prediction"])
         self.assertEqual(items["spike:L-01"]["prediction"]["Must hit"], "120.00")
+
+    def test_owner_set_after_the_plan_leaves_accuracy(self):
+        self.init()
+        self.run_ledger("record", "D2", "affirmed", "x")
+        self.run_ledger("init", "--plan", "plan.md", "--owner", "D2")
+        item = self.ledger()["decision:D2"]
+        self.assertEqual((item["origin"], item["outcome"]), ("owner", "affirmed"))
+        self.run_ledger("init", "--plan", "plan.md", "--owner", "")
+        self.assertEqual(self.ledger()["decision:D2"]["origin"], "blind")
+
+    def test_heading_case_and_mentions(self):
+        (self.dir / "plan.md").write_text(PLAN.replace("### 3.10 Rule decision record",
+                                                       "### 3.10 Rule Decision Record"))
+        self.init()
+        self.assertEqual(sorted(self.ledger()), [
+            "decision:D1", "decision:D2", "decision:D3", "decision:D4",
+            "rule:R-01", "rule:R-02", "rule:R-03", "spike:L-01"])
 
     def test_without_blind_every_row_is_blind(self):
         p = self.run_ledger("init", "--plan", "plan.md")

@@ -9,10 +9,12 @@ Run it from the folder that holds the plan; paths are relative to the current fo
                              [--skill "<skill/file: claim>"] [--blind-right yes|no]
     python3 ledger.py report
 
-Every prediction is one row of the plan:
-  rule      a row of the rule decision record (a heading or label containing "Rule decision record")
-  decision  a row of section "## 2. Decisions" (every table in it, up to the next "## " heading)
-  spike     a row of the live-spike table (a heading or label containing "P2 Live spikes")
+Every prediction is one row of the plan. Each section is found by a heading or a bold
+label (a line starting "**") that contains its marker, ignoring case:
+  rule      the first table under "Rule decision record"
+  decision  every table whose first header cell is "#" under "2. Decisions", up to the
+            next heading of the same level (so impact tables there are not decisions)
+  spike     the first table under "P2 Live spikes"
 The first cell of a row is its ID. Override the markers with --rules, --decisions, --spikes.
 
 Origins (set by init):
@@ -25,9 +27,10 @@ Without --blind, every row is "blind". Intake and owner items are excluded from 
 
 Outcomes (set by record): pending, affirmed, modified, refuted, inconclusive.
 
-init keeps every recorded outcome and, for rows already in the ledger, the prediction
-and origin it first recorded, so the blind measurement survives later plan revisions.
---rebuild re-reads every prediction (outcomes are still kept).
+init keeps every recorded outcome and, for rows already in the ledger, the row it first
+recorded, so the blind measurement survives later plan revisions. Origins are worked out
+again on every init, so a decision moved to --owner after the plan was written leaves
+the accuracy count. --rebuild re-reads every row from the plan (outcomes are still kept).
 """
 import argparse
 import json
@@ -40,7 +43,7 @@ ORIGINS = ("blind", "edited", "added", "intake", "owner")
 KINDS = ("rule", "decision", "spike")
 DEFAULT_MARKERS = {
     "rule": "Rule decision record",
-    "decision": "## 2. Decisions",
+    "decision": "2. Decisions",
     "spike": "P2 Live spikes",
 }
 LABELS = ("Repo (inferred)", "Build (custom)", "Repo", "Snapshot", "Live")
@@ -52,19 +55,18 @@ def heading_level(line):
 
 
 def region(lines, marker):
-    """The lines after the line that holds `marker`, up to where its section ends.
+    """The lines after the heading or bold label that holds `marker`, to where its section ends.
 
-    The marker is looked for first in headings and bold labels (a line starting "**"), so a
-    passing mention in the prose doesn't count, then in any line. A heading ends at the
-    next heading of the same or a higher level. A label (a bold paragraph such as
-    "**P2 Live spikes**") ends at the next heading or the next bold label that starts a line.
+    Only headings and bold labels (a line starting "**") count, matched ignoring case, so
+    a mention in prose or in a table doesn't. A heading ends at the next heading of the
+    same or a higher level. A label (a bold paragraph such as "**P2 Live spikes**") ends
+    at the next heading or the next bold label that starts a line.
     """
     def labelled(line):
         return heading_level(line) or line.startswith("**")
 
-    start = next((i for i, l in enumerate(lines) if marker in l and labelled(l)), None)
-    if start is None:
-        start = next((i for i, l in enumerate(lines) if marker in l), None)
+    want = marker.lower()
+    start = next((i for i, l in enumerate(lines) if want in l.lower() and labelled(l)), None)
     if start is None:
         return None
     level = heading_level(lines[start])
@@ -98,10 +100,12 @@ def clean_id(cell):
     return text
 
 
-def table_rows(lines):
-    """{id: (header cells, row cells, raw line)} for every body row of every table."""
+def table_rows(lines, kind):
+    """{id: (header cells, row cells, raw line)} for the body rows of the kind's tables:
+    decision tables (first header cell "#") for a decision, the first table otherwise."""
     rows = {}
     header = None
+    tables = 0
     for i, line in enumerate(lines):
         if not line.lstrip().startswith("|"):
             header = None
@@ -110,6 +114,11 @@ def table_rows(lines):
             continue
         if i + 1 < len(lines) and is_separator(lines[i + 1]):
             header = cells(line)
+            tables += 1
+            continue
+        if kind == "decision" and (not header or header[0] != "#"):
+            continue
+        if kind != "decision" and tables != 1:
             continue
         row = cells(line)
         iid = clean_id(row[0]) if row else ""
@@ -131,7 +140,9 @@ def items(text, markers):
             print(f"warning: no '{markers[kind]}' in the plan; no {kind} items", file=sys.stderr)
             found[kind] = {}
         else:
-            found[kind] = table_rows(reg)
+            found[kind] = table_rows(reg, kind)
+            if not found[kind]:
+                print(f"warning: no {kind} rows under '{markers[kind]}'", file=sys.stderr)
     return found
 
 
@@ -185,6 +196,30 @@ def init(args):
     ledger = {"meta": {"plan": args.plan, "blind": blind_path, "markers": markers,
                        "intake": sorted(intake), "owner": sorted(owner)},
               "items": {}}
+    def origin_of(kind, iid, line):
+        if kind == "decision" and iid in intake:
+            return "intake"
+        if kind == "decision" and iid in owner:
+            return "owner"
+        if blind is None:
+            return "blind"
+        if iid not in blind[kind]:
+            return "added"
+        return "blind" if norm(blind[kind][iid][2]) == norm(line) else "edited"
+
+    def entry(kind, iid, line, pred, prev):
+        origin = origin_of(kind, iid, line)
+        return {
+            "kind": kind,
+            "id": iid,
+            "origin": origin,
+            "line": line,
+            "prediction": pred,
+            "blind_prediction": blind[kind][iid][2] if origin == "edited" else None,
+            "outcome": prev["outcome"] if prev else "pending",
+            "evidence": prev["evidence"] if prev else [],
+        }
+
     seen = set()
     for kind in KINDS:
         for iid, (header, row, raw) in plan[kind].items():
@@ -192,33 +227,13 @@ def init(args):
             seen.add(key)
             prev = old["items"].get(key)
             if prev and not args.rebuild:
-                ledger["items"][key] = prev
-                continue
-            if kind == "decision" and iid in intake:
-                origin = "intake"
-            elif kind == "decision" and iid in owner:
-                origin = "owner"
-            elif blind is None:
-                origin = "blind"
-            elif iid not in blind[kind]:
-                origin = "added"
-            elif norm(blind[kind][iid][2]) == norm(raw):
-                origin = "blind"
+                ledger["items"][key] = entry(kind, iid, prev["line"], prev["prediction"], prev)
             else:
-                origin = "edited"
-            ledger["items"][key] = {
-                "kind": kind,
-                "id": iid,
-                "origin": origin,
-                "prediction": prediction(header, row),
-                "blind_prediction": blind[kind][iid][2] if origin == "edited" else None,
-                "outcome": prev["outcome"] if prev else "pending",
-                "evidence": prev["evidence"] if prev else [],
-            }
+                ledger["items"][key] = entry(kind, iid, raw, prediction(header, row), prev)
     for key, prev in old["items"].items():
         if key not in seen:
             print(f"warning: {key} is no longer in the plan; kept as recorded", file=sys.stderr)
-            ledger["items"][key] = prev
+            ledger["items"][key] = entry(prev["kind"], prev["id"], prev["line"], prev["prediction"], prev)
     save(ledger_path, ledger)
     counts = {k: sum(1 for v in ledger["items"].values() if v["kind"] == k) for k in KINDS}
     print(f"{len(ledger['items'])} items in {ledger_path}: "
