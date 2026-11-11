@@ -52,9 +52,11 @@ where each level is computed:
 - **Several dimensions, one approver ladder:** take the MAX of the dimension levels into one
   `ApprovalLevel` and drive the single chain from it. The approvers are the same people, so
   one chain avoids duplicate work items.
-- **Several dimensions, different approvers:** give each its own `ApprovalChainName`. Chains
-  in one stage run in parallel [Help: `ind.approvals_types_of_approvals`]. The shipped
-  `Finance` chain is an example.
+- **Several dimensions, separate sign-offs:** give each its own `ApprovalChainName` when a
+  dimension needs its own sign-off, usually from different approvers. Chains in one stage
+  run in parallel [Help: `ind.approvals_types_of_approvals`]. The shipped `Finance` chain is
+  a separate sign-off, but it routes to the same `Manager` group as the first Discount step,
+  so a quote that triggers both gives that group two items.
 - **Level 0:** route around the approval stage with a Decision, as the repo does
   (`Requires_Approval`). The Decision must test **every** dimension: a dimension it leaves
   out never gets approval when it is the only one triggered. The steps use explicit entry

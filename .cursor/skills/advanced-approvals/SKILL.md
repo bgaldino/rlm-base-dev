@@ -78,10 +78,12 @@ QuantumBit build.
 - **DO NOT** hard-code user, group or queue IDs in an orchestration you package or deploy
   between orgs [Help: `ind.approvals_add_an_approval_button_for_sales_reps`]. Assign by group
   name, as the repo does.
-- **DO NOT** expect to choose the submitter. `SubmittedById` was the running user on every
-  route tried: the repo's Apex bridge, and starting the flow over REST with another user's ID
-  in the `submitter` input [Measured: 2026-11-10, 264]. The shipped orchestration declares
-  `submitter` but never reads it. (In an *autolaunched* flow started by a quick action,
+- **DO NOT** expect to choose the submitter. In one run that started the flow over REST with
+  another user's ID in the `submitter` input, `SubmittedById` was still the running user
+  [Measured: 2026-11-10, 264]; the repo's Apex bridge always passes the running user.
+  `submitter` is a predefined variable of the Autolaunched Flow Approval Process type
+  [Help: `ind.approvals_example_configure_an_approval_workflow`]; the shipped flow doesn't
+  read it. (In an *autolaunched* flow started by a quick action,
   `$User` is the Automated Process User [Help: `ind.approvals_add_an_approval_button_for_sales_reps`];
   the repo's quick action launches a screen flow, which runs as the user.)
 - **DO NOT** confuse "dynamic approvals" with dynamic routing. In the docs it means
@@ -105,7 +107,10 @@ QuantumBit build.
 ## What the repo ships
 
 With the `quantumbit` and `approvals` flags on, `prepare_rlm_org` builds a working quote
-approval (the alert definitions also need `qb`; all three default to true) [Repo: `cumulusci.yml`, `docs/features/composable-quote-approvals.md`]:
+approval (the alert definitions also need `qb`; all three default to true) [Repo: `cumulusci.yml`, `docs/features/composable-quote-approvals.md`].
+This table is a snapshot as of 264 and will age. To see what ships now, run
+`grep -n -i approv cumulusci.yml` for the tasks, flows and flags, and
+`grep -rl "<processType>ApprovalWorkflow" unpackaged` for the approval orchestrations:
 
 | Piece | What it does |
 |---|---|
@@ -155,7 +160,7 @@ needs a Manager, below 65% a Director, below 60% the VP.
   the `Requires_Approval` decision, and the stage's "not triggered" exit conditions (2, 4
   and 6). Otherwise a margin-only quote skips approval, or the stage exits before anyone
   approves.
-- Or give margin its own chain if its approvers differ, following Quick Rule 6.
+- Or give margin its own chain if it needs its own sign-off, following Quick Rule 6.
 - Reprice before testing.
 - [matrix-modeling.md](matrix-modeling.md) walks through the choices.
 
