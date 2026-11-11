@@ -40,7 +40,7 @@ The pages are generated from templates; App Builder edits in an org are drift un
 |---------|-------|-------|
 | Always-on columns and properties | `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`, `RLM_Order_Record_Page.flexipage-meta.xml` | Edit the `runtime_rca:salesTxnLineTable` component's `componentInstanceProperties` [Repo] |
 | Columns that need a feature flag | `templates/flexipages/patches/<feature>/RLM_{Quote,Order}_Record_Page.yml` | Patch type `add_sales_txn_line_editor_field`, or `add_display_field` (the approvals patch uses it) [Repo: `docs/features/dynamic-ux-assembly.md`] |
-| Patch gate and order | `scripts/ux/_flags.py::FLEXIPAGE_PATCH_ORDER` | A patch directory not listed there is never applied [Repo] |
+| Patch gate and order | `scripts/ux/_flags.py::FLEXIPAGE_PATCH_ORDER`, `UX_KNOWN_FLAGS` | A patch directory not listed in the order is never applied, and a gate flag missing from `UX_KNOWN_FLAGS` always reads as off [Repo] |
 | Component identifier the patch targets | `scripts/ux/_flags.py::SALES_TXN_LINE_EDITOR_IDENTIFIER` (`runtime_rca_salesTxnLineTable`) | Override with `component_identifier:` in the patch [Repo: `scripts/ux/_patch_ops.py`] |
 | Generated output | `unpackaged/post_ux/flexipages/` | Never hand-edit (AGENTS.md DO NOT 1) |
 | Org edits back to templates | `ux_tool.py capture-drift`, then `apply-drift` | [Repo: `.cursor/skills/repo-integration/ux-assembly-retrieve.md`] |

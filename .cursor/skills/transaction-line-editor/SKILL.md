@@ -129,8 +129,8 @@ python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>
 
 Neither page sets the line editor's header action buttons, so both use the default layout. One
 patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` adds
-`QuoteLineItem.RLM_Approval__c` with `add_display_field`, so a build with `approvals` on (the
-default) deploys 15 quote columns. The record-page highlights panel (`force_highlightsPanel`
+`QuoteLineItem.RLM_Approval__c` with `add_display_field`, gated on `quantumbit` and `approvals`
+(both on by default), so a default build deploys 15 quote columns. The record-page highlights panel (`force_highlightsPanel`
 `actionNames`), a separate component, carries `BrowseCatalog` on both pages and
 `CreateRampSchedule` and `QuoteAdjustment` on the quote page.
 
@@ -185,8 +185,10 @@ patches:
       - "QuoteLineItem.RLM_Example__c"
 ```
 
-Register the patch directory's gate in `scripts/ux/_flags.py::FLEXIPAGE_PATCH_ORDER` if it is a
-new feature, run `cci task run assemble_and_deploy_ux -o deploy false`, and confirm the field is in
+If `example` is a new flag, add it to `project.custom` in `cumulusci.yml`, to
+`scripts/ux/_flags.py::UX_KNOWN_FLAGS` (the assembler treats any other flag as off, and `ux_tool.py`
+rejects it in `--flag`), and register the patch directory's gate in
+`scripts/ux/_flags.py::FLEXIPAGE_PATCH_ORDER`. Then run `cci task run assemble_and_deploy_ux -o deploy false`, and confirm the field is in
 `unpackaged/post_ux/` only for a flag-on assembly [Repo: `scripts/ux/_patch_ops.py`, `scripts/ux/_flags.py`].
 
 **A rep says the amendment line lost its price.** After a UI quantity edit on an amendment line,

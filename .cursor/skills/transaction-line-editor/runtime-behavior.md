@@ -13,7 +13,7 @@ assets on an initial sale). The first add sets the price book; keep every produc
 on one price book. Added products are unsaved **transient lines** that can't be edited until the
 quote or order is saved. Saving creates the lines and their attribute records.
 
-Browse Catalogs flow: select a catalog > Next > filter > set quantities > **Show buying options** for
+Browse Catalogs flow: select a catalog > Next (skipped when a Default Catalog is set, below) > filter > set quantities > **Show buying options** for
 products with selling models, **Configure** for configurable ones > **Add** or **Add Selection to
 Quote** into the New Quote Line Items preview > **Add Items to Quote**. A configured product that is
 saved is created even if it doesn't show in the preview. Derived-price products show list price 0 until
@@ -21,14 +21,18 @@ added. If the page has no line editor, save from the Browse Catalogs page. Using
 Discovery, Manage Revenue Management and Run Flows.
 
 Child products appear in the editor only when **Quote Visibility** on the product-related component is
-blank, Always or Transaction Line Editor [Help: `ind.qocal_view_and_edit_quotes`; Dev guide:
+blank, Always or Transaction Line Editor (the dev guide's value label is *Transaction Line Editor Only*) [Help: `ind.qocal_view_and_edit_quotes`; Dev guide:
 `product_catalog_management_fields_on_product_related_component`].
 
 Measured traps:
 
-- **Browse Catalogs opens on the first catalog in the list.** That catalog may show "No products to
-  show" until the rep switches catalog [Measured: early Nov 2026, 264]. In a demo, switch to the
-  intended catalog first.
+- **Where Browse Catalogs opens depends on the Default Catalog.** With a Default Catalog in Product
+  Discovery Settings it skips the catalog picker and opens straight into that catalog. The build sets
+  it to QuantumBit Software when `qb` is on (`configure_product_discovery_settings`, in
+  `prepare_pricing_discovery`) [Repo: `cumulusci.yml`, `robot/rlm-base/resources/E2ECommon.robot`
+  `Select Catalog By Name`]. On one measured org, Browse Catalogs opened on a catalog that showed
+  "No products to show" until the rep switched catalog [Measured: early Nov 2026, 264]; the org's
+  Default Catalog setting wasn't recorded. Before a demo, check which catalog it opens on.
 - **A top-level category whose products sit only in subcategories shows no products** until a
   subcategory is picked [Measured: early Nov 2026, 264].
 - On a group ramp, Browse Catalogs from a segment row first asks **Select Segments to Add Products**;
@@ -82,7 +86,7 @@ Measured traps:
 | **Instant Pricing** | Reprices each price-impacting change at once; turns off on page reload or session expiry. *Instant Pricing Active by Default* (STLE only) turns it on by default | [Help: `ind.qocal_view_and_edit_quotes`, `ind.qocal_turn_on_quote_and_order_capture`] |
 | **Reprice All** | Full repricing of every line, even with no changes and even with Delta Pricing on; skips configuration | [Help: `ind.qocal_reprice_all_quotes_and_orders`] |
 | **Refresh Prices** | Pricing, configuration and taxes | [Help: `ind.qocal_view_and_edit_quotes`] |
-| **Estimate Taxes** | Tax estimate; needs *Add Estimated Tax to Quotes and Orders* | [Help: `ind.qocal_reprice_all_quotes_and_orders`] |
+| **Estimate Taxes** | Tax estimate; needs the Revenue Setting *Add Estimated Taxes to Quotes and Orders* | [Help: `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_turn_on_quote_and_order_capture`] |
 
 Use Reprice All when pricing was skipped at commit, validation errors stopped a run, discounts or bundle
 configuration need a refresh, or usage resource grants on a quote line were deleted (it rebuilds them)
@@ -191,7 +195,8 @@ Renewal and cancellation line display in the STLE was not measured; see the pare
    same tab (repo quote page does this).
 2. Change Data Capture on Quote and Order, if the demo runs a flow or agent action against the open
    quote (`enable_change_data_capture`).
-3. Browse Catalogs: switch to the demo catalog and a leaf subcategory before adding.
+3. Browse Catalogs: check which catalog it opens on (the Default Catalog, if set), switch to the demo
+   catalog if needed, and pick a leaf subcategory before adding.
 4. Demo lines placed with configuration rules on; open each configurable line once in the configurator.
 5. Procedure plan inactive before any header-discount demo.
 6. Amendment demo: no inline quantity edit on configured products; explain blank parent prices as
