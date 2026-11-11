@@ -16,10 +16,10 @@ cost book entries.
 | 1 | Data | `CostBook` + one `CostBookEntry` per product (and currency), with `Cost`, `EffectiveFrom` and `EffectiveTo`. The QuantumBit plan loads 623 entries (Upsert on `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`) [Repo: `datasets/sfdmu/qb/en-US/qb-pricing/`] | [../cost-books.md](../cost-books.md) |
 | 2 | Lookup | Decision table `RLM_CostBookEntries` over `CostBookEntry`, mapped to `NGPDefaultRecipe`, then refreshed after every cost change | `../../decision-tables/authoring-and-data-model.md`, `../../pricing-wiring/SKILL.md` |
 | 3 | Unit cost | List Price step `Getunitcostfromcostbook` (top level, seq 6) writes the cost to `ItemUnitCost__std`, not to `ListPrice` [Repo: `force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml`] | `../../pricing-procedures/elements/list-price.md` |
-| 4 | Line cost and margin | List Group `Calculatecostandmarginforpricedlines` filters lines with `ItemUnitCost__std` not null. The formula step under it writes `ItemTotalCost__std = ItemUnitCost__std * LineItemQuantity`, `ItemMargin__std = (ItemNetTotalPrice - total cost) / ItemNetTotalPrice` and `ItemMarginAmount__std` | `../../pricing-procedures/elements/formula-based-pricing.md`, `list-group-and-list-operation.md` |
+| 4 | Line cost and margin | List Group `Calculatecostandmarginforpricedlines` filters lines with `ItemUnitCost__std` not null. The formula step under it writes `ItemTotalCost__std = ItemUnitCost__std * LineItemQuantity`, `ItemMargin__std = (ItemNetTotalPrice - total cost) / ItemNetTotalPrice` and `ItemMarginAmount__std` | `../../pricing-procedures/elements/formula-based-pricing.md`, `../../pricing-procedures/elements/list-group-and-list-operation.md` |
 | 5 | Persisted fields | `RLM_SalesTransactionContext` maps those tags to `QuoteLineItem.UnitCost`, `TotalCost`, `Margin` and `MarginAmount` (and the same on order products) [Repo: `docs/references/context-definitions/RLM_SalesTransactionContext.contextDefinition-meta.xml`] | `../../context-service/SKILL.md` |
 | 6 | Quote total | No shipped aggregate sums cost or margin onto the quote. Use a roll-up summary field on `QuoteLineItem.TotalCost`, as the manufacturing bundle does with `Quote.RLM_MFG_Total_Cost__c` [Repo: `unpackaged/post_manufacturing_core/objects/Quote/fields/`]. Derive quote margin from it and the quote total | `../../pricing-procedures/procedure-anatomy-and-ordering.md` (why a formula after the DDS tail is rejected or lags) |
-| 7 | Visibility | Add the line fields to the Transaction Line Editor columns. Restrict unit cost to the users who may see it with field-level security | `transaction-line-editor` skill, `../../apex-security-hardening/SKILL.md` (permission sets) |
+| 7 | Visibility | Add the line fields to the line editor's Display Columns. Restrict unit cost to the users who may see it with field-level security | Help `ind.qocal_select_fields_for_the_line_editor.htm`, `../../apex-security-hardening/SKILL.md` (permission sets) |
 
 ## Modeling costs from a source
 
@@ -33,7 +33,7 @@ cost book entries.
 ## Check before relying on margins
 
 - **Subscriptions** `[inferred]`: the shipped formula multiplies unit cost by quantity
-  only. For a term or evergreen line whose `ItemNetTotalPrice` covers several billing
+  only. For a term line whose `ItemNetTotalPrice` covers several billing
   periods, that compares one period's cost with several periods' revenue, and overstates
   margin.
     - Price a 36-month annual line and compare `Margin` with a hand calculation.
@@ -62,6 +62,6 @@ scratch org before using it in a demo.
 sf data query -q "SELECT Product2.StockKeepingUnit, Quantity, TotalPrice, UnitCost, TotalCost, Margin, MarginAmount FROM QuoteLineItem WHERE QuoteId = '<quote>'" --target-org <sf_alias>
 ```
 
-`UnitCost` equals the cost entry for that product, currency and date. `TotalCost` equals
+`UnitCost` equals the cost entry for that product and currency. `TotalCost` equals
 `UnitCost × Quantity`. `Margin` equals `(TotalPrice − TotalCost) / TotalPrice`. Then repeat
 the query on the order.
