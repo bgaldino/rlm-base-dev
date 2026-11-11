@@ -118,7 +118,9 @@ CML must name each member.
 bounds how many components a buyer may pick from the group. Help says it counts **distinct
 components**. [Help: `ind.product_catalog_group_cardinality.htm`] Measured at run time, it
 counted **lines**: a 1..1 group holding one product on two lines (a split, below) drew a
-`bundlevalidation` message that the number of child products isn't in the specified range.
+`bundlevalidation` range message (the number of child products isn't in the specified range;
+the configurator shows it as a warning). Whether it then blocks the order, as the
+locked-quantity message above does, was not measured.
 [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] Design with Help's rule, then keep each component on one line. Blank min = 0, blank
 max = unlimited; max ≥ min. With nested groups, only the **lowest-level** group's
 cardinality is enforced at run time; a parent group's limits count child groups for
@@ -133,7 +135,7 @@ validation. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_cat
 | Allow quantity changes | `IsQuantityEditable` | Off → no min/max can be entered |
 | Quantity / Min / Max | `Quantity`, `MinQuantity`, `MaxQuantity` | Default and bounds of the **quantity** of that product |
 | Price includes component | `DoesBundlePriceIncludeChild` | Bundle price covers the child; quantity must be locked |
-| Quantity scaling method | `QuantityScaleMethod` | Constant, Proportional, or blank for Help's None (see below) |
+| Quantity scaling method | `QuantityScaleMethod` | Constant, Proportional, or blank (see below) |
 
 [Help: `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_product_relationships.htm`; Repo: `scripts/ai/query_erd.py describe ProductRelatedComponent`]
 
@@ -177,13 +179,14 @@ number of distinct children. [Help: `ind.product_catalog_cardinality_examples.ht
 
 | Method | Run time | Amend / renew / cancel |
 |---|---|---|
-| None (blank in the API) | Editable if *Allow quantity changes*, independent of parent | — |
+| None (blank in the API, with *Allow quantity changes* on) | Editable if *Allow quantity changes*, independent of parent | — |
 | Constant | Fixed at design-time quantity; *Allow quantity changes* must be off | — |
 | Proportional | Child = parent qty × child qty; with *Allow quantity changes* on, editable only in the configurator during a **new sale**, read-only in the line editor | **Read-only** in the configurator: the original ratio stays for the asset's life; change the parent quantity instead |
 
 In the 264 API the picklist holds only `Constant` and `Proportional`: writing `None` is
-rejected (`INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`), and Help's None is a blank value. A row
-inserted with `IsQuantityEditable = false` and no method was stored `Proportional`. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
+rejected (`INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`). Blank means None only when
+`IsQuantityEditable` is true: a row inserted with `IsQuantityEditable = false` and no method
+was stored `Proportional`. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 Proportional is the default when *Allow quantity changes* is off at creation; None when on.
 Help's warning says child quantities are read-only in the runtime cart when the method is
 Constant or "Default" (a value its own list of methods does not include), even on legacy
@@ -194,18 +197,19 @@ enforced only at order creation. See [the locked bundle measurement](#static-kit
 
 **Downstream:** choosing Proportional fixes the parent-to-child ratio for every later
 amendment. If a customer must later change one child's quantity independently, model it
-with None (or as a separate line). [Help: `ind.product_catalog_product_relationships.htm`]
+with None (blank, with *Allow quantity changes* on) or as a separate line. [Help: `ind.product_catalog_product_relationships.htm`]
 
 ## CML-sized default components
 
 A component that is `IsDefaultComponent` and whose quantity a CML rule sets (for example
 `relation[Type] == n` from a root answer) **splits**: the default instance stays at its PCM
-quantity and the solver adds a second instance for the rest (1 + (n − 1)). Measured in the
+quantity and the solver adds a second instance for the rest (measured with a default
+quantity of 1: 1 + (n − 1)). Measured in the
 UI configurator and on the API defaults path (Place with `addDefaultConfiguration: true`);
 a hand edit below the rule's quantity split the same way instead of being rejected. Totals
 stay right, but each split counts as two lines against its group's max (above). In a group
 ramp, correcting the split by hand in the first segment did not correct the later segments:
-they kept a quantity above the rule's, flagged only by the group-range warning. A component added without defaults (not
+they kept a quantity above the rule's, flagged only by the `bundlevalidation` range message. A component added without defaults (not
 `IsDefaultComponent`, or the API sending the child lines itself) gave one instance.
 [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 
@@ -215,8 +219,8 @@ so the default line takes the rule's quantity, and a hand edit to another quanti
 rejected with the rule's message. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] Dropping `IsDefaultComponent` also avoids the
 split, but loses the pre-selection and cannot keep a required child (a required child must
 be a default). [Help: `ind.product_catalog_local_cardinality.htm`] `constraint-models`
-covers writing the CML; its one-line result for `relation[Type] == n` was measured with no
-default line on the quote.
+covers writing the CML. Its one-line result for `relation[Type] == n` (run M14) does not
+record whether the component was a default; for a default component, expect the split.
 
 ## Quote visibility
 

@@ -38,7 +38,7 @@ drop the `.md` suffix of the snapshot file name.
 3. **Configurable bundle components live under groups, never directly under the root**,
    and groups nest at most two levels. Help says group cardinality counts *distinct*
    components, but at run time it counted **lines**: one product on two lines in a 1..1
-   group drew a `bundlevalidation` range error. Component cardinality counts *quantity*.
+   group drew a `bundlevalidation` range message. Component cardinality counts *quantity*.
    Keep each component on one line (see [`bundles-and-cardinality.md`](bundles-and-cardinality.md#cml-sized-default-components)).
    [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_group_cardinality.htm`; Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 4. **Attributes reach a product only through a product classification.** Put an attribute
@@ -140,7 +140,7 @@ the detail and the sources.
 | **Where an attribute value is set** | Definition → classification attr → product attr → bundle override. | Lower levels are more specific but must be reviewed when a higher level changes. | Bundle overrides break attribute-based pricing. [Help: `ind.product_catalog_attribute_fields.htm`; `ind.pricing_attribute_based_pricing_limits.htm`] |
 | **Selling model** | One Time / Term-Defined / Evergreen from the pricing basis. | Each extra model adds a PBE and an option per product. | Proration, renewal and the Subscription price element read it. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md) |
 | **`IsAssetizable`** | True when the sale must leave something to amend, renew or cancel. | False keeps the asset table clean for consumables. | Root value overrides children. [Help: `ind.product_catalog_create_bundled_products.htm`] |
-| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses to put it in a category, so Product Discovery and Quick Add do not find it; it is offered as a bundle component. | A quote or order holding it alone is **not** refused. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
+| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses to put it in a category, and Product Discovery and Quick Add did not find it; a bundle component row for it is accepted. | A quote or order holding it alone is **not** refused. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
 | **Catalog / category placement** | Catalogs by audience or business unit; categories for browsing. | More catalogs means more category rows to keep coded uniquely. | Drives Product Discovery browsing; categories, not catalogs, hold products. [`catalogs-and-loading.md`](catalogs-and-loading.md) |
 | **Family** | A coarse product line other systems filter on. | A free picklist value becomes a contract. | Whatever keys on it (search facets, Apex, rules) breaks on a rename. [`catalogs-and-loading.md`](catalogs-and-loading.md#product-family-is-a-contract) |
 
@@ -196,8 +196,8 @@ from its CSV is **Open — needs live verification**: every `IsRequired` in the 
 first-insert value was not recorded. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
 After any load of new products, run `refresh_all_decision_tables` and then `rebuild_search_index`,
-and wait for the index before placing a quote: until it finishes, Place answers "Could not
-find product with ID" for them. Two more
+and wait for the index build before placing a quote (`check_search_index_readiness` reports
+when it completed): until then, Place answers "Could not find product with ID" for them. Two more
 load facts measured the same way, a `Family` value missing from the picklist and the
 component fields an insert cannot set, are in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264).
 [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
@@ -300,9 +300,9 @@ configure one bundle in the configurator with rules on.
 
 Every item marked **Open — needs live verification** in this skill and its sub-files:
 
-- **`IsSoldOnlyWithOtherProds` on amend, renew and cancel.** Where it is enforced is
-  measured (category assignment only); what an amendment or cancellation that removes its
-  companion does was not measured. **Open — needs live verification.** See
+- **`IsSoldOnlyWithOtherProds` on amend, renew and cancel.** The refusals measured are at
+  category assignment only (quote, order and activation accepted it alone); what an
+  amendment or cancellation that removes its companion does was not measured. **Open — needs live verification.** See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods).
 - **Is `ProductCategory.Code` unique per org or per catalog?** The snapshot does not say.
   Fact (d) only proves that a plan keyed on `Code` alone conflates levels. **Open — needs live verification.**
