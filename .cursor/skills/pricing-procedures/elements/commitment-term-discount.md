@@ -11,7 +11,8 @@
 > run on a 264 scratch org (QuantumBit build) on 2026-11-10.
 >
 > Tags: `[Help: …]`, `[Dev guide: …]`, `[Repo: …]`, and `[Measured: 2026-11-10, 264]` for a
-> result observed through headless pricing on that org (request and response shapes below).
+> result observed live on that org: a headless pricing run (request and response shapes below), a
+> describe, or a save.
 
 A commitment-term discount gives an extra percentage off a subscription line because the customer
 commits to a long term. The rule modeled here: **annual Term Defined subscriptions committed for 36
@@ -24,8 +25,10 @@ Worked example (the golden test): list 18,000, 5% and 3% discounts → net 16,58
 
 ## When to use it
 
-- The 264 Help and dev-guide snapshots document no native term-based or commitment-based
-  adjustment element, so a term discount is built from general elements.
+- The 264 Help and dev-guide snapshots document no pricing element built for term-based or
+  commitment-based discounts (Commitment Rate Adjustment is a rating element for
+  commitment-based usage products [Help: `ind.rm_commitment_rate_adjustment.htm`]), so a term
+  discount is built from general elements.
 - Use this pattern (route b, a filter plus a formula) when the rule is one or a few fixed
   thresholds with a fixed percentage. It needs no decision table, recipe mapping, custom field or
   context change: every tag it reads is standard [Measured: 2026-11-10, 264].

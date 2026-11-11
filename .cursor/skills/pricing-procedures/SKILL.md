@@ -229,10 +229,11 @@ band it reaches) or Tier Discount (each band priced separately) with
 [`elements/volume-and-tier-discount.md`](elements/volume-and-tier-discount.md). Then
 refresh the adjustment-tier decision table before you Simulate.
 
-**Extra discount for a long commitment term.** There is no native term-based adjustment. Add a
-List Group with a filter on `SellingModelType`, `PricingTermUnit`, `ItemSubscriptionTerm` and
-`ItemSubscriptionTermUnit`, and a formula over `NetUnitPrice`, before the term pricing groups. See
-[`elements/commitment-term-discount.md`](elements/commitment-term-discount.md), measured live on 264.
+**Extra discount for a long commitment term.** No pricing element is built for term-based discounts.
+Use a List Group whose filter selects the long-term lines and whose Formula-Based Pricing step
+rewrites `NetUnitPrice`, placed before the term pricing groups. The filter, formula and placement
+are in [`elements/commitment-term-discount.md`](elements/commitment-term-discount.md), measured
+live on 264.
 
 **Compound ramp uplift is flat.** Read [`elements/price-revision-compound-uplift.md`](elements/price-revision-compound-uplift.md)
 → prerequisites. A blank Uplift Method silently gives a standard (non-compound) uplift.
