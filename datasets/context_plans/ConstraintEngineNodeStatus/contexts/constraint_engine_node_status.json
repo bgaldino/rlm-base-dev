@@ -85,6 +85,14 @@
       "mappingType": "CONTEXT",
       "sourceContextNode": "AssetActionSource",
       "sourceContextAttribute": "AssetConstraintEngineNodeStatus__c"
+    },
+    {
+      "mappingName": "AssetToSalesTransactionMapping",
+      "contextNode": "AssetActionSource",
+      "contextAttribute": "AssetConstraintEngineNodeStatus__c",
+      "mappingType": "CONTEXT",
+      "sourceContextNode": "SalesTransactionItem",
+      "sourceContextAttribute": "ConstraintEngineNodeStatus__c"
     }
   ],
   "contextTagsByName": [
