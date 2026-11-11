@@ -103,7 +103,12 @@ Every rule decided **Live** becomes a spike, with:
   Evergreen line shows for the Pricing Setup default term count: one period at `1`),
   with the source's value reached through the mapping,
 - the skills and articles to read before touching the org,
-- the smallest case that proves it.
+- the smallest case that proves it,
+- for a spike that chooses between routes, what each route needs from the catalog and
+  the model, so the catalog phase can wait for the choice or build them all.
+
+A spike's must-hit names where the platform enforces the behaviour (save, order,
+activation) when that is part of the question.
 
 Don't plan a spike that re-measures a failure a skill already records; cite the skill,
 and spike only the untested route around it.
@@ -113,7 +118,8 @@ area with no skill is also listed in the plan's skill gaps.
 
 ## After the build
 
-- Each spike's result goes into the plan's rule decision record.
+- Each spike's and gate's outcome goes into the verification ledger and the evidence
+  log ([SKILL.md](SKILL.md) → Measure the build against the plan).
 - A spike that found knowledge no skill held becomes a skill extension, or a new skill
   if it needs its own routing (see `skill-authoring`).
 - A live result that contradicts a skill gets a fix to that skill in the same change

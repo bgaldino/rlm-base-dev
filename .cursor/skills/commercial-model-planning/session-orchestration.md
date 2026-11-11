@@ -12,9 +12,12 @@ Read this when a plan splits the build across sessions. Parent:
   model or the pack; its results go in `spikes/<area>/` and the plan's rule decision
   record.
 - **Build sessions.** One per independent area, for example catalog and configuration,
-  pricing and cost, negotiation and approvals. Each runs on its own org. A session
-  whose area depends on another's loads that session's finished plans onto its own
-  org first.
+  pricing and cost, negotiation and approvals. Each runs on its own org and writes its
+  data plans, models and overlays from the design model; extraction doesn't write them.
+  A session whose area depends on another's loads that session's finished plans onto
+  its own org first. A build session that a spike's route choice touches (a catalog or
+  model prerequisite) starts after that spike, or builds every candidate route's
+  prerequisites.
 - **Integration org.** Build-phase gates (P3–P6) count only here. The main session
   loads each finished piece onto it and runs that piece's gate. P2 spike results are
   recorded from each spike session's own org, and the final gate is the fresh-org load
@@ -36,8 +39,13 @@ extraction → spikes → catalog → (configuration ∥ pricing) → negotiatio
 1. **One org per session,** built through the build harness and kept, with a lifetime
    that covers the session (`build-harness` → Keep an org for a multi-day build).
    Each session reports its org alias. No one deletes an org without the user's yes.
-2. **No worktrees for CCI work.** Sessions share the checkout, and each one owns
-   specific folders. A session never writes outside them.
+2. **No worktrees for CCI or harness work.** CCI finds the project root by a `.git`
+   directory; in a git worktree `.git` is a file, so a run there uses the parent
+   checkout's files. Run from the main checkout or a regular clone. Sessions share that
+   checkout, and each one owns specific folders; a session never writes outside them.
+   Concurrent harness builds are fine, each with its own run id (`--run-id`), on a
+   harness that gives each run its own Robot output folder (`main` since 2026-11-11);
+   on an older one, two runs' Robot steps overwrite each other's output.
 3. **Only the main session commits,** after reviewing a session's files at its gate.
    This stops two sessions racing on one git index.
 4. **Every brief stands alone.** It names:

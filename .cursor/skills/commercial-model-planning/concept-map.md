@@ -26,7 +26,7 @@ pointer, not the skill's full open list.
 | Source concept | Try first | Where documented |
 |---|---|---|
 | Sizing questions | Attributes on the bundle root | `constraint-models` → `quantities-from-attributes.md` |
-| Quantity derived from answers (per site, per 10 rounded up) | CML cardinality constraints driven by `int` variables, with an integer bracket for rounding up | `constraint-models` → `quantities-from-attributes.md` (`ceil()` doesn't round inside a constraint) |
+| Quantity derived from answers (one per user, one per block of N rounded up) | CML cardinality constraints driven by `int` variables, with an integer bracket for rounding up | `constraint-models` → `quantities-from-attributes.md` (`ceil()` doesn't round inside a constraint) |
 | Effort or hours estimator | Same, on service components | same |
 | "X only with Y", "exactly one of" | CML constraints with messages | `constraint-models` |
 | Note that doesn't block | CML message with `Info` severity. `Warning` blocks the next step until the rep acts | `constraint-models` → `quantities-from-attributes.md` |
@@ -38,13 +38,13 @@ pointer, not the skill's full open list.
 |---|---|---|
 | Volume bands by quantity | Volume and tier discounts, price adjustment schedule | `pricing-procedures` → `elements/volume-and-tier-discount.md`; `pricing-setup` → `price-adjustment-schedules.md` |
 | Discount when bought in a package | Bundle-based adjustment | `pricing-procedures` → `elements/bundle-based-price.md` |
-| Regional or channel uplift | A documented route first: CML copies the root answer to a price-impacting child attribute plus an attribute-based price; formula-based pricing on a header value; or a price adjustment matrix over a lookup table. All three are documented but unmeasured (open); the attribute adjustment matrix is unverified | `pricing-procedures` → `elements/root-answer-child-price.md` |
+| Regional or channel uplift | A documented route first: CML copies the root answer to a price-impacting child attribute plus an attribute-based price; formula-based pricing on a header value; or a price adjustment matrix over a lookup table. All three are documented but unmeasured (open); the attribute adjustment matrix is unverified. The routes need different catalog and model pieces (the first needs a price-impacting attribute on the children's classification and a CML line), so a plan that spikes the choice lists each route's prerequisites | `pricing-procedures` → `elements/root-answer-child-price.md` |
 | Order of application, rounding | Procedure element order, rounding element | `pricing-procedures` → `procedure-anatomy-and-ordering.md`, `elements/rounding-values.md` |
 | Second currency | Multicurrency price book entries, and per-currency rows for every adjustment that matches on currency (volume tiers, bundle-based adjustments) as well as cost entries | `pricing-setup`, `sfdmu-data-plans` |
 | Annual escalator | Group ramp with uplift. An API-built group-ramped bundle with a one-time or evergreen child failed to amend (`asset-lifecycle-changes` Quick Rule 8) | `ramped-quotes`; `pricing-procedures` → `elements/price-revision-compound-uplift.md` |
 | Renewal uplift | Price revision policy. Renewal uplifts apply only to term-defined selling models (Help: `ind.qocal_renewal_price_uplifts`), so an Evergreen line takes none | `pricing-setup` → `price-revision-policies.md`; `asset-lifecycle-changes` |
 | Discount for a longer commitment | List filter on term plus a formula step on Term Defined lines | `pricing-procedures` → `elements/commitment-term-discount.md` |
-| A policy approved but not yet in the source's calculator ("Proposed") | Build it behind a quote-level switch the procedure reads; run the source's goldens with it off and the policy's own examples with it on. Ask whether two such policies stack, and for each policy's effective date | `pricing-procedures` → `elements/root-answer-child-price.md` (route 2: map the header field into the context, then read it in a formula; documented but unmeasured). A list filter on a header tag is unverified |
+| A policy the source marks approved but not yet applied in its calculator | Build it behind a quote-level switch the procedure reads; run the source's goldens with it off and the policy's own examples with it on. Ask whether two such policies stack, and for each policy's effective date | `pricing-procedures` → `elements/root-answer-child-price.md` (route 2: map the header field into the context, then read it in a formula; documented but unmeasured). A list filter on a header tag is unverified |
 | Price from cost and a target margin | Formula step on a cost looked up from a decision table | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md`; `pricing-procedures` → `elements/formula-based-pricing.md` |
 
 ## Cost and margin
@@ -54,9 +54,9 @@ pointer, not the skill's full open list.
 | Standard cost per item | Cost book entries | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md` |
 | Labour rates, loaded cost | Computed during extraction into cost entries | `pricing-setup` → `scenarios/cost-and-margin.md` (modeling costs from a source) |
 | Line and quote margin | The shipped cost-and-margin wiring, plus a roll-up for the quote total | `pricing-setup` → `scenarios/cost-and-margin.md` |
-| Full commitment value, with monthly lines counted "for comparison" | A computed value of its own; a quote total counts an Evergreen line for the Pricing Setup default term count (or, when that is blank, from the line's start and end dates), not the source's term `[inferred]` in that scenario | `pricing-setup` → `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` |
-| Partner or referral fee taken from net revenue | A computed value (a field or a formula), not a price adjustment. Check whether it applies on a direct deal | — |
-| Pass-through items (travel, expenses) | Priced near cost by design; decide how margin and below-cost guards treat them | `pricing-setup` → `scenarios/cost-and-margin.md`; `advanced-approvals` → `matrix-modeling.md` |
+| Contract value that counts until-cancelled lines over a fixed term | A computed value of its own; a quote total counts an Evergreen line for the Pricing Setup default term count (or, when that is blank, from the line's start and end dates), not the source's term `[inferred]` in that scenario. The default counts have no API: read them in Setup at P0 | `pricing-setup` → `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` |
+| A fee or commission computed from the deal's revenue | A computed value (a field or a formula), not a price adjustment. Check which deals it applies to | — |
+| Items resold at or near cost | Priced near cost by design; decide how margin and below-cost guards and discounts treat them | `pricing-setup` → `scenarios/cost-and-margin.md`; `advanced-approvals` → `matrix-modeling.md` |
 
 ## Billing
 

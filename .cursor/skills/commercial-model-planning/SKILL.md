@@ -51,6 +51,9 @@ files can use it.
    extension.
 8. **The plan is reviewed before anything is built.** Present it, stop, and wait for
    approval.
+9. **Measure the build against the plan; don't rewrite the plan to match it.** Each
+   prediction's outcome goes in a verification ledger and the evidence log
+   ([step 9](#9-measure-the-build-against-the-plan)).
 
 ## DO NOT
 
@@ -58,8 +61,8 @@ files can use it.
   is approved.
 - **DO NOT** call something in the source an inconsistency until you have read the
   source's own notes on it. A label that looks contradictory may be defined elsewhere,
-  for example a "Proposed" policy that a note defines as "approved, not yet in the
-  calculator". Real inconsistencies become decisions, not silent choices. When a note
+  for example a policy whose status a note defines as approved but not yet in the
+  calculator. Real inconsistencies become decisions, not silent choices. When a note
   states a rule and a formula breaks it, recommend the stated rule, and keep the
   formula's cached values only to check the extraction.
 - **DO NOT** put customer, brand or third-party commercial data in the public repo.
@@ -71,9 +74,11 @@ files can use it.
 - **DO NOT** plan a header discount to stand in for line or product-line discounts
   without a live test. On a 264 org with an active procedure plan and
   `skipOrgSttPricing` on, a header discount was measured applying twice (`transaction-line-editor` → `runtime-behavior.md`).
-- **DO NOT** plan parallel sessions in git worktrees for CCI work. CCI runs from the
-  project root and ignores worktree changes; use separate orgs and file ownership
-  instead ([session-orchestration.md](session-orchestration.md)).
+- **DO NOT** plan CCI or build-harness work in a git worktree nested in the checkout.
+  CCI finds the project root by a `.git` directory, so from a worktree it runs the
+  parent checkout's files and ignores the worktree's changes. Use the main checkout or
+  a regular clone, with separate orgs and file ownership
+  ([session-orchestration.md](session-orchestration.md)).
 - **DO NOT** let a test pass on configuration with rules off. Place quotes with
   configuration rules on, and assert each rejection's own message.
 - **DO NOT** assume a source's lifecycle examples can run in the order it lists them.
@@ -111,6 +116,9 @@ files can use it.
 - [session-orchestration.md](session-orchestration.md): read when the user wants the
   build split across sessions. Org-per-session layout, file ownership, integration
   gates and session briefs.
+- [`scripts/ledger.py`](scripts/ledger.py): the verification ledger
+  ([step 9](#9-measure-the-build-against-the-plan)); tested by
+  `tests/test_commercial_model_planning_ledger.py`.
 
 ---
 
@@ -125,12 +133,12 @@ the request already answers, and say what you assumed instead.
 |---|---|
 | What is the build for (demo, customer proof, benchmark, product extension)? | Sets "done": reproducing worked examples, a walkthrough, or a shipped feature |
 | Where does it live (private pack first, public repo behind a flag, or both)? | Sets data handling and the promotion phase |
-| What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, billing, proposed policies |
+| What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, billing, policies not yet in force |
 | Is the source read once, or kept in sync? | Read once means one extraction with a parity check; kept in sync adds a generator to maintain |
 | What runtime surface? | The standard Transaction Line Editor and configurator, or custom UI |
 | How should the work be split? | One session, sequential sessions, or parallel sessions each with its own org |
 | What matters more: accuracy of the model or polish of the experience? | Decides where the effort and the live verification go |
-| Who answers questions about what the source *means*? | The person who owns the source (a commercial desk, a product manager), not always the person asking for the build. Some inconsistencies only they can settle |
+| Who answers questions about what the source *means*? | The person who owns the source (a pricing team, a product manager), not always the person asking for the build. Some inconsistencies only they can settle |
 
 ### 2. Inventory the source
 
@@ -187,6 +195,13 @@ Rules that need a live org become spikes, each with the source value it must hit
   allowed: mark it **derived** and cite the rule's cells.
 - Recompute calculated values from inputs and match them to the source's own results
   (formula parity). A mis-read rule fails here instead of in the org.
+- **Every rule that rejects or warns has its message in the plan,** in the rule's own
+  words, and the rules golden set asserts it. A rule left without one gets a message
+  made up at build time, which no golden then checks.
+- **Assert platform-enforced behaviour where the platform enforces it.** A lock or
+  limit the platform lets a quote save with, then refuses at order, is asserted at the
+  order (or in the error log it writes), not at save. When the enforcement point is
+  unknown, the golden names it as part of a spike's must-hit.
 - **Cross-rule parity.** Run each worked example through every rule in the register,
   not only its own formula: guards, dependencies and thresholds. A source's summary
   formulas often skip a rule its policy text states (a per-line floor-margin guard, a
@@ -201,8 +216,9 @@ Rules that need a live org become spikes, each with the source value it must hit
       existing later one, is a decision. Whether the platform refuses the second case
       is open in `asset-lifecycle-changes`, so plan a live check for it.
 - Where the source and Revenue Cloud measure different things, write the mapping into
-  the test rather than forcing equality. Example: a monthly plan the source counts
-  for the contract term "for comparison only".
+  the test rather than forcing equality. Example: the source counts an until-cancelled
+  monthly line over the whole contract term, while the platform counts it for the
+  Pricing Setup default term count.
 
 ### 6. Decisions, phases, sessions, skills
 
@@ -212,6 +228,11 @@ Write these in the template's order:
   A decision that depends on a marker or flag names what sets it, on every path that
   creates the record (API, line editor, clone).
 - **Phases:** each with a gate and its skills.
+- **Route prerequisites:** a spike that chooses between routes lists, for each
+  candidate, what it needs from the catalog and the model (a classification, a
+  price-impacting attribute, a CML line). The catalog phase either waits for that spike
+  or builds every candidate's prerequisites; otherwise its files are amended after a
+  later phase has started.
 - **Sessions:** see [session-orchestration.md](session-orchestration.md).
 - **Skills:** a phase-by-skill matrix.
 - **Skill gaps:** areas where the coverage sweep found no skill, and areas a phase
@@ -240,6 +261,47 @@ plan:
 Run the self-review in [plan-template.md](plan-template.md), present the plan with its
 open decisions, and stop for approval. Record review changes as a revision with its
 date, not by rewriting history.
+
+When the build also measures how well the plan predicted it (a test of this skill or
+of the planner), review in three steps:
+1. **Blind generation:** a fresh session with only the source, the intake answers and
+   the skills writes the plan.
+2. **Independent audit:** a second fresh agent checks it against the source and the
+   skills, and lists the edits the build needs.
+3. **Edits on a copy:** the edits go into a copy that becomes the build plan, with a
+   section listing them. The blind plan is kept unchanged, for measurement.
+
+### 9. Measure the build against the plan
+
+Track every prediction in a verification ledger: each rule in the rule decision record,
+each decision, and each live spike's must-hit. The skill ships the script,
+[`scripts/ledger.py`](scripts/ledger.py) (standard library). Run it from the plan's
+folder:
+
+```bash
+L=<Foundations root>/.cursor/skills/commercial-model-planning/scripts/ledger.py
+python3 "$L" init --plan plan.md --blind <blind plan> --intake <IDs, e.g. D1-D6> --owner <IDs>
+python3 "$L" record <ID> <outcome> "<org, record ids, values>" [--path "<what was built>"] \
+  [--skill "<skill/file: claim>"] [--blind-right yes|no]
+python3 "$L" report   # writes verification/scorecard.md
+```
+
+- **Origin,** set by `init`: `blind` (in the blind plan unchanged), `edited` (changed by
+  the audit's edits; the blind text is kept), `added`, `intake` or `owner` (decisions
+  given to the planner, excluded from accuracy). Without `--blind`, every item is
+  `blind`.
+- **Outcome,** set at each gate: `affirmed` (built as predicted, goldens pass),
+  `modified` (works with a changed path or values), `refuted` (the prediction was wrong;
+  a fallback or another path was needed) or `inconclusive`.
+- `init` reads the plan's own section names (`## 2. Decisions`, the rule decision record,
+  the P2 spike table; see [plan-template.md](plan-template.md)). Re-running it adds new
+  rows and keeps every recorded outcome and first prediction.
+- **Sessions report; the main session records.** A session reports per item: outcome,
+  path, evidence, and the skill file and line when a refutation traces to a skill claim.
+- **Findings go to the ledger and the evidence log.** The plan isn't rewritten to match
+  what the build found, so the prediction stays measurable. A refuted or modified skill
+  claim is fixed in that skill ([knowledge-sources.md](knowledge-sources.md) → After the
+  build).
 
 ---
 
@@ -303,6 +365,8 @@ Before presenting the plan:
   ```
 
 - Every sub-file named exists under its skill.
+- Every script the plan cites lives in the pack or the repo, never in a scratch or
+  temporary folder: those paths are gone by the time someone re-runs the check.
 - Every snapshot article cited exists under `docs/salesforce/<release>/`.
 - Every golden value cites its place in the source, and both the formula and the
   cross-rule parity checks passed.

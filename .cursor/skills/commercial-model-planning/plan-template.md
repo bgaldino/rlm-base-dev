@@ -15,6 +15,8 @@ rather than disappearing, so a reviewer can tell it was considered.
 - **Tracker item,** when the work is tracked.
 - **What the build optimizes for:** the user's stated priorities, quoted or closely
   paraphrased.
+- **Blind plan,** when the build measures the planner: where the unedited blind plan is
+  kept ([SKILL.md](SKILL.md) → Review).
 
 ## 1. Goal and definition of done
 
@@ -53,7 +55,22 @@ changes). Note who has to answer it: the source's owner or the build's owner.
     - runtime surface
     - extraction
 - Each subsection keeps the source's own numbers and its order of application.
-- **Rule decision record:** one row per rule ID, with columns
+- **Configuration and rules** lists every rule that rejects or warns with its message
+  text, the one the rules golden set asserts. No such rule is left without one.
+- **Extraction** says what the converter (the script that reads the source) writes,
+  and how it is accepted:
+    - It writes the **design model and the golden values**, nothing else. The build
+      sessions write data plans, constraint models and procedure rows from the design
+      model (section 6), so each file has one owner.
+    - **Acceptance** (the P1 gate), as tests the converter ships with: it refuses a
+      source whose checksum isn't the pinned one; formula parity has 0 mismatches; every
+      cached value equals its recomputation; every value the plan states (an anchor in
+      a decision, a spike or a golden) equals the computed one; and for each comparison
+      a test feeds it a wrong value and expects a failure, so none passes vacuously.
+      A source without formulas (a store capture, a document) keeps the checks that
+      apply to it.
+- **Rule decision record,** under a heading that names it (the ledger finds it by that
+  name): one row per rule ID, with columns
   rule | decided by | native feature | exact vs source? | path taken | evidence. The
   "decided by" column is set at planning time (a rule may carry two, such as new sale
   vs amendment); the last three are filled in as spikes and gates finish.
@@ -64,6 +81,9 @@ changes). Note who has to answer it: the source's owner or the build's owner.
 
 | Set | Source location | Cases | Must match |
 |---|---|---|---|
+
+A golden on platform-enforced behaviour asserts at the point the platform enforces it: a lock the platform saves and
+then refuses at order is asserted at the order or its error log, not at save.
 
 Always include a **Reprice** set (price again, then order, amend and renew) and an
 **Attributes** set (attributes unchanged through each step). Include each attribute's
@@ -83,10 +103,10 @@ The usual phases:
 
 | Phase | Typical content |
 |---|---|
-| P0 Environment | Integration org through the build harness, on a named scenario or shape, with a lifetime that covers the build (shipped scenarios use `days: 1`; see `build-harness` → Keep an org for a multi-day build); feature and enablement checks; tooling |
-| P1 Extraction | Source → design model and golden values; parity; independent re-check of a sample; user reviews the design |
-| P2 Live spikes | Only the rules the rule decision record marks **Live** |
-| P3 Catalog, then configuration | Data plans derived from the base build's own plans; CML |
+| P0 Environment | Integration org through the build harness, on a named scenario or shape, with a lifetime that covers the build (shipped scenarios use `days: 1`; see `build-harness` → Keep an org for a multi-day build); feature and enablement checks; tooling. A checklist of the org settings the plan relies on. Some have no API: the Salesforce Pricing Setup default term counts (Evergreen, One Time) are read in Setup → Salesforce Pricing Setup → Proration Settings (a fresh 264 `ent-sb0` org showed Evergreen 1, One Time 0), or the plan adds a step that sets them |
+| P1 Extraction | Source → design model and golden values; the converter's acceptance tests (section 3, Extraction); an independent re-check: a fresh agent without the converter recomputes about 25 sampled golden values, weighted to derived ones (exercised: a prior build ran it as written); user reviews the design |
+| P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table under a **P2 Live spikes** label: spike ID, rules, must-hit value, smallest case, skills to read first. A spike that chooses between routes lists each candidate's catalog and model prerequisites |
+| P3 Catalog, then configuration | Data plans derived from the base build's own plans; CML. Waits for any spike whose chosen route changes the catalog or the model, or builds every candidate route's prerequisites |
 | P4 Pricing and cost | Price books, adjustments, procedure changes, cost wiring |
 | P5 Negotiation, approvals, runtime surface | Quote rounds, approvals, Transaction Line Editor configuration |
 | P6 Lifecycle and billing | Order, activate, amend, swap, cancel, renew; billing frequency, treatments and payment terms on the order |
@@ -103,7 +123,10 @@ The table and rules from [session-orchestration.md](session-orchestration.md).
 | Date | Phase | Check | Result | Notes |
 |---|---|---|---|---|
 
-Start it with the source read, and the coverage sweep with its counts.
+Start it with the source read, and the coverage sweep with its counts. From the first
+gate on, each prediction's outcome is recorded in the verification ledger as well
+([SKILL.md](SKILL.md) → Measure the build against the plan). What the build finds goes
+here and in the ledger; the sections above keep what was planned.
 
 ## 8. Risks
 
@@ -135,6 +158,14 @@ Then list **extensions to existing skills** separately.
 - [ ] Every area has a knowledge-source row; every live spike has a must-hit value
   and the skills and articles to read first.
 - [ ] Every skill, sub-file and snapshot article named exists.
+- [ ] Every script the plan cites lives in the pack or the repo, not in a scratch or
+  temporary folder.
+- [ ] Every rule that rejects or warns has its message in the plan.
+- [ ] Goldens on platform-enforced behaviour assert where the platform enforces it.
+- [ ] Every spike that chooses a route lists each candidate's catalog and model
+  prerequisites, and P3 waits for it or builds them all.
+- [ ] The extraction section gives the converter only the design model and goldens,
+  and lists its acceptance tests.
 - [ ] Decisions don't contradict each other or the mapping.
 - [ ] Gates name the org they run on.
 - [ ] Public and private boundaries match the hosting decision.

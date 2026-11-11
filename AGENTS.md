@@ -305,6 +305,7 @@ Read it rather than guessing flags:
 | `tasks/rlm_cml.py` | `constraint-models` |
 | `scripts/ux/*` | `repo-integration` |
 | `scripts/renewal_assets/*` | `renewal-asset-creation` |
+| `.cursor/skills/commercial-model-planning/scripts/*` | `commercial-model-planning` |
 | `scripts/df_workshop/*` | `df-workshop-setup` |
 | `scripts/ai/query_erd.py` | `revenue-cloud-data-model` |
 | `scripts/doc_snapshot/*` | `revenue-cloud-docs` |
