@@ -9,6 +9,7 @@ Implemented in:
 - `unpackaged/post_approvals/flows/RLM_Quote_Smart_Approval.flow-meta.xml`
 - `unpackaged/post_approvals/flows/RLM_Quote_Approval_Data.flow-meta.xml`
 - `unpackaged/post_approvals/flows/RLM_Quote_Approval_Comments.flow-meta.xml`
+- `unpackaged/post_approvals/flows/RLM_AA_Reset_Quote_Status.flow-meta.xml`
 - `unpackaged/post_approvals/classes/RLM_AA_Submit_Approval.cls`
 - `tasks/rlm_create_approval_email_templates.py`
 - `datasets/sfdmu/qb/en-US/qb-approvals/`
@@ -22,7 +23,8 @@ work item management.
 - Submission lifecycle: platform `ApprovalSubmission` and Flow Orchestration;
   the project starts the orchestration for the quote.
 - Recall and cancellation: platform Advanced Approvals invocable actions; the
-  project exposes UI/actions when needed.
+  project exposes UI/actions when needed, and resets the quote's own approval
+  status (`RLM_AA_Reset_Quote_Status`, below).
 - Resubmission: platform new submission after rejection or recall; the project
   keeps the submit action re-runnable.
 - Smart Approval: platform Smart Approval inputs on approval steps; the project
@@ -67,6 +69,33 @@ without a reprice keeps its old level until the quote is repriced.
 If no approval is required (`DiscountApprovalLevel = 0` AND `PaymentTerms = "Net 30"`),
 the flow takes the `Requires_Approval` decision's default connector directly to
 `Update_Quote_Status_to_Approved`, bypassing the approval stage entirely.
+
+### Quote approval status
+
+`Quote.RLM_Approval_Status__c` (global value set `RLM_Approval_Status`, shown on the
+`RLM_Quote_Approval` path) is the project's own field. The platform keeps the real
+state on `ApprovalSubmission` and `ApprovalWorkItem`; this field mirrors it for reps.
+
+| Event | Who sets it | Value |
+| ----- | ----------- | ----- |
+| Approval stage starts | Orchestration background step `Set_Quote_Approval_Status_Pending` (`RLM_AA_Set_Quote_Status`) | `Pending` |
+| All required steps approved, or no approval needed | Orchestration stage `Update_Quote_Status_to_Approved` | `Approved` |
+| Any step rejected | Orchestration stage `Update_Quote_Status_to_Rejected` | `Rejected` |
+| Submission recalled (`recallApprovalSubmission`) | `RLM_AA_Reset_Quote_Status` | `Recalled` |
+| Submission canceled (`cancelApprovalSubmission`) | `RLM_AA_Reset_Quote_Status` | blank (the pre-submission value) |
+
+Recall and cancel end the orchestration without running any of its stages, so the
+orchestration can't set the field itself. `RLM_AA_Reset_Quote_Status` is a
+record-triggered flow (after save, on update) on `ApprovalSubmission`. It runs when
+`Status` changes to `Recalled` or `Canceled` and `RelatedRecordObjectName = 'Quote'`,
+and updates the related quote.
+
+It lives outside `RLM_Quote_Smart_Approval` on purpose. The Help docs offer two
+patterns: a recall path inside the approval flow for recall, and a record-triggered
+flow on Approval Submission for cancel
+(`docs/salesforce/264/help/articles/ind.sf_contracts_aa_configure.htm.md`). One
+record-triggered flow handles both, and leaves the orchestration, its active
+version and its Smart Approvals eligibility unchanged.
 
 ## Exit Condition Pattern
 
@@ -133,6 +162,7 @@ What should not change for a normal new dimension:
 - Overall stage structure
 - `RLM_AA_Evaluate_Approval_Request`
 - `RLM_AA_Set_Quote_Status`
+- `RLM_AA_Reset_Quote_Status`
 - Email-template task code
 
 Threshold and terms policy is still hardcoded in the current formula/flow
@@ -176,11 +206,12 @@ Run these checks before treating an approval-flow change as ready:
 - **Single-dimension paths**: Discount-only and terms-only quotes complete correctly.
 - **Multi-dimension path**: Quotes requiring both discount and payment term approval complete.
 - **Rejection handling**: Rejecting any active work item routes the quote to `Rejected`.
+- **Recall**: Recalling an in-progress submission sets the submission and its open
+  work items to `Recalled`, and the quote's `RLM_Approval_Status__c` to `Recalled`.
+- **Cancel**: Canceling an in-progress submission sets the submission and its open
+  work items to `Canceled`, and clears the quote's `RLM_Approval_Status__c`.
 - **Resubmission**: Resubmission after rejection or recall keeps expected work items Smart
   Approval eligible.
-- **Recall**: check the quote status after a recall. The flow has no recall path, so the
-  quote stays `Pending`; the `RLM_Approval_Status` value set already has a `Recalled` value
-  that nothing sets yet.
 - `python scripts/ai/check_plan_readme_consistency.py --strict datasets/sfdmu/qb/en-US/qb-approvals`
   reports zero errors, zero warnings after notification dataset changes.
 - `python scripts/validate_sfdmu_v5_datasets.py` reports no findings against the composable-approvals

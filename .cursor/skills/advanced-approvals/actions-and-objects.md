@@ -9,11 +9,11 @@ the UI. Parent: [advanced-approvals](SKILL.md). The object fields are in
 | Object | Holds |
 |---|---|
 | `ApprovalSubmission` | The request: `RelatedRecordId`, `Status` (Approved, Canceled, Errored, InProgress, Recalled, Rejected, Suspended), `SubmittedById`, `FlowOrchestrationInstanceId`. Query only: no create or update [Dev guide: `sforce_api_objects_approvalsubmission`] |
-| `ApprovalWorkItem` | One assigned step: `Status` (Assigned, Approved, Rejected, Recalled, Withdrawn, ...), `AssignedToId` (user, group or queue), `ApprovalChainName`, `ApprovalConditionName`, `ReviewedById`, Smart Approval fields |
+| `ApprovalWorkItem` | One assigned step: `Status` (Assigned, Approved, Rejected, Recalled, Canceled, Withdrawn, ...), `AssignedToId` (user, group or queue), `ApprovalChainName`, `ApprovalConditionName`, `ReviewedById`, Smart Approval fields |
 | `ApprovalSubmissionDetail` | Audit trail of every action |
 | `ApprovalWorkItemCriteria`, `ApprovalWorkItemCondition` | The entry and exit logic evaluated for a work item, condition by condition: criteria keyed by `ApprovalWorkItemId`, conditions by `ApprovalWorkItemCriteriaId`. Read these to see why a started step's logic evaluated as it did; whether a row exists for a step that never started is unverified. The Help names approval admins as having access to them [Help: `ind.approvals_personas`] |
 
-The Withdrawn and Recalled work-item statuses and the field lists were measured on a live
+The Withdrawn, Recalled and Canceled work-item statuses and the field lists were measured on a live
 org [Measured: 2026-11-10, 264]. `ApprovalDelegation` wasn't present there.
 
 ## Actions
@@ -48,7 +48,8 @@ asynchronously. Expected results on the shipped flow [Measured: 2026-11-10, 264]
 | No approval | level 0, Net 30 | Submission Approved immediately; quote Approved |
 | Cumulative chain | level 2, Net 30 | Manager item; after approval, a Director item; after approval, submission and quote Approved |
 | Parallel chains, rejection | level 2, Net 60 | Discount and Finance items; rejecting Discount sets Finance to Withdrawn, submission and quote to Rejected |
-| Recall and resubmit | level 1 | Recall sets the submission and item to Recalled; the quote stays Pending (no recall path); resubmit creates a new InProgress submission |
+| Recall and resubmit | level 1 | Recall sets the submission and item to Recalled, and the quote to Recalled (`RLM_AA_Reset_Quote_Status`); resubmit creates a new InProgress submission and sets the quote back to Pending; approving it sets both to Approved |
+| Cancel | level 1, submitted | Cancel sets the submission and item to Canceled, and clears the quote's status |
 
 Test with a sales user as well as an admin before relying on permissions: the measured
 runs used an admin.
