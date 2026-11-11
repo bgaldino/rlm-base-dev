@@ -25,6 +25,53 @@ configurator decisions. **Choose configurable when** anything (a child, a quanti
 attribute) is the buyer's choice. A configurable *simple* product is the right shape for a
 single SKU whose only choices are attributes. [Help: `ind.product_catalog_products.htm`]
 
+### Static kit or locked configurable bundle, when children recur
+
+A kit that never varies but whose children are Term Defined or Evergreen (support or a
+subscription that must renew or bill on its own model) is not settled by the rule above:
+
+- **Neither shape sets a child's selling model on its component row.** Under a new static
+  bundle the row's parent selling model is None and it carries no component selling model;
+  a configurable bundle's row carries no component selling model either. In both, children
+  keep their own selling model options. [Help: `ind.product_catalog_add_components_to_a_static_product_bundle.htm`; `ind.product_catalog_product_relationships.htm`; [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles)]
+- **Help documents a run-time selling model choice only in the configurator.** Its Product
+  Header offers a product selling model selection for each product or option, and a static
+  bundle cannot be configured at run time. [Help: `ind.product_configurator_flow_product_header.htm`; `ind.product_catalog_create_bundled_products.htm`]
+  No snapshot article says which selling model a static kit's Term Defined or Evergreen
+  child is quoted on, or whether it then renews and bills on it: **Open — needs live
+  verification.**
+
+Until that is measured, the shape to test against a static kit is a **locked configurable
+bundle**: fixed by cardinality instead of by `ConfigureDuringSale`.
+
+| Setting | Value | Help's effect |
+|---|---|---|
+| Root | `Type=Bundle`, `ConfigureDuringSale=Allowed` | Groups are mandatory; every child sits under one |
+| Each child | `IsComponentRequired` + `IsDefaultComponent` | Included and cannot be removed |
+| Each child's quantity | *Allow quantity changes* off (`IsQuantityEditable=false`); `QuantityScaleMethod` Constant (fixed) or Proportional (per root unit) | No min/max can be entered; Proportional keeps its ratio for the asset's life |
+| Each group | Min = max = its number of required children | Within what Validate Product Definition checks: required children ≤ max, products ≥ min |
+
+[Help: `ind.product_catalog_products.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_bundled_product_validations.htm`]
+
+What still differs from a static kit:
+
+- Attributes stay editable at run time; a static kit needs every attribute defaulted (see
+  [Structure rules](#structure-rules)).
+- CML bundle rules apply. A CML rule that set the quantity of a component with
+  `IsQuantityEditable = false` drew a `bundlevalidation` warning, so a child that CML sizes
+  from root answers is a poor candidate for a quantity lock. [Repo: `constraint-models/quantities-from-attributes.md`, run M16]
+- It can be converted to a static bundle later if it meets the configurable → static rules
+  above (static children, defaulted attributes, no classification components).
+
+Either way, amend, renew and cancel act on the top-level asset, and cancelling or renewing a
+component alone was refused; a child that must be cancelled on its own belongs on its own
+line. [Repo: `asset-lifecycle-changes/SKILL.md` Quick Rule 3] Root and child renewal rules
+by selling model are in [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
+Whether a fully locked configurable bundle still opens the configurator and shows each
+child's selling model selection, and how its locked children behave on amend and renew
+(whether a child's selling model or quantity can change, whether the lock holds on the
+renewal quote): **Open — needs live verification.**
+
 ## Structure rules
 
 | Rule | Static bundle | Configurable bundle |
