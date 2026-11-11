@@ -1,0 +1,206 @@
+---
+name: transaction-line-editor
+description: >-
+  Configure and use the Revenue Cloud Transaction Line Editor and Sales Transaction Line
+  Editor (STLE) on quote and order record pages: display columns, the Adjustment Type
+  column, line groups, header action buttons (Browse Catalogs, Reprice All, Create Ramp
+  Schedule, Manage Header Adjustment), Instant Pricing, Transaction Summary auto-refresh,
+  configuring a bundle from a line, and what amendment, renewal and cancellation lines show.
+  Use when changing the line editor on a page in this repo (templates/flexipages and the UX
+  assembler, never unpackaged/post_ux), preparing or debugging a demo in the line editor or
+  configurator, or explaining why a line shows blank prices, reset attributes or a doubled
+  header discount. Use ramped-quotes for group-ramp builds, pricing-procedures for pricing
+  elements, and repo-integration for the assembler itself.
+---
+
+# Transaction Line Editor — Configure and Use the Quote and Order Line Editor
+
+The line editor is the grid on a quote or order record page where reps add, configure,
+group, discount and price lines. This skill covers how an admin configures it in Lightning
+App Builder, how this repo ships that configuration through `templates/flexipages/`, and how
+the editor and the configurator behave at run time on 264, including behaviour measured
+on demo orgs that the Help does not describe. Any agent can read it; it assumes no org
+access.
+
+Two components exist. The **Sales Transaction Line Editor (STLE)** is the one Salesforce
+recommends; the older **Transaction Line Editor (TLE)** "remains available" but is "no
+longer being enhanced" [Help: `ind.qocal_customize_transaction_line_editor`]. Help uses
+"line editor" for both; so does this skill unless a rule applies to only one.
+
+**Source tags.** `[Help: <article>]` is the 264 Help snapshot,
+`docs/salesforce/264/help/articles/<article>.htm.md`. `[Dev guide: <article>]` and
+`[Release notes: <article>]` are the sibling `dev-guide/` and `release-notes/` snapshots.
+`[Repo: <file>]` is this repository. `[Measured: <date>, 264]` is behaviour observed on a 264
+demo org. **Open — needs live verification** marks anything only a live org can settle.
+Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
+
+## Quick Rules
+
+1. **Change the page in `templates/flexipages/`, then assemble.** The quote and order pages are
+   `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml` and
+   `RLM_Order_Record_Page.flexipage-meta.xml`; `unpackaged/post_ux/` is generated output
+   (AGENTS.md DO NOT 1) [Repo: `.cursor/skills/repo-integration/ux-assembly-retrieve.md`].
+   For a feature-gated column use the `add_sales_txn_line_editor_field` patch type in
+   `templates/flexipages/patches/<feature>/` (see [`page-configuration.md`](page-configuration.md)).
+2. **Use the STLE.** Group ramps and *Instant Pricing Active by Default* work only in the STLE
+   [Help: `ind.qocal_set_up_ramp_deals_for_groups`, `ind.qocal_turn_on_quote_and_order_capture`].
+   Both repo pages use the `runtime_rca:salesTxnLineTable` component [Repo: both page templates].
+3. **Add every custom column field to the sales transaction context definition.** Without it,
+   edits to that field in the editor are not saved [Help: `ind.qocal_select_fields_for_the_line_editor`].
+   Use [`context-service`](../context-service/SKILL.md).
+4. **Put only editable currency or percent fields in the Adjustment Type column.** A read-only or
+   calculated field causes pricing errors; Start Date or End Date can reset ramped line dates
+   [Help: `ind.qocal_adjustment_type_column`].
+5. **Reprice after anything that changed lines outside the editor.** API, Process Builder,
+   trigger and manual field updates invalidate the pricing status and need Reprice All [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
+   Reprice All re-runs pricing only; Refresh Prices also re-runs configuration and taxes
+   [Help: `ind.qocal_reprice_all_quotes_and_orders`].
+6. **Don't demo an inline quantity edit on an amendment of a configured product.** With
+   configuration rules on it resets the line's attributes to product defaults, and activation
+   keeps them on the asset [Measured: early Nov 2026, 264]. Change the quantity in the configurator.
+7. **Keep the quote procedure plan inactive for header-adjustment demos.** An active plan with
+   `skipOrgSttPricing` on applied a 10% header discount twice (19%) [Measured: early Nov 2026, 264;
+   Repo: `datasets/sfdmu/procedure-plans/README.md`].
+
+## DO NOT
+
+- **DO NOT** edit `unpackaged/post_ux/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml` or the
+  order page by hand; edit the template and run the assembler (AGENTS.md DO NOT 1).
+- **DO NOT** reference a feature-gated custom field in the base page template's line editor
+  columns. Base output deploys on every build and breaks deploy where the field doesn't exist;
+  use that feature's patch file [Repo: `.cursor/skills/repo-integration/ux-assembly-retrieve.md`].
+- **DO NOT** add read-only, formula or calculated fields (for example Total Adjustment) to the
+  Adjustment Type column [Help: `ind.qocal_adjustment_type_column`].
+- **DO NOT** edit Net Unit Price, Net Total Price, Total Adjustment Amount or Pricing Term Count
+  in the editor when Salesforce Pricing is active [Help: `ind.qocal_view_and_edit_quotes`].
+- **DO NOT** add or edit lines with the standard Quote Line Items or Order Products related-list
+  buttons; Revenue Management doesn't support them [Help: `ind.qocal_discover_and_configure_products`].
+- **DO NOT** expect admin-created custom actions in the header action picker; only built-in
+  actions are available [Help: `ind.qocal_action_button_group_important_considerations`].
+- **DO NOT** update `Calculation Status` by hand to unstick a transaction left in *Saving*;
+  retry with the Place Sales Transaction API [Help: `ind.qocal_differences_between_calculation_status_field_and_validation_result_field`].
+- **DO NOT** read a blank Sales Price or Net Unit Price on an amended parent line as a pricing
+  failure until you check its detail rows and the line total (see [`runtime-behavior.md`](runtime-behavior.md)).
+
+## Entry Conditions
+
+| Task | Use this skill? | Instead / also |
+|------|-----------------|----------------|
+| Add, remove or reorder line editor columns, side panel or ramp-detail fields | Yes | [`page-configuration.md`](page-configuration.md); assembler mechanics in [`repo-integration`](../repo-integration/SKILL.md) |
+| Arrange header action buttons or button groups | Yes | [`page-configuration.md`](page-configuration.md) |
+| Turn on STLE and Transaction Summary auto-refresh | Yes | [`page-configuration.md`](page-configuration.md) |
+| Rehearse or debug a demo in the editor or configurator | Yes | [`runtime-behavior.md`](runtime-behavior.md); click paths in [`qb-demo-script`](../qb-demo-script/SKILL.md) |
+| Explain amendment, renewal or cancellation line display | Yes | [`runtime-behavior.md`](runtime-behavior.md); asset data in [`renewal-asset-creation`](../renewal-asset-creation/SKILL.md) |
+| Build a group ramp (API or UI) and check uplift | No | [`ramped-quotes`](../ramped-quotes/SKILL.md), `ramped-quotes/ui-group-ramp.md` |
+| Fix a wrong price, DDS or header-distribution procedure | No | [`pricing-procedures`](../pricing-procedures/SKILL.md), [`pricing-setup`](../pricing-setup/SKILL.md) |
+| Change bundle rules or why the configurator rejects a choice | No | [`constraint-models`](../constraint-models/SKILL.md) |
+| Write or fix a Robot keyword that drives the editor | Partly | [`robot-testing`](../robot-testing/SKILL.md); live verification is required (AGENTS.md DO NOT 9) |
+| Capture page edits made in an org back into templates | No | `repo-integration/ux-assembly-retrieve.md` (`ux_tool.py capture-drift`, `apply-drift`) |
+
+## Discovery
+
+Find what a page and an org use before changing anything; the repo snapshot below will age.
+
+```bash
+# Line editor components and their properties in the templates
+grep -n "salesTxnLineTable\|progressIndicator\|transactionSummary" templates/flexipages/base/RLM_*_Record_Page.flexipage-meta.xml
+# Patch files that touch the quote or order page, per feature flag
+ls templates/flexipages/patches/*/RLM_{Quote,Order}_Record_Page.yml
+# Revenue Settings the build deploys (groups, delta pricing, instant pricing default, skipOrgSttPricing)
+cat unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml
+# What the org has now: retrieve and diff against the templates
+python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>
+```
+
+**What this repo ships today** (snapshot, 2026-11-10) [Repo: the two page templates]:
+
+| Page | Line editor tab | Components in the tab | Line editor properties set |
+|------|-----------------|-----------------------|----------------------------|
+| Quote | `Quote Lines` (active tab) | Progress Indicator, STLE, Transaction Summary | `displayFields` (14), `adjustmentTypeFields` (Discount Amount, Discount), `sidepanelDetailFields`, `viewRampDetailFields`, `groupRampFields`, `enableQuickAdd`, `enableSidepanel` |
+| Order | `Standard.Tab.transactionLines` | STLE, Transaction Summary (Progress Indicator is in the header region) | `enableQuickAdd`, `enableSidepanel` only; columns are the component defaults |
+
+Neither page sets header action buttons, so both use the default layout. No flexipage patch
+in the repo touches the line editor today.
+
+## Sub-files
+
+| File | Read when |
+|------|-----------|
+| [`page-configuration.md`](page-configuration.md) | Changing columns, the Adjustment Type column, side panel or ramp fields, action buttons, the Transaction Summary, the settings the editor depends on, or auto-refresh, in Lightning App Builder or in this repo's templates |
+| [`runtime-behavior.md`](runtime-behavior.md) | Using the editor: Browse Catalogs, groups, Instant Pricing, Reprice All, header adjustments, configuring a bundle from a line, amendment, renewal and cancellation lines, filters, and the measured demo traps |
+
+## Open — needs live verification
+
+1. Whether a 264 org's Lightning App Builder shows the **text box** for action buttons that
+   `ind.qocal_configure_placement_of_action_buttons` describes, or the **visual button-group UI**
+   that `release-notes.rn_transaction_management_stle_enhance_button_groups` describes, and the
+   flexipage property each one writes.
+2. Whether the 10-item runtime limit is **10 actions** (Help) or **10 groups** with the rest in an
+   overflow menu (release notes).
+3. The API name for Manage Header Adjustment: the Help table lists `HeaderAdjustment`; the default
+   layout and prerequisites name `QuoteAdjustment` / `OrderAdjustment`.
+4. Whether Browse Catalogs can be placed or removed through the action-button configuration; it
+   is not in the Help's list of supported action API names.
+5. Whether Reprice All validates configuration on 264. Help says it skips configuration, but its
+   success toast read "The prices were refreshed and the configuration was validated."
+   [Measured: early Nov 2026, 264].
+6. Which Setup label `enableRevInstPricingDefaultPref` maps to (assumed *Instant Pricing Active
+   by Default*), and whether any build step turns on **Header Adjustments**; the repo's Revenue
+   Settings file doesn't set it.
+7. How renewal and cancellation lines display in the STLE (quantities, price columns, detail rows);
+   only amendment lines were measured.
+
+## Examples
+
+**Add a feature-gated custom column to the quote line editor.** The field
+`QuoteLineItem.RLM_Example__c` ships only with flag `example`. Add it to the sales transaction
+context definition (`context-service`), then create or extend
+`templates/flexipages/patches/example/RLM_Quote_Record_Page.yml`:
+
+```yaml
+feature: example
+feature_flag: example
+patches:
+  - type: add_sales_txn_line_editor_field
+    property: displayFields          # default; also sidepanelDetailFields, viewRampDetailFields, adjustmentTypeFields
+    after: "QuoteLineItem.DiscountAmount"
+    fields:
+      - "QuoteLineItem.RLM_Example__c"
+```
+
+Register the patch directory's gate in `scripts/ux/_flags.py::FLEXIPAGE_PATCH_ORDER` if it is a
+new feature, run `cci task run assemble_and_deploy_ux -o deploy false`, and confirm the field is in
+`unpackaged/post_ux/` only for a flag-on assembly [Repo: `scripts/ux/_patch_ops.py`, `scripts/ux/_flags.py`].
+
+**A rep says the amendment line lost its price.** After a UI quantity edit on an amendment line,
+Sales Price and Net Unit Price are blank on the parent and the price sits on detail rows (for
+example +2 and −1 at the unit price) while the line total is right [Measured: early Nov 2026, 264].
+Check the detail rows and the total before treating it as a pricing fault.
+
+**Prepare a header-discount demo.** Confirm Header Adjustments is on and the quote procedure plan is
+inactive (repo default), apply the discount from Manage Header Adjustment, then click Reprice All,
+which Help requires when Delta Pricing is on, as it is in this repo
+[Help: `ind.qocal_header_adjustments_use`; Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`].
+
+## Validation Checks
+
+For a page change:
+
+```bash
+cci task run assemble_and_deploy_ux -o deploy false        # assembly succeeds locally
+git diff --stat -- templates/flexipages unpackaged/post_ux # only the pages you meant to change
+python -m pytest tests/test_ux_tool.py -q                  # assembler and patch-op tests
+python scripts/ai/pr_gate.py --base origin/main
+```
+
+Also check:
+
+- `unpackaged/post_ux/` was regenerated by the assembler, at the committed default flags, not
+  edited (`assembly_manifest.json` `feature_flags`).
+- Every new custom column is in the sales transaction context definition.
+- No gated field appears in a base template (`grep` the field name across `templates/flexipages/base/`).
+- After deploying to a scratch org, open a quote and an order and confirm the columns, buttons and
+  Transaction Summary render; a Robot change that depends on them needs a live run.
+
+For this skill: `python scripts/ai/analyze_agent_tooling.py check` and
+`python scripts/ai/skill_manifest.py --check`.

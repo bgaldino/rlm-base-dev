@@ -142,6 +142,14 @@ foundations:
         - .cursor/skills/advanced-approvals/actions-and-objects.md
         - .cursor/skills/advanced-approvals/limitations.md
 
+    - id: transaction-line-editor
+      path: .cursor/skills/transaction-line-editor/SKILL.md
+      purpose: "Configure and use the quote/order Sales Transaction Line Editor: columns, Adjustment Type, groups, action buttons, Instant Pricing, auto-refresh, configure from a line, amendment lines; repo page changes via templates/flexipages"
+      consumed_by_pmos: [demo-script, sales-enablement]
+      provenance: grounded in the 264 Help, dev-guide and release-notes snapshots plus the repo's page templates; demo traps measured on 264 orgs 2026-11
+      caveats:
+        - "Action-button configuration UI and limits conflict between 264 Help and release notes; settle on a live org before writing an action layout into a template"
+
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md
       purpose: "Build/verify multi-year GROUP ramp quotes (place→EditGroup→clone) and per-segment (compound) price uplift"
