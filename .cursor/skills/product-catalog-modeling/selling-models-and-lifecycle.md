@@ -75,9 +75,9 @@ recurs (One Time, Term Defined or Evergreen), then check the source for these:
 | renews the bundle as a unit | A One Time root does not renew: renewing a bundle sets its one-time products to No Change, quantity 0. [Help: `ind.qocal_asset_lifecycle_considerations.htm`] A one-time root with an evergreen component renewed as a $0 quote with quantity 0 on every line ([`asset-lifecycle-changes` Quick Rule 5](../asset-lifecycle-changes/SKILL.md#quick-rules)); that skill models a renewable commitment as Term Defined. |
 | ramps the bundle, or renews it early | Early renewal of ramped assets takes a term-defined bundle whose children are all term-defined: a ramped bundle renewed early cannot contain one-time or evergreen child assets. [Help: `ind.qocal_early_renewal_of_ramped_assets.htm`] Measured amend limits for mixed children are in [`../ramped-quotes/bundle-children-lifecycle.md`](../ramped-quotes/bundle-children-lifecycle.md#amend-and-cancel-limitation). |
 
-No snapshot article says how a Term Defined or Evergreen root renews its One Time and
-Evergreen children, so a mixed bundle that must renew is **Open — needs live verification**
-whichever root model you pick. Help's ramp-deal considerations list mixed root/child shapes
+One Time children renew as No Change, quantity 0, whatever the root's model. [Help: `ind.qocal_asset_lifecycle_considerations.htm`]
+No snapshot article says how a Term Defined or Evergreen root renews its Evergreen
+children: **Open — needs live verification**. Help's ramp-deal considerations list mixed root/child shapes
 (a term-defined parent with one-time or evergreen children; "a one-time evergreen parent,
 and a term-defined child"), but the snapshot drops the column that marks which are supported:
 **Open — needs live verification.** [Help: `ind.qocal_considerations_ramp_deals.htm`] Whether
