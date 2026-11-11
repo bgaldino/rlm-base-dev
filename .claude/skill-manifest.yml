@@ -148,7 +148,7 @@ foundations:
       consumed_by_pmos: [demo-script, sales-enablement]
       provenance: grounded in the 264 Help, dev-guide and release-notes snapshots plus the repo's page templates; demo traps measured on 264 orgs 2026-11
       caveats:
-        - "Action-button configuration UI and limits conflict between 264 Help and release notes; settle on a live org before writing an action layout into a template"
+        - "Action-button configuration UI, run-time limit and the Manage Header Adjustment API name disagree across 264 Help articles and the release notes; settle on a live org before writing an action layout into a template"
 
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md

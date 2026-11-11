@@ -3,8 +3,8 @@ name: transaction-line-editor
 description: >-
   Configure and use the Revenue Cloud Transaction Line Editor and Sales Transaction Line
   Editor (STLE) on quote and order record pages: display columns, the Adjustment Type
-  column, line groups, header action buttons (Browse Catalogs, Reprice All, Create Ramp
-  Schedule, Manage Header Adjustment), Instant Pricing, Transaction Summary auto-refresh,
+  column, line groups, header action buttons (Reprice All, Create Ramp Schedule, Manage
+  Header Adjustment and the rest), Browse Catalogs, Instant Pricing, Transaction Summary auto-refresh,
   configuring a bundle from a line, and what amendment, renewal and cancellation lines show.
   Use when changing the line editor on a page in this repo (templates/flexipages and the UX
   assembler, never unpackaged/post_ux), preparing or debugging a demo in the line editor or
@@ -40,8 +40,9 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
    `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml` and
    `RLM_Order_Record_Page.flexipage-meta.xml`; `unpackaged/post_ux/` is generated output
    (AGENTS.md DO NOT 1) [Repo: `.cursor/skills/repo-integration/ux-assembly-retrieve.md`].
-   For a feature-gated column use the `add_sales_txn_line_editor_field` patch type in
-   `templates/flexipages/patches/<feature>/` (see [`page-configuration.md`](page-configuration.md)).
+   For a feature-gated column use a patch in `templates/flexipages/patches/<feature>/`:
+   `add_sales_txn_line_editor_field`, or the older `add_display_field`, which appends to the page's
+   first `displayFields` list (see [`page-configuration.md`](page-configuration.md)).
 2. **Use the STLE.** Group ramps and *Instant Pricing Active by Default* work only in the STLE
    [Help: `ind.qocal_set_up_ramp_deals_for_groups`, `ind.qocal_turn_on_quote_and_order_capture`].
    Both repo pages use the `runtime_rca:salesTxnLineTable` component [Repo: both page templates].
@@ -54,13 +55,14 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 5. **Reprice after anything that changed lines outside the editor.** API, Process Builder,
    trigger and manual field updates invalidate the pricing status and need Reprice All [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
    Reprice All re-runs pricing only; Refresh Prices also re-runs configuration and taxes
-   [Help: `ind.qocal_reprice_all_quotes_and_orders`].
+   [Help: `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_view_and_edit_quotes`].
 6. **Don't demo an inline quantity edit on an amendment of a configured product.** With
    configuration rules on it resets the line's attributes to product defaults, and activation
    keeps them on the asset [Measured: early Nov 2026, 264]. Change the quantity in the configurator.
-7. **Header adjustments are applied by the Discount Distribution Service (DDS) element, so exactly
-   one DDS must run per pricing pass.** Manage Header Adjustment only records the discount; the DDS
-   element in the pricing procedure spreads it across the lines [Help: `ind.qocal_header_adjustments_overview`].
+7. **Header adjustments depend on the Discount Distribution Service (DDS) element, so exactly
+   one DDS must run per pricing pass.** Help's setup puts a DDS element in the pricing procedure;
+   the rep picks the type, value and distribution in Manage Header Adjustment, and pricing spreads
+   it across the lines [Help: `ind.qocal_header_adjustments_overview`, `ind.qocal_header_adjustments_use`].
    The repo's `RLM_DefaultPricingProcedure` has a DDS step, and so does `RLM_Price_Distribution_Procedure`,
    which the procedure plan runs. With the plan active and `skipOrgSttPricing` on, both ran and a 10%
    header discount came out at 19% [Measured: early Nov 2026, 264; Repo: `datasets/sfdmu/procedure-plans/README.md`].
@@ -81,8 +83,10 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
   buttons; Revenue Management doesn't support them [Help: `ind.qocal_discover_and_configure_products`].
 - **DO NOT** expect admin-created custom actions in the header action picker; only built-in
   actions are available [Help: `ind.qocal_action_button_group_important_considerations`].
-- **DO NOT** update `Calculation Status` by hand to unstick a transaction left in *Saving*;
-  retry with the Place Sales Transaction API [Help: `ind.qocal_differences_between_calculation_status_field_and_validation_result_field`].
+- **DO NOT** update `Calculation Status` by hand to unstick a transaction left in *Saving* while
+  another recovery exists; retry with the Place Sales Transaction API. Help recommends a manual
+  update only as a last resort, with the Edit Calculation Status on Quote and Order permission
+  [Help: `ind.qocal_differences_between_calculation_status_field_and_validation_result_field`].
 - **DO NOT** read a blank Sales Price or Net Unit Price on an amended parent line as a pricing
   failure until you check its detail rows and the line total (see [`runtime-behavior.md`](runtime-behavior.md)).
 
@@ -120,11 +124,15 @@ python scripts/ux/ux_tool.py capture-drift --target-org <sf_alias>
 
 | Page | Line editor tab | Components in the tab | Line editor properties set |
 |------|-----------------|-----------------------|----------------------------|
-| Quote | `Quote Lines` (active tab) | Progress Indicator, STLE, Transaction Summary | `displayFields` (14), `adjustmentTypeFields` (Discount Amount, Discount), `sidepanelDetailFields`, `viewRampDetailFields`, `groupRampFields`, `enableQuickAdd`, `enableSidepanel` |
+| Quote | `Quote Lines` (active tab) | Progress Indicator, STLE, Transaction Summary | `displayFields` (14 in the template), `adjustmentTypeFields` (Discount Amount, Discount), `sidepanelDetailFields`, `viewRampDetailFields`, `groupRampFields`, `enableQuickAdd`, `enableSidepanel` |
 | Order | `Standard.Tab.transactionLines` | STLE, Transaction Summary (Progress Indicator is in the header region) | `enableQuickAdd`, `enableSidepanel` only; columns are the component defaults |
 
-Neither page sets header action buttons, so both use the default layout. No flexipage patch
-in the repo touches the line editor today.
+Neither page sets the line editor's header action buttons, so both use the default layout. One
+patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` adds
+`QuoteLineItem.RLM_Approval__c` with `add_display_field`, so a build with `approvals` on (the
+default) deploys 15 quote columns. The record-page highlights panel (`force_highlightsPanel`
+`actionNames`), a separate component, carries `BrowseCatalog` on both pages and
+`CreateRampSchedule` and `QuoteAdjustment` on the quote page.
 
 ## Sub-files
 
@@ -135,16 +143,21 @@ in the repo touches the line editor today.
 
 ## Open — needs live verification
 
-1. Whether a 264 org's Lightning App Builder shows the **text box** for action buttons that
-   `ind.qocal_configure_placement_of_action_buttons` describes, or the **visual button-group UI**
-   that `release-notes.rn_transaction_management_stle_enhance_button_groups` describes, and the
-   flexipage property each one writes.
-2. Whether the 10-item runtime limit is **10 actions** (Help) or **10 groups** with the rest in an
-   overflow menu (release notes).
-3. The API name for Manage Header Adjustment: the Help table lists `HeaderAdjustment`; the default
-   layout and prerequisites name `QuoteAdjustment` / `OrderAdjustment`.
-4. Whether Browse Catalogs can be placed or removed through the action-button configuration; it
-   is not in the Help's list of supported action API names.
+1. Whether a 264 org's Lightning App Builder shows the **text box** for action buttons, the
+   **visual button-group UI**, or both, and the flexipage property each writes.
+   `ind.qocal_configure_placement_of_action_buttons` gives text-box steps and, in the same
+   article, button groups and an action picker; the release note
+   `release-notes.rn_transaction_management_stle_enhance_button_groups` says the visual UI
+   replaces the text box.
+2. What the 10-item runtime limit counts: **10 actions** (`ind.qocal_action_button_group_important_considerations`),
+   **10 visible action slots across all groups** (`ind.qocal_configure_placement_of_action_buttons`),
+   or **10 groups** with the rest in an overflow menu (release note).
+3. The API name for Manage Header Adjustment. The Help table's two API-name columns give
+   `ManageHeaderAdjustment` and `HeaderAdjustment`; the default layout and prerequisites name
+   `QuoteAdjustment` / `OrderAdjustment`, and the repo's quote highlights panel uses `QuoteAdjustment`.
+4. Whether Browse Catalogs can be placed or removed through the line editor's action-button
+   configuration; it is not in the Help's list of supported action API names. The repo places it
+   as a record-page highlights-panel action (`BrowseCatalog`) instead.
 5. Whether Reprice All validates configuration on 264. Help says it skips configuration, but its
    success toast read "The prices were refreshed and the configuration was validated."
    [Measured: early Nov 2026, 264].

@@ -39,7 +39,7 @@ The pages are generated from templates; App Builder edits in an org are drift un
 | Concern | Where | Notes |
 |---------|-------|-------|
 | Always-on columns and properties | `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`, `RLM_Order_Record_Page.flexipage-meta.xml` | Edit the `runtime_rca:salesTxnLineTable` component's `componentInstanceProperties` [Repo] |
-| Columns that need a feature flag | `templates/flexipages/patches/<feature>/RLM_{Quote,Order}_Record_Page.yml` | Patch type `add_sales_txn_line_editor_field` [Repo: `docs/features/dynamic-ux-assembly.md`] |
+| Columns that need a feature flag | `templates/flexipages/patches/<feature>/RLM_{Quote,Order}_Record_Page.yml` | Patch type `add_sales_txn_line_editor_field`, or `add_display_field` (the approvals patch uses it) [Repo: `docs/features/dynamic-ux-assembly.md`] |
 | Patch gate and order | `scripts/ux/_flags.py::FLEXIPAGE_PATCH_ORDER` | A patch directory not listed there is never applied [Repo] |
 | Component identifier the patch targets | `scripts/ux/_flags.py::SALES_TXN_LINE_EDITOR_IDENTIFIER` (`runtime_rca_salesTxnLineTable`) | Override with `component_identifier:` in the patch [Repo: `scripts/ux/_patch_ops.py`] |
 | Generated output | `unpackaged/post_ux/flexipages/` | Never hand-edit (AGENTS.md DO NOT 1) |
@@ -49,8 +49,11 @@ The pages are generated from templates; App Builder edits in an org are drift un
 as `sidepanelDetailFields`, `viewRampDetailFields` or `adjustmentTypeFields`), an optional `after`
 anchor, and `field` or `fields`. It skips values already present, so it is idempotent; if the
 property list or the anchor is missing it logs a warning and adds nothing [Repo: `scripts/ux/_patch_ops.py`].
-The order page sets no `displayFields`, so a `displayFields` patch against it has no list to add
-to: add the property to the order template first. There is no patch type that removes a column or
+`add_display_field` takes one `field`, no `property` or `after`, and appends it to the first
+`displayFields` list on the page, which on the quote page is the line editor's; it skips a value
+already present and warns if there is no list [Repo: `scripts/ux/_patch_ops.py`]. The order page
+sets no `displayFields`, so a `displayFields` patch of either type has no list to add to there:
+add the property to the order template first. There is no patch type that removes a column or
 sets a scalar property; change the base template, or as a last resort use `insert_after_xml`.
 
 **Value syntax** in the templates [Repo: quote page template]:
@@ -131,10 +134,11 @@ Supported actions (API names are case-sensitive):
 | Estimate Taxes | `EstimateTaxes` | Tax estimate for the transaction |
 | Import Lines | `ImportQuoteLineItems` | Upload lines from an external source |
 | Create Ramp Schedule | `CreateRampSchedule` | Create a group ramp schedule |
-| Manage Header Adjustment | `HeaderAdjustment` per the table; `QuoteAdjustment` / `OrderAdjustment` elsewhere in Help (Open, see parent) | Header discount or override |
+| Manage Header Adjustment | `ManageHeaderAdjustment` and `HeaderAdjustment` in the table's two API-name columns; `QuoteAdjustment` / `OrderAdjustment` elsewhere in Help (Open, see parent) | Header discount or override |
 
-Help also names `ExpandAllGroups` and `CollapseAllGroups` in a syntax example. Browse Catalogs is not
-in the list; whether it can be moved is Open.
+The table has two API-name columns (*Action API Name* and *API Name*); they differ only for Manage
+Header Adjustment. Help also names `ExpandAllGroups` and `CollapseAllGroups` in a syntax example.
+Browse Catalogs is not in the list; whether it can be moved is Open.
 
 **Text-box syntax** (Help), one entry per line in the **Action Buttons** field:
 
@@ -145,18 +149,23 @@ in the list; whether it can be moved is Open.
 | Menu items under a main button | `MoveSelectedLines, (AddGroup), (Ungroup)` |
 | A dropdown of actions | `(AddGroup, ExpandAllGroups, CollapseAllGroups, Ungroup)` |
 
-**Button groups.** Up to 10 groups of up to 10 actions; an action belongs to one group; actions
-reorder within a group but groups can't be dragged into a new order. Only built-in actions are in the
-picker. With nothing configured, the default is four groups: `QuoteAdjustment`, `AddAssets`,
-`ImportQuoteLineItems`, then the rest with four visible. Help says only the first 10 actions show at
-run time; the release note says 10 **groups** show and the rest go to an overflow menu, that the
-visual UI replaces the text box, that existing text-box values carry over, and that the header hides
-actions a rep can't use and shows the next one in the group
-[Release notes: `release-notes.rn_transaction_management_stle_enhance_button_groups`]. Which UI and
-limit a 264 org has is Open.
+**Button groups** (Help, both articles above). Up to 10 groups of up to 10 actions; an action belongs
+to one group; actions reorder within a group but groups can't be dragged into a new order. Only
+built-in actions are in the action picker. With nothing configured, the default is four groups:
+`QuoteAdjustment`, `AddAssets`, `ImportQuoteLineItems`, then the rest with four visible. The run-time
+limit is stated three ways: the considerations article says only the first 10 actions show, the
+configuration article says 10 visible action slots across all groups, and the release note says 10
+**groups** show and the rest go to an overflow menu. The release note also says the visual UI replaces
+the text box, that existing text-box values carry over, and that the header hides actions a rep can't
+use and shows the next one in the group
+[Release notes: `release-notes.rn_transaction_management_stle_enhance_button_groups`]. Help gives the
+text-box steps and the button-group model side by side. Which UI and limit a 264 org has is Open.
 
-**In this repo** neither page template sets an action-button property, so both pages show the
-default layout [Repo: both page templates]. Create Ramp Schedule appears as a header button and Browse
+**In this repo** neither page template sets a line editor action-button property, so both editors
+show the default layout [Repo: both page templates]. Don't confuse it with the record page's
+highlights panel (`force_highlightsPanel` `actionNames`), which lists `BrowseCatalog` on both pages
+and `CreateRampSchedule` and `QuoteAdjustment` on the quote page; those are page-header actions,
+configured separately. Create Ramp Schedule appears as a header button and Browse
 Catalogs as a ramp-segment row action on a measured 264 org [Repo: `.cursor/skills/ramped-quotes/ui-group-ramp.md`].
 Before writing an action layout into a template, configure it once in App Builder on a scratch org
 and capture the property with `ux_tool.py capture-drift`, so the template matches what the org writes.
@@ -165,8 +174,8 @@ and capture the property with `ux_tool.py capture-drift`, so the template matche
 
 [Help: `ind.qocal_customize_transaction_summary`]
 
-- Place it in the **same tab** as the line editor; it always renders at the bottom of that tab,
-  wherever it is dropped.
+- Place it in the **same tab** as the line editor; Help says it always renders at the bottom of
+  the page in the live view, wherever it is dropped in App Builder.
 - Pick footer and body fields; **Expanded by Default** shows the details on load. Address fields
   (Ship To, Bill To) are not supported.
 - On orders, users need read access to `Order.TotalRoundedLineAmount`, `DiscountPercent` and
@@ -183,7 +192,7 @@ and capture the property with `ux_tool.py capture-drift`, so the template matche
 | Instant Pricing | Reprices price-impacting edits immediately | Toggled by `configure_revenue_settings` (Robot), flow `prepare_revenue_settings` [Repo: `cumulusci.yml`] |
 | Instant Pricing Active by Default | Starts each quote with Instant Pricing on; STLE only [Help: `ind.qocal_turn_on_quote_and_order_capture`] | `enableRevInstPricingDefaultPref` true; label mapping Open |
 | Delta Pricing | Header adjustments need Reprice All [Help: `ind.qocal_header_adjustments_use`] | `enableDeltaPricing` true [Repo] |
-| Header Adjustments | Manage Header Adjustment action; the discount is spread by the pricing procedure's Discount Distribution Service element [Help: `ind.qocal_header_adjustments_overview`] | Not set in the repo's settings file (Open); `RLM_DefaultPricingProcedure` has the DDS step [Repo: `.cursor/skills/pricing-procedures/elements/discount-distribution-service.md`] |
+| Header Adjustments | Manage Header Adjustment action; setup needs a Discount Distribution Service element in the pricing procedure [Help: `ind.qocal_header_adjustments_overview`] | Not set in the repo's settings file (Open); `RLM_DefaultPricingProcedure` has the DDS step [Repo: `.cursor/skills/pricing-procedures/elements/discount-distribution-service.md`] |
 | Sales Price Amendments | Credit and charge detail lines on amended prices | `enableSalesPriceAmendments` true [Repo] |
 | Exclude Default and STT Pricing Procedures (`skipOrgSttPricing`) | With an active procedure plan, header discount distributed twice (section in `runtime-behavior.md`) | false [Repo] |
 

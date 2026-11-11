@@ -104,14 +104,16 @@ distribution (**Equal**, or **Proportionate** to each line's list price × quant
 (this repo), click **Reprice All** afterwards. The waterfall shows each line's share. Users need
 Salesforce Pricing Run Time User.
 
-**The editor doesn't distribute the discount; the Discount Distribution Service (DDS) element does.**
-Manage Header Adjustment records the type, value and distribution logic, and the DDS element in the
-pricing procedure spreads them across the lines at pricing time [Help: `ind.qocal_header_adjustments_overview`].
-So the setup is:
+**The setup is in the pricing procedure, not the editor.** Manage Header Adjustment takes the type,
+value and distribution logic [Help: `ind.qocal_header_adjustments_use`], and Help's setup uses the
+Discount Distribution Service (DDS) element in the pricing procedure to support it
+[Help: `ind.qocal_header_adjustments_overview`]. So the setup is:
 
 - **Header Adjustments** on in Revenue Settings.
 - A pricing procedure with a DDS element, fed by list groups that read the header discount type
-  (Amount, Percentage, Override). DDS must come last, with only Aggregate Price or Rounding after it,
+  (Amount, Percentage, Override) [Help: `ind.qocal_header_adjustments_overview`]. DDS must come last,
+  with only Aggregate Price or Rounding Values after it
+  [Help: `ind.pricing_discount_distribution_service_limits`, `ind.pricing_use_the_discount_spread_service_element`],
   and it can't share a procedure with Derived Price. When derived pricing is needed, put DDS in its own
   procedure and run both through a procedure plan with Procedure Plan Orchestration for Pricing on
   [Help: `ind.qocal_header_adjustments_overview`]. Element detail:
@@ -158,8 +160,8 @@ Measured:
 
 What Help says:
 
-- Amendment, renewal and cancellation quotes and orders copy asset attribute values to the line
-  attributes [Help: `ind.qocal_amend_assets`, `ind.qocal_renew_assets`].
+- Amendment and renewal quotes and orders copy asset attribute values to the line attributes
+  [Help: `ind.qocal_amend_assets`, `ind.qocal_renew_assets`]; the cancellation article doesn't say.
 - A negative delta quantity on an amendment or cancellation is priced from prior sale prices, last in,
   first out [Help: `ind.qocal_amend_assets`, `ind.qocal_cancel_assets`].
 - With derived pricing on amendments, the derived product's Net Unit Price isn't shown; the line total
@@ -194,4 +196,6 @@ Renewal and cancellation line display in the STLE was not measured; see the pare
 5. Procedure plan inactive before any header-discount demo.
 6. Amendment demo: no inline quantity edit on configured products; explain blank parent prices as
    detail-row pricing if they appear.
-7. Reprice All on an already-priced quote is a no-op; don't present it as a visible change.
+7. Don't count on Reprice All producing a visible change: on an already-priced quote with nothing
+   changed since, our run showed none. Help says it fully reprices every line, so changed pricing data
+   since the last run will show.
