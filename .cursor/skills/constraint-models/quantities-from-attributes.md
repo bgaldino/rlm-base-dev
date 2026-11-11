@@ -111,10 +111,11 @@ a second line unless the type was `@(split = false)`; see
 
 **Check the component's PCM quantity settings.** With `IsQuantityEditable = false` on the
 component's `ProductRelatedComponent`, a CML-set quantity drew a `bundlevalidation`
-warning from `configure` `[Measured: M16]`. "Warning" understates it. When the quantity of
-such a line was edited through Place, Place returned `isSuccess: true` and saved the edit,
-and seconds later a `RevenueTransactionErrorLog` was written that made
-`createOrdersFromQuote` refuse the quote `[Measured: M31]`.
+warning from `configure` `[Measured: M16]`. A hand edit of such a line is worse than a
+warning: Place returned `isSuccess: true` and saved the edit, and seconds later a
+`RevenueTransactionErrorLog` was written that made `createOrdersFromQuote` refuse the
+quote `[Measured: M31]`. Whether a CML-set quantity alone does the same is
+[open item 1](#open-items).
 
 ### `sum()` and `total()` aren't the same
 
@@ -137,7 +138,7 @@ keeps one instance and adds quantity to it; `true` makes every instance quantity
 |---|---|---|
 | A default component, added at 1 by Place with defaults on | Kept at 1; the solver added a line for the rest (1 + (n − 1) for a rule of n) `[Measured: M22]` | One line at the rule's quantity `[Measured: M23]` |
 | A rep adds an optional add-on at quantity 1 | Kept; a second line for the rest `[Measured: M22]` | One line, raised to the rule's quantity `[Measured: M23]` |
-| A hand edit of a sized line, down | Kept; a second line for the difference (n edited to m became m + (n − m)). No message `[Measured: M22]` | Rejected with the rule's message `[Measured: M23]` |
+| A hand edit of a sized line, down | Kept; a second line for the difference (n edited to m became m + (n − m)). No rule message; a `bundlevalidation` group-range warning only `[Measured: M22]` | Rejected with the rule's message `[Measured: M23]` |
 | A hand edit of a sized line, up | Not measured | Rejected with the rule's message `[Measured: M23]` |
 | The same in the configurator UI | A default component split into two instances (1 + the rest) `[Measured: M24]` | One line per component at the rule's quantity, defaults kept, no warning; a changed answer resized each line `[Measured: M24]` |
 
@@ -449,6 +450,10 @@ in front of it (step 1 below).
    `[Repo: .cursor/skills/constraint-models/SKILL.md]`. Check `solverStatus`, not only
    `success`: a rejected configuration returned `success: true`, `solverStatus: "error"`,
    `errors: []`, with the rule's message in `messages` at type `error` `[Measured: M29]`.
+   A clean `configure` isn't enough either: also require that the quote has no
+   `RevenueTransactionErrorLog` rows, queried a few seconds after Place. One rejection's
+   message was only in the error log, and `configure` then returned
+   `solverStatus: "success"` `[Measured: M29, M31]`.
 5. **Assert every component's quantity**, including the zeros, against a hand-computed
    table (see the worked example), and assert one line per component. Pick answers on
    each rounding boundary: exact multiples (`sites = 10`) and one past (`sites = 11`). Add
@@ -683,7 +688,10 @@ was run.
 
 Each needs a live 264 org:
 
-1. Whether `IsQuantityEditable = true` clears the `bundlevalidation` warning in M16.
+1. Whether `IsQuantityEditable = true` clears the `bundlevalidation` warning in M16, and
+   whether a CML-set quantity on a component with `IsQuantityEditable = false`, with no
+   hand edit, writes a `RevenueTransactionErrorLog` that blocks ordering (M31 measured
+   only a hand edit).
 2. How a large cardinality (600 service hours) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
@@ -756,7 +764,8 @@ Each needs a live 264 org:
 6. Review notes use `Info`; nothing meant as advice uses `Warning` or `Error`.
 7. Headless test: placed with rules on and a `BillingFrequency` on every recurring line,
    answers that bind (checked against non-default values), every quantity asserted as one
-   line per component, every rejection asserted by the message of a rule it breaks, read
-   from `configure` and `RevenueTransactionErrorLog`. Then the parent
+   line per component, no `RevenueTransactionErrorLog` rows for a valid answer set, every
+   rejection asserted by the message of a rule it breaks, read from `configure` and
+   `RevenueTransactionErrorLog`. Then the parent
    skill's [Validation Checks](SKILL.md#validation-checks), including the configurator
    check that the deployed model is the one you changed.
