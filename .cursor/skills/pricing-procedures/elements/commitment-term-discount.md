@@ -115,10 +115,13 @@ phases 9 and 10].
   taken from the already discounted net, as the rule requires.
 - After phase 8 (price revision): the 4% is taken from the revised price. Moving it before price
   revision only changes cent rounding, since both are multiplicative. Not measured.
-- **Before** Proration and Subscription Price (phase 10). Subscription Price multiplies the net unit
-  price by quantity and `PricingTermCount` into `ItemNetTotalPrice`
-  [Help: `ind.pricing_add_the_subscription_price_proration_element.htm`], so the formula only has to
-  write `NetUnitPrice`: the line total follows (15,923.52 × 3 = 47,770.56) [Measured: 2026-11-10, 264].
+- **Before** Proration and Subscription Price (phase 10). In the shipped default, Subscription Price
+  (`Calculateproratedpricefortermdefinedlines`) reads `NetUnitPrice` and multiplies it by quantity
+  and `PricingTermCount` into `ItemNetTotalPrice` [Repo: `RLM_DefaultPricingProcedure`; the Help
+  example binds `ListPrice` instead, `ind.pricing_add_the_subscription_price_proration_element.htm`].
+  So the formula only has to write `NetUnitPrice`: the line total follows (15,923.52 × 3 =
+  47,770.56) [Measured: 2026-11-10, 264]. In a procedure whose Subscription Price reads `ListPrice`,
+  it does not.
 - Far ahead of DDS and the aggregates, so the tail rule does not apply
   ([`formula-based-pricing.md`](formula-based-pricing.md) → Placement).
 
@@ -210,7 +213,7 @@ does, so the difference comes from the new group alone.
 |---|---|---|
 | A 36-month line is not discounted | Its `SubscriptionTermUnit` is not `Months` or `Annual`, or `PricingTermUnit` is not `Annual` | Check the line's unit; add a criterion pair for the unit you sell in |
 | Discount applied twice on an amendment | Criterion 9 removed | Keep `ItemPricingSource NotEquals 'LastTransaction'` |
-| Totals do not move with the unit price | Group placed after the term pricing groups | Move it before `Applyproratedpricingtotermdefinedlines` |
+| Totals do not move with the unit price | Group placed after the term pricing groups, or Subscription Price reads `ListPrice` | Move it before `Applyproratedpricingtotermdefinedlines`; bind Subscription Price's Net Unit Price to `NetUnitPrice` |
 | Off by a cent | Single `ROUND`, or no `ROUND` | Keep both: `ROUND(ROUND(NetUnitPrice, 2) * 0.96, 2)` |
 
 ## Route (a): Price Adjustment Matrix
