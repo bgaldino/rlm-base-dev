@@ -250,8 +250,8 @@ Syntax: `message(condition, string, arg, …, severity)`
 `Info` severity `[Dev guide: cml_preference_rule]`, but a preference also moves the
 solver; a `message` only reports.
 
-The severity argument is case-insensitive, and a headless `configure` response reports it
-per line in `messages` `[Measured: M18, M19]`.
+`"warning"` and `"Warning"` both came back as `warning`, and a headless `configure`
+response reports the severity per line in `messages` `[Measured: M18, M19]`.
 
 ---
 
