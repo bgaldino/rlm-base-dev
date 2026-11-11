@@ -21,7 +21,7 @@ returns `contextId`), `POST /connect/core-pricing/price-contexts/{contextId}` wi
 `POST /connect/contexts/query-tags` with `{"contextId","tags":[...]}` to read results. Naming a
 procedure bypasses the procedure plan. Waterfall needs the waterfall setting on (below). This
 multi-call chain is not exercised in this repo; the single-call action below was run by hand
-once and recorded.
+on 2026-11-10 and recorded; no repo script calls it.
 
 The `contextId` is **request-scoped** by default: each HTTP call is a separate Salesforce
 request, so running these calls one after another from a script does **not** keep the context
