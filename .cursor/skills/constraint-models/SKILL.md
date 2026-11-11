@@ -433,7 +433,7 @@ the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
 
 | File | Read this when… |
 |---|---|
-| [`quantities-from-attributes.md`](quantities-from-attributes.md) | A model must set component quantities from answers on the bundle: one per site, per N rounded up with `ceil()`, zero unless a choice is made, chained derivations such as service hours and a percentage for project management. Covers cardinality vs read-only quantity, rounding and `int` vs `decimal`, per-instance scope, exclusions, non-blocking `Info` messages and headless testing, with a fictional worked example. Read it before writing `ceil()`, `/` or `^` in CML: measured on 264, `ceil()` does nothing inside `constraint(...)` and `^` there fails deployment. |
+| [`quantities-from-attributes.md`](quantities-from-attributes.md) | A model must set component quantities from answers on the bundle: one per site, per N rounded up, zero unless a choice is made, chained derivations such as service hours and a percentage for project management. Covers cardinality vs read-only quantity, rounding and `int` vs `decimal`, per-instance scope, exclusions, non-blocking `Info` messages and headless testing, with a fictional worked example. Read it before writing `ceil()`, `/` or `^` in CML: measured on 264, `ceil()` does nothing inside `constraint(...)` and `^` there makes the model fail to activate. |
 
 ---
 
