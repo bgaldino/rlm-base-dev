@@ -92,7 +92,9 @@ Use this skill when you are:
 - debugging "product fails Product Validation when selected" in the configurator;
 - debugging a model change that deployed but did not take effect;
 - adding a whole new constraint model (see `datasets/constraints/README.md` →
-  *Adding New Models*).
+  *Adding New Models*);
+- sizing a bundle's component quantities from attribute answers (see
+  [Sub-Files](#sub-files)).
 
 ---
 
@@ -424,6 +426,14 @@ product to a ramp segment doesn't ramp it or add it to later segments; a rule-ad
 ramped and carried forward. The shipped QuantumBit models have no group-level container. For the ramp side, see
 the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
 [Cloning a segment that holds a bundle](../ramped-quotes/bundle-children-lifecycle.md#cloning-a-segment-that-holds-a-bundle).
+
+---
+
+## Sub-Files
+
+| File | Read this when… |
+|---|---|
+| [`quantities-from-attributes.md`](quantities-from-attributes.md) | A model must set component quantities from answers on the bundle: one per site, per N rounded up with `ceil()`, zero unless a choice is made, chained derivations such as service hours and a percentage for project management. Covers cardinality vs read-only quantity, rounding and `int` vs `decimal`, per-instance scope, exclusions, non-blocking `Info` messages and headless testing, with a fictional worked example. |
 
 ---
 
