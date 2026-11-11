@@ -54,7 +54,7 @@ pointer, not the skill's full open list.
 | Standard cost per item | Cost book entries | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md` |
 | Labour rates, loaded cost | Computed during extraction into cost entries | `pricing-setup` → `scenarios/cost-and-margin.md` (modeling costs from a source) |
 | Line and quote margin | The shipped cost-and-margin wiring, plus a roll-up for the quote total | `pricing-setup` → `scenarios/cost-and-margin.md` |
-| Contract value that counts until-cancelled lines over a fixed term | A computed value of its own; a quote total counts an Evergreen line for the Pricing Setup default term count (or, when that is blank, from the line's start and end dates), not the source's term `[inferred]` in that scenario. The default counts have no API: read them in Setup at P0 | `pricing-setup` → `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` |
+| Contract value that counts until-cancelled lines over a fixed term | A computed value of its own; a quote total counts an Evergreen line for the Pricing Setup default term count (or, when that is blank, from the line's start and end dates), not the source's term `[inferred]` in that scenario. Read the default counts in Setup at P0 (no API is known; template P0) | `pricing-setup` → `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` |
 | A fee or commission computed from the deal's revenue | A computed value (a field or a formula), not a price adjustment. Check which deals it applies to | — |
 | Items resold at or near cost | Priced near cost by design; decide how margin and below-cost guards and discounts treat them | `pricing-setup` → `scenarios/cost-and-margin.md`; `advanced-approvals` → `matrix-modeling.md` |
 

@@ -216,6 +216,9 @@ def init(args):
             seen.add(key)
             prev = old["items"].get(key)
             if prev and not args.rebuild:
+                if norm(prev["line"]) != norm(raw):
+                    print(f"warning: {key} changed in the plan since it was first read; kept as "
+                          "first read (--rebuild re-reads it)", file=sys.stderr)
                 ledger["items"][key] = entry(kind, iid, prev["line"], prev["prediction"], prev)
             else:
                 ledger["items"][key] = entry(kind, iid, raw, prediction(header, row), prev)

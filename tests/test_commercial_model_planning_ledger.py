@@ -196,7 +196,8 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stderr)
         (self.dir / "plan.md").write_text(PLAN.replace("| R-02 | Live (c) | Amendment |",
                                                        "| R-02 | Live (c) | Rewritten |"))
-        self.run_ledger("init", "--plan", "plan.md")
+        p = self.run_ledger("init", "--plan", "plan.md")
+        self.assertIn("rule:R-02 changed in the plan", p.stderr)
         item = self.ledger()["rule:R-02"]
         self.assertEqual(item["outcome"], "refuted")
         self.assertEqual(item["prediction"]["Native feature and fallback"], "Amendment")

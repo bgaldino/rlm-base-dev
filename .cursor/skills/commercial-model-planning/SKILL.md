@@ -264,13 +264,13 @@ of the planner), review in three steps:
 ### 9. Measure the build against the plan
 
 Keep a verification ledger with [`scripts/ledger.py`](scripts/ledger.py); its `--help`
-has the commands. Run it from the plan's folder, never from the Foundations checkout:
-the ledger copies the plan's rows. It reads the plan's decisions, rule decision record and P2 spike
+has the commands. Run it from the plan's folder; for a private plan that folder is in
+the pack's repo, since the ledger copies the plan's rows. It reads the plan's decisions, rule decision record and P2 spike
 table, by the names [plan-template.md](plan-template.md) gives them, and gives each row:
 - an **origin:** in the blind plan unchanged, edited, or added; or given to the planner
   (an intake answer, or a decision a person settled later), which doesn't count toward
   accuracy;
-- an **outcome** at each gate: `affirmed`, `modified` (held with different values or
+- an **outcome,** the latest recorded (name the gate in the evidence): `affirmed`, `modified` (held with different values or
   configuration), `refuted` (failed) or `inconclusive` (not tested).
 
 Sessions report each outcome with its evidence; the main session records it. Findings

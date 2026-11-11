@@ -115,7 +115,7 @@ area with no skill is also listed in the plan's skill gaps.
 
 ## After the build
 
-- Each spike's and gate's outcome goes into the verification ledger and the evidence
+- Each spike's and rule's outcome goes into the verification ledger and the evidence
   log ([SKILL.md](SKILL.md) → Measure the build against the plan).
 - A spike that found knowledge no skill held becomes a skill extension, or a new skill
   if it needs its own routing (see `skill-authoring`).
