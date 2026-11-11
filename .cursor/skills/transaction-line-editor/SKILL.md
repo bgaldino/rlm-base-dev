@@ -59,11 +59,12 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 6. **Don't demo an inline quantity edit on an amendment of a configured product.** With
    configuration rules on it resets the line's attributes to product defaults, and activation
    keeps them on the asset [Measured: early Nov 2026, 264]. Change the quantity in the configurator.
-7. **Header adjustments depend on the Discount Distribution Service (DDS) element, so exactly
-   one DDS must run per pricing pass.** Help's setup puts a DDS element in the pricing procedure;
+7. **Header adjustments depend on the Discount Distribution Service (DDS) element; make sure only
+   one DDS runs per pricing pass.** Help's setup puts a DDS element in the pricing procedure;
    the rep picks the type, value and distribution in Manage Header Adjustment, and pricing spreads
    it across the lines [Help: `ind.qocal_header_adjustments_overview`, `ind.qocal_header_adjustments_use`].
-   The repo's `RLM_DefaultPricingProcedure` has a DDS step, and so does `RLM_Price_Distribution_Procedure`,
+   Help allows one DDS per pricing procedure [Help: `ind.pricing_discount_distribution_service_limits`];
+   the one-per-pass rule is this skill's conclusion from the doubling below. The repo's `RLM_DefaultPricingProcedure` has a DDS step, and so does `RLM_Price_Distribution_Procedure`,
    which the procedure plan runs. With the plan active and `skipOrgSttPricing` on, both ran and a 10%
    header discount came out at 19% [Measured: early Nov 2026, 264; Repo: `datasets/sfdmu/procedure-plans/README.md`].
    Keep the plan inactive (the repo default) for header-adjustment demos.
@@ -163,7 +164,9 @@ patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` add
    [Measured: early Nov 2026, 264].
 6. Which Setup label `enableRevInstPricingDefaultPref` maps to (assumed *Instant Pricing Active
    by Default*), and whether any build step turns on **Header Adjustments**; the repo's Revenue
-   Settings file doesn't set it.
+   Settings file doesn't set it. A header discount did work on a fresh 264 build with the plan
+   inactive [Repo: `datasets/sfdmu/procedure-plans/README.md`], but how the setting got turned on
+   wasn't recorded.
 7. How renewal and cancellation lines display in the STLE (quantities, price columns, detail rows);
    only amendment lines were measured.
 

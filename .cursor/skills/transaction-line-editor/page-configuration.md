@@ -194,7 +194,7 @@ and capture the property with `ux_tool.py capture-drift`, so the template matche
 | Delta Pricing | Header adjustments need Reprice All [Help: `ind.qocal_header_adjustments_use`] | `enableDeltaPricing` true [Repo] |
 | Header Adjustments | Manage Header Adjustment action; setup needs a Discount Distribution Service element in the pricing procedure [Help: `ind.qocal_header_adjustments_overview`] | Not set in the repo's settings file (Open); `RLM_DefaultPricingProcedure` has the DDS step [Repo: `.cursor/skills/pricing-procedures/elements/discount-distribution-service.md`] |
 | Sales Price Amendments | Credit and charge detail lines on amended prices | `enableSalesPriceAmendments` true [Repo] |
-| Exclude Default and STT Pricing Procedures (`skipOrgSttPricing`) | With an active procedure plan, header discount distributed twice (section in `runtime-behavior.md`) | false [Repo] |
+| Exclude Default and STT Pricing Procedures (`skipOrgSttPricing`) | With an active procedure plan: on, a header discount is distributed twice; off, the Revenue Settings procedure re-runs after the plan and a price revision doubles (section in `runtime-behavior.md`) [Repo: `datasets/sfdmu/procedure-plans/README.md`] | false [Repo] |
 
 The configurator the editor opens is the org's default Product Configuration Flow; the build
 registers `RLM_Product_Configurator_Flow` (non-blocking, instant pricing on) through

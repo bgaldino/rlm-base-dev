@@ -115,10 +115,12 @@ Discount Distribution Service (DDS) element in the pricing procedure to support 
 
 - **Header Adjustments** on in Revenue Settings.
 - A pricing procedure with a DDS element, fed by list groups that read the header discount type
-  (Amount, Percentage, Override) [Help: `ind.qocal_header_adjustments_overview`]. DDS must come last,
-  with only Aggregate Price or Rounding Values after it
-  [Help: `ind.pricing_discount_distribution_service_limits`, `ind.pricing_use_the_discount_spread_service_element`],
-  and it can't share a procedure with Derived Price. When derived pricing is needed, put DDS in its own
+  (Amount, Percentage, Override) [Help: `ind.qocal_header_adjustments_overview`]. Help disagrees on
+  what may follow DDS: the limits article says it must be the last element
+  [Help: `ind.pricing_discount_distribution_service_limits`], the element article allows only Rounding
+  Values and Aggregate Price after it [Help: `ind.pricing_use_the_discount_spread_service_element`];
+  the repo's default procedure follows it with aggregates. DDS can be used once per procedure
+  [Help: `ind.pricing_discount_distribution_service_limits`], and it can't share a procedure with Derived Price. When derived pricing is needed, put DDS in its own
   procedure and run both through a procedure plan with Procedure Plan Orchestration for Pricing on
   [Help: `ind.qocal_header_adjustments_overview`]. Element detail:
   `pricing-procedures/elements/discount-distribution-service.md`.
@@ -136,8 +138,9 @@ Both DDS steps ran, the default procedure's and then the plan's distribution pro
 measurement agrees: 10% on 5,240 gave 4,244.40, not 4,716 [Repo: `datasets/sfdmu/procedure-plans/README.md`].
 The repo builds the plan inactive and `skipOrgSttPricing` false, so a default build runs one DDS.
 If the plan must be active, follow `pricing-procedures/operations-and-troubleshooting.md` section 3:
-with `skipOrgSttPricing` off the plan re-runs other steps too (a price revision doubles), so the fix is
-not only a question of where DDS sits.
+with `skipOrgSttPricing` off the Revenue Settings default procedure re-runs after the plan (a price
+revision doubles) [Repo: `datasets/sfdmu/procedure-plans/README.md`], so the fix is not only a
+question of where DDS sits.
 
 ## 6. Configuring a bundle from a line
 
