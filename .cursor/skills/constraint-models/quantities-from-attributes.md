@@ -354,13 +354,13 @@ in front of it (step 1 below).
    breaks several rules, accept any of their messages and no other. The solver can reject
    the right case for a different reason. That is why every constraint in the worked
    example has its own message.
-6. **Expect a model-level rules error at activation, not at configure.** A model the solver can't
-   satisfy fails when the version is activated (`manage_expression_sets` reports the rule,
-   for example "couldn't find a solution … for the rule …", or "extra variables
-   [… FalseConstraint]"), and the version stays **inactive**. `configure` against an
-   inactive model then returns `success: true` with no messages, which looks like a pass
-   `[Measured: 2026-11-10, 264]`. Check the activation result before reading any
-   `configure` result.
+6. **Check the activation result before reading any `configure` result.** The two
+   rules above that the solver couldn't satisfy, an `int` equal to `ceil(<decimal>)` and
+   a `^` inside a constraint, failed when the version was activated
+   (`manage_expression_sets` reported "couldn't find a solution … for the rule …" and
+   "extra variables [… FalseConstraint]"), and the version stayed **inactive**.
+   `configure` against the inactive model then returned `success: true` with no messages,
+   which looks like a pass `[Measured: 2026-11-10, 264]`.
 
 `message(...)` output appears in `messages` as described under
 [Warnings that don't block](#warnings-that-dont-block) `[Measured: 2026-11-10, 264]`.
