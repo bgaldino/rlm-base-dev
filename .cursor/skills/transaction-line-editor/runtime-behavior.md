@@ -116,9 +116,9 @@ for this; Help rules out the column filter route and leaves the others unconfirm
 - **Select the lines by hand and bulk edit:** applies one value to every selected line
   [Help: `ind.qocal_view_and_edit_quotes`]; whether bundle children can be selected is not stated.
 
-Whether bulk edit, Move Selected Items, Group By or the STLE filters reach bundle child lines, and
-whether a group-row discount reaches children grouped apart from their root, are open (see the
-parent's Open list).
+Whether bulk edit, Move Selected Items, Group By or the STLE filters reach bundle child lines,
+whether a group-row discount reaches bundle child lines in that group, and whether a bundle's
+children can sit in a different group from their root are open (see the parent's Open list).
 Don't promise a one-step product-line discount inside a bundle in a demo until one is measured.
 A discount that must apply on every quote, not by a rep's hand, is a pricing question; see
 [`pricing-procedures`](../pricing-procedures/SKILL.md).
