@@ -159,8 +159,9 @@ Run these checks before treating an approval-flow change as ready:
   get them. On an org that already has the overlay, a rerun fails on a changed step and
   silently skips a changed existing variable. Change that org with a separate, uncommitted
   overlay that keeps `expressionSetApiName` and `versionApiName` from `approval_flags.json`
-  and holds only the change (`updateSteps` for a changed step; for a variable, see
-  `scripts/expression_sets/README.md`). Apply it with
+  and holds only the change: `updateSteps` for a changed step; for a changed variable, its
+  name in `removeVariables` and its new definition in `addVariables` (the task removes
+  before it adds, `tasks/rlm_expression_set_connect.py`). Apply it with
   `cci task run apply_approval_flags_overlay -o overlay_file <one-off.json> --org <cci_alias>`.
   Never add `updateSteps` for the overlay's own steps to the shipped file: on a fresh org
   those steps don't exist yet, so the task fails. Deactivate the context version before changing a
