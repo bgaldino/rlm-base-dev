@@ -19,23 +19,27 @@ the sale work. Parent: [asset-lifecycle-changes](SKILL.md).
 
 A source's change examples (for example contract changes C-1 to C-4 and a renewal R-1)
 usually act on the same assets, so test them as one dated sequence on one build, not each
-from a fresh asset. Help fixes the order:
+from a fresh asset. These Help rules constrain the order:
 
-- If an asset has a future-dated amend, renew or cancel transaction, you can't initiate a
-  transaction with an earlier start date [Help: `ind.qocal_amend_assets`, `ind.qocal_cancel_assets`].
 - You can't renew an asset that already has a future-dated renewal scheduled
   [Help: `ind.qocal_future_dated_order_amendments_important_considerations`].
 - A renewal before the scheduled renewal date overrides all future asset state periods,
   amendments and renewals, and a cancellation leaves the asset in a terminal state with no
   further amend, renew or cancel [Help: `ind.qocal_fdo_examples_of_amendment_types_and_results`].
 
-Run the examples in effective-date order, each through activation before the next. Any
-example that can't run in that order (dated before one already applied, or after a
-cancellation or early renewal of the same asset) becomes a decision for the plan: re-date
-it, give it its own asset, or drop it. *Future-Dated Changes* also says you can pick a date
-before an existing future asset state period [Help: `ind.qocal_future_dated_order_amendments`],
-which reads against the first rule; which applies is **Open**
+Help reads both ways on a change dated before one already scheduled. The amend and cancel
+articles say that if an asset has a future-dated amend, renew or cancel transaction, you
+can't initiate a transaction with an earlier start date [Help: `ind.qocal_amend_assets`,
+`ind.qocal_cancel_assets`]. *Future-Dated Changes* says you can pick a date before an
+existing future asset state period [Help: `ind.qocal_future_dated_order_amendments`], and
+its examples add licenses on May 1 "even though you scheduled 5 more licenses for June 1"
+[Help: `ind.qocal_fdo_examples_of_amendment_types_and_results`]. Which applies is **Open**
 ([verification.md](verification.md) → Open).
+
+Run the examples in effective-date order, each through activation before the next; that
+order is safe under either reading. Any example that can't run in that order (dated before
+a change already applied, or after a cancellation or early renewal of the same asset)
+becomes a decision for the plan: re-date it, give it its own asset, or drop it.
 
 ## Questions to settle in the plan
 

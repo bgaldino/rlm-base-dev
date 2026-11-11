@@ -74,6 +74,8 @@ The Standard price book gave the same results.
 - **Changing a bundle root's sizing attribute on an amendment:** do the children's
   quantities re-derive through CML, and at what price?
 - **An earlier-dated change against a future-dated one:** the amend and cancel articles
-  refuse it, while *Future-Dated Changes* lets you pick a date before an existing future
-  asset state period ([change-policy-mapping.md](change-policy-mapping.md) → Replay the
-  source's changes in date order).
+  say it's refused, while *Future-Dated Changes* and its examples allow it
+  ([change-policy-mapping.md](change-policy-mapping.md) → Replay the source's changes in
+  date order). The repo's group-ramp runs changed assets before a ramp segment's future
+  state period, which comes from the ramp schedule rather than a future-dated transaction,
+  so they don't settle it [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`].
