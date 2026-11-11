@@ -74,7 +74,8 @@ class LaunchChecks(unittest.TestCase):
     def test_clean_baseline_without_site_packages(self):
         result = self.cli()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        for label in ("skill discovery metadata", "native skill links", "root instruction budget", "skill navigation links"):
+        for label in ("skill discovery metadata", "native skill links", "skill index parity", "root instruction budget",
+                      "skill navigation links"):
             self.assertIn("[PASS] " + label, result.stdout)
 
     def test_missing_and_invalid_metadata(self):
@@ -234,10 +235,16 @@ class LaunchChecks(unittest.TestCase):
         agents.write_text("# Guide\n")
         self.assertIn("no '## AI Agent Skill Index' section", analyzer.check_skill_index_parity(self.root).detail)
         agents.write_text("## AI Agent Skill Index\n\n- `cci-orchestration`\n")
-        router.write_text("## Skill Router\n\n| Run | CCI | `cci-orchestration/SKILL.md` |\n")
-        result = analyzer.check_skill_index_parity(self.root)
-        self.assertFalse(result.ok)
-        self.assertIn("router is missing ['cci-orchestration']", result.detail)
+        # A link outside the router section, or in a fence, is not a router row.
+        for text in ("## Skill Router\n\n| Run | CCI | `cci-orchestration/SKILL.md` |\n",
+                     "## Start here\n\n[CCI](cci-orchestration/SKILL.md)\n\n## Skill Router\n\n| none |\n",
+                     "## Skill Router\n\n| none |\n\n## File-Specific Rules\n\n[CCI](cci-orchestration/SKILL.md)\n",
+                     "## Skill Router\n\n```\n[CCI](cci-orchestration/SKILL.md)\n```\n",
+                     "[CCI](cci-orchestration/SKILL.md)\n"):
+            router.write_text(text)
+            result = analyzer.check_skill_index_parity(self.root)
+            self.assertFalse(result.ok, text)
+            self.assertIn("router is missing ['cci-orchestration']", result.detail)
 
     def test_index_parity_empty_inventory_is_not_success(self):
         empty = self.root / "empty"
@@ -465,6 +472,7 @@ class LaunchChecks(unittest.TestCase):
         p = self.root / "README.md"
         for path, content, label in [(self.skill, "# no metadata", "skill discovery metadata"),
                                      (p, "[bad](missing.md)", "skill navigation links"),
+                                     (self.root / "AGENTS.md", "## AI Agent Skill Index\n\n- none\n", "skill index parity"),
                                      (self.root / "AGENTS.md", "x" * 25001, "root instruction budget")]:
             before = path.read_text()
             path.write_text(content)

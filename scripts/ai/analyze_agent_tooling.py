@@ -910,9 +910,23 @@ def agents_index_tokens(agents_text: str) -> list[str] | None:
     return [token.strip() for token in re.findall(r"`([^`\n]+)`", "\n".join(items))]
 
 
+SKILL_ROUTER_HEADING_RE = re.compile(r"^## Skill Router[ \t]*$", re.MULTILINE)
+
+
 def router_skill_names(router_text: str) -> set[str]:
-    """Skills the README router links to as `<name>/SKILL.md`."""
-    return set(re.findall(r"\]\(([a-z0-9][a-z0-9-]*)/SKILL\.md\)", router_text))
+    """Skills linked as `<name>/SKILL.md` in the README's `## Skill Router` section.
+
+    Links elsewhere in the README (prose, the File-Specific Rules table) and in fenced
+    code do not count, so deleting a skill's router row cannot pass on a stray link.
+    """
+    text = strip_fenced_code(router_text)
+    heading = SKILL_ROUTER_HEADING_RE.search(text)
+    if heading is None:
+        return set()
+    body = text[heading.end():]
+    next_heading = re.search(r"^## ", body, re.MULTILINE)
+    section = body[:next_heading.start()] if next_heading else body
+    return set(re.findall(r"\]\(([a-z0-9][a-z0-9-]*)/SKILL\.md\)", section))
 
 
 def check_skill_index_parity(root: Path) -> CheckResult:

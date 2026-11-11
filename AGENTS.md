@@ -274,7 +274,7 @@ Verification and class sweeps remain the agent's job.
 
 ## AI Agent Skill Index
 
-Skills are plain-markdown guides at `.cursor/skills/<name>/SKILL.md`, readable by any agent.
+Skills are plain-markdown guides, one `SKILL.md` per directory under `.cursor/skills/`, readable by any agent.
 **Pick one by task in the router, [`.cursor/skills/README.md`](.cursor/skills/README.md)**
 ("I need to…" → skill), or by its `description`; read it before using its tools. Every
 top-level skill, by area:
