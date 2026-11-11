@@ -72,7 +72,7 @@ CML must name each member.
 counts **distinct components** a buyer may pick from the group. Blank min = 0, blank
 max = unlimited; max ≥ min. With nested groups, only the **lowest-level** group's
 cardinality is enforced at run time; a parent group's limits count child groups for
-validation. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_catalog_cardinality_examples.htm`]
+validation. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_catalog_cardinality_examples.htm`; `ind.product_catalog_bundled_product_validations.htm`]
 
 **Local cardinality** (`ProductRelatedComponent`) is per component:
 
