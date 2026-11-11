@@ -16,6 +16,11 @@ Read this when a plan splits the build across sessions. Parent:
 - **Integration org.** Gates count only here. The main session loads each finished
   piece onto it and runs that piece's gate.
 
+**A private pack's files live in the pack's repo,** not in the Foundations checkout.
+Sessions own folders there. CCI still runs from the Foundations root, with explicit
+paths into the pack, and the main session commits only in the pack's repo until
+promotion.
+
 Dependencies decide what runs in parallel. A typical chain:
 
 ```text

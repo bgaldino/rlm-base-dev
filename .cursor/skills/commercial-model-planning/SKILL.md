@@ -34,15 +34,16 @@ files can use it.
 3. **Decide each rule's knowledge source explicitly.** A repo skill or the
    `docs/salesforce/<release>/` snapshot settles it, or a live org must. Having no
    skill is a gap to record, not a reason for a live spike. Use the
-   rule in [knowledge-sources.md](knowledge-sources.md), and record the decision per
-   rule in the plan.
+   rule in [knowledge-sources.md](knowledge-sources.md): the per-area table holds the
+   evidence, and the per-rule decision record holds each rule's decision.
 4. **Spike live only what the repo can't answer.** A live spike is for a corpus that
    is silent, a repo measurement that differs from the docs, numbers across the
    asset lifecycle, or docs that disagree. Everything else is modeled directly and
    proved at its build gate.
 5. **Golden tests come from the source's own worked examples.** Every expected value
    traces to a cell, a page or a sentence in the source. Recompute calculated values
-   from inputs (formula parity) before trusting them.
+   from inputs (formula parity), then run every worked example through every rule
+   (cross-rule parity) before trusting them.
 6. **Test past the first placement.** Reprice, order, amend and renew, and read
    attributes as well as prices. A price that is right once can still drift.
 7. **Name the skills each phase reads, and the gaps.** Each phase lists its skills;
@@ -73,6 +74,9 @@ files can use it.
   instead ([session-orchestration.md](session-orchestration.md)).
 - **DO NOT** let a test pass on configuration with rules off. Place quotes with
   configuration rules on, and assert each rejection's own message.
+- **DO NOT** plan lifecycle examples in an order the platform refuses. Replay them as a
+  dated sequence first; a change dated before an existing later change can't be
+  initiated (`asset-lifecycle-changes`).
 
 ## Entry Conditions
 
@@ -85,6 +89,8 @@ files can use it.
 | Building pricing the plan describes | No | `pricing-setup`, `pricing-procedures`, `pricing-wiring`, `expression-sets` |
 | Building configuration rules, or sizing quantities from answers | No | `constraint-models` → `quantities-from-attributes.md` |
 | Building the approval matrix | No | `advanced-approvals` |
+| Bid rounds as quote versions | No | `quote-negotiation-rounds` |
+| Billing frequency, treatments, milestones, payment terms | No | `billing-setup` |
 | Amend, swap, cancel and renew rules and their numbers | No | `asset-lifecycle-changes` |
 | Configuring the line editor the rep uses | No | `transaction-line-editor` |
 | Answering one product question ("does Revenue Cloud support X?") | No | `revenue-cloud-docs`, then a live check if pre-GA |
@@ -143,7 +149,8 @@ the request already answers, and say what you assumed instead.
 - **Number the rules.** A rule is one behaviour the source states and that can be
   tested on its own: a sizing rule, a discount program, a policy, an approval trigger,
   a change type. Use the source's own IDs where it has them (SR-01, P-03); otherwise
-  give each one an ID in the inventory. The mapping, the knowledge-source table and the
+  give each one an ID. The register goes in the plan's section 3.0
+  ([plan-template.md](plan-template.md)). The mapping, the rule decision record and the
   golden tests all refer to these IDs, so the counts agree.
 
 ### 3. Map each concept to Revenue Cloud
@@ -152,14 +159,21 @@ Use [concept-map.md](concept-map.md). For every concept, write the feature to tr
 and the skill that covers it, and keep the source's own numbers next to it. Order
 matters as much as the features do: write down the source's order of application and
 where it rounds. Some sources round once at the end; a pricing procedure may round at
-each step.
+each step, and most elements don't round at all
+(`pricing-procedures` → `elements/rounding-values.md`). Decide where each Rounding
+Values step sits, and add a golden case off the source's own examples that would show a
+missing one.
 
 ### 4. Decide each rule's knowledge source
 
 Use [knowledge-sources.md](knowledge-sources.md). Run the coverage sweep, then apply the
-decision rule. The plan gets a table with one row per area: the skills, the snapshot
-articles, prior measured knowledge, the source that decides, and why. Rules that need a
-live org become spikes, each with the source value it must hit.
+decision rule. The plan gets two records:
+- **Per area, the evidence:** the skills, the snapshot articles, prior measured
+  knowledge, the source that decides, and why.
+- **Per rule, the decision:** which source decides each rule. A rule can carry two
+  decisions, for example **Repo** on a new sale and **Live (c)** on an amendment.
+
+Rules that need a live org become spikes, each with the source value it must hit.
 
 ### 5. Golden tests
 
@@ -171,6 +185,13 @@ live org become spikes, each with the source value it must hit.
   allowed: mark it **derived** and cite the rule's cells.
 - Recompute calculated values from inputs and match them to the source's own results
   (formula parity). A mis-read rule fails here instead of in the org.
+- **Cross-rule parity.** Run each worked example through every rule in the register,
+  not only its own formula: guards, dependencies and thresholds. A source's summary
+  formulas often skip a rule its policy text states (a per-line floor-margin guard, a
+  never-below-cost rule). Each violation is a decision, not a silent choice.
+- **Replay lifecycle examples in date order,** with configuration rules on and the
+  platform's ordering rule applied (`asset-lifecycle-changes`). An example that can't
+  run in date order, or that breaks a sizing rule, is a decision.
 - Where the source and Revenue Cloud measure different things, write the mapping into
   the test rather than forcing equality. Example: a monthly plan the source counts
   for the contract term "for comparison only".
@@ -192,12 +213,13 @@ Decide how the finished build is loaded again on a new org, and write it into th
 plan:
 - **Overlay pack (private first):** one folder outside the public tree holding the
   build's data plans, constraint models, procedure overlays and metadata, with a
-  `pack.yml` that lists its steps, side effects and gates. A loader script runs
-  Foundations' own CCI tasks on it with explicit paths, onto a base build.
-    - Deploy metadata from a temporary copy: `sf` ignores paths under a dot-folder
-      relative to the project root, and a deploy from there reports success with an
-      empty package.
-    - After every deploy, check the org for the components.
+  manifest that lists its steps, side effects and gates. A loader runs Foundations'
+  own CCI tasks on it with explicit paths, onto a base build.
+    - The repo ships no pack format or loader. The first build writes them; plan that
+      as part of the pack phase, not as existing tooling.
+    - After every deploy, query the org for the components. A prior build saw a deploy
+      from a path the project ignored (under a dot-folder) report success with an empty
+      package; deploying from a temporary copy avoided it.
 - **Feature flag (public):** the same content under `datasets/`, `unpackaged/` and
   `cumulusci.yml`, behind a flag (`repo-integration`, `cci-orchestration`).
 - **Flow or task only:** when the build is small enough to live in one task.
@@ -246,15 +268,20 @@ Cloud do this?" is this skill, starting with the intake questions.
 
 Before presenting the plan:
 
-- Every skill named in the plan exists:
+- Every skill named in the plan exists (this skill may still be on an unmerged
+  branch while it is being tested):
 
   ```bash
-  ls .cursor/skills/<name>/SKILL.md
+  grep -oE '`[a-z0-9-]+` → `[^`]+\.md`' plan.md | sort -u   # each skill → sub-file pair
+  ls .cursor/skills/<name>/SKILL.md .cursor/skills/<name>/<sub-file>.md
   ```
 
 - Every sub-file named exists under its skill.
 - Every snapshot article cited exists under `docs/salesforce/<release>/`.
-- Every golden value cites its place in the source, and the parity check passed.
+- Every golden value cites its place in the source, and both the formula and the
+  cross-rule parity checks passed.
+- Rule IDs and counts agree across the register, the rule decision record and the
+  golden tests.
 - Every area has a knowledge-source row, and every live spike has a value it must hit.
 - Every decision is marked decided (with a date) or recommended (with the alternative).
 - Nothing in a public file names customer, brand or third-party commercial data.

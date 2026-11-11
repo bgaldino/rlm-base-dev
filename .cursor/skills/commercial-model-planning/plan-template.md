@@ -36,6 +36,10 @@ changes). Note who has to answer it: the source's owner or the build's owner.
 
 ## 3. Architecture: source mapped to Revenue Cloud
 
+- **3.0 Source inventory and rule register,** first: the inventory's counts (tabs,
+  named ranges, formulas, validations; or products and pages) and one row per rule
+  with its ID, its place in the source, and its area. Every later section refers to
+  these IDs.
 - **Approach,** stated once. Native first, with a recorded fallback per rule, unless
   the user chose otherwise.
 - **One subsection per area:**
@@ -45,10 +49,13 @@ changes). Note who has to answer it: the source's owner or the build's owner.
     - cost and margin
     - negotiation and approvals
     - lifecycle changes
+    - billing
     - extraction
 - Each subsection keeps the source's own numbers and its order of application.
-- **Rule decision record:** a table filled in as spikes and gates finish, with columns
-  rule | decided by | native feature | exact vs source? | path taken | evidence.
+- **Rule decision record:** one row per rule ID, with columns
+  rule | decided by | native feature | exact vs source? | path taken | evidence. The
+  "decided by" column is set at planning time (a rule may carry two, such as new sale
+  vs amendment); the last three are filled in as spikes and gates finish.
 - **Knowledge source per area:** the table from
   [knowledge-sources.md](knowledge-sources.md), with the decision rule stated above it.
 
@@ -58,7 +65,10 @@ changes). Note who has to answer it: the source's owner or the build's owner.
 |---|---|---|---|
 
 Always include a **Reprice** set (price again, then order, then amend) and an
-**Attributes** set (attributes unchanged through each step).
+**Attributes** set (attributes unchanged through each step). Include each attribute's
+minimum and maximum, every option the source allows that its worked examples don't
+use, and a check for anything the source marks internal-only (for example a round
+that must never be presented).
 
 ## 5. Phases, gates, skills
 
@@ -113,7 +123,12 @@ Then list **extensions to existing skills** separately.
 ## Self-review checklist
 
 - [ ] No placeholder text, "TBD" or empty required section.
-- [ ] Every number traces to the source, and calculated ones passed parity.
+- [ ] Every number traces to the source, and calculated ones passed formula parity.
+- [ ] Every worked example was run through every rule (cross-rule parity), and each
+  violation is a decision.
+- [ ] Lifecycle examples run in date order with rules on, or the order is a decision.
+- [ ] Rule IDs and counts agree across the register, the decision record and the
+  golden tests.
 - [ ] Every rule in the source appears in the mapping, or is listed as out of scope by
   decision.
 - [ ] Every area has a knowledge-source row; every live spike has a must-hit value

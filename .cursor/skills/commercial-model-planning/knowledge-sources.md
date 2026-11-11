@@ -15,6 +15,11 @@ live org. Parent: [commercial-model-planning](SKILL.md).
 snapshot coverage is decided by the snapshot. Record it as a skill gap, not as a live
 spike. Model the rule directly; its build gate proves it.
 
+**A skill's `[inferred]` claim is a hypothesis,** not a measured fact. Its build gate
+decides it, unless it predicts that shipped behaviour is wrong for the rule (for
+example a shipped formula that overstates margin on multi-year lines). Then it is
+trigger (b).
+
 **A live org decides** when one of these holds:
 
 | Trigger | Typical cases |
@@ -37,10 +42,12 @@ Count coverage per area before deciding. From the repo root, for the release in
 R=docs/salesforce/<release>
 cover() {  # cover <label> <extended regex, use \b word boundaries>
   h=$(grep -rliE "$2" $R/help/articles | wc -l | tr -d ' ')
-  d=$(grep -rliE "$2" $R/dev-guide* | wc -l | tr -d ' ')
+  d=""; for c in $R/dev-guide*; do  # dev-guide, dev-guide-contracts, dev-guide-industries
+    d="$d ${c##*/}=$(grep -rliE "$2" "$c" | wc -l | tr -d ' ')"; done
+  a=$(grep -rliE "$2" $R/help/articles | head -3 | sed -E 's#.*/##; s#\.htm\.md$##' | tr '\n' ' ')
   s=$(grep -rliE "$2" .cursor/skills --exclude-dir=commercial-model-planning --exclude=README.md \
       | sed -E 's#^\.cursor/skills/##' | tr '\n' ' ')
-  printf "%-22s help=%-4s dev=%-4s files: %s\n" "$1" "$h" "$d" "$s"
+  printf "%-22s help=%-4s%s\n    first help: %s\n    files: %s\n" "$1" "$h" "$d" "$a" "$s"
 }
 cover cost-book "\bcost books?\b"
 cover volume-tier "\bvolume tiers?\b|\btier(ed)? (pricing|adjustments?)\b"
