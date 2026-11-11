@@ -82,10 +82,10 @@ state on `ApprovalSubmission` and `ApprovalWorkItem`; this field mirrors it for 
 | All required steps approved, or no approval needed | Orchestration stage `Update_Quote_Status_to_Approved` | `Approved` |
 | Any step rejected | Orchestration stage `Update_Quote_Status_to_Rejected` | `Rejected` |
 | Submission recalled (`recallApprovalSubmission`) | `RLM_AA_Reset_Quote_Status` | `Recalled` |
-| Submission canceled (`cancelApprovalSubmission`) | `RLM_AA_Reset_Quote_Status` | blank (the pre-submission value) |
+| Submission canceled (`cancelApprovalSubmission`) | `RLM_AA_Reset_Quote_Status` | blank |
 
-Recall and cancel end the orchestration without running any of its stages, so the
-orchestration can't set the field itself. `RLM_AA_Reset_Quote_Status` is a
+`RLM_Quote_Smart_Approval` has no recall path and nothing that runs on cancel, so it
+doesn't set the field on either. `RLM_AA_Reset_Quote_Status` is a
 record-triggered flow (after save, on update) on `ApprovalSubmission`. It runs when
 `Status` changes to `Recalled` or `Canceled` and `RelatedRecordObjectName = 'Quote'`,
 and updates the related quote.

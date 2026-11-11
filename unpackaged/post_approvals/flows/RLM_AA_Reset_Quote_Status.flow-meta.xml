@@ -27,7 +27,7 @@
             <label>Recalled</label>
         </rules>
     </decisions>
-    <description>Advanced Approvals has no built-in effect on custom status fields when a submission is recalled or canceled, and the RLM_Quote_Smart_Approval orchestration has no recall path, so Quote.RLM_Approval_Status__c would stay Pending. This record-triggered flow on ApprovalSubmission resets it: Recalled sets the quote to Recalled; Canceled clears it to its pre-submission (blank) value. Kept outside the orchestration so the orchestration's structure, and its Smart Approvals eligibility, are unchanged.</description>
+    <description>Advanced Approvals has no built-in effect on custom status fields when a submission is recalled or canceled, and the RLM_Quote_Smart_Approval orchestration has no recall path, so Quote.RLM_Approval_Status__c would stay Pending. This record-triggered flow on ApprovalSubmission resets it: Recalled sets the quote to Recalled; Canceled clears it. Kept outside the orchestration so the orchestration's structure, and its Smart Approvals eligibility, are unchanged.</description>
     <environments>Default</environments>
     <interviewLabel>RLM AA Reset Quote Status {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM AA Reset Quote Status</label>
