@@ -111,6 +111,14 @@ An org's lifetime is the `--days` passed to `cci org scratch <shape> <alias> --d
 - A failed run keeps its org for `resume`, but resume works only while the org exists: `execution.py::org_exists` runs `cci org info <alias>` with a 30-second timeout, and resume reports `resume_blocked` with target `org_missing` when that command exits non-zero or times out. Do not check an expired org by hand with `cci org info`: CumulusCI's `check_org_expired` (`cumulusci/cli/runtime.py`) recreates an expired scratch org under the same alias, with the same `days`, so you get a new, unbuilt org instead of an error. The harness probe can start that recreation too before its timeout kills it.
 - The TUI rejects days outside 1–30 (`tui/app.py::_validate_alias_and_days`); the harness CLI applies no range check to a scenario's `days`.
 
+### Run several builds at once
+
+Concurrent harness runs are supported for Robot output only. Give each `run` its own `--run-id` (`run` refuses an existing run directory). The org alias is the scenario's `org_alias_prefix` plus the run id's **last 12 characters** (`config.py::alias_for_scenario`), so two runs of the same scenario need ids that differ in that tail. Starting two runs without `--run-id` in the same second can pick the same generated id.
+
+Each workspace copies `robot/` and links `robot/rlm-base/results` to that run's own `robot_results/` folder, so Robot-backed steps no longer share `output.xml`. Before this, overlapping runs corrupted it and passing steps failed with exit 252 (`ParseError: not well-formed`), seen on `enable_document_builder_toggle` and `reorder_app_launcher`.
+
+Other build steps still write into folders the workspace links to the shared repo, so overlapping runs can still collide there. Not isolated yet: SFDMU loads (`tasks/rlm_sfdmu.py` rewrites the plan's `export.json` with the target org and restores it), the `.forceignore` edit in `tasks/rlm_cleanup_settings.py`, the network and payments site XML patch/revert in `tasks/rlm_community.py`, and UX assembly output in `unpackaged/post_ux/` (`tasks/rlm_ux_assembly.py`).
+
 ### Resume a failed scenario
 
 ```bash
@@ -169,6 +177,7 @@ CLI harness runs:
 - `.harness/runs/<run_id>/scenarios/<scenario_id>/checkpoint.json`
 - `.harness/runs/<run_id>/scenarios/<scenario_id>/build_provenance.json`
 - `.harness/runs/<run_id>/scenarios/<scenario_id>/scenario.log`
+- `.harness/runs/<run_id>/scenarios/<scenario_id>/robot_results/` - Robot `output.xml`, `log.html` and `report.html` of the scenario's last Robot-backed step
 
 TUI runs, when `persistent_logging` is enabled:
 
@@ -311,7 +320,7 @@ exported them.
 
 ### Scenario workspaces
 
-`prepare_scenario_project_root` creates a temporary `cci_project/` under a run-scoped directory (CLI scenario run dirs, or TUI workspace dirs under `.harness/tui-runs/`). It symlinks most repo entries, copies `scripts/`, and writes a generated `cumulusci.yml` with scenario/effective flags. The cleanup guard refuses to delete paths not named `cci_project`.
+`prepare_scenario_project_root` creates a temporary `cci_project/` under a run-scoped directory (CLI scenario run dirs, or TUI workspace dirs under `.harness/tui-runs/`). It symlinks most repo entries, copies `scripts/` and `robot/`, and writes a generated `cumulusci.yml` with scenario/effective flags. The `robot/` copy leaves out the repo's `robot/rlm-base/results/` and links that path to `robot_results/` beside `cci_project/`, so Robot logs are private to the run and outlive workspace cleanup and the clean rebuild on resume. The cleanup guard refuses to delete paths not named `cci_project`.
 
 ### Tests to extend
 

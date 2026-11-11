@@ -216,7 +216,9 @@ _SCENARIO_CCI_BANNER = (
     "# .harness/ (.harness/runs/<run-id>/... for the CLI, .harness/tui-runs/...\n"
     "# for the TUI), at scenarios/<scenario-id>/cci_project/. The workspace is\n"
     "# removed when the run completes successfully and retained on failure (and\n"
-    "# for resumable runs) so the artifacts can be inspected.\n"
+    "# for resumable runs) so the artifacts can be inspected. Robot output\n"
+    "# (robot/rlm-base/results) is a link to robot_results/ beside this\n"
+    "# workspace, which is kept in either case.\n"
     "#\n"
     "# Differences from the source cumulusci.yml that are EXPECTED:\n"
     "# - YAML anchors (&name / *name) are inlined as their resolved values.\n"
@@ -229,6 +231,38 @@ _SCENARIO_CCI_BANNER = (
 )
 
 
+# Every Robot-backed CCI task writes to ``<project root>/robot/rlm-base/results``
+# (the ``outputdir`` option in cumulusci.yml and each wrapper's
+# DEFAULT_OUTPUT_DIR). When ``robot/`` was a symlink to the shared repo, two
+# concurrent harness runs wrote the same output.xml, which corrupted it and
+# failed the step with exit 252 although its tests had passed.
+ROBOT_RESULTS_RELPATH = Path("rlm-base") / "results"
+ROBOT_RESULTS_DIRNAME = "robot_results"
+
+
+def _copy_robot_tree(source: Path, destination: Path, results_dir: Path) -> None:
+    """Copy ``robot/`` into a workspace and give it this run's own results folder.
+
+    The repo's ``robot/rlm-base/results`` (untracked, often 100MB+ of old logs)
+    is not copied. Instead ``destination/rlm-base/results`` is a symlink to
+    ``results_dir``, a sibling of ``cci_project/``, so Robot output is private
+    to the run and survives workspace cleanup and the clean rebuild on resume.
+    """
+    source_results = source / ROBOT_RESULTS_RELPATH
+
+    def _ignore(directory: str, names: List[str]) -> List[str]:
+        ignored = [name for name in names if name == "__pycache__"]
+        if Path(directory) == source_results.parent and source_results.name in names:
+            ignored.append(source_results.name)
+        return ignored
+
+    shutil.copytree(source, destination, ignore=_ignore)
+    ensure_dir(results_dir)
+    link = destination / ROBOT_RESULTS_RELPATH
+    ensure_dir(link.parent)
+    os.symlink(results_dir, link, target_is_directory=True)
+
+
 def prepare_scenario_project_root(
     root: Path,
     scenario_dir: Path,
@@ -238,8 +272,10 @@ def prepare_scenario_project_root(
     """Materialize a per-scenario cci_project workspace.
 
     Every entry in ``root`` is symlinked into the workspace except for
-    ``cumulusci.yml`` (which gets rewritten with this scenario's overrides)
-    and ``scripts/`` (which is *copied* — see comment below). The rewritten
+    ``cumulusci.yml`` (which gets rewritten with this scenario's overrides),
+    ``scripts/`` (which is *copied* — see comment below) and ``robot/``
+    (copied without its results folder, which is pointed at a per-run
+    ``robot_results/`` beside the workspace — see ``_copy_robot_tree``). The rewritten
     ``cumulusci.yml`` carries a banner header so an operator inspecting the
     file inside the per-run workspace (``.harness/runs/...`` for the CLI or
     ``.harness/tui-runs/...`` for the TUI) knows it is generated and where to
@@ -267,6 +303,9 @@ def prepare_scenario_project_root(
             # scripts/ is a full copy (not a symlink) for path isolation, so a
             # resumed run picks up any script changes made since the prior run.
             shutil.copytree(item, destination)
+            continue
+        if item.name == "robot" and item.is_dir():
+            _copy_robot_tree(item, destination, scenario_dir / ROBOT_RESULTS_DIRNAME)
             continue
         os.symlink(item, destination, target_is_directory=item.is_dir())
 
