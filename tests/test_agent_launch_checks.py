@@ -206,7 +206,7 @@ class LaunchChecks(unittest.TestCase):
         agents.write_text("## AI Agent Skill Index\n\n- **Builds:** `AGENTS.md`,\n  `cci-orchestration`\n")
         self.assertTrue(analyzer.check_skill_index_parity(self.root).ok)
         # A renamed or deleted skill, a missing sub-file, or a missing repo path is stale.
-        for stale in ("deleted-skill", "cci-orchestration/gone.md", "docker/README.md"):
+        for stale in ("deleted-skill", "cci-orchestration/gone.md", "nowhere/README.md"):
             agents.write_text(f"## AI Agent Skill Index\n\n- `cci-orchestration`, `{stale}`\n")
             result = analyzer.check_skill_index_parity(self.root)
             self.assertFalse(result.ok, stale)

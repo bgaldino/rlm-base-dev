@@ -44,8 +44,8 @@ For contributions, follow [CONTRIBUTING.md](../CONTRIBUTING.md).
      and release enablement.
    - Despite the historical `.cursor` path, these are plain Markdown skills for
      any agent that can read repository files.
-   - Use the Skill Index in `AGENTS.md` or `.cursor/skills/README.md` to choose
-     the relevant entry point.
+   - Pick a skill by task in the router, `.cursor/skills/README.md`; the
+     `AGENTS.md` Skill Index lists every skill by area.
    - `.agents/skills/<name>` and `.claude/skills/<name>` are relative directory
      links to that same content for native client discovery. See the
      [discovery guide](../docs/guides/agent-skill-discovery.md) for tested

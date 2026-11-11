@@ -137,7 +137,8 @@ Two check modes:
   (code spans in list items, and the indented lines they wrap onto, of the
   `## AI Agent Skill Index` section, before the next heading of any level and outside
   fenced code), when that index names a skill or path that does not exist,
-  or when a skill has no `[...](<name>/SKILL.md)` router link in `.cursor/skills/README.md`. Stage
+  or when a skill has no `[...](<name>/SKILL.md)` link in the `## Skill Router` section of
+  `.cursor/skills/README.md` (outside fenced code). Stage
   new adapter links before running the check. Symlink-less copies can use the
   documented plain-file consumption fallback, but cannot pass native-link validation.
 
