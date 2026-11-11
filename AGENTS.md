@@ -117,26 +117,17 @@ changes from v4.
 - Use `;` delimiters: `Field1;Field2` (NOT `$$Field1$Field2`)
 - `$$` columns in CSVs are valid for Upsert target-record matching
 
-### v5 Bugs — one live on the 5.6.4 floor, four fixed upstream
+### v5 Bugs — only Bug 4 is live on the 5.6.4 floor
 
-Because **v5.6.4 is the enforced floor** (see the tech-stack note above), the
-historical Upsert-matching bugs are fixed upstream and **only Bug 4 is still
-live**. On a 5.6.4+ plugin, **do not** introduce `operation: Insert` +
-`deleteOldData: true` citing Bugs 1/2/3/5 — Upsert works. Existing plans that
-still carry that pattern are pre-5.6.4 workarounds; migrating them back to Upsert
-is the separate, gated `sfdmu-v5-optimization` initiative (needs live
-verification + explicit per-operation approval — do not flip operations ad hoc;
-see the CRITICAL rule below).
+On 5.6.4+, Upsert works: **do not** introduce `operation: Insert` + `deleteOldData: true`
+citing the fixed Bugs 1/2/3/5. Plans still carrying that pattern migrate only through the
+gated `sfdmu-v5-optimization` initiative (live verification + per-operation approval).
 
-**Bug 4 — a `$$` lookup column that doesn't match its parent's key (STILL PRESENT, 5.8.0)**
-A `$$` lookup column (e.g. `Pricebook2.$$Name$IsStandard`) resolves only when its parts
-are exactly the parent's `externalId` in the same pass. Self-references
-(`ParentGroup.$$Code$ParentProduct.StockKeepingUnit`) and differently keyed parents fail.
-**Fix:** a single-field reference (`ParentGroup.Code`), or key the parent on those parts.
-`scripts/ai/check_sfdmu_layering.py` flags it.
-
-Historical Bugs 1/2/3/5 and their fixed versions are documented in
-`.cursor/skills/sfdmu-data-plans/SKILL.md` → **v5 Bugs**.
+**Bug 4 (still present, 5.8.0):** a `$$` lookup column (e.g. `Pricebook2.$$Name$IsStandard`)
+resolves only when its parts are exactly the parent's `externalId` in the same pass;
+self-references and differently keyed parents fail. **Fix:** a single-field reference
+(`ParentGroup.Code`), or key the parent on those parts. `scripts/ai/check_sfdmu_layering.py`
+flags it. History and fixed versions: `.cursor/skills/sfdmu-data-plans/SKILL.md` → **v5 Bugs**.
 
 ### CRITICAL — Insert + deleteOldData requires explicit approval
 
@@ -274,103 +265,53 @@ review round with zero unresolved threads.**
 5. Verify zero unresolved threads across **all pages**, not just the first 100.
    Only then request the next review.
 
-Use `python scripts/ai/pr_review.py`: `status <pr>` lists paginated threads;
-`handle <pr> --comment <id> --body "…"` replies, reacts and resolves;
-`verify <pr>` fails if any remain. Use `--no-react` when refuting a false
-positive and `--repo owner/name` to override the current repo. The
-`/pr-review <pr>` Claude command drives the same workflow. Verification and
-class sweeps remain the agent's job. Manual REST/GraphQL commands and pagination:
+Use `python scripts/ai/pr_review.py` (`status` / `handle` / `verify`) or the `/pr-review <pr>`
+command; options, manual REST/GraphQL and pagination are in the
 [review procedures](.cursor/skills/audit-review/merge-and-review-procedures.md#responding-to-automated-pr-reviews).
+Verification and class sweeps remain the agent's job.
 
 ---
 
 ## AI Agent Skill Index
 
-Skills are detailed guides for specific tasks. They live in
-`.cursor/skills/` but are **plain markdown** — readable by any agent,
-not Cursor-specific. Read the skill file when you need guidance on
-that topic.
+Skills are plain-markdown guides, one `SKILL.md` per directory under `.cursor/skills/`, readable by any agent.
+**Pick one by task in the router, [`.cursor/skills/README.md`](.cursor/skills/README.md)**
+("I need to…" → skill), or by its `description`; read it before using its tools. Every
+top-level skill, by area:
 
-| I need to... | Skill File (relative to repo root) |
-|-------------|-------------------------------------|
-| Set up / replicate / update the local dev toolchain | `.cursor/skills/toolchain/SKILL.md` |
-| Run the containerized toolchain (Docker image + `rlm` wrapper + devcontainer) | `docker/README.md` |
-| Add new features, code placement | `.cursor/skills/repo-integration/SKILL.md` |
-| CCI tasks, flows, CLI; org cleanup | `.cursor/skills/cci-orchestration/SKILL.md` |
-| Set up pricing; routes to repo pricing wiring | `.cursor/skills/pricing-setup/SKILL.md` |
-| Author/CRUD Expression Sets via Connect/Metadata API; build step overlays | `.cursor/skills/expression-sets/SKILL.md` |
-| Configure **pricing elements** + ordering (Aggregate, Price Revision, discounts) | `.cursor/skills/pricing-procedures/SKILL.md` |
-| Edit/ship/debug **Constraint models** (CML) — configurator bundle rules, `.ffxblob`, why a model change does not take effect | `.cursor/skills/constraint-models/SKILL.md` |
-| Read/extend/apply/deploy/upgrade Context Definitions (Context Service); inspect/validate context plans | `.cursor/skills/context-service/SKILL.md` |
-| Inspect/author/manage, refresh, diagnose, or verify **decision tables**; wire automatic refresh at the right moment | `.cursor/skills/decision-tables/SKILL.md` |
-| Find, claim, or close a durable **todo** across workstations and agents (`/rlm-todos`) | `.cursor/skills/todo-tracker/SKILL.md` |
-| Run build harness workflows | `.cursor/skills/build-harness/SKILL.md` |
-| Build a PDE (or other org type) via runtime-only feature-flag overrides | `.cursor/skills/pde-org-build/SKILL.md` |
-| Write a Python CCI task class | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
-| Create/modify SFDMU data plans | `.cursor/skills/sfdmu-data-plans/SKILL.md` |
-| Maintain the In-App Learning framework (`inapp` integration) | `.cursor/skills/inapp-framework/SKILL.md` |
-| Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
-| DRO plans | `.cursor/skills/dro-plans/SKILL.md` |
-| Build/rate/verify metered consumption demos (usage, commitments, drawdown) | `.cursor/skills/usage-consumption/SKILL.md` |
-| Build renewal-ready assets and lifecycle event history | `.cursor/skills/renewal-asset-creation/SKILL.md` |
-| Prepare DF Hands-On clone orgs and verify seeded data | `.cursor/skills/df-workshop-setup/SKILL.md` |
-| Validate / refresh / certify the ERD against orgs and Core source | `.cursor/skills/schema-validation/SKILL.md` |
-| Consume PMOS content from Foundations (or vice versa) via cross-repo skill manifest | `.cursor/skills/pmos-integration/SKILL.md` |
-| Stand up / debug the **MCP surface** (hosted + custom servers, ECA) | `.cursor/skills/mcp-integration/SKILL.md` |
-| Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
-| Build/verify multi-year ramp quotes and segment uplift | `.cursor/skills/ramped-quotes/SKILL.md` |
-| Generate, inspect, continue, or verify transaction demo data | `.cursor/skills/txn-data-harness/SKILL.md` |
-| Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |
-| Capture/apply UX drift from org | `.cursor/skills/repo-integration/ux-assembly-retrieve.md` |
-| Review docs before merge | `.cursor/skills/doc-consistency/SKILL.md` |
-| Create, update, register, or test AI-agent skills | `.cursor/skills/skill-authoring/SKILL.md` |
-| Debug a build/deploy failure | `.cursor/skills/troubleshooting/SKILL.md` |
-| Harden Apex CRUD/FLS (USER_MODE) + make a permission set self-sufficient | `.cursor/skills/apex-security-hardening/SKILL.md` |
-| Process Codex/Copilot PR reviews or run the pre-merge audit (completeness sweeps) | `.cursor/skills/audit-review/SKILL.md` |
-| Author/update enablement exercises per release | `.cursor/skills/release-enablement/SKILL.md` |
-| Generate the QuantumBit demo-script canvas (per-release SE/partner artifact) | `.cursor/skills/qb-demo-script/SKILL.md` |
-| Ground product claims against Salesforce Help (Trailhead, internal docs, SME review) | `.cursor/skills/revenue-cloud-docs/SKILL.md` |
-| Author/debug OmniDataTransform (ODT) data mappers | `.cursor/skills/odt-authoring/SKILL.md` |
-| Create/modify .docx document templates + DocumentTemplate lifecycle | `.cursor/skills/document-generation/SKILL.md` |
-| Set up, query, author, or troubleshoot Salesforce Contracts CLM | `.cursor/skills/salesforce-contracts/SKILL.md` |
+- **Knowledge and APIs:** `revenue-cloud-data-model`, `rlm-business-apis`, `revenue-cloud-docs`, `salesforce-contracts`
+- **Configuration and pricing:** `constraint-models`, `pricing-setup`, `pricing-procedures`, `pricing-wiring`, `expression-sets`, `decision-tables`, `context-service`
+- **Transactions, usage and documents:** `ramped-quotes`, `renewal-asset-creation`, `usage-consumption`, `txn-data-harness`, `dro-plans`, `document-generation`, `odt-authoring`
+- **Builds, data and environment:** `cci-orchestration` (Python tasks: `cci-orchestration/custom-task-authoring.md`), `sfdmu-data-plans`, `repo-integration` (UX drift: `repo-integration/ux-assembly-retrieve.md`), `build-harness`, `pde-org-build`, `toolchain` (containerized: `docker/README.md`), `mcp-integration`, `schema-validation`, `robot-testing`, `troubleshooting`, `apex-security-hardening`
+- **Demos and enablement:** `qb-demo-script`, `release-enablement`, `df-workshop-setup`, `inapp-framework`
+- **Repository maintenance:** `audit-review`, `doc-consistency`, `skill-authoring`
+- **Maintainer integrations:** `todo-tracker`, `pmos-integration`
 
-Every top-level skill has a **Quick Rules** section, and most have **DO NOT**;
-new and migrated skills should also include **Entry Conditions**, **Examples**,
-and **Validation Checks** sections. Existing skills are being migrated to this
-structure incrementally, so not all of them carry the full set yet. Read
-`.cursor/skills/skill-authoring/SKILL.md` before creating, splitting,
-registering, or testing skills.
-
-### Skill Sub-Files (Progressive Disclosure)
-
-Most skills split detail into sub-files to keep their entry point small. Every
-skill lists and describes its own sub-files, so open the parent `SKILL.md` from
-the table above and read its sub-file section — there is deliberately no
-second-level index here. When you add a sub-file, register it in its parent
-`SKILL.md`.
+Each skill has **Quick Rules**; new ones also need **DO NOT**, **Entry Conditions**,
+**Examples** and **Validation Checks**, and register in this list and the router (plus
+the manifest when cross-repo discovery applies; see `skill-authoring`). Sub-files are listed only in their parent `SKILL.md`.
 
 ### Script Reference
 
-Helper scripts are documented in the skill that owns them, with the full option
-reference and worked examples. Read that skill rather than guessing flags:
+Helper scripts are documented, with options and examples, in the skill that owns them.
+Read it rather than guessing flags:
 
 | Scripts | Owning skill |
 |---------|--------------|
-| `scripts/docgen/*` — ODT authoring, validation, diffing; DocumentTemplate lifecycle; generation | `document-generation/SKILL.md` (install `scripts/docgen/requirements.txt` first) |
-| `scripts/erd/*` — ERD validation against orgs, cross-release schema diff, orphan cleanup, HTML build | `schema-validation/SKILL.md` |
-| `scripts/context_service/*` — Context Definition inspect/validate/apply, plus the runtime context-instance lifecycle | `context-service/SKILL.md` |
-| `scripts/expression_sets/*` — Expression Set inspect/trace/diff/export and guarded mutators | `expression-sets/SKILL.md` |
-| `tasks/rlm_cml.py` — constraint model tasks | `constraint-models/SKILL.md` |
-| `scripts/ux/*` — CCI-free UX assembly, deploy, drift diff, writeback | `repo-integration/SKILL.md` |
-| `scripts/renewal_assets/*` — renewal-asset expiry-bucket spread (`build_renewal_buckets.py`, reuses `build_quote_to_asset.py`) + lifecycle event-history augment/reset Apex | `renewal-asset-creation/SKILL.md` |
-| `scripts/df_workshop/*` — capture (`extract_workshop_quotes.py`) and replay (`insert_workshop_quotes.py`) DF workshop org drift | `df-workshop-setup/SKILL.md` |
-| `scripts/ai/query_erd.py` — query the RLM data model offline | `revenue-cloud-data-model/SKILL.md` |
-| `scripts/doc_snapshot/*` — standalone Help-area, release-notes and dev-guide snapshot CLI (presets in `presets.yaml`), plus `check`, a non-gating glued-link spot-check | `revenue-cloud-docs/SKILL.md` |
-| `scripts/ai/skill_manifest.py` — cross-repo skill manifest resolver | `pmos-integration/SKILL.md` |
-| `scripts/ai/pr_review.py` — automated-PR-review helper | **Responding to Automated PR Reviews**, above |
-| `scripts/ai/check_branch_scope.py` — fail a branch carrying commits it does not own (already upstream, or another open PR's) | `audit-review/SKILL.md` → **Step −1** |
-| `scripts/ai/pr_gate.py` — run the mechanical checks a change needs and report the status of every one (incl. skipped) | **Pre-merge checklists**, above |
-| `scripts/ai/generate_cci_reference.py`, `scripts/ai/check_plan_readme_consistency.py`, `scripts/ai/generate_plan_readme.py`, `scripts/validate_sfdmu_v5_datasets.py` | **Pre-merge checklists**, above |
+| `scripts/docgen/*` (install its `requirements.txt` first) | `document-generation` |
+| `scripts/erd/*` | `schema-validation` |
+| `scripts/context_service/*` | `context-service` |
+| `scripts/expression_sets/*` | `expression-sets` |
+| `tasks/rlm_cml.py` | `constraint-models` |
+| `scripts/ux/*` | `repo-integration` |
+| `scripts/renewal_assets/*` | `renewal-asset-creation` |
+| `scripts/df_workshop/*` | `df-workshop-setup` |
+| `scripts/ai/query_erd.py` | `revenue-cloud-data-model` |
+| `scripts/doc_snapshot/*` | `revenue-cloud-docs` |
+| `scripts/ai/skill_manifest.py` | `pmos-integration` |
+| `scripts/ai/check_branch_scope.py` | `audit-review` → **Step −1** |
+| `scripts/ai/pr_review.py` | **Responding to Automated PR Reviews**, above |
+| `scripts/ai/pr_gate.py`, `generate_cci_reference.py`, `check_plan_readme_consistency.py`, `generate_plan_readme.py`; `scripts/validate_sfdmu_v5_datasets.py` | **Pre-merge checklists**, above |
 
 Two Context Service rules are worth obeying without a second read (rationale in
 the skill): **modifying or deleting** an existing node, attribute, or tag on an

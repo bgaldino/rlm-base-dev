@@ -48,7 +48,8 @@ class LaunchChecks(unittest.TestCase):
             refs.append(f"`{Path(name).name}`")
         self.skill.write_text(self.metadata + "\n".join(refs))
         self.write(".cursor/rules/example.mdc", "# Rule\n")
-        self.write(".cursor/skills/README.md", "## File-Specific Rules\n\n| Rule | Triggers On | Equivalent Skill |\n|---|---|---|\n| `example.mdc` | `*.py` | `cci-orchestration/SKILL.md` |\n")
+        self.write(".cursor/skills/README.md", "## Skill Router\n\n| I need to... | Skill | Entry Point |\n|---|---|---|\n| Run tasks | CCI | [cci-orchestration/SKILL.md](cci-orchestration/SKILL.md) |\n\n## File-Specific Rules\n\n| Rule | Triggers On | Equivalent Skill |\n|---|---|---|\n| `example.mdc` | `*.py` | `cci-orchestration/SKILL.md` |\n")
+        self.write("AGENTS.md", "# Guide\n\n## AI Agent Skill Index\n\n- **Builds:** `cci-orchestration`\n\n## Next\n")
         for folder in (".agents/skills", ".claude/skills"):
             (self.root / folder).mkdir(parents=True)
             (self.root / folder / "cci-orchestration").symlink_to("../../.cursor/skills/cci-orchestration", target_is_directory=True)
@@ -73,7 +74,8 @@ class LaunchChecks(unittest.TestCase):
     def test_clean_baseline_without_site_packages(self):
         result = self.cli()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        for label in ("skill discovery metadata", "native skill links", "root instruction budget", "skill navigation links"):
+        for label in ("skill discovery metadata", "native skill links", "skill index parity", "root instruction budget",
+                      "skill navigation links"):
             self.assertIn("[PASS] " + label, result.stdout)
 
     def test_missing_and_invalid_metadata(self):
@@ -192,6 +194,64 @@ class LaunchChecks(unittest.TestCase):
         p.symlink_to("../../.cursor/skills/cci-orchestration")
         self.git("rm", "--cached", ".agents/skills/cci-orchestration")
         self.assertFalse(analyzer.check_native_skill_links(self.root).ok)
+
+    def test_index_parity_passes_with_name_or_path_and_fails_per_list(self):
+        agents = self.root / "AGENTS.md"
+        router = self.root / ".cursor/skills/README.md"
+        self.assertTrue(analyzer.check_skill_index_parity(self.root).ok)
+        self.write(".cursor/skills/cci-orchestration/custom-task-authoring.md", "# Tasks\n")
+        agents.write_text("## AI Agent Skill Index\n\n- `cci-orchestration/custom-task-authoring.md`, `AGENTS.md`\n")
+        self.assertTrue(analyzer.check_skill_index_parity(self.root).ok)
+        # A list item may wrap onto indented lines; they belong to the item.
+        agents.write_text("## AI Agent Skill Index\n\n- **Builds:** `AGENTS.md`,\n  `cci-orchestration`\n")
+        self.assertTrue(analyzer.check_skill_index_parity(self.root).ok)
+        # A renamed or deleted skill, a missing sub-file, or a missing repo path is stale.
+        for stale in ("deleted-skill", "cci-orchestration/gone.md", "nowhere/README.md"):
+            agents.write_text(f"## AI Agent Skill Index\n\n- `cci-orchestration`, `{stale}`\n")
+            result = analyzer.check_skill_index_parity(self.root)
+            self.assertFalse(result.ok, stale)
+            self.assertIn(f"unknown skills or missing paths ['{stale}']", result.detail)
+        # A list item under a later heading of any level is outside the index.
+        for heading in ("## Next", "### Script Reference"):
+            agents.write_text(f"## AI Agent Skill Index\n\n- none\n\n{heading}\n\n- `cci-orchestration`\n")
+            self.assertIn("index is missing ['cci-orchestration']",
+                          analyzer.check_skill_index_parity(self.root).detail, heading)
+        # Only the heading line itself opens the section, not an inline mention of it.
+        agents.write_text("See `## AI Agent Skill Index` below.\n\n- `cci-orchestration`\n\n"
+                          "## AI Agent Skill Index\n\n- none\n")
+        self.assertIn("index is missing ['cci-orchestration']", analyzer.check_skill_index_parity(self.root).detail)
+        # Listed only outside the index section, or not at all: not discoverable from the index.
+        agents.write_text("# Guide\n\n`cci-orchestration`\n\n## AI Agent Skill Index\n\n- none\n\n## Next\n\n`cci-orchestration`\n")
+        result = analyzer.check_skill_index_parity(self.root)
+        self.assertFalse(result.ok)
+        self.assertIn("index is missing ['cci-orchestration']", result.detail)
+        # Prose and a following subsection (an owner column, say) are not the list.
+        agents.write_text("## AI Agent Skill Index\n\nSee `cci-orchestration`.\n\n- **Builds:** none\n\n"
+                          "### Script Reference\n\n| Scripts | Owner |\n|---|---|\n| `tasks/x.py` | `cci-orchestration` |\n")
+        self.assertIn("index is missing ['cci-orchestration']", analyzer.check_skill_index_parity(self.root).detail)
+        # A name inside a fenced block is an example, not a listing.
+        agents.write_text("## AI Agent Skill Index\n\n```\n- `cci-orchestration`\n```\n")
+        self.assertFalse(analyzer.check_skill_index_parity(self.root).ok)
+        agents.write_text("# Guide\n")
+        self.assertIn("no '## AI Agent Skill Index' section", analyzer.check_skill_index_parity(self.root).detail)
+        agents.write_text("## AI Agent Skill Index\n\n- `cci-orchestration`\n")
+        # A link outside the router section, or in a fence, is not a router row.
+        for text in ("## Skill Router\n\n| Run | CCI | `cci-orchestration/SKILL.md` |\n",
+                     "## Start here\n\n[CCI](cci-orchestration/SKILL.md)\n\n## Skill Router\n\n| none |\n",
+                     "## Skill Router\n\n| none |\n\n## File-Specific Rules\n\n[CCI](cci-orchestration/SKILL.md)\n",
+                     "## Skill Router\n\n```\n[CCI](cci-orchestration/SKILL.md)\n```\n",
+                     "[CCI](cci-orchestration/SKILL.md)\n"):
+            router.write_text(text)
+            result = analyzer.check_skill_index_parity(self.root)
+            self.assertFalse(result.ok, text)
+            self.assertIn("router is missing ['cci-orchestration']", result.detail)
+
+    def test_index_parity_empty_inventory_is_not_success(self):
+        empty = self.root / "empty"
+        (empty / ".cursor/skills").mkdir(parents=True)
+        (empty / "AGENTS.md").write_text("## AI Agent Skill Index\n")
+        (empty / ".cursor/skills/README.md").write_text("")
+        self.assertFalse(analyzer.check_skill_index_parity(empty).ok)
 
     def test_native_extra_and_root_adapter(self):
         p = self.root / ".claude/skills/unexpected"
@@ -412,6 +472,7 @@ class LaunchChecks(unittest.TestCase):
         p = self.root / "README.md"
         for path, content, label in [(self.skill, "# no metadata", "skill discovery metadata"),
                                      (p, "[bad](missing.md)", "skill navigation links"),
+                                     (self.root / "AGENTS.md", "## AI Agent Skill Index\n\n- none\n", "skill index parity"),
                                      (self.root / "AGENTS.md", "x" * 25001, "root instruction budget")]:
             before = path.read_text()
             path.write_text(content)

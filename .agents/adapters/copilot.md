@@ -13,8 +13,9 @@ Copilot instruction file.
   `AGENTS.md` and summarizes the common entry points.
 - **Primary instructions:** `AGENTS.md` is the canonical safety and project
   contract.
-- **Task-specific skills:** use the Skill Index in `AGENTS.md` to read relevant
-  `.cursor/skills/**` Markdown files. These are tool-neutral.
+- **Task-specific skills:** pick a skill by task in the router,
+  `.cursor/skills/README.md` (the `AGENTS.md` Skill Index lists every skill by
+  area), then read the relevant `.cursor/skills/**` Markdown files. These are tool-neutral.
 - **File-specific guidance:** `.cursor/rules/*.mdc` files are Cursor-specific for
   injection, but Copilot can reuse their guidance manually.
 - **Cross-repo discovery:** `.claude/skill-manifest.yml` supports cross-repo

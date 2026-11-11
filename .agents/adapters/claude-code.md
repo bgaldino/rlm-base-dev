@@ -11,8 +11,9 @@ separate Claude-only contract.
   versions and the catalog fallback.
 - **Primary instructions:** `CLAUDE.md` is a symlink to `AGENTS.md`;
   `AGENTS.md` is the authoritative root contract — edit only `AGENTS.md`.
-- **Task-specific skills:** read the applicable `.cursor/skills/**` Markdown
-  files from the Skill Index in `AGENTS.md`. The skills are tool-neutral.
+- **Task-specific skills:** pick a skill by task in the router,
+  `.cursor/skills/README.md` (the `AGENTS.md` Skill Index lists every skill by
+  area), then read the applicable `.cursor/skills/**` Markdown files. The skills are tool-neutral.
 - **File-specific guidance:** `.cursor/rules/*.mdc` files are Cursor auto-rules,
   but Claude Code can reuse their guidance manually for matching file types.
 - **Cross-repo discovery:** `.claude/skill-manifest.yml` is the manifest for

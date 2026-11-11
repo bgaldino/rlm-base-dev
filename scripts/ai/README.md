@@ -132,7 +132,13 @@ Two check modes:
   non-zero on any failure, so it is safe to run as a CI/scheduled gate.
 
   Launch checks also enforce skill discovery metadata, exact relative native-link
-  targets and Git symlink mode, and a **25,000-byte** `AGENTS.md` ceiling. Stage
+  targets and Git symlink mode, and a **25,000-byte** `AGENTS.md` ceiling. **Skill
+  index parity** fails when a skill directory is missing from the `AGENTS.md` index
+  (code spans in list items, and the indented lines they wrap onto, of the
+  `## AI Agent Skill Index` section, before the next heading of any level and outside
+  fenced code), when that index names a skill or path that does not exist,
+  or when a skill has no `[...](<name>/SKILL.md)` link in the `## Skill Router` section of
+  `.cursor/skills/README.md` (outside fenced code). Stage
   new adapter links before running the check. Symlink-less copies can use the
   documented plain-file consumption fallback, but cannot pass native-link validation.
 

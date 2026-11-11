@@ -877,6 +877,97 @@ def check_instruction_budget(root: Path) -> CheckResult:
                        f"{AGENTS_PATH}: {size:,} bytes; repository ceiling {AGENTS_MAX_BYTES:,} (not a client context limit)")
 
 
+AGENTS_INDEX_HEADING = "## AI Agent Skill Index"
+AGENTS_INDEX_HEADING_RE = re.compile(r"^## AI Agent Skill Index[ \t]*$", re.MULTILINE)
+SKILL_ROUTER_PATH = f"{SKILLS_ROOT}/README.md"
+LIST_ITEM_RE = re.compile(r"[ \t]*[-*+][ \t]")
+
+
+def agents_index_tokens(agents_text: str) -> list[str] | None:
+    """Code spans in the AGENTS.md index list, or None when the section is missing.
+
+    The index is a compact list of code spans: a bare skill name (`pricing-setup`), a
+    path under a skill (`cci-orchestration/custom-task-authoring.md`) or another repo
+    path (`docker/README.md`). Only list items, with the indented lines they wrap onto,
+    before the next heading of any level are read, so a name that appears only in prose
+    or in a following subsection (the Script Reference owner column, say) is not listed.
+    """
+    text = strip_fenced_code(agents_text)
+    heading = AGENTS_INDEX_HEADING_RE.search(text)
+    if heading is None:
+        return None
+    body = text[heading.end():]
+    next_heading = re.search(r"^#{1,6}\s", body, re.MULTILINE)
+    section = body[:next_heading.start()] if next_heading else body
+    items, in_item = [], False
+    for line in section.splitlines():
+        if LIST_ITEM_RE.match(line):
+            in_item = True
+        elif not (in_item and line[:1] in (" ", "\t") and line.strip()):
+            in_item = False
+            continue
+        items.append(line)
+    return [token.strip() for token in re.findall(r"`([^`\n]+)`", "\n".join(items))]
+
+
+SKILL_ROUTER_HEADING_RE = re.compile(r"^## Skill Router[ \t]*$", re.MULTILINE)
+
+
+def router_skill_names(router_text: str) -> set[str]:
+    """Skills linked as `<name>/SKILL.md` in the README's `## Skill Router` section.
+
+    Links elsewhere in the README (prose, the File-Specific Rules table) and in fenced
+    code do not count, so deleting a skill's router row cannot pass on a stray link.
+    """
+    text = strip_fenced_code(router_text)
+    heading = SKILL_ROUTER_HEADING_RE.search(text)
+    if heading is None:
+        return set()
+    body = text[heading.end():]
+    next_heading = re.search(r"^## ", body, re.MULTILINE)
+    section = body[:next_heading.start()] if next_heading else body
+    return set(re.findall(r"\]\(([a-z0-9][a-z0-9-]*)/SKILL\.md\)", section))
+
+
+def check_skill_index_parity(root: Path) -> CheckResult:
+    """The AGENTS.md index and the router each cover every skill, and the index names nothing stale.
+
+    AGENTS.md carries only names; the router carries the "I need to..." intent. Each is
+    useless for discovery if it silently drops a skill, and a renamed or deleted skill
+    left in the index sends agents to a file that does not exist.
+    """
+    expected = {p.name for p in _skill_dirs(root) if (p / "SKILL.md").is_file()}
+    try:
+        tokens = agents_index_tokens((root / AGENTS_PATH).read_text(encoding="utf-8"))
+        router_names = router_skill_names((root / SKILL_ROUTER_PATH).read_text(encoding="utf-8"))
+    except (OSError, UnicodeError) as exc:
+        return CheckResult("skill index parity", False, str(exc))
+    failures = []
+    if tokens is None:
+        failures.append(f"{AGENTS_PATH}: no '{AGENTS_INDEX_HEADING}' section")
+    else:
+        listed, unknown = set(), set()
+        for token in tokens:
+            rel = token[len(SKILLS_ROOT) + 1:] if token.startswith(f"{SKILLS_ROOT}/") else token
+            first = rel.split("/", 1)[0]
+            if "/" not in rel and rel in expected:
+                listed.add(rel)
+            elif "/" in rel and first in expected and (root / SKILLS_ROOT / rel).exists():
+                listed.add(first)
+            elif first in expected or not (root / token).exists():
+                unknown.add(token)
+        if expected - listed:
+            failures.append(f"{AGENTS_PATH} index is missing {sorted(expected - listed)}")
+        if unknown:
+            failures.append(f"{AGENTS_PATH} index names unknown skills or missing paths {sorted(unknown)}")
+    if expected - router_names:
+        failures.append(f"{SKILL_ROUTER_PATH} router is missing {sorted(expected - router_names)}")
+    return CheckResult("skill index parity", bool(expected) and not failures,
+                       "; ".join(failures) if failures
+                       else f"{len(expected)} skills listed in the AGENTS.md index and linked from the router"
+                       if expected else "no skills found")
+
+
 def check_native_skill_links(root: Path) -> CheckResult:
     expected = {p.name for p in _skill_dirs(root)}
     failures = []
@@ -1122,6 +1213,7 @@ def run_baseline_checks(root: Path) -> list[CheckResult]:
         check_rule_owners(root),
         check_skill_discovery_metadata(root),
         check_native_skill_links(root),
+        check_skill_index_parity(root),
         check_instruction_budget(root),
         check_skill_navigation_links(root),
     ]
