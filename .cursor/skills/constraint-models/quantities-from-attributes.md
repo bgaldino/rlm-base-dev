@@ -608,11 +608,11 @@ With both, answers held through two answer-change amendments in a row on a fresh
 assets activated before it was deployed, still have blank rows: the trigger acts only on new
 rows, so check and backfill there.
 On another build with the repo's node-status tracking (rule and trigger) deployed, every
-one of the root's `AssetActionSource` rows, detail-sourced ones included, carried node
-status after each of seven activations (a new sale, four amendments, a renewal, then a fifth
+one of the root's `AssetActionSource` rows carried node status after each of seven activations (a new sale, four amendments, a renewal, then a fifth
 amendment; three of the amendments on the root, two of those changing an answer), and unchanged answers held
-`[Measured: 2026-11-12, 264, scratch]` (one org). With the trigger in place, that run can't
-show whether the rule alone fills line-sourced rows. An earlier run saw line-sourced rows filled by the rule alone `[Measured: M39]`. One other
+`[Measured: 2026-11-12, 264, scratch]` (one org). The run didn't split line-sourced from
+detail-sourced rows, though the cancel-and-reprice activations wrote detail rows. With the
+trigger in place, it can't show whether the rule alone fills line-sourced rows. An earlier run saw line-sourced rows filled by the rule alone `[Measured: M39]`. One other
 org saw the field blank on every row, new-sale rows included. It was built before the
 order → asset rule shipped, so it probably lacked the rule, which would match M39's
 without-the-rule result. Its context definition wasn't checked for the rule, so the cause is
@@ -728,7 +728,7 @@ message was only in the error log and a later `configure` returned
 from `message(...)` separately, in `configure`'s `messages`; whether they also reach the
 log wasn't measured. Bundle-validation rows can appear in the log too, and one made
 `createOrdersFromQuote` refuse the quote `[Measured: M29, M31]`. Quote-to-order refuses on
-any configurator error-log row, whatever its severity `[Platform behaviour, traced]` `[Measured: 2026-11-11, 264, rules not executed under Force, not Skip]` (see
+any configurator error-log row, whatever its severity `[Platform behaviour, traced]` `[Measured: 2026-11-11, 264, Force with configuration rules off]` (see
 [open item 1](#open-items)).
 
 ---
@@ -959,11 +959,10 @@ Each needs a live 264 org:
    Place refuses the save instead `[Platform behaviour, traced]`; the trace does not
    separate Error from Warning messages, so whether a warning alone refuses the save is not
    established, and what this check does under that choice is unmeasured. The trace
-   is inconsistent on this check's severity (Error in one place, Warning in others), and
-   M16 reported it in `configure` as a warning. A
-   Warning-only bundle-validation row also refused the order in a run with configuration rules off
-   (`Force`, rules not executed; not `Skip`)
-   `[Measured: 2026-11-11, 264, rules not executed under Force, not Skip]`.
+   classes this result as an Error, but a measurement reported it in `configure` as a
+   warning; group-range results of the same validator are warning-type. A
+   Warning-only bundle-validation row also refused the order in a `Force` run with configuration
+   rules off (not `Skip`) `[Measured: 2026-11-11, 264, Force with configuration rules off]`.
 2. How a large cardinality (600 service hours) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
