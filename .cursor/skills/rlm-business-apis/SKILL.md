@@ -71,7 +71,22 @@ Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`, `configuration
   `Discount: 5` returned success and changed nothing: the net unit price stayed the
   amount-discounted one. Sending `DiscountAmount: null` with `Discount: 5` cleared the amount,
   and the 5 % applied.
+- Send one discount field per line. To switch type, send the other as `null`, not `0`, and read the
+  line back. A saved quote line with both `Discount` and `DiscountAmount` non-null is refused at
+  save ("only one discount can be present") [Platform behaviour, traced]. That rule does not
+  explain why the `0` + `5` PATCH succeeded and changed nothing; the cause is not established
+  (needs a live check).
 - Read the line back after the PATCH; a success response doesn't show which discount applied.
+- A line PATCHed with only start and end dates keeps an empty `SubscriptionTerm`: Place writes a
+  term only from the selling model's term when the model is Term Defined and none was sent, and
+  never derives one from dates. Pricing counts periods from the dates at calculation time and
+  does not write a term back, so don't read a term off such a line [Platform behaviour, traced].
+- **Milestone Plan on bundle components.** Place with `configurationMethod: Force` left
+  `BillingFrequency` blank on component service lines (`billing-setup` → M11). A second Place PATCH
+  with `configurationMethod: Skip` setting `BillingFrequency` Milestone Plan and the milestone
+  `BillingTreatmentId` on those lines kept both, moved no price, and `createOrdersFromQuote` copied
+  them [Measured: 2026-11-12, 264, scratch; one org]. Why the first Place drops it is not
+  established.
 
 **Backdated asset changes** (amend, cancel, renew, transfer, swap, upgrade, downgrade with an
 effective date in the past; rollback's refusal): the invocable inputs, activation prerequisites,
@@ -93,7 +108,10 @@ platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemD
 - This repo keeps **as-is renewals on** (`enableAsIsRenewals=true` in
   `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`), so renewals behave this way
   too. Turning it off moves a plain renewal's price back to the parent, but leaves cancels and
-  negative amendments unchanged (measured, todo 157).
+  negative amendments unchanged (measured, todo 157). The as-is path also needs the asset's
+  pricing source to be the last transaction price; a renewal at list price, a ramped or
+  derived-price asset or line, a changed price or attribute, and an early renewal are repriced
+  as ordinary lines instead [Platform behaviour, traced].
 - Advanced Detail Line Pricing does not change any of it.
 
 ```bash

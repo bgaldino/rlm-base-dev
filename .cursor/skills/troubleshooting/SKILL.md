@@ -50,6 +50,7 @@ CCI output, then jump to the relevant section below.
 | 24 (prepare_constraints) | Constraints + CML import | [Constraints / CML Errors](#constraints--cml-errors) |
 | 30 (prepare_ux) | UX assembly + deploy | [UX Assembly Errors](#ux-assembly-errors) |
 | 33 (refresh_all_decision_tables) | Decision table refresh | [Decision Table Errors](#decision-table-errors) |
+| *(post-build, runtime)* | Place, quote-to-order and order API errors | [Quote and Order API Errors](#quote-and-order-api-errors) |
 
 ---
 
@@ -821,6 +822,37 @@ INSERT.
 **Fix:** The `update_product_fulfillment_decomp_rules` task re-saves the
 records to trigger ruleset generation. If it still fails, manually re-save
 in Setup.
+
+---
+
+## Quote and Order API Errors
+
+### "Could not find product with ID ..."
+
+**Cause:** the product id a line carries was not returned for that account, price book and context
+(not in the transaction's price book or catalog), or the id is empty ("ID: null") [Platform
+behaviour, traced in part]. Product details are cached per session context, so a catalog change
+after the first configure in the same context may not show until a new context is used.
+
+**Fix:** check the line's product id and its price book entry first. Whether a stale search index
+or decision-table refresh also causes it is not established (live check Q-L10).
+
+### `createOrdersFromQuote` refuses: "currently syncing ... uncommitted changes"
+
+**Cause:** the quote was changed after its last opportunity sync, including saves by flows and
+pricing; with Asynchronous Opportunity Sync on, order creation refuses until it is synced again
+[Platform behaviour, traced]. Measured once straight after a successful `syncQuoteOpportunity`: two
+refusals, then success on a retry about 15 s later [Measured: 2026-11-12, 264, scratch]. Which save
+moved the quote was not identified.
+
+**Fix:** re-sync after the last change to the quote; a short wait then retry worked once but is not
+the rule. See `quote-negotiation-rounds`.
+
+### Place on an Order fails with "couldn't fetch the data for ... context definition"
+
+Seen with `pricingPref` System or Force while Skip succeeded [Measured: 2026-11-12, 264, scratch; one org].
+A quote-only custom mapping is one known cause but did not explain this case; cause open. See
+`rlm-business-apis/backdated-asset-lifecycle.md` and `context-service`.
 
 ---
 

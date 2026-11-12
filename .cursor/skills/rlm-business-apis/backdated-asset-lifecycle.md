@@ -113,6 +113,13 @@ succeeded once the missing Order mappings were added, on a plain term asset). Th
 Order-output prices match Quote output: Order and OrderItem have no matching custom fields, so those attributes
 arrive empty. The message hides the underlying cause. Diff the two mappings' custom (`__c`) attributes, and see
 `.cursor/skills/context-service/authoring-and-lifecycle.md` (one mapping rule per lens).
+A different case, measured on one fresh 264 scratch org [Measured: 2026-11-12, 264, scratch]: Place on an
+**Order** with `pricingPref` System or Force (even a header-only PATCH) failed with the same message,
+while `pricingPref: Skip` succeeded; the order was left `CalculationStatus` PriceCalculationFailed with
+totals unchanged and no error-log record. Binding the quote-only custom attributes on the Order lens did
+not clear it there, and the Order lens hydrated fully outside pricing, so the mapping diff above is not
+always the cause. Cause not established (trace pending); whether amend, renew or cancel with Order output
+fail the same way on that org was not tried. Don't treat a Skip success as proof the order priced.
 
 Gotchas, all measured:
 
@@ -238,8 +245,10 @@ quote-only, future-dated runs; the backdated run zero-priced the same way (table
   traced. An override step in the procedure wasn't tried; it would be expected to price at list,
   not at the last transaction price.
 - **A ramped early renewal of a *plain* asset inherits the price correctly.**
-- **`enableAsIsRenewals` doesn't apply** (per core source, not measured): a renewal of a ramped
-  asset is never as-is.
+- **`enableAsIsRenewals` doesn't apply**: the as-is test is false when the setting is off, the
+  product is a derived-price product, or the line or asset is ramped, so a renewal of a ramped
+  asset is never as-is and is repriced as an ordinary line [Platform behaviour, traced; not
+  measured].
 - **GUS W-23406678** has the same symptom and was closed "Not a bug".
 
 To check a renewal quote:
