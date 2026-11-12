@@ -200,8 +200,10 @@ ordering, Shipped). Treat the position as the source's requirement and model it 
   tail rule ([`rounding-values.md`](rounding-values.md) → Feasibility). Fields, precision and
   multicurrency behavior are in that file.
 - Inside a formula, round the operand instead, as step 2 of this pattern does.
-- **Open — needs live verification:** a Rounding Values step before Manual Discount was not built
-  or measured here; check the discounted net and the waterfall entry on a fractional-cent line.
+- A Rounding Values step at that position was built and ran on 2026-11-11
+  ([`rounding-values.md`](rounding-values.md) → Rules and limits). **Open — needs live
+  verification:** how the manual discount then acts on the rounded net; check the discounted net
+  and the waterfall entry on a fractional-cent line.
 
 ## Overlay shape
 
@@ -306,8 +308,8 @@ isolated.
 Condition logic with all four:
 `1 AND 11 AND 2 AND 9 AND 10 AND 13 AND 12 AND ((3 AND 4 AND ((5 AND 6) OR (7 AND 8))) OR 14)`.
 
-- **With criterion 11 in place**, One Time and Evergreen lines priced unchanged with no line
-  error, alone and mixed with a matching line in one request (headless).
+- **With criterion 11 in place**, a One Time line priced alone, and One Time and Evergreen lines
+  mixed with a matching line in one request, priced unchanged with no line error (headless).
 - **A header tag works as a list-filter criterion.** The switch was a Checkbox on `Quote`, mapped
   into the sales transaction context as a `SalesTransaction` attribute and tag of data type
   BOOLEAN (context mapping: [`../../context-service/SKILL.md`](../../context-service/SKILL.md)).

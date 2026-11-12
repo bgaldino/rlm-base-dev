@@ -34,7 +34,8 @@ Parameter names, the Currency data type and the three rule strings come from cor
 - Position relative to aggregates (round before or after summing) changes totals: sum of already-rounded lines vs rounding the sum. Core enforces neither order, so pick the one you need. See [../procedure-anatomy-and-ordering.md](../procedure-anatomy-and-ordering.md).
 - No `FormulaBasedPricing` after DDS: see [formula-based-pricing](./formula-based-pricing.md).
 - Rounding mid-procedure, before a negotiated (manual) discount, when a source requires it: see
-  [commitment-term-discount → Rounding before a negotiated discount](./commitment-term-discount.md#rounding-before-a-negotiated-discount) (not measured).
+  [commitment-term-discount → Rounding before a negotiated discount](./commitment-term-discount.md#rounding-before-a-negotiated-discount).
+  A step at that position ran (Rules and limits); its effect on the manual discount was not measured.
 
 ## Rules and limits
 - Measured step (2026-11-11, multicurrency org): one row, `NetUnitPrice` → `NetUnitPrice`,
@@ -62,7 +63,7 @@ Parameter names, the Currency data type and the three rule strings come from cor
 | Round a value that a later step recalculates | Accepted, but the later value is unrounded; core checks no position for Rounding Values itself [Core] |
 
 ## Metadata shape
-Skeleton built from the parameter names above (not from shipped XML or a saved step) [inferred]; placeholders marked. A step with the same parameters minus `Precision`, plus `HideWaterfall` `false`, was created through an overlay and ran [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
+Skeleton built from the parameter names above (not from shipped XML or a saved step) [inferred]; placeholders marked. A step with the same parameter names minus `Precision`, plus `HideWaterfall` `false`, bound to `NetUnitPrice` → `NetUnitPrice` with `halfUp`, was created through an overlay and ran [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
 ```xml
 <steps>
     <actionType>RoundingValues</actionType>

@@ -53,10 +53,10 @@ as shipped. [inferred]
 - Prerequisites: product, root bundle, parent in a price book, with selling models for
   each. [Help]
 - A `BundleBasedAdjustment` row inserted while its schedule was **active** succeeded, and after
-  a decision-table refresh it priced the component. Volume tiers behave differently: a tier write
-  fails while its schedule is active
-  ([`volume-and-tier-discount.md`](volume-and-tier-discount.md) → Rules and limits)
-  [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Help still says to deactivate a
+  a decision-table refresh it priced the component [Measured: 2026-11-11, 264, fresh `ent-sb0`
+  scratch org]. Volume tiers behave differently: a tier write fails while its schedule is active
+  ([`volume-and-tier-discount.md`](volume-and-tier-discount.md) → Rules and limits, [Repo,
+  measured]). Help still says to deactivate a
   schedule before adding records
   ([`../../pricing-setup/price-adjustment-schedules.md`](../../pricing-setup/price-adjustment-schedules.md)).
 - Types: Percentage, Amount, Override. [Help] Core also accepts the legacy values
