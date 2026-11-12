@@ -361,7 +361,7 @@ bound can't hold once `sites` is above 1; that failure itself wasn't run.
 | Tool | What the dev guide says it counts | Source |
 |---|---|---|
 | `rel.count(<condition>)` | "the number of component instances" that match the condition. Another page says that when the condition covers every instance it returns the same value as `cardinality()`. Lines or quantity: [open item 14](#open-items) | `[Dev guide: cml_relationship_variable_functions]` `[Dev guide: cml_using_proxy_variables_constraints]` |
-| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Unique instances chosen from the group; the chosen component can still have a high quantity. The annotation reference calls it the maximum cardinality for a component in a group. The solver sums the relations' instance counts, so a line of quantity N counts 1 for `split = false` and N for `split = true`; a conflict reads "Group Cardinality must be greater than or equal to X and less than or equal to Y". It refuses only when the CML group declares the bounds; whether a PCM group minimum reaches the CML is not established | `[Dev guide: cml_group_type]` `[Dev guide: cml_type_annotations]` `[Platform behaviour, traced]` |
+| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Unique instances chosen from the group; the chosen component can still have a high quantity. The annotation reference calls it the maximum cardinality for a component in a group. The solver sums the relations' instance counts, so a line of quantity N counts 1 for `split = false` and N for `split = true`; a conflict reads "Group Cardinality must be greater than or equal to X and less than or equal to Y". The solver refuses only when the CML group declares the bounds; bundle validation counts lines separately ([open item 14](#open-items)) | `[Dev guide: cml_group_type]` `[Dev guide: cml_type_annotations]` `[Platform behaviour, traced]` |
 
 **When an answer picks the plan,** nothing needs counting. Size the chosen plan from the
 answer, zero the other, and drop the sum:
@@ -602,12 +602,14 @@ So, before amending a CML bundle's answers:
 This repo ships the fix: the order → asset context rule above, plus a before-insert trigger
 on `AssetActionSource` that fills a blank row from its order item, directly or through the
 detail `[Repo: unpackaged/post_constraints/triggers/RLM_AssetActionSourceTrigger.trigger]`.
-On a later build with the repo's node-status tracking deployed, the root's
-`AssetActionSource` rows carried node status after every activation, across four lifecycle
-runs, and unchanged answers held `[Measured: 2026-11-12, 264, scratch]` (one org). That
-run didn't split line-sourced from detail-sourced rows. An earlier run saw line-sourced rows
-filled by the rule alone, but one other org saw the field blank on every row, line-sourced
-ones included; the cause is open (see asset-lifecycle-changes Quick Rule 2).
+On a later build with the repo's node-status tracking (rule and trigger) deployed, every
+one of the root's `AssetActionSource` rows, detail-sourced ones included, carried node
+status after each of seven activations (a new sale, five amendments and a renewal), and
+unchanged answers held `[Measured: 2026-11-12, 264, scratch]` (one org). With the trigger in
+place, that run can't show whether the rule alone fills line-sourced rows. An earlier run
+saw line-sourced rows filled by the rule alone, but one other org saw the field blank on
+every row, line-sourced ones included; the cause is open (see asset-lifecycle-changes
+Quick Rule 2).
 With both, answers held through two answer-change amendments in a row on a fresh build
 `[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]`. An org built before the fix, and
 assets activated before it was deployed, still have blank rows: the trigger acts only on new
@@ -943,8 +945,10 @@ Each needs a live 264 org:
 
 1. For a component with `IsQuantityEditable = false`: whether `true` clears the M16
    warning, and whether a CML-set quantity alone, with no hand edit, writes an error log
-   (M31 edited by hand). Also whether an error-log row of `Severity` Warning blocks
-   ordering (M29 saw such rows for bundle-validation warnings).
+   (M31 edited by hand). Quote-to-order refuses on any configurator error-log row on the
+   quote, whatever its severity or category (M29 saw such rows for bundle-validation
+   warnings) `[Platform behaviour, traced]`; this holds in the allow-errors modes, and only
+   when catalog validation is on and configuration is not `Skip`.
 2. How a large cardinality (600 service hours) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
