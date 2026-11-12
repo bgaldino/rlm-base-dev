@@ -612,9 +612,10 @@ one of the root's `AssetActionSource` rows, detail-sourced ones included, carrie
 status after each of seven activations (a new sale, four amendments, a renewal, then a fifth
 amendment; three of the amendments on the root, two of those changing an answer), and unchanged answers held
 `[Measured: 2026-11-12, 264, scratch]` (one org). With the trigger in place, that run can't
-show whether the rule alone fills line-sourced rows. An earlier run saw line-sourced rows filled by the rule alone, but one other org saw the field blank on
-every row, line-sourced ones included; the cause is open (see asset-lifecycle-changes
-Quick Rule 2).
+show whether the rule alone fills line-sourced rows. An earlier run saw line-sourced rows filled by the rule alone `[Measured: M39]`. One other
+org, built before the order → asset rule shipped, saw the field blank on every row,
+line-sourced ones included, which matches M39's without-the-rule result (see
+asset-lifecycle-changes Quick Rule 2).
 
 ---
 
@@ -726,7 +727,8 @@ message was only in the error log and a later `configure` returned
 from `message(...)` separately, in `configure`'s `messages`; whether they also reach the
 log wasn't measured. Bundle-validation rows can appear in the log too, and one made
 `createOrdersFromQuote` refuse the quote `[Measured: M29, M31]`. Quote-to-order refuses on
-any configurator error-log row, whatever its severity `[Platform behaviour, traced]` `[Measured: 2026-11-11, 264]` (see
+any configurator error-log row, whatever its severity `[Platform behaviour, traced]` `[Measured: 2026-11-11, 264, a run with rules not executed under
+`Force`, not `Skip`]` (see
 [open item 1](#open-items)).
 
 ---
@@ -958,8 +960,8 @@ Each needs a live 264 org:
    separate Error from Warning messages, so whether a warning alone refuses the save is not
    established, and what this check does under that choice is unmeasured. The trace reads
    this check's message as an error, while M16 reported it in `configure` as a warning. A
-   Warning-only bundle-validation row also refused the order in a rules-off run
-   `[Measured: 2026-11-11, 264]`.
+   Warning-only bundle-validation row also refused the order in a run with configuration rules off
+   (`Force`, rules not executed; not `Skip`) `[Measured: 2026-11-11, 264]`.
 2. How a large cardinality (600 service hours) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
