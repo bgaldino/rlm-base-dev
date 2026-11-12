@@ -844,14 +844,17 @@ is not established.
 
 **Cause:** with Asynchronous Opportunity Sync on, order creation refuses a quote that is marked
 syncing and was modified after the opportunity's last sync time [Platform behaviour, traced]. Which
-saves count (for example flow or pricing saves) was not established. Measured twice:
-`createOrdersFromQuote` straight after a successful `syncQuoteOpportunity` refused this message (on
-one quote a Status: Accepted write came in between) [Measured: 2026-11-12, 264, scratch].
-A retry about 15 s later, with no second sync, created the order; the traced rule doesn't explain
-that. Which save moved the quote was not identified.
+saves count (for example flow or pricing saves) was not established. Measured on two quotes
+[Measured: 2026-11-12, 264, scratch]. `createOrdersFromQuote` after a successful
+`syncQuoteOpportunity` refused this message. On the quote whose steps were logged, a Status: Accepted
+write came between the sync and the order. A retry on that quote about 15 s later, with no second
+sync, created the order; the traced rule doesn't explain that. The other quote was ordered later,
+after another sync. Which other saves moved the quote was not identified.
 
-**Fix:** re-sync after the last change, including the status write, before ordering. See
-`quote-negotiation-rounds`.
+**Fix:** set the status before syncing, or sync again after the status write and any other change,
+then order [inferred from the traced rule; not measured]. If it still refuses, retry after a short
+wait (a retry about 15 s later worked once). Note that the `quote-negotiation-rounds` Award steps
+sync before setting Accepted. See `quote-negotiation-rounds`.
 
 ### Place on an Order fails with "couldn't fetch the data for ... context definition"
 

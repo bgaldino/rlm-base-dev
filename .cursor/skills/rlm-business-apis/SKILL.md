@@ -78,6 +78,8 @@ was customised:
 - Send one discount field per line. To switch type, send the other as `null` in the same PATCH, then
   read the line back. A quote line with both fields non-null is refused at save [Platform
   behaviour, traced].
+**Other Place PATCH results.**
+
 - Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace finds
   Place filling a missing term from a Term Defined selling model, but a measured dates-only Term
   Defined Annual line, placed with Force and rules on, read back `SubscriptionTerm` null both
@@ -111,9 +113,8 @@ platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemD
   `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`), so renewals behave this way
   too. Turning it off moves a plain renewal's price back to the parent, but leaves cancels and
   negative amendments unchanged (measured). Per-lot as-is pricing also needs: the
-  pricing source the renewal resolves from the asset (its own `PricingSource`, else the nearest
-  parent asset's) to be `LastTransaction` (`PriceBookListPrice`, or blank all the way up, does not
-  qualify); no ramp; no derived-price product; no price or attribute change; and not an early
+  asset's `PricingSource` to be `LastTransaction` (`PriceBookListPrice` or blank does not qualify;
+  the nearest-parent fallback is traced for amendment add-lines, not established for renewals); no ramp; no derived-price product; no price or attribute change; and not an early
   renewal [Platform behaviour, traced]. Otherwise the line is not priced per lot. Early renewals get
   cancel-and-add detail rows [Platform behaviour, traced]; whether a renewal with a price or
   attribute change does is not settled [Platform behaviour, traced in part].
