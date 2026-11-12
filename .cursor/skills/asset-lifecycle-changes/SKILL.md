@@ -53,20 +53,24 @@ results, 2026-11-11).
       default. An answer edit keeps the other answers only when
       those rows carry it. Activation fills them only when the context definition has an
       order-to-asset rule (`AssetActionSource` ⇐ `SalesTransactionItem` in
-      `AssetToSalesTransactionMapping`), which the repo's context plan doesn't have, and
-      never fills rows made from order product detail rows: the cancel-and-reprice pair an
-      answer-change amendment writes on the root [Measured: 2026-11-11, 264, scratch org].
-      So even with the rule, the next amendment's root line would start blank, since the
-      trigger reads only those rows.
+      `AssetToSalesTransactionMapping`), and never fills rows made from order product
+      detail rows: the cancel-and-reprice pair an answer-change amendment writes on the
+      root [Measured: 2026-11-11, 264, scratch org]. So the repo ships both halves: the
+      rule in its context plan [Repo: `datasets/context_plans/ConstraintEngineNodeStatus`],
+      and a before-insert trigger that fills a blank row from its order product, directly
+      or through the detail row [Repo:
+      `unpackaged/post_constraints/triggers/RLM_AssetActionSourceTrigger.trigger`]. With
+      both, answers held through two answer-change amendments in a row on a fresh build
+      [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
       Configurator side: `constraint-models` → `quantities-from-attributes.md` → open item 12.
     - **Check and work around.** After every activation in a multi-step replay, read the
       root's latest asset action source rows (verification.md step 6). Where they're blank,
       either restate every answer that differs from its CML default (in a second Place
       request after the reset, where it counts as a change), or before amending copy each
       row's node status from its order product (`ReferenceEntityItemId`, directly or
-      through the detail row's `OrderItemId`). A repo fix (the context rule plus a
-      before-insert trigger on `AssetActionSource`) is a separate change; assets activated
-      before it would still need the copy. Read every line's delta before ordering.
+      through the detail row's `OrderItemId`). Blank rows are expected on an org built
+      before the rule and trigger shipped, and on assets activated before they were
+      deployed: the trigger acts only on new rows. Read every line's delta before ordering.
 3. **Amend, renew and cancel act on top-level assets.** Help's amend, renew and cancel
    procedures each say to select a bundle's parent asset, not the child [Help:
    `ind.qocal_amend_assets`, `ind.qocal_renew_assets`, `ind.qocal_cancel_assets`].
