@@ -4,8 +4,8 @@ Read this when you need an asset change that **took effect in the past**: an ame
 cancellation, renewal, transfer, swap, upgrade or downgrade with an effective date before
 today, verified all the way to the invoice. Parent skill: [SKILL.md](SKILL.md).
 
-**Evidence base:** live runs on 264, 2026-10-28, on pk049-r1 (`ent-r1`, todos 246 and 306) and on
-a fresh `ent-r1` build of main (`r1-306`, todo 306). Plain term product `QB-API-PROD` (Term
+**Evidence base:** live runs on 264, 2026-10-28, on a scratch org (todos 246 and 306) and on
+a second, fresh scratch build of main (todo 306). Plain term product `QB-API-PROD` (Term
 Annual, billed monthly at 270.00, USD); ramps on `QB-GEN-AI-LIC`; usage on `QB-DB`. Effective
 date 2026-08-01, invoiced through today (2026-10-28) before the change; monthly advance billing
 bills October in full. Treat every "measured" below as those runs, not as a general rule. Other
@@ -374,7 +374,7 @@ sf data query -o <sf-alias> -q "SELECT StartDate, EndDate, Quantity FROM AssetSt
 sf data query -o <sf-alias> -q "SELECT LifecycleStartDate, LifecycleEndDate, CurrentQuantity FROM Asset WHERE Id = '<assetId>'"
 ```
 
-From the first API run on pk049-r1 (a `QB-API-FLEX` asset, 2026-06-01 → 2027-05-31, not a
+From the first API run on the first scratch org (a `QB-API-FLEX` asset, 2026-06-01 → 2027-05-31, not a
 verifier run): a backdated amend +1 on 2026-08-01 split the asset's periods into `06-01→07-31`
 qty 1 and `08-01→2027-05-31` qty 2. A backdated cancel on 2026-09-01 then ended them, and
 `LifecycleEndDate`, on 2026-08-31.
