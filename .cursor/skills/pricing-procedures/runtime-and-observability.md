@@ -56,13 +56,13 @@ QuantumBit scratch org; worked example in
   `Discount`, `SubscriptionTerm`, `SubscriptionTermUnit`, `SellingModelType`, `PricingTermUnit`,
   `SalesTransactionItemSource`, …). Values passed inline price the line without any record:
   `ListPrice` still came from the price book entry, and `UnitPrice` was used as the input unit price.
-- Required line inputs; without each one, pricing failed with the error shown [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
-  - `SalesTransactionItemSource` (a per-line string such as `PROBE_LINE_1` worked): without it the first step fails
-    with `nulltagName = LineItem`.
-  - `PeriodBoundary` (`Anniversary` worked): without it, `INVALID_PERIOD_BOUNDARY`.
-  - `StartDate`, and `EndDate` where the line has one, as date-times
-    (`2027-01-01T00:00:00.000Z`): a bare date fails proration with `StartDate and EndDate are
-    required`. One Time and Evergreen lines priced without an `EndDate`.
+- Line inputs that failed pricing when missing or malformed [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
+  - `SalesTransactionItemSource` missing: the first step fails with `nulltagName = LineItem`. A
+    per-line string such as `PROBE_LINE_1` worked.
+  - `PeriodBoundary` missing: `INVALID_PERIOD_BOUNDARY`. `Anniversary` worked.
+  - `StartDate` or `EndDate` as a bare date: proration fails with `StartDate and EndDate are
+    required`. Date-times (`2027-01-01T00:00:00.000Z`) worked. One Time and Evergreen lines
+    priced without an `EndDate`.
 - The dev guide sample's mapping (`businessObjectType` `SalesTransaction` with the definition's
   `SalesTransaction` mapping) failed both ways tried (a root object without `id` keys, and a root array with `id` keys):
   `INTERNAL_ERROR: We couldn’t fetch the data for RLM_SalesTransactionContext context definition.

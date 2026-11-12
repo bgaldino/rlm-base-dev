@@ -197,10 +197,10 @@ The `PriceAdjustmentScheduleId` constant resource is a procedure variable whose 
 As shipped, units added on an amendment do not re-band. Assets carry `PricingSource`
 `LastTransaction`; every non-contract new-sale group in the shipped default filters on
 `ItemPricingSource NotEquals 'LastTransaction'`, and the last-transaction lane prices those lines
-from the asset's last net price. The volume step also bands on `LineItemQuantity`, which on an
-amendment line is the delta, not the new total [Repo: `RLM_DefaultPricingProcedure`]. Added units
-took the asset's last net price, with no volume step [Measured: 2026-11-11, 264, fresh `ent-sb0`
-scratch org]. The amendment flow itself is in
+from the asset's last net price. The volume step also bands on `LineItemQuantity`
+[Repo: `RLM_DefaultPricingProcedure`], which on an amendment line is the delta, not the new total.
+Added units took the asset's last net price, with no volume step [Measured: 2026-11-11, 264,
+fresh `ent-sb0` scratch org]. The amendment flow itself is in
 [`../../asset-lifecycle-changes/SKILL.md`](../../asset-lifecycle-changes/SKILL.md).
 
 A source rule like "added units price at the band for the new total; existing units keep their
@@ -230,7 +230,8 @@ rounding step and a term discount), with this overlay merged last
 - A reduction still credited last in, first out, at the prior prices.
 - A renewal stayed on per-lot last prices: renewal lines have `StartQuantity` 0, so the new filters
   don't admit them.
-- New sales priced exactly as before, at quantities on both sides of a band edge.
+- A new sale priced exactly as before the change, and a new sale at a band edge priced at the
+  expected bands.
 
 Know before adopting it:
 

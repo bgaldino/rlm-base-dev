@@ -15,7 +15,8 @@
 > result observed live on that org: a headless pricing run (request and response shapes in
 > [`../runtime-and-observability.md`](../runtime-and-observability.md)), a describe, or a save.
 > `[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]` marks the second run, which priced
-> real quotes (Place Sales Transaction, configuration rules on) as well as headless requests.
+> real quotes (Place Sales Transaction, configuration rules on, and a group ramp built in the
+> quote UI) as well as headless requests.
 
 A commitment-term discount gives an extra percentage off a subscription line because the customer
 commits to a long term. The rule modeled here: **annual Term Defined subscriptions committed for 36
@@ -281,18 +282,19 @@ does, so the difference comes from the new group alone.
 
 ## Line inputs on real quotes
 
-The run above passed the term inline. On real quotes created with Place Sales Transaction
+The run above passed the term inline. On real quotes (Place Sales Transaction; the last row is a
+group ramp built in the quote UI)
 [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
 
 | Line as sent | Saved line | Result |
 |---|---|---|
 | Start and end dates, no term | `SubscriptionTerm` null, unit `Annual` | Criterion 3 fails: **no discount** |
-| `SubscriptionTerm` 36, unit `Months`, Annual selling model | Unit rewritten to `Annual`: 36 years, `PricingTermCount` 36 | Discount applied (criteria 7 and 8), total over **36 terms** |
+| `SubscriptionTerm` 36, unit `Months`, Annual selling model | Unit rewritten to `Annual`: 36 years, `PricingTermCount` 36 | Discount applied (through criteria 7 and 8, inferred from the saved unit), total over **36 terms** |
 | `SubscriptionTerm` 3, unit `Annual` | As sent, `PricingTermCount` 3 | Discount applied, total over 3 terms: the correct shape |
 | A segment line of a group ramp built in the quote UI | `SubscriptionTerm` 1, unit `Annual`, a ramp identifier | Criterion 8 fails: no discount unless criterion 14 below |
 
 So send every Term Defined line's term in its selling model's unit (3 `Annual` for 36 months on an
-annual model). The `Months` criteria (5 and 6) were matched only in headless runs.
+annual model). The `Months` criteria (5 and 6) were seen matching only in headless runs.
 
 Optional criteria measured in the same build:
 

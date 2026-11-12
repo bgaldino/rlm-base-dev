@@ -44,11 +44,12 @@ Built on a Place Sales Transaction quote (`configurationMethod: Force`,
 
 - **Only the root carries the answer.** The request set Region on the root line alone. The model
   wrote the child's `QuoteLineItemAttribute`, and Attribute-Based Price priced the child from it. So the value is saved on the line and
-  hydrated into the pricing context before that step. The configurator UI showed the same.
+  hydrated into the pricing context before that step. In the configurator UI the children took
+  the root's value too (with a value that has no adjustment row, so no uplift was priced there).
 - **`parent(Region)` with no level reached the root** from children that sit in a product
   component group, in a model that declares no group types. Whether a model that declares group
   types needs the level argument was not measured.
-- **Catalog set-up it needed:** each affected child is based on a classification that carries
+- **Catalog set-up used:** each affected child is based on a classification that carries
   the attribute directly, with a Product Attribute Definition marking it price-impacting. So
   route 1 spans the catalog, the constraint model and the pricing data: plan and load them
   together.

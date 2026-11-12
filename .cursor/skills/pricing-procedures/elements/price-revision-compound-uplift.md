@@ -85,10 +85,10 @@ back to a percentage: uplifts 5% then 3% give `applied% = 8.15` (not `0.0815`), 
 `NetUnitPrice = base x 1.0815`. [Live, 2026-10-28][Core: same multiplier arithmetic, seeded from `PreviousSegmentMultiplier` as a percent]
 
 **The uplifted price is not rounded to the cent.** A compound segment's `NetUnitPrice` carried
-four decimals (base × 1.0609 for 3% then 3%), and the line total followed it, so a source that
-rounds each year's price to the cent missed by fractions of a cent per unit
-[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. For example, 1,001.00 × 1.0609 =
-1,061.9609, not 1,061.96. A rounding step that runs before the uplift, such as one before the
+four decimals (the base times the compounded multiplier), and the line total followed it, so a
+source that rounds each year's price to the cent missed by fractions of a cent per unit
+[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. For example, with 5% then 2%,
+1,001.00 × 1.071 = 1,072.071, not 1,072.07. A rounding step that runs before the uplift, such as one before the
 manual discounts, does not cover this. Add a second one after it: a List Group placed right after
 the ramp uplift group (`Applyupliftstorampedsubscriptionsitemsduringamendment` in the shipped
 default), filter `ItemRampIdentifier IsNotNull AND NetUnitPrice IsNotNull`, and a Formula-Based
