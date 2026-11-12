@@ -37,9 +37,9 @@ Measured traps:
 - **A top-level category whose products sit only in subcategories shows no products** until a
   subcategory is picked [Measured: early Nov 2026, 264].
 - On a group ramp, Browse Catalogs from a segment row asked for the **catalog first**, then **Select
-  Segments to Add Products** [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]; an earlier run
-  recorded the segment prompt first. Neither run recorded the Default Catalog setting (above), so the
-  order may depend on it. Ramp steps: `ramped-quotes/ui-group-ramp.md`
+  Segments to Add Products** [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]; an earlier fresh
+  build (2026-10-29) recorded the segment prompt first, and the cause of the difference isn't
+  established. Check which prompt comes first before a demo. Ramp steps: `ramped-quotes/ui-group-ramp.md`
   [Repo: `.cursor/skills/ramped-quotes/ui-group-ramp.md`].
 
 ## 2. Editing lines

@@ -172,8 +172,8 @@ patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` add
    [Repo: `datasets/sfdmu/procedure-plans/README.md`].
 7. How renewal and cancellation lines display in the STLE (quantities, price columns, detail rows);
    only amendment lines were measured.
-8. Whether bundle child lines can be moved with **Move Selected Items** (STLE), and whether the
-   legacy TLE lets them be selected at all. In the STLE, selecting children and bulk editing them is
+8. Whether bundle child lines can be moved with **Move Selected Items** (either editor), and whether
+   the legacy TLE lets them be selected or bulk edited at all. In the STLE, selecting children and bulk editing them is
    measured: an Adjustment Type edit went to every selected child [Measured: 2026-11-11, fresh 264
    `ent-sb0` scratch org; see `runtime-behavior.md` section 2].
 9. How **Group By** (TLE) places bundle child lines, which columns count as groupable, and whether
