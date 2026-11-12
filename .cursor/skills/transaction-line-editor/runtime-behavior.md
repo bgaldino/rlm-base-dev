@@ -37,8 +37,10 @@ Measured traps:
 - **A top-level category whose products sit only in subcategories shows no products** until a
   subcategory is picked [Measured: early Nov 2026, 264].
 - On a group ramp, Browse Catalogs from a segment row asked for the **catalog first**, then **Select
-  Segments to Add Products** [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]; see
-  `ramped-quotes/ui-group-ramp.md` [Repo: `.cursor/skills/ramped-quotes/ui-group-ramp.md`].
+  Segments to Add Products** [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]; an earlier run
+  recorded the segment prompt first. Neither run recorded the Default Catalog setting (above), so the
+  order may depend on it. Ramp steps: `ramped-quotes/ui-group-ramp.md`
+  [Repo: `.cursor/skills/ramped-quotes/ui-group-ramp.md`].
 
 ## 2. Editing lines
 
@@ -126,7 +128,7 @@ the others are unconfirmed:
   [Help: `ind.pricing_essentials`]; this repo ships it off (`IsPropagationEnabled` false) in the
   procedures that carry it [Repo: `.cursor/skills/pricing-procedures/elements/price-propagation.md`].
 - **Select the lines by hand and bulk edit (works in the STLE):** tick that product line's child rows,
-  edit the Adjustment Type cell on one of them (for example Discount (Percentage) 12), Save. The value
+  edit the Adjustment Type cell on one of them (for example Discount (Percentage) 10), Save. The value
   went to every selected child and priced each one; the other children and the root were untouched,
   and no error log was written. The result matched the same discount set on those lines through the
   Place API [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. With many children the rep ticks
@@ -163,12 +165,13 @@ Measured: **Reprice All on a quote whose lines are already priced changed nothin
 were refreshed and the configuration was validated." [Measured: early Nov 2026, 264]. The message's
 mention of configuration conflicts with Help's "skips configuration"; see the parent's Open list.
 
-Measured: **a header-only change doesn't reprice the lines.** A Place PATCH that changed only a quote
+Measured: **a header-only Place PATCH doesn't reprice the lines.** A Place PATCH that changed only a quote
 header field, one the pricing procedure reads through the sales transaction context, saved the field
 and left every line's price and `PriceWaterfallIdentifier` as they were; a header-only PATCH with no
 field change didn't reprice either. **Reprice All** applied the new header value to the lines
 [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. After changing a header field that pricing
-reads, click Reprice All (or change a line).
+reads, click Reprice All (or change a line). A header edit in the record UI wasn't measured; Help
+expects manual updates to need Reprice All (Quick Rule 5 in the parent).
 
 ## 5. Header adjustments
 
@@ -277,6 +280,6 @@ Renewal and cancellation line display in the STLE was not measured; see the pare
    detail-row pricing if they appear.
 7. Don't count on Reprice All producing a visible change: on an already-priced quote with nothing
    changed since, our run showed none. After changing a header field that pricing reads, do click it:
-   a header-only change leaves the lines' prices alone (section 4). After changing prices or the
+   a header-only Place PATCH left the lines' prices alone (section 4). After changing prices or the
    catalog, refresh the decision tables first [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`]; Reprice All alone
    may not show the new price.
