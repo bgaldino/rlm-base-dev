@@ -325,12 +325,13 @@ each cloning the most recent ramped group:
 
 Per the dev guide the v68 clone response is `{ requestId, salesTransactionId, success, errors }`
 (`docs/salesforce/264/dev-guide/articles/connect_responses_clone_sales_transaction_output.htm.md`);
-a measured clone (group clones in the ramp runs, and whole-quote clones) also returned `trackerId`/`trackerUrl` keys, both null (see
+measured clones also returned a `trackerId` key, null in group clones (ramp runs) and in whole-quote clones, and a
+`trackerUrl` key, null in whole-quote clones (see
 [quote-negotiation-rounds → deep-clone.md](../quote-negotiation-rounds/deep-clone.md#response-and-completion)).
-The large-transaction clone path wasn't traced.
 `success:false` with a populated `errors[]` is a
 synchronous failure — stop. On `success:true` the save runs **async**. The dev guide says `requestId`
-identifies that process; the measured (standard-size) responses had `requestId` null, so it can't be the gate there; the large-transaction path wasn't traced. Gate on `Quote.CalculationStatus` —
+identifies that process; every measured response had `requestId` null, so it can't be the gate there. The
+large-transaction clone path wasn't traced. Gate on `Quote.CalculationStatus` —
 poll it to a settled state ([Status](#status)) before the next call. Do **not**
 read or clone the next group until it settles; then read back the new group's id
 for the next clone. The quote can still read as settled from before the call, so also poll
