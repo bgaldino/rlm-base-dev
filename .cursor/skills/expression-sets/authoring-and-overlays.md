@@ -65,15 +65,17 @@ failed PATCH, the tool left the version **deactivated** (see SKILL.md → *Mutat
 [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. The cause was not isolated: the
 tool's simulated merge reported no errors, and the same overlays merged locally imported cleanly.
 
-What worked on every run, in two orgs [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
+What worked, on every run whose overlays were valid, in two fresh 264 `ent-sb0` scratch orgs
+[Measured: 2026-11-11]:
 
 1. Export the procedure import-ready (`export_expression_set.py --for-import --out <file>`).
 2. Apply every overlay to that JSON locally, in order, with `apply_overlay()` from
-   `scripts/expression_sets/_overlay.py` (the merge the CLI and CCI task use), passing the
-   version API name.
-3. Validate the merged definition (`python scripts/ai/validate_expression_set.py <file>`).
-4. Import it once with `import_expression_set.py --input-file <file>` (preview, then `--confirm`),
-   which replaces the existing procedure in place, or creates it under a new name.
+   `scripts/expression_sets/_overlay.py` (the merge the CLI uses, which mirrors the CCI task's),
+   passing the version API name.
+3. Import it once with `import_expression_set.py --input-file <file>` (preview, then `--confirm`),
+   which replaces the existing procedure in place, or creates it under a new name. The import
+   runs the offline validator before it writes, but the platform can still refuse a step's
+   content at create or replace, and that run then fails.
 
 This also recovers a version a failed PATCH left inactive: re-import a known-good merged
 definition before reactivating it.
