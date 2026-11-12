@@ -84,6 +84,13 @@ quote UI (`ui-group-ramp.md`, measured on 264).
    Asset per segment it sits in; built in the UI a one-time child is stamped and, left in N segments, becomes one Asset whose
    quantity accumulates (1, 2, 3 over three segments). See
    [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
+10. **In a UI-built group ramp, a segment's uplift applies to every line in it, and isn't rounded.**
+    The segment's Unit Price Uplift % lands on One-Time and Evergreen lines too, whose `TotalPrice`
+    doesn't follow the uplifted net; set `UnitPriceUplift` 0 on a line to exempt it. The uplifted
+    price keeps full precision (not cents); add a rounding step after the ramp uplift if the source
+    rounds. Measured 2026-11-11 on a fresh 264 `ent-sb0` scratch org; see
+    [ui-group-ramp.md → What the segment uplift reaches](ui-group-ramp.md#what-the-segment-uplift-reaches)
+    and [compound-uplift.md](compound-uplift.md).
 
 ## DO NOT
 
@@ -137,6 +144,17 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   Make the final reprice `Force`. Then check that every ramp line's `PriceWaterfallIdentifier`
   starts with its **own** Id. One that starts with `Quote_QuoteLineItem_<other Id>` hasn't been
   fully priced since its clone. (`build_quote_to_asset.py` asserts this.)
+- **DO NOT** trust the lines you didn't touch after a **partial line PATCH on a Compound ramp.**
+  Measured 2026-11-11 on a fresh 264 `ent-sb0` scratch org (a UI-built ramp, uplift 0 / 3 / 3): a
+  Place PATCH (`pricingPref: "System"`, `configurationMethod: Force`) that set only some lines'
+  `UnitPriceUplift` re-applied the uplift to the other ramp lines. Their `NetUnitPrice` was uplifted
+  again on top of the already uplifted net (segment 2 by 3% more, segment 3 by 6.09% more), while
+  their `TotalPrice` stayed put. **Reprice All** in the line editor restored every line; a `Force`
+  reprice wasn't tried for this case. Possibly a platform defect. To reproduce: on a Compound UI ramp,
+  PATCH `UnitPriceUplift` on some lines of segments 2 and 3 only, then read the other lines'
+  `NetUnitPrice` in those segments (measured with a bundle: the PATCHed lines were its Evergreen and
+  One-Time children, the re-uplifted ones its Term child). Finish every ramp line edit with Reprice
+  All and re-read all segments.
 - **DO NOT** claim a build "works" from an offline dry-run — a mutating ramp run
   must be verified against a **live 264 org**, writing only to a confirmed
   **writable** org.
@@ -411,6 +429,9 @@ sf data query --target-org <sf_alias> -q "SELECT Product2.Name, Product2.StockKe
   FROM QuoteLineItem WHERE QuoteId='<QUOTE_ID>' ORDER BY StartDate NULLS FIRST"
 ```
 
+Order by `StartDate` to find segment 1: `IsPrimarySegment` was false on **every** segment of a
+UI-built ramp (measured 2026-11-11, fresh 264 `ent-sb0` scratch org), so it can't single out a segment.
+
 Report: account, products, **TCV** (Σ all line totals across all segments),
 per-period subtotal and **% of TCV**, and the ramp-by-product matrix (grouped on
 `RampIdentifier`, labelled by `Product2.Name`/`StockKeepingUnit`). Sum the
@@ -526,17 +547,18 @@ would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
 
 ## Sub-files
 
-- `compound-uplift.md` — Compound price uplift: the quote-side prerequisites and a read-back
-  check; the engine and full arithmetic live in `pricing-procedures`. Read it when applying or
-  checking Compound.
+- `compound-uplift.md` — Compound price uplift: the quote-side prerequisites, a read-back
+  check, and the unrounded precision (round after the uplift); the engine and full arithmetic live
+  in `pricing-procedures`. Read it when applying or checking Compound.
 - `field-legality.md` — which ramp and pricing line fields are writable on live 264. Read it when a
   call rejects a field.
 - `bundle-children-lifecycle.md` — a group-ramped bundle with a one-time or evergreen child: limiting the child to
-  segment 1, assetization shape, the amend/cancel 500 on API-built bundles (UI-built differ), renewal rules and lifecycle-recipe prerequisites. Read it before
+  segment 1, what a UI-built bundle ramp carries per segment (every child, split default components), assetization shape, the amend/cancel 500 on API-built bundles (UI-built differ), renewal rules and lifecycle-recipe prerequisites. Read it before
   amending, cancelling or renewing a ramped bundle.
 - `ui-group-ramp.md` — building a Standard or Compound group ramp in the 264 quote UI (Create Ramp
   Schedule → Edit Ramp Schedule → Browse Catalogs into *Current and Subsequent Segments*), the
-  expected prices and assets, and how to verify. Read it for a UI demo or a UI-built quote.
+  expected prices and assets, which lines the segment uplift reaches, and how to verify. Read it for
+  a UI demo or a UI-built quote.
 
 ## Related References
 
