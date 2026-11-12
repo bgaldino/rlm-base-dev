@@ -53,9 +53,12 @@ read the row's scope before generalising it.
    frequency blank and kept the treatment, with success; read the frequency back [Measured: M11].
    The save check explains the refusals, not the drop: Milestone Plan is legal only on One-Time
    lines, and a treatment with a blank frequency is accepted. Why Place blanked the frequency on a
-   component is not established; Skip kept it on a standalone line (M5; also standalone, not a component) and was not tried on a
-   component [Platform behaviour, traced in part]. Don't generalise past a component placed with
-   Force and rules on.
+   component is not established [Platform behaviour, traced in part]. Skip kept it on a standalone line (M5). To keep it on
+   components, place first, then send a second Place PATCH of the component lines with
+   configuration Skip, `BillingFrequency` `MilestonePlan` and the milestone `BillingTreatmentId`:
+   both were kept, no price moved, `createOrdersFromQuote` copied them and activation built one
+   plan per line [Measured: 2026-11-12, 264, scratch]. One org and one bundle; the cause of the
+   drop stays open. Read the frequency back after each Place.
 5. **In advance or in arrears is the treatment item's Billing Type, not a line field.**
    Advance bills on the billing date on or before the start date; Arrears on the first one
    after it; None is for milestone billing
@@ -282,6 +285,12 @@ Quote and order values on a change are not the invoice. For where change values 
 `asset-lifecycle-changes`. For invoices and credit memos after a backdated change, and
 frequency changes on active assets, read `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 For milestone-billed assets, and services an amendment adds, see the milestone section above.
+
+A price change dated after the original commitment term's end counted 0 months under a
+months-remaining rule that counts from the original commitment start (a change dated at the
+renewal start, after the original term, with that start stamp unchanged), so a prorated
+change value was 0 [Measured: 2026-11-12, 264, scratch]. The rule is the build's own pricing
+logic, not a Billing default; read the stamp before dating a change past the original term.
 
 ## Examples
 
