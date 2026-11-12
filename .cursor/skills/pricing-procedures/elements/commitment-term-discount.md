@@ -54,8 +54,8 @@ All are standard tags on the `SalesTransactionItem` node of the sales transactio
 | `NetUnitPrice` | `NetUnitPrice` | The running net unit price after the standard discounts |
 
 The term is compared in its own unit, so the filter accepts either form of a 36-month commitment:
-36 or more `Months`, or 3 or more `Annual`. Both were measured. On a saved quote line, though, only
-the selling model's own unit gives the right line total; see
+36 or more `Months`, or 3 or more `Annual`. Both were measured headless. On a saved quote line,
+send the term in the selling model's unit; see
 [Line inputs on real quotes](#line-inputs-on-real-quotes).
 
 ## Configuration
@@ -281,48 +281,39 @@ does, so the difference comes from the new group alone.
 
 ## Line inputs on real quotes
 
-The run above passed the term inline, so it did not show what a saved quote line carries. On real
-quotes created with Place Sales Transaction [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
+The run above passed the term inline. On real quotes created with Place Sales Transaction
+[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
 
-| Line as created | What it carries | Result |
+| Line as sent | Saved line | Result |
 |---|---|---|
-| Start and end dates only, no term | `SubscriptionTerm` null, `SubscriptionTermUnit` `Annual` | Criterion 3 fails, so the group **skips** the line |
-| `SubscriptionTerm` 36, unit `Months`, on an Annual selling model | `PricingTermCount` 36 | The discount applied, but the line total counted **36 terms** instead of 3 |
-| `SubscriptionTerm` 3, unit `Annual` | `PricingTermCount` 3 | Discount applied, total over 3 terms: the correct shape |
-| A segment line of a group ramp built in the quote UI | `SubscriptionTerm` 1, unit `Annual`, a ramp identifier | Criterion 8 fails, so the group skips it unless ramp lines are let through (criterion 14 below) |
+| Start and end dates, no term | `SubscriptionTerm` null, unit `Annual` | Criterion 3 fails: **no discount** |
+| `SubscriptionTerm` 36, unit `Months`, Annual selling model | Unit rewritten to `Annual`: 36 years, `PricingTermCount` 36 | Discount applied (criteria 7 and 8), total over **36 terms** |
+| `SubscriptionTerm` 3, unit `Annual` | As sent, `PricingTermCount` 3 | Discount applied, total over 3 terms: the correct shape |
+| A segment line of a group ramp built in the quote UI | `SubscriptionTerm` 1, unit `Annual`, a ramp identifier | Criterion 8 fails: no discount unless criterion 14 below |
 
-So give every Term Defined line the term in its selling model's pricing term unit (3 `Annual` for
-36 months on an annual model), not in months and not as dates alone. The headless run above,
-which also passed an end date, counted 36 `Months` as 3 terms; why the saved line differs was not
-isolated.
+So send every Term Defined line's term in its selling model's unit (3 `Annual` for 36 months on an
+annual model). The `Months` criteria (5 and 6) were matched only in headless runs.
 
-**Optional criteria** measured in the same build, appended to the filter:
+Optional criteria measured in the same build:
 
 | # | Resource | Operator | Value | Purpose |
 |---|---|---|---|---|
 | 11 | `PricingTermUnit` | IsNotNull | | Guard for criterion 2 (see Configuration) |
-| 12 | `<header switch tag>` | Equals | `true` | Apply the discount only when a header checkbox is on |
+| 12 | `<header switch tag>` | Equals | `true` | Discount only when a header checkbox is on |
 | 13 | `<header switch tag>` | IsNotNull | | Guard for criterion 12 |
 | 14 | `ItemRampIdentifier` | IsNotNull | | Let group-ramp segment lines through |
 
-Condition logic with all four:
-`1 AND 11 AND 2 AND 9 AND 10 AND 13 AND 12 AND ((3 AND 4 AND ((5 AND 6) OR (7 AND 8))) OR 14)`.
+Logic: `1 AND 11 AND 2 AND 9 AND 10 AND 13 AND 12 AND ((3 AND 4 AND ((5 AND 6) OR (7 AND 8))) OR 14)`.
 
-- **With criterion 11 in place**, a One Time line priced alone, and One Time and Evergreen lines
-  mixed with a matching line in one request, priced unchanged with no line error (headless).
-- **A header tag works as a list-filter criterion.** The switch was a Checkbox on `Quote`, mapped
-  into the sales transaction context as a `SalesTransaction` attribute and tag of data type
-  BOOLEAN (context mapping: [`../../context-service/SKILL.md`](../../context-service/SKILL.md)).
-  The line-level filter read it directly: switch on, the discount applied; off, it did not.
-- **Changing only the header does not reprice the lines.** A Place PATCH that changed only the
-  switch saved it and left the line prices as they were; Reprice All in the line editor applied
-  it. A line change probably reprices it too, as the root-answer edit in
-  [`root-answer-child-price.md`](root-answer-child-price.md) repriced its lines [inferred; not
-  measured for the switch].
-- **Criterion 14 admits every group-ramp segment line**, whatever the ramp's length, so it
-  assumes the ramp itself is the commitment. If ramps shorter than the threshold exist, add a
-  check for them [inferred]. In the measured ramp the group ran after the ramp uplift, so each
-  segment took the discount on its uplifted net.
+- With criterion 11, a One Time line alone, and One Time and Evergreen lines mixed with a matching
+  line, priced unchanged with no line error (headless).
+- The header switch was a `Quote` Checkbox mapped into the sales transaction context as a
+  `SalesTransaction` tag of data type BOOLEAN
+  ([`../../context-service/SKILL.md`](../../context-service/SKILL.md)); the line filter read it.
+  Changing only the switch did not reprice the lines; Reprice All in the line editor did.
+- Criterion 14 admits every group-ramp segment line, whatever the ramp's length [inferred from the
+  filter]. The group runs after the ramp uplift, so each segment took the discount on its uplifted
+  net.
 
 ## Verify
 
@@ -338,7 +329,7 @@ Condition logic with all four:
 |---|---|---|
 | A 36-month line is not discounted | Its `SubscriptionTermUnit` is not `Months` or `Annual`, or `PricingTermUnit` is not `Annual` | Check the line's unit; add a criterion pair for the unit you sell in |
 | A 36-month quote line is not discounted | The line has start and end dates but no `SubscriptionTerm` | Set `SubscriptionTerm` in the selling model's unit (3 `Annual`) ([Line inputs on real quotes](#line-inputs-on-real-quotes)) |
-| Line total counts one term per month | `SubscriptionTerm` in `Months` on an Annual selling model | Same fix: 3 `Annual`, not 36 `Months` |
+| Line total counts 36 terms | `SubscriptionTerm` 36 `Months` sent on an Annual selling model; Place saved it as 36 `Annual` | Same fix: 3 `Annual` |
 | Group-ramp segment lines are not discounted | Each segment line carries a term of 1 | Add criterion 14 (`ItemRampIdentifier` IsNotNull) |
 | A header switch change has no effect | Only the header changed, so the lines were not repriced | Reprice All in the line editor |
 | Discount applied twice on an amendment | Criterion 9 removed | Keep `ItemPricingSource NotEquals 'LastTransaction'` |

@@ -220,7 +220,8 @@ it requires `IsContracted` true; the measured overlay changed it with the rest. 
 and rewrites the logic; filter mechanics are in
 [`list-group-and-list-operation.md`](list-group-and-list-operation.md).
 
-Measured on a procedure cloned from the shipped default with this overlay
+Measured on a procedure cloned from the shipped default that also carried other custom groups (a
+rounding step and a term discount), with this overlay merged last
 [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
 
 - The added units took the new-sale chain and priced at the band for the new total: the waterfall
