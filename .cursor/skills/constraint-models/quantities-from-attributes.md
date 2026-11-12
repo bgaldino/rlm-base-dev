@@ -503,7 +503,7 @@ type Quote {
   of the quote, across all ramp segments and groups, as one set; nothing partitions it per
   group before the model runs. A relation on the container therefore counts lines across
   segments. No scoping by group was found other than a `groupBy` container; how the engine
-  handles a container in a group ramp isn't determined `[Platform behaviour, traced]`.
+  handles a container in a group ramp isn't determined `[Platform behaviour, traced in part]`.
 - **Check across lines with `message(..., "Error")`, not constraints.** Constraints on a
   container relation to top-level lines didn't refuse a rep's lines: the solver rewrote
   them and added instances, once a second bundle root, to satisfy the rule. An `Error`
@@ -523,7 +523,7 @@ type Quote {
   check, not run: a single-line type (`split = false`) is capped at one instance per
   relation, and a container over all segments shares one relation. A one-instance type on a
   container shared across segments should fail the solver's one-instance check (its text is
-  "Can't have more than one instance of <type>") `[Platform behaviour, traced]`. Whether
+  "Can't have more than one instance of <type>") `[Platform behaviour, traced in part]`. Whether
   that check produced the measured refusal, whose text differs, isn't established. Don't put
   a one-instance type in a quote-level container shared across ramp segments; size it per
   bundle instead. What Place does with a cloned segment line (status, quantity) isn't
@@ -613,9 +613,10 @@ status after each of seven activations (a new sale, four amendments, a renewal, 
 amendment; three of the amendments on the root, two of those changing an answer), and unchanged answers held
 `[Measured: 2026-11-12, 264, scratch]` (one org). With the trigger in place, that run can't
 show whether the rule alone fills line-sourced rows. An earlier run saw line-sourced rows filled by the rule alone `[Measured: M39]`. One other
-org, built before the order → asset rule shipped, saw the field blank on every row,
-line-sourced ones included, which matches M39's without-the-rule result (see
-asset-lifecycle-changes Quick Rule 2).
+org saw the field blank on every row, new-sale rows included. It was built before the
+order → asset rule shipped, so it probably lacked the rule, which would match M39's
+without-the-rule result. Its context definition wasn't checked for the rule, so the cause is
+inferred and still open (see asset-lifecycle-changes Quick Rule 2).
 
 ---
 
@@ -727,8 +728,7 @@ message was only in the error log and a later `configure` returned
 from `message(...)` separately, in `configure`'s `messages`; whether they also reach the
 log wasn't measured. Bundle-validation rows can appear in the log too, and one made
 `createOrdersFromQuote` refuse the quote `[Measured: M29, M31]`. Quote-to-order refuses on
-any configurator error-log row, whatever its severity `[Platform behaviour, traced]` `[Measured: 2026-11-11, 264, a run with rules not executed under
-`Force`, not `Skip`]` (see
+any configurator error-log row, whatever its severity `[Platform behaviour, traced]` `[Measured: 2026-11-11, 264, rules not executed under Force, not Skip]` (see
 [open item 1](#open-items)).
 
 ---
@@ -958,10 +958,12 @@ Each needs a live 264 org:
    runs no check, so no row appears. Under a quote-placement "run and block errors" choice,
    Place refuses the save instead `[Platform behaviour, traced]`; the trace does not
    separate Error from Warning messages, so whether a warning alone refuses the save is not
-   established, and what this check does under that choice is unmeasured. The trace reads
-   this check's message as an error, while M16 reported it in `configure` as a warning. A
+   established, and what this check does under that choice is unmeasured. The trace
+   is inconsistent on this check's severity (Error in one place, Warning in others), and
+   M16 reported it in `configure` as a warning. A
    Warning-only bundle-validation row also refused the order in a run with configuration rules off
-   (`Force`, rules not executed; not `Skip`) `[Measured: 2026-11-11, 264]`.
+   (`Force`, rules not executed; not `Skip`)
+   `[Measured: 2026-11-11, 264, rules not executed under Force, not Skip]`.
 2. How a large cardinality (600 service hours) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
@@ -1023,7 +1025,7 @@ Each needs a live 264 org:
     so nothing carries a split decision or a reuse pool between segments, and a
     single-line type gets one line per component in each segment. Whether a cloned segment
     line is fixed or a candidate, and its quantity, are decided on the Place side, which
-    isn't traced `[Platform behaviour, traced]`. A container over all segments is one solve
+    isn't traced `[Platform behaviour, traced in part]`. A container over all segments is one solve
     (see [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)).
 
 ---
