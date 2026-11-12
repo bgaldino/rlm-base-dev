@@ -58,10 +58,8 @@ dynamic input parameters. The Builder offers lookup, hide-waterfall and compound
   delta setting; non-compound lines are unaffected. [Help] That sits against the traced rule below
   (a partial PATCH reruns only the edited lines plus dependents); the two are not reconciled, so
   re-read ramp-group prices after any save.
-- With delta pricing on, a partial PATCH can reprice only the edited lines and their dependents; its
-  conditions include System pricing, a PATCH, Dual Persistence mode off, a completed prior status and
-  no validation errors, and the list is partial (see [`../runtime-and-observability.md`](../runtime-and-observability.md)).
-  With delta off, or a non-System or non-PATCH save, every line reruns and the uplift is applied again to untouched
+- With the delta pricing setting on, and a PATCH edit with System pricing, Dual Persistence mode off, a completed calculation status and no validation errors, only the edited lines and their dependents reprice; the list of conditions is partial (see [`../runtime-and-observability.md`](../runtime-and-observability.md)).
+  If any of those does not hold, every line reruns and the uplift is applied again to untouched
   lines [Platform behaviour, traced]. Whether delta was on in the measured re-uplift is not
   established.
 
