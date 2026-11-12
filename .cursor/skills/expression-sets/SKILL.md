@@ -331,11 +331,14 @@ sequence; capture them from a live GET (don't hand-author) — the toolkit's
 referenced name is one of **three scopes**: version variable → `addVariables`;
 custom (`__c`/`__r`) → `externalDependencies` (the overlay can't create it);
 standard context → nothing. Top-level and child steps are sliced differently
-(placement vs `parentStep` + `sequenceNumber`). And **validation is structural,
+(placement vs `parentStep` + `sequenceNumber`). To put several overlays on one
+procedure, merge them locally and import once: a second overlay applied to a
+procedure that already carried one failed and left the version inactive (measured
+on 264, cause not isolated). And **validation is structural,
 not functional** — a `removeSteps` that reactivates can still leave a consumer
 orphaned and silently misbehave. The full slicing table, the three-scope
-classifier, the `externalDependencies` block shape, and safe-removal guidance
-live in **`authoring-and-overlays.md`**.
+classifier, the `externalDependencies` block shape, the local-merge recipe and
+safe-removal guidance live in **`authoring-and-overlays.md`**.
 
 ---
 
