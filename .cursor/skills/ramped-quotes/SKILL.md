@@ -128,10 +128,12 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   The bundles tested in ramped segments, added in the quote UI or cloned, kept ramp ids on every line; see
   [Cloning a segment that holds a bundle](bundle-children-lifecycle.md#cloning-a-segment-that-holds-a-bundle).
 - **DO NOT** allow only one instance per type on a virtual transaction (`Quote`) container in a group ramp.
-  The container sees every segment's lines at once: the configurator is handed every line of the quote, across
-  all segments and groups, in one set, and no per-group scope is applied before the model runs except a
-  `groupBy` container [Platform behaviour, traced]. How the engine then handles a container in a group ramp, and
-  the source of the refusal text below, aren't established. See the container rule in
+  The container sees every segment's lines at once: the configurator is handed every line of the quote in one
+  set, and no per-group scope was found on the input side. A `groupBy` container partitions by an attribute
+  value; whether that can scope a ramp segment wasn't shown [Platform behaviour, traced in part]. A candidate
+  explanation, unconfirmed: a type left unsplit with more than one line fails the one-instance check on a shared
+  port [inferred]. How the engine then handles a container in a group ramp, and the source of the refusal text
+  below, aren't established. See the container rule in
   [constraint-models → Checks across top-level lines](../constraint-models/quantities-from-attributes.md#checks-across-top-level-lines-a-virtual-quote-container).
   Measured 2026-11-11 (fresh 264 `ent-sb0` scratch org, quote UI): with the bundle relation `[0..1]` and `@(split = false)` on the top-level line types it held,
   the ramp quote got "You can't add more than one of the same '<product>' product to the '<type>' product
@@ -321,11 +323,11 @@ each cloning the most recent ramped group:
   "options": { "lineScope": "AllLines" } }
 ```
 
-The v68 clone response is `{ requestId, salesTransactionId, success, errors }`
-(`docs/salesforce/264/dev-guide/articles/connect_responses_clone_sales_transaction_output.htm.md`)
-— no `trackerId` for a standard-size transaction, which copies inline. A large
-transaction does return a tracker id that must be waited on; see
-[quote-negotiation-rounds → deep-clone.md](../quote-negotiation-rounds/deep-clone.md#response-and-completion).
+Per the dev guide the v68 clone response is `{ requestId, salesTransactionId, success, errors }`
+(`docs/salesforce/264/dev-guide/articles/connect_responses_clone_sales_transaction_output.htm.md`);
+a measured standard-size clone also returned `trackerId`/`trackerUrl` keys, both null (see
+[quote-negotiation-rounds → deep-clone.md](../quote-negotiation-rounds/deep-clone.md#response-and-completion)).
+The large-transaction clone path wasn't traced. Gate on `Quote.CalculationStatus`.
 `success:false` with a populated `errors[]` is a
 synchronous failure — stop. On `success:true` the save runs **async**: `requestId`
 identifies that process, and the observable gate is `Quote.CalculationStatus` —
@@ -365,10 +367,11 @@ compound result — the three calls above alone do not. It also needs the fully-
 ```
 
 Segment 1 is the baseline (leave `UnitPriceUplift` 0). `pricingPref: "Force"`
-re-runs pricing on **every** line, so the engine applies the compound uplift. `System` prices a Place
-request only if it carries at least one line record (a request holding only the Quote and group records,
-such as a lone `RampUpliftType` change, isn't priced), and its delta pricing may skip lines (see DO NOT)
-[Platform behaviour, traced]; see the header-only rule in
+re-runs pricing on **every** line, so the engine applies the compound uplift. On the graph-request Place
+path, `System` prices a request only if it carries at least one line record (a request holding only the Quote
+header, such as a lone `RampUpliftType` change, isn't priced); a request carrying a context id is
+priced whenever the transaction has lines, and an org setting can skip pricing altogether. `System` delta
+pricing may also skip lines (see DO NOT) [Platform behaviour, traced]; see the header-only rule in
 [transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md). Poll `CalculationStatus`
 to a settled state, then read back ([Read-back](#read-back--the-ramp-schedule)) and
 verify the compounding numerically.

@@ -40,9 +40,10 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
   - a required choice attribute on the bundle root (for example Include/Exclude, default Include);
   - in CML, each one-time child relation keeps its sizing rule under Include and gets `== 0` under Exclude. Give each
     relation its own Exclude rule carrying that relation's message: with one shared Exclude rule, its message was the
-    one reported when a different sizing rule broke on an Include bundle (the solver changed the stored answer;
-    it does that when the answer reaches the solve as a default, engine-derived or fresh-add value, not a
-    rep-entered one on a context that tracks node status, and which case this was isn't established; see
+    one reported when a different sizing rule broke on an Include bundle (consistent with the solver treating the
+    answer as free, which it does when the answer reaches the solve as a default, engine-derived or fresh-add
+    value, not a rep-entered one on a context that tracks node status; the first-failed rule's message is kept,
+    so a flipped branch can report the other rule; which case this was isn't established; see
     [constraint-models → a choice that switches rules](../constraint-models/quantities-from-attributes.md));
   - in PCM, the minimum of each component group holding those children lowered to 0, and any of them that was
     required (`IsComponentRequired`) made optional.
@@ -54,10 +55,11 @@ was written (checked on one org). The 0 minimums raised no group-range warning (
   Exclude, with and without defaults), and Validate Product Definition reported no errors. A contract value rolled
   up over all segments then counted the one-time children once and matched the source's figure. Switching back to
   Include, and order, amend and assetization of this shape, weren't measured. That the 0 minimums raised no
-  range warning isn't a rule for a minimum of 1: the range check comes from the solver and applies only where the
-  model declares instance bounds on the group, it counts a quantity-N line as 1 with `split = false` and as N
-  otherwise, and whether a PCM minimum reaches the model, or what a minimum of 1 with no lines does, isn't
-  established (live check) [Platform behaviour, traced in part].
+  range warning isn't a rule for a minimum of 1. A solver group-range check exists only where the model declares
+  instance bounds on the group; a separate bundle validation also counts lines (untraced at minimum 1). The
+  solver counts a quantity-N line as 1 with `split = false`, N with `split = true`, and the lines built when
+  unset. Whether a PCM minimum reaches the model, or what a minimum of 1 with no lines does, isn't established
+  (live check) [Platform behaviour, traced in part].
 - A **required** child cannot be removed by unticking: its checkbox is disabled in the segment 2 configurator and the line's row
   menu has no delete.
 - UI adds of the test bundles failed with `UNKNOWN_EXCEPTION` and no lines written while `IsDefault` was false on their
@@ -95,7 +97,8 @@ API path doesn't show this when it sends the child lines itself with `addDefault
 Why: a default component is pre-added at its configured quantity (1 when unset). For a type with no `split`
 annotation that line is fixed, so a rule asking for more makes the solver add a separate line for the remainder;
 with `split = false` the line's quantity is a variable and the line is reused. Each segment's bundle root is
-solved on its own, so each segment gets one line per unsplit component [Platform behaviour, traced]. Which
+solved on its own, so, per segment, a `split = false` component gets one line (outside a `Quote` container;
+with one, all segments share one solve) [Platform behaviour, traced]. Which
 status or quantity the clone gives the segment's lines is set outside the solver and wasn't traced.
 
 The CML fix is `@(split = false)` on each component type a rule sizes: it kept default components as one line at
