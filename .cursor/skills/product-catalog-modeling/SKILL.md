@@ -192,7 +192,7 @@ fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUI
 one-pass QuantumBit build leaves any classification attribute at a default that differs
 from its CSV is **Open — needs live verification**: every `IsRequired` in the QB CSV is
 `false`, the documented default, but all 36 rows set `AttributeNameOverride`, whose
-first-insert value was not recorded. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
+first-insert value was not recorded. Inferred from the traced copy: every QuantumBit `AttributeNameOverride` equals its definition's `Name` and every `IsRequired` matches its definition, so one pass should already match the CSV; not measured. [inferred] [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
 After a load of new products, run the `refresh_all_decision_tables` flow and the
 `rebuild_search_index` task before placing a quote. That and two more load facts (a `Family`
@@ -326,7 +326,7 @@ Every item marked **Open — needs live verification** in this skill and its sub
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 - **One-pass QuantumBit build.** Whether any classification attribute is left at a default
-  that differs from its CSV. See [Loading the model](#loading-the-model).
+  that differs from its CSV (inferred from the traced copy: `AttributeNameOverride` and `IsRequired` already match their definitions, so probably not; not measured). See [Loading the model](#loading-the-model).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
   sets them; Help forbids them under a *new* static bundle. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
