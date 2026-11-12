@@ -89,7 +89,8 @@ quote UI (`ui-group-ramp.md`, measured on 264).
     `TotalPrice` doesn't follow the uplifted net; set `UnitPriceUplift` 0 on a line to exempt it
     (measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs). The uplifted price keeps full
     precision, not cents (one of those orgs; the other already rounded after the uplift); add a
-    rounding step after the ramp uplift if the source rounds. A Standard UI ramp wasn't measured. See
+    rounding step after the ramp uplift if the source rounds. These behaviours weren't measured on a
+    Standard ramp (the 2026-10-29 Standard UI run had one Term product and exact prices). See
     [ui-group-ramp.md → What the segment uplift reaches](ui-group-ramp.md#what-the-segment-uplift-reaches)
     and [compound-uplift.md](compound-uplift.md).
 

@@ -29,7 +29,7 @@ Quick check for a read-back: uplifts 5% then 3% give `ApplUnitPriceUpliftPct = 8
 formula is in the element file above. Compound resets on renewal (Year 1 of the new
 term is the new baseline).
 
-**Precision: the uplift is not rounded.** `NetUnitPrice` and the line total carry the unrounded
+**Precision: the uplift is not rounded.** `NetUnitPrice`, and on Term lines the line total, carry the unrounded
 product of the base and the factor (measured 2026-11-11 on a fresh 264 `ent-sb0` scratch org, UI
 group ramp). For example a base of 1,234.56 at an applied 10.25% (5% then 5%) would read 1,361.1024,
 and quantity 10 would total 13,611.024. Read-backs that expect cents won't match, and neither will a
@@ -37,7 +37,7 @@ source that rounds prices to cents. To round the cumulative price once, add a ro
 (a list group on ramped lines that sets `NetUnitPrice` to `ROUND(NetUnitPrice, 2)`, placed after the
 *Apply uplifts to ramped subscriptions items during amendment* step). A rounding step earlier in the
 procedure runs before the uplift, so it can't round the uplift's result. With the step in place the
-line total followed the rounded price (both orgs, once the step was in). This rounds `base × cumulative factor` once. A source that rounds
+Term line total followed the rounded price (both orgs, once the step was in). This rounds `base × cumulative factor` once. A source that rounds
 each year's price and compounds from that rounded price can still differ by a cent from segment 3 on;
 the measured runs couldn't tell the two apart, because their segment 2 prices were already exact to
 the cent.

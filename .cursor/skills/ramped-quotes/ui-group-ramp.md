@@ -39,8 +39,8 @@ These runs changed steps 1, 3 and 4 below and added
 3. **Add the product to the segments.** On the **Year 1** segment row, open Show Actions →
    **Browse Catalogs**. In the 2026-11-11 runs (fresh 264 `ent-sb0` scratch orgs) it asked for the
    **catalog first**, then **Select Segments to Add Products**; the 2026-10-29 run recorded the segment
-   prompt first. Neither run recorded the org's Default Catalog setting, which skips the catalog picker
-   elsewhere (`transaction-line-editor/runtime-behavior.md` section 1), so the order may depend on it. Either way, the segment prompt offers:
+   prompt first; the cause of the difference isn't established, so check which comes first before a
+   demo. Either way, the segment prompt offers:
    - Choose **Current and Subsequent Segments**. The dialog says it "adds rampable products as
      ramped line items". One add places the product in every segment, with ramp identity.
    - **Current Segment Only** "adds products as non-ramped line items" (dialog text; not tested).
@@ -94,7 +94,7 @@ and One-Time children:
 
 - **The segment's Unit Price Uplift % is stamped on every line in that segment**: Term, Evergreen and
   One-Time lines alike (each line carries the segment's `UnitPriceUplift` and the compounded
-  `ApplUnitPriceUpliftPct`). Their
+  `ApplUnitPriceUpliftPct`; segment 1, at 0%, read null for both fields, not 0). Their
   `NetUnitPrice` uplifts too.
 - **On the Evergreen and One-Time lines `TotalPrice` didn't follow**: it stayed at quantity × the
   un-uplifted price in every segment (`NetTotalPrice` wasn't read), so line totals disagreed with
