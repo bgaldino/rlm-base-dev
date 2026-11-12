@@ -158,7 +158,7 @@ ships). Reprice each round before submitting it.
    [Dev guide: `actions_obj_sync_quote_opportunity`]. The repo's quote page has the
    `SyncQuote` action [Repo: `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`].
    Headlessly, call `syncQuoteOpportunity` with `quoteId`. Measured: it returned no `aotId`, and
-   the opportunity had its products 5 seconds later. Writing
+   the opportunity had its products when read after the call (no timing recorded). Writing
    `Opportunity.SyncedQuoteId` instead left `IsSyncing` true with no opportunity products, and
    `createOrdersFromQuote` then refused the quote as "currently syncing with its opportunity
    and has uncommitted changes" [Measured: 2026-11-12, 264]. The Start Sync button was not
@@ -225,7 +225,7 @@ SELECT Id, Status FROM ApprovalSubmission WHERE RelatedRecordId = '<NEW>'
 Not measured; settle on a live org before relying on them:
 
 - Why some header fields copy and others don't. Context plan mapping may not explain
-  everything; the 2026-11-12 cases fit it ([deep-clone.md](deep-clone.md) → What carries over).
+  everything, and the measured runs don't test it ([deep-clone.md](deep-clone.md) → What carries over).
 - Whether the `deepCloneSalesTransaction` invocable needs anything beyond
   `enableTransactionCloning`, and whether it behaves like the Connect API.
 - Whether `options.recordTypeId` sets the clone's record type.

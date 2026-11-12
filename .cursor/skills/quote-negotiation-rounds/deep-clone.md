@@ -81,7 +81,7 @@ Connect API [Measured: 2026-11-12, 264]:
 |---|---|
 | A custom header picklist that no context plan mapped | The picklist's **default**, not the source's value. A source already holding the default looked as if it copied |
 | A custom header checkbox that no context plan mapped (the internal-round flag) | `false` (source: `true`) |
-| Two custom header fields the rounds compared (mapped in the context plan), and `StartDate` | Same as the source |
+| Two custom header fields the rounds compared (mapped in the context plan), and `StartDate` | Same as the source; the two custom fields held their defaults on every source, so this run doesn't show whether they copy |
 | `RLM_Payment_Terms__c` | Same as the source, but every source held `Net 30`, the picklist default, so this run doesn't show whether it copies |
 | Line `Discount` and a custom line field mapped in the context definition | Copied on every line |
 
@@ -91,8 +91,8 @@ objects, orders. Which header fields copy follows no rule settled yet: `RLM_Paym
 copied on the 2026-11-10 org; on the second org every source held its default, so that run
 doesn't tell. A custom picklist and a custom checkbox did not copy, nor did two editable
 standard fields. Context mapping may not explain everything (no context plan maps
-`RLM_Payment_Terms__c`); the 2026-11-12 cases fit it: the custom header fields that kept the
-source's value are mapped, the two that were lost are not. So after each clone, compare every header
+`RLM_Payment_Terms__c`); on the 2026-11-12 org the two fields that were lost are unmapped,
+and the mapped ones held their defaults, so that run doesn't test mapping. So after each clone, compare every header
 field a round depends on with the source and write back the ones that differ
 ([SKILL.md](SKILL.md) → Validation Checks).
 
