@@ -153,10 +153,12 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 - **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. When delta
   pricing applies (setting on, a System-priced PATCH, and the conditions below), only the edited lines and the
   lines that depend on them re-run, so a clone's stale lines can be skipped; Help says Compound Uplift lines in a
-  ramp group are repriced on every run regardless, so this skip applies to lines without Compound Uplift. A
+  ramp group are repriced on every run regardless of delta pricing
+  [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`], so the skip would apply only to
+  lines without Compound Uplift [inferred]. A
   segment created by clone can keep its clone-time price indefinitely.
   Delta pricing is an org setting (Setup > Revenue Settings > Delta Pricing for Quotes and Orders), off unless
-  enabled; its platform declaration marks it beta, though neither Help nor the Metadata API reference says so, and
+  enabled; its platform declaration marks it beta [Platform behaviour, traced], though neither Help nor the Metadata API reference says so, and
   its documented default is false [Metadata API: `meta_revenuemanagementsettings`], so an org that doesn't set it
   has it off. The repo enables it in `config/project-scratch-def.json` and most `orgs/*.json` (not dev-mfg or the
   TFID shapes), and `prepare_rlm_org` deploys it as true from the pre settings bundle on every build, so every
@@ -192,7 +194,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   dependents re-run [Platform behaviour, traced]. Help adds that a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; that fits the re-uplift of untouched ramp lines [inferred]. The 2026-11-11 org was built from the repo's scratch
   definition, so delta pricing was probably on, but its setting wasn't read there, and whether the re-uplifted
   lines (the Term child) were dependents of the edited ones, or this is a different path, is not established
-  (live check). On a second org with the setting read as on, a System PATCH of one ramp line with no field change (configuration Skip) left every line's waterfall id unchanged (no new waterfall was saved), yet re-applied the compound uplift to every uplifted line's `NetUnitPrice`, unrounded, with totals unchanged [Measured: 2026-11-12, 264, scratch; one org]. Help's rule fits which lines moved, but not the unchanged waterfalls or the uplift compounding on the stored net; that path is not traced. Don't
+  (live check). On a second org with the setting read as on, a System PATCH of one ramp line with no field change (configuration Skip) left every line's waterfall id unchanged, yet re-applied the compound uplift to every uplifted line's `NetUnitPrice`, unrounded, with totals unchanged [Measured: 2026-11-12, 264, scratch; one org]. Help's rule fits which lines moved, but not the unchanged waterfalls or the uplift compounding on the stored net; that path is not traced. Don't
   rely on a partial PATCH leaving other lines untouched. To reproduce: on a Compound UI ramp,
   PATCH `UnitPriceUplift` on some lines of segments 2 and 3 only, then read the other lines'
   `NetUnitPrice` in those segments (measured with a bundle: the PATCHed lines were its Evergreen and
