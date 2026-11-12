@@ -16,8 +16,10 @@ For each change, record the state after every step:
    on the top-level asset, `quantityChange` 0, Quote output), then made the change with a
    Place request.
 2. **Make the change and read the quote.** Edit an amendment line or answer through Place
-   with `configurationMethod: Force` (and `executeConfigurationRules: true` for rules on);
-   with `Skip` a line edit was refused [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Then read:
+   with `configurationMethod: Force` (and `executeConfigurationRules: true` for rules on), as in
+   the measured runs. With `Skip` a quantity edit on a No Change line was refused [Measured:
+   2026-11-11, 264, fresh `ent-sb0` scratch org]; Force accepted it for a reason not traced,
+   so don't rely on Force for that edit (SKILL.md Quick Rule 7). Then read:
     - each line's `Quantity`, `UnitPrice` and `TotalPrice`. On an amendment quote
       `Quantity` is the delta, and `StartQuantity` and `EndQuantity` the totals before and
       after. A line's source asset is on `QuoteAction.SourceAssetId`; `QuoteLineItem` has
@@ -47,8 +49,15 @@ For each change, record the state after every step:
    behaviour, traced in part].
 5. **Activate the order.** Fill its bill-to contact and addresses first: backdated-change
    orders were refused without them [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`
-   → Activating the order]. An amendment quote's `AccountId` is null; its account is in
-   `QuoteAccountId` [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
+   → Activating the order]. Amendment and renewal quotes had `AccountId` null and `QuoteAccountId` set
+   [Measured: 2026-11-11 (amendment) and 2026-11-12 (amendment and renewal), 264,
+   scratch org]. They carry the account in `QuoteAccountId` when the org allows quotes without an
+   opportunity [Platform behaviour, traced]; this repo's scratch org definitions enable it
+   [Repo: `config/project-scratch-def.json`]. With that setting off, they get an opportunity
+   and `AccountId` comes from it [Platform behaviour, traced; not measured], so a lookup that
+   must work on both kinds of org reads `QuoteAccountId` and falls back to `AccountId`.
+   Cancellation quotes weren't measured; the same code path builds them
+   [Platform behaviour, traced].
 6. **Read the asset:**
     - `AssetStatePeriod` (`StartDate`, `EndDate`, `Quantity`, `Amount`, `Mrr`);
     - `AssetStatePeriodAttribute`;

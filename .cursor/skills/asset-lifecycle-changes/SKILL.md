@@ -34,6 +34,12 @@ results, 2026-11-11).
    placement.** Follow the change from quote → reprice → order → reprice → activation →
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
+    - **Never reprice a lifecycle quote after its order is activated.** Measured once on a
+      renewal quote: a full reprice (every line, pricing `Force`, configuration `Skip`) after
+      the order was activated set the renewal lines' totals and the quote total to 0
+      [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read
+      afterwards. Not measured on amendments or ramped quotes; mechanism not traced. Read
+      quote values before activation and don't reprice afterwards.
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
    with configuration rules on (the UI's inline quantity edit does this), resets the
    line's attributes to the product defaults. Activation keeps them on the asset, and the
@@ -91,7 +97,9 @@ results, 2026-11-11).
       either restate every answer that differs from its CML default (in a second Place
       request after the reset, where it counts as a change), or before amending copy each
       row's node status from its order product (`ReferenceEntityItemId`, directly or
-      through the detail row's `OrderItemId`). Blank rows are expected on an org built
+      through the detail row's `OrderItemId`). The reference item may be the order line or its detail row, and the
+      platform doesn't copy node status between line-sourced and detail-sourced rows
+      [Platform behaviour, traced]. Blank rows are expected on an org built
       before the rule and trigger shipped, and on assets activated before they were
       deployed: the trigger acts only on new rows. Read every line's delta before ordering.
 3. **Amend, renew and cancel act on top-level assets.** Help's amend, renew and cancel
@@ -165,7 +173,14 @@ results, 2026-11-11).
       detail row per prior positive lot, each priced from its own lot, and its quantity is the
       latest period's quantity. That needs the `enableAsIsRenewals` setting on, a
       last-transaction pricing source, no ramp, no derived-price product, no attribute
-      or price change on the line, and not an early renewal; otherwise the line is repriced as a single line. The
+      or price change on the line, and not an early renewal; otherwise it leaves this path. A non-ramped early renewal of a Term Defined line is repriced as a
+      cancel-and-add pair of detail rows [Platform behaviour, traced]; a non-termed (evergreen)
+      line takes its own branch first, which wasn't traced. A renewal on a price book list-price source is
+      one line on the combined quantity (below). A ramped renewal leaves the per-lot path; one that
+      isn't early is repriced as a single line [Platform behaviour, traced]. An early ramped
+      renewal takes its own branch, which wasn't traced. Whether a renewal with an
+      attribute or price change, or of a derived-price product, gets cancel-and-add rows or a
+      single line isn't settled [Platform behaviour, traced in part]. The
       last-negotiated method copies the net unit price and has no volume-band step, so it
       doesn't re-band; a re-band needs an explicit pricing step, and only lines the step
       admits (renewal lines start at quantity 0) [Platform behaviour, traced]. A price
@@ -265,14 +280,23 @@ results, 2026-11-11).
       own reports the first rule that failed or related rules' messages (inferred, not
       traced). Which status Place assigns an amendment add-on line wasn't read [Platform
       behaviour, traced in part].
-    - Edit amendment lines through Place with `configurationMethod: Force`; with `Skip` it
-      was refused ("Specify 0 in Quantity of the Quote Line Item record with the
-      action of type No Change") [Measured: 2026-11-11, 264]. The message is a save-time
-      quantity check: a No Change line must have quantity 0 (only that check is traced). Nothing in it
-      looks at the configuration method, so it isn't gated by Skip; why Force accepted the
-      same edit isn't explained, and the check isn't known to be skipped under Force.
-      Don't rely on Force to edit the quantity of a No Change line [Platform behaviour,
-      traced in part].
+    - Edit amendment lines through Place with `configurationMethod: Force`, as the measured
+      runs did; with `Skip`, a quantity edit on a No Change line was refused ("Specify 0 in
+      Quantity of the Quote Line Item record with the action of type No Change")
+      [Measured: 2026-11-11, 264]. The message is a save-time quantity check: a No Change line
+      must have quantity 0 (only that check is traced). Nothing in it looks at the
+      configuration method, so why Force accepted the same edit isn't explained. Don't rely
+      on Force to change a No Change line's quantity; read the saved line back [Platform
+      behaviour, traced in part].
+    - **A rule that counts a virtual container's lines needs those lines on the amendment.**
+      Where the top-level lines were absent from a root-only amendment, the container's count
+      rule fired (its message implied no matching lines) and logged an Error-severity entry,
+      which blocks ordering (any configurator error-log row blocks ordering, Warning included;
+      see change-policy-mapping.md; ordering wasn't attempted here). Amending the top-level assets at `quantityChange` 0 along with the
+      root cleared it [Measured: 2026-11-12, 264, scratch org; one org]. The container counts
+      only lines on the quote whose source matches the node it declares [Platform behaviour,
+      traced]; that the added amendment lines bound to it is inferred from the cleared error,
+      not read. Constraint side: `constraint-models`.
 8. **Ramped bundles have their own limits:** amending an API-built group-ramped bundle
    with a one-time or evergreen child failed in the measured shapes
    [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].
