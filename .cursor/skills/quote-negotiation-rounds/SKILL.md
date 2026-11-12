@@ -157,8 +157,8 @@ ships). Reprice each round before submitting it.
    Asynchronous Opportunity Sync on, flows call `syncQuoteOpportunity`
    [Dev guide: `actions_obj_sync_quote_opportunity`]. The repo's quote page has the
    `SyncQuote` action [Repo: `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`].
-   Headlessly, call `syncQuoteOpportunity` with `quoteId`. Measured: it finished synchronously
-   (no `aotId` returned) and the opportunity had its products on the next query. Writing
+   Headlessly, call `syncQuoteOpportunity` with `quoteId`. Measured: it returned no `aotId`, and
+   the opportunity had its products 5 seconds later. Writing
    `Opportunity.SyncedQuoteId` instead left `IsSyncing` true with no opportunity products, and
    `createOrdersFromQuote` then refused the quote as "currently syncing with its opportunity
    and has uncommitted changes" [Measured: 2026-11-12, 264]. The Start Sync button was not
