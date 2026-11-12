@@ -607,7 +607,7 @@ With both, answers held through two answer-change amendments in a row on a fresh
 `[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]`. An org built before the fix, and
 assets activated before it was deployed, still have blank rows: the trigger acts only on new
 rows, so check and backfill there.
-On another build (same day) with the repo's node-status tracking (rule and trigger) deployed, every
+On another build with the repo's node-status tracking (rule and trigger) deployed, every
 one of the root's `AssetActionSource` rows, detail-sourced ones included, carried node
 status after each of seven activations (a new sale, four amendments, a renewal, then a fifth
 amendment; three of the amendments on the root, two of those changing an answer), and unchanged answers held
