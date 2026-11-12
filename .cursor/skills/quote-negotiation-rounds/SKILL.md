@@ -188,10 +188,11 @@ ships). Reprice each round before submitting it.
    [Platform behaviour, traced in part]. The check applies only with Asynchronous Opportunity
    Sync on; without it the field write is expected to run an older inline sync and order
    creation not to check sync state [inferred: only the early return and the order-side guard
-   were read]. The setting is declared off by default [Platform behaviour, traced]; this repo's
-   `post_utils` settings bundle turns it on (`enableAsynchronousQuoteOpportunitySync`), and the
-   `syncQuoteOpportunity` action's access check is that same setting. On a fresh org built
-   another way, read `enableAsynchronousQuoteOpportunitySync`.
+   were read]. The setting is declared with no default-on attribute [Platform behaviour, traced], so it
+   is expected to be off until set; whether a fresh 264 org ships it on was not established. The
+   `syncQuoteOpportunity` action's access check is that same setting. This repo's `post_utils`
+   settings bundle turns it on (`enableAsynchronousQuoteOpportunitySync`); on an org built
+   another way, read that setting.
 2. Set it to Accepted, then Create Order [Help: `ind.qocal_create_orders_from_a_quote`], or
    `createOrdersFromQuote` with `quoteId` [Dev guide: `actions_obj_create_orders_from_quote`].
    `createOrderFromQuote` is deprecated from API 65.0 [Dev guide: `actions_obj_create_order_from_quote`].
@@ -270,6 +271,8 @@ SELECT Id, Status FROM ApprovalSubmission WHERE RelatedRecordId = '<NEW>'
 
 Not measured; settle on a live org before relying on them:
 
+- Whether Asynchronous Opportunity Sync is on by default in a fresh 264 org (live check: read
+  the setting on a fresh org).
 - Why one custom header field copied although no context plan in this repo maps it (the org's
   active definition was not read; a mapping there is the first thing to check).
 - Whether a mapped but non-editable, formula or output-only field survives a clone, and how a
