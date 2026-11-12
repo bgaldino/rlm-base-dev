@@ -130,7 +130,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 - **DO NOT** allow only one instance per type on a virtual transaction (`Quote`) container in a group ramp.
   The container sees every segment's lines at once. Measured 2026-11-11 (fresh 264 `ent-sb0` scratch org,
   quote UI): with the bundle relation `[0..1]` and `@(split = false)` on the top-level line types it held,
-  the ramp quote got "You can't add more than one of the same '<product>' product to the '<class>' product
+  the ramp quote got "You can't add more than one of the same '<product>' product to the '<type>' product
   class" and the configurator couldn't save. Widening those relations' cardinality and dropping
   `split = false` from those types (changed together) fixed it. Write the container's cross-line checks as
   totals across all segments. The container pattern, including its `[0..1]` bundle bound for an unramped
@@ -140,7 +140,8 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   usually means the org's **context definitions are stale**; a Context Definition
   sync fixes it (see `.cursor/skills/context-service/SKILL.md`). Other known causes: a line a
   group-level CML `require` added (DO NOT above), and a one-time or evergreen bundle child added with
-  `AddProducts` into ramped segments (Quick Rule 9).
+  `AddProducts` into ramped segments (Quick Rule 9), and a standalone Evergreen line
+  ([ui-group-ramp.md](ui-group-ramp.md)).
 - **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. On a
   `CompletedWithPricing` quote, System runs **delta pricing**, which can skip lines it considers
   unchanged. A segment created by clone can keep its clone-time price indefinitely. Exactly which
@@ -182,7 +183,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 | Resolve Account / Pricebook / Product2 / PricebookEntry ids | [Discovering ids](#discovering-ids) |
 | Build a non-ramp quote → order → asset | `scripts/build_quote_to_asset.py`; `.cursor/skills/txn-data-harness/SKILL.md` |
 | The v68 Connect endpoint catalog (place, clone, ramp-deal, amend/renew/cancel) | `docs/salesforce/264/dev-guide/index.md` (tracked 264 dev-guide index — use the `/connect/rev/...` payloads above). `docs/api/transaction-management-apis-reference.md` is a v68-grounded summary of the same routes; prefer the dev-guide page when the two disagree |
-| A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md`; for a line a group-level CML `require` added, or a one-time/evergreen child added with `AddProducts`, see [DO NOT](#do-not) and Quick Rule 9 |
+| A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md`; for a line a group-level CML `require` added, or a one-time/evergreen child added with `AddProducts`, see [DO NOT](#do-not) and Quick Rule 9; a standalone Evergreen line carries none ([ui-group-ramp.md](ui-group-ramp.md)) |
 
 ## The proven build sequence
 
