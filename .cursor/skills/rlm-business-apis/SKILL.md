@@ -67,19 +67,20 @@ Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`, `configuration
 
 - `DiscountAmount` is **per unit**: on a line with a quantity above 1 it lowered `NetUnitPrice`
   by the amount sent, not the line total by it.
-- On a line that carried a `DiscountAmount`, a PATCH sending `DiscountAmount: 0` with
-  `Discount: 5` returned success and changed nothing: the net unit price stayed the
-  amount-discounted one. Sending `DiscountAmount: null` with `Discount: 5` cleared the amount,
-  and the 5 % applied.
-- Send one discount field per line. To switch type, send the other as `null`, not `0`, and read the
-  line back. A saved quote line with both `Discount` and `DiscountAmount` non-null is refused at
-  save ("only one discount can be present") [Platform behaviour, traced]. That rule does not
-  explain why the `0` + `5` PATCH succeeded and changed nothing; the cause is not established
-  (needs a live check).
-- Read the line back after the PATCH; a success response doesn't show which discount applied.
-- Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]; a dates-only
-  line read back `SubscriptionTerm` null [Measured: 2026-11-11, 264, scratch]. Whether Place fills a
-  Term Defined line's term from the selling model is not established.
+- On a line that carried a `DiscountAmount`, a PATCH sending `DiscountAmount: 0` with `Discount: 5`
+  was refused (`isSuccess` false, FIELD_INTEGRITY_EXCEPTION "You can't specify a discount both as a
+  percentage and an amount...") and the line was unchanged. `0` counts as a value, and `Discount: 5`
+  alone was refused the same way while the stored amount remained. Sending `DiscountAmount: null`
+  with `Discount: 5` cleared the amount and the 5 % applied [Measured: 2026-11-12, 264, scratch].
+  Check `isSuccess` in the response body: an unread refusal looks like a no-op.
+- Send one discount field per line. To switch type, send the other as `null` in the same PATCH, then
+  read the line back. A quote line with both fields non-null is refused at save [Platform
+  behaviour, traced].
+- Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace finds
+  Place filling a missing term from a Term Defined selling model, but a measured dates-only Term
+  Defined Annual line, placed with Force and rules on, read back `SubscriptionTerm` null both
+  standalone and as a bundle component [Measured: 2026-11-11, 264, scratch]; until that is
+  re-measured, send the term explicitly.
 - **Milestone Plan on bundle components.** Place with `configurationMethod: Force` and
   configuration rules on left `BillingFrequency` blank on component service lines (`billing-setup` → M11). A second Place PATCH
   with `configurationMethod: Skip` setting `BillingFrequency` Milestone Plan and the milestone
@@ -108,10 +109,12 @@ platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemD
   `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`), so renewals behave this way
   too. Turning it off moves a plain renewal's price back to the parent, but leaves cancels and
   negative amendments unchanged (measured). Per-lot as-is pricing also needs the
-  asset's `PricingSource` to be `LastTransaction` (blank or `PriceBookListPrice` does not qualify),
-  no ramp, no derived-price product, no price or attribute change, and not an early renewal
-  [Platform behaviour, traced]. Otherwise the line is not priced per lot; changed and early
-  renewals still get cancel-and-add detail rows.
+  pricing source the renewal resolves from the asset (its own `PricingSource`, else the nearest
+  parent asset's) to be `LastTransaction`; `PriceBookListPrice`, or blank all the way up, does not
+  qualify, no ramp, no derived-price product, no price or attribute change, and not an early renewal
+  [Platform behaviour, traced]. Otherwise the line is not priced per lot. Early renewals get
+  cancel-and-add detail rows [Platform behaviour, traced]; whether a renewal with a price or
+  attribute change does is not settled [Platform behaviour, traced in part].
 - Advanced Detail Line Pricing does not change any of it.
 
 ```bash

@@ -830,7 +830,7 @@ in Setup.
 ### "Could not find product with ID ..."
 
 **Cause:** the product id a line carries was not returned for that account, price book and context
-(not in the transaction's price book or catalog), or the id is empty ("ID: null") [Platform
+(not in the transaction's price book or catalog, or excluded by a qualification procedure), or the id is empty ("ID: null") [Platform
 behaviour, traced in part]. Product details are cached per session context, so a catalog change
 after the first configure in the same context may not show until a new context is used.
 
@@ -841,19 +841,20 @@ is not established.
 
 ### `createOrdersFromQuote` refuses: "currently syncing ... uncommitted changes"
 
-**Cause:** the quote was changed after its last opportunity sync, including saves by flows and
-pricing; with Asynchronous Opportunity Sync on, order creation refuses until it is synced again
-[Platform behaviour, traced]. Measured on two quotes [Measured: 2026-11-12, 264, scratch]: sync, then
-a Status: Accepted write, then `createOrdersFromQuote` refused once; a retry 15 s later, with no
-second sync, succeeded. The traced rule doesn't explain the success without a re-sync. Which save
-moved the quote was not identified.
+**Cause:** with Asynchronous Opportunity Sync on, order creation refuses a quote that is marked
+syncing and was modified after the opportunity's last sync time [Platform behaviour, traced]. Which
+saves count (for example flow or pricing saves) was not established. Measured on two quotes
+(sync, then a Status: Accepted write, then `createOrdersFromQuote`
+was refused) [Measured: 2026-11-12, 264, scratch]. On one quote, a retry 15 s later with no second sync succeeded; the traced rule doesn't
+explain that. The other was ordered on the first try after a fresh sync with no later write. Which
+save moved the quote was not identified.
 
 **Fix:** re-sync after the last change, including the status write, before ordering. See
 `quote-negotiation-rounds`.
 
 ### Place on an Order fails with "couldn't fetch the data for ... context definition"
 
-Seen with `pricingPref` System or Force while Skip succeeded [Measured: 2026-11-12, 264, scratch; one org].
+Seen with `pricingPref` System or Force while Skip succeeded [Measured: 2026-11-12, 264, scratch; one org]; that org's pricing procedure was customised.
 A quote-only custom mapping is one known cause but did not explain this case; cause open. See
 `rlm-business-apis/backdated-asset-lifecycle.md` and `context-service`.
 
