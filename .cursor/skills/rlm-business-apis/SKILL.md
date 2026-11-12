@@ -81,11 +81,12 @@ procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pr
 
 **Other Place results.**
 
-- Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. A dates-only
-  Term Defined Annual line, placed with Force and rules on, read back `SubscriptionTerm` null both
-  standalone and as a bundle component [Measured: 2026-11-11, 264, scratch]. The trace shows Place
-  filling a missing term from a Term Defined selling model only into the pricing context; the
-  measured lines kept `SubscriptionTerm` null, so send the term explicitly.
+- Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. Source shows a
+  Place path that fills a missing term from a Term Defined selling model, but it did not take effect
+  on the measured lines: a dates-only Term Defined Annual line (System pricing, configuration method
+  Force, rules on) priced from its dates (term count 3), got no commitment discount, and read back
+  `SubscriptionTerm` null, both standalone and as a bundle component [Measured: 2026-11-11, 264,
+  scratch]. Send the term explicitly.
 - **Milestone Plan on bundle components.** Place with `configurationMethod: Force` and
   configuration rules on left `BillingFrequency` blank on component service lines (`billing-setup` → M11). A second Place PATCH
   with `configurationMethod: Skip` setting `BillingFrequency` Milestone Plan and the milestone
