@@ -42,14 +42,30 @@ results, 2026-11-11).
       answers size came back as delta lines toward the defaults (negative in the measured
       runs, where the answers were above their defaults). Re-sending an answer at its current
       value didn't protect it: Place drops an unchanged value. A change to lines only, with
-      no answer in the request, kept every answer. On one of those orgs (the reset reproduced
-      on a second) `AssetActionSource.RLM_ConstraintEngineNodeStatus__c` was empty after
-      every activation while the order lines carried it, so amendment lines started with no node status
-      [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
-    - Two workarounds held. Restate, in a second Place request, every answer that reset to
-      its default (it now differs, so it counts as a change). Or, before amending, copy each
-      order line's node status onto the asset action sources that reference it. Why the
-      asset action sources lack it is **Open**. Read every line's delta before ordering.
+      no answer in the request, kept every answer [Measured: 2026-11-11, 264, fresh `ent-sb0`
+      scratch org].
+    - **Why:** the repo's quote-line trigger gives each amendment line the configurator node
+      status from its source asset's latest asset action (by `ActionDate`), read from that
+      action's source rows (`AssetActionSource.RLM_ConstraintEngineNodeStatus__c`); the
+      root's rows carry the answers [Repo:
+      `unpackaged/post_constraints/triggers/RLM_QuoteItemTrigger.trigger`]. The node status
+      records which answers the user set; with none, the solve treats every answer the
+      request doesn't change as a default. An answer edit keeps the other answers only when
+      those rows carry it. Activation fills them only when the context definition has an
+      order-to-asset rule (`AssetActionSource` ⇐ `SalesTransactionItem` in
+      `AssetToSalesTransactionMapping`), which the repo's context plan doesn't have, and
+      never fills rows made from order product detail rows: the cancel-and-reprice pair an
+      answer-change amendment writes on the root. So even with the rule, the amendment after
+      an answer change starts blank again [Measured: 2026-11-11, 264, scratch org].
+      Configurator side: `constraint-models` → `quantities-from-attributes.md` → open item 12.
+    - **Check and work around.** After every activation in a multi-step replay, read the
+      root's latest asset action source rows (verification.md step 6). Where they're blank,
+      either restate every answer that differs from its CML default (in a second Place
+      request after the reset, where it counts as a change), or before amending copy each
+      row's node status from its order product (`ReferenceEntityItemId`, directly or
+      through the detail row's `OrderItemId`). A repo fix (the context rule plus a
+      before-insert trigger on `AssetActionSource`) is a separate change; assets activated
+      before it would still need the copy. Read every line's delta before ordering.
 3. **Amend, renew and cancel act on top-level assets.** Help's amend, renew and cancel
    procedures each say to select a bundle's parent asset, not the child [Help:
    `ind.qocal_amend_assets`, `ind.qocal_renew_assets`, `ind.qocal_cancel_assets`].

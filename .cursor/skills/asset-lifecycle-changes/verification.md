@@ -38,6 +38,11 @@ For each change, record the state after every step:
     - `AssetStatePeriodAttribute`;
     - `AssetAction` (`Type`, `CategoryEnum`, `QuantityChange`, `Amount`), which links to
       the order lines through `AssetActionSource.ReferenceEntityItemId`.
+    - For a CML bundle that will be amended again, the root's latest asset action source
+      rows must carry the node status (SKILL.md Quick Rule 2). `AssetAction.ActionDate` is
+      the activation time, so the latest action is the last one activated. The field is
+      long text, so read it rather than filtering on it:
+      `SELECT Id, ReferenceEntityItemId, RLM_ConstraintEngineNodeStatus__c, AssetAction.ActionDate FROM AssetActionSource WHERE AssetAction.AssetId = '<root asset>' ORDER BY AssetAction.ActionDate DESC`.
 
 ## Measured results (QuantumBit builds, release 264, 2026-11-05)
 
@@ -88,17 +93,16 @@ through activation before the next; a reprice moved nothing at any step:
 | Price amendment on an evergreen component line, dated on the renewal's start | Amend / FieldAmendment; delta 0; credit per lot at the old price, charge at the new | New state period MRR at the new price; "Change / Upsells" for the difference |
 
 Amendments on a CML bundle depend on the configurator's node status: on one of these orgs
-(the answer reset reproduced on the other) `AssetActionSource.RLM_ConstraintEngineNodeStatus__c` was empty after every activation while
-`OrderItem.RLM_ConstraintEngineNodeStatus__c` was filled. Copying the order lines' value
-onto the asset action sources before amending stopped the reset.
+(the answer reset reproduced on the other) `AssetActionSource.RLM_ConstraintEngineNodeStatus__c`
+was empty after every activation while `OrderItem.RLM_ConstraintEngineNodeStatus__c` was
+filled. Copying the order lines' value onto the asset action sources before amending stopped
+the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
 
 ## Open: measure before promising
 
 - **Term Defined top-level cancellation** (`initiateCancellation`): a Term Defined
   component's reduction to 0 prorated by day (above); the cancellation of a Term Defined
   top-level asset wasn't measured.
-- **Why the asset action sources lack the configurator node status** after activation, so
-  that unchanged answers reset on an amendment (above, and SKILL.md Quick Rule 2).
 - **Swap values with constraints in force.**
 - **Invoice values** for every change: the quote and order values above aren't the
   invoice. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
