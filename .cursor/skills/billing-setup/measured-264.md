@@ -85,12 +85,15 @@ Repeat this for the frequencies a plan promises, on the route the demo will use:
 - The cause of the M11 drop. A later PATCH with configuration Skip kept `MilestonePlan` on the
   components (Quick Rule 4; one org); the same placement with rules off is untried, and the
   trace found no code that blanks it (live check).
-- A service added by an amendment (a new product on the amendment order, not a change to an
-  existing asset) carrying a milestone treatment: does activating the amendment order create
-  a billing milestone plan for it, with `enableMilestoneBillingForAmend` on (as the repo
-  ships) and off? The source read covers amendment schedules generally, not an added product, with the setting on or off. Read its `BillingSchedule.Category`, `BillingMilestonePlanId` and billing
-  schedule group [Dev guide: `sforce_api_objects_billingschedule`]. Also: does a plan made by
-  hand for that order product or quote line link to its billing schedule?
+- A service added by an amendment (a new product on the amendment order) carrying a milestone
+  treatment: with `enableMilestoneBillingForAmend` on (as the repo ships), activation created a
+  new plan and a Category Amendment schedule from the amendment date [Measured: 2026-11-12, 264,
+  scratch, one org]. Still open: the setting off; `BillingSchedule.BillingMilestonePlanId` and
+  billing schedule group on that schedule [Dev guide: `sforce_api_objects_billingschedule`];
+  and whether a plan made by hand for that order product or quote line links to its schedule.
+- Activation of a service line placed with `MilestonePlan` built one active plan per order item
+  with a remainder item [Measured: 2026-11-12, 264, scratch, one org]; a one-time line with a
+  milestone treatment and no frequency is still unread.
 - An approved Net 60 quote through order and invoice: which due date the invoice gets.
 - With a billing profile on the account and a payment term on the order, which one the
   invoice uses outside billing arrangements.

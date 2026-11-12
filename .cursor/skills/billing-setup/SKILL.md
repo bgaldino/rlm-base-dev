@@ -200,8 +200,12 @@ set it back to Draft [Help: `ind.billing_milestone_usecase`]. A schedule whose b
 Plan, with no plan attached, of category Original (or Amendment with the amend setting on), on a
 milestone treatment, gets its plan created at activation from the treatment's items, one for one,
 and activated; if a plan with the same reference item exists it is updated rather than duplicated;
-you don't author the plan [Platform behaviour, traced]. Whether a
-one-time line with a milestone treatment and no frequency produces such a schedule is unread. Not measured live in this repo.
+you don't author the plan [Platform behaviour, traced]. Activating an order whose service lines carried
+`MilestonePlan` and a milestone treatment built one active plan per order item, its reference
+amount the line total, with the treatment's items plus a platform remainder item for the
+unassigned share; each schedule's billing term unit was Milestone Plan, starting on the first
+date offset [Measured: 2026-11-12, 264, scratch]. One org and one treatment. Whether a
+one-time line with a milestone treatment and no frequency produces such a schedule is unread.
 
 **When a source names no milestones,** Revenue Cloud still needs, for each milestone:
 - a name;
@@ -241,15 +245,16 @@ what the amendment carries. It doesn't say which of them hold with the setting o
 
 **A service that an amendment adds** (a new product on the amendment, not a change to a
 milestone-billed asset) is none of those cases. The amend rule above was read for amendment
-schedules; the source read doesn't separate an added product. Help says to use the same
-order-to-billing-schedule flow or API for amendments as for new sales
-[Help: `ind.billing_schedules_from_orders`], and the default-off rule above speaks of amend
-orders without separating new products. Whether activating the amendment order gives such a
-line a milestone plan, with the setting on or off, hasn't been measured ([measured-264.md](measured-264.md) → Open). Help also documents
-creating a plan by hand for an order product or quote line item
-[Help: `ind.billing_milestone_create`]; whether one made for the added line links to its
-billing schedule is part of the same open item. Until it is measured, record milestone
-billing for amendment-added services as an open decision in the plan.
+schedules; the source read doesn't separate an added product. With *Support Milestone Plans for
+Amended Billing Schedules* on, services added by an amendment order, carrying the milestone
+treatment, each got a new active plan on activation, on a schedule of Category Amendment starting
+on the amendment date [Measured: 2026-11-12, 264, scratch]. One org. Amendment lines at
+quantity 0 for existing services already carried `MilestonePlan` from their assets. With the
+setting off wasn't measured, and neither was whether the plan links to its billing schedule,
+or a plan made by hand for the added line ([measured-264.md](measured-264.md) → Open). Help
+documents creating a plan by hand for an order product or quote line item
+[Help: `ind.billing_milestone_create`]. Until the setting-off case is measured, record milestone
+billing for amendment-added services with the setting off as an open decision in the plan.
 
 ## Payment terms
 
