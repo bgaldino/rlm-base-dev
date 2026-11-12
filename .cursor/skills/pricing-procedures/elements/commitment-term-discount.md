@@ -88,12 +88,16 @@ the filter must be the first child, one filter per group].
   ([product-catalog-modeling → Selling models inside bundles](../../product-catalog-modeling/selling-models-and-lifecycle.md#selling-models-inside-bundles)).
   As a precaution, add criterion 11, `PricingTermUnit` IsNotNull, ahead of the comparison it
   guards, as in Help's example (`{LineItem equals isNotNull} AND {LineItem equals 100}`):
-  `1 AND 11 AND 2 AND 3 AND 4 AND 9 AND 10 AND ((5 AND 6) OR (7 AND 8))`. The guard only helps if
-  the engine evaluates the condition logic left to right and stops at the first false criterion,
-  which is not documented. The overlay and the measured result below do not have it; the
-  2026-11-11 build did, and priced One Time lines without error
-  ([Line inputs on real quotes](#line-inputs-on-real-quotes)). Without it, both points are open
-  (see [Open questions](#open-questions)).
+  `1 AND 11 AND 2 AND 3 AND 4 AND 9 AND 10 AND ((5 AND 6) OR (7 AND 8))`. The filter does not stop at the first false
+  criterion: it evaluates every criterion and treats one that reads an empty tag as unknown. If
+  the result is the same with the unknown taken as true or as false, the filter returns that
+  result; if the unknown would change the result, the pricing step fails with a missing-values
+  error [Platform behaviour, traced]. So the guard works wherever it sits in the logic: a false
+  `IsNotNull` makes the unknown criterion irrelevant. A compiled-expression filter path also
+  exists in 264; its handling of unknowns is not established. The overlay and the measured result
+  below do not have the guard; the 2026-11-11 build did, and priced One Time lines without error
+  ([Line inputs on real quotes](#line-inputs-on-real-quotes)). Without it, the live result is
+  still open (see [Open questions](#open-questions)).
 - Criterion 9 copies the shipped discount filters, which skip last-transaction lines so an amended
   or renewed line does not take a discount a second time [Repo: `RLM_DefaultPricingProcedure`,
   `Filterlineswithoutlasttransactionpricing`]. Without it, an amendment that keeps the prior net
@@ -293,6 +297,13 @@ group ramp built in the quote UI)
 | `SubscriptionTerm` 3, unit `Annual` | As sent, `PricingTermCount` 3 | Discount applied, total over 3 terms: the correct shape |
 | A segment line of a group ramp built in the quote UI | `SubscriptionTerm` 1, unit `Annual`, a ramp identifier | Criterion 8 fails: no discount unless criterion 14 below |
 
+The pricing term count is the number of periods in the selling model's term unit: the line's
+`SubscriptionTerm` is read in that unit (36 on an Annual model is 36 annual periods, whatever unit
+the line carries), and a line with no term has its count derived from its start and end dates
+[Platform behaviour, traced]. A dates-only line is therefore priced over its dates but is not
+established as term-bearing: criterion 3 reads `SubscriptionTerm`, which stayed null in the
+measurement above, and what Place writes to the term fields from dates was not traced.
+
 So send every Term Defined line's term in its selling model's unit (3 `Annual` for 36 months on an
 annual model). The `Months` criteria (5 and 6) were seen matching only in headless runs.
 
@@ -358,9 +369,9 @@ expressed the rule.
   error on 2026-11-11 ([Line inputs on real quotes](#line-inputs-on-real-quotes)).
   **Open — needs live verification:** what an unguarded criterion 2 (no criterion 11) does on a One
   Time line's null `PricingTermUnit`. Help says a null compared tag
-  returns an error, but whether the condition logic is evaluated left to right and stops at the
-  first false criterion (so that criterion 1, or criterion 11 placed before criterion 2, keeps
-  criterion 2 from being evaluated), and what the error looks like, was not measured. Price a One
+  returns an error, but what the error looks like, was not measured. The condition logic does not
+  short-circuit, so ordering does not keep criterion 2 from being evaluated; it is the unknown-value
+  rule above that decides whether the null matters [Platform behaviour, traced]. Price a One
   Time line, alone and inside a mixed bundle, through the clone with and without criterion 11.
   Until then keep criterion 11, placed before criterion 2.
 - What a Place-created line and a UI group-ramp segment line carry is measured
