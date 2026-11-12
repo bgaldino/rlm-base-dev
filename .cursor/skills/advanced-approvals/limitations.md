@@ -80,11 +80,14 @@ How it decides [Platform behaviour, traced]:
   until measured with the setting on.
 - A step Smart Approval auto-approves completes as Approved, so a later step reading its
   outcome sees Approved: the auto-reviewed item posts an Approve decision [Platform
-  behaviour, traced; no live run with the setting on]. Conditions listed in the step's Smart Approval Skip Conditions count as met under AND
-  logic and as not met under OR logic [Platform behaviour, traced]. The Help FAQ
-  (`ind.sf_contracts_aa_faq`) says listing a condition there forces a review, which the
-  trace contradicts for AND logic; to force a review, turn Use Smart Approval off for the
-  step.
+  behaviour, traced; no live run with the setting on]. Conditions listed in the step's Smart Approval Skip Conditions are left out of the
+  Smart Approval comparison: each counts as passing under AND logic and as failing under OR
+  logic [Platform behaviour, traced; Help: `ind.approvals_turn_on_smart_approvals`]. The
+  Help FAQ (`ind.sf_contracts_aa_faq`) says listing a condition there forces a review; the
+  trace contradicts that. Under AND a skipped condition can only help the step
+  auto-approve. Under OR it forces a review only when every condition is skipped. Custom
+  criteria logic is not covered by the trace. To force a review, turn Use Smart Approval
+  off for the step.
 
 ## Preview
 
@@ -137,8 +140,8 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   [inferred: the flow resolves it to Number or Currency; not verified].
 - Whether `ApprovalDelegation` appears once delegation is turned on.
 - Whether the shipped Director step, which reads `Manager_Approver.Outputs.approvalDecision`,
-  behaves as traced when Smart Approvals skips the Manager step (see the range-test bullets
-  above); no recorded run shows the shipped flow skipping a step on resubmission.
+  behaves as traced when Smart Approvals skips the Manager step (see 'A step Smart Approval
+  auto-approves completes as Approved' above); no recorded run shows the shipped flow skipping a step on resubmission.
 - Whether `ActionInput__CanUseSmartApproval = true`, as the shipped steps set it, makes Smart
   Approvals skip approvers on resubmission; the docs don't name the input. With it `false` on
   every step, a resubmission after a rejection at the second step (the first approved)
