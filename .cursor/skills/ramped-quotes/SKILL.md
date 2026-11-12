@@ -153,7 +153,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 - **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. On a
   `CompletedWithPricing` quote in an org with delta pricing on, a System PATCH runs **delta pricing**, which can
   skip lines it considers unchanged. A segment created by clone can keep its clone-time price indefinitely.
-  Delta pricing is declared in source as a beta org preference with no default (Help doesn't label it beta), so an org that doesn't set it should have it off (not read live) [Platform behaviour, traced]. Every repo build turns it on: `prepare_rlm_org` deploys `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml` with `enableDeltaPricing` true, and most scratch definitions set it too [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]. It applies only when all its conditions hold, among them a PATCH with System pricing, a completed calculation status, no validation errors, Dual Persistence mode off, the pricing permissions and the update-tracking settings (list partial; see pricing-procedures → runtime and observability) [Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]; otherwise every line runs again.
+  Delta pricing is declared in source as a beta org preference with no default (Help doesn't label it beta), so an org that doesn't set it should have it off (not read live) [Platform behaviour, traced]. Every repo build turns it on: `prepare_rlm_org` deploys `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml` with `enableDeltaPricing` true, and most scratch definitions set it too [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]. It applies only when all its conditions hold, among them a PATCH with System pricing, a completed calculation status, the pricing permissions and the update-tracking settings [Platform behaviour, traced], and no validation errors and Dual Persistence mode off [Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`] (list partial; see pricing-procedures → runtime and observability); otherwise every line runs again.
   ([transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md))
   Under it a partial PATCH re-runs the edited lines and the lines that depend
   on them and skips the rest; which relations count as a dependency isn't traced.
@@ -176,13 +176,13 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   their `TotalPrice` stayed put. **Reprice All** in the line editor restored every line; a `Force`
   reprice wasn't tried for this case. What the source shows: when delta pricing is off or its conditions
   don't all hold, every line runs through every pricing element again, and the uplift step isn't idempotent,
-  so an untouched line is uplifted again; when it is on, only the edited lines and their dependents re-run
-  [Platform behaviour, traced]. The 2026-11-11 org was built from the repo's scratch definition, so delta pricing was probably on, but
+  so an untouched line is uplifted again; when it is on, only the edited lines and their dependents re-run,
+  except that Help says a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`], which fits the re-uplift of untouched ramp lines [Platform behaviour, traced]. The 2026-11-11 org was built from the repo's scratch definition, so delta pricing was probably on, but
   its setting wasn't read on that org, and whether the re-uplifted lines (the Term child) were dependents of
   the edited ones, or this is a different path, is not established (live check). On a second org with delta pricing read on, a System PATCH of one Year 2
-  line changed no line's pricing waterfall yet re-uplifted `NetUnitPrice` on every uplifted line, totals
-  unchanged [Measured: 2026-11-12, 264, scratch; one org]; that fits neither "every line runs again" nor
-  "edited lines and dependents", and the path is not traced. Don't
+  line with no field change (configuration Skip) changed no line's pricing waterfall yet re-uplifted `NetUnitPrice` on every uplifted line, totals
+  unchanged [Measured: 2026-11-12, 264, scratch; one org]. The ramp-group rule in Help fits which lines moved, but
+  not that no waterfall changed; that path is not traced. Don't
   rely on a partial PATCH leaving other lines untouched. To reproduce: on a Compound UI ramp,
   PATCH `UnitPriceUplift` on some lines of segments 2 and 3 only, then read the other lines'
   `NetUnitPrice` in those segments (measured with a bundle: the PATCHed lines were its Evergreen and
