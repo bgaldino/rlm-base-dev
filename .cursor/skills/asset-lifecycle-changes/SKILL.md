@@ -172,7 +172,7 @@ results, 2026-11-11).
       revision policy applies to each lot's row separately, only when the renewal date falls
       inside the policy's validity window [Platform behaviour, traced]. On the asset, a new
       sale copies the policy from the order line, and amend and renew periods inherit it from
-      the current state period, so an amend line doesn't reset it; one step of that copy
+      the current state period when the period's policy field is in the context definition, so an amend line doesn't reset it; one step of that copy
       wasn't read [Platform behaviour, traced in part]. A renewal on an asset whose
       pricing source is the price book list price takes no per-lot path: it is one line on
       the combined quantity. Only when the asset's renewal pricing type is list price does it
@@ -245,9 +245,8 @@ results, 2026-11-11).
       didn't touch.
     - **Why it is silent.** A line the caller doesn't fix is only a candidate for the solve,
       not a built component. That is the solver's general mechanism; in a context definition
-      that tracks node status, a line whose status is user or changed (set by the rep in an
-      earlier solve, or edited) is a real component; a newly added line (New) wasn't shown
-      to be. A requirement rule fires only
+      that tracks node status, a line with user status (kept from an earlier rep entry) is a
+      real component; whether New or Changed lines count at that point wasn't shown. A requirement rule fires only
       when its condition holds, and a violated condition counts as satisfied, so the solver
       can satisfy the rule by choosing add-on count 0 and not instantiating the candidate:
       the line vanishes from the result, which becomes deltas, with success and no message.
@@ -256,10 +255,12 @@ results, 2026-11-11).
       read-only/asset relation), or the relation's minimum is above 0. Lines sourced from
       assets are fixed and conflict instead of dropping. To make a rule refuse rather than
       remove, give the relation a minimum above zero or tie the add-on to the answer the
-      other way. Exclude rules refuse with their own message when the condition is still open at
-      solve time and a matching line exists; they remove matching lines silently when
-      propagation decides the condition first (order-dependent; whether a user-set line can
-      be removed this way wasn't established). In the line-form copy the measured
+      other way. Exclude rules refuse with their own message when the condition holds at
+      satisfy time and a matching line exists; they remove matching lines silently when
+      propagation decides the condition true before that (order-dependent). Matching
+      components of any origin are considered there, but the source also says silent
+      removal needs a non-fixed line, so whether a user-set line can be removed this way
+      wasn't established. In the line-form copy the measured
       refusal named another rule's message: a failure on a constraint with no message of its
       own reports the first rule that failed or related rules' messages (inferred, not
       traced). Which status Place assigns an amendment add-on line wasn't read [Platform
