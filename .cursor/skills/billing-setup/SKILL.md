@@ -33,10 +33,10 @@ read the row's scope before generalising it.
    Frequency) and `AssetStatePeriod.BillingFrequency`; `Asset` has none [Measured: M9].
 2. **Set the frequency on every Term Defined and Evergreen line you place through the API.**
    Place Sales Transaction refused a Term Defined line without one rather than default it
-   from the selling model [Measured: M1]. When a configuration step runs, the platform fills
-   the frequency only for a Months (Monthly) or Annual (Annual) term unit; other term units get
-   no automatic value, so set it explicitly. Skip bypasses the fill
-   [Platform behaviour, traced]. A frequency that matches the pricing term (Monthly on a
+   from the selling model [Measured: M1]. The configurator's pricing step fills
+   the frequency only for a Months (Monthly) or Annual (Annual) term unit; other units get
+   no automatic value, so set it explicitly [Platform behaviour, traced]. Place with Skip gave no
+   fill (M1) [Measured: 2026-11-12, 264, scratch]. Whether Skip skips that step is not traced. A frequency that matches the pricing term (Monthly on a
    Months model, Annual on an Annual model) needed no billing treatment on the line, in an
    org where every treatment had Change Billing Frequency selected [Measured: M2]. With the
    flag off on the product's treatments, the repo's data-plan README reports the line can't be
@@ -138,10 +138,10 @@ Plan; the API values match the labels except `MilestonePlan` [Measured: M9]. On 
 
 `MilestonePlan` on an Evergreen line wasn't tested (the save check refuses it on Term Defined and Evergreen lines).
 
-The save check, as read, skips a blank frequency on insert and refuses a blank only when an
-existing value is changed to blank; it applies only when billing is enabled. M1 refused a new Term
+The save check, as read, skips a blank frequency on insert and refuses a blank only when a
+saved value is changed; it applies only when billing is enabled. M1 refused a new Term
 Defined line with a blank frequency anyway; that is measured and the source read doesn't explain it.
-A save error on the root can hide the rule message. On the synchronous path, a refused line save is
+A save error on a line can hide the rule message. On the synchronous path, a refused line save is
 what comes back, and configuration messages from that call aren't written as error logs (traced in
 part; the asynchronous path wasn't traced), so read the response rather than the error log
 [Platform behaviour, traced in part]. Amend, renew and cancel lines have further rules not read.
@@ -194,8 +194,10 @@ percentage or a flat amount [Help: `ind.billing_milestone_treatment_and_item_cre
 [Help: `ind.billing_milestone_create`]. Order activation creates a billing milestone plan
 from the treatment and links it to the order product's billing schedule. To edit that plan,
 set it back to Draft [Help: `ind.billing_milestone_usecase`]. A schedule whose billing term unit is Milestone
-Plan, on a milestone treatment, gets its plan created at activation from the treatment's items,
-one for one, and activated; you don't author the plan [Platform behaviour, traced]. Whether a
+Plan, with no plan attached, of category Original (or Amendment with the amend setting on), on a
+milestone treatment, gets its plan created at activation from the treatment's items, one for one,
+and activated; if a plan with the same reference item exists it is updated rather than duplicated;
+you don't author the plan [Platform behaviour, traced]. Whether a
 one-time line with a milestone treatment and no frequency produces such a schedule is unread. Not measured live in this repo.
 
 **When a source names no milestones,** Revenue Cloud still needs, for each milestone:
