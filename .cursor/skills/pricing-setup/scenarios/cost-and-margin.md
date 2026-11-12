@@ -82,7 +82,7 @@ years (`SubscriptionTerm` 2 `Annual`), quantity 1. `TotalPrice` 2,000. Shipped: 
 read in the selling model's unit, falling back to the dates when no term is given; a One-Time line
 carries 0 only where the procedure sets it (the shipped procedure's constant `[Repo]`).
 A line given only start and end dates gets its term count from the dates
-but Place does not derive `SubscriptionTerm` from dates `[Platform behaviour, traced]`. The trace finds Place filling a missing term from a Term Defined selling model, but a measured dates-only Term Defined Annual bundle component, placed with Force and rules on, still read back `SubscriptionTerm` null `[Measured: 2026-11-11, 264, scratch]`; until that is re-measured, send the term explicitly. So filters that read `SubscriptionTerm` (such as a
+but Place does not derive `SubscriptionTerm` from dates `[Platform behaviour, traced]`. The trace finds Place filling a missing term from a Term Defined selling model, but a measured dates-only Term Defined Annual line, placed with Force and rules on, read back `SubscriptionTerm` null both standalone and as a bundle component `[Measured: 2026-11-11, 264, scratch]`; until that is re-measured, send the term explicitly. So filters that read `SubscriptionTerm` (such as a
 commitment-term discount, `../../pricing-procedures/elements/commitment-term-discount.md`)
 skip it.
 
