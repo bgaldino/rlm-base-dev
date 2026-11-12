@@ -118,7 +118,7 @@ A different case, measured on one 264 scratch org whose pricing procedure and co
 while `pricingPref: Skip` succeeded; the order was left `CalculationStatus` PriceCalculationFailed with
 totals unchanged and no error-log record. Binding the quote-only custom attributes on the Order lens did
 not clear it there, and the Order lens hydrated fully outside pricing, so the mapping diff above is not
-always the cause. Cause not established: most failures in the pricing procedure's context-tag query are replaced by this generic message, so it doesn't name the tag [Platform behaviour, traced]; whether amend, renew or cancel with Order output
+always the cause. Cause not established: most failures in the pricing procedure's context-tag query are replaced by this generic message, so it doesn't show the underlying error [Platform behaviour, traced]; whether amend, renew or cancel with Order output
 fail the same way on that org was not tried. Don't treat a Skip success as proof the order priced.
 
 Gotchas, all measured:

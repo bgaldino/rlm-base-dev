@@ -62,13 +62,13 @@ Key endpoints (see the reference doc for exact request shapes):
 - `POST /connect/revenue-management/assets/actions/cancel` — Cancel asset
 - `POST /industries/cpq/quotes/actions/get-instant-price` — Instant pricing
 
-**Line discounts in a Place PATCH.** Measured on 264 scratch orgs (2026-11-12), with Place PATCHes
-on existing `QuoteLineItem`s (`pricingPref: Force`, `configurationMethod: Skip`); the per-unit result
-is from a fresh org, and the refusal results below are from one loaded org whose pricing procedure
-was customised:
+**Line discounts in a Place PATCH.** Measured on 264 scratch orgs (2026-11-12) whose pricing
+procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`,
+`configurationMethod: Skip`):
 
 - `DiscountAmount` is **per unit**: on a line with a quantity above 1 it lowered `NetUnitPrice`
-  by the amount sent, not the line total by it.
+  by the amount sent, not the line total by it. The shipped default procedure's Manual Discount
+  step is per unit as well [Platform behaviour, traced].
 - On a line that carried a `DiscountAmount`, a PATCH sending `DiscountAmount: 0` with `Discount: 5`
   was refused (`isSuccess` false, FIELD_INTEGRITY_EXCEPTION "You can't specify a discount both as a
   percentage and an amount...") and the line was unchanged. `0` counts as a value, and `Discount: 5`
@@ -78,13 +78,14 @@ was customised:
 - Send one discount field per line. To switch type, send the other as `null` in the same PATCH, then
   read the line back. A quote line with both fields non-null is refused at save [Platform
   behaviour, traced].
-**Other Place PATCH results.**
 
-- Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace finds
-  Place filling a missing term from a Term Defined selling model, but a measured dates-only Term
-  Defined Annual line, placed with Force and rules on, read back `SubscriptionTerm` null both
-  standalone and as a bundle component [Measured: 2026-11-11, 264, scratch]; until that is
-  re-measured, send the term explicitly.
+**Other Place results.**
+
+- Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. A dates-only
+  Term Defined Annual line, placed with Force and rules on, read back `SubscriptionTerm` null both
+  standalone and as a bundle component [Measured: 2026-11-11, 264, scratch]. The trace shows Place
+  filling a missing term only as a pricing-context tag from a Term Defined selling model, not as a
+  saved term, so send the term explicitly.
 - **Milestone Plan on bundle components.** Place with `configurationMethod: Force` and
   configuration rules on left `BillingFrequency` blank on component service lines (`billing-setup` → M11). A second Place PATCH
   with `configurationMethod: Skip` setting `BillingFrequency` Milestone Plan and the milestone
@@ -113,9 +114,10 @@ platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemD
   `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`), so renewals behave this way
   too. Turning it off moves a plain renewal's price back to the parent, but leaves cancels and
   negative amendments unchanged (measured). Per-lot as-is pricing also needs: the
-  asset's `PricingSource` to be `LastTransaction` (`PriceBookListPrice` or blank does not qualify;
-  the nearest-parent fallback is traced for amendment add-lines, not established for renewals); no ramp; no derived-price product; no price or attribute change; and not an early
-  renewal [Platform behaviour, traced]. Otherwise the line is not priced per lot. Early renewals get
+  asset's `PricingSource` to be `LastTransaction` (`PriceBookListPrice` does not qualify;
+  whether a blank value falls back to the nearest parent, as traced for amendment add-lines, is not
+  established for renewals); no ramp; no derived-price product; no price or attribute change; and
+  not an early renewal [Platform behaviour, traced]. Otherwise the line is not priced per lot. Early renewals get
   cancel-and-add detail rows [Platform behaviour, traced]; whether a renewal with a price or
   attribute change does is not settled [Platform behaviour, traced in part].
 - Advanced Detail Line Pricing does not change any of it.

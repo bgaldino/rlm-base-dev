@@ -833,7 +833,8 @@ in Setup.
 (not in the transaction's price book or catalog), or the id is empty ("ID: null") [Platform
 behaviour, traced in part]. A qualification procedure excluding the product would plausibly do the
 same (inferred, not traced). Product details are cached per session context, so a catalog change
-after the first configure in the same context may not show until a new context is used.
+after the first configure in the same context may not show until a new context is used [Platform
+behaviour, traced].
 
 **Fix:** check the line's product id and its price book entry first. After a load that adds
 products, the error was measured to stop once the decision-table refresh and search index rebuild
@@ -846,7 +847,7 @@ is not established.
 syncing and was modified after the opportunity's last sync time [Platform behaviour, traced]. Which
 saves count (for example flow or pricing saves) was not established. Measured on two quotes
 [Measured: 2026-11-12, 264, scratch]. `createOrdersFromQuote` after a successful
-`syncQuoteOpportunity` refused this message. On the quote whose steps were logged, a Status: Accepted
+`syncQuoteOpportunity` refused with this message. On the quote whose steps were logged, a Status: Accepted
 write came between the sync and the order. A retry on that quote about 15 s later, with no second
 sync, created the order; the traced rule doesn't explain that. The other quote was ordered later,
 after another sync. Which other saves moved the quote was not identified.
