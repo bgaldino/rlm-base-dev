@@ -607,10 +607,10 @@ With both, answers held through two answer-change amendments in a row on a fresh
 `[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]`. An org built before the fix, and
 assets activated before it was deployed, still have blank rows: the trigger acts only on new
 rows, so check and backfill there.
-On a later build with the repo's node-status tracking (rule and trigger) deployed, every
+On another build (same day) with the repo's node-status tracking (rule and trigger) deployed, every
 one of the root's `AssetActionSource` rows, detail-sourced ones included, carried node
-status after each of seven activations (a new sale, five amendments, three of them on the
-root and two of those changing an answer, and a renewal), and unchanged answers held
+status after each of seven activations (a new sale, four amendments, a renewal, then a fifth
+amendment; three of the amendments on the root, two of those changing an answer), and unchanged answers held
 `[Measured: 2026-11-12, 264, scratch]` (one org). With the trigger in place, that run can't
 show whether the rule alone fills line-sourced rows. An earlier run saw line-sourced rows filled by the rule alone, but one other org saw the field blank on
 every row, line-sourced ones included; the cause is open (see asset-lifecycle-changes
@@ -726,7 +726,7 @@ message was only in the error log and a later `configure` returned
 from `message(...)` separately, in `configure`'s `messages`; whether they also reach the
 log wasn't measured. Bundle-validation rows can appear in the log too, and one made
 `createOrdersFromQuote` refuse the quote `[Measured: M29, M31]`. Quote-to-order refuses on
-any configurator error-log row, whatever its severity `[Platform behaviour, traced]` (see
+any configurator error-log row, whatever its severity `[Platform behaviour, traced]` `[Measured: 2026-11-11, 264]` (see
 [open item 1](#open-items)).
 
 ---
@@ -958,7 +958,8 @@ Each needs a live 264 org:
    separate Error from Warning messages, so whether a warning alone refuses the save is not
    established, and what this check does under that choice is unmeasured. The trace reads
    this check's message as an error, while M16 reported it in `configure` as a warning. A
-   Warning-only row refusing the order is traced, not measured.
+   Warning-only bundle-validation row also refused the order in a rules-off run
+   `[Measured: 2026-11-11, 264]`.
 2. How a large cardinality (600 service hours) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
@@ -1010,7 +1011,7 @@ Each needs a live 264 org:
     `split = false` (the line counts 1), and not when it is `split = true`
     `[Platform behaviour, traced]`; the group still needs the plans in a product component
     group. Bundle validation reports a count mismatch for a group minimum of 1 with
-    0 lines `[Platform behaviour, traced]`; the solver range check, and the effect on
+    0 lines `[Platform behaviour, traced]`; whether the solver range check applies to a PCM-only group minimum, and the effect on
     amend and assetize, are not established; once the mismatch is logged, quote-to-order
     refuses (open item 1; traced, not measured for an empty min-1 group). Also open: whether a PCM minimum reaches the
     model. A candidate in neither source: one exclusion per pair of
