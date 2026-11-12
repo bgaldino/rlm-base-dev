@@ -125,8 +125,13 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     root answer, an optional add-on whose requirement no longer held was removed with no
     message (`asset-lifecycle-changes` Quick Rule 7). So for every refusal golden that an
     amendment or renewal reaches, write down how the change arrives (an answer change or
-    a line edit) and which form of the rule meets it. Predict a removal, and assert the
-    line delta, where the rule removes; predict the message only where it refuses. A
+    a line edit) and which form of the rule meets it. Then name what the solver may change
+    to satisfy the rule. A stored answer counts as changeable: the solver treated a stored
+    choice answer as free (`constraint-models` → `quantities-from-attributes.md`, Zero for
+    a component a choice excludes), so a rule between two answers may be met by moving
+    the other one. Predict a removal or a changed answer, and assert the deltas, wherever
+    the solver can make one; predict the message only where nothing it may change
+    satisfies the rule. A
     prior plan predicted a rule's message on an amendment. The answer change removed the
     add-on silently, and a line edit drew a different rule's message.
 14. **On a bundle sized by configuration answers, carry the answers across changes.**
