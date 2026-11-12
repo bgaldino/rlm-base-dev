@@ -20,7 +20,7 @@ internal Floor round and Award) and each round needs its own discounts and appro
 one round becoming the order. Each round is a quote on the same opportunity, made by deep
 cloning the previous round. Claims are tagged: `[Help: <article>]` and
 `[Dev guide: <article>]` from `docs/salesforce/264/`, `[Repo: <path>]`, and
-`[Measured: <date>, 264]` for a live run on one QuantumBit scratch org.
+`[Measured: <date>, 264]` for a live run on one scratch org on that date.
 
 ## Quick Rules
 
@@ -36,7 +36,10 @@ cloning the previous round. Claims are tagged: `[Help: <article>]` and
 3. **Check the clone before you edit it.** Wait for `CalculationStatus` to leave its clone
    and saving states, then compare the header fields and attributes the round depends on.
    Measured: `Description` and `ExpirationDate` came over blank, and a line with no
-   attribute row gained one holding the default [Measured: 2026-11-10, 264].
+   attribute row gained one holding the default [Measured: 2026-11-10, 264]; a custom header
+   picklist came back as its default and a custom header checkbox as `false`
+   [Measured: 2026-11-12, 264]. Write back every round header field that differs from the
+   source.
 4. **Rename every clone.** It arrives as "<source name> Copy" [Measured: 2026-11-10, 264]. No
    documented field links a clone to its source, so the opportunity and the name carry the
    round order ([deep-clone.md](deep-clone.md) → Relating a clone).
@@ -48,8 +51,10 @@ cloning the previous round. Claims are tagged: `[Help: <article>]` and
 6. **One round syncs at a time, and only the Award round becomes the order.** Keep the current
    customer-facing round synced. One quote syncs per opportunity: setting
    `Opportunity.SyncedQuoteId` to a new round unsynced the previous one
-   [Measured: 2026-11-10, 264]; Start Sync itself was not measured. Help converts an
-   accepted quote into an order [Help: `ind.qocal_create_orders_from_a_quote`].
+   [Measured: 2026-11-10, 264]. Sync with `syncQuoteOpportunity`, not that field write: the
+   write leaves the sync unfinished and `createOrdersFromQuote` refuses the quote
+   ([Award round to order](#award-round-to-order)) [Measured: 2026-11-12, 264]. Help converts
+   an accepted quote into an order [Help: `ind.qocal_create_orders_from_a_quote`].
 7. **An internal round needs a gate you build and test.** The docs have no internal-only
    quote; see [internal-round.md](internal-round.md).
 
@@ -63,8 +68,9 @@ cloning the previous round. Claims are tagged: `[Help: <article>]` and
   flags after every clone ([deep-clone.md](deep-clone.md)).
 - **DO NOT** use `ISCLONE()` to detect a deep clone; it isn't supported for these clones
   [Help: `ind.qocal_clone_quotes_and_orders`].
-- **DO NOT** clone the next customer-facing round from an internal round without clearing
-  and rechecking its internal marker ([internal-round.md](internal-round.md)).
+- **DO NOT** rely on a clone of an internal round staying internal. A custom internal flag
+  came back `false` on the clone [Measured: 2026-11-12, 264]; set it again on a clone that
+  must stay internal, and check it on one that mustn't ([internal-round.md](internal-round.md)).
 - **DO NOT** leave two rounds in approval at once by accident. Recall or cancel the earlier
   round's submission when a new round supersedes it (actions in `advanced-approvals` →
   `actions-and-objects.md`).
@@ -100,7 +106,8 @@ cloning the previous round. Claims are tagged: `[Help: <article>]` and
 - **Relating:** all rounds share the opportunity (the clone keeps it). If reports need a
   round number or the source round, add custom fields; the repo ships none.
 - **Award from Floor?** If the award matches the floor's numbers, clone the Floor round and
-  clear its internal marker on the clone, then check it ([internal-round.md](internal-round.md)).
+  check the clone's internal marker is clear after it settles; a measured clone came back
+  unflagged [Measured: 2026-11-12, 264] ([internal-round.md](internal-round.md)).
 
 ## Discounts per round, per line
 
@@ -150,9 +157,17 @@ ships). Reprice each round before submitting it.
    Asynchronous Opportunity Sync on, flows call `syncQuoteOpportunity`
    [Dev guide: `actions_obj_sync_quote_opportunity`]. The repo's quote page has the
    `SyncQuote` action [Repo: `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`].
+   Headlessly, call `syncQuoteOpportunity` with `quoteId`. Measured: it finished synchronously
+   (no `aotId` returned) and the opportunity had its products on the next query. Writing
+   `Opportunity.SyncedQuoteId` instead left `IsSyncing` true with no opportunity products, and
+   `createOrdersFromQuote` then refused the quote as "currently syncing with its opportunity
+   and has uncommitted changes" [Measured: 2026-11-12, 264]. The Start Sync button was not
+   measured.
 2. Set it to Accepted, then Create Order [Help: `ind.qocal_create_orders_from_a_quote`], or
    `createOrdersFromQuote` with `quoteId` [Dev guide: `actions_obj_create_orders_from_quote`].
    `createOrderFromQuote` is deprecated from API 65.0 [Dev guide: `actions_obj_create_order_from_quote`].
+   The order `createOrdersFromQuote` created was Draft with `EffectiveDate` = the day it ran,
+   not the quote's start date [Measured: 2026-11-12, 264]; check it before activating.
 3. Close out the other rounds: recall open submissions; set customer-facing rounds that
    lost to Denied if your process tracks that.
 
@@ -200,7 +215,8 @@ SELECT Id, Status FROM ApprovalSubmission WHERE RelatedRecordId = '<NEW>'
 - Run the same queries on the source and compare: line counts, discounts, totals, groups,
   attributes, and every header field the round depends on.
 - `CalculationStatus` is settled (not a clone, saving or queued state) before any edit.
-- Only one round has `IsSyncing = true`, and it is the current customer-facing round.
+- Only one round has `IsSyncing = true`, and it is the current customer-facing round; the
+  opportunity has `OpportunityLineItem` rows from it (none means the sync didn't finish).
 - The internal round has its marker and no Presented or Accepted status.
 - For skill edits: `python scripts/ai/analyze_agent_tooling.py check`.
 
@@ -208,8 +224,8 @@ SELECT Id, Status FROM ApprovalSubmission WHERE RelatedRecordId = '<NEW>'
 
 Not measured; settle on a live org before relying on them:
 
-- Why some header fields copy and others don't (context definition mapping, field
-  editability, or something else).
+- Why some header fields copy and others don't. Context plan mapping doesn't explain the
+  cases measured ([deep-clone.md](deep-clone.md) → What carries over).
 - Whether the `deepCloneSalesTransaction` invocable needs anything beyond
   `enableTransactionCloning`, and whether it behaves like the Connect API.
 - Whether `options.recordTypeId` sets the clone's record type.
@@ -217,15 +233,11 @@ Not measured; settle on a live org before relying on them:
 - Whether an object state definition can govern `Quote.Status`.
 - What a clone does to bundles, ramp segments, header discounts and `QuoteLinePriceAdjustment`
   rows.
-- Setting `Opportunity.SyncedQuoteId` through the API flipped `IsSyncing` but created no
-  opportunity products within about a minute, on an org with asynchronous opportunity sync
-  on [Measured: 2026-11-10, 264]. Whether Start Sync or `syncQuoteOpportunity` is needed
-  to populate them was not tested.
 
 ## Sub-files
 
 - [deep-clone.md](deep-clone.md): read before cloning a quote or automating clones. Routes,
   response and completion, what carries over (documented and measured), relating a clone.
 - [internal-round.md](internal-round.md): read when a round must never be presented,
-  synced or ordered. Options, which are documented and which are design, and a
-  recommended combination.
+  synced or ordered. Options, which are documented, which are design and what was measured,
+  and a recommended combination.
