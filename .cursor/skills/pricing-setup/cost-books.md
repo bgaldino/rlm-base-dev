@@ -2,7 +2,8 @@
 
 > Sub-file of `.cursor/skills/pricing-setup/SKILL.md`. Release 264 / API v68.0. Sources:
 > `ind.pricing_define_costs_in_cost_books.htm`, `ind.pricing_price_books_salesforce_pricing.htm`;
-> `datasets/sfdmu/qb/en-US/qb-pricing/README.md`, `.cursor/skills/pricing-wiring/SKILL.md`. Not live-verified.
+> `datasets/sfdmu/qb/en-US/qb-pricing/README.md`, `.cursor/skills/pricing-wiring/SKILL.md`. Not live-verified except
+> where tagged [Measured] (2026-11-11, a fresh 264 `ent-sb0` scratch org).
 
 A cost book records what a product costs you; each cost book entry is a cost factor stored against a
 product record. It is optional and independent of selling price.
@@ -45,7 +46,16 @@ Creating an entry from the cost book record pre-fills the book; from the Cost Bo
 
 - Not read by default tables; requires a decision table on `CostBookEntry` (shipped `RLM_CostBookEntries`, mapped to `NGPDefaultRecipe` as a recipe table mapping). [Repo: `../pricing-wiring/SKILL.md`]
 - The List Price step outputs the cost to a cost variable (`ItemUnitCost__std` in the shipped default procedure), not to `ListPrice`. [Repo]
-- Cost lookups need currency and date inputs like any list-price lookup (see list-price Troubleshooting).
+- The shipped Cost Book Entries table has only two inputs, `ProductId` and `CurrencyIsoCode` [Repo:
+  `unpackaged/pre/5_decisiontables/RLM_CostBookEntries.decisionTable-meta.xml`; the cost step
+  `Getunitcostfromcostbook` also passes `Quantity`, which the table doesn't read]. [Measured] So the lookup has
+  **no book and no date filter**: an entry in a non-default cost book priced, and `EffectiveFrom` and `EffectiveTo`
+  don't select the entry.
+- So keep one current entry per product and currency across every book the table reads. Retire an old cost by
+  editing or deleting its entry, not by closing its date range. To price from one book or by date, add those inputs
+  to the table and the step [inferred, not measured].
+- The cost is per pricing term; a term line needs the cost formula multiplied by `PricingTermCount`
+  ([scenarios/cost-and-margin.md](./scenarios/cost-and-margin.md#term-lines-cost-one-period)).
 - Refresh the table after cost changes: [import-export-and-bulk-data.md](./import-export-and-bulk-data.md#after-load-refresh-rule).
 
 ## Data and automation
@@ -55,10 +65,10 @@ Creating an entry from the cost book record pre-fills the book; from the Cost Bo
 ## Verify
 
 ```bash
-sf data query -q "SELECT Id, CostBook.Name, Product.Name, Cost, EffectiveFrom, EffectiveTo FROM CostBookEntry WHERE Product.StockKeepingUnit = '<sku>' AND CostBook.Name = '<book>'" --target-org <sf_alias>
+sf data query -q "SELECT Id, CostBook.Name, Product.Name, Cost, EffectiveFrom, EffectiveTo FROM CostBookEntry WHERE Product.StockKeepingUnit = '<sku>'" --target-org <sf_alias>
 ```
 
-Compare only the entry whose `EffectiveFrom`/`EffectiveTo` cover the pricing date, in the cost book the decision table reads. Add `CurrencyIsoCode` to the SELECT (and a currency filter) only in a multicurrency org; the field does not exist otherwise.
+The shipped lookup ignores book and dates, so the query spans every book: check that the product has one entry per currency across all of them. Add `CurrencyIsoCode` to the SELECT (and a currency filter) only in a multicurrency org; the field does not exist otherwise.
 
 Simulate with the procedure that has the cost step; the cost variable should equal `Cost`. Check the table is Fresh.
 
@@ -69,8 +79,9 @@ Simulate with the procedure that has the cost step; the cost variable should equ
 | Margin missing or null | No cost entry, or cost table not mapped/refreshed | Query entries; check recipe mapping and freshness |
 | Cost appears nowhere on quotes | By design [Help] | Wire a custom procedure step |
 | Cost entry has no book | Created from the Cost Book Entry tab | Set the book |
+| Line shows an old or another book's cost | More than one entry for the product and currency; the shipped lookup filters on neither book nor date (which entry wins is not measured) | Keep one entry per product and currency; refresh the table |
 
 ## Open questions
 
 - Which pricing component type the Cost Book Entries recipe mapping uses in a non-repo org; Help does not describe a predefined cost table.
-- Whether entry date ranges are filtered at lookup time.
+- Which entry the shipped lookup returns when a product has more than one for the same currency (two books, or an old and a new date range).

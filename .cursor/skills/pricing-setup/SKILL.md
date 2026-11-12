@@ -30,7 +30,9 @@ The neighbouring skills own the rest:
 
 > **Pinned to Release 264 / API v68.0.** Claims are tagged **[Help]** (the 264 Help
 > snapshot, `docs/salesforce/264/help/articles/ind.pricing_*`), **[Repo]** (shipped data or
-> metadata), **[Core]** (Salesforce source behavior). Nothing here is live-verified yet beyond the measurements tagged [Repo, measured] (sync scope, schedule activation);
+> metadata), **[Core]** (Salesforce source behavior). Nothing here is live-verified yet beyond the measurements tagged [Repo, measured] (sync scope, schedule activation)
+> and **[Measured]** (2026-11-11, a fresh 264 `ent-sb0` scratch org: cost lookup inputs, term-line cost, margin units,
+> default term counts, partial-year proration, full-term values);
 > a live org of the target release beats every other source. Treat "inferred" claims and
 > unconfirmed API names as hypotheses and describe the object before you rely on them.
 
@@ -80,6 +82,7 @@ The neighbouring skills own the rest:
 | New org; pricing pages missing; who needs which permission set; sharing | [`org-enablement-and-permissions.md`](org-enablement-and-permissions.md) |
 | Price books, entries, currency, validity, selling model on an entry | [`price-books.md`](price-books.md) |
 | Product cost, margin inputs, cost-based List Price | [`cost-books.md`](cost-books.md) |
+| A full-term (commitment) value, cost or margin next to the quote total | [`scenarios/full-term-value.md`](scenarios/full-term-value.md) |
 | Volume, tier, attribute or bundle adjustments; tiers; schedule migration | [`price-adjustment-schedules.md`](price-adjustment-schedules.md) |
 | Viewing, syncing, exporting/importing or bulk-loading pricing data | [`import-export-and-bulk-data.md`](import-export-and-bulk-data.md) |
 | Adding a second currency: what to enable, which records need a row per currency | [`import-export-and-bulk-data.md` → Adding a currency](import-export-and-bulk-data.md#adding-a-currency) |
@@ -207,4 +210,7 @@ worktree, `.venv` lives in the main checkout):
     Price on an Opportunity.
   - [`scenarios/cost-and-margin.md`](scenarios/cost-and-margin.md) — unit cost, line
     cost and margin, and a quote total cost, from cost book entries (repo wiring, not a
-    Help example).
+    Help example); term-line cost × `PricingTermCount`; `Margin` in percent units.
+  - [`scenarios/full-term-value.md`](scenarios/full-term-value.md) — a full-term value,
+    cost and margin next to the platform's one-period total: per-line fields written by the
+    procedure, quote roll-ups and formulas, a fee on a product subset; amendments open.
