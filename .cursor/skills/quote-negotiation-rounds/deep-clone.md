@@ -54,6 +54,29 @@ Documented [Help: `ind.qocal_clone_quotes_and_orders`]:
   behave alike: `RLM_Payment_Terms__c` copied on the 2026-11-10 org, while on the 2026-11-12
   org a picklist came back as its default and a checkbox came back false.
 
+Traced mechanism [Platform behaviour, traced]: all three routes (UI action, Connect API,
+invocable) end in the same clone service. It does not copy the quote row. It builds a context
+from the source through the context definition's quote mapping, sets `Status` to the first value
+of the Status picklist (normally Draft) and appends ` Copy` to the name, translates the context
+back to records through the same mapping (restricted fields removed), restores the related-quote,
+related-quote-type and original-action-type fields from the source, and saves the result through
+Place Sales Transaction. The mechanism therefore predicts that a quote or line
+field carries over only if the active context definition maps it, and that an unmapped custom
+header field comes back at its default (a picklist at its default value, a checkbox `false`)
+whichever route you use. That matches the measured picklist and checkbox, but one
+unmapped-looking field copied, unexplained by the repo's plans (see below), and the org's active definition was not
+read, so treat this as the expected rule, not a guarantee
+[Platform behaviour, traced in part]. To make a field carry, add it to the context definition
+and its quote mapping, or set it on the new quote after the clone. Line-side
+rewrites: the metering field is nulled, ramp and segment identifiers are regenerated (an
+action line other than Add may keep the originals when a platform gate is open), the action
+lookup is re-pointed to new actions, and foreign keys are re-pointed to the cloned records.
+The clone code reviewed has no reference to an approval status or `IsSyncing` (a keyword
+search of the clone module; the save through Place Sales Transaction was not traced)
+[Platform behaviour, traced in part]. Not traced: the large (async)
+transaction path, which may carry fields differently, and whether a mapped field that is
+non-editable, formula or output-only is dropped.
+
 Measured on one org, from a source quote with one group, two evergreen lines of one
 product (line discounts 20% and 10%), one attribute row on the 20% line, synced to its
 opportunity and with an approval submission in progress [Measured: 2026-11-10, 264]:
@@ -87,14 +110,14 @@ Connect API [Measured: 2026-11-12, 264]:
 
 Not measured: price adjustments other than the line `Discount` field (the source had no
 `QuoteLinePriceAdjustment` rows), bundles, ramp segments, header discounts, custom child
-objects, orders. Which header fields copy follows no rule settled yet: `RLM_Payment_Terms__c`
-copied on the 2026-11-10 org; on the second org every source held its default, so that run
-doesn't tell. A custom picklist and a custom checkbox did not copy, nor did two editable
-standard fields. Context mapping may not explain everything (no context plan maps
-`RLM_Payment_Terms__c`); on the 2026-11-12 org the two fields that were lost are unmapped,
-and the mapped ones held their defaults, so that run doesn't test mapping. So after each clone, compare every header
-field a round depends on with the source and write back the ones that differ
-([SKILL.md](SKILL.md) → Validation Checks).
+objects, orders. `RLM_Payment_Terms__c` copied on the 2026-11-10 org although no context plan
+maps it in this repo (one field copied, unexplained by the repo's plans); the org's active
+definition was not read, so a mapping there is the first thing to check. On the second org
+every source held its default, so that run doesn't tell. A custom picklist and a custom checkbox did not copy, nor did two
+editable standard fields; the traced rule above explains these when the definition does not map
+them. The mapped fields on the 2026-11-12 org held their defaults, so that run doesn't test
+mapping. After each clone, compare every header field a round depends on with the source and
+write back the ones that differ ([SKILL.md](SKILL.md) → Validation Checks).
 
 ## Relating a clone to its source
 
