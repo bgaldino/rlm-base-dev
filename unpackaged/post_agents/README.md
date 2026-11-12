@@ -246,7 +246,7 @@ tests/
     billing-guardrail.yaml   # off-topic, ambiguous, prompt-injection, exfiltration
   quoting-assistant/         # RLM_Quoting_Assistant (Quoting Assistant) specs
     quoting-assistant-routing.yaml       # router → ProductSelection / QuoteManagement / ProductConfiguration
-    quoting-assistant-actions.yaml       # one-turn add (Helper A), one-call discount (Helper B), precedence, general-tool reachability
+    quoting-assistant-actions.yaml       # one-turn add (Helper A), one-call discount (Helper B), precedence, general-tool reachability, API-management search, create-and-add in one request
     quoting-assistant-regression.yaml    # discount precedence + names-not-IDs guards
     quoting-assistant-guardrail.yaml     # off-topic, out-of-scope (assets/usage), ambiguous (demo posture: no adversarial assertions)
 ```

@@ -65,7 +65,7 @@ Upsert all 28 objects in dependency order
 | 20 | ProductRelComponentOverride   | Upsert    | `ProductRelatedComponent.Name;OverrideContext.StockKeepingUnit`                                       | 0 (excluded) |
 | 21 | ProductCatalog                | Upsert    | `Code`                                                                                                | 3       |
 | 22 | ProductCategory               | Upsert    | `Code`                                                                                                | 18      |
-| 23 | ProductCategoryProduct        | Upsert    | `ProductCategory.Code;Product.StockKeepingUnit`                                                       | 100      |
+| 23 | ProductCategoryProduct        | Upsert    | `ProductCategory.Code;Product.StockKeepingUnit`                                                       | 101      |
 | 24 | ProductQualification          | (default) | `Name`                                                                                                | 0       |
 | 25 | ProductDisqualification       | (default) | `Name`                                                                                                | 0       |
 | 26 | ProductCategoryDisqual        | (default) | `Name`                                                                                                | 0       |
@@ -288,7 +288,7 @@ qb-pcm/
 │  Source CSVs — Catalogs and Categories
 ├── ProductCatalog.csv                   # 3 records
 ├── ProductCategory.csv                  # 18 records
-├── ProductCategoryProduct.csv           # 100 records
+├── ProductCategoryProduct.csv           # 101 records
 │
 │  Source CSVs — Qualifications (placeholders)
 ├── ProductQualification.csv             # 0 records (placeholder)

@@ -56,6 +56,20 @@ testCases:
         topic: ProductSelection
         message: "What product are you looking for?"
 
+  # Catalog search indexes only categorized products, so this needs QB-API-MGMT in a
+  # catalog category (qb-pcm files it under the Software catalog's API category).
+  - utterance: "Find our API management products"
+    expectedTopic: ProductSelection
+    expectedActions:
+      - FindProducts
+    expectedOutcome: "Agent returns QB API Management Solution by name, with its selling models or prices; it does not report that no products matched, and prints no bare record IDs"
+    conversationHistory:
+      - role: user
+        message: "I want to look for products in the catalog"
+      - role: agent
+        topic: ProductSelection
+        message: "What product are you looking for?"
+
   # --- QuoteManagement → CreateInitialQuote (needs an opportunity) ---
   # Completes the create flow in one turn → runtime reports topic=agent_router;
   # assert the action, not the subagent topic.
@@ -66,6 +80,19 @@ testCases:
   # single-action match.
   - utterance: "Create an initial quote on the New Opportunity for Infinitech"
     expectedOutcome: "Agent moves to create a quote on the New Opportunity for Infinitech — it resolves the opportunity and/or creates the quote and returns it by name / native record card (not a raw ID), or reports a clean transient lock and offers to retry. It does not deflect or dump a raw ID or JSON."
+    conversationHistory:
+      - role: user
+        message: "I'd like to create a new quote"
+      - role: agent
+        topic: QuoteManagement
+        message: "Which opportunity should the quote be created on?"
+
+  # --- Create, then add to the NEW quote, in one request ---
+  # The add has to use the quote this turn created, which only CreateInitialQuote's
+  # quoteId output provides. Asserts the outcome, as above: the runtime may surface
+  # only the first resolution step.
+  - utterance: "Create a quote for the New Opportunity for Infinitech and add QB API Management Solution to it"
+    expectedOutcome: "Agent creates a quote on the New Opportunity for Infinitech and adds QB API Management Solution to that new quote, confirming both by name. It does not add the product to a different quote, pass the quote's name in place of an ID, or print a bare ID or JSON; a clean transient-lock report with an offer to retry is also acceptable."
     conversationHistory:
       - role: user
         message: "I'd like to create a new quote"
