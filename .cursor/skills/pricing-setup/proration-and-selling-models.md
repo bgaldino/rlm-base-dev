@@ -6,7 +6,8 @@
 > `ind.pricing_configure_proration_settings.htm`, `ind.pricing_create_a_proration_policy.htm`,
 > `ind.pricing_proration_variables.htm`, `ind.pricing_subscription_variables.htm`,
 > `ind.pricing_subscription_pricing_proration.htm`, `ind.pricing_*_proration_examples*.htm`,
-> `ind.pricing_weekly_proration.htm`. Not live-verified.
+> `ind.pricing_weekly_proration.htm`. Not live-verified except where tagged [Measured] (2026-11-11, a fresh 264
+> `ent-sb0` scratch org).
 
 Selling models say how a product is sold; proration settings and policies say how a partial period is
 priced. The Proration and Subscription Price elements read them. Builder fields for the elements:
@@ -26,9 +27,24 @@ priced. The Proration and Subscription Price elements read them. Builder fields 
 3. Term-defined only: optionally **Automatically Renew Asset by Default**; the status is copied to quote and order lines and can be edited per line.
 4. Set Status (Draft, Active, Inactive). It cannot return to Draft after Active/Inactive.
 
-**2. Default term counts** (Salesforce Pricing Design Time) [Help: `ind.pricing_configure_proration_settings.htm`]
-1. Setup > `Salesforce Pricing` > Salesforce Pricing Setup.
+**2. <a name="default-term-counts"></a>Default term counts** (Salesforce Pricing Design Time) [Help: `ind.pricing_configure_proration_settings.htm`]
+1. Setup > `Salesforce Pricing` > Salesforce Pricing Setup (`/lightning/setup/CorePricingSetup/home`), Proration Settings.
 2. Fill **Evergreen** and/or **One Time** (numeric only). Help: blank = term count computed from start/end dates at run time. Core disagrees for One Time: with no default it is not prorated; test live ([element, Resolved disagreements](../pricing-procedures/elements/proration-and-subscription.md#resolved-disagreements)).
+
+[Measured] **These two values have no API.** They were in none of the 11 settings types retrieved (among them
+`IndustriesPricing`, `RevenueManagement`, `Quote`, `Order`, `Billing`, `ProductCatalogManagement` and
+`SubscriptionManagement`), and no sObject or Tooling object for them appears in the global describes. This repo's
+build doesn't set them. A fresh 264 org reads
+**Evergreen 1, One Time 0** on that page.
+
+[Repo] This repo's `RLM_DefaultPricingProcedure` (and any clone of it) sets the term count itself with two constants:
+`OneTimePricingTermCountConstant` (0) on lines that are neither Term Defined nor Evergreen, and
+`EvergreenPricingTermCountConstant` (1) on Evergreen lines without an end date or without partial proration. On that
+procedure [Measured] an Evergreen line priced one period and a One-Time line carried `PricingTermCount` 0 while its
+total was still unit price × quantity; those values come from the constants, which match the page's fresh-org values.
+Whether the page affects Evergreen lines that reach the Proration step (an end date with partial proration on) wasn't
+measured. A plan that states Evergreen prices per period depends on both: check the procedure's constants and read the
+page in each target org.
 
 **3. Proration policy** (Salesforce Pricing Design Time; needs a term-defined or evergreen selling model and a price book entry) [Help: `ind.pricing_create_a_proration_policy.htm`]
 1. App Launcher > Proration Policies > New; name it.
@@ -52,7 +68,7 @@ priced. The Proration and Subscription Price elements read them. Builder fields 
 | Remainder Strategy | `ProrationPolicy.RemainderStrategy` | First or last period; sums to the original amount ($100/3 = 33.34/33.33/33.33 or 33.33/33.33/33.34). [Help] |
 | Allow partial proration periods | `ProrationPolicy.ArePartialPeriodsAllowed` | Off = full period charged. |
 | Option -> policy | `ProductSellingModelOption.ProrationPolicyId` | Only on term-defined or evergreen options. [Help; ERD] |
-| Evergreen / One Time default | Salesforce Pricing Setup (API name not confirmed) | Evergreen 1 monthly at $50 = $50. [Help] |
+| Evergreen / One Time default | Salesforce Pricing Setup; no API, UI only [Measured] | Evergreen 1 monthly at $50 = $50. [Help] Fresh 264 org: Evergreen 1, One Time 0. [Measured] |
 
 Proration variables are Proration element inputs, bound to context tags that carry the selling model
 option and policy values (inferred; see [the element](../pricing-procedures/elements/proration-and-subscription.md#product-selling-model-interplay)):
@@ -85,6 +101,25 @@ Leap years: end-of-month anniversaries move to the latest valid day. Annual from
 
 Worked example: $50/month product, subscribed on the 15th of a 30-day month: 15 days / 30 days = 0.5, so $50 x 0.5 = $25 for that month. [Help: `ind.pricing_proration_variables.htm`]
 
+### <a name="measured-partial-year"></a>Measured: a partial year prorates by days
+
+[Measured] A Term Defined annual line priced with the repo's `Default Proration Policy` (`qb-pcm`: Standard Time
+Periods, remainder `AddToLast`, partial periods allowed):
+
+| Line dates | `PricingTermCount` |
+|---|---|
+| 2027-07-01 to 2029-12-31 | 2.504109589 (2 + 184/365) |
+| 2028-07-01 to 2029-12-31 | 1.5027 (1 + 184/366) |
+| Dates covering whole years | a whole number (2 and 1 measured) |
+
+Whole years count 1 each and the partial year counts by days, so 30 months is not 2.5 terms. Both measured values
+fit a partial period at the start of the line (July to December, 184 days) divided by the length of the calendar
+year it falls in (365 in 2027, 366 in 2028); which period anchoring produces this wasn't isolated, so check dates
+that cross a leap year against a live run. A source
+that prorates by months remaining ÷ 12 differs by the day fraction: on a mid-term amendment or co-termed add the
+line totals won't match it. Either accept the day-based value or state the source's value as the
+expected result only where the dates cover whole years.
+
 ## Data and automation
 
 Objects: `ProductSellingModel`, `ProrationPolicy`, `ProductSellingModelOption`. This repo loads them with the `qb-pcm` plan (policy keyed on `Name`; `ProrationPolicyId` on options is create-only on reload). Repo data rules: [`../sfdmu-data-plans/SKILL.md`](../sfdmu-data-plans/SKILL.md), [`../../../datasets/sfdmu/qb/en-US/qb-pcm/README.md`](../../../datasets/sfdmu/qb/en-US/qb-pcm/README.md). Object relationships: [`../revenue-cloud-data-model/domains/pricing.md`](../revenue-cloud-data-model/domains/pricing.md).
@@ -104,7 +139,7 @@ Then Simulate with Effective From/To and compare to the table above.
 |---|---|---|
 | Policy cannot be assigned | Option uses a One Time model | Use term-defined or evergreen |
 | Always a full period | Allow partial proration off, or no policy on the option | Tick it; assign policy |
-| Evergreen/one-time price covers wrong periods | Pricing Setup default term count | Set 1. Blanking One Time stops its proration per core (see step 2) |
+| Evergreen/one-time price covers wrong periods | The procedure's term-count constants, or the Pricing Setup default term count | Check `EvergreenPricingTermCountConstant` / `OneTimePricingTermCountConstant` in the procedure; set Evergreen 1 on the Setup page (no API). Blanking One Time stops its proration per core (see step 2) |
 | Day/month ignored | Start Proration Period not DayOfPeriod | Change mode |
 | Cannot create policy | No term-defined/evergreen model or no price book entry | Create those first |
 
@@ -113,4 +148,4 @@ Then Simulate with Effective From/To and compare to the table above.
 - Help's quarterly example prints 3.427 and 3.436464 for the same case ($687.29 uses the latter); the 3.427 arithmetic gives $685.48. The semi-annual no-partial example prints 3.0 / $1,200 next to what reads as a leftover drafting note; two touched periods give 2.0 / $800 (inferred). The same article's utilized range "28-Mar to 4-Apr (130 Days)" should read 4-Aug.
 - Month precision: the variables article says a partial month rounds to a whole month, yet its $50 worked example prorates 15/30 days to 0.5. Which applies is unconfirmed. Weekly arithmetic ($144.12 x 10.71 = about $1,543.5) does not reproduce $1,543.36. Treat these as illustrative.
 - The monthly examples 5 and 6 repeat the annual case with $800 (a doc error, inferred).
-- Pricing Setup field API names and the context tags carrying policy values are not documented.
+- The context tags carrying policy values are not documented. (The Pricing Setup default term counts have no API at all; see [Default term counts](#default-term-counts).)
