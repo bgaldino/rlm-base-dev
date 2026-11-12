@@ -30,6 +30,8 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
 1. **Refresh after any catalog, pricing, rate or contract change.** `prepare_rlm_org`
    ends with `refresh_all_decision_tables` then `rebuild_search_index` for this reason.
    A build that loads data after those steps leaves stale tables behind.
+   **The refresh flow returns before the tables are fresh, so wait before pricing**: poll
+   `check_decision_table_freshness` until nothing is Stale (see *Refreshing*).
    Rating, qualification and tax tables have no runtime refresh at all: after editing that
    setup data, use the Manager's **Refresh stale only**, or its **Reads object** filter.
    See `lifecycle-and-refresh.md` → *After editing setup data*.
@@ -262,6 +264,18 @@ header — read it there rather than re-deriving it.
 | Setup → Decision Tables | One table, manually. |
 | `RLM_Refresh_Decision_Tables_Bulk` flow | From Apex or another flow — the only way Apex can reach the refresh action. Queues only when the running user can refresh (rule 1). |
 
+### Wait for fresh tables before pricing
+
+`refresh_all_decision_tables` only queues the refreshes (`lifecycle-and-refresh.md` →
+*Queued is not refreshed*), and the wait is minutes, not seconds. After the flow returned, the
+volume tier, bundle adjustment and cost book tables stayed Stale for about three minutes
+[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Pricing during that window fails
+**silently**: quotes priced while the flow was still running got empty volume and cost lookups.
+The volume step ran and left the price unchanged, the line had no unit cost, and no error was
+raised, so the numbers looked plausible [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
+After a refresh, rerun `check_decision_table_freshness` until it reports no Stale table, then
+price.
+
 An **incremental** sync advances `LastIncrementalSyncDate` and usually does not move
 `LastSyncDate` (a first incremental was measured stamping both). ⚠ In Release 264 a **full request can run as incremental**: unless
 incremental is requested, the platform chooses the type itself (org preference
@@ -340,8 +354,10 @@ it. `pipefail` and `grep` make a missing line an error rather than an empty answ
 Combine modes as `"strict,json"`; with `pipefail` a strict failure still fails the pipeline.
 
 **Pricing looks wrong and the data looks right.** Run the check first. A Stale verdict
-naming the object you just edited is the answer; refresh and re-test before debugging
-anything else.
+naming the object you just edited is the answer; refresh, wait until the check shows nothing
+Stale, and re-test before debugging anything else. A price that skipped a discount or lost its
+unit cost, with no error, is what pricing during a refresh looks like (*Wait for fresh tables
+before pricing*).
 
 **Adding a rate to an existing card.** `RateCardEntry` feeds several tables. After the
 load, refresh — the check will name every table that went stale, including ones you did
@@ -353,7 +369,8 @@ not know read that object.
 - `python scripts/ai/skill_manifest.py --check` resolves this skill and its sub-files.
 - `cci task run check_decision_table_freshness --org "your-cci-alias"` reports every table with a
   verdict, and the count matches the `DecisionTable` row count in the org.
-- After `refresh_all_decision_tables`, no table is Stale.
+- After `refresh_all_decision_tables`, no table is Stale once the queued refreshes finish
+  (poll the check; it can take minutes after the flow returns).
 - A table you deliberately made stale (edit any object it reads) flips to Stale and the
   reason names that object.
 - Any name added to a `dt_*_decision_tables` list resolves to a real `DeveloperName` in
