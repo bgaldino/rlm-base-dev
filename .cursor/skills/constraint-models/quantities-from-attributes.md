@@ -12,7 +12,8 @@ check. This file covers only the CML that sizes a bundle and how to test it.
 `[Help: <article>]` is the 264 Help snapshot under `docs/salesforce/264/help/articles/`,
 cited the same way. `[Platform behaviour, traced]` is a rule read from the platform's own behaviour, not
 measured here; where it explains a measured row, both tags appear. `[Platform behaviour, traced in part]` is the same, but only the mechanism was read in source; its scope, path or consequence isn't established. `[Repo: <file>]` is this repository. `[Measured: M<n>]` is row M<n> of
-[Measured on 264](#measured-on-264), a live run on a 264 (API v68.0) scratch org. Questions
+[Measured on 264](#measured-on-264), a live run on a 264 (API v68.0) scratch org. Claims
+tagged `[Measured: <date>, …]` come from separate lifecycle runs, scoped as stated. Questions
 none of these settle are listed once, under [Open items](#open-items). The worked example
 as a whole has not been run, but a model built on its patterns has (rows M22 to M33).
 Where the dev guide and the org disagree, this file follows the org and says so.
@@ -361,7 +362,7 @@ bound can't hold once `sites` is above 1; that failure itself wasn't run.
 | Tool | What the dev guide says it counts | Source |
 |---|---|---|
 | `rel.count(<condition>)` | "the number of component instances" that match the condition. Another page says that when the condition covers every instance it returns the same value as `cardinality()`. Lines or quantity: [open item 14](#open-items) | `[Dev guide: cml_relationship_variable_functions]` `[Dev guide: cml_using_proxy_variables_constraints]` |
-| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Unique instances chosen from the group; the chosen component can still have a high quantity. The annotation reference calls it the maximum cardinality for a component in a group. The solver sums the relations' instance counts, so a line of quantity N counts 1 for `split = false` and N for `split = true`; a conflict reads "Group Cardinality must be greater than or equal to X and less than or equal to Y". It refuses only when the CML group declares the bounds; whether a PCM group minimum reaches the CML is not established | `[Dev guide: cml_group_type]` `[Dev guide: cml_type_annotations]` `[Platform behaviour, traced]` |
+| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Unique instances chosen from the group; the chosen component can still have a high quantity. The annotation reference calls it the maximum cardinality for a component in a group. The solver sums the relations' instance counts, so a line of quantity N counts 1 for `split = false` and N for `split = true`; a conflict reads "Group Cardinality must be greater than or equal to X and less than or equal to Y". The solver refuses only when the CML group declares the bounds; bundle validation is a separate check that also counts lines and reports a group minimum it can't meet ([open item 14](#open-items)) | `[Dev guide: cml_group_type]` `[Dev guide: cml_type_annotations]` `[Platform behaviour, traced]` |
 
 **When an answer picks the plan,** nothing needs counting. Size the chosen plan from the
 answer, zero the other, and drop the sum:
@@ -502,7 +503,7 @@ type Quote {
   of the quote, across all ramp segments and groups, as one set; nothing partitions it per
   group before the model runs. A relation on the container therefore counts lines across
   segments. No scoping by group was found other than a `groupBy` container; how the engine
-  handles a container in a group ramp isn't determined `[Platform behaviour, traced]`.
+  handles a container in a group ramp isn't determined `[Platform behaviour, traced in part]`.
 - **Check across lines with `message(..., "Error")`, not constraints.** Constraints on a
   container relation to top-level lines didn't refuse a rep's lines: the solver rewrote
   them and added instances, once a second bundle root, to satisfy the rule. An `Error`
@@ -520,9 +521,13 @@ type Quote {
   totals across segments `[Measured: M41]`; `total()` and the cardinalities in the example
   above already sum every instance. Read from the solver's cardinality
   check, not run: a single-line type (`split = false`) is capped at one instance per
-  relation, and a container over all segments shares one relation, so a second line of such
-  a type should fail that check `[Platform behaviour, traced]`; the measured message is the
-  one above. Which of the
+  relation, and a container over all segments shares one relation. A one-instance type on a
+  container shared across segments should fail the solver's one-instance check (its text is
+  "Can't have more than one instance of <type>") `[Platform behaviour, traced in part]`. Whether
+  that check produced the measured refusal, whose text differs, isn't established. Don't put
+  a one-instance type in a quote-level container shared across ramp segments; size it per
+  bundle instead. What Place does with a cloned segment line (status, quantity) isn't
+  traced. Which of the
   two settings alone refuses the ramp wasn't isolated. For the ramp itself, see the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
   [SKILL.md → Ramp groups and segments](SKILL.md#ramp-groups-and-segments).
 - **Don't add `closeRelation = true` to a relation the container aggregates.** With it,
@@ -573,7 +578,13 @@ Measured on 264 `[Measured: M39]`:
   `[Repo: datasets/context_plans/ConstraintEngineNodeStatus]`.
 - Even with that rule, rows made from an order item detail stayed blank. An answer change
   activates as a cancel-and-reprice pair whose rows reference order item details, so the
-  next amendment started blank again.
+  next amendment started blank again. Traced: activation writes one row per order item, or
+  one per order item detail when the item has details; a detail-sourced row takes mapped
+  custom-field values only from the detail, a line-sourced row only from the line. A mapping
+  from the line alone therefore fills line-sourced rows and leaves detail-sourced ones blank,
+  and the platform doesn't copy node status between them; this holds for any mapped
+  custom field. An answer-change amendment takes the cancel-and-reprice path, which writes
+  those detail lines `[Platform behaviour, traced]`.
 - With a blank node status, an amendment that edited one answer reset every answer it
   didn't change to its CML default, and re-derived the children from those defaults.
   Sending an unchanged value didn't help: Place drops it. An
@@ -596,6 +607,16 @@ With both, answers held through two answer-change amendments in a row on a fresh
 `[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]`. An org built before the fix, and
 assets activated before it was deployed, still have blank rows: the trigger acts only on new
 rows, so check and backfill there.
+On another build with the repo's node-status tracking (rule and trigger) deployed, every
+one of the root's `AssetActionSource` rows carried node status after each of seven activations (a new sale, four amendments, a renewal, then a fifth
+amendment; three of the amendments on the root, two of those changing an answer), and unchanged answers held
+`[Measured: 2026-11-12, 264, scratch]` (one org). The run didn't split line-sourced from
+detail-sourced rows, though the cancel-and-reprice activations wrote detail rows. With the
+trigger in place, it can't show whether the rule alone fills line-sourced rows. An earlier run saw line-sourced rows filled by the rule alone `[Measured: M39]`. One other
+org saw the field blank on every row, new-sale rows included. It was built before the
+order → asset rule shipped, so it probably lacked the rule, which would match M39's
+without-the-rule result. Its context definition wasn't checked for the rule, so the cause is
+inferred and still open (see asset-lifecycle-changes Quick Rule 2).
 
 ---
 
@@ -695,13 +716,20 @@ nor clears them, so a later `configure` can report success `[Platform behaviour,
 `Info` messages aren't logged. When a line save is refused, the refusal comes back and the
 call writes no error logs, so the rule's message is not logged `[Platform behaviour, traced]`.
 
+The save-time quantity check behind "Specify 0 in Quantity" on a No Change line reads no
+configuration method; nothing in it is gated by `Force` or `Skip`
+`[Platform behaviour, traced in part]`. Skip refused a quantity edit that Force accepted
+`[Measured: 2026-11-11, 264]`; why Force passed isn't established, so don't rely on `Force`
+to edit such lines.
+
 `success: true` and `isSuccess: true` prove nothing about the rules. Once, the rule's
 message was only in the error log and a later `configure` returned
 `solverStatus: "success"` `[Measured: M29]`. Assert expected `Info` or `Warning` notes
 from `message(...)` separately, in `configure`'s `messages`; whether they also reach the
 log wasn't measured. Bundle-validation rows can appear in the log too, and one made
-`createOrdersFromQuote` refuse the quote `[Measured: M29, M31]`; which of them block
-ordering is [open item 1](#open-items).
+`createOrdersFromQuote` refuse the quote `[Measured: M29, M31]`. Quote-to-order refuses on
+any configurator error-log row, whatever its severity `[Platform behaviour, traced]` `[Measured: 2026-11-11, 264, Force with configuration rules off]` (see
+[open item 1](#open-items)).
 
 ---
 
@@ -866,8 +894,9 @@ earlier headless test of a different model. The 2026-11-11 rows (M22 to M41) com
 components sized from root answers, the largest relation above 9,999), probe models, the
 shipped QuantumBit bundle model (part of M39), and the line editor and configurator UI. M37's
 `validate_cml` result is a local run of the validator. Quotes went through Place with rules on (`Force`),
-then `configure`, then a query of `RevenueTransactionErrorLog`. Nothing else in this file
-was run.
+then `configure`, then a query of `RevenueTransactionErrorLog`. Apart from the dated
+`[Measured: <date>, …]` claims, which come from separate lifecycle runs scoped as stated,
+nothing else in this file was run.
 
 | # | Run | Result | Date |
 |---|---|---|---|
@@ -921,8 +950,19 @@ Each needs a live 264 org:
 
 1. For a component with `IsQuantityEditable = false`: whether `true` clears the M16
    warning, and whether a CML-set quantity alone, with no hand edit, writes an error log
-   (M31 edited by hand). Also whether an error-log row of `Severity` Warning blocks
-   ordering (M29 saw such rows for bundle-validation warnings).
+   (M31 edited by hand). Quote-to-order refuses on any configurator error-log row on the
+   quote, whatever its severity or category (M29 saw such rows for bundle-validation
+   warnings) `[Platform behaviour, traced]`. The rows come from placements in the
+   allow-errors modes, and the bundle-validation row is written only when catalog
+   validation is on and configuration is not `Skip`; a placement that skips configuration
+   runs no check, so no row appears. Under a quote-placement "run and block errors" choice,
+   Place refuses the save instead `[Platform behaviour, traced]`; the trace does not
+   separate Error from Warning messages, so whether a warning alone refuses the save is not
+   established, and what this check does under that choice is unmeasured. The trace
+   classes this result as an Error, but a measurement reported it in `configure` as a
+   warning; group-range results of the same validator are warning-type. A
+   Warning-only bundle-validation row also refused the order in a `Force` run with configuration
+   rules off (not `Skip`) `[Measured: 2026-11-11, 264, Force with configuration rules off]`.
 2. How a large cardinality (600 service hours) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
@@ -973,15 +1013,18 @@ Each needs a live 264 org:
     `maxInstanceQty=1` admits one plan line of quantity `sites` when the plan type is
     `split = false` (the line counts 1), and not when it is `split = true`
     `[Platform behaviour, traced]`; the group still needs the plans in a product component
-    group. Not established: a group minimum of 1 with 0 lines, and whether a PCM minimum
-    reaches the CML. A candidate in neither source: one exclusion per pair of
+    group. Bundle validation reports a count mismatch for a group minimum of 1 with
+    0 lines `[Platform behaviour, traced]`; whether the solver range check applies to a PCM-only group minimum, and the effect on
+    amend and assetize, are not established; once the mismatch is logged, quote-to-order
+    refuses (open item 1; traced, not measured for an empty min-1 group). Also open: whether a PCM minimum reaches the
+    model. A candidate in neither source: one exclusion per pair of
     plans, such as `support[StandardSupport] > 0 -> support[PremiumSupport] == 0`. None run.
 15. Whether `@(split = false)` keeps one line per component in later group-ramp segments
     (M24 measured only the unannotated case). Traced: each segment's root solves separately,
     so nothing carries a split decision or a reuse pool between segments, and a
     single-line type gets one line per component in each segment. Whether a cloned segment
     line is fixed or a candidate, and its quantity, are decided on the Place side, which
-    isn't traced `[Platform behaviour, traced]`. A container over all segments is one solve
+    isn't traced `[Platform behaviour, traced in part]`. A container over all segments is one solve
     (see [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)).
 
 ---
