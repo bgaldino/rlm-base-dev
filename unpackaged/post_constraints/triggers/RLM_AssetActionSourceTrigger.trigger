@@ -7,6 +7,9 @@
  * - without an Order-to-Asset rule in the Sales Transaction context, every source is blank;
  * - with the rule, a source made from an OrderItemDetail (the cancel-and-reprice pair an attribute
  *   amendment produces) is still blank, because the detail node carries no node status.
+ *   Those rows hold the OrderItemDetail Id in ReferenceEntityItemId, though the 264 object
+ *   reference lists only OrderItem and WorkOrderLineItem for that field (measured on a fresh
+ *   264 scratch org, 2026-11-11).
  * A blank status makes the next solve reset every unchanged answer to its CML default.
  *
  * A status already set (by the context rule, or by a caller) is kept. System-mode SOQL: this
