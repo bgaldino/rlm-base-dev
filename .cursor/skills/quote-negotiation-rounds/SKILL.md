@@ -42,8 +42,9 @@ path or consequence was not established (the text says what is missing).
    attribute row gained one holding the default [Measured: 2026-11-10, 264]; a custom header
    picklist came back as its default and a custom header checkbox as `false`
    [Measured: 2026-11-12, 264]. A clone is rebuilt from the quote's context definition, so a
-   field the definition does not map comes back at its default
-   [Platform behaviour, traced] ([deep-clone.md](deep-clone.md) → What carries over). Write back
+   field the definition does not map is expected to come back at its default (one field copied
+   unexplained) [Platform behaviour, traced in part] ([deep-clone.md](deep-clone.md) → What
+   carries over). Write back
    every round header field that differs from the source.
 4. **Rename every clone.** It arrives as "<source name> Copy" [Measured: 2026-11-10, 264]. No
    documented field links a clone to its source, so the opportunity and the name carry the
@@ -56,9 +57,9 @@ path or consequence was not established (the text says what is missing).
 6. **One round syncs at a time, and only the Award round becomes the order.** Keep the current
    customer-facing round synced. One quote syncs per opportunity: setting
    `Opportunity.SyncedQuoteId` to a new round unsynced the previous one
-   [Measured: 2026-11-10, 264]. Sync with `syncQuoteOpportunity`, not that field write: the
-   write only marks the quote as syncing and never completes the product copy, so waiting does
-   not help, and `createOrdersFromQuote` refused the quote
+   [Measured: 2026-11-10, 264]. Sync with `syncQuoteOpportunity`, not that field write. With
+   Asynchronous Opportunity Sync on (the measured case) the write only marks the quote as
+   syncing, and no completion step was found in the logic read, so waiting does not help; and `createOrdersFromQuote` refused the quote
    ([Award round to order](#award-round-to-order)) [Measured: 2026-11-12, 264;
    Platform behaviour, traced in part]. Help converts
    an accepted quote into an order [Help: `ind.qocal_create_orders_from_a_quote`].
@@ -178,32 +179,38 @@ ships). Reprice each round before submitting it.
    transaction it returns a tracker id and you must wait for the job
    [Platform behaviour, traced]. Create Order refuses the quote while it is marked
    `IsSyncing` and was changed after that last sync time (or the opportunity has none). The quote
-   stays marked `IsSyncing` after a good sync, by design; completion is "last sync time is not
+   stays marked `IsSyncing` after a good sync (a code comment says this is intended; not
+   otherwise confirmed); completion is "last sync time is not
    earlier than the quote's last modified time", not `IsSyncing` false. So any later edit to the
    quote, including a system or pricing save, needs another sync before ordering. Which saves
    change the quote's last modified time was not established
    [Platform behaviour, traced in part]. The check applies only with Asynchronous Opportunity
-   Sync on; without it the field write runs an older inline sync and order creation does not
-   check sync state. Whether that setting is on in a fresh 264 org is not established: read
+   Sync on; without it the field write is expected to run an older inline sync and order
+   creation not to check sync state [inferred: only the early return and the order-side guard
+   were read]. Whether that setting is on in a fresh 264 org is not established: read
    `enableAsynchronousQuoteOpportunitySync` on the org.
 2. Set it to Accepted, then Create Order [Help: `ind.qocal_create_orders_from_a_quote`], or
    `createOrdersFromQuote` with `quoteId` [Dev guide: `actions_obj_create_orders_from_quote`].
    `createOrderFromQuote` is deprecated from API 65.0 [Dev guide: `actions_obj_create_order_from_quote`].
    The order `createOrdersFromQuote` created was Draft with `EffectiveDate` = the day it ran,
-   not the quote's start date (future start 2027-01-01) [Measured: 2026-11-12, 264]. Traced:
-   the order's `EffectiveDate` is the earlier of the creation time and the earliest line start
-   date on the quote, and no input of the call sets it, so a future start gives today and a
-   past start gives that earlier date. Lines with no start date are ignored; with none, it is
-   the run date [Platform behaviour, traced]. Traced for the standard advanced quote-to-order
-   path; industry-specific order creation and the time-zone conversion were not checked. To
-   backdate an order, set past line start dates before creating it; read the date back before
-   activating. Create Order does not check `Quote.Status`: Draft or Rejected does not stop it.
-   Its refusals are other preconditions (sync state above, pending revenue async operations, a
-   failed validation result, a calculation status in progress or failed, unmet required-to-enter
-   lines, an invalid configuration, the maximum orders per quote, bundle/ramp/usage/group
-   integrity checks, the large-transaction restriction) [Platform behaviour, traced]. A
-   declarative flow or validation rule on Quote or Order, or an approval you wired, can still
-   stop it.
+   not the quote's start date (future start 2027-01-01) [Measured: 2026-11-12, 264]. Traced
+   in the header-creation logic for a single order: `EffectiveDate` is the earlier of the
+   creation time and the earliest line start date on the quote, so a future start gives today
+   and a past start gives that earlier date; lines with no start date are ignored, and with none
+   it is the run date [Platform behaviour, traced in part]. The request schema and the
+   split-order processors were not read, so with split orders each order may take its own
+   earliest date; industry-specific order creation and time-zone conversion were not checked.
+   Help says the start date defaults to the current date and that a future-dated contract
+   errors, while the measured future start gave today with no error. To backdate an order, set
+   past line start dates before creating it; read the date back before activating.
+   The create-order validations traced do not compare `Quote.Status` (not run against a Draft
+   or Rejected quote); this differs from the Help wording about converting an accepted quote
+   [Platform behaviour, traced in part]. The refusals traced are other preconditions (sync
+   state above, pending revenue async operations, a failed validation result, a calculation
+   status in progress or failed, unmet required-to-enter lines, an invalid configuration, the
+   maximum orders per quote, bundle/ramp/usage/group integrity checks, the large-transaction
+   restriction). A declarative flow or validation rule on Quote or Order, or an approval you
+   wired, can still stop it.
 3. Close out the other rounds: recall open submissions; set customer-facing rounds that
    lost to Denied if your process tracks that.
 
@@ -260,9 +267,11 @@ SELECT Id, Status FROM ApprovalSubmission WHERE RelatedRecordId = '<NEW>'
 
 Not measured; settle on a live org before relying on them:
 
+- Why one custom header field copied with no context mapping (one field copied unexplained).
 - Whether a mapped but non-editable, formula or output-only field survives a clone, and how a
   large (async) transaction clone carries fields ([deep-clone.md](deep-clone.md) → What carries over).
 - Whether Asynchronous Opportunity Sync is on by default in a fresh 264 org.
+- Whether Create Order refuses a Draft or Rejected quote (not run live).
 - Whether the `deepCloneSalesTransaction` invocable needs anything beyond
   `enableTransactionCloning`, and whether it behaves like the Connect API.
 - Whether `options.recordTypeId` sets the clone's record type.

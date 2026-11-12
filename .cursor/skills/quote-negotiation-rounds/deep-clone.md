@@ -60,15 +60,20 @@ from the source through the context definition's quote mapping, sets `Status` to
 of the Status picklist (normally Draft) and appends ` Copy` to the name, translates the context
 back to records through the same mapping (restricted fields removed), restores the related-quote,
 related-quote-type and original-action-type fields from the source, and saves the result through
-Place Sales Transaction, so pricing runs. A quote or line field therefore carries over only if
-the active context definition maps it. An unmapped custom header field comes back at its
-default (a picklist at its default value, a checkbox `false`) whichever route you use. To make
-a field carry, add it to the context definition and its quote mapping, or set it on the new
-quote after the clone. This is a property of the definition, not of the platform. Line-side
+Place Sales Transaction, so pricing runs. The mechanism therefore predicts that a quote or line
+field carries over only if the active context definition maps it, and that an unmapped custom
+header field comes back at its default (a picklist at its default value, a checkbox `false`)
+whichever route you use. That matches the measured picklist and checkbox, but one
+unmapped-looking field copied unexplained (see below), and the org's active definition was not
+read, so treat this as the expected rule, not a guarantee
+[Platform behaviour, traced in part]. To make a field carry, add it to the context definition
+and its quote mapping, or set it on the new quote after the clone. Line-side
 rewrites: the metering field is nulled, ramp and segment identifiers are regenerated (an
 action line other than Add may keep the originals when a platform gate is open), the action
 lookup is re-pointed to new actions, and foreign keys are re-pointed to the cloned records.
-Nothing in the clone sets an approval status or `IsSyncing`. Not traced: the large (async)
+The clone code reviewed has no reference to an approval status or `IsSyncing` (a keyword
+search of the clone module; the save through Place Sales Transaction was not traced)
+[Platform behaviour, traced in part]. Not traced: the large (async)
 transaction path, which may carry fields differently, and whether a mapped field that is
 non-editable, formula or output-only is dropped.
 
@@ -106,7 +111,7 @@ Connect API [Measured: 2026-11-12, 264]:
 Not measured: price adjustments other than the line `Discount` field (the source had no
 `QuoteLinePriceAdjustment` rows), bundles, ramp segments, header discounts, custom child
 objects, orders. `RLM_Payment_Terms__c` copied on the 2026-11-10 org although no context plan
-maps it, which the trace does not explain; on the second org every source held its default, so
+maps it (one field copied unexplained), which the trace does not explain; on the second org every source held its default, so
 that run doesn't tell. A custom picklist and a custom checkbox did not copy, nor did two
 editable standard fields; the traced rule above explains these when the definition does not map
 them. The mapped fields on the 2026-11-12 org held their defaults, so that run doesn't test
