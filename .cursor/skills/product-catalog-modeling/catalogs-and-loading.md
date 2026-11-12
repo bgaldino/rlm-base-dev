@@ -79,10 +79,14 @@ QuantumBit plan uses Hardware, Software, Services, Bundle, 3rd Party Software, a
 `None` on five products, and blank on 166 of 314. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
 A literal `None` is a value, not an absence: a filter for blank does not match it.
 
-**Add a new Family value to the picklist as part of the load.** The `Family`
-picklist is unrestricted, so a load stores any value through the API, but a value that is
-not one of the org's picklist values is not offered in the UI's Family picklist.
-[Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] Add the value to the `Product2Family`
+**Add new Family and unit values to their picklists as part of the load, or map the
+source's values onto existing ones.** The `Family` picklist is unrestricted, so a load stores any value
+through the API, but a value that is not one of the org's picklist values is not offered in
+the UI's Family picklist. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
+`QuantityUnitOfMeasure` behaves the same way: a load stored units that are not among its
+picklist values. [Measured: same org] A clean load is therefore no check on these values;
+compare the plan's distinct `Family` and `QuantityUnitOfMeasure` values with the org's
+picklist values before loading. Add a new Family value to the `Product2Family`
 standard value set (a metadata deploy) in the same change as the plan that uses it. In this
 repo that file is `force-app/main/default/standardValueSets/Product2Family.standardValueSet-meta.xml`;
 it lists the values the QuantumBit plan uses; the q3 and mfg PCM plans load values it does
