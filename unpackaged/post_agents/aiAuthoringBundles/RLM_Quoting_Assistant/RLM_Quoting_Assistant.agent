@@ -410,10 +410,10 @@ subagent QuoteManagement:
 
             outputs:
                 "quoteId": string
-                    description: "The record ID of the created Quote. Used internally to render the native record card; never shown as text."
+                    description: "The record ID of the created Quote. Renders the native record card, and is the quoteId for follow-up quote and line actions in the same request; never shown as text."
                     label: "QuoteId"
                     is_displayable: False
-                    is_used_by_planner: False
+                    is_used_by_planner: True
                     complex_data_type_name: "lightning__textType"
                 "errorMessage": string
                     description: "Provides an error message if applicable."
