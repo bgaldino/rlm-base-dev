@@ -603,18 +603,18 @@ So, before amending a CML bundle's answers:
 This repo ships the fix: the order → asset context rule above, plus a before-insert trigger
 on `AssetActionSource` that fills a blank row from its order item, directly or through the
 detail `[Repo: unpackaged/post_constraints/triggers/RLM_AssetActionSourceTrigger.trigger]`.
-On a later build with the repo's node-status tracking (rule and trigger) deployed, every
-one of the root's `AssetActionSource` rows, detail-sourced ones included, carried node
-status after each of seven activations (a new sale, five amendments and a renewal), and
-unchanged answers held `[Measured: 2026-11-12, 264, scratch]` (one org). With the trigger in
-place, that run can't show whether the rule alone fills line-sourced rows. An earlier run
-saw line-sourced rows filled by the rule alone, but one other org saw the field blank on
-every row, line-sourced ones included; the cause is open (see asset-lifecycle-changes
-Quick Rule 2).
 With both, answers held through two answer-change amendments in a row on a fresh build
 `[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]`. An org built before the fix, and
 assets activated before it was deployed, still have blank rows: the trigger acts only on new
 rows, so check and backfill there.
+On a later build with the repo's node-status tracking (rule and trigger) deployed, every
+one of the root's `AssetActionSource` rows, detail-sourced ones included, carried node
+status after each of seven activations (a new sale, five amendments, three of them on the
+root and two of those changing an answer, and a renewal), and unchanged answers held
+`[Measured: 2026-11-12, 264, scratch]` (one org). With the trigger in place, that run can't
+show whether the rule alone fills line-sourced rows. An earlier run saw line-sourced rows filled by the rule alone, but one other org saw the field blank on
+every row, line-sourced ones included; the cause is open (see asset-lifecycle-changes
+Quick Rule 2).
 
 ---
 
