@@ -325,12 +325,12 @@ each cloning the most recent ramped group:
 
 Per the dev guide the v68 clone response is `{ requestId, salesTransactionId, success, errors }`
 (`docs/salesforce/264/dev-guide/articles/connect_responses_clone_sales_transaction_output.htm.md`);
-a measured whole-quote clone also returned `trackerId`/`trackerUrl` keys, both null; the group-clone response shape (`recordIds` set to a group id, as here) wasn't captured (see
+a measured clone (group clones in the ramp runs, and whole-quote clones) also returned `trackerId`/`trackerUrl` keys, both null (see
 [quote-negotiation-rounds → deep-clone.md](../quote-negotiation-rounds/deep-clone.md#response-and-completion)).
 The large-transaction clone path wasn't traced.
 `success:false` with a populated `errors[]` is a
 synchronous failure — stop. On `success:true` the save runs **async**. The dev guide says `requestId`
-identifies that process; the measured response had `requestId` null, so don't key on it. The observable gate is `Quote.CalculationStatus` —
+identifies that process; the measured (standard-size) responses had `requestId` null, so it can't be the gate there; the large-transaction path wasn't traced. Gate on `Quote.CalculationStatus` —
 poll it to a settled state ([Status](#status)) before the next call. Do **not**
 read or clone the next group until it settles; then read back the new group's id
 for the next clone. The quote can still read as settled from before the call, so also poll
@@ -368,7 +368,7 @@ compound result — the three calls above alone do not. It also needs the fully-
 
 Segment 1 is the baseline (leave `UnitPriceUplift` 0). `pricingPref: "Force"`
 re-runs pricing on **every** line, so the engine applies the compound uplift. On the graph-request Place
-path, `System` prices a request only if it carries at least one line record (line POST/PATCH; a request that only deletes lines is priced only if the header still has lines; a request holding only the Quote
+path, `System` prices a request only if it carries at least one line or line-attribute record (an all-delete request is priced only if the header still has lines; a request holding only the Quote
 header, such as a lone `RampUpliftType` change, isn't priced); a request carrying a context id is
 priced whenever the transaction has lines, and an org setting can skip pricing altogether. `System` delta
 pricing may also skip lines (see DO NOT) [Platform behaviour, traced]; see the header-only rule in
