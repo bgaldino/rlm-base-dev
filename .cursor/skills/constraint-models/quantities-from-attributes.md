@@ -361,7 +361,7 @@ bound can't hold once `sites` is above 1; that failure itself wasn't run.
 | Tool | What the dev guide says it counts | Source |
 |---|---|---|
 | `rel.count(<condition>)` | "the number of component instances" that match the condition. Another page says that when the condition covers every instance it returns the same value as `cardinality()`. Lines or quantity: [open item 14](#open-items) | `[Dev guide: cml_relationship_variable_functions]` `[Dev guide: cml_using_proxy_variables_constraints]` |
-| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Unique instances chosen from the group; the chosen component can still have a high quantity. The annotation reference calls it the maximum cardinality for a component in a group. The solver sums the relations' instance counts, so a line of quantity N counts 1 for `split = false` and N for `split = true`; a conflict reads "Group Cardinality must be greater than or equal to X and less than or equal to Y". The solver refuses only when the CML group declares the bounds; bundle validation counts lines separately ([open item 14](#open-items)) | `[Dev guide: cml_group_type]` `[Dev guide: cml_type_annotations]` `[Platform behaviour, traced]` |
+| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Unique instances chosen from the group; the chosen component can still have a high quantity. The annotation reference calls it the maximum cardinality for a component in a group. The solver sums the relations' instance counts, so a line of quantity N counts 1 for `split = false` and N for `split = true`; a conflict reads "Group Cardinality must be greater than or equal to X and less than or equal to Y". The solver refuses only when the CML group declares the bounds; bundle validation is a separate check that also counts lines and reports a group minimum it can't meet ([open item 14](#open-items)) | `[Dev guide: cml_group_type]` `[Dev guide: cml_type_annotations]` `[Platform behaviour, traced]` |
 
 **When an answer picks the plan,** nothing needs counting. Size the chosen plan from the
 answer, zero the other, and drop the sum:
@@ -724,8 +724,8 @@ message was only in the error log and a later `configure` returned
 `solverStatus: "success"` `[Measured: M29]`. Assert expected `Info` or `Warning` notes
 from `message(...)` separately, in `configure`'s `messages`; whether they also reach the
 log wasn't measured. Bundle-validation rows can appear in the log too, and one made
-`createOrdersFromQuote` refuse the quote `[Measured: M29, M31]`; which of them block
-ordering is [open item 1](#open-items).
+`createOrdersFromQuote` refuse the quote `[Measured: M29, M31]`: quote-to-order refuses on
+any configurator error-log row, whatever its severity (see [open item 1](#open-items)).
 
 ---
 
@@ -947,8 +947,11 @@ Each needs a live 264 org:
    warning, and whether a CML-set quantity alone, with no hand edit, writes an error log
    (M31 edited by hand). Quote-to-order refuses on any configurator error-log row on the
    quote, whatever its severity or category (M29 saw such rows for bundle-validation
-   warnings) `[Platform behaviour, traced]`; this holds in the allow-errors modes, and only
-   when catalog validation is on and configuration is not `Skip`.
+   warnings) `[Platform behaviour, traced]`. The rows come from placements in the
+   allow-errors modes, and the bundle-validation row is written only when catalog
+   validation is on and configuration is not `Skip`; a placement that skips configuration
+   runs no check, so no row appears. Under a "run and block errors" choice, Place refuses
+   the save instead (traced for Place, unmeasured for this check).
 2. How a large cardinality (600 service hours) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
@@ -1000,8 +1003,9 @@ Each needs a live 264 org:
     `split = false` (the line counts 1), and not when it is `split = true`
     `[Platform behaviour, traced]`; the group still needs the plans in a product component
     group. Bundle validation reports a count mismatch for a group minimum of 1 with
-    0 lines `[Platform behaviour, traced]`; the solver range check, and the effect on order,
-    amend and assetize, are not established. Also open: whether a PCM minimum reaches the
+    0 lines `[Platform behaviour, traced]`; the solver range check, and the effect on
+    amend and assetize, are not established; once the mismatch is logged, quote-to-order
+    refuses (open item 1). Also open: whether a PCM minimum reaches the
     model. A candidate in neither source: one exclusion per pair of
     plans, such as `support[StandardSupport] > 0 -> support[PremiumSupport] == 0`. None run.
 15. Whether `@(split = false)` keeps one line per component in later group-ramp segments
