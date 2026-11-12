@@ -53,8 +53,8 @@ Measured traps:
   the selection, and they don't say whether bundle child lines can be selected.
   **Measured in the STLE: bundle children can be selected and bulk edited.** Each child row has its
   own checkbox; with four children of one bundle ticked (root unticked), an Adjustment Type edit on one
-  of them went to all four, with no "apply to selected" prompt, and Save stored it on each child
-  [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. Move Selected Items on child lines, and the
+  of them went to all four, with no "apply to selected" prompt, and Save stored it on each child (repo
+  quote page, Instant Pricing on; off wasn't measured) [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. Move Selected Items on child lines, and the
   legacy TLE, weren't measured. For automation: a pointer click on the checkbox ticked it; a click on
   the element reference didn't.
   **Bulk Delete** can't be used on a quote or order with a group ramp schedule
@@ -170,7 +170,8 @@ header field, one the pricing procedure reads through the sales transaction cont
 and left every line's price as it was; a header-only PATCH with no field change didn't reprice either
 (each line's `PriceWaterfallIdentifier` stayed the same). **Reprice All** applied the new header value to the lines
 [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. After changing a header field that pricing
-reads, click Reprice All (or change a line). A header edit in the record UI wasn't measured. For quotes,
+reads, click Reprice All. Changing a line instead wasn't measured, and on a Compound group ramp a
+partial line edit re-uplifts untouched lines (`ramped-quotes` SKILL.md → DO NOT). A header edit in the record UI wasn't measured. For quotes,
 Help's Reprice All requirement names updates to Quote Line Items outside the line editors, not the
 Quote header (for orders it covers Order records too)
 [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
