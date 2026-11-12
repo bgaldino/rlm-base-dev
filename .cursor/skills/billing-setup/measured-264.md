@@ -89,7 +89,7 @@ Repeat this for the frequencies a plan promises, on the route the demo will use:
   billing term unit is Milestone Plan on a milestone treatment [Platform behaviour, traced];
   whether this line produces such a schedule is unread, and not confirmed on a live org.
 - The cause of the M11 drop (the later Skip PATCH route is measured, Quick Rule 4). The same
-  placement with rules off is untried, and the trace found no code that blanks it (live check).
+  placement with rules off is untried, and the trace found no code in the modules searched that blanks it, and the response-to-line merge was not located (live check).
 - A service added by an amendment (a new product on the amendment order) carrying a milestone
   treatment: whether activation creates a plan, with `enableMilestoneBillingForAmend` on (as the
   repo ships) or off, is unmeasured. Read its `BillingSchedule.Category`, `BillingMilestonePlanId`
