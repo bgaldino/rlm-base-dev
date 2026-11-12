@@ -96,8 +96,8 @@ procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pr
 - **Milestone Plan on bundle components.** Place with `configurationMethod: Force` and
   configuration rules on left `BillingFrequency` blank on component service lines (`billing-setup` → M11). A second Place PATCH
   with `configurationMethod: Skip` setting `BillingFrequency` Milestone Plan and the milestone
-  `BillingTreatmentId` on those lines kept both, moved no price, and `createOrdersFromQuote` copied
-  them [Measured: 2026-11-12, 264, scratch; one org]. Why the first Place drops it is not
+  `BillingTreatmentId` on those lines kept both, moved no price, and both were on the order products
+  after `createOrdersFromQuote` [Measured: 2026-11-12, 264, scratch; one org]. Why the first Place drops it is not
   established.
 
 **Backdated asset changes** (amend, cancel, renew, transfer, swap, upgrade, downgrade with an
