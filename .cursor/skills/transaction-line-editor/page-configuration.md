@@ -159,7 +159,7 @@ configuration article says 10 visible action slots across all groups, and the re
 **groups** show and the rest go to an overflow menu. In the STLE component the cap is global: 10 inline actions across
 all groups combined, the rest under a More menu, and below a width breakpoint only 2 inline. It caps
 rendering, not configured actions [Platform behaviour, traced]. That disagrees with the release note's
-"groups" wording and the considerations article's "first 10 actions". The release note also says the visual UI replaces
+"groups" wording; the considerations article's "first 10 actions" is consistent if "show" means inline. The release note also says the visual UI replaces
 the text box, that existing text-box values carry over, and that the header hides actions a rep can't
 use and shows the next one in the group
 [Release notes: `release-notes.rn_transaction_management_stle_enhance_button_groups`]. Help gives the

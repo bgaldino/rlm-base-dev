@@ -174,8 +174,8 @@ and left every line's price as it was; a header-only PATCH with no field change 
 [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. The rule behind it: under System pricing a Place
 request is priced only when it includes at least one quote or order line record, or line attribute record
 (a create, update or unchanged-value PATCH counts; a request that only deletes lines is priced only if the transaction still has lines). A request with only the header record
-is not priced, whichever header field changed. Force pricing (Reprice All) always prices
-[Platform behaviour, traced]. A request that carries a context id is priced whenever the transaction has
+is not priced, whichever header field changed. Force pricing (Reprice All) passes the request test
+unconditionally [Platform behaviour, traced]. A request that carries a context id is priced whenever the transaction has
 lines, so a header-only change through that path would reprice; which path a given client request takes
 was not determined, and the context-id case was not measured. After changing a header field that pricing
 reads, include a line record in the same request, use Force pricing, or click Reprice All. Pricing can also be
