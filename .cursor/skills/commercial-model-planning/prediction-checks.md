@@ -130,7 +130,7 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     to satisfy the rule. A stored answer counts as changeable: the solver behaved as if a
     stored answer were free (`constraint-models` → `quantities-from-attributes.md`, Zero
     for a component a choice excludes), and after a Browse Catalogs add into ramp segments
-    it read a stored sites answer of 40 as 1 (`ramped-quotes` → `ui-group-ramp.md`, step
+    it read a stored sizing answer as 1 (`ramped-quotes` → `ui-group-ramp.md`, step
     4), so a rule between two answers may be met by moving the other one. Predict a removal or a changed answer, and assert the deltas, wherever
     the solver can make one; predict the message only where nothing it may change
     satisfies the rule. A
