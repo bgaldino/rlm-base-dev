@@ -53,14 +53,15 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       then sit on a virtual `Quote` container (`constraint-models` →
       `quantities-from-attributes.md`, Checks across top-level lines). If the plan also
       builds group ramps, that container sees every segment's lines at once: a `[0..1]`
-      relation or a one-instance type there refuses the ramp, so cross-line checks
-      compare totals across segments (`ramped-quotes`).
+      bundle relation together with one-instance types there refused the ramp, so
+      cross-line checks compare totals across segments (`ramped-quotes`).
     - A group ramp of a configurable bundle is a structure too. Every child, One-Time
       included, repeats in every segment of a UI-built ramp, and unticking a child that a
       rule sizes is silently undone. Before predicting a ramp's contract value, name how
       the repeats leave later segments. A root answer that sizes the one-time children to
-      0, set in segment 2, reached the later segments and left segment 1 alone; it needs
-      those groups' minimums at 0 (`ramped-quotes` → `bundle-children-lifecycle.md`).
+      0, set in segment 2, reached the later segments and left segment 1 alone; the build
+      that worked lowered those groups' minimums to 0 (`ramped-quotes` →
+      `bundle-children-lifecycle.md`).
 
    A prior plan kept such a choice as a component and needed that fallback after its
    lifecycle spikes. Another sent the ramp repeats to a spike whose options didn't
@@ -94,8 +95,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       product Family.
 
    See `pricing-setup` → `scenarios/full-term-value.md` and `context-service`. A golden
-   that keeps a running total across changes builds on each step's platform value (check
-   10), not the source's measure.
+   that keeps a running total across changes carries each step's platform value next to
+   the source's, as check 10 says.
 
 ## Golden tests (step 5)
 
@@ -126,10 +127,11 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     message (`asset-lifecycle-changes` Quick Rule 7). So for every refusal golden that an
     amendment or renewal reaches, write down how the change arrives (an answer change or
     a line edit) and which form of the rule meets it. Then name what the solver may change
-    to satisfy the rule. A stored answer counts as changeable: the solver treated a stored
-    choice answer as free (`constraint-models` → `quantities-from-attributes.md`, Zero for
-    a component a choice excludes), so a rule between two answers may be met by moving
-    the other one. Predict a removal or a changed answer, and assert the deltas, wherever
+    to satisfy the rule. A stored answer counts as changeable: the solver behaved as if a
+    stored answer were free (`constraint-models` → `quantities-from-attributes.md`, Zero
+    for a component a choice excludes), and after a Browse Catalogs add into ramp segments
+    it read a stored sites answer of 40 as 1 (`ramped-quotes` → `ui-group-ramp.md`, step
+    4), so a rule between two answers may be met by moving the other one. Predict a removal or a changed answer, and assert the deltas, wherever
     the solver can make one; predict the message only where nothing it may change
     satisfies the rule. A
     prior plan predicted a rule's message on an amendment. The answer change removed the
