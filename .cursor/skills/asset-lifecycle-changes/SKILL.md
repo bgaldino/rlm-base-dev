@@ -175,8 +175,9 @@ results, 2026-11-11).
       last-transaction pricing source, no ramp, no derived-price product, no attribute
       or price change on the line, and not an early renewal; otherwise it leaves this path. A non-ramped early renewal is repriced as a cancel-and-add pair of
       detail rows [Platform behaviour, traced]. A renewal on a price book list-price source is
-      one line on the combined quantity (below). A ramped renewal leaves the per-lot path and
-      is repriced as a single line [Platform behaviour, traced]. Whether a renewal with an
+      one line on the combined quantity (below). A ramped renewal leaves the per-lot path; one that
+      isn't early is repriced as a single line [Platform behaviour, traced]. An early ramped
+      renewal takes its own branch, which wasn't traced. Whether a renewal with an
       attribute or price change, or of a derived-price product, gets cancel-and-add rows or a
       single line isn't settled [Platform behaviour, traced in part]. The
       last-negotiated method copies the net unit price and has no volume-band step, so it
