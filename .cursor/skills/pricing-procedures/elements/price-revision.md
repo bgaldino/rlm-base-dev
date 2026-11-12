@@ -54,14 +54,8 @@ dynamic input parameters. The Builder offers lookup, hide-waterfall and compound
   Cross-element order: `../procedure-anatomy-and-ordering.md`.
 - Repo places the renewal step under a ListGroup filtered to subscription lines without derived
   pricing, and the ramp step under a separate ListGroup for ramped amendments. [Repo]
-- Help: a compound ramp uplift reprices every line in the ramp group on each run, regardless of the
-  delta setting; non-compound lines are unaffected. [Help] That sits against the traced rule below
-  (a partial PATCH reruns only the edited lines plus dependents); the two are not reconciled, so
-  re-read ramp-group prices after any save.
-- With the delta pricing setting on, and a PATCH edit with System pricing, Dual Persistence mode off, a completed calculation status and no validation errors, only the edited lines and their dependents reprice; the list of conditions is partial (see [`../runtime-and-observability.md`](../runtime-and-observability.md)).
-  If any of those does not hold, every line reruns and the uplift is applied again to untouched
-  lines [Platform behaviour, traced]. Whether delta was on in the measured re-uplift is not
-  established.
+- Help: "If the pricing procedure uses delta pricing and you enable Compound Uplift, the Price Revision element reprices every line in the ramp group each time it runs, regardless of the delta pricing setting. This behavior applies only to lines that use Compound Uplift. Delta pricing behaves normally for lines that do not use it." [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]
+- Delta skipping applies when the setting is on and the save is a PATCH edit with System pricing, Dual Persistence mode off, a completed calculation status (Completed with Pricing or with Tax) and no validation errors [Platform behaviour, traced]; further conditions (pricing permissions, update-tracking settings) also apply, so treat this list as partial (see [`../runtime-and-observability.md`](../runtime-and-observability.md)). If any of those does not hold, every line reruns and the uplift is applied again to untouched lines [Platform behaviour, traced]. With the setting on (read from the org), a System PATCH of one ramp line with no field change ran no pricing procedure on any line (waterfall ids unchanged), yet re-applied the compound uplift to every uplifted line's `NetUnitPrice`, unrounded, with totals unchanged [Measured: 2026-11-12, 264, scratch; one org]. Help says a Compound Uplift Price Revision step reprices every line in the ramp group each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`], which fits which lines moved but not that no waterfall changed; that path is not traced. Finish ramp edits with Reprice All and re-read every segment.
 
 ## Rules and limits
 - Policy types: **Flat** (manual uplift value, no decision table) and **Price Index** (rate from

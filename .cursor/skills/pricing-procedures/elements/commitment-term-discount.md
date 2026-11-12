@@ -298,7 +298,7 @@ group ramp built in the quote UI)
 
 | Line as sent | Saved line | Result |
 |---|---|---|
-| Start and end dates, no term | `SubscriptionTerm` null, unit `Annual` | Criterion 3 fails: **no discount** |
+| Start and end dates, no term (a Term Defined Annual line, placed with Force and rules on; same result standalone and as a bundle component) | `SubscriptionTerm` null, unit `Annual` | Criterion 3 fails: **no discount** |
 | `SubscriptionTerm` 36, unit `Months`, Annual selling model | Unit rewritten to `Annual`: 36 years, `PricingTermCount` 36 | Discount applied (through criteria 7 and 8, inferred from the saved unit), total over **36 terms** |
 | `SubscriptionTerm` 3, unit `Annual` | As sent, `PricingTermCount` 3 | Discount applied, total over 3 terms: the correct shape |
 | A segment line of a group ramp built in the quote UI | `SubscriptionTerm` 1, unit `Annual`, a ramp identifier | Criterion 8 fails: no discount unless criterion 14 below |
@@ -306,7 +306,7 @@ group ramp built in the quote UI)
 For a line that goes through the proration engine, the pricing term count is the number of periods in the selling model's term unit: the line's
 `SubscriptionTerm` is read in that unit (36 on an Annual model is 36 annual periods, whatever unit
 the line carries), and a line with no term has its count derived from its start and end dates
-[Platform behaviour, traced]. An Evergreen or One Time line with a configured default term count takes that count directly, bypassing the engine; a One Time line with no default is not prorated [Platform behaviour, traced]. A dates-only line is therefore priced over its dates, but Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]; a dates-only line read back `SubscriptionTerm` null [Measured: 2026-11-11, 264, scratch], so criterion 3 fails. Whether Place fills a Term Defined line's term from the selling model is not established.
+[Platform behaviour, traced]. An Evergreen or One Time line with a configured default term count takes that count directly, bypassing the engine; a One Time line with no default is not prorated [Platform behaviour, traced]. A dates-only line is therefore priced over its dates, but Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace finds Place filling a missing term from a Term Defined selling model, but a measured dates-only Term Defined Annual line, placed with Force and rules on, read back `SubscriptionTerm` null both standalone and as a bundle component (so criterion 3 fails) [Measured: 2026-11-11, 264, scratch]; until that is re-measured, send the term explicitly.
 
 So send every Term Defined line's term in its selling model's unit (3 `Annual` for 36 months on an
 annual model). The `Months` criteria (5 and 6) were seen matching only in headless runs.
