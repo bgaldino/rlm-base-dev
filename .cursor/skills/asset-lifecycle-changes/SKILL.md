@@ -46,18 +46,18 @@ results, 2026-11-11).
       scratch org].
     - **Why:** the repo's quote-line trigger gives each amendment line the configurator node
       status from its source asset's latest asset action (by `ActionDate`), read from that
-      action's source rows (`AssetActionSource.RLM_ConstraintEngineNodeStatus__c`); the
-      root's rows carry the answers [Repo:
+      action's source rows (`AssetActionSource.RLM_ConstraintEngineNodeStatus__c`) [Repo:
       `unpackaged/post_constraints/triggers/RLM_QuoteItemTrigger.trigger`]. The node status
-      records which answers the user set; with none, the solve treats every answer the
-      request doesn't change as a default. An answer edit keeps the other answers only when
+      records which answers the user set, not their values; with none on the root line, a
+      solve that changes an answer treats every answer the request doesn't change as a
+      default. An answer edit keeps the other answers only when
       those rows carry it. Activation fills them only when the context definition has an
       order-to-asset rule (`AssetActionSource` ⇐ `SalesTransactionItem` in
       `AssetToSalesTransactionMapping`), which the repo's context plan doesn't have, and
       never fills rows made from order product detail rows: the cancel-and-reprice pair an
       answer-change amendment writes on the root [Measured: 2026-11-11, 264, scratch org].
-      So even with the rule, the next amendment's lines would start blank, since the trigger
-      reads only those rows.
+      So even with the rule, the next amendment's root line would start blank, since the
+      trigger reads only those rows.
       Configurator side: `constraint-models` → `quantities-from-attributes.md` → open item 12.
     - **Check and work around.** After every activation in a multi-step replay, read the
       root's latest asset action source rows (verification.md step 6). Where they're blank,
