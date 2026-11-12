@@ -1,7 +1,8 @@
 # Ramped Quotes — Bundles with one-time / evergreen children, and their lifecycle
 
 > Sub-file of `.cursor/skills/ramped-quotes/SKILL.md`. Measured 2026-11-05/06 on one 264 scratch org
-> (Enterprise, API 68.0), **Quote** output. Rows say whether the bundle was built by API or in the quote UI;
+> (Enterprise, API 68.0), **Quote** output; sections and bullets dated 2026-11-11 come from fresh 264 `ent-sb0`
+> scratch orgs. Rows say whether the bundle was built by API or in the quote UI;
 > the two paths gave different amend results (see the matrix). "API-built" means the bundle was added with
 > `AddProducts` into already-ramped segments; the EditGroup-then-clone shape is covered separately below. Treat
 > each row as a measurement, not a root cause. Re-verify on the target org.
@@ -22,7 +23,14 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
 - In the quote UI the same result is reachable for an **optional** child: open the bundle's configurator in segment 2, untick the
   child, save. The dialog says "Configuration changes will apply to current and all future segments", and the child stayed
   in segment 1 only; root and term child stayed in all three. Unticking it in segment 3 only removed it from segment 3.
-  Re-ticking it in segment 3 (the last segment, the only one tried) was accepted.
+  Re-ticking it in segment 3 (the last segment, the only one tried) was accepted. No constraint model referenced
+  that bundle.
+- **A child that a CML rule sizes can't be removed this way.** On a fresh 264 `ent-sb0` scratch org (2026-11-11,
+  rules on), unticking an optional child sized by `relation[T] == <answer>` in segment 2's configurator was
+  silently re-ticked by the solver after "Processing…", with no message. So with rules on, a rule-sized one-time
+  child stays in every segment (see [What a UI-built bundle ramp carries](#what-a-ui-built-bundle-ramp-carries)).
+  Whether a rule that relaxes the child after segment 1 (one that reads a segment or ramp answer) would let it be
+  unticked was not measured.
 - A **required** child cannot be removed that way: its checkbox is disabled in the segment 2 configurator and the line's row
   menu has no delete.
 - UI adds of the test bundles failed with `UNKNOWN_EXCEPTION` and no lines written while `IsDefault` was false on their
@@ -31,6 +39,38 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
 - The API recipe ran outside the active CML models because no constraint model references the test products
   (`configurationMethod: Skip` alone does not stop a clone running group rules). Where a model adds products to a
   ramped quote, see the SKILL.md DO NOT on rule-added products.
+
+## What a UI-built bundle ramp carries
+
+Measured 2026-11-11 on fresh 264 `ent-sb0` scratch orgs (two orgs): a configurable bundle with Term Annual, Evergreen
+and One-Time children, CML rules on, added with Browse Catalogs → *Current and Subsequent Segments* on a
+three-segment Annual ramp.
+
+- **Every child lands in every segment, with ramp identity.** One-Time and Evergreen children too: each segment
+  held the same set of products, every line with a `RampIdentifier` (a split, below, adds extra instances).
+- **An Evergreen child is one period per segment** (`PricingTermCount` 1 on each segment's line).
+- **A One-Time child is quoted once per segment.** Each segment's line is a separate quote line, so the platform
+  quote total counts the child N times. A contract value that should count it once must be computed per segment (or the child kept out of later
+  segments, which rules can block; see [Limiting a one-time child to segment 1](#limiting-a-one-time-child-to-segment-1)).
+- **`IsPrimarySegment` was false on every segment** (read on one of the orgs), so it can't single out segment 1; order segments by `StartDate`.
+- **The segment's uplift reaches these children too**; see
+  [ui-group-ramp.md → What the segment uplift reaches](ui-group-ramp.md#what-the-segment-uplift-reaches).
+
+**A CML-sized default component splits into two instances in the configurator** (one of the orgs). With a child that is
+`IsDefaultComponent` (quantity 1) and sized by a rule `relation[T] == <answer>`, the configurator kept the default
+instance at 1 and added a second instance for the rest (1 + n−1). Each component group counted both instances and
+exceeded its maximum of 1 (a range warning per group), and the two instances priced on different volume bands. Correcting segment 1 in the
+configurator to one instance at the rule's quantity fixed segment 1 only: segments 2 and 3 kept the default
+instance beside it (n + 1), which broke the rule and was flagged only by the group-range warning. With `IsDefaultComponent` false on the sized children (a required child must be a default, so
+it was made optional), each child was one instance at the rule's quantity in every segment, with no warning. The
+API path doesn't show this when it sends the child lines itself with `addDefaultConfiguration: false`.
+
+The CML fix is `@(split = false)` on each component type a rule sizes: it kept default components as one line at
+the rule's quantity in the configurator (2026-11-11; see
+[`constraint-models/quantities-from-attributes.md`](../constraint-models/quantities-from-attributes.md)). On the
+second org, where every sized component type was `@(split = false)` and the children stayed default components,
+the UI ramp held one line per child at the rule's quantity in every segment. Correcting a split segment 1 by hand
+wasn't repeated there.
 
 ## Cloning a segment that holds a bundle
 
