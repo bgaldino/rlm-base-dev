@@ -28,7 +28,7 @@ scratch org built by this repo.
    of stages and steps: background steps run flows, and approval steps assign work items
    [Help: `ind.approvals_example_configure_an_approval_workflow`].
 2. **Reduce every condition to a single flow-resolved value of a supported type (Number or
-   Text always works) before the approval stage.**
+   Text is the documented-supported type) before the approval stage.**
    - Conditions can test a background step's outputs, another step's outputs (the shipped
      Director step reads `Manager_Approver.Outputs.approvalDecision`) and flow formulas. Line
      values aren't one of those, so aggregate them (a maximum level, a count of lines below
@@ -203,10 +203,13 @@ items:
   stages and similar) are sorted by name ignoring case; the file is read in its own order and
   strings must match exactly, so a file whose named lists are out of name order, or whose
   strings differ, counts as changed [Platform behaviour, traced]. Which property differed in
-  the measured run is not established, and numeric fields compare as numbers, so the trace
-  gives no support for a `0.0` rule. An Active latest version plus an identical file
-  creates no version; a changed file over a Draft latest version overwrites it in place; a changed
-  file over an Active or Obsolete latest version creates a new one; a deploy requesting
+  the measured run is not established, and a numeric literal compares as a number (other
+  numeric properties were not audited), so the trace gives no support for a `0.0` rule for
+  those literals; a string-typed value holding a number would differ on `0` versus `0.0`. An Active latest version plus an identical file
+  creates no version; for a file deploy of an unversioned flow name, a changed file over a Draft (or
+  InvalidDraft) latest version overwrites it in place and one over an Active or Obsolete
+  latest version creates a new one; a versioned name uses a separate path (not traced to a
+  rule); a change set always creates a new version; a deploy requesting
   Active over a non-Active latest version counts as changed [Platform behaviour, traced]. Steps inside
   orchestrated stages keep their saved order, a possible reason an orchestration redeploys
   unchanged; that is not proven for the measured run. For a new or generated flow, deploy it, retrieve it and commit the retrieved form. Compare

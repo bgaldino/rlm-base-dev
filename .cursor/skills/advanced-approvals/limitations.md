@@ -56,10 +56,11 @@ How it decides [Platform behaviour, traced]:
   version is the basis only if it was Recalled or Rejected; a new flow version means no basis.
 - The basis item is the newest Approved item for that step in the basis submission. If its
   reviewer is inactive, the step goes to manual review. The current assignee is not
-  examined: the new item is created already reviewed (`IsAutoReviewed` true), under the
+  examined: if Smart Approval approves the step, the new item is created already reviewed (`IsAutoReviewed` true), under the
   earlier reviewer, with a system comment.
-- Only a step whose flow resolves a condition object (a step with entry conditions) is
-  evaluated. Each condition is compared by position
+- Only a step whose flow resolves a condition object is
+  evaluated; what makes a step have one was not verified (likely, but not shown, a step
+  with entry conditions). Each condition is compared by position
   with its earlier-run counterpart, using the single value the flow resolved for it (no
   totals or per-line comparison); results combine through the step's criteria logic.
 - Datatypes: Boolean, Currency, Date, Date/Time, Time, Number, Picklist, Multi-select
