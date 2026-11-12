@@ -451,8 +451,9 @@ Measured on 264 `[Measured: M39]`:
   an order → asset rule: `AssetActionSource` node status from `SalesTransactionItem` node
   status, in `AssetToSalesTransactionMapping`. Help's Constraint Rules Engine
   context-definition article lists only the asset → transaction rule
-  `[Help: ind.product_configurator_set_up_constraint_engine_context_definitions]`, and so
-  does this repo's plan `[Repo: datasets/context_plans/ConstraintEngineNodeStatus]`.
+  `[Help: ind.product_configurator_set_up_constraint_engine_context_definitions]`. This
+  repo's plan adds the order → asset rule
+  `[Repo: datasets/context_plans/ConstraintEngineNodeStatus]`.
 - Even with that rule, rows made from an order item detail stayed blank. An answer change
   activates as a cancel-and-reprice pair whose rows reference order item details, so the
   next amendment started blank again.
@@ -471,9 +472,13 @@ So, before amending a CML bundle's answers:
 2. **If it's blank,** backfill it from the order item's value before amending
    `[Measured: M39]`. Re-sending the unchanged answers doesn't work around it.
 
-The fix in this repo, an order → asset context rule plus a before-insert trigger on
-`AssetActionSource` that fills detail-sourced rows, is a separate change; check whether
-the org has it before relying on it. Assets activated before it keep blank rows.
+This repo ships the fix: the order → asset context rule above, plus a before-insert trigger
+on `AssetActionSource` that fills a blank row from its order item, directly or through the
+detail `[Repo: unpackaged/post_constraints/triggers/RLM_AssetActionSourceTrigger.trigger]`.
+With both, answers held through two answer-change amendments in a row on a fresh build
+`[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]`. An org built before the fix, and
+assets activated before it was deployed, still have blank rows: the trigger acts only on new
+rows, so check and backfill there.
 
 ---
 
