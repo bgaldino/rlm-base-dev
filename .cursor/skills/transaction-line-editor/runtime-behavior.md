@@ -2,7 +2,8 @@
 
 > Sub-file of [`SKILL.md`](SKILL.md). Read it before rehearsing or debugging a demo in the line
 > editor or the configurator. Source tags are defined in the parent. Items tagged `[Measured]` were
-> observed on 264 demo orgs in early November 2026 and are not in the Help.
+> observed on 264 demo orgs in early November 2026, or on a fresh 264 `ent-sb0` scratch org where the
+> tag says so, and are not in the Help.
 
 ## 1. Adding products
 
@@ -35,8 +36,9 @@ Measured traps:
   Default Catalog setting wasn't recorded. Before a demo, check which catalog it opens on.
 - **A top-level category whose products sit only in subcategories shows no products** until a
   subcategory is picked [Measured: early Nov 2026, 264].
-- On a group ramp, Browse Catalogs from a segment row first asks **Select Segments to Add Products**;
-  see `ramped-quotes/ui-group-ramp.md` [Repo: `.cursor/skills/ramped-quotes/ui-group-ramp.md`].
+- On a group ramp, Browse Catalogs from a segment row asked for the **catalog first**, then **Select
+  Segments to Add Products** [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]; see
+  `ramped-quotes/ui-group-ramp.md` [Repo: `.cursor/skills/ramped-quotes/ui-group-ramp.md`].
 
 ## 2. Editing lines
 
@@ -46,13 +48,22 @@ Measured traps:
   goes to all selected lines. The STLE bulk-edits groups too; its bulk actions include editing fields,
   updating discounts and deleting selected lines or groups [Help: `ind.qocal_view_and_edit_orders`,
   `ind.qocal_customize_transaction_line_editor`]. Those articles and `ind.qocal_limits` give no cap on
-  the selection, and they don't say
-  whether bundle child lines can be selected for a bulk edit (see the parent's Open list).
+  the selection, and they don't say whether bundle child lines can be selected.
+  **Measured in the STLE: bundle children can be selected and bulk edited.** Each child row has its
+  own checkbox; with four children of one bundle ticked (root unticked), an Adjustment Type edit on one
+  of them went to all four, with no "apply to selected" prompt, and Save stored it on each child
+  [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. Move Selected Items on child lines, and the
+  legacy TLE, weren't measured. For automation: a pointer click on the checkbox ticked it; a click on
+  the element reference didn't.
   **Bulk Delete** can't be used on a quote or order with a group ramp schedule
   [Help: `ind.qocal_ramp_deal_for_groups_manage`].
 - Unsaved edits are lost on page reload or session expiry.
 - Decimal quantities only for products with a unit of measure; the grid shows two decimals and stores
   the unit of measure's scale.
+- The **Adjustment Type** cell editor is a value box plus a type picklist; on the repo's quote page it
+  offers **Discount (Percentage)** and **Discount (Amount)**, the two fields the page selects for that
+  column [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org; Repo:
+  `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml` `adjustmentTypeFields`].
 - If the editor won't switch a line between Discount (Percentage) and Discount (Amount), clear the value
   on the line record, then enter the new type in the editor.
 - Hover **Net Unit Price** for the price waterfall (bundle, tier, attribute, derived and contract
@@ -91,7 +102,8 @@ Measured traps:
 
 A rep may want one discount on every line of one product line, for example all the components of
 one family inside a suite bundle. None of the line editor articles cited here describes a feature
-for this; Help rules out the column filter route and leaves the others unconfirmed:
+for this. Help rules out the column filter route; selecting the lines by hand is measured to work, and
+the others are unconfirmed:
 
 - **Column filter, then bulk edit:** the column filter returns parent lines only and leaves bundle
   children out [Help: `ind.qocal_view_and_edit_quotes`], so it can't narrow the grid to one product
@@ -113,13 +125,18 @@ for this; Help rules out the column filter route and leaves the others unconfirm
   On the pricing side, the Propagation element applies discounts from groups to line items
   [Help: `ind.pricing_essentials`]; this repo ships it off (`IsPropagationEnabled` false) in the
   procedures that carry it [Repo: `.cursor/skills/pricing-procedures/elements/price-propagation.md`].
-- **Select the lines by hand and bulk edit:** applies one value to every selected line
-  [Help: `ind.qocal_view_and_edit_quotes`]; whether bundle children can be selected is not stated.
+- **Select the lines by hand and bulk edit (works in the STLE):** tick that product line's child rows,
+  edit the Adjustment Type cell on one of them (for example Discount (Percentage) 12), Save. The value
+  went to every selected child and priced each one; the other children and the root were untouched,
+  and no error log was written. The result matched the same discount set on those lines through the
+  Place API [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. With many children the rep ticks
+  each one by hand.
 
-Whether bulk edit, Move Selected Items, Group By or the STLE filters reach bundle child lines,
-whether a group-row discount reaches bundle child lines in that group, and whether a bundle's
-children can sit in a different group from their root are open (see the parent's Open list).
-Don't promise a one-step product-line discount inside a bundle in a demo until one is measured.
+Whether Move Selected Items, Group By or the STLE filters reach bundle child lines, whether a
+group-row discount reaches bundle child lines in that group, and whether a bundle's children can sit
+in a different group from their root are open (see the parent's Open list). So the measured route is
+select-by-hand; don't promise a filter- or group-based one-step discount in a demo until one is
+measured. Whether a hand-applied discount survives a clone and reprice wasn't measured.
 A discount that must apply on every quote, not by a rep's hand, is a pricing question; see
 [`pricing-procedures`](../pricing-procedures/SKILL.md).
 
@@ -145,6 +162,13 @@ must be repriced before activation; the same applies to quote lines
 Measured: **Reprice All on a quote whose lines are already priced changed nothing** and showed "The prices
 were refreshed and the configuration was validated." [Measured: early Nov 2026, 264]. The message's
 mention of configuration conflicts with Help's "skips configuration"; see the parent's Open list.
+
+Measured: **a header-only change doesn't reprice the lines.** A Place PATCH that changed only a quote
+header field, one the pricing procedure reads through the sales transaction context, saved the field
+and left every line's price and `PriceWaterfallIdentifier` as they were; a header-only PATCH with no
+field change didn't reprice either. **Reprice All** applied the new header value to the lines
+[Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. After changing a header field that pricing
+reads, click Reprice All (or change a line).
 
 ## 5. Header adjustments
 
@@ -252,6 +276,7 @@ Renewal and cancellation line display in the STLE was not measured; see the pare
 6. Amendment demo: no inline quantity edit on configured products; explain blank parent prices as
    detail-row pricing if they appear.
 7. Don't count on Reprice All producing a visible change: on an already-priced quote with nothing
-   changed since, our run showed none. After changing prices or the catalog, refresh the decision
-   tables first [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`]; Reprice All alone
+   changed since, our run showed none. After changing a header field that pricing reads, do click it:
+   a header-only change leaves the lines' prices alone (section 4). After changing prices or the
+   catalog, refresh the decision tables first [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`]; Reprice All alone
    may not show the new price.
