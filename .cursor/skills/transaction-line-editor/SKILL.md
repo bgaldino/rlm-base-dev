@@ -31,7 +31,8 @@ longer being enhanced" [Help: `ind.qocal_customize_transaction_line_editor`]. He
 `docs/salesforce/264/help/articles/<article>.htm.md`. `[Dev guide: <article>]` and
 `[Release notes: <article>]` are the sibling `dev-guide/` and `release-notes/` snapshots.
 `[Repo: <file>]` is this repository. `[Measured: <date>, 264]` is behaviour observed on a 264
-demo org. **Open — needs live verification** marks anything only a live org can settle.
+demo org; `[Measured: <date>, fresh 264 ent-sb0 scratch org]` on a scratch org freshly built from
+this repo with the `ent-sb0` shape. **Open — needs live verification** marks anything only a live org can settle.
 Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 
 ## Quick Rules
@@ -54,6 +55,8 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
    [Help: `ind.qocal_adjustment_type_column`].
 5. **Reprice after anything that changed lines outside the editor.** API, Process Builder,
    trigger and manual field updates invalidate the pricing status and need Reprice All [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
+   A header-only Place PATCH, even of a field pricing reads, left the line prices unchanged until
+   Reprice All [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org].
    Reprice All re-runs pricing only; Refresh Prices also re-runs configuration and taxes
    [Help: `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_view_and_edit_quotes`].
 6. **Don't demo an inline quantity edit on an amendment of a configured product.** With
@@ -169,10 +172,10 @@ patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` add
    [Repo: `datasets/sfdmu/procedure-plans/README.md`].
 7. How renewal and cancellation lines display in the STLE (quantities, price columns, detail rows);
    only amendment lines were measured.
-8. Whether bundle child lines can be selected for a **bulk edit** or **Move Selected Items**, in the
-   TLE and the STLE. `ind.qocal_view_and_edit_quotes` describes bulk edit on "selected items" without
-   mentioning bundles. Help documents child lines being left out of the column filter results, and
-   hidden from the editor by the component's Quote Visibility; neither passage covers selection.
+8. Whether bundle child lines can be moved with **Move Selected Items** (either editor), and whether
+   the legacy TLE lets them be selected or bulk edited at all. In the STLE, selecting children and bulk editing them is
+   measured: an Adjustment Type edit went to every selected child [Measured: 2026-11-11, fresh 264
+   `ent-sb0` scratch org; see `runtime-behavior.md` section 2].
 9. How **Group By** (TLE) places bundle child lines, which columns count as groupable, and whether
    the STLE's predefined and advanced filters include child lines
    (`ind.qocal_filter_line_items_with_standard_and_advanced_filters` doesn't say).
