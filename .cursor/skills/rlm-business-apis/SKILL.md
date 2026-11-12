@@ -62,6 +62,17 @@ Key endpoints (see the reference doc for exact request shapes):
 - `POST /connect/revenue-management/assets/actions/cancel` — Cancel asset
 - `POST /industries/cpq/quotes/actions/get-instant-price` — Instant pricing
 
+**Line discounts in a Place PATCH.** Measured on one fresh 264 scratch org (2026-11-12), with
+Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`, `configurationMethod: Skip`):
+
+- `DiscountAmount` is **per unit**: on a line with a quantity above 1 it lowered `NetUnitPrice`
+  by the amount sent, not the line total by it.
+- On a line that carried a `DiscountAmount`, a PATCH sending `DiscountAmount: 0` with
+  `Discount: 5` returned success and changed nothing: the net unit price stayed the
+  amount-discounted one. Sending `DiscountAmount: null` with `Discount: 5` cleared the amount,
+  and the 5 % applied.
+- Read the line back after the PATCH; a success response doesn't show which discount applied.
+
 **Backdated asset changes** (amend, cancel, renew, transfer, swap, upgrade, downgrade with an
 effective date in the past; rollback's refusal): the invocable inputs, activation prerequisites,
 UI-flow (`RLM_ARC_Assets`) behaviour, and invoice/credit-memo verification are in
