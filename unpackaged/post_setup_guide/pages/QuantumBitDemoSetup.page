@@ -131,17 +131,19 @@
       }
       .phase-chevron.open { transform: rotate(90deg); }
       .phase-1 .phase-header { background: #032D60; border-bottom: 1.5px solid #021d3f; }
-      .phase-2 .phase-header { background: #0B6E4F; border-bottom: 1.5px solid #084f39; }
-      .phase-3 .phase-header { background: #4A235A; border-bottom: 1.5px solid #311745; }
-      .phase-4 .phase-header { background: #1A5276; border-bottom: 1.5px solid #123550; }
-      .phase-5 .phase-header { background: #784212; border-bottom: 1.5px solid #4e2b0c; }
-      .phase-6 .phase-header { background: #1B4F72; border-bottom: 1.5px solid #123550; }
+      .phase-3 .phase-header { background: #0B6E4F; border-bottom: 1.5px solid #084f39; }
+      .phase-4 .phase-header { background: #4A235A; border-bottom: 1.5px solid #311745; }
+      .phase-2 .phase-header { background: #1A5276; border-bottom: 1.5px solid #123550; }
+      .phase-6 .phase-header { background: #784212; border-bottom: 1.5px solid #4e2b0c; }
+      .phase-7 .phase-header { background: #1B4F72; border-bottom: 1.5px solid #123550; }
+      .phase-5 .phase-header { background: #0E5C63; border-bottom: 1.5px solid #09424a; }
       .phase-1 { border-color: #032D60; }
-      .phase-2 { border-color: #0B6E4F; }
-      .phase-3 { border-color: #4A235A; }
-      .phase-4 { border-color: #1A5276; }
-      .phase-5 { border-color: #784212; }
-      .phase-6 { border-color: #1B4F72; }
+      .phase-3 { border-color: #0B6E4F; }
+      .phase-4 { border-color: #4A235A; }
+      .phase-2 { border-color: #1A5276; }
+      .phase-6 { border-color: #784212; }
+      .phase-7 { border-color: #1B4F72; }
+      .phase-5 { border-color: #0E5C63; }
       /* ── Phase body ── */
       .phase-body {
         background: #fff;
@@ -311,6 +313,20 @@
         margin-top: 7px;
         line-height: 1.5;
       }
+      /* Demo Boost callout (purple) */
+      .boost {
+        display: block;
+        background: #F1E9FB;
+        border: 1px solid #6B3FA0;
+        border-left: 6px solid #6B3FA0;
+        border-radius: 3px;
+        padding: 9px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #2E1650;
+        margin-top: 10px;
+        line-height: 1.5;
+      }
       /* Info callout (blue) */
       .info {
         display: block;
@@ -364,11 +380,11 @@
             <li class="step">
               <div class="step-num">1</div>
               <div class="step-content">
-                <p><strong>Refresh Decision Tables + Rebuild Catalog Index</strong></p>
+                <p><strong>Request a Demo Org (Solutions Workspace or Storm)</strong></p>
                 <ul class="substeps">
-                  <li>Navigate to the <span class="loc">Decision Table Manager</span> inside your Salesforce org's Revenue Cloud App Homepage </li>
-                  <li>Click <span class="btn">Refresh all Shown</span> to refresh all decision tables</li>
-                  <li>Navigate to the <span class="loc">Catalog Index</span>  section and Click <span class="btn">Build Catalog Index</span> </li>
+                  <li>Request the org from <strong>either</strong> <span class="loc">Solutions Workspace</span> <strong>or</strong> <span class="loc">Storm</span> &mdash; both give you the same demo org.</li>
+                  <li>Search for the template <span class="val">Revenue Cloud - QuantumBit (CDO)</span> and click <span class="btn">Spin Up</span>.</li>
+                  <li>Fill in the details and click <span class="btn">Request Org</span>, then click <span class="btn">Login</span>.</li>
                 </ul>
               </div>
             </li>
@@ -377,59 +393,119 @@
               <div class="step-content">
                 <p><strong>Toggle Q Branch Demo Boost</strong></p>
                 <ul class="substeps">
-                  <li>Open the <span class="loc">App Launcher</span> and search for <span class="val">Q Branch</span>.</li>
-                  <li>Toggle all three feature settings to <span class="val">On</span> and click <span class="btn">Run Demo Boost</span> to authorize the pre-packaged metadata wrappers.</li>
+                  <li>Open the <span class="loc">App Launcher</span> and search for <span class="val">Q Branch</span> (you need to be on VPN).</li>
+                  <li>Toggle all three feature settings to <span class="val">On</span>: <span class="field">Slack + Core, Create New workspace</span>, <span class="field">Data Cloud</span> and <span class="field">Agentforce</span>.</li>
+                  <li>Click <span class="btn">Apply Selections</span> to authorize the pre-packaged metadata wrappers, then click <span class="btn">Run Demo Boost</span> and <span class="btn">Finish</span>.</li>
                 </ul>
-                <div class="note">&#9432; This process could take up to 1 hour</div>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <p><strong>Refresh Decision Tables + Rebuild Catalog Index</strong></p>
+                <ul class="substeps">
+                  <li>Go to the <span class="loc">Revenue Cloud</span> app if you aren&rsquo;t already there.</li>
+                  <li>Navigate to the <span class="loc">Refresh Decision Tables</span> console and click <span class="btn">Refresh All Shown</span>.</li>
+                  <li>Navigate to the <span class="loc">Catalog Index</span> console and click <span class="btn">Build Catalog Index</span> to trigger a rebuild that cleanly resets the background calculation matrices.</li>
+                </ul>
               </div>
             </li>
           </ol>
         </div>
       </div>
-      <!-- ══ PHASE 2: Salesforce & Slack Setup ══ -->
+      <!-- ══ PHASE 2: Data Cloud ══ -->
       <div class="phase phase-2">
         <button type="button" class="phase-header" id="p2-header" aria-expanded="true" aria-controls="p2" onclick="togglePhase('p2')">
           <div class="phase-badge">2</div>
-          <div class="phase-label">Salesforce &amp; Slack Setup</div>
+          <div class="phase-label">Data Cloud</div>
           <span class="phase-env">Run Env</span>
           <div class="phase-chevron" id="p2-chev">&#9654;</div>
         </button>
         <div class="phase-body" id="p2" role="region" aria-labelledby="p2-header">
+          <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Provision Data Cloud storage mechanics to prepare for advanced features like the conversational workspace assistant.</p>
+          <div class="boost">&#9432; This step is handled by Demo Boost if you ran it in Phase 1, but you must wait roughly <strong>an hour</strong> for it to deploy.</div>
+          <ol class="steps">
+            <li class="step">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <p><strong>Trigger Data Cloud Provisioning</strong></p>
+                <ul class="substeps">
+                  <li>In Salesforce Setup, use Quick Find to open <span class="loc">Data Cloud Setup Home</span> and click <span class="btn">Get Started</span>.</li>
+                </ul>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+      <!-- ══ PHASE 3: Salesforce & Slack Bidirectional Architecture ══ -->
+      <div class="phase phase-3">
+        <button type="button" class="phase-header" id="p3-header" aria-expanded="true" aria-controls="p3" onclick="togglePhase('p3')">
+          <div class="phase-badge">3</div>
+          <div class="phase-label">Salesforce &amp; Slack Bidirectional Architecture</div>
+          <span class="phase-env">Run Env</span>
+          <div class="phase-chevron" id="p3-chev">&#9654;</div>
+        </button>
+        <div class="phase-body" id="p3" role="region" aria-labelledby="p3-header">
           <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Establish an authentic connection between Salesforce core application data and the target Slack workspace.</p>
+          <div class="boost">&#9432; This step is handled by Demo Boost if you ran it in Phase 1, but you must wait roughly <strong>an hour</strong> for it to deploy.</div>
           <ol class="steps">
             <li class="step">
               <div class="step-num">1</div>
               <div class="step-content">
                 <p><strong>Initialize Slack Workspace Administration</strong></p>
                 <ul class="substeps">
-                  <li>Access the browser-based <a href="https://demo-zone.tinyspeck.com/" target="_blank" style="color:#0176D3;font-weight:600;">Slack Demo Zone</a> management URL.</li>
-                  <li>Authenticate via the <span class="btn">Sign in as primary owner</span> option in the browser window.</li>
+                  <li>Open the browser-based <a href="https://demo-zone.tinyspeck.com/orgs" target="_blank" style="color:#0176D3;font-weight:600;">Slack Demo Zone</a> and find your Slack org in the list on the left (&ldquo;Slack Demo XXXXX&rdquo;). To identify it, go to Salesforce <span class="loc">Setup &rarr; Slack &rarr; Manage Slack Connection</span>.</li>
+                  <li>Authenticate via <span class="btn">Sign in as primary owner</span>, then click <span class="btn">Sign in on Desktop as Primary Owner</span>.</li>
+                  <li>Click <span class="btn">Cancel</span> on the Open Slack? dialog and select <span class="btn">Use Slack in your browser</span>.</li>
                 </ul>
-                <div class="note">&#9432; Use the browser-based Slack interface for this step — do not use the local desktop app redirect.</div>
+                <div class="note">&#9432; Do not use the local desktop app redirect for this step.</div>
               </div>
             </li>
             <li class="step">
               <div class="step-num">2</div>
               <div class="step-content">
-                <p><strong>Verify Handshake Within Salesforce Setup</strong></p>
+                <p><strong>Activate Global Organization Integrations</strong></p>
                 <ul class="substeps">
-                  <li>In Salesforce Setup, use Quick Find to search for <span class="val">Slack</span> and open <span class="loc">Manage Slack Connection</span>.</li>
-                  <li>Confirm the external target status shows as connected.</li>
+                  <li>In Slack, open the workspace name dropdown, select <span class="loc">Tools and Settings</span>, then <span class="loc">Organization Settings</span>.</li>
+                  <li>Expand <span class="loc">Salesforce</span> in the left navigation and select <span class="loc">Salesforce organizations</span>. You should see your connected org.</li>
                 </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <p><strong>Provision the Target End-User Profile</strong></p>
+                <ul class="substeps">
+                  <li>In Organization Settings, open <span class="loc">People &rarr; Members</span>, select the profile chosen for the demo (e.g., <em>Adam Ferris</em>), click the three dots and <span class="btn">Edit Profile</span>.</li>
+                  <li>Replace the placeholder email with your corporate email, click <span class="btn">Save</span> and <span class="btn">Send Verification Email</span>, then approve the verification link in your inbox.</li>
+                  <li>Return to <span class="loc">Salesforce organizations</span> and click into your org. Go to <span class="loc">Users</span>, click <span class="btn">Add Individually</span>, look up the updated profile and click <span class="btn">Grant Access</span>.</li>
+                </ul>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">4</div>
+              <div class="step-content">
+                <p><strong>Complete User Session Mapping</strong></p>
+                <ul class="substeps">
+                  <li>Return to the Demo Zone tab, refresh, find your user and click <span class="btn">Login</span> (again, cancel the desktop redirect and use Slack in your browser).</li>
+                  <li>In Slack, open the workspace dropdown, select <span class="loc">Preferences</span>, then <span class="loc">Salesforce</span> and <span class="btn">Sign In</span>. Click <span class="btn">Continue to Salesforce</span> and enter the org <span class="val">username</span>.</li>
+                  <li>Enter your <span class="val">password</span> and click <span class="btn">Allow</span>. You should see &ldquo;Your account is connected.&rdquo;</li>
+                </ul>
+                <div class="note">&#9432; If the default credentials fail, use <span class="btn">Set Password</span> from the org's menu in Storm (or the equivalent in Solutions Workspace). You will likely get an email to change the email first &mdash; do that, then run Set Password again and reset the password from the second email.</div>
               </div>
             </li>
           </ol>
         </div>
       </div>
-      <!-- ══ PHASE 3: Agentforce & Slack Setup ══ -->
-      <div class="phase phase-3">
-        <button type="button" class="phase-header" id="p3-header" aria-expanded="true" aria-controls="p3" onclick="togglePhase('p3')">
-          <div class="phase-badge">3</div>
-          <div class="phase-label">Agentforce &amp; Slack Setup</div>
+      <!-- ══ PHASE 4: Agentforce & Record Channel Deployment ══ -->
+      <div class="phase phase-4">
+        <button type="button" class="phase-header" id="p4-header" aria-expanded="true" aria-controls="p4" onclick="togglePhase('p4')">
+          <div class="phase-badge">4</div>
+          <div class="phase-label">Agentforce &amp; Record Channel Deployment</div>
           <span class="phase-env">Run Env</span>
-          <div class="phase-chevron" id="p3-chev">&#9654;</div>
+          <div class="phase-chevron" id="p4-chev">&#9654;</div>
         </button>
-        <div class="phase-body" id="p3" role="region" aria-labelledby="p3-header">
+        <div class="phase-body" id="p4" role="region" aria-labelledby="p4-header">
           <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Expose Agentforce models to conversational channels and configure contextual record tracking.</p>
           <ol class="steps">
             <li class="step">
@@ -437,19 +513,22 @@
               <div class="step-content">
                 <p><strong>Configure External Agent Connections</strong></p>
                 <ul class="substeps">
-                  <li>In Salesforce Setup, search for <span class="val">Agentforce Agents</span> and open your target agent record (e.g., <em>Quote Management</em>).</li>
-                  <li>Select the <span class="loc">Connections</span> sub-tab → <span class="btn">Add Connection</span>.</li>
-                  <li>Name the integration <span class="val">Slack</span>, set the connected app picklist to <span class="val">Slack</span>, and save.</li>
+                  <li>In Salesforce Setup, search for <span class="val">Agentforce Agents</span> and click <span class="btn">Try the new builder</span>.</li>
+                  <li>Click your target agent record, <span class="val">Quote Management</span> (not the version number).</li>
+                  <li>Click <span class="btn">Deactivate</span>, then <span class="btn">Create New Version</span>, and reload the page.</li>
+                  <li>Select the <span class="loc">Connections</span> tab and click <span class="btn">Add Connection</span>. Select <span class="val">Slack</span> and click <span class="btn">Add to Agent</span>.</li>
+                  <li>Click <span class="btn">Save</span>, <span class="btn">Commit Version</span>, <span class="btn">Activate</span>, then <span class="btn">Done</span>.</li>
                 </ul>
               </div>
             </li>
             <li class="step">
               <div class="step-num">2</div>
               <div class="step-content">
-                <p><strong>Authorize Slackbot Capabilities</strong></p>
+                <p><strong>Authorize Slackbot and Agent Capabilities</strong></p>
                 <ul class="substeps">
-                  <li>In browser Slack <span class="loc">Organization Settings → Salesforce organizations → Agentforce</span>, click <span class="btn">Review</span> → <span class="btn">Allow</span> to approve permission scopes.</li>
-                  <li>In the <span class="loc">Active Agents</span> section, click the action dots on the agent row and select <span class="btn">Add Slackbot Access</span>.</li>
+                  <li>Return to the browser Slack Organization Settings and refresh. Expand <span class="loc">Salesforce</span> and click <span class="loc">Agentforce</span>.</li>
+                  <li>Click <span class="btn">Review</span>, check <span class="val">Slackbot Access</span>, click <span class="btn">Allow</span>, check your workspace and click <span class="btn">Add to X Workspaces</span>.</li>
+                  <li>If you forgot to check Slackbot Access, open the <span class="loc">Active Agents</span> tab, click the three dots on the agent row and select <span class="btn">Add Slackbot Access</span>.</li>
                 </ul>
               </div>
             </li>
@@ -458,9 +537,12 @@
               <div class="step-content">
                 <p><strong>Pin the Agent to the Slack Sidebar</strong></p>
                 <ul class="substeps">
-                  <li>In the Slack app, click the <span class="loc">More Agents</span> menu icon, click <span class="loc">Manage</span>, locate the active agent card, and enable its checkbox.</li>
-                  <li><strong>Star</strong> the conversation window to anchor it permanently to the sidebar toolbar.</li>
+                  <li>Go back to Slack as a user and refresh the page.</li>
+                  <li>In the top right, open the <span class="loc">More Agents</span> dropdown, click <span class="btn">Manage</span>, check <span class="val">Quote Management</span> and click <span class="btn">Save</span>.</li>
+                  <li>Open <span class="loc">More Agents</span> again and launch <span class="val">Quote Management</span>. It now appears under &ldquo;Agentforce&rdquo; in the left pane &mdash; right-click it and choose <strong>Star conversation</strong>.</li>
+                  <li>Optionally open Lightning Experience and use the regular agent to confirm everything works (create an opportunity, ask the agent for a quote).</li>
                 </ul>
+                <div class="note">&#9432; You will likely need to wait about 10 minutes before the agent is available in Slack.</div>
               </div>
             </li>
             <li class="step">
@@ -468,10 +550,10 @@
               <div class="step-content">
                 <p><strong>Activate Automation Record Channels</strong></p>
                 <ul class="substeps">
-                  <li>In Salesforce Setup, go to <span class="loc">Slack App Setup</span>, mark the configuration step complete, and toggle on <span class="val">Sales Cloud for Slack</span> along with associated feature boxes.</li>
-                  <li>Go to <span class="loc">Permission Sets</span>, find <span class="val">Slack Sales Permissions</span>, and assign it to your administrator user.</li>
-                  <li>Use Quick Find to navigate to <span class="loc">Slack Channels for Records</span>, accept the FedRAMP disclosure, and turn the master feature switch to <span class="val">On</span>.</li>
-                  <li>Click <span class="btn">Add Objects</span> and authorize tracking for: <span class="field">Account</span>, <span class="field">Quote</span>, <span class="field">Asset</span>, <span class="field">Invoice</span>, and <span class="field">Order</span>.</li>
+                  <li>In Salesforce Setup, go to <span class="loc">Slack Apps Setup</span>, click <span class="btn">I&rsquo;m finished with this step</span>, and toggle on <span class="val">Sales Cloud for Slack</span> along with the other toggles. Check <span class="btn">I&rsquo;m finished with this step</span> under Step 3.</li>
+                  <li>In Step 4, click <span class="btn">Go to Permissions</span> next to &ldquo;Sales Cloud for Slack Permissions&rdquo;, open <span class="val">Slack Sales Home User</span>, click <span class="btn">Manage Assignments</span> and make sure your user is assigned.</li>
+                  <li>Use Quick Find to open <span class="loc">Slack Channels for Records</span>, accept the FedRAMP disclosure and turn the master feature switch to <span class="val">On</span>.</li>
+                  <li>Click <span class="btn">Add Objects</span> and add: <span class="field">Account</span>, <span class="field">Quote</span>, <span class="field">Asset</span>, <span class="field">Invoice</span>, <span class="field">Order</span> and <span class="field">Opportunity</span> (you can add more later).</li>
                 </ul>
               </div>
             </li>
@@ -480,71 +562,70 @@
               <div class="step-content">
                 <p><strong>Execute Conversational Smoke Tests</strong></p>
                 <ul class="substeps">
-                  <li>In Slack, open an active opportunity channel, select the record action path, and choose <span class="btn">Create Channel</span>.</li>
-                  <li>In the new channel, invoke the agent with an @mention and a natural language command — for example:</li>
+                  <li>In Slack, search for an account from your org (for example Infinitech) and click <span class="btn">Salesforce</span> to open its related accounts, opportunities, etc.</li>
+                  <li>Open an active opportunity channel stream, choose <span class="btn">Add Channel</span>, then <span class="btn">Create Channel</span>.</li>
+                  <li>In the new channel, invoke the agent with an @mention and a natural language command &mdash; for example:</li>
                 </ul>
-                <div class="cmd">@QuoteManagement create a new quote on this opportunity starting today for 12 months</div>
+                <div class="cmd">@QuoteManagement create a new quote on this opportunity starting today for 12 months. Add 1 QuantumBit Complete Solution</div>
                 <ul class="substeps" style="margin-top:6px;">
-                  <li>Expand the thread context replies to confirm processing completes cleanly.</li>
+                  <li>Add the agent when prompted. Once it finishes, expand the thread to see the response and click <span class="btn">Share in thread</span>.</li>
                 </ul>
               </div>
             </li>
           </ol>
         </div>
       </div>
-      <!-- ══ PHASE 4: Data Cloud & Permission Synchronization ══ -->
-      <div class="phase phase-4">
-        <button type="button" class="phase-header" id="p4-header" aria-expanded="true" aria-controls="p4" onclick="togglePhase('p4')">
-          <div class="phase-badge">4</div>
-          <div class="phase-label">Data Cloud &amp; Permission Synchronization</div>
+      <!-- ══ PHASE 5: Coworker Setup ══ -->
+      <div class="phase phase-5">
+        <button type="button" class="phase-header" id="p5-header" aria-expanded="true" aria-controls="p5" onclick="togglePhase('p5')">
+          <div class="phase-badge">5</div>
+          <div class="phase-label">Coworker Setup</div>
           <span class="phase-env">Run Env</span>
-          <div class="phase-chevron" id="p4-chev">&#9654;</div>
+          <div class="phase-chevron" id="p5-chev">&#9654;</div>
         </button>
-        <div class="phase-body" id="p4" role="region" aria-labelledby="p4-header">
-          <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Provision Data Cloud storage mechanics to prepare for advanced features like the conversational workspace assistant.</p>
+        <div class="phase-body" id="p5" role="region" aria-labelledby="p5-header">
+          <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Enable Agentforce Coworker and assign it to your user.</p>
           <ol class="steps">
             <li class="step">
               <div class="step-num">1</div>
               <div class="step-content">
-                <p><strong>Trigger Data Cloud Provisioning</strong></p>
+                <p><strong>Assign the Coworker Admin Permission Set</strong></p>
                 <ul class="substeps">
-                  <li>In Salesforce Setup, use Quick Find to locate <span class="val">Data Cloud</span>, open the primary landing panel, and click <span class="btn">Get Started</span>.</li>
+                  <li>In Salesforce Setup, open <span class="loc">Permission Sets</span> and search for <span class="val">Agentforce Coworker Admin</span>.</li>
+                  <li>Click <span class="btn">Manage Assignments</span> and confirm you are assigned; add the assignment if not.</li>
                 </ul>
-                <div class="info">&#9201; This backend provisioning process runs <strong>asynchronously</strong> and takes approximately <strong>15 minutes</strong> to fully complete. Proceed to the next step while it runs in the background.</div>
               </div>
             </li>
             <li class="step">
               <div class="step-num">2</div>
               <div class="step-content">
-                <p><strong>Distribute Admin Tool Permissions</strong></p>
+                <p><strong>Turn On Agentforce Coworker</strong></p>
                 <ul class="substeps">
-                  <li>While Data Cloud provisions, navigate to <span class="loc">Permission Sets</span> in Salesforce Setup.</li>
-                  <li>Assign the necessary workspace <span class="val">Admin</span> and runtime system modifier sets to your active user account.</li>
+                  <li>In Quick Find, open <span class="loc">Get Started with Agentforce Coworker</span> and click <span class="btn">Get Started</span>.</li>
+                  <li>Toggle <span class="val">Turn on Agentforce Coworker</span> and click <span class="btn">Turn On</span>. The setup steps complete on their own over the next 20&ndash;30 seconds.</li>
+                  <li>Optionally click <span class="btn">Add Existing Data</span>. Salesforce CRM data is added as a source automatically; to also search Data 360 DMOs you must add them manually.</li>
+                  <li>Under <span class="loc">Manage Users</span>, click <span class="btn">Manage</span>, <span class="btn">Assign</span> your user, then <span class="btn">Done</span>.</li>
                 </ul>
               </div>
             </li>
           </ol>
         </div>
       </div>
-      <!-- ══ PHASE 5: Cursor IDE & Local Dev Tooling Configuration ══ -->
-      <div class="phase phase-5">
-        <button type="button" class="phase-header" id="p5-header" aria-expanded="true" aria-controls="p5" onclick="togglePhase('p5')">
-          <div class="phase-badge">5</div>
+      <!-- ══ PHASE 6: Cursor IDE & Local Dev Tooling Configuration ══ -->
+      <div class="phase phase-6">
+        <button type="button" class="phase-header" id="p6-header" aria-expanded="true" aria-controls="p6" onclick="togglePhase('p6')">
+          <div class="phase-badge">6</div>
           <div class="phase-label">Cursor IDE &amp; Local Dev Tooling Configuration</div>
           <span class="phase-env">Build Env</span>
-          <div class="phase-chevron" id="p5-chev">&#9654;</div>
+          <div class="phase-chevron" id="p6-chev">&#9654;</div>
         </button>
-        <div class="phase-body" id="p5" role="region" aria-labelledby="p5-header">
+        <div class="phase-body" id="p6" role="region" aria-labelledby="p6-header">
           <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Transition into the local development environment to begin building and testing components.</p>
           <ol class="steps">
             <li class="step">
               <div class="step-num">1</div>
               <div class="step-content">
-                <p><strong>Initialize the Corporate Cursor Plan</strong></p>
-                <ul class="substeps">
-                  <li>Launch <strong>Cursor</strong>. If the interface shows a <em>"Free Account Plan"</em> message, click the bottom-left gear icon → <span class="btn">Manage Cursor Account</span>, log out completely, and sign back in using your <strong>enterprise Salesforce SSO invite link</strong>.</li>
-                  <li>Open the global model settings panel and set the primary language model to <span class="val">Opus</span>.</li>
-                </ul>
+                <p><strong>Log in to Cursor</strong></p>
               </div>
             </li>
             <li class="step">
@@ -586,15 +667,15 @@
           </ol>
         </div>
       </div>
-      <!-- ══ PHASE 6: DevHub Handshake & Scratch Org Lifecycle ══ -->
-      <div class="phase phase-6">
-        <button type="button" class="phase-header" id="p6-header" aria-expanded="true" aria-controls="p6" onclick="togglePhase('p6')">
-          <div class="phase-badge">6</div>
+      <!-- ══ PHASE 7: DevHub Handshake & Scratch Org Lifecycle ══ -->
+      <div class="phase phase-7">
+        <button type="button" class="phase-header" id="p7-header" aria-expanded="true" aria-controls="p7" onclick="togglePhase('p7')">
+          <div class="phase-badge">7</div>
           <div class="phase-label">DevHub Handshake &amp; Scratch Org Lifecycle</div>
           <span class="phase-env">Build Env</span>
-          <div class="phase-chevron" id="p6-chev">&#9654;</div>
+          <div class="phase-chevron" id="p7-chev">&#9654;</div>
         </button>
-        <div class="phase-body" id="p6" role="region" aria-labelledby="p6-header">
+        <div class="phase-body" id="p7" role="region" aria-labelledby="p7-header">
           <p style="font-size:12px;color:#555;margin:0 0 10px 0;">Spin up isolated scratch orgs to safely test metadata package builds before promoting to production.</p>
           <ol class="steps">
             <li class="step">
@@ -648,6 +729,7 @@
           </ol>
         </div>
       </div>
+      <div class="info" style="margin-top:14px;">&#9432; Have more questions? See the <a href="https://drive.google.com/file/d/1DO4f9aaKSTtU6mihEFKHirkAbr0SsTLu/view?usp=sharing" target="_blank" rel="noopener noreferrer" style="color:#0176D3;font-weight:600;">Developer Guide</a> for reference.</div>
     </div>
   </body>
   </html>
