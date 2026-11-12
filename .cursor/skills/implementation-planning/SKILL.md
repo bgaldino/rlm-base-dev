@@ -1,18 +1,19 @@
 ---
-name: commercial-model-planning
+name: implementation-planning
 description: >-
-  Turn a commercial source (a quoting or costing spreadsheet, a public web store,
-  a price list export, a PRD or an RFP) into a Revenue Cloud build plan before
-  anything is built. Covers intake questions, inventorying the source, mapping each
+  Plan a Revenue Cloud implementation from a customer's commercial source (a
+  quoting or costing spreadsheet, a price list export, a public web store, written
+  policies, a PRD or an RFP) before anything is built. Covers intake questions, inventorying the source, mapping each
   concept to Revenue Cloud, deciding for each rule whether a repo skill, the
   release's Help and developer-guide snapshot, or a live org settles it, golden tests
   from the source's own worked examples, decisions, phases and gates, the skills
-  each phase reads, parallel build sessions, and skill gaps. Use the domain skills
+  each phase reads, parallel build sessions, skill gaps, and a ledger that measures
+  the plan's predictions against what the build finds. Use the domain skills
   (pricing-setup, pricing-procedures, constraint-models, sfdmu-data-plans, and so
   on) to build what the plan describes.
 ---
 
-# Commercial Model Planning — From a Source to a Revenue Cloud Build Plan
+# Implementation Planning — From a Commercial Source to a Revenue Cloud Build Plan
 
 Use this skill when someone hands you a description of how they sell, such as a
 spreadsheet, a store, a price list or a requirements document, and wants it modeled

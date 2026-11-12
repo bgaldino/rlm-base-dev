@@ -90,7 +90,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | Maintain the In-App Learning framework (`inapp`) | In-App Framework | [inapp-framework/SKILL.md](inapp-framework/SKILL.md) |
 | Author/update enablement exercises | Release Enablement | [release-enablement/SKILL.md](release-enablement/SKILL.md) |
 | Generate the QuantumBit demo-script canvas (per-release) | QB Demo Script Generator | [qb-demo-script/SKILL.md](qb-demo-script/SKILL.md) |
-| Plan a Revenue Cloud build from a commercial source (quoting spreadsheet, web store, price list, PRD): mapping, knowledge sources, golden tests, phases, sessions | Commercial Model Planning | [commercial-model-planning/SKILL.md](commercial-model-planning/SKILL.md) |
+| Plan a Revenue Cloud implementation from a customer's commercial source (quoting spreadsheet, price list, web store, policies, PRD): mapping, knowledge sources, golden tests, phases, sessions, prediction ledger | Implementation Planning | [implementation-planning/SKILL.md](implementation-planning/SKILL.md) |
 
 ### Repository maintenance
 

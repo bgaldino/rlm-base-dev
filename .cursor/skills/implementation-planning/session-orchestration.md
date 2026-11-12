@@ -1,7 +1,7 @@
 # Session Orchestration — Parallel Build Sessions
 
 Read this when a plan splits the build across sessions. Parent:
-[commercial-model-planning](SKILL.md).
+[implementation-planning](SKILL.md).
 
 ## Layout
 

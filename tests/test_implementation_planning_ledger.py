@@ -1,6 +1,6 @@
-"""Tests for .cursor/skills/commercial-model-planning/scripts/ledger.py (standard library only).
+"""Tests for .cursor/skills/implementation-planning/scripts/ledger.py (standard library only).
 
-    python tests/test_commercial_model_planning_ledger.py
+    python tests/test_implementation_planning_ledger.py
 
 Builds a synthetic plan and blind plan in the template's section names, then checks every
 origin, recording, re-init and the scorecard, and that each refusal can happen.
@@ -13,7 +13,7 @@ import unittest
 from pathlib import Path
 
 SCRIPT = (Path(__file__).resolve().parent.parent
-          / ".cursor/skills/commercial-model-planning/scripts/ledger.py")
+          / ".cursor/skills/implementation-planning/scripts/ledger.py")
 
 BLIND = """# Example on Revenue Cloud — Build Plan
 

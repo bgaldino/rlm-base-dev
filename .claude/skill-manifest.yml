@@ -177,15 +177,16 @@ foundations:
         - .cursor/skills/billing-setup/shipped-billing.md
         - .cursor/skills/billing-setup/measured-264.md
 
-    - id: commercial-model-planning
-      path: .cursor/skills/commercial-model-planning/SKILL.md
-      purpose: "Turn a commercial source (quoting spreadsheet, web store, price list, PRD) into a reviewed Revenue Cloud build plan: concept mapping, repo-vs-live knowledge sources, golden tests, phases, sessions, skill gaps"
+    - id: implementation-planning
+      path: .cursor/skills/implementation-planning/SKILL.md
+      purpose: "Plan a Revenue Cloud implementation from a customer's commercial source (quoting spreadsheet, price list, web store, policies, PRD): concept mapping, repo-vs-live knowledge sources, golden tests, phases, sessions, skill gaps, prediction ledger"
       consumed_by_pmos: []
       sub_skills:
-        - .cursor/skills/commercial-model-planning/plan-template.md
-        - .cursor/skills/commercial-model-planning/concept-map.md
-        - .cursor/skills/commercial-model-planning/knowledge-sources.md
-        - .cursor/skills/commercial-model-planning/session-orchestration.md
+        - .cursor/skills/implementation-planning/plan-template.md
+        - .cursor/skills/implementation-planning/concept-map.md
+        - .cursor/skills/implementation-planning/knowledge-sources.md
+        - .cursor/skills/implementation-planning/session-orchestration.md
+        - .cursor/skills/implementation-planning/prediction-checks.md
 
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md

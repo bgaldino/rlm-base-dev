@@ -1,7 +1,7 @@
 # Prediction Checks — What to Run Before You Predict
 
 Read this when writing the plan's decisions, rule decision record, live spikes and
-golden tests with [commercial-model-planning](SKILL.md). A prior build tracked every
+golden tests with [implementation-planning](SKILL.md). A prior build tracked every
 prediction a blind plan made and recorded each outcome as it was measured (SKILL.md
 step 9). Where a prediction was modified or refuted because the planner skipped a step,
 that step is a check below. Check 15 sharpens a guard the plans already had: the build

@@ -1,7 +1,7 @@
 # Knowledge Sources — Repo, Snapshot, or Live Org
 
 Read this when deciding which rules a plan can model from the repo and which need a
-live org. Parent: [commercial-model-planning](SKILL.md).
+live org. Parent: [implementation-planning](SKILL.md).
 
 ## The decision rule
 
@@ -58,7 +58,7 @@ cover() {
   d=""; for c in $R/dev-guide*; do
     d="$d ${c##*/}=$(grep -rliE "$2" "$c/articles" | wc -l | tr -d ' ')"; done
   a=$(grep -rliE "$2" $R/help/articles | head -3 | sed -E 's#.*/##; s#\.htm\.md$##' | tr '\n' ' ')
-  s=$(grep -rliE "$2" .cursor/skills --exclude-dir=commercial-model-planning \
+  s=$(grep -rliE "$2" .cursor/skills --exclude-dir=implementation-planning \
       | grep -v '^\.cursor/skills/README\.md$' | sed -E 's#^\.cursor/skills/##' | tr '\n' ' ')
   printf "%-22s help=%-4s%s\n    first help: %s\n    files: %s\n" "$1" "$h" "$d" "$a" "$s"
 }

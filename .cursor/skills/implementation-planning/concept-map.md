@@ -1,6 +1,6 @@
 # Concept Map — Commercial Concepts to Revenue Cloud
 
-Read this when mapping a source with [commercial-model-planning](SKILL.md). Each row
+Read this when mapping a source with [implementation-planning](SKILL.md). Each row
 names the feature to try first and the skill that covers it. It is a starting point,
 not a decision. For each rule, read the domain skill, including its open items, then
 decide the knowledge source with [knowledge-sources.md](knowledge-sources.md) after the

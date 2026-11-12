@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verification ledger: how a build affirms or refutes its plan's predictions.
 
-Part of the commercial-model-planning skill (SKILL.md step 9). Standard library only.
+Part of the implementation-planning skill (SKILL.md step 9). Standard library only.
 Run from the folder that holds the plan:
 
     python3 ledger.py init --plan plan-as-approved.md [--blind <blind plan>] [--intake D1-D6] [--owner D7,D8]

@@ -1,6 +1,6 @@
 # Plan Template — Sections, Contents, Self-Review
 
-Read this when writing or revising a plan with [commercial-model-planning](SKILL.md).
+Read this when writing or revising a plan with [implementation-planning](SKILL.md).
 The sections appear in this order. A section that doesn't apply says so in one line
 rather than disappearing, so a reviewer can tell it was considered.
 
