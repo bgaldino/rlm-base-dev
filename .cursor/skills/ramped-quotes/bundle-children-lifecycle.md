@@ -31,6 +31,23 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
   child stays in every segment (see [What a UI-built bundle ramp carries](#what-a-ui-built-bundle-ramp-carries)).
   Whether a rule that relaxes the child after segment 1 (one that reads a segment or ramp answer) would let it be
   unticked was not measured.
+- **A root answer that zeroes the one-time children does work** (two fresh 264 `ent-sb0` scratch orgs, 2026-11-11,
+  rules on, quote UI). The build:
+  - a required choice attribute on the bundle root (for example Include/Exclude, default Include);
+  - in CML, each one-time child relation keeps its sizing rule under Include and gets `== 0` under Exclude. Give each
+    relation its own Exclude rule carrying that relation's message: with one shared Exclude rule, its message was the
+    one reported when a different sizing rule broke on an Include bundle (the solver treats the answer as free even
+    when stored);
+  - in PCM, the minimum of each component group holding those children lowered to 0, and any of them that was
+    required (`IsComponentRequired`) made optional.
+
+  Configure segment 1 and save (that sized every segment), then set the answer to Exclude in segment 2's
+  configurator and save. The dialog says "Configuration changes will apply to current and all future segments":
+  segments 2 and 3 kept only the root and its other children, segment 1 kept every one-time line, and no error log
+  was written. The 0 minimums raised no group-range warning (in the segment 2 configurator, or headless with
+  Exclude, with and without defaults), and Validate Product Definition reported no errors. A contract value rolled
+  up over all segments then counted the one-time children once and matched the source's figure. Switching back to
+  Include, and order, amend and assetization of this shape, weren't measured.
 - A **required** child cannot be removed that way: its checkbox is disabled in the segment 2 configurator and the line's row
   menu has no delete.
 - UI adds of the test bundles failed with `UNKNOWN_EXCEPTION` and no lines written while `IsDefault` was false on their
@@ -51,7 +68,7 @@ three-segment Annual ramp.
 - **An Evergreen child is one period per segment** (`PricingTermCount` 1 on each segment's line).
 - **A One-Time child is quoted once per segment.** Each segment's line is a separate quote line, so the platform
   quote total counts the child N times. A contract value that should count it once must be computed per segment (or the child kept out of later
-  segments, which rules can block; see [Limiting a one-time child to segment 1](#limiting-a-one-time-child-to-segment-1)).
+  segments: rules re-add an unticked rule-sized child, but a root answer can zero it; see [Limiting a one-time child to segment 1](#limiting-a-one-time-child-to-segment-1)).
 - **`IsPrimarySegment` was false on every segment** (read on one of the orgs), so it can't single out segment 1; order segments by `StartDate`.
 - **The segment's uplift reaches these children too**; see
   [ui-group-ramp.md → What the segment uplift reaches](ui-group-ramp.md#what-the-segment-uplift-reaches).
