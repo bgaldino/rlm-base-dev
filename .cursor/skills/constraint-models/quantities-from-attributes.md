@@ -429,7 +429,7 @@ a rep update arrives as changed, and a rep add in the same request arrives as ne
 line is a candidate line in the solver; how a new line's attributes are treated is not traced
 `[Platform behaviour, traced in part]`. That sits oddly with the refusal of a hand-added
 line in the mode B case below (M40): consistent only if the line was fixed another way, which
-isn't established. It becomes user-set once the engine has run after it. The solver
+isn't established. A new line becomes user-set once the engine has run after it. The solver
 re-derives an answer when the context has no node-status tag, when the value came from a
 default or from a value the model computed (an engine value), or when the line is re-sent as
 a fresh add `[Platform behaviour, traced]`. This repo's context plan has the tag
