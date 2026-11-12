@@ -12,7 +12,7 @@ previously discounted price, using `SEQUENCE(TierValue)`.
 
 | Record | Detail | Owner file |
 |---|---|---|
-| Price adjustment tiers (schedule `Standard Price Adjustment Tier`; Help activates it, but on 264 inactive tiers still price and an active schedule blocks tier writes [Repo, measured]) | Laptop, One Time, Amount, effective 01-03-2025: 100 (bounds 10-20), 150 (21-40), 200 (41 and up) | [../price-adjustment-schedules.md](../price-adjustment-schedules.md) |
+| Price adjustment tiers (schedule `Standard Price Adjustment Tier`; Help activates it, but on 264 inactive tiers still price and an active schedule blocks adding or removing tiers and changing their bounds [Repo, measured for loads; Platform behaviour, traced]) | Laptop, One Time, Amount, effective 01-03-2025: 100 (bounds 10-20), 150 (21-40), 200 (41 and up) | [../price-adjustment-schedules.md](../price-adjustment-schedules.md) |
 | Custom Advanced decision table (usage Pricing) | Source Price Adjustment Tier; conditions Product2Id = and Name = (AND); results TierValue, AdjustmentType; activate | [decision-tables](../../decision-tables/SKILL.md) |
 | Lookup from the tier object to the transaction line | Lets one line link many tiers | [context-service](../../context-service/SKILL.md) |
 | Context node, mapping, tags for the tier object | Tag (example `Contributor`) carries the tier name | [context-service](../../context-service/SKILL.md) |

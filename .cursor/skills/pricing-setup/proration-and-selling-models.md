@@ -29,7 +29,9 @@ priced. The Proration and Subscription Price elements read them. Builder fields 
 
 **2. <a name="default-term-counts"></a>Default term counts** (Salesforce Pricing Design Time) [Help: `ind.pricing_configure_proration_settings.htm`]
 1. Setup > `Salesforce Pricing` > Salesforce Pricing Setup (`/lightning/setup/CorePricingSetup/home`), Proration Settings.
-2. Fill **Evergreen** and/or **One Time** (numeric only). Help: blank = term count computed from start/end dates at run time. Core disagrees for One Time: with no default it is not prorated; test live ([element, Resolved disagreements](../pricing-procedures/elements/proration-and-subscription.md#resolved-disagreements)).
+2. Fill **Evergreen** and/or **One Time** (numeric only). Help: blank = term count computed from start/end dates at run time. Core disagrees for One Time: with no default it is not prorated [Platform behaviour, traced: with no One Time value the line gets no multiplier from the Proration step]; test live ([element, Resolved disagreements](../pricing-procedures/elements/proration-and-subscription.md#resolved-disagreements)).
+
+[Platform behaviour, traced] A default for a line's type bypasses the engine and is used directly as the term count; with no Evergreen default the count is computed from the dates; a stored value without a colon sets neither. This applies only when the line's selling model type is mapped; otherwise the line goes to the engine.
 
 [Measured] **These two values have no API.** They were in none of the 11 settings types retrieved (among them
 `IndustriesPricing`, `RevenueManagement`, `Quote`, `Order`, `Billing`, `ProductCatalogManagement` and
@@ -75,12 +77,20 @@ option and policy values (inferred; see [the element](../pricing-procedures/elem
 `StartProrationPeriod` (AlignToCalendar, Anniversary, DayOfPeriod, and `LastDayOfPeriod`, which Help
 labels EndOfPeriod; bind `LastDayOfPeriod` [Core]), day/month for DayOfPeriod only. [Help: `ind.pricing_subscription_variables.htm`]
 Multiplier = time used / total time in period; "month-plus-day" proration works for any frequency.
+[Platform behaviour, traced] The count is day-based: the number of periods, where only the first and last
+(partial) period count as days used / days in that full period, inclusive actual calendar days under an actual-days
+policy (the default). The denominator is that period's real length, so a partial period in a leap year is over 366 (period boundaries inferred from measured values).
+Partial periods off: whole periods only. A 30-day-month type counts a full month as 30 days (the 30/360 variant caps the day at 30; the actual-days-with-30-day-months variant counts partial months in actual days). The remainder strategy
+changes the money split, not the count. The paragraph above is traced for annual frequency and the actual-days type; not verified beyond that.
+From the separate partial-month trace (not the annual path): a partial month is a whole month when partial periods are off, and the day fraction (15 of 30 = 0.5) when on; only the first and last period are fractional, interior periods stay whole. Rounding applies to the money at the currency scale, not to the count.
 Help says month precision rounds a partial month to a whole one, but its own worked example
-prorates a half month to 0.5 (see Open questions). [Help: `ind.pricing_proration_variables.htm`]
+prorates a half month to 0.5; both hold under different partial-period settings (above). [Help: `ind.pricing_proration_variables.htm`]
 
 ## How pricing uses it
 
-- Subscription element: unit price x quantity x pricing term count; Proration element emits the term count. One-time and evergreen use the Pricing Setup default when set (see element file).
+- Subscription element: unit price x quantity x pricing term count; Proration element emits the term count.
+- [Platform behaviour, traced] In the shipped default procedure the term count is the Proration step's multiplier. The step reads the selling model's pricing term unit (not the line's own unit) as both the period and the term unit, and the line's `SubscriptionTerm` as the term; with no end date the end is start + term (in that unit) - 1 day. A line with dates only has the count derived from them. So send a term in the selling model's unit (36 on an Annual model is 36 periods) or dates. What Place writes to `SubscriptionTerm` and its unit for a line sent with dates only is not established.
+- One-time and evergreen use the Pricing Setup default when set (see element file).
 - How the policy and option values reach the element (via context tags) is not in Help; see the element file.
 
 ## Period examples (Help) [Help: `ind.pricing_*_proration_examples*.htm`]
@@ -146,6 +156,6 @@ Then Simulate with Effective From/To and compare to the table above.
 ## Open questions
 
 - Help's quarterly example prints 3.427 and 3.436464 for the same case ($687.29 uses the latter); the 3.427 arithmetic gives $685.48. The semi-annual no-partial example prints 3.0 / $1,200 next to what reads as a leftover drafting note; two touched periods give 2.0 / $800 (inferred). The same article's utilized range "28-Mar to 4-Apr (130 Days)" should read 4-Aug.
-- Month precision: the variables article says a partial month rounds to a whole month, yet its $50 worked example prorates 15/30 days to 0.5. Which applies is unconfirmed. Weekly arithmetic ($144.12 x 10.71 = about $1,543.5) does not reproduce $1,543.36. Treat these as illustrative.
+- Month precision: reconciled by the partial-month trace above (partial periods off: whole month; on: day fraction); not live-verified. Weekly arithmetic ($144.12 x 10.71 = about $1,543.5) does not reproduce $1,543.36. Treat these as illustrative.
 - The monthly examples 5 and 6 repeat the annual case with $800 (a doc error, inferred).
 - The context tags carrying policy values are not documented. (The Pricing Setup default term counts have no API at all; see [Default term counts](#default-term-counts).)

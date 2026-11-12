@@ -127,7 +127,11 @@ the group's end; otherwise *Horizon Months* less the calendar months from the co
 (the stamp, else the quote's `StartDate`) to the line's start, never below 0. It assumes
 segments and the commitment start on the 1st of a month: the formula counts calendar months
 and ignores the day, so a segment from 2027-02-15 to 2028-02-14 counts 13. Every measured date
-was the 1st of a month. *Horizon
+was the 1st of a month. The pricing engine prorates by days (the first and last partial period
+count days used over the days in that period, `[Platform behaviour, traced]`; see
+[proration](../proration-and-selling-models.md)), so off the 1st this months value and the line's
+`PricingTermCount` diverge; decide which one the source's number follows and do not expect the two to match
+(doc-only; not measured live). *Horizon
 Months* on the amendment quote must hold the original commitment's length (a field default
 does it when every commitment has the same length) `[inferred]`.
 
@@ -148,6 +152,11 @@ horizon.
   counted the months left on both, the new line (which has no source asset) through the
   quote's stamp; every case matched its expected full-term value, and new-sale values
   didn't change `[Measured]`.
+- **A price change dated on a renewal start.** The stamp reads the source asset's lifecycle start, which
+  `[Platform behaviour, traced]` is the only route from an amendment line to a contract start (the line's own start is
+  the amendment date). On a change dated on a renewal's start, the formula then counts the months from the
+  original start, which can leave 0 months to the horizon. The result is unmeasured. What a renewed asset's lifecycle
+  start is was not traced. Fix `[inferred]`: if the asset's lifecycle start is the original start, stamp the start of the current term instead.
 - **Not stamped:** a new-sale quote and a renewal quote. The formula counts from their own
   `StartDate`.
 - **Ramps.** An Evergreen line in a dated quote line group counts that segment's months, so

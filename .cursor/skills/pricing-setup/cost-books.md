@@ -51,7 +51,7 @@ Creating an entry from the cost book record pre-fills the book; from the Cost Bo
   `Getunitcostfromcostbook` also passes `Quantity`, which the table doesn't read]. [Measured] So the lookup has
   **no book and no date filter**: an entry in a non-default cost book priced, and `EffectiveFrom` and `EffectiveTo`
   don't select the entry.
-- So keep one current entry per product and currency across every book the table reads. Retire an old cost by
+- [Platform behaviour, traced] In the discount lookup path a single-output lookup with several matches raises a duplicate-value error rather than picking a winner (multiple-output lookups resolve candidates by priority). The cost step's path was not separately traced and its mode is unknown, so which of the two a product with several entries gets is not established. So keep one current entry per product and currency across every book the table reads. Retire an old cost by
   editing or deleting its entry, not by closing its date range. To price from one book or by date, add those inputs
   to the table and the step [inferred, not measured].
 - The cost is per pricing term; a term line needs the cost formula multiplied by `PricingTermCount`
@@ -79,9 +79,10 @@ Simulate with the procedure that has the cost step; the cost variable should equ
 | Margin missing or null | No cost entry, or cost table not mapped/refreshed | Query entries; check recipe mapping and freshness |
 | Cost appears nowhere on quotes | By design [Help] | Wire a custom procedure step |
 | Cost entry has no book | Created from the Cost Book Entry tab | Set the book |
-| Line shows an old or another book's cost | More than one entry for the product and currency; the shipped lookup filters on neither book nor date (which entry wins is not measured) | Keep one entry per product and currency; refresh the table |
+| Line shows an old or another book's cost | More than one entry for the product and currency; the shipped lookup filters on neither book nor date (in the discount lookup path a single-output lookup with several matches raises a duplicate-value error [Platform behaviour, traced]; the cost step's path was not separately traced and its mode is unknown, so which entry wins is not established) | Keep one entry per product and currency; refresh the table |
 
 ## Open questions
 
 - Which pricing component type the Cost Book Entries recipe mapping uses in a non-repo org; Help does not describe a predefined cost table.
-- Which entry the shipped lookup returns when a product has more than one for the same currency (two books, or an old and a new date range).
+- What the shipped lookup does when a product has more than one entry for the same currency (two books, or an old and a new date range): a duplicate-value error if the table is single-output, a priority-resolved pick if multiple-output (both traced for the discount lookup path only); which applies, and any measured result, is not established.
+- How the decision-table staleness graph relates to cost entries was not traced.
