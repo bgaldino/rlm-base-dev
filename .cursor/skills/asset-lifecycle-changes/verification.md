@@ -16,8 +16,9 @@ For each change, record the state after every step:
    on the top-level asset, `quantityChange` 0, Quote output), then made the change with a
    Place request.
 2. **Make the change and read the quote.** Edit an amendment line or answer through Place
-   with `configurationMethod: Force` (and `executeConfigurationRules: true` for rules on);
-   with `Skip` a line edit was refused [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Then read:
+   with `configurationMethod: Force` (and `executeConfigurationRules: true` for rules on),
+   which is what was measured to work for general line edits; a No Change line's quantity
+   edit shouldn't depend on it (SKILL.md Quick Rule 7). With `Skip` a line edit was refused [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Then read:
     - each line's `Quantity`, `UnitPrice` and `TotalPrice`. On an amendment quote
       `Quantity` is the delta, and `StartQuantity` and `EndQuantity` the totals before and
       after. A line's source asset is on `QuoteAction.SourceAssetId`; `QuoteLineItem` has
@@ -49,8 +50,9 @@ For each change, record the state after every step:
    orders were refused without them [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`
    → Activating the order]. Amendment and renewal quotes had `AccountId` null and `QuoteAccountId` set
    [Measured: 2026-11-12, 264, scratch org]. They carry the account in `QuoteAccountId` when
-   the org allows quotes without an opportunity (this repo's scratch org definitions enable
-   it) [Platform behaviour, traced]; with that setting off, not measured. Cancellation quotes
+   the org allows quotes without an opportunity [Platform behaviour, traced]; this repo's
+   scratch org definitions enable it [Repo: `config/project-scratch-def.json`]. With that
+   setting off, not measured. Cancellation quotes
    weren't checked. An earlier amendment run saw the same [Measured: 2026-11-11, 264, fresh
    `ent-sb0` scratch org].
 6. **Read the asset:**

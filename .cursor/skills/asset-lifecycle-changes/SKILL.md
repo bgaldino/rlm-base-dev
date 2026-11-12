@@ -97,9 +97,9 @@ results, 2026-11-11).
       either restate every answer that differs from its CML default (in a second Place
       request after the reset, where it counts as a change), or before amending copy each
       row's node status from its order product (`ReferenceEntityItemId`, directly or
-      through the detail row's `OrderItemId`; the reference item may be the order line or its
-      detail row, and node status isn't copied between line-sourced and detail-sourced rows
-      [Platform behaviour, traced]). Blank rows are expected on an org built
+      through the detail row's `OrderItemId`). The reference item may be the order line or its detail row, and the
+      platform doesn't copy node status between line-sourced and detail-sourced rows
+      [Platform behaviour, traced]. Blank rows are expected on an org built
       before the rule and trigger shipped, and on assets activated before they were
       deployed: the trigger acts only on new rows. Read every line's delta before ordering.
 3. **Amend, renew and cancel act on top-level assets.** Help's amend, renew and cancel
@@ -173,7 +173,10 @@ results, 2026-11-11).
       detail row per prior positive lot, each priced from its own lot, and its quantity is the
       latest period's quantity. That needs the `enableAsIsRenewals` setting on, a
       last-transaction pricing source, no ramp, no derived-price product, no attribute
-      or price change on the line, and not an early renewal; otherwise the line is repriced as a single line. The
+      or price change on the line, and not an early renewal; otherwise it leaves this path. An early renewal, or an as-is
+      renewal with an attribute or price change, was read as cancel-and-add detail rows; whether
+      the other exits (ramp, derived-price product, list-price source) are priced as a single
+      line or as cancel-and-add rows isn't settled [Platform behaviour, traced in part]. The
       last-negotiated method copies the net unit price and has no volume-band step, so it
       doesn't re-band; a re-band needs an explicit pricing step, and only lines the step
       admits (renewal lines start at quantity 0) [Platform behaviour, traced]. A price
@@ -273,14 +276,14 @@ results, 2026-11-11).
       own reports the first rule that failed or related rules' messages (inferred, not
       traced). Which status Place assigns an amendment add-on line wasn't read [Platform
       behaviour, traced in part].
-    - Edit amendment lines through Place with `configurationMethod: Force`; with `Skip` it
-      was refused ("Specify 0 in Quantity of the Quote Line Item record with the
+    - Force is what was measured to work for general amendment-line edits through Place
+      (`configurationMethod: Force`); with `Skip` one was refused ("Specify 0 in Quantity of the Quote Line Item record with the
       action of type No Change") [Measured: 2026-11-11, 264]. The message is a save-time
       quantity check: a No Change line must have quantity 0 (only that check is traced). Nothing in it
       looks at the configuration method, so it isn't gated by Skip; why Force accepted the
       same edit isn't explained, and the check isn't known to be skipped under Force.
-      Don't rely on Force to edit the quantity of a No Change line [Platform behaviour,
-      traced in part].
+      A No Change line's quantity edit shouldn't depend on Force [Platform
+      behaviour, traced in part]; the quantity validator has no Force or Skip gate.
     - **A rule that counts a virtual container's lines needs those lines on the amendment.**
       Where the top-level lines were absent from a root-only amendment, the container counted
       none and its count rule logged an Error-severity entry, which blocks ordering (ordering
