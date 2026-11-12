@@ -61,6 +61,8 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
    lines exist (not measured). Reprice All uses Force pricing [Platform behaviour, traced].
    Reprice All re-runs pricing only; Refresh Prices also re-runs configuration and taxes
    [Help: `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_view_and_edit_quotes`].
+   Don't Reprice All (or any reprice) a lifecycle quote after its order is activated: in one measured case it
+   netted every lot to 0 on the quote [Measured: 2026-11-12, 264, scratch]; mechanism not traced.
 6. **Don't demo an inline quantity edit on an amendment of a configured product.** With
    configuration rules on it resets the line's attributes to product defaults, and activation
    keeps them on the asset [Measured: early Nov 2026, 264]. Change the quantity in the configurator.

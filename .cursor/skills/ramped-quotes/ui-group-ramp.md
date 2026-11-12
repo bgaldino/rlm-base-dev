@@ -129,9 +129,10 @@ and One-Time children:
   with consistent totals. Use it when only some products should escalate (a filter on the
   procedure's ramp uplift step is an alternative; not measured).
 - That partial PATCH also re-uplifted the lines it didn't touch (one org). Source shows that untouched lines
-  are re-run, and a non-idempotent uplift re-applied, when delta pricing's conditions don't all hold
-  [Platform behaviour, traced in part]; whether delta pricing was on in the measured case isn't established
-  (live check). See SKILL.md → DO NOT (partial PATCH on a compound ramp). Always finish a ramp line edit with
+  are re-run, and a non-idempotent uplift re-applied, when delta pricing is off or its conditions don't all
+  hold; with it on, only the edited lines and their dependents re-run [Platform behaviour, traced]. The
+  measured org was Foundations-built (delta pricing enabled by the org definitions) but its setting wasn't
+  read there (live check). See SKILL.md → DO NOT (partial PATCH on a compound ramp). Always finish a ramp line edit with
   **Reprice All**.
 
 ## Verify

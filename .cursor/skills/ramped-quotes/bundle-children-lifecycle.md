@@ -177,7 +177,9 @@ On or after the Lifecycle Start Date of **every** asset in the request, and befo
 one. One-time and evergreen Assets have no end date, so only the start bound applies to them. On an API-built bundle a one-time child in
 later segments starts its own Asset there, so the earliest allowed amend date moves to the last segment's start (inferred from the every-asset rule; an amend at
 2027-06-01, before the 2028 and 2029 one-time Asset starts, returned a 400). The upper bound for null-end Assets was not
-measured. An asset with a future ramped renewal refuses an earlier amend (an ordered plain renewal blocks it the same way).
+measured. An amend or cancel dated before an existing renewal's start is refused; date it on or after the latest renewal start
+(on or after is allowed). A ramped asset refuses an amend dated before any later change even where earlier-dated amends are
+otherwise allowed, and an ordered plain renewal blocks it the same way [Platform behaviour, traced].
 
 ## Renewal
 
@@ -188,6 +190,8 @@ measured. An asset with a future ramped renewal refuses an earlier amend (an ord
 - `rampOptionsDetails {segmentType, durationInMonths}`: `durationInMonths` is the **total** ramp duration (12 gave one
   segment on a 24-month span; use 24 for two yearly segments).
 - Dates for `initiateRenewal` use `yyyy-MM-dd'T'HH:mm:ss` (a bare date is `INVALID_DATE_FORMAT`).
+- The as-is renewal setting never applies to a ramped asset or line (or a derived-price product); those renewals are
+  repriced as ordinary lines [Platform behaviour, traced].
 - Ordering a ramped renewal of a term-only ramped asset extends the same asset and its ASP chain in place.
 
 ## Lifecycle prerequisites

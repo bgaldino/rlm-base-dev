@@ -181,10 +181,12 @@ was not determined, and the context-id case was not measured. After changing a h
 reads, include a line record in the same request, use Force pricing, or click Reprice All. Pricing can also be
 skipped by an org-level platform setting that has no documented name [Platform behaviour, traced].
 A line PATCH on the graph-style Place path reprices the transaction, but on a Compound group ramp a partial line edit can re-apply the
-uplift to lines you didn't touch: pricing can skip unchanged lines only when Delta Pricing's conditions
-all hold, and otherwise every line runs through the procedure again, where a non-idempotent uplift step
-re-applies [Platform behaviour, traced]. Whether Delta Pricing was on in the measurement is not
-established (`ramped-quotes` SKILL.md → DO NOT). A header edit in the record UI wasn't measured. For quotes,
+uplift to lines you didn't touch. Delta Pricing is a beta org preference (the Foundations org definitions
+enable it); it applies only to a PATCH with System pricing when dual save is off. With it on, a partial
+PATCH re-runs the edited lines and the lines that depend on them and skips the rest; with it off or its
+conditions unmet, every line runs through the procedure again, where a non-idempotent uplift step
+re-applies [Platform behaviour, traced]. Which relations count as a dependency isn't traced, and whether
+Delta Pricing was on in the measurement is not established (`ramped-quotes` SKILL.md → DO NOT). A header edit in the record UI wasn't measured. For quotes,
 Help's Reprice All requirement names updates to Quote Line Items outside the line editors, not the
 Quote header (for orders it covers Order records too)
 [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].

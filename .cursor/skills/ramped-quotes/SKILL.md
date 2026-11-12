@@ -142,6 +142,11 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   totals across all segments. The container pattern, including its `[0..1]` bundle bound for an unramped
   quote, is in the same section. Whether a `[0..1]` or `split = false` bound alone is the trigger, or a
   setting is also involved, wasn't isolated (live check).
+  The refusal comes from the solver, not Place: a type left unsplit, or a relation declared `[0..1]`,
+  allows one line of the type, and a quote-level container holds every segment's lines in one relation, so a
+  second segment's line breaks it. Model such a type per bundle, not in a shared quote-level container.
+  What Place does to a cloned segment line's status and quantity wasn't traced (live check)
+  [Platform behaviour, traced in part].
 - **DO NOT** treat a null `RampIdentifier` on read-back as a graph mistake — it
   usually means the org's **context definitions are stale**; a Context Definition
   sync fixes it (see `.cursor/skills/context-service/SKILL.md`). Other known causes: a line a
@@ -150,11 +155,13 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   ([ui-group-ramp.md](ui-group-ramp.md)).
 - **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. On a
   `CompletedWithPricing` quote, System runs **delta pricing**, which can skip lines it considers
-  unchanged. A segment created by clone can keep its clone-time price indefinitely. Delta pricing skips
-  unchanged lines only when all its conditions hold (System pricing, an update, a completed calculation
-  status, among others); otherwise every line runs again
+  unchanged. A segment created by clone can keep its clone-time price indefinitely. Delta pricing is a beta
+  org preference, off unless enabled; the Foundations org definitions enable it, a vanilla org doesn't. It
+  applies only to a PATCH with System pricing on a quote with a completed calculation status and no
+  validation errors, and only when dual save is off; otherwise every line runs again
   ([transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md))
-  [Platform behaviour, traced]. Exactly which lines get skipped isn't traced.
+  [Platform behaviour, traced]. Under it a partial PATCH re-runs the edited lines and the lines that depend
+  on them and skips the rest; which relations count as a dependency isn't traced.
 
   Measured 2026-10-29/30 on 264 with a probe that set the uplift at placement:
   - 8 of 8 builds came out of cloning with the last segment un-uplifted (setting the uplift
@@ -172,15 +179,21 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   `UnitPriceUplift` re-applied the uplift to the other ramp lines. Their `NetUnitPrice` was uplifted
   again on top of the already uplifted net (each segment by its applied % once more), while
   their `TotalPrice` stayed put. **Reprice All** in the line editor restored every line; a `Force`
-  reprice wasn't tried for this case. What the source shows is only this: when delta pricing's conditions
+  reprice wasn't tried for this case. What the source shows: when delta pricing is off or its conditions
   don't all hold, every line runs through every pricing element again, and the uplift step isn't idempotent,
-  so an untouched line is uplifted again [Platform behaviour, traced in part]. Whether delta pricing was on in the
-  measured case, and so whether this is a defect or that path, is not established (live check). Don't
+  so an untouched line is uplifted again; when it is on, only the edited lines and their dependents re-run
+  [Platform behaviour, traced]. The measured org was Foundations-built, so delta pricing was probably on, but
+  its setting wasn't read on that org, and whether the re-uplifted lines (the Term child) were dependents of
+  the edited ones, or this is a different path, is not established (live check). Don't
   rely on a partial PATCH leaving other lines untouched. To reproduce: on a Compound UI ramp,
   PATCH `UnitPriceUplift` on some lines of segments 2 and 3 only, then read the other lines'
   `NetUnitPrice` in those segments (measured with a bundle: the PATCHed lines were its Evergreen and
   One-Time children, the re-uplifted ones its Term child). Finish every ramp line edit with Reprice
   All and re-read all segments.
+- **DO NOT** reprice a lifecycle quote (amend, renewal or any quote that already produced an order) after its
+  order is activated. In one measured case a full reprice then netted every lot of the quote to 0, and the
+  quote's earlier values were no longer readable from it. Read the quote's values before activation; orders and
+  assets stay unchanged [Measured: 2026-11-12, 264, scratch]. Scoped to one org; the mechanism wasn't traced.
 - **DO NOT** claim a build "works" from an offline dry-run — a mutating ramp run
   must be verified against a **live 264 org**, writing only to a confirmed
   **writable** org.
