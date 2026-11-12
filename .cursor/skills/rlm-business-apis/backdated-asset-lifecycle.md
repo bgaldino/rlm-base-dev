@@ -117,8 +117,9 @@ A different case, measured on one 264 scratch org whose pricing procedure and co
 **Order** with `pricingPref` System or Force (even a header-only PATCH) failed with the same message,
 while `pricingPref: Skip` succeeded; the order was left `CalculationStatus` PriceCalculationFailed with
 totals unchanged and no error-log record. Binding the quote-only custom attributes on the Order lens did
-not clear it there, and the Order lens hydrated fully outside pricing, so the mapping diff above is not
-always the cause. Cause not established: most failures in the pricing procedure's context-tag query are replaced by this generic message, so it doesn't show the underlying error [Platform behaviour, traced]; whether amend, renew or cancel with Order output
+not clear it there, so adding the custom `__c` mappings above is not always enough; a pricing-procedure
+variable with no Order-lens attribute at all is still possible (an Apex hydration of the Order lens
+succeeded, but it queries only the tags it asks for). Cause not established: most failures in the pricing procedure's context-tag query are replaced by this generic message, so it doesn't show the underlying error [Platform behaviour, traced]; whether amend, renew or cancel with Order output
 fail the same way on that org was not tried. Don't treat a Skip success as proof the order priced.
 
 Gotchas, all measured:

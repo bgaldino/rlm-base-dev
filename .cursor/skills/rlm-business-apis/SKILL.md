@@ -84,11 +84,11 @@ procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pr
 - Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace shows
   Place filling a missing term context tag with the selling model's pricing term when the line's
   selling model option is Term Defined, but not that fill reaching the saved line. In the measured
-  requests (price book entry only, no selling model set on the line) the saved unit became the
-  selling model's `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line
+  requests (price book entry only, no selling model set on the line) the saved unit was
+  `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line
   (System pricing, configuration method Force, rules on) priced from its dates (term count 3) and
   did not get the term-keyed discount step that the measured org's customised pricing procedure
-  adds (not a shipped step), both standalone (net 17,100, vs 16,416 when the line was sent
+  adds when a header switch is on (it was on) (not a shipped step), both standalone (net 17,100, vs 16,416 when the line was sent
   with `SubscriptionTerm` 3 and unit `Annual` instead of an end date) and as a bundle component
   (16,587 vs 15,923.52 on the same change)
   [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. Send the
