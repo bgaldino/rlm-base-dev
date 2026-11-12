@@ -31,7 +31,8 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    ends with `refresh_all_decision_tables` then `rebuild_search_index` for this reason.
    A build that loads data after those steps leaves stale tables behind.
    **The refresh flow returns before the tables are fresh, so wait before pricing**: poll
-   `check_decision_table_freshness` until nothing is Stale (see *Refreshing*).
+   `check_decision_table_freshness` until the tables the flow refreshed are no longer Stale
+   (see *Refreshing*).
    Rating, qualification and tax tables have no runtime refresh at all: after editing that
    setup data, use the Manager's **Refresh stale only**, or its **Reads object** filter.
    See `lifecycle-and-refresh.md` → *After editing setup data*.
@@ -276,13 +277,15 @@ refresh type*.
 `refresh_all_decision_tables` only queues the refreshes (`lifecycle-and-refresh.md` →
 *Queued is not refreshed*), and the wait is minutes, not seconds. After the flow returned, the
 tier, bundle-adjustment and cost tables stayed Stale for about three minutes
-[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Pricing before the refreshes finish
-fails **silently**: quotes priced while the flow was still running got empty volume and cost
-lookups. The volume step ran and left the price unchanged, the line had no unit cost, and no
-error was raised, so the numbers looked plausible [Measured: 2026-11-11, 264, fresh `ent-sb0`
-scratch org]. Pricing after the flow returns but while tables are still Stale was not measured;
-expect the same [inferred]. After a refresh, rerun `check_decision_table_freshness` until it
-reports no Stale table, then price.
+[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Pricing in that window fails
+**silently**: a quote priced about half a minute after the flow returned got empty volume and
+cost lookups. The volume step ran and left the price unchanged, the line had no unit cost, and no
+error was raised, so the numbers looked plausible; a quote priced after the refreshes finished
+took the volume discount [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. After a
+refresh, rerun `check_decision_table_freshness` until the tables the flow refreshed are no
+longer Stale, then price. A Stale verdict the flow can't clear (a table it doesn't refresh, such
+as rating, qualification or tax tables, or one over-reported because a source criterion wasn't
+reproduced) won't change by waiting: read the reason the verdict gives.
 
 ## The timing rule
 
@@ -355,8 +358,8 @@ it. `pipefail` and `grep` make a missing line an error rather than an empty answ
 Combine modes as `"strict,json"`; with `pipefail` a strict failure still fails the pipeline.
 
 **Pricing looks wrong and the data looks right.** Run the check first. A Stale verdict
-naming the object you just edited is the answer; refresh, wait until the check shows nothing
-Stale, and re-test before debugging anything else. A price that skipped a discount or lost its
+naming the object you just edited is the answer; refresh, wait until the check no longer shows
+the refreshed tables Stale, and re-test before debugging anything else. A price that skipped a discount or lost its
 unit cost, with no error, is what pricing during a refresh looks like (*Wait for fresh tables
 before pricing*).
 
