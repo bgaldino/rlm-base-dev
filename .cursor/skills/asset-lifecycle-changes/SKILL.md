@@ -170,15 +170,18 @@ results, 2026-11-11).
       doesn't re-band; a re-band needs an explicit pricing step, and only lines the step
       admits (renewal lines start at quantity 0) [Platform behaviour, traced]. A price
       revision policy applies to each lot's row separately, only when the renewal date falls
-      inside the policy's validity window; whether it reaches the asset at activation wasn't
-      read [Platform behaviour, traced in part]. A renewal on an asset whose pricing source
-      is the price book list price takes no per-lot path: it is one line on the combined
-      quantity, from today's list price, through the same adjustment steps as a new sale, so
-      bands are expected to apply to the total. That is the expected behaviour from the
-      steps it runs; the tier arithmetic wasn't traced or measured. The two paths aren't
-      the same switch: the list-price method follows the asset's renewal pricing type (blank
-      counts as last negotiated), the per-lot path follows its pricing source [Platform
-      behaviour, traced in part].
+      inside the policy's validity window [Platform behaviour, traced]. On the asset, a new
+      sale copies the policy from the order line, and amend and renew periods inherit it from
+      the current state period, so an amend line doesn't reset it; one step of that copy
+      wasn't read [Platform behaviour, traced in part]. A renewal on an asset whose
+      pricing source is the price book list price takes no per-lot path: it is one line on
+      the combined quantity. Only when the asset's renewal pricing type is list price does it
+      price from today's list price through the new-sale adjustment steps (bands expected on
+      the total, tier arithmetic not traced or measured); with a blank or last-negotiated
+      type it copies the prior net price and doesn't re-band. The two paths aren't the same
+      switch: the method follows the renewal pricing type (blank counts as last
+      negotiated), the per-lot path follows the pricing source [Platform behaviour, traced
+      in part].
     - Read detail rows, or coalesce them, in anything that reports line prices.
 5. **One-time lines have no term to renew; Term Defined bundles renew in place.**
     - Renewing a one-time product sets its quantity to zero [Help:
@@ -242,8 +245,9 @@ results, 2026-11-11).
       didn't touch.
     - **Why it is silent.** A line the caller doesn't fix is only a candidate for the solve,
       not a built component. That is the solver's general mechanism; in a context definition
-      that tracks node status, a line the rep added (New) or changed (Changed) counts as
-      user-set there, so it isn't a mere candidate. A requirement rule fires only
+      that tracks node status, a line whose status is user or changed (set by the rep in an
+      earlier solve, or edited) is a real component; a newly added line (New) wasn't shown
+      to be. A requirement rule fires only
       when its condition holds, and a violated condition counts as satisfied, so the solver
       can satisfy the rule by choosing add-on count 0 and not instantiating the candidate:
       the line vanishes from the result, which becomes deltas, with success and no message.
@@ -252,8 +256,10 @@ results, 2026-11-11).
       read-only/asset relation), or the relation's minimum is above 0. Lines sourced from
       assets are fixed and conflict instead of dropping. To make a rule refuse rather than
       remove, give the relation a minimum above zero or tie the add-on to the answer the
-      other way. Exclude rules refuse with their own message when the add-on is fixed and
-      drop it silently when it isn't (order-dependent). In the line-form copy the measured
+      other way. Exclude rules refuse with their own message when the condition is still open at
+      solve time and a matching line exists; they remove matching lines silently when
+      propagation decides the condition first (order-dependent; whether a user-set line can
+      be removed this way wasn't established). In the line-form copy the measured
       refusal named another rule's message: a failure on a constraint with no message of its
       own reports the first rule that failed or related rules' messages (inferred, not
       traced). Which status Place assigns an amendment add-on line wasn't read [Platform
