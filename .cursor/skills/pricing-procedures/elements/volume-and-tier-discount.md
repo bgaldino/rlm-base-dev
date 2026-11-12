@@ -103,7 +103,7 @@ Tier names are from core's element registration, no Tier step ships in this repo
   effective range. [Help]
 - Tiers must belong to a price adjustment schedule of type Volume; you cannot create
   standalone tiers. Help: deactivate the schedule before adding records, reactivate after. [Help]
-  On 264 adding or removing a tier, or changing its bounds, fails while the schedule is active (other edits to an existing tier are allowed [Platform behaviour, traced]) and tiers on an inactive schedule
+  On 264 adding or removing a tier, or changing its bounds, fails while the schedule is active (the guard refuses nothing else it names; an update that leaves the bounds alone is not refused by it, though updates to other tier fields were not traced separately [Platform behaviour, traced in part]) and tiers on an inactive schedule
   still price, so this repo leaves "Standard Price Adjustment Tier" inactive; don't activate it. [Repo, measured]
   The block is an explicit validation: adding or removing a tier and bound edits are refused while the parent
   schedule is active [Platform behaviour, traced]. Bundle-Based Adjustment rows have no such check
