@@ -19,7 +19,7 @@ needs a Director; over $5M needs the VP") into Revenue Cloud Advanced Approvals.
 covers running and checking a submission, and extending the approval workflow this repo
 already ships. Claims are tagged: `[Help: <article>]` and `[Dev guide: <article>]` from
 `docs/salesforce/264/`, `[Repo: <path>]`, and `[Measured: <date>, 264]` for a live run on a
-QuantumBit build.
+scratch org built by this repo.
 
 ## Quick Rules
 
@@ -123,6 +123,13 @@ This table is a snapshot as of 264 and will age. To see what ships now, run
 | `RLM_AA_Reset_Quote_Status` (record-triggered on `ApprovalSubmission`) | Sets the quote's `RLM_Approval_Status__c` to `Recalled` on recall and clears it on cancel. The shipped orchestration has no recall path and nothing that runs on cancel |
 | `datasets/sfdmu/qb/en-US/qb-approvals` + `create_approval_email_templates` | Lightning email templates and the alert definitions that link them to steps |
 
+The approval-flags bands are fixed in the overlay, so a source banded differently can't use
+`Quote.RLM_Approval_Level__c` as its discount level: against one such policy it put two
+quotes one level below the policy [Measured: 2026-11-12, 264]. Band the source's own
+thresholds in the approval data flow, from each line's `Discount` in a line loop
+([matrix-modeling.md](matrix-modeling.md) §2), or change the overlay's bands for every
+build (the design doc's Verification Checklist).
+
 Measured end to end on a QuantumBit build [Measured: 2026-11-10, 264]:
 - A 30% line discount priced to level 2 ("Director"), 20% to level 1, and 5% to level 0.
 - Submitting a level-2 quote created one Discount work item (Manager). The Director item
@@ -185,6 +192,16 @@ items:
 
 - `cci flow run prepare_approvals --org <cci_alias>` succeeds, and a rerun is idempotent
   [Repo: `docs/features/composable-quote-approvals.md` → Verification Checklist].
+- A rerun is idempotent only if no flow gets a new version. An mdapi redeploy of an unchanged
+  autolaunched flow (a generated approval data flow) made a new version every time until the
+  file matched the form the platform stores: formulas sorted by name, numbers written like
+  `0.0`. Once the file was byte-identical to a retrieved copy, a redeploy kept the version;
+  the approval orchestration redeployed without a new version [Measured: 2026-11-12, 264].
+  For a new or generated flow, deploy it, retrieve it and commit the retrieved form. Compare
+  `SELECT VersionNumber, Status FROM Flow WHERE Definition.DeveloperName = '<flow>'`
+  (Tooling API) before and after a rerun. A new version of the approval orchestration flow
+  also ends Smart Approvals eligibility for resubmissions
+  [Help: `ind.approvals_smart_approval_limitations`].
 - The approval-flags overlay and the approvals context plan are applied by
   `prepare_approvals_pricing`, not `prepare_approvals`. On a fresh build it applies both.
   Changing thresholds on an org that already has the overlay takes a separate one-off

@@ -28,10 +28,13 @@ org [Measured: 2026-11-10, 264]. `ApprovalDelegation` wasn't present there.
 | Cancel | `cancelApprovalSubmission` with `approvalSubmissionId`, `comments` [Dev guide: `actions_obj_cancel_approval_submission`] | Approval Admin; submission InProgress or Suspended |
 | Preview | `POST /connect/advanced-approvals/approval-submission/preview` with `flowApiName`, `objectApiName`, `recordId`, `inputParameters` [Dev guide: `connect_resources_preview_approvals`]; v65+, `inputParameters` v67+ | Creates nothing |
 | Prior submission data | `getPreviousRelaRecDetails` (v66+) | For rule-based auto-approval |
+| Read the approval data | Run the approval data flow on its own: `POST /services/data/v68.0/actions/custom/flow/<data flow API name>` with `{"inputs":[{"QuoteId":"<quote>"}]}` (the shipped `RLM_Quote_Approval_Data` takes `QuoteId`). The response's `outputValues` holds every output the background step would pass, so each dimension's level can be read without submitting. Measured on a modified copy of the shipped data flow that returns one level per dimension [Measured: 2026-11-12, 264] | Run Flows; a data flow that only reads records submits nothing |
 
 ## Headless test
 
 For each path, create a quote, reprice it, submit, act, and read state after every step.
+Before submitting, read each dimension's level from the data flow (Actions → Read the
+approval data), so a wrong result can be traced to the level or to the routing.
 
 ```sql
 SELECT Id, Status, SubmittedBy.Name FROM ApprovalSubmission WHERE RelatedRecordId = '<quote>' ORDER BY CreatedDate
