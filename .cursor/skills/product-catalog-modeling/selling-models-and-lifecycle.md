@@ -142,8 +142,8 @@ Help does not say what enforces it. Three write paths refuse, each on its own ob
 
 **Modeling advice:** set the flag, make the add-on a bundle component, and keep it out of
 categories (the platform requires that). To make "only with X" real, require it through a bundle
-component or add your own check (a configuration rule or a quote validation): the only
-refusal measured, and the only one found in the traced modules, is at category assignment.
+component or add your own check (a configuration rule or a quote validation): the
+refusals found are all on catalog writes (category assignment, switching the flag on for a product that already has a category, a Product Set); none was found at sale time.
 Whether search hides it because of the flag or because it has no category (the flag is in the search index documents, so a filter is plausible; its logic is not traced), and what amend,
 renew or cancel do when its companion is removed: **Open — needs live verification.** The
 QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
