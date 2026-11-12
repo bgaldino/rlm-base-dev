@@ -43,6 +43,14 @@ the contract value after it.
   a threshold keyed on `OriginalActionType = Amend` misses them. A threshold on the value after the
   change has to be computed in the approval data flow; which records to compute it from is
   open ([limitations.md](limitations.md)).
+  When it sums prior orders by account, read the account the action wrote. With quotes
+  without an opportunity allowed (this repo's scratch org definitions enable it), amendment
+  and renewal quotes had `AccountId` null and `QuoteAccountId` set, and an `AccountId`
+  filter returned a prior value of 0 on an amendment [Measured: 2026-11-12, 264, scratch];
+  amend, renew and cancel write the account only to `QuoteAccountId` when that setting is on
+  [Platform behaviour, traced]. With it off, they get an opportunity and `AccountId` comes
+  from it [Platform behaviour, traced; not measured], so a filter that must work on both
+  kinds of org reads `QuoteAccountId` and falls back to `AccountId`.
 - **The shipped approval has no deal-size dimension.** Its conditions read the discount
   level and payment terms. `RLM_Quote_Approval_Data` also returns `OriginalActionType`, but
   the `QueryApprovalData` step doesn't declare it as an output and no condition reads it
