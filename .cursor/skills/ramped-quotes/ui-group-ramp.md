@@ -84,6 +84,9 @@ These runs changed steps 1, 3 and 4 below and added
 the 10,000 adjusted price straight to Net Unit Price 12,100. To see the uplift, read
 `ApplUnitPriceUpliftPct`.
 
+Year 1's 0 / 0 is from the 2026-10-29 run. On the 2026-11-11 UI builds, segment 1 (0%) read **null** for
+both `UnitPriceUplift` and `ApplUnitPriceUpliftPct`; treat null as 0 when checking segment 1.
+
 These round numbers hide the precision: the uplifted price is **not rounded** to cents. See
 [`compound-uplift.md`](compound-uplift.md) → Precision.
 

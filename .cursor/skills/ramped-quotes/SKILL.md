@@ -520,7 +520,8 @@ skill's routing.
 
 Expected compound shape for this 3-year ramp (base 360, uplifts 5/3% — baseline +
 2 uplifts = 3 periods): 360 → 378 → 389.34 (applied % 0 → 5 → 8.15). A 4-year ramp
-would add a 3rd uplift, e.g. +2% → 397.13 (applied % 10.313).
+would add a 3rd uplift, e.g. +2% → 397.1268 (applied % 10.313; the uplift isn't rounded, so 397.13
+only with a rounding step after the ramp uplift, see `compound-uplift.md`).
 
 ## Validation Checks
 
