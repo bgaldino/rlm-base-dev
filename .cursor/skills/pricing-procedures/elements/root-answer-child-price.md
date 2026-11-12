@@ -7,12 +7,13 @@
 > `ind.pricing_attribute_based_pricing_limits.htm`,
 > `ind.pricing_add_the_price_adjustment_matrix_element.htm`; shipped
 > `RLM_PRM_DISTI_Pricing_Procedure` and `datasets/context_plans/PartnerAccount/contexts/partner_account.json`.
-> Nothing in this file was built or measured.
+> Route 1 was built and measured end to end on a fresh 264 `ent-sb0` scratch org on 2026-11-11,
+> configuration rules on; routes 2 and 3 were not built.
 
 The need: a child line's price depends on an answer given on the bundle root. Example: a suite
 bundle asks for a Region on the root, and its Software and Support child lines take a regional
 uplift. The documented routes move the answer to a place a pricing element reads: onto the child
-line itself, or onto the header. Which route works live is [open](#open-questions).
+line itself, or onto the header. Route 1 works live; routes 2 and 3 are [open](#open-questions).
 
 ## Route 1: CML copies the answer to a child attribute, then Attribute-Based Price
 
@@ -25,7 +26,8 @@ line itself, or onto the header. Which route works live is [open](#open-question
   intermediate parent, so reach the root with `parent(Region, 1)` or dot notation from the bundle
   [Dev guide: `cml_best_practice_parent_products.htm`]; the dev guide contradicts itself here, see
   [`../../constraint-models/quantities-from-attributes.md`](../../constraint-models/quantities-from-attributes.md)
-  → Scope. Authoring and deployment: [`../../constraint-models/SKILL.md`](../../constraint-models/SKILL.md).
+  → Scope. Live, `parent(Region)` with no level reached the root in a model that declares no
+  group types ([Route 1 measured](#route-1-measured)). Authoring and deployment: [`../../constraint-models/SKILL.md`](../../constraint-models/SKILL.md).
 - **Pricing side.** Make `Region` a price-impacting attribute on the child product's own
   classification, not an inherited one, and do not override it in the bundle context: the override
   stops the adjustment applying [Help: `ind.pricing_attribute_based_pricing_limits.htm`]. Then add
@@ -33,6 +35,33 @@ line itself, or onto the header. Which route works live is [open](#open-question
   whole-attribute-set rule and schedule setup are in [`attribute-based-price.md`](attribute-based-price.md);
   attribute placement in
   [`../../product-catalog-modeling/attributes-and-classifications.md`](../../product-catalog-modeling/attributes-and-classifications.md).
+
+### Route 1 measured
+
+Built on a Place Sales Transaction quote (`configurationMethod: Force`,
+`executeConfigurationRules: true`) and in the configurator UI [Measured: 2026-11-11, 264, fresh
+`ent-sb0` scratch org]:
+
+- **Only the root carries the answer.** The request set Region on the root line alone. The model
+  wrote the child's `QuoteLineItemAttribute`, and Attribute-Based Price priced the child from it. So the value is saved on the line and
+  hydrated into the pricing context before that step. In the configurator UI the children took
+  the root's value too (with a value that has no adjustment row, so no uplift was priced there).
+- **`parent(Region)` with no level reached the root** from children that sit in a product
+  component group, in a model that declares no group types. Whether a model that declares group
+  types needs the level argument was not measured.
+- **Catalog set-up used:** each affected child is based on a classification that carries
+  the attribute directly, with a Product Attribute Definition marking it price-impacting. So
+  route 1 spans the catalog, the constraint model and the pricing data: plan and load them
+  together.
+- **The uplift is a negative Percentage.** An Attribute Based Adjustment of type Percentage with
+  a negative `AdjustmentValue` −n is accepted on insert and applied as × (100 + n)/100 (−5 gives
+  × 1.05); no Override is needed. Loading notes: [`attribute-based-price.md`](attribute-based-price.md) →
+  Rules and limits.
+- **Order in the waterfall:** list price, then the attribute-based uplift, then the bundle-based
+  and volume discounts, each on the previous net, as the shipped phase order puts them
+  ([`../procedure-anatomy-and-ordering.md`](../procedure-anatomy-and-ordering.md), phase 7).
+- **Editing the root answer reprices.** A Place PATCH of only the root's `QuoteLineItemAttribute`
+  (rules on) re-derived the child's attribute and repriced the child lines.
 
 ## Route 2: Formula-Based Pricing reads a header tag
 
@@ -67,12 +96,12 @@ it has no Help article and was never exercised
 
 ## Open questions
 
-- **Open — needs live verification:** which route works live. None was built or measured.
-- Route 1: whether a value the constraint model sets on a child attribute is saved on the line and
-  hydrated into the pricing context before Attribute-Based Price runs.
-- Routes 2 and 3: how the root answer reaches the header (a rep enters it on the quote, or
-  automation copies it from the root line); nothing in the 264 snapshot documents a copy.
-- An uplift with Attribute-Based Price or a Price Adjustment Matrix: Percentage multiplies by
-  (100 − v)/100 ([`attribute-based-price.md`](attribute-based-price.md) → Rules and limits), so an
-  uplift needs a negative value or an Override; whether either is accepted for this was not checked.
+- **Open — needs live verification:** routes 2 and 3; neither was built. How the root answer
+  reaches the header for them (a rep enters it on the quote, or automation copies it from the
+  root line) is also open; nothing in the 264 snapshot documents a copy.
+- An uplift through a Price Adjustment Matrix: its Percentage is a discount too (a Percentage
+  above 100 may go negative, [`price-adjustment-matrix.md`](price-adjustment-matrix.md) → Rules
+  and limits), so an uplift needs a negative value or an Override; whether either is accepted
+  there was not checked. Attribute-Based Price accepts a negative
+  Percentage (route 1 above).
 - Whether any element reads the root line's attribute directly from a child line.

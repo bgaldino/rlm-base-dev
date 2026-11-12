@@ -2,7 +2,8 @@
 
 > Sub-file of `.cursor/skills/pricing-procedures/SKILL.md`. Release 264 / API v68.0. Sources:
 > Help `ind.pricing_*` articles (cited inline); core 264 for the runtime model. Not
-> live-verified, except the headless pricing action (measured on 2026-11-10, below). Companion to [`operations-and-troubleshooting.md`](operations-and-troubleshooting.md), which covers
+> live-verified, except the headless pricing action (measured on 2026-11-10 and 2026-11-11,
+> below) and the persisted waterfall read (2026-11-11). Companion to [`operations-and-troubleshooting.md`](operations-and-troubleshooting.md), which covers
 > procedure selection, Simulate/activate, plans, output resolution, tag mapping, decision-table
 > sync and the cross-element symptom table.
 
@@ -55,6 +56,13 @@ QuantumBit scratch org; worked example in
   `Discount`, `SubscriptionTerm`, `SubscriptionTermUnit`, `SellingModelType`, `PricingTermUnit`,
   `SalesTransactionItemSource`, …). Values passed inline price the line without any record:
   `ListPrice` still came from the price book entry, and `UnitPrice` was used as the input unit price.
+- Line inputs that failed pricing when missing or malformed [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
+  - `SalesTransactionItemSource` missing: the first step fails with `nulltagName = LineItem`. A
+    per-line string such as `PROBE_LINE_1` worked.
+  - `PeriodBoundary` missing: `INVALID_PERIOD_BOUNDARY`. `Anniversary` worked.
+  - `StartDate` or `EndDate` as a bare date: proration fails with `StartDate and EndDate are
+    required`. Date-times (`2027-01-01T00:00:00.000Z`) worked. One Time and Evergreen lines
+    priced without an `EndDate`.
 - The dev guide sample's mapping (`businessObjectType` `SalesTransaction` with the definition's
   `SalesTransaction` mapping) failed both ways tried (a root object without `id` keys, and a root array with `id` keys):
   `INTERNAL_ERROR: We couldn’t fetch the data for RLM_SalesTransactionContext context definition.
@@ -71,6 +79,13 @@ QuantumBit scratch org; worked example in
   formula step's included); the dev guide defines `true` as *generate* the waterfall, despite the name.
 - With `persistContext: false` and inline values, no context is stored and no quote record is
   changed. The run is still recorded as a pricing API execution log (table below).
+
+**Measured: reading a saved line's waterfall** [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch
+org]. For a priced quote line, read `QuoteLineItem.PriceWaterfallIdentifier`, a `<ref>:<executionId>`
+pair, split it at the last colon, and call `GET /connect/core-pricing/waterfall/<ref>/<executionId>`.
+The response lists each step with its `pricingElement` and output values. Calls built from the
+line's record id and from a `PricingAPIExecution.ExecutionKey` returned
+`FETCH_EXPLAINABILITY_LOG_ERROR`.
 
 | Capability | Enable / find | Notes |
 |---|---|---|

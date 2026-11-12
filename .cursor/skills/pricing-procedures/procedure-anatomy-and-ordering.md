@@ -31,7 +31,11 @@ own local placement notes and links back here.
 - **Branching uses mutually exclusive lanes.** Contract pricing, derived pricing,
   last-transaction pricing and the plain path are separate List Groups whose filters
   exclude each other (for example "without derived or last-transaction pricing"). A
-  line that matches two lanes is priced twice [Repo, inferred].
+  line that matches two lanes is priced twice [Repo, inferred]. Moving a line between lanes
+  means changing both lanes' filters together; the measured example routes positive amendment
+  adds from the last-transaction lane to the new-sale lane, in
+  [`elements/volume-and-tier-discount.md`](elements/volume-and-tier-discount.md) → Re-banding
+  positive amendment adds.
 - **Versions and rank.** At run time the engine ignores disabled versions, keeps the
   enabled versions whose start/end dates cover the execution date, and uses the one with
   the **greatest rank** (strictly greater, so on a tie the version listed first stays; a

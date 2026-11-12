@@ -192,6 +192,58 @@ The `PriceAdjustmentScheduleId` constant resource is a procedure variable whose 
 [../../pricing-wiring/SKILL.md](../../pricing-wiring/SKILL.md) section B and
 `cumulusci.yml`). `__LOOKUPID_*__` are likewise deploy-time; Recalc ships literal ids. [Repo]
 
+## Re-banding positive amendment adds (overlay)
+
+As shipped, units added on an amendment do not re-band. Assets carry `PricingSource`
+`LastTransaction`; every non-contract new-sale group in the shipped default filters on
+`ItemPricingSource NotEquals 'LastTransaction'`, and the last-transaction lane prices those lines
+from the asset's last net price. The volume step also bands on `LineItemQuantity`
+[Repo: `RLM_DefaultPricingProcedure`], which on an amendment line is the delta, not the new total.
+On a procedure cloned from the shipped default, which has the same lanes, added units took the
+asset's last net price, with no volume step [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch
+org]. The amendment flow itself is in
+[`../../asset-lifecycle-changes/SKILL.md`](../../asset-lifecycle-changes/SKILL.md).
+
+A source rule like "added units price at the band for the new total; existing units keep their
+price" needs an overlay. Define a positive add on an existing asset as
+`LineItemQuantity > 0 AND ItemStartQuantity > 0` (`ItemStartQuantity` and `ItemEndQuantity` are
+standard tags from the line's `StartQuantity` and `EndQuantity`), then:
+
+| Steps (shipped default names) | Change to the filter's condition logic |
+|---|---|
+| Every group whose filter has `ItemPricingSource NotEquals 'LastTransaction'` (criterion `k`), except the contract volume group `Applyvolumebaseddiscountstolineswithcontractandwithoutderivedpricing`: input unit price, item net total, both attribute groups, bundle, non-contract volume, manual and amount/percentage discounts, plus any custom group with the same exclusion | `k` → `(k OR (LineItemQuantity > 0 AND ItemStartQuantity > 0))`: positive adds take the new-sale chain |
+| The last-transaction filters `SetNetUnitPriceforLastTransactionPricing` (under `ListContainer`) and `Filterlineswithlasttransactionpricing` (under `Filterlineswithlasttransactionpricingandassignnettotalprice`) | Their `ItemPricingSource Equals 'LastTransaction'` criterion `k` → `(k AND (LineItemQuantity <= 0 OR ItemStartQuantity IsNull OR ItemStartQuantity <= 0))`: positive adds leave the last-price lane |
+| The non-contract volume step `Calculatenetunitpriceandnettotalpriceaftervolumebaseddiscount` | `LowerBound` and `UpperBound` → `ItemEndQuantity`, the quantity after the change (equal to the line quantity on a new sale); `Quantity` stays `LineItemQuantity` |
+
+Leave the other contract-pricing paths and price revision unchanged. One of the two attribute
+groups (`Setattributebasedpricingforlineswithoutderivedpricing`) is itself a contract path, since
+it requires `IsContracted` true; the measured overlay changed it with the rest. Each filter change adds criteria
+and rewrites the logic; filter mechanics are in
+[`list-group-and-list-operation.md`](list-group-and-list-operation.md).
+
+Measured on a procedure cloned from the shipped default that also carried other custom groups (a
+rounding step and a term discount), with this overlay merged last
+[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
+
+- The added units took the new-sale chain and priced at the band for the new total: the waterfall
+  showed the volume step's bounds at the total and its quantity at the delta. The order activated. On the asset the existing units kept their price and the added
+  units carried the new one.
+- A reduction still credited last in, first out, at the prior prices.
+- A renewal stayed on per-lot last prices: renewal lines have `StartQuantity` 0, so the new filters
+  don't admit them.
+- A new sale priced exactly as before the change, and a new sale at a band edge priced at the
+  expected bands.
+
+Know before adopting it:
+
+- Positive adds also pass the manual-discount groups and any custom new-sale group with the same
+  exclusion (a term discount, for example), like new units on a new sale.
+- The volume step's `customElement` carries the org's own decision-table `LookUpId` and schedule
+  constant, so generate the overlay from each org's export instead of shipping a static one
+  ([`../../expression-sets/authoring-and-overlays.md`](../../expression-sets/authoring-and-overlays.md)).
+- Not measured: an amendment that adds a product the asset didn't have, contract-priced assets,
+  and other currencies.
+
 ## Shipped in this repo (snapshot)
 | Procedure | Step (parent group) | What it does |
 |---|---|---|
