@@ -118,7 +118,7 @@ A different case, measured on one fresh 264 scratch org [Measured: 2026-11-12, 2
 while `pricingPref: Skip` succeeded; the order was left `CalculationStatus` PriceCalculationFailed with
 totals unchanged and no error-log record. Binding the quote-only custom attributes on the Order lens did
 not clear it there, and the Order lens hydrated fully outside pricing, so the mapping diff above is not
-always the cause. Cause not established (trace pending); whether amend, renew or cancel with Order output
+always the cause. Cause not established: the message wraps any failure in the pricing call's context query, so it doesn't name the field; whether amend, renew or cancel with Order output
 fail the same way on that org was not tried. Don't treat a Skip success as proof the order priced.
 
 Gotchas, all measured:
@@ -245,11 +245,8 @@ quote-only, future-dated runs; the backdated run zero-priced the same way (table
   traced. An override step in the procedure wasn't tried; it would be expected to price at list,
   not at the last transaction price.
 - **A ramped early renewal of a *plain* asset inherits the price correctly.**
-- **`enableAsIsRenewals` doesn't apply**: the as-is test is false when the setting is off, the
-  product is a derived-price product, or the line or asset is ramped, so a renewal of a ramped
-  asset is never as-is and is repriced as an ordinary line [Platform behaviour, traced; not
-  measured].
-- **GUS W-23406678** has the same symptom and was closed "Not a bug".
+- **`enableAsIsRenewals` doesn't apply**: a renewal of a ramped asset never takes the per-lot
+  as-is path [Platform behaviour, traced; not measured].
 
 To check a renewal quote:
 
@@ -386,5 +383,5 @@ qty 1 and `08-01→2027-05-31` qty 2. A backdated cancel on 2026-09-01 then ende
 
 - **Early renewal of a ramp asset.** It goes through headlessly: `initiateRenewal` with
   `rampOptionsDetails`, the input the UI's *Create a ramp schedule* sets. The Connect `renew`
-  resource has no such input. But the platform prices the new segments at zero (above, W-23406678),
+  resource has no such input. But the platform prices the new segments at zero (above),
   so a backdated one can't be verified through invoice (todo 309).

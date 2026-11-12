@@ -834,19 +834,22 @@ in Setup.
 behaviour, traced in part]. Product details are cached per session context, so a catalog change
 after the first configure in the same context may not show until a new context is used.
 
-**Fix:** check the line's product id and its price book entry first. Whether a stale search index
-or decision-table refresh also causes it is not established (live check Q-L10).
+**Fix:** check the line's product id and its price book entry first. After a load that adds
+products, the error was measured to stop once the decision-table refresh and search index rebuild
+finished (`product-catalog-modeling/catalogs-and-loading.md` fact f); which of the two is the cause
+is not established.
 
 ### `createOrdersFromQuote` refuses: "currently syncing ... uncommitted changes"
 
 **Cause:** the quote was changed after its last opportunity sync, including saves by flows and
 pricing; with Asynchronous Opportunity Sync on, order creation refuses until it is synced again
-[Platform behaviour, traced]. Measured once straight after a successful `syncQuoteOpportunity`: two
-refusals, then success on a retry about 15 s later [Measured: 2026-11-12, 264, scratch]. Which save
+[Platform behaviour, traced]. Measured on two quotes [Measured: 2026-11-12, 264, scratch]: sync, then
+a Status: Accepted write, then `createOrdersFromQuote` refused once; a retry 15 s later, with no
+second sync, succeeded. The traced rule doesn't explain the success without a re-sync. Which save
 moved the quote was not identified.
 
-**Fix:** re-sync after the last change to the quote; a short wait then retry worked once but is not
-the rule. See `quote-negotiation-rounds`.
+**Fix:** re-sync after the last change, including the status write, before ordering. See
+`quote-negotiation-rounds`.
 
 ### Place on an Order fails with "couldn't fetch the data for ... context definition"
 

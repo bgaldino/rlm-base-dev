@@ -77,12 +77,11 @@ Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`, `configuration
   explain why the `0` + `5` PATCH succeeded and changed nothing; the cause is not established
   (needs a live check).
 - Read the line back after the PATCH; a success response doesn't show which discount applied.
-- A line PATCHed with only start and end dates keeps an empty `SubscriptionTerm`: Place writes a
-  term only from the selling model's term when the model is Term Defined and none was sent, and
-  never derives one from dates. Pricing counts periods from the dates at calculation time and
-  does not write a term back, so don't read a term off such a line [Platform behaviour, traced].
-- **Milestone Plan on bundle components.** Place with `configurationMethod: Force` left
-  `BillingFrequency` blank on component service lines (`billing-setup` → M11). A second Place PATCH
+- Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]; a dates-only
+  line read back `SubscriptionTerm` null [Measured: 2026-11-11, 264, scratch]. Whether Place fills a
+  Term Defined line's term from the selling model is not established.
+- **Milestone Plan on bundle components.** Place with `configurationMethod: Force` and
+  configuration rules on left `BillingFrequency` blank on component service lines (`billing-setup` → M11). A second Place PATCH
   with `configurationMethod: Skip` setting `BillingFrequency` Milestone Plan and the milestone
   `BillingTreatmentId` on those lines kept both, moved no price, and `createOrdersFromQuote` copied
   them [Measured: 2026-11-12, 264, scratch; one org]. Why the first Place drops it is not
@@ -108,10 +107,11 @@ platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemD
 - This repo keeps **as-is renewals on** (`enableAsIsRenewals=true` in
   `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`), so renewals behave this way
   too. Turning it off moves a plain renewal's price back to the parent, but leaves cancels and
-  negative amendments unchanged (measured, todo 157). The as-is path also needs the asset's
-  pricing source to be the last transaction price; a renewal at list price, a ramped or
-  derived-price asset or line, a changed price or attribute, and an early renewal are repriced
-  as ordinary lines instead [Platform behaviour, traced].
+  negative amendments unchanged (measured, todo 157). Per-lot as-is pricing also needs the
+  asset's `PricingSource` to be `LastTransaction` (blank or `PriceBookListPrice` does not qualify),
+  no ramp, no derived-price product, no price or attribute change, and not an early renewal
+  [Platform behaviour, traced]. Otherwise the line is not priced per lot; changed and early
+  renewals still get cancel-and-add detail rows.
 - Advanced Detail Line Pricing does not change any of it.
 
 ```bash
