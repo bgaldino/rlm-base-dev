@@ -93,7 +93,7 @@ the filter must be the first child, one filter per group].
   the result is the same with the unknown taken as true or as false, the filter returns that
   result; if the unknown would change the result, the pricing step fails with a missing-values
   error, and the filter returns false, failing the decision service [Platform behaviour, traced].
-  That error path applies because resource-value defaulting is off for pricing. There is no org-level switch for it: defaulting is a property of the expression set itself, fixed when the set is created, and a pricing expression set cannot select it, so for pricing this error path is general, not a setting to toggle [Platform behaviour, traced]. (Where a process type allows defaulting and it is on, an empty value becomes false and never errors.) That a comparison
+  That error path applies because resource-value defaulting is off for pricing. There is no org-level switch for it: defaulting is a property of the expression set itself, fixed when the set is created, and a pricing expression set cannot select it, so no setting changes this for pricing [Platform behaviour, traced]. (Where a process type allows defaulting and it is on, an empty value becomes false and never errors.) That a comparison
   on an empty tag yields unknown rather than throwing was inferred from the null branch, not read from
   the operator code. So, under those conditions, the guard works wherever it sits in the logic: a
   false `IsNotNull` makes the unknown criterion irrelevant. A compiled-expression filter path also
