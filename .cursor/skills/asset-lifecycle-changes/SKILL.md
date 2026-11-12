@@ -172,7 +172,7 @@ results, 2026-11-11).
       revision policy applies to each lot's row separately, only when the renewal date falls
       inside the policy's validity window [Platform behaviour, traced]. On the asset, a new
       sale copies the policy from the order line, and amend and renew periods inherit it from
-      the current state period when the period's policy field is in the context definition, so an amend line doesn't reset it; one step of that copy
+      the current state period when the period's policy field is in the context definition, so an amend line doesn't reset it (without that field, not read); one step of that copy
       wasn't read [Platform behaviour, traced in part]. A renewal on an asset whose
       pricing source is the price book list price takes no per-lot path: it is one line on
       the combined quantity. Only when the asset's renewal pricing type is list price does it
@@ -251,16 +251,16 @@ results, 2026-11-11).
       can satisfy the rule by choosing add-on count 0 and not instantiating the candidate:
       the line vanishes from the result, which becomes deltas, with success and no message.
       The rule's own message appears only when the count can't reach 0: the line is a real
-      component (user-set or changed status, a user-set descendant or attribute, or a
-      read-only/asset relation), or the relation's minimum is above 0. Lines sourced from
+      component (user status on the line, a user-set descendant or attribute, or a
+      read-only/asset relation; a Changed line has a fixed quantity, but whether it is a real
+      component wasn't shown), or the relation's minimum is above 0. Lines sourced from
       assets are fixed and conflict instead of dropping. To make a rule refuse rather than
       remove, give the relation a minimum above zero or tie the add-on to the answer the
       other way. Exclude rules refuse with their own message when the condition holds at
       satisfy time and a matching line exists; they remove matching lines silently when
-      propagation decides the condition true before that (order-dependent). Matching
-      components of any origin are considered there, but the source also says silent
-      removal needs a non-fixed line, so whether a user-set line can be removed this way
-      wasn't established. In the line-form copy the measured
+      propagation decides the condition true before that (order-dependent). Removal
+      considers matching lines of any origin, but a fixed line was seen to conflict instead,
+      so whether a user-set line can be removed this way wasn't established. In the line-form copy the measured
       refusal named another rule's message: a failure on a constraint with no message of its
       own reports the first rule that failed or related rules' messages (inferred, not
       traced). Which status Place assigns an amendment add-on line wasn't read [Platform
