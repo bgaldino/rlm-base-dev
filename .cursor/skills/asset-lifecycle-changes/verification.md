@@ -50,8 +50,8 @@ For each change, record the state after every step:
 5. **Activate the order.** Fill its bill-to contact and addresses first: backdated-change
    orders were refused without them [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`
    → Activating the order]. Amendment and renewal quotes had `AccountId` null and `QuoteAccountId` set
-   [Measured: 2026-11-11 (amendment) and 2026-11-12 (amendment and renewal), 264, scratch
-   org]. They carry the account in `QuoteAccountId` when the org allows quotes without an
+   [Measured: 2026-11-11 (amendment, fresh `ent-sb0` scratch org) and 2026-11-12
+   (amendment and renewal), 264, scratch org]. They carry the account in `QuoteAccountId` when the org allows quotes without an
    opportunity [Platform behaviour, traced]; this repo's scratch org definitions enable it
    [Repo: `config/project-scratch-def.json`]. With that setting off, they get an opportunity
    and `AccountId` comes from it [Platform behaviour, traced; not measured], so a lookup that
