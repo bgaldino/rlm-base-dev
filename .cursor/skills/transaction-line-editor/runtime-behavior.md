@@ -104,8 +104,8 @@ Measured traps:
 
 A rep may want one discount on every line of one product line, for example all the components of
 one family inside a suite bundle. None of the line editor articles cited here describes a feature
-for this. Help rules out the column filter route; selecting the lines by hand is measured to work, and
-the others are unconfirmed:
+for this. Help rules out the column filter route; selecting the lines by hand is measured to work in the
+STLE, and the others are unconfirmed:
 
 - **Column filter, then bulk edit:** the column filter returns parent lines only and leaves bundle
   children out [Help: `ind.qocal_view_and_edit_quotes`], so it can't narrow the grid to one product
@@ -167,11 +167,13 @@ mention of configuration conflicts with Help's "skips configuration"; see the pa
 
 Measured: **a header-only Place PATCH doesn't reprice the lines.** A Place PATCH that changed only a quote
 header field, one the pricing procedure reads through the sales transaction context, saved the field
-and left every line's price and `PriceWaterfallIdentifier` as they were; a header-only PATCH with no
-field change didn't reprice either. **Reprice All** applied the new header value to the lines
+and left every line's price as it was; a header-only PATCH with no field change didn't reprice either
+(each line's `PriceWaterfallIdentifier` stayed the same). **Reprice All** applied the new header value to the lines
 [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. After changing a header field that pricing
-reads, click Reprice All (or change a line). A header edit in the record UI wasn't measured; Help
-expects manual updates to need Reprice All (Quick Rule 5 in the parent).
+reads, click Reprice All (or change a line). A header edit in the record UI wasn't measured. For quotes,
+Help's Reprice All requirement names updates to Quote Line Items outside the line editors, not the
+Quote header (for orders it covers Order records too)
+[Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
 
 ## 5. Header adjustments
 
