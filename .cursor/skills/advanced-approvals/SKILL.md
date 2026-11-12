@@ -27,13 +27,16 @@ scratch org built by this repo.
    [Help: `ind.approvals_advanced_approvals`]. An approval workflow is an orchestration flow
    of stages and steps: background steps run flows, and approval steps assign work items
    [Help: `ind.approvals_example_configure_an_approval_workflow`].
-2. **Reduce every condition to a Number or Text value before the approval stage.**
+2. **Reduce every condition to a single flow-resolved value of a supported type (Number or
+   Text is the documented-supported type) before the approval stage.**
    - Conditions can test a background step's outputs, another step's outputs (the shipped
      Director step reads `Manager_Approver.Outputs.approvalDecision`) and flow formulas. Line
      values aren't one of those, so aggregate them (a maximum level, a count of lines below
      floor) into quote-level numbers in a background step or a roll-up first.
-   - Smart Approvals needs Number or Text conditions and no NOT operator
-     [Help: `ind.approvals_smart_approval_limitations`].
+   - Smart Approvals: the Help says Number or Text only and no NOT operator
+     [Help: `ind.approvals_smart_approval_limitations`]. The traced allow-list is wider
+     (datatypes and operators in [limitations.md](limitations.md) → Smart Approvals);
+     treat Number and Text as the documented-safe types.
 3. **Model "each level also needs the levels below" as one serial chain.** Step N starts
    when the level is at least N and step N−1 was approved. Give each independent
    dimension its own chain name so it runs in parallel. The repo ships this
@@ -194,10 +197,22 @@ items:
   [Repo: `docs/features/composable-quote-approvals.md` → Verification Checklist].
 - A rerun is idempotent only if no flow gets a new version. An mdapi redeploy of an unchanged
   autolaunched flow (a generated approval data flow) made a new version every time until the
-  file matched the form the platform stores: formulas sorted by name, numbers written like
-  `0.0`. Once the file was byte-identical to a retrieved copy, a redeploy kept the version;
-  the approval orchestration redeployed without a new version [Measured: 2026-11-12, 264].
-  For a new or generated flow, deploy it, retrieve it and commit the retrieved form. Compare
+  file was byte-identical to a retrieved copy; the approval orchestration redeployed without
+  a new version [Measured: 2026-11-12, 264]. The deploy compares the file with the stored
+  form, where named lists (formulas, constants, text templates, decisions, assignments,
+  stages and similar) are sorted by name ignoring case; the file is read in its own order and
+  strings must match exactly, so a file whose named lists are out of name order, or whose
+  strings differ, counts as changed [Platform behaviour, traced]. Which property differed in
+  the measured run is not established, and a numeric literal compares as a number (other
+  numeric properties were not audited), so the trace gives no support for a `0.0` rule for
+  those literals; a string-typed value holding a number would differ on `0` versus `0.0`. An Active latest version plus an identical file
+  creates no version; for a file deploy of an unversioned flow name, a changed file over a Draft (or
+  InvalidDraft) latest version overwrites it in place and one over an Active or Obsolete
+  latest version creates a new one; a versioned name uses a separate path (not traced to a
+  rule); a change set always creates a new version; a deploy requesting
+  Active over a non-Active latest version counts as changed [Platform behaviour, traced]. Steps inside
+  orchestrated stages keep their saved order, a possible reason an orchestration redeploys
+  unchanged; that is not proven for the measured run. For a new or generated flow, deploy it, retrieve it and commit the retrieved form. Compare
   `SELECT VersionNumber, Status FROM Flow WHERE Definition.DeveloperName = '<flow>'`
   (Tooling API) before and after a rerun. A new version of the approval orchestration flow
   also ends Smart Approvals eligibility for resubmissions
