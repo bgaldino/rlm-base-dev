@@ -33,7 +33,8 @@ before telling anyone how approvals behave where the docs are unclear. Parent:
 
 A step is eligible only if all of these hold [Help: `ind.approvals_smart_approval_limitations`,
 `ind.approvals_smart_approvals`, `ind.approvals_smart_or_rule_based_approvals`]:
-- conditions are Number or Text, with at most 30 per step and no NOT operator;
+- conditions use a supported datatype and operator (below), with at most 30 per step
+  (the limit is from the Help; not seen in the trace) and no NOT in the criteria logic;
 - no evaluation-flow entry or exit condition (that makes the whole flow ineligible);
 - no Decision before a stage whose steps start "when the stage starts";
 - the earlier submission was Rejected or Recalled, reached at least 2 steps, and had at
@@ -42,6 +43,26 @@ A step is eligible only if all of these hold [Help: `ind.approvals_smart_approva
 - no work item was reassigned during the original submission.
 
 After a full approval, the next submission is a new request, not a resubmission.
+
+How it decides [Platform behaviour, traced]:
+- A step runs Smart Approval only if its Use Smart Approval input is true and the
+  submission is eligible. The earlier submission for the same record and the same flow
+  version is the basis only if it was Recalled or Rejected; a new flow version means no basis.
+- The basis item is the newest Approved item for that step in the basis submission. If its
+  reviewer is inactive, the step goes to manual review. The current assignee is not
+  examined: the new item is created already reviewed (`IsAutoReviewed` true), under the
+  earlier reviewer, with a system comment.
+- Only a step with entry conditions is evaluated. Each condition is compared by position
+  with its earlier-run counterpart, using the single value the flow resolved for it (no
+  totals or per-line comparison); results combine through the step's criteria logic.
+- Datatypes: Boolean, Currency, Date, Date/Time, Time, Number, Picklist, Multi-select
+  picklist, Text. Operators: less than, greater than, their or-equal forms, equals, not
+  equal, starts with, ends with, contains, is null, is blank. Any other operator or type
+  (for example In, Not In, Is Empty, Was Set, Is Changed), a NOT in the logic, or an
+  evaluation error sends the step to manual review. A roll-up or Percent value is
+  whatever Number or Currency the flow resolves it to; not verified.
+- Which direction a changed value must move to count as still within the approved range
+  is not established; do not rely on it until measured with the setting on.
 
 ## Preview
 
@@ -90,12 +111,12 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
 - Which Approval Settings a fresh scratch org has on, and whether Metadata API can set them.
 - Whether a Resource-type approver works at runtime, and whether there is a
   manager-hierarchy approver.
-- Whether Smart Approvals accepts roll-up summary, Percent, Currency or picklist
-  conditions as Number or Text.
+- Whether a roll-up summary or Percent condition passes the Smart Approvals type check
+  (the flow resolves it to Number or Currency; not verified).
 - Whether `ApprovalDelegation` appears once delegation is turned on.
 - Whether a step that Smart Approvals skips on resubmission counts as approved for a later
   step whose entry condition reads its outcome (the shipped Director step reads
-  `Manager_Approver.Outputs.approvalDecision`). No recorded run shows the shipped flow
+  `Manager_Approver.Outputs.approvalDecision`); not established. No recorded run shows the shipped flow
   skipping a step on resubmission.
 - Whether `ActionInput__CanUseSmartApproval = true`, as the shipped steps set it, makes Smart
   Approvals skip approvers on resubmission; the docs don't name the input. With it `false` on

@@ -53,9 +53,9 @@ the contract value after it.
 
 Conditions test the outputs of background steps and other steps, or flow formulas; the docs
 never show a condition reading quote-line fields directly
-[Help: `ind.approvals_example_configure_an_approval_workflow`]. Smart Approvals also needs
-Number or Text values [Help: `ind.approvals_smart_approvals`,
-`ind.approvals_smart_approval_limitations`]. So reduce line data to quote-level numbers before
+[Help: `ind.approvals_example_configure_an_approval_workflow`]. Smart Approvals compares the single
+value each condition resolved to, in a supported datatype
+([limitations.md](limitations.md) → Smart Approvals). So reduce line data to quote-level numbers before
 the approval stage. Choose
 where each level is computed:
 
