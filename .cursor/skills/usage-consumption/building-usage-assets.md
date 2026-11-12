@@ -125,6 +125,12 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "<acct>" \
   run on the July window FAILS ("Linked commitment not applied"). Demo a drawdown in the
   first period only; for a second period, check for its monthly bucket rather than
   assuming it.
+  Why: only the first period's bucket is created with the asset. Later buckets come from the
+  entitlement refresh (the invocable action, the refresh flow, or the scheduled refresh batch
+  job); the shipped scheduled flow is a Draft template, so schedule or run the refresh yourself.
+  One run creates every missing past period. A usage entitlement still Pending, or whose grant
+  doesn't allow renewal, is skipped; without a bucket for a period, all usage in it is overage
+  [Platform behaviour, traced]. Which of these applied in the observed org is not established.
 
 ## Key options
 
