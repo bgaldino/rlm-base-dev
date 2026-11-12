@@ -82,7 +82,7 @@ years (`SubscriptionTerm` 2 `Annual`), quantity 1. `TotalPrice` 2,000. Shipped: 
 read in the selling model's unit, falling back to the dates when no term is given; a One-Time line
 carries 0 only where the procedure sets it (the shipped procedure's constant `[Repo]`).
 A line given only start and end dates gets its term count from the dates
-but keeps `SubscriptionTerm` null `[Measured]` (what Place itself writes for a dates-only line is not established), so filters that read `SubscriptionTerm` (such as a
+but keeps `SubscriptionTerm` null `[Measured]`. Place does not derive `SubscriptionTerm` from dates `[Platform behaviour, traced]`; a dates-only line read back `SubscriptionTerm` null `[Measured: 2026-11-11, 264, scratch]`. Whether Place fills a Term Defined line's term from the selling model is not established. So filters that read `SubscriptionTerm` (such as a
 commitment-term discount, `../../pricing-procedures/elements/commitment-term-discount.md`)
 skip it.
 

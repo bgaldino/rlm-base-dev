@@ -89,7 +89,7 @@ prorates a half month to 0.5; both hold under different partial-period settings 
 ## How pricing uses it
 
 - Subscription element: unit price x quantity x pricing term count; Proration element emits the term count.
-- [Platform behaviour, traced] In the shipped default procedure the term count is the Proration step's multiplier. The step reads the selling model's pricing term unit (not the line's own unit) as both the period and the term unit, and the line's `SubscriptionTerm` as the term; with no end date the end is start + term (in that unit) - 1 day. A line with dates only has the count derived from them. So send a term in the selling model's unit (36 on an Annual model is 36 periods) or dates. What Place writes to `SubscriptionTerm` and its unit for a line sent with dates only is not established.
+- [Platform behaviour, traced] In the shipped default procedure the term count is the Proration step's multiplier. The step reads the selling model's pricing term unit (not the line's own unit) as both the period and the term unit, and the line's `SubscriptionTerm` as the term; with no end date the end is start + term (in that unit) - 1 day. A line with dates only has the count derived from them. So send a term in the selling model's unit (36 on an Annual model is 36 periods) or dates. Place does not derive `SubscriptionTerm` from dates `[Platform behaviour, traced]`; a dates-only line read back `SubscriptionTerm` null `[Measured: 2026-11-11, 264, scratch]`. Whether Place fills a Term Defined line's term from the selling model is not established.
 - One-time and evergreen use the Pricing Setup default when set (see element file).
 - How the policy and option values reach the element (via context tags) is not in Help; see the element file.
 

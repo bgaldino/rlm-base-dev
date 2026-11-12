@@ -56,8 +56,9 @@ read the row's scope before generalising it.
    component is not established [Platform behaviour, traced in part]. Skip kept it on a standalone line (M5). To keep it on
    components, place first, then send a second Place PATCH of the component lines with
    configuration Skip, `BillingFrequency` `MilestonePlan` and the milestone `BillingTreatmentId`:
-   both were kept, no price moved, `createOrdersFromQuote` copied them and activation built one
-   plan per line [Measured: 2026-11-12, 264, scratch]. One org and one bundle; the cause of the
+   both were kept, no price moved, `createOrdersFromQuote` copied the frequency
+   (`OrderItem.BillingFrequency2` `MilestonePlan`) and activation built one plan per line
+   [Measured: 2026-11-12, 264, scratch]. One org and one bundle; the cause of the
    drop stays open. Read the frequency back after each Place.
 5. **In advance or in arrears is the treatment item's Billing Type, not a line field.**
    Advance bills on the billing date on or before the start date; Arrears on the first one
@@ -203,8 +204,9 @@ and activated; if a plan with the same reference item exists it is updated rathe
 you don't author the plan [Platform behaviour, traced]. Activating an order whose service lines carried
 `MilestonePlan` and a milestone treatment built one active plan per order item, its reference
 amount the line total, with the treatment's items plus a platform remainder item for the
-unassigned share; each schedule's billing term unit was Milestone Plan, starting on the first
-date offset [Measured: 2026-11-12, 264, scratch]. One org and one treatment. Whether a
+unassigned share; each schedule's billing term unit was Milestone Plan, starting on the order's
+start date, with the next billing date at the first date-based item's offset
+[Measured: 2026-11-12, 264, scratch]. One org and one treatment. Whether a
 one-time line with a milestone treatment and no frequency produces such a schedule is unread.
 
 **When a source names no milestones,** Revenue Cloud still needs, for each milestone:
@@ -238,23 +240,19 @@ what the amendment carries. It doesn't say which of them hold with the setting o
 
 | The amendment has | Result |
 |---|---|
-| A milestone treatment | A new plan based on the amendment, linked to the amendment billing schedule; dates and amounts recalculated from the amendment start date |
+| A milestone treatment | A new plan based on the amendment, linked to the amendment billing schedule; dates and amounts recalculated from the amendment start date. A quantity increase on a milestone-billed service, with the amendment line carrying the milestone treatment and the setting on, got a new active plan on a Category Amendment schedule from the amendment date [Measured: 2026-11-12, 264, scratch; one org] |
 | A non-milestone treatment | A one-time billing schedule and no plan |
 | A preconfigured or negotiated milestone plan | That plan, linked to the amendment billing schedule |
 | No billing treatment | A new plan from the original billing schedule group's treatment; the original plan isn't reused |
 
 **A service that an amendment adds** (a new product on the amendment, not a change to a
 milestone-billed asset) is none of those cases. The amend rule above was read for amendment
-schedules; the source read doesn't separate an added product. With *Support Milestone Plans for
-Amended Billing Schedules* on, services added by an amendment order, carrying the milestone
-treatment, each got a new active plan on activation, on a schedule of Category Amendment starting
-on the amendment date [Measured: 2026-11-12, 264, scratch]. One org. Amendment lines at
-quantity 0 for existing services already carried `MilestonePlan` from their assets. With the
-setting off wasn't measured, and neither was whether the plan links to its billing schedule,
-or a plan made by hand for the added line ([measured-264.md](measured-264.md) → Open). Help
-documents creating a plan by hand for an order product or quote line item
-[Help: `ind.billing_milestone_create`]. Until the setting-off case is measured, record milestone
-billing for amendment-added services with the setting off as an open decision in the plan.
+schedules; the source read doesn't separate an added product. Whether activating the amendment
+order gives such a line a milestone plan, with the setting on or off, hasn't been measured
+([measured-264.md](measured-264.md) → Open). Help also documents creating a plan by hand for an
+order product or quote line item [Help: `ind.billing_milestone_create`]; whether one made for the
+added line links to its billing schedule is part of the same open item. Until it is measured,
+record milestone billing for amendment-added services as an open decision in the plan.
 
 ## Payment terms
 
@@ -290,12 +288,6 @@ Quote and order values on a change are not the invoice. For where change values 
 `asset-lifecycle-changes`. For invoices and credit memos after a backdated change, and
 frequency changes on active assets, read `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 For milestone-billed assets, and services an amendment adds, see the milestone section above.
-
-A price change dated after the original commitment term's end counted 0 months under a
-months-remaining rule that counts from the original commitment start (a change dated at the
-renewal start, after the original term, with that start stamp unchanged), so a prorated
-change value was 0 [Measured: 2026-11-12, 264, scratch]. The rule is the build's own pricing
-logic, not a Billing default; read the stamp before dating a change past the original term.
 
 ## Examples
 
