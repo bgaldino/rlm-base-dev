@@ -376,8 +376,8 @@ is [open item 14](#open-items).
 
 Pick one per relation; using both is an [open item](#open-items).
 
-**A choice that switches rules on and off is free to the solver, even when the answer is
-stored.** With `mode == "A" -> rel[T] == n` and `mode == "B" -> rel[T] == 0` on several
+**A choice that switches rules on and off behaves as if free to the solver, even when the
+answer is stored.** With `mode == "A" -> rel[T] == n` and `mode == "B" -> rel[T] == 0` on several
 relations, the solver can explain a conflict in an A configuration with a B rule: one
 B rule zeroing every relation, with a message of its own, was reported for breaches of
 two unrelated sizing rules while the stored answer was A `[Measured: M40]`. So:
@@ -441,12 +441,12 @@ type Quote {
   `@(split = false)` on the types of the top-level lines, the ramp was refused with
   "You can't add more than one of the same '<product>' product to the '<type>' product
   class" and the configurator couldn't save `[Measured: M41]`. Widen the bundle relation to
-  the most segments a ramp can have, widen the line relations to their total across
-  segments, and leave `split = false` off the types the container holds. Write each check
-  as a comparison of totals across segments `[Measured: M41]`; `total()` and the
-  cardinalities in the example above already sum every instance. Which of the two settings
-  alone refuses the ramp wasn't isolated. For the ramp itself, see the
-  [ramped-quotes skill](../ramped-quotes/SKILL.md) and
+  the most segments a ramp can have, widen the line relations and the ints that hold
+  their summed totals (`qSites` in the example) to their total across segments, and leave
+  `split = false` off the types the container holds. Write each check as a comparison of
+  totals across segments `[Measured: M41]`; `total()` and the cardinalities in the example
+  above already sum every instance. Which of the two settings alone refuses the ramp wasn't
+  isolated. For the ramp itself, see the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
   [SKILL.md → Ramp groups and segments](SKILL.md#ramp-groups-and-segments).
 - **Don't add `closeRelation = true` to a relation the container aggregates.** With it,
   `total()` and `max()` on that relation failed with "There's a goal execution error in
@@ -811,7 +811,7 @@ was run.
 | M38 | Amendment changing a root sizing answer | The children re-derived; the amendment lines carried the changes as quantity deltas | 2026-11-11 |
 | M39 | Node status through sell → activate → amend → activate → amend: the rule and trigger runs on the shipped bundle model; the re-sent answers, line-only amendment and backfill runs on the built model; context rule `AssetActionSource` ⇐ `SalesTransactionItem` added to `AssetToSalesTransactionMapping`; then a before-insert trigger on `AssetActionSource` | Node status holds `cfgStatus` per answer, not values. Without the rule: every asset action source blank; an amendment changing one answer reset every unchanged answer, sent or not, to its CML default (`cfgStatus` Default). With the rule: rows from order items filled; rows from order item details (the answer change's cancel-and-reprice pair) blank, so the next amendment reset again. With the trigger as well: both filled, answers held across two amendments. A line-only amendment was unaffected without either. A backfill of blank rows from the order item's value also kept the answers | 2026-11-11 |
 | M40 | A choice answer switching several relations between a sizing rule and zero (`mode == A -> rel == n`, `mode == B -> rel == 0`), the stored answer A: one B rule for every relation with its own message; then a B rule per relation carrying that relation's message, arguments from ints set per mode; then arguments from ints the other answers fix | One B rule: configurations breaking two unrelated sizing rules were reported with its message. Per relation: the broken rule named, but its arguments printed the rejected line's own quantity or a raw `{}`. Answer-fixed arguments: the rule's normal text; in a B-mode segment a hand-added line was refused with that text, stating the A quantity | 2026-11-11 |
-| M41 | A virtual `Quote` container (relations with `sourceContextNode`) in a configurator group ramp, a bundle root and a top-level line in each segment: bundle relation `[0..1]` and `@(split = false)` on the top-level line types; then the bundle relation `[0..10]`, wider line relations, no `split = false` on those types, the check comparing totals across segments | First: "You can't add more than one of the same '<product>' product to the '<type>' product class"; the configurator couldn't save. Then, in three segments added with *Current and Subsequent Segments*: each configured and saved, no error log | 2026-11-11 |
+| M41 | A virtual `Quote` container (relations with `sourceContextNode`) in a configurator group ramp, a bundle root and a top-level line in each segment: bundle relation `[0..1]` and `@(split = false)` on the top-level line types; then the bundle relation `[0..10]`, wider line relations, no `split = false` on those types, the check comparing totals across segments | First: "You can't add more than one of the same '<product>' product to the '<type>' product class"; the configurator couldn't save. Then, in three segments added with *Current and Subsequent Segments*: segments 1 and 2 configured and saved, segment 3 changed through propagation; no error log | 2026-11-11 |
 
 ---
 
