@@ -135,7 +135,7 @@ Supported actions (API names are case-sensitive):
 | Estimate Taxes | `EstimateTaxes` | Tax estimate for the transaction |
 | Import Lines | `ImportQuoteLineItems` | Upload lines from an external source |
 | Create Ramp Schedule | `CreateRampSchedule` | Create a group ramp schedule |
-| Manage Header Adjustment | `HeaderAdjustment`; `QuoteAdjustment` and `OrderAdjustment` are aliases of it, and Help's table also lists `ManageHeaderAdjustment` [Platform behaviour, traced] | Header discount or override |
+| Manage Header Adjustment | Help's *Action API Name* column lists `ManageHeaderAdjustment`; the STLE component names the action `HeaderAdjustment`, with `QuoteAdjustment` and `OrderAdjustment` as aliases of it [Platform behaviour, traced]. Whether `ManageHeaderAdjustment` is accepted was not traced | Header discount or override |
 
 The table has two API-name columns (*Action API Name* and *API Name*); they differ only for Manage
 Header Adjustment. Help also names `ExpandAllGroups` and `CollapseAllGroups` in a syntax example.
@@ -156,9 +156,10 @@ built-in actions are in the action picker. With nothing configured, the default 
 `QuoteAdjustment`, `AddAssets`, `ImportQuoteLineItems`, then the rest with four visible. The run-time
 limit is stated three ways in Help: the considerations article says only the first 10 actions show, the
 configuration article says 10 visible action slots across all groups, and the release note says 10
-**groups** show and the rest go to an overflow menu. The STLE's limit is global: 10 inline actions across
-all groups combined, the rest under a More menu, and narrow layouts show only 2 inline. It caps rendering,
-not configured actions [Platform behaviour, traced]. The release note also says the visual UI replaces
+**groups** show and the rest go to an overflow menu. In the STLE component the cap is global: 10 inline actions across
+all groups combined, the rest under a More menu, and below a width breakpoint only 2 inline. It caps
+rendering, not configured actions [Platform behaviour, traced]. That disagrees with the release note's
+"groups" wording and the considerations article's "first 10 actions". The release note also says the visual UI replaces
 the text box, that existing text-box values carry over, and that the header hides actions a rep can't
 use and shows the next one in the group
 [Release notes: `release-notes.rn_transaction_management_stle_enhance_button_groups`]. Help gives the
