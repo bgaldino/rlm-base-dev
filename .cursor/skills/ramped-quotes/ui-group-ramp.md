@@ -65,7 +65,7 @@ These runs changed steps 1, 3 and 4 below and added
    - **A CML-sized bundle added straight into the segments comes in unsized** (2026-11-11, two fresh 264
      `ent-sb0` scratch orgs, rules on). Added without configuring it first, every component was at quantity 1
      in every segment, as if no rules had run. Opening segment 1's configurator then showed the stored sizing
-     answer solved down to fit those lines (40 sites read as 1). Re-entering the answer and saving re-derived
+     answer solved down to fit those lines (a stored answer read as 1). Re-entering the answer and saving re-derived
      every quantity in every segment. So re-enter the answers in segment 1's configurator after the add
      (placing the bundle already sized through the API was not measured in a group ramp). Configuring it
      in the Browse Catalogs dialog before the add, on a ramp quote whose model held a cross-line check,
@@ -107,13 +107,13 @@ These round numbers hide the precision: the uplifted price is **not rounded** to
 Measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs, Compound, a bundle with Term, Evergreen
 and One-Time children:
 
-- **The segment's Unit Price Uplift % is stamped on every ramp-stamped line in that segment**: Term, Evergreen and
-  One-Time lines alike (each line carries the segment's `UnitPriceUplift` and the compounded
+- **The segment's Unit Price Uplift % is applied to every ramp-stamped line in that segment**: Term, Evergreen and
+  One-Time lines alike (each carries the segment's `UnitPriceUplift` and the compounded
   `ApplUnitPriceUpliftPct`; segment 1, at 0%, read null for both fields, not 0). Their
   `NetUnitPrice` uplifts too.
 - **A line without ramp identity takes none.** A standalone Evergreen product added with *Current and
-  Subsequent Segments* had no `RampIdentifier` in any segment; in segments 2 and 3 its applied uplift was
-  blank and its `NetUnitPrice` stayed at the segment 1 price (one org; the other confirmed the missing
+  Subsequent Segments* had no `RampIdentifier` in any segment; in segments 2 and 3 it carried the
+  segment's `UnitPriceUplift`, but its `ApplUnitPriceUpliftPct` was blank and its `NetUnitPrice` stayed at the segment 1 price (one org; the other confirmed the missing
   `RampIdentifier`). It needs no `UnitPriceUplift` 0 exemption.
 - **On the Evergreen and One-Time lines `TotalPrice` didn't follow**: it stayed at quantity × the
   un-uplifted price in every segment (`NetTotalPrice` wasn't read), so line totals disagreed with
