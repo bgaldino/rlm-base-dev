@@ -116,7 +116,9 @@ All [Help: `ind.qocal_considerations_ramp_deals.htm`] unless noted.
 - **Pricing impact**: changing the type on a schedule group reprices every segment and line. A compound
   schedule reprices every line in the group on each run (a standard one reprices only changed segments)
   [Help: `ind.qocal_ramp_deal_compound_uplift_sales_reps.htm`]. Delta pricing cannot be used with Dual
-  Persistence mode [Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders.htm`].
+  Persistence mode [Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders.htm`]; it applies only to
+  PATCH edits with System pricing, and otherwise every line reruns
+  ([runtime](../runtime-and-observability.md)) [Platform behaviour, traced].
 - **Ramp limits**: up to 12 group ramp segments per schedule, 10 ramp schedule groups per transaction
   (Multiple Ramp Schedules on), 10 segments per line ramp; group and line ramps can't share a quote or
   order; derived-pricing products in a group ramp don't price correctly; ramped line items support GMT

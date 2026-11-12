@@ -54,12 +54,14 @@ dynamic input parameters. The Builder offers lookup, hide-waterfall and compound
   Cross-element order: `../procedure-anatomy-and-ordering.md`.
 - Repo places the renewal step under a ListGroup filtered to subscription lines without derived
   pricing, and the ramp step under a separate ListGroup for ramped amendments. [Repo]
-- With delta pricing + compound uplift, every line in the ramp group reprices on each run
-  regardless of the delta setting; non-compound lines are unaffected. [Help]
-- A partial PATCH can reprice only the changed lines and their dependents when delta skipping applies;
-  its conditions include System pricing, a PATCH, a completed prior status and no validation errors,
-  and the list is partial (see [`../runtime-and-observability.md`](../runtime-and-observability.md)).
-  Otherwise every line reruns and the uplift is applied again to untouched
+- Help: a compound ramp uplift reprices every line in the ramp group on each run, regardless of the
+  delta setting; non-compound lines are unaffected. [Help] That sits against the traced rule below
+  (a partial PATCH reruns only the edited lines plus dependents); the two are not reconciled, so
+  re-read ramp-group prices after any save.
+- With delta pricing on, a partial PATCH can reprice only the edited lines and their dependents; its
+  conditions include System pricing, a PATCH, Dual Persistence mode off, a completed prior status and
+  no validation errors, and the list is partial (see [`../runtime-and-observability.md`](../runtime-and-observability.md)).
+  With delta off, or a non-System or non-PATCH save, every line reruns and the uplift is applied again to untouched
   lines [Platform behaviour, traced]. Whether delta was on in the measured re-uplift is not
   established.
 
