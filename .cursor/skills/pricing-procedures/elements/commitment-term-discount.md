@@ -200,10 +200,10 @@ ordering, Shipped). Treat the position as the source's requirement and model it 
   tail rule ([`rounding-values.md`](rounding-values.md) → Feasibility). Fields, precision and
   multicurrency behavior are in that file.
 - Inside a formula, round the operand instead, as step 2 of this pattern does.
-- A Rounding Values step at that position was built and ran on 2026-11-11
-  ([`rounding-values.md`](rounding-values.md) → Rules and limits). **Open — needs live
-  verification:** how the manual discount then acts on the rounded net; check the discounted net
-  and the waterfall entry on a fractional-cent line.
+- A Rounding Values step at that position was built and ran on 2026-11-11, and manual discounts
+  after it priced as expected ([`rounding-values.md`](rounding-values.md) → Rules and limits).
+  **Open — needs live verification:** a line whose net has a fractional cent going into the
+  discount; check the discounted net and the waterfall entry.
 
 ## Overlay shape
 

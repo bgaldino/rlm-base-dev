@@ -35,7 +35,8 @@ Parameter names, the Currency data type and the three rule strings come from cor
 - No `FormulaBasedPricing` after DDS: see [formula-based-pricing](./formula-based-pricing.md).
 - Rounding mid-procedure, before a negotiated (manual) discount, when a source requires it: see
   [commitment-term-discount → Rounding before a negotiated discount](./commitment-term-discount.md#rounding-before-a-negotiated-discount).
-  A step at that position ran (Rules and limits); its effect on the manual discount was not measured.
+  A step at that position ran, with manual discounts after it pricing as expected (Rules and limits);
+  a fractional-cent net going into the discount was not checked.
 
 ## Rules and limits
 - Measured step (2026-11-11, multicurrency org): one row, `NetUnitPrice` → `NetUnitPrice`,
