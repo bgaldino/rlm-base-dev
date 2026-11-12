@@ -264,24 +264,25 @@ header — read it there rather than re-deriving it.
 | Setup → Decision Tables | One table, manually. |
 | `RLM_Refresh_Decision_Tables_Bulk` flow | From Apex or another flow — the only way Apex can reach the refresh action. Queues only when the running user can refresh (rule 1). |
 
-### Wait for fresh tables before pricing
-
-`refresh_all_decision_tables` only queues the refreshes (`lifecycle-and-refresh.md` →
-*Queued is not refreshed*), and the wait is minutes, not seconds. After the flow returned, the
-volume tier, bundle adjustment and cost book tables stayed Stale for about three minutes
-[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Pricing during that window fails
-**silently**: quotes priced while the flow was still running got empty volume and cost lookups.
-The volume step ran and left the price unchanged, the line had no unit cost, and no error was
-raised, so the numbers looked plausible [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
-After a refresh, rerun `check_decision_table_freshness` until it reports no Stale table, then
-price.
-
 An **incremental** sync advances `LastIncrementalSyncDate` and usually does not move
 `LastSyncDate` (a first incremental was measured stamping both). ⚠ In Release 264 a **full request can run as incremental**: unless
 incremental is requested, the platform chooses the type itself (org preference
 `AutoSelectRefreshDT`, whose Setup toggle is an opt-out). So judge a refresh by the
 later of the two stamps; see `lifecycle-and-refresh.md` → *Release 264 chooses the
 refresh type*.
+
+### Wait for fresh tables before pricing
+
+`refresh_all_decision_tables` only queues the refreshes (`lifecycle-and-refresh.md` →
+*Queued is not refreshed*), and the wait is minutes, not seconds. After the flow returned, the
+tier, bundle-adjustment and cost tables stayed Stale for about three minutes
+[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Pricing before the refreshes finish
+fails **silently**: quotes priced while the flow was still running got empty volume and cost
+lookups. The volume step ran and left the price unchanged, the line had no unit cost, and no
+error was raised, so the numbers looked plausible [Measured: 2026-11-11, 264, fresh `ent-sb0`
+scratch org]. Pricing after the flow returns but while tables are still Stale was not measured;
+expect the same [inferred]. After a refresh, rerun `check_decision_table_freshness` until it
+reports no Stale table, then price.
 
 ## The timing rule
 
