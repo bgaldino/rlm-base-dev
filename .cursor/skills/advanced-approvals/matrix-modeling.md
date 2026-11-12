@@ -43,7 +43,7 @@ the contract value after it.
   a threshold keyed on `OriginalActionType = Amend` misses them. A threshold on the value after the
   change has to be computed in the approval data flow; which records to compute it from is
   open ([limitations.md](limitations.md)).
-  When it sums prior orders by account, filter on `QuoteAccountId`: amendment and renewal
+  When it sums prior orders by account, match them on the quote's `QuoteAccountId`, not its `AccountId`: amendment and renewal
   quotes had `AccountId` null and `QuoteAccountId` set, and an `AccountId` filter returned a
   prior value of 0 on an amendment [Measured: 2026-11-12, 264, scratch]. They carry the
   account in `QuoteAccountId` when the org allows quotes without an opportunity (this repo's

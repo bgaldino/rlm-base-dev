@@ -81,13 +81,14 @@ How it decides [Platform behaviour, traced]:
 - A step Smart Approval auto-approves completes as Approved, so a later step reading its
   outcome sees Approved: the auto-reviewed item posts an Approve decision [Platform
   behaviour, traced; no live run with the setting on]. Conditions listed in the step's Smart Approval Skip Conditions are left out of the
-  Smart Approval comparison: each counts as passing under AND logic and as failing under OR
-  logic [Platform behaviour, traced; Help: `ind.approvals_turn_on_smart_approvals`]. The
+  Smart Approval comparison [Help: `ind.approvals_turn_on_smart_approvals`]: each counts as
+  passing under AND logic and as failing under OR logic [Platform behaviour, traced]. The
   Help FAQ (`ind.sf_contracts_aa_faq`) says listing a condition there forces a review; the
   trace contradicts that for AND logic, where a skipped condition can only help the step
   auto-approve. Under OR the step auto-approves only if a condition that is not skipped
-  passes, so skipping forces a review whenever every condition that would have passed is
-  skipped (including when every condition is skipped). Custom
+  passes, so skipping turns an auto-approval into a review only when every condition that
+  would have passed is skipped; with every condition skipped the step always goes to
+  review. Custom
   criteria logic is not covered by the trace. To force a review, turn Use Smart Approval
   off for the step.
 
