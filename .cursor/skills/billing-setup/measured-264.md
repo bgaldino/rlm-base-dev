@@ -17,6 +17,12 @@ Lines were placed with Place Sales Transaction
 
 All five products had *Billing Policy - Advance*. The test quotes were deleted afterwards.
 
+M11 is from a second scratch org (release 264, API v68.0, 2026-11-12) built from this repo with
+another catalog loaded. Its quote was placed with Place Sales Transaction, `configurationMethod:
+Force` with configuration rules on (`executeConfigurationRules: true`), as a bundle: the
+one-time service lines were components of a Term Defined root (`QuoteLineRelationship` to the
+root line).
+
 ## Results
 
 | Row | What was placed | Result |
@@ -25,12 +31,13 @@ All five products had *Billing Policy - Advance*. The test quotes were deleted a
 | M2 | Evergreen Months line with Monthly, Term Defined Annual line with Annual (both with `PeriodBoundary` Anniversary), one-time line with none; no `BillingTreatmentId` on any line; every treatment in the org had Change Billing Frequency (M10) | Accepted. `BillingTreatmentId` stayed null on every line |
 | M3 | PATCH the Term Defined Annual line to Monthly (the same PATCH also set `SubscriptionTerm` to 1, which left the end date and total unchanged) | Without a treatment: refused, *"Add a Billing Treatment to make sure that you can change the Billing Frequency of its related Quote Line Item, and try again."* With `BillingTreatmentId` = *Billing Treatment - USA - Advance* (active, Change Billing Frequency selected): accepted |
 | M4 | A one-time line with Monthly and that same treatment | Refused: *"When the SellingModelType is One Time, BillingFrequency must be null or milestone plan"* |
-| M5 | A one-time line with `MilestonePlan` and *Milestone Billing Treatment* in `BillingTreatmentId`; and a PATCH giving an existing one-time line that treatment with no frequency | Both accepted |
+| M5 | With `configurationMethod: Skip` (see Scope): a one-time line with `MilestonePlan` and *Milestone Billing Treatment* in `BillingTreatmentId`; and a PATCH giving an existing one-time line that treatment with no frequency | Both accepted. M11 is a shape where the frequency wasn't kept |
 | M6 | PATCH the Term Defined line to Milestone Plan with *Milestone Billing Treatment* | Refused: *"When the SellingModelType is Termed, BillingFrequency can't be Milestone Plan"* |
 | M7 | (read back after M2 and M5) | `BillingTerm` was 1 on every line, one-time lines included |
 | M8 | `SubscriptionTerm: 12` on the Term Defined Annual line | End date 2038-11-30 from a 2026-12-01 start, total 12 × 3,240. The term counts the selling model's pricing term unit (years here), not months |
 | M9 | Describe of the transaction and billing objects | `QuoteLineItem.BillingFrequency`, `OrderItem.BillingFrequency2` and `AssetStatePeriod.BillingFrequency`, each labelled Billing Frequency, API values `MilestonePlan` (label Milestone Plan), `Weekly`, `Monthly`, `Quarterly`, `Semi-Annual`, `Annual`; `Asset` has no billing frequency field. `BillingTerm` (label Billing Term) on the quote line, order product and asset action source. `QuoteLineItem.ProductSellingModelId` is read-only (Place refused it; the price book entry sets it). `Order.PaymentTermId`, `BillingAccount.PaymentTermId` and `BillingScheduleGroup.PaymentTermId` exist; `Quote` has no standard payment-term field, only the repo's `RLM_Payment_Terms__c` |
 | M10 | Org state after a full build | Active: `RLM_Order_to_Billing_Schedule_Flow`. Inactive: the standard `o2bsflows` (*Order To Billing Schedule Flow*). Three active policies, 15 active treatments (all with Change Billing Frequency), two active payment terms, no billing milestone plans |
+| M11 | One-time service lines as components of a bundle, each with `MilestonePlan` and *Milestone Billing Treatment* in `BillingTreatmentId`, placed with `configurationMethod: Force` and configuration rules on (second org, see Scope) | Place returned success, but `BillingFrequency` was stored blank on those lines; `BillingTreatmentId` was kept. Read the frequency back after placing; a success response doesn't mean it was kept |
 
 M2 and M3 together narrow a statement in the qb-billing README, which says a Term Defined
 line needs an explicit `BillingTreatmentId` with Change Billing Frequency
@@ -71,8 +78,10 @@ Repeat this for the frequencies a plan promises, on the route the demo will use:
 - An Evergreen line placed without `PeriodBoundary`.
 - A line whose frequency matches its pricing term, when the product's policy treatments have
   Change Billing Frequency off.
-- A one-time line with a milestone treatment and no frequency (accepted in M5): does
-  activation build a milestone plan for it?
+- A one-time line with a milestone treatment and no frequency (accepted in M5, and what M11
+  left on bundle components): does activation build a milestone plan for it?
+- A route that keeps `MilestonePlan` on a bundle component placed with configuration Force
+  (M11): a later PATCH with configuration Skip, or the same placement with rules off.
 - A service added by an amendment (a new product on the amendment order, not a change to an
   existing asset) carrying a milestone treatment: does activating the amendment order create
   a billing milestone plan for it, with `enableMilestoneBillingForAmend` on (as the repo
