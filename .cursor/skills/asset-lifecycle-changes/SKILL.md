@@ -173,8 +173,9 @@ results, 2026-11-11).
       detail row per prior positive lot, each priced from its own lot, and its quantity is the
       latest period's quantity. That needs the `enableAsIsRenewals` setting on, a
       last-transaction pricing source, no ramp, no derived-price product, no attribute
-      or price change on the line, and not an early renewal; otherwise it leaves this path. A non-ramped early renewal is repriced as a cancel-and-add pair of
-      detail rows [Platform behaviour, traced]. A renewal on a price book list-price source is
+      or price change on the line, and not an early renewal; otherwise it leaves this path. A non-ramped early renewal of a Term Defined line is repriced as a
+      cancel-and-add pair of detail rows [Platform behaviour, traced]; a non-termed (evergreen)
+      line takes its own branch first, which wasn't traced. A renewal on a price book list-price source is
       one line on the combined quantity (below). A ramped renewal leaves the per-lot path; one that
       isn't early is repriced as a single line [Platform behaviour, traced]. An early ramped
       renewal takes its own branch, which wasn't traced. Whether a renewal with an

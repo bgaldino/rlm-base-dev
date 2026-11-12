@@ -56,7 +56,8 @@ For each change, record the state after every step:
    [Repo: `config/project-scratch-def.json`]. With that setting off, they get an opportunity
    and `AccountId` comes from it [Platform behaviour, traced; not measured], so a lookup that
    must work on both kinds of org reads `QuoteAccountId` and falls back to `AccountId`.
-   Cancellation quotes weren't checked.
+   Cancellation quotes weren't measured; the same code path builds them
+   [Platform behaviour, traced].
 6. **Read the asset:**
     - `AssetStatePeriod` (`StartDate`, `EndDate`, `Quantity`, `Amount`, `Mrr`);
     - `AssetStatePeriodAttribute`;
