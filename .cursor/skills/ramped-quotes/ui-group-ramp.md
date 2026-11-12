@@ -130,15 +130,9 @@ and One-Time children:
   procedure's ramp uplift step is an alternative; not measured).
 - That partial PATCH also re-uplifted the lines it didn't touch (one org). Source shows that untouched lines
   are re-run, and a non-idempotent uplift re-applied, when delta skipping doesn't apply; when it applies, only
-  the edited lines and their dependents re-run, except that Help says a Compound Uplift Price Revision step
-  reprices every line in the ramp group on each run regardless of delta pricing
-  [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`], which fits the re-uplift of
-  untouched ramp lines [Platform behaviour, traced]. The 2026-11-11 org was built from the repo's scratch
+  the edited lines and their dependents re-run [Platform behaviour, traced]. Help adds that a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; that fits the re-uplift of untouched ramp lines [inferred]. The 2026-11-11 org was built from the repo's scratch
   definition (which enables delta pricing) but its setting wasn't read there (live check). On a second org with
-  the setting read as on, a System PATCH of one ramp line with no field change (configuration Skip) ran no
-  pricing procedure on any line (waterfall ids unchanged), yet re-applied the compound uplift to every uplifted
-  line's `NetUnitPrice`, totals unchanged [Measured: 2026-11-12, 264, scratch; one org]. Help's ramp-group rule
-  fits which lines moved, but not that no waterfall changed; that path is not traced. See SKILL.md → DO NOT
+  the setting read as on, a System PATCH of one ramp line with no field change (configuration Skip) left every line's waterfall id unchanged (no new waterfall was saved), yet re-applied the compound uplift to every uplifted line's `NetUnitPrice`, unrounded, with totals unchanged [Measured: 2026-11-12, 264, scratch; one org]. Help's rule fits which lines moved, but not the unchanged waterfalls or the uplift compounding on the stored net; that path is not traced. See SKILL.md → DO NOT
   (partial PATCH on a compound ramp). Always finish a ramp line edit with
   **Reprice All**.
 

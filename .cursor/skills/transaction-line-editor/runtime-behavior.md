@@ -187,18 +187,14 @@ default is false [Metadata API: `meta_revenuemanagementsettings`], so an org tha
 enables it in `config/project-scratch-def.json` and most `orgs/*.json` (not dev-mfg or the TFID shapes), and
 `prepare_rlm_org` deploys it as true from the pre settings bundle on every build, so every Foundations-built org has it
 on [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]. Delta skipping applies only when the setting
-is on and the save is a PATCH edit with System pricing, Dual Persistence mode off, a completed calculation status and no
+is on and the save is a PATCH edit with System pricing, Dual Persistence mode off, a completed calculation status (Completed with Pricing or with Tax) and no
 validation errors [Platform behaviour, traced; Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]; further
-conditions (pricing permissions, update-tracking settings) also apply, so treat the list as partial (see
+conditions (pricing permissions, the transaction's update tracking) also apply, so treat the list as partial (see
 pricing-procedures → runtime and observability); otherwise every line reprices, and a non-idempotent uplift step
 re-applies. When it applies, a partial PATCH re-runs the edited lines and the lines that depend on them and skips the
-rest, except that Help says a Compound Uplift Price Revision step reprices every line in the ramp group on each run
-regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`], which fits the
-re-uplift of untouched ramp lines [Platform behaviour, traced]. Which relations count as a dependency isn't traced.
+rest [Platform behaviour, traced]. Help adds that a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; that fits the re-uplift of untouched ramp lines [inferred]. Which relations count as a dependency isn't traced.
 Delta Pricing was probably on in the 2026-11-11 measurement but wasn't read there; on a second org with it read on, a
-System PATCH of one ramp line with no field change ran no pricing procedure on any line yet still re-applied the compound
-uplift to every uplifted line, totals unchanged [Measured: 2026-11-12, 264, scratch; one org]; the Help rule fits which
-lines moved but not that no waterfall changed, and that path is not traced (`ramped-quotes` SKILL.md → DO NOT). A header edit in the record UI wasn't measured. For quotes,
+System PATCH of one ramp line with no field change (configuration Skip) left every line's waterfall id unchanged (no new waterfall was saved), yet re-applied the compound uplift to every uplifted line's `NetUnitPrice`, unrounded, with totals unchanged [Measured: 2026-11-12, 264, scratch; one org]. Help's rule fits which lines moved, but not the unchanged waterfalls or the uplift compounding on the stored net; that path is not traced (`ramped-quotes` SKILL.md → DO NOT). A header edit in the record UI wasn't measured. For quotes,
 Help's Reprice All requirement names updates to Quote Line Items outside the line editors, not the
 Quote header (for orders it covers Order records too)
 [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
@@ -209,7 +205,7 @@ Quote header (for orders it covers Order records too)
 
 **Manage Header Adjustment** > type (**Amount**, **Percentage**, **Amount Override**) > value >
 distribution (**Equal**, or **Proportionate** to each line's list price × quantity). Where Delta Pricing is on
-(Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables it, and it applies only when all its conditions hold, see the Delta pricing conditions in section 4 above), click **Reprice All** afterwards. The waterfall shows each line's share. Users need
+(Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables it, and it applies only when all its conditions hold, see the delta pricing paragraph under section 4's header-edit notes above), click **Reprice All** afterwards. The waterfall shows each line's share. Users need
 Salesforce Pricing Run Time User.
 
 **The setup is in the pricing procedure, not the editor.** Manage Header Adjustment takes the type,

@@ -150,9 +150,10 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   group-level CML `require` added (DO NOT above), and a one-time or evergreen bundle child added with
   `AddProducts` into ramped segments (Quick Rule 9), and a standalone Evergreen line
   ([ui-group-ramp.md](ui-group-ramp.md)).
-- **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. When the delta
-  pricing setting is on and the save is a PATCH edit with System pricing on a completed quote, only the edited
-  lines and the lines that depend on them re-run (delta pricing), so a clone's stale lines can be skipped. A
+- **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. When delta
+  pricing applies (setting on, a System-priced PATCH, and the conditions below), only the edited lines and the
+  lines that depend on them re-run, so a clone's stale lines can be skipped; Help says Compound Uplift lines in a
+  ramp group are repriced on every run regardless, so this skip applies to lines without Compound Uplift. A
   segment created by clone can keep its clone-time price indefinitely.
   Delta pricing is an org setting (Setup > Revenue Settings > Delta Pricing for Quotes and Orders), off unless
   enabled; its platform declaration marks it beta, though neither Help nor the Metadata API reference says so, and
@@ -161,9 +162,9 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   TFID shapes), and `prepare_rlm_org` deploys it as true from the pre settings bundle on every build, so every
   Foundations-built org has it on [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`].
   Delta skipping applies only when the setting is on and the save is a PATCH edit with System pricing, Dual
-  Persistence mode off, a completed calculation status and no validation errors
+  Persistence mode off, a completed calculation status (Completed with Pricing or with Tax) and no validation errors
   [Platform behaviour, traced; Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]; further conditions
-  (pricing permissions, update-tracking settings) also apply, so treat the list as partial (see pricing-procedures
+  (pricing permissions, the transaction's update tracking) also apply, so treat the list as partial (see pricing-procedures
   → runtime and observability); otherwise every line reprices
   ([transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md)). Under it a
   partial PATCH re-runs the edited lines and the lines that depend on them and skips the rest; which relations
@@ -188,26 +189,19 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   reprice wasn't tried for this case. What the source shows: when delta
   skipping doesn't apply, every line runs through every pricing element again, and the uplift step isn't
   idempotent, so an untouched line is uplifted again; when it applies, only the edited lines and their
-  dependents re-run, except that Help says a Compound Uplift Price Revision step reprices every line in the ramp
-  group on each run regardless of delta pricing
-  [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`], which fits the re-uplift of
-  untouched ramp lines [Platform behaviour, traced]. The 2026-11-11 org was built from the repo's scratch
+  dependents re-run [Platform behaviour, traced]. Help adds that a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; that fits the re-uplift of untouched ramp lines [inferred]. The 2026-11-11 org was built from the repo's scratch
   definition, so delta pricing was probably on, but its setting wasn't read there, and whether the re-uplifted
   lines (the Term child) were dependents of the edited ones, or this is a different path, is not established
-  (live check). On a second org with the setting read as on, a System PATCH of one ramp line with no field change
-  (configuration Skip) ran no pricing procedure on any line (waterfall ids unchanged), yet re-applied the
-  compound uplift to every uplifted line's `NetUnitPrice`, totals unchanged
-  [Measured: 2026-11-12, 264, scratch; one org]. Help's ramp-group rule fits which lines moved, but not that no
-  waterfall changed; that path is not traced. Don't
+  (live check). On a second org with the setting read as on, a System PATCH of one ramp line with no field change (configuration Skip) left every line's waterfall id unchanged (no new waterfall was saved), yet re-applied the compound uplift to every uplifted line's `NetUnitPrice`, unrounded, with totals unchanged [Measured: 2026-11-12, 264, scratch; one org]. Help's rule fits which lines moved, but not the unchanged waterfalls or the uplift compounding on the stored net; that path is not traced. Don't
   rely on a partial PATCH leaving other lines untouched. To reproduce: on a Compound UI ramp,
   PATCH `UnitPriceUplift` on some lines of segments 2 and 3 only, then read the other lines'
   `NetUnitPrice` in those segments (measured with a bundle: the PATCHed lines were its Evergreen and
   One-Time children, the re-uplifted ones its Term child). Finish every ramp line edit with Reprice
   All and re-read all segments.
-- **DO NOT** reprice a lifecycle quote after its order is activated. Measured once on a non-ramped renewal
-  quote: an API Force reprice of every line after the order was activated turned each renewal lot into a
-  cancelling pair and the quote total to 0; the order and assets were unchanged
-  [Measured: 2026-11-12, 264, scratch]. Not measured on amendments or ramped quotes; mechanism not traced. Read
+- **DO NOT** reprice a lifecycle quote after its order is activated. Measured once on a renewal quote: a full reprice (every
+  line, pricing `Force`, configuration `Skip`) after the order was activated set the renewal lines' totals and the
+  quote total to 0 [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read
+  afterwards. Not measured on amendments or ramped quotes; mechanism not traced. Read
   quote values before activation and don't reprice afterwards.
 - **DO NOT** claim a build "works" from an offline dry-run — a mutating ramp run
   must be verified against a **live 264 org**, writing only to a confirmed
