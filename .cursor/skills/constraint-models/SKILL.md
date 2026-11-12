@@ -400,6 +400,10 @@ Three attributes do the work:
   `"FreeTrial"`. Measured on one 264 org (2026-11-06): in a FreeTrial segment a rule on `== "FreeTrial"`
   fired and one on `== "Yearly"` did not; `== "Yearly"` rules fired in Yearly segments.
 
+A virtual `Quote` container is not scoped to a group: the configurator receives every line of the quote,
+across all segments, as one set, and no scoping by group was found other than a `groupBy` container
+(`[Platform behaviour, traced]`; see [quantities-from-attributes.md](quantities-from-attributes.md#checks-across-top-level-lines-a-virtual-quote-container)).
+
 Groups don't support rules such as `hide`, `disable` or `recommend`, which act on a condition. Use `require` in groups.
 
 Measured with a test `groupBy` container on one 264 org (2026-11-06; standalone Term Annual products, Place API):
