@@ -39,7 +39,7 @@ Product, product selling model, schedule (type Volume; no standalone tiers), tie
 
 - Bounds are inclusive and tiers cannot overlap; tiers sharing an effective date must be consecutive with no gaps.
 - For a unique Product + Selling Model + Schedule + Currency + Effective Dates, quantity ranges must not overlap; avoid duplicates, especially with multicurrency off.
-- [Repo] The platform rejects insert/update/delete of a tier while its schedule is active.
+- [Repo] The platform rejects insert/update/delete of a tier while its schedule is active. [Platform behaviour, traced] This is write-time validation only (inserting, deleting or undeleting tiers, editing bounds); pricing does not check it, and the shipped tier lookup has no active input, so an inactive tier row still prices. Delete or exclude tiers you do not want priced.
 
 ### Attribute-based
 
@@ -98,7 +98,7 @@ Simulate a line at a quantity inside a band and check the waterfall step.
 | Symptom | Cause | Fix |
 |---|---|---|
 | Cannot add or change tiers | Schedule is active | Deactivate, edit, refresh (reactivating is not needed for volume tiers on 264; step 4) |
-| Tier discount missing for non-USD | Schedule duplicated per currency, or currency not matched. A missing child row in that currency is a candidate cause, not measured ([open question](./import-export-and-bulk-data.md#open-questions)) | Single schedule; load one child row per currency ([Adding a currency](./import-export-and-bulk-data.md#adding-a-currency)) |
+| Tier discount missing for non-USD | Schedule duplicated per currency, or currency not matched. A missing child row in that currency is a non-match, so no adjustment [Platform behaviour, traced; not measured] ([open question](./import-export-and-bulk-data.md#open-questions)) | Single schedule; load one child row per currency ([Adding a currency](./import-export-and-bulk-data.md#adding-a-currency)) |
 | Attribute discount not applied (numeric) | Value without `.0` | Use `10.0` |
 | Attribute discount not applied after migration, table fresh | Conditions hash mismatch | Save an affected condition unchanged, then run a validation transaction |
 | Save error on attribute selection | Inherited or Boolean-picklist attribute | See limits |
