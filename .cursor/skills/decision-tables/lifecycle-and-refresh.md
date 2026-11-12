@@ -204,9 +204,9 @@ describe it) and confirmed on a fresh 264 build, 2026-10-27:
   an **opt-out**: ON suppresses auto-selection, and the request decides again.
 - **Freshness is the later of `LastSyncDate` and `LastIncrementalSyncDate`**, the rule
   the Decision Table app page uses. 264 Setup shows only the full date. A
-  price book entry table is not expected to show an incremental stamp, because its
-  source hard-deletes and so always runs full; if one does appear, check the rows before
-  trusting it. `[inferred]`
+  price book entry table should always run full under auto-select, because its
+  source hard-deletes; if an incremental stamp appears (for example from an explicit
+  incremental request), check the rows before trusting it. `[inferred]`
 
 No caller here refuses or rewrites the request: the CCI tasks, the Decision Table
 Manager and `refresh_decision_table.py` all send it as given. The Manager and
