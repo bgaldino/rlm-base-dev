@@ -46,6 +46,8 @@ Where the dev guide and the org disagree, this file follows the org and says so.
    [Chained derivations](#chained-derivations)); this file avoids the loop instead.
 6. **Give every constraint that sizes or derives a quantity its own message,** so a test
    can tell which rule rejected a configuration `[Dev guide: cml_logical_constraints]`.
+   Rules that a choice switches on and off share their relation's message; see
+   [Zero for a component a choice excludes](#zero-for-a-component-a-choice-excludes).
 7. **Test with configuration rules on,** and assert each expected rejection by its own
    message (see [Testing it headlessly](#testing-it-headlessly)).
 8. **Annotate each component type a rule sizes `@(split = false)`,** unless its lines must
@@ -145,7 +147,8 @@ Put the annotation on each leaf type that is a sized component (in the worked ex
 every type but the abstract `Support`). Leave it off a type whose lines must carry
 different attribute values: `split = false` allows only one instance
 `[Dev guide: cml_annotation_example_split]`. Group ramps are
-[open item 15](#open-items).
+[open item 15](#open-items). The types a virtual `Quote` container holds are a different
+case: see [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container).
 
 ---
 
@@ -373,6 +376,22 @@ is [open item 14](#open-items).
 
 Pick one per relation; using both is an [open item](#open-items).
 
+**A choice that switches rules on and off is free to the solver, even when the answer is
+stored.** With `mode == "A" -> rel[T] == n` and `mode == "B" -> rel[T] == 0` on several
+relations, the solver can explain a conflict in an A configuration with a B rule: one
+B rule zeroing every relation, with a message of its own, was reported for breaches of
+two unrelated sizing rules while the stored answer was A `[Measured: M40]`. So:
+
+- **Give each relation its own pair of branch rules, both carrying that relation's message**
+  (an exception to [Quick Rule 6](#quick-rules)). That named the right rule
+  `[Measured: M40]`.
+- **Take message arguments only from ints the other answers fix,** never from an int set
+  per branch. Those printed the rejected line's own quantity, or a raw `{}` `[Measured: M40]`.
+
+The cost: in mode B, a line the rep adds by hand is refused with the relation's normal
+message, which states the quantity mode A would set, not 0 `[Measured: M40]`. Measured with
+`constraint(...)` branches, not `exclude`.
+
 ---
 
 ## Checks across top-level lines: a virtual `Quote` container
@@ -416,7 +435,19 @@ type Quote {
   them and added instances, once a second bundle root, to satisfy the rule. An `Error`
   message refused without moving anything: an error log row with its text, as in
   [Reading a result](#reading-a-result) `[Measured: M35]`. Bound the bundle relation
-  `[0..1]`.
+  `[0..1]`, unless the quote can be a group ramp (next point).
+- **In a group ramp, the container sees every segment's lines at once:** a bundle root and
+  its top-level lines in each segment. With the bundle relation `[0..1]` and
+  `@(split = false)` on the types of the top-level lines, the ramp was refused with
+  "You can't add more than one of the same '<product>' product to the '<type>' product
+  class" and the configurator couldn't save `[Measured: M41]`. Widen the bundle relation to
+  the most segments a ramp can have, widen the line relations to their total across
+  segments, and leave `split = false` off the types the container holds. Write each check
+  as a comparison of totals across segments `[Measured: M41]`; `total()` and the
+  cardinalities in the example above already sum every instance. Which of the two settings
+  alone refuses the ramp wasn't isolated. For the ramp itself, see the
+  [ramped-quotes skill](../ramped-quotes/SKILL.md) and
+  [SKILL.md → Ramp groups and segments](SKILL.md#ramp-groups-and-segments).
 - **Don't add `closeRelation = true` to a relation the container aggregates.** With it,
   `total()` and `max()` on that relation failed with "There's a goal execution error in
   your CML code" instead of the rule's message `[Measured: M36]`.
@@ -730,7 +761,7 @@ If the `support` relation's `[1..1]` bound rejects two plans first (an
 The 2026-11-10 rows come from a temporary probe model on a 264 (API v68.0) scratch org:
 rules added to an active bundle model, imported and cycled, then read back through
 `message(...)` values in a `configure` response after a Place with rules on. Row M21 is an
-earlier headless test of a different model. The 2026-11-11 rows (M22 to M39) come from fresh
+earlier headless test of a different model. The 2026-11-11 rows (M22 to M41) come from fresh
 264 `ent-sb0` scratch orgs: a bundle model built on this file's patterns (more than a dozen
 components sized from root answers, the largest relation above 9,999), probe models, the
 shipped QuantumBit bundle model (part of M39), and the line editor and configurator UI. M37's
@@ -779,6 +810,8 @@ was run.
 | M37 | An `int` on the bundle set equal to an add-on's cardinality, for the container to read; `validate_cml` on the model with the container | The default add-on was dropped instead of raised to its rule's quantity, with and without the container (two runs, one model); reading the cardinality through the container's relation path restored it. `validate_cml`: "Missing port/type association" warnings for the container | 2026-11-11 |
 | M38 | Amendment changing a root sizing answer | The children re-derived; the amendment lines carried the changes as quantity deltas | 2026-11-11 |
 | M39 | Node status through sell → activate → amend → activate → amend: the rule and trigger runs on the shipped bundle model; the re-sent answers, line-only amendment and backfill runs on the built model; context rule `AssetActionSource` ⇐ `SalesTransactionItem` added to `AssetToSalesTransactionMapping`; then a before-insert trigger on `AssetActionSource` | Node status holds `cfgStatus` per answer, not values. Without the rule: every asset action source blank; an amendment changing one answer reset every unchanged answer, sent or not, to its CML default (`cfgStatus` Default). With the rule: rows from order items filled; rows from order item details (the answer change's cancel-and-reprice pair) blank, so the next amendment reset again. With the trigger as well: both filled, answers held across two amendments. A line-only amendment was unaffected without either. A backfill of blank rows from the order item's value also kept the answers | 2026-11-11 |
+| M40 | A choice answer switching several relations between a sizing rule and zero (`mode == A -> rel == n`, `mode == B -> rel == 0`), the stored answer A: one B rule for every relation with its own message; then a B rule per relation carrying that relation's message, arguments from ints set per mode; then arguments from ints the other answers fix | One B rule: configurations breaking two unrelated sizing rules were reported with its message. Per relation: the broken rule named, but its arguments printed the rejected line's own quantity or a raw `{}`. Answer-fixed arguments: the rule's normal text; in a B-mode segment a hand-added line was refused with that text, stating the A quantity | 2026-11-11 |
+| M41 | A virtual `Quote` container (relations with `sourceContextNode`) in a configurator group ramp, a bundle root and a top-level line in each segment: bundle relation `[0..1]` and `@(split = false)` on the top-level line types; then the bundle relation `[0..10]`, wider line relations, no `split = false` on those types, the check comparing totals across segments | First: "You can't add more than one of the same '<product>' product to the '<type>' product class"; the configurator couldn't save. Then, in three segments added with *Current and Subsequent Segments*: each configured and saved, no error log | 2026-11-11 |
 
 ---
 
