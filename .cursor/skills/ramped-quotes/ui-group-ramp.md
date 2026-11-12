@@ -66,10 +66,10 @@ These runs changed steps 1, 3 and 4 below and added
      `ent-sb0` scratch orgs, rules on). Added without configuring it first, every component was at quantity 1
      in every segment, as if no rules had run. Opening segment 1's configurator then showed the stored sizing
      answer solved down to fit those lines (40 sites read as 1). Re-entering the answer and saving re-derived
-     every quantity in every segment. So re-enter the answers in segment 1's configurator after the add, or
-     place the bundle already sized through the API. Configuring it in the Browse Catalogs dialog before the
-     add, on a ramp quote whose model held a cross-line check, showed the answer at 1 with that check's error
-     and Save disabled (one run).
+     every quantity in every segment. So re-enter the answers in segment 1's configurator after the add
+     (placing the bundle already sized through the API was not measured in a group ramp). Configuring it
+     in the Browse Catalogs dialog before the add, on a ramp quote whose model held a cross-line check,
+     showed the answer at 1 with that check's error and Save disabled (one run).
    - Use a **term** selling model (for example Term Annual) for a standalone product. On the API path an
      Evergreen price book entry can't ramp and the segments come out without ramp identity. Through this
      dialog too, a standalone Evergreen product added with *Current and Subsequent Segments* landed in every

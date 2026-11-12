@@ -36,8 +36,8 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
   - a required choice attribute on the bundle root (for example Include/Exclude, default Include);
   - in CML, each one-time child relation keeps its sizing rule under Include and gets `== 0` under Exclude. Give each
     relation its own Exclude rule carrying that relation's message: with one shared Exclude rule, its message was the
-    one reported when a different sizing rule broke on an Include bundle (the solver treats the answer as free even
-    when stored);
+    one reported when a different sizing rule broke on an Include bundle (as if the solver treated the stored answer
+    as free);
   - in PCM, the minimum of each component group holding those children lowered to 0, and any of them that was
     required (`IsComponentRequired`) made optional.
 
@@ -48,7 +48,7 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
   Exclude, with and without defaults), and Validate Product Definition reported no errors. A contract value rolled
   up over all segments then counted the one-time children once and matched the source's figure. Switching back to
   Include, and order, amend and assetization of this shape, weren't measured.
-- A **required** child cannot be removed that way: its checkbox is disabled in the segment 2 configurator and the line's row
+- A **required** child cannot be removed by unticking: its checkbox is disabled in the segment 2 configurator and the line's row
   menu has no delete.
 - UI adds of the test bundles failed with `UNKNOWN_EXCEPTION` and no lines written while `IsDefault` was false on their
   `ProductSellingModelOption` rows. Setting `IsDefault = true` on the root and child options together fixed it; which row
