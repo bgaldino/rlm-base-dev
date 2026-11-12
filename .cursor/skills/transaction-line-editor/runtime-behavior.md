@@ -189,7 +189,7 @@ enables it in `config/project-scratch-def.json` and most `orgs/*.json` (not dev-
 on [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]. Delta skipping applies only when the setting
 is on and the save is a PATCH edit with System pricing, Dual Persistence mode off, a completed calculation status (Completed with Pricing or with Tax) and no
 validation errors [Platform behaviour, traced; Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]; further
-conditions (pricing permissions, the transaction's update tracking) also apply, so treat the list as partial (see
+conditions (the transaction's update tracking) also apply, so treat the list as partial (see
 pricing-procedures → runtime and observability); otherwise every line reprices, and a non-idempotent uplift step
 re-applies. When it applies, a partial PATCH re-runs the edited lines and the lines that depend on them and skips the
 rest [Platform behaviour, traced]. Help adds that a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; that fits the re-uplift of untouched ramp lines [inferred]. Which relations count as a dependency isn't traced.

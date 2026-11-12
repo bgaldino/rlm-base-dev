@@ -166,7 +166,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   Delta skipping applies only when the setting is on and the save is a PATCH edit with System pricing, Dual
   Persistence mode off, a completed calculation status (Completed with Pricing or with Tax) and no validation errors
   [Platform behaviour, traced; Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]; further conditions
-  (pricing permissions, the transaction's update tracking) also apply, so treat the list as partial (see pricing-procedures
+  (the transaction's update tracking) also apply, so treat the list as partial (see pricing-procedures
   → runtime and observability); otherwise every line reprices
   ([transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md)). Under it a
   partial PATCH re-runs the edited lines and the lines that depend on them and skips the rest; which relations

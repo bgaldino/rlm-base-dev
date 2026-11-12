@@ -57,7 +57,7 @@ was written (checked on one org). The 0 minimums raised no group-range warning (
   Include, and order, amend and assetization of this shape, weren't measured. That the 0 minimums raised no
   range warning isn't a rule for a minimum of 1. A solver group-range check exists only where the model declares
   instance bounds on the group; a separate bundle validation reports a count mismatch for a group minimum of 1 with 0 lines
-  [Platform behaviour, traced]; the solver range check, and the effect on order, amend and assetize, aren't established. The
+  [Platform behaviour, traced]; whether the solver range check fires at a PCM-only group minimum of 1, and the effect on order, amend and assetize, aren't established. The
   solver counts a quantity-N line as 1 with `split = false`, N with `split = true`, and the lines built when
   unset. Whether a PCM minimum reaches the model isn't established (live check) [Platform behaviour, traced in part].
 - A **required** child cannot be removed by unticking: its checkbox is disabled in the segment 2 configurator and the line's row
