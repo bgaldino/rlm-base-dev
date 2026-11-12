@@ -29,6 +29,10 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
   rules on), unticking an optional child sized by `relation[T] == <answer>` in segment 2's configurator was
   silently re-ticked by the solver after "Processing…", with no message. So with rules on, a rule-sized one-time
   child stays in every segment (see [What a UI-built bundle ramp carries](#what-a-ui-built-bundle-ramp-carries)).
+  This fits how the solver treats lines: an optional line the rep hasn't fixed is only a candidate, so a rule that
+  needs it makes the solver add it back with no message of its own, and a rule that can be met with none drops it
+  silently instead of refusing [Platform behaviour, traced]. Which status the configurator sends for a ticked
+  child wasn't established.
   Whether a rule that relaxes the child after segment 1 (one that reads a segment or ramp answer) would let it be
   unticked was not measured.
 - **A root answer that zeroes the one-time children does work** (two fresh 264 `ent-sb0` scratch orgs, 2026-11-11,
@@ -36,8 +40,10 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
   - a required choice attribute on the bundle root (for example Include/Exclude, default Include);
   - in CML, each one-time child relation keeps its sizing rule under Include and gets `== 0` under Exclude. Give each
     relation its own Exclude rule carrying that relation's message: with one shared Exclude rule, its message was the
-    one reported when a different sizing rule broke on an Include bundle (as if the solver treated the stored answer
-    as free);
+    one reported when a different sizing rule broke on an Include bundle (the solver changed the stored answer;
+    it does that when the answer reaches the solve as a default, engine-derived or fresh-add value, not a
+    rep-entered one on a context that tracks node status, and which case this was isn't established; see
+    [constraint-models → a choice that switches rules](../constraint-models/quantities-from-attributes.md));
   - in PCM, the minimum of each component group holding those children lowered to 0, and any of them that was
     required (`IsComponentRequired`) made optional.
 
@@ -47,7 +53,11 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
 was written (checked on one org). The 0 minimums raised no group-range warning (in the segment 2 configurator, or headless with
   Exclude, with and without defaults), and Validate Product Definition reported no errors. A contract value rolled
   up over all segments then counted the one-time children once and matched the source's figure. Switching back to
-  Include, and order, amend and assetization of this shape, weren't measured.
+  Include, and order, amend and assetization of this shape, weren't measured. That the 0 minimums raised no
+  range warning isn't a rule for a minimum of 1: the range check comes from the solver and applies only where the
+  model declares instance bounds on the group, it counts a quantity-N line as 1 with `split = false` and as N
+  otherwise, and whether a PCM minimum reaches the model, or what a minimum of 1 with no lines does, isn't
+  established (live check) [Platform behaviour, traced in part].
 - A **required** child cannot be removed by unticking: its checkbox is disabled in the segment 2 configurator and the line's row
   menu has no delete.
 - UI adds of the test bundles failed with `UNKNOWN_EXCEPTION` and no lines written while `IsDefault` was false on their
@@ -81,6 +91,12 @@ configurator to one instance at the rule's quantity fixed segment 1 only: segmen
 instance beside it (n + 1), which broke the rule and was flagged only by the group-range warning. With `IsDefaultComponent` false on the sized children (a required child must be a default, so
 it was made optional), each child was one instance at the rule's quantity in every segment, with no warning. The
 API path doesn't show this when it sends the child lines itself with `addDefaultConfiguration: false`.
+
+Why: a default component is pre-added at its configured quantity (1 when unset). For a type with no `split`
+annotation that line is fixed, so a rule asking for more makes the solver add a separate line for the remainder;
+with `split = false` the line's quantity is a variable and the line is reused. Each segment's bundle root is
+solved on its own, so each segment gets one line per unsplit component [Platform behaviour, traced]. Which
+status or quantity the clone gives the segment's lines is set outside the solver and wasn't traced.
 
 The CML fix is `@(split = false)` on each component type a rule sizes: it kept default components as one line at
 the rule's quantity in the configurator (2026-11-11; see

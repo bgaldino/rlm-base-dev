@@ -128,14 +128,18 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   The bundles tested in ramped segments, added in the quote UI or cloned, kept ramp ids on every line; see
   [Cloning a segment that holds a bundle](bundle-children-lifecycle.md#cloning-a-segment-that-holds-a-bundle).
 - **DO NOT** allow only one instance per type on a virtual transaction (`Quote`) container in a group ramp.
-  The container sees every segment's lines at once. Measured 2026-11-11 (fresh 264 `ent-sb0` scratch org,
-  quote UI): with the bundle relation `[0..1]` and `@(split = false)` on the top-level line types it held,
+  The container sees every segment's lines at once: the configurator is handed every line of the quote, across
+  all segments and groups, in one set, and no per-group scope is applied before the model runs except a
+  `groupBy` container [Platform behaviour, traced]. How the engine then handles a container in a group ramp, and
+  the source of the refusal text below, aren't established. See the container rule in
+  [constraint-models → Checks across top-level lines](../constraint-models/quantities-from-attributes.md#checks-across-top-level-lines-a-virtual-quote-container).
+  Measured 2026-11-11 (fresh 264 `ent-sb0` scratch org, quote UI): with the bundle relation `[0..1]` and `@(split = false)` on the top-level line types it held,
   the ramp quote got "You can't add more than one of the same '<product>' product to the '<type>' product
   class" and the configurator couldn't save. Widening those relations' cardinality and dropping
   `split = false` from those types (changed together) fixed it. Write the container's cross-line checks as
   totals across all segments. The container pattern, including its `[0..1]` bundle bound for an unramped
-  quote, is in
-  [constraint-models → Checks across top-level lines](../constraint-models/quantities-from-attributes.md#checks-across-top-level-lines-a-virtual-quote-container).
+  quote, is in the same section. Whether a `[0..1]` or `split = false` bound alone is the trigger, or a
+  setting is also involved, wasn't isolated (live check).
 - **DO NOT** treat a null `RampIdentifier` on read-back as a graph mistake — it
   usually means the org's **context definitions are stale**; a Context Definition
   sync fixes it (see `.cursor/skills/context-service/SKILL.md`). Other known causes: a line a
@@ -144,8 +148,11 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   ([ui-group-ramp.md](ui-group-ramp.md)).
 - **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. On a
   `CompletedWithPricing` quote, System runs **delta pricing**, which can skip lines it considers
-  unchanged. A segment created by clone can keep its clone-time price indefinitely. Exactly which
-  lines get skipped isn't traced.
+  unchanged. A segment created by clone can keep its clone-time price indefinitely. Delta pricing skips
+  unchanged lines only when all its conditions hold (System pricing, an update, a completed calculation
+  status, among others); otherwise every line runs again
+  ([transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md))
+  [Platform behaviour, traced]. Exactly which lines get skipped isn't traced.
 
   Measured 2026-10-29/30 on 264 with a probe that set the uplift at placement:
   - 8 of 8 builds came out of cloning with the last segment un-uplifted (setting the uplift
@@ -163,7 +170,11 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   `UnitPriceUplift` re-applied the uplift to the other ramp lines. Their `NetUnitPrice` was uplifted
   again on top of the already uplifted net (each segment by its applied % once more), while
   their `TotalPrice` stayed put. **Reprice All** in the line editor restored every line; a `Force`
-  reprice wasn't tried for this case. Possibly a platform defect. To reproduce: on a Compound UI ramp,
+  reprice wasn't tried for this case. What the source shows is only this: when delta pricing's conditions
+  don't all hold, every line runs through every pricing element again, and the uplift step isn't idempotent,
+  so an untouched line is uplifted again [Platform behaviour, traced in part]. Whether delta pricing was on in the
+  measured case, and so whether this is a defect or that path, is not established (live check). Don't
+  rely on a partial PATCH leaving other lines untouched. To reproduce: on a Compound UI ramp,
   PATCH `UnitPriceUplift` on some lines of segments 2 and 3 only, then read the other lines'
   `NetUnitPrice` in those segments (measured with a bundle: the PATCHed lines were its Evergreen and
   One-Time children, the re-uplifted ones its Term child). Finish every ramp line edit with Reprice
@@ -351,8 +362,11 @@ compound result — the three calls above alone do not. It also needs the fully-
 ```
 
 Segment 1 is the baseline (leave `UnitPriceUplift` 0). `pricingPref: "Force"`
-re-runs pricing on **every** line, so the engine applies the compound uplift. `System` runs delta
-pricing and may not reprice every line (see DO NOT). Poll `CalculationStatus`
+re-runs pricing on **every** line, so the engine applies the compound uplift. `System` prices a Place
+request only if it carries at least one line record (a request holding only the Quote and group records,
+such as a lone `RampUpliftType` change, isn't priced), and its delta pricing may skip lines (see DO NOT)
+[Platform behaviour, traced]; see the header-only rule in
+[transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md). Poll `CalculationStatus`
 to a settled state, then read back ([Read-back](#read-back--the-ramp-schedule)) and
 verify the compounding numerically.
 
