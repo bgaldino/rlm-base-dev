@@ -426,8 +426,8 @@ Whether the solver may change a stored answer depends on its node status, which 
 context that tracks node status (the node-status tag in the context definition, with the
 constraints permission) carries. On such a context a rep-entered answer is fixed once its status is user-set or changed:
 a rep update arrives as changed, and a rep add in the same request arrives as new. A new
-line is a candidate line in the solver; how a new line's attributes are treated is not traced
-`[Platform behaviour, traced in part]`. That sits oddly with the refusal of a hand-added
+line is a candidate line in the solver `[Platform behaviour, traced]`; how a new line's
+attributes are treated is not traced. That sits oddly with the refusal of a hand-added
 line in the mode B case below (M40): consistent only if the line was fixed another way, which
 isn't established. A new line becomes user-set once the engine has run after it. The solver
 re-derives an answer when the context has no node-status tag, when the value came from a
