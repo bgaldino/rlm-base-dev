@@ -724,8 +724,9 @@ message was only in the error log and a later `configure` returned
 `solverStatus: "success"` `[Measured: M29]`. Assert expected `Info` or `Warning` notes
 from `message(...)` separately, in `configure`'s `messages`; whether they also reach the
 log wasn't measured. Bundle-validation rows can appear in the log too, and one made
-`createOrdersFromQuote` refuse the quote `[Measured: M29, M31]`: quote-to-order refuses on
-any configurator error-log row, whatever its severity (see [open item 1](#open-items)).
+`createOrdersFromQuote` refuse the quote `[Measured: M29, M31]`. Quote-to-order refuses on
+any configurator error-log row, whatever its severity `[Platform behaviour, traced]` (see
+[open item 1](#open-items)).
 
 ---
 
@@ -950,8 +951,10 @@ Each needs a live 264 org:
    warnings) `[Platform behaviour, traced]`. The rows come from placements in the
    allow-errors modes, and the bundle-validation row is written only when catalog
    validation is on and configuration is not `Skip`; a placement that skips configuration
-   runs no check, so no row appears. Under a "run and block errors" choice, Place refuses
-   the save instead (traced for Place, unmeasured for this check).
+   runs no check, so no row appears. Under a quote-placement "run and block errors" choice,
+   Place refuses the save when the message is an error (traced for Place, unmeasured for
+   this check; the severity this check carries on that path was not traced: M16 saw it as
+   a warning).
 2. How a large cardinality (600 service hours) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
@@ -1005,7 +1008,7 @@ Each needs a live 264 org:
     group. Bundle validation reports a count mismatch for a group minimum of 1 with
     0 lines `[Platform behaviour, traced]`; the solver range check, and the effect on
     amend and assetize, are not established; once the mismatch is logged, quote-to-order
-    refuses (open item 1). Also open: whether a PCM minimum reaches the
+    refuses (open item 1; traced, not measured for an empty min-1 group). Also open: whether a PCM minimum reaches the
     model. A candidate in neither source: one exclusion per pair of
     plans, such as `support[StandardSupport] > 0 -> support[PremiumSupport] == 0`. None run.
 15. Whether `@(split = false)` keeps one line per component in later group-ramp segments
