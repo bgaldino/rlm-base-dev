@@ -199,8 +199,9 @@ items:
   the approval orchestration redeployed without a new version [Measured: 2026-11-12, 264].
   For a new or generated flow, deploy it, retrieve it and commit the retrieved form. Compare
   `SELECT VersionNumber, Status FROM Flow WHERE Definition.DeveloperName = '<flow>'`
-  (Tooling API) before and after a rerun. A new version of the approval flow also ends Smart
-  Approvals eligibility for resubmissions [Help: `ind.approvals_smart_approval_limitations`].
+  (Tooling API) before and after a rerun. A new version of the approval orchestration flow
+  also ends Smart Approvals eligibility for resubmissions
+  [Help: `ind.approvals_smart_approval_limitations`].
 - The approval-flags overlay and the approvals context plan are applied by
   `prepare_approvals_pricing`, not `prepare_approvals`. On a fresh build it applies both.
   Changing thresholds on an org that already has the overlay takes a separate one-off
