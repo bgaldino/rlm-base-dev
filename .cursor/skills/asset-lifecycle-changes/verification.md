@@ -21,14 +21,30 @@ For each change, record the state after every step:
     - each line's `Quantity`, `UnitPrice` and `TotalPrice`. On an amendment quote
       `Quantity` is the delta, and `StartQuantity` and `EndQuantity` the totals before and
       after. A line's source asset is on `QuoteAction.SourceAssetId`; `QuoteLineItem` has
-      no `AssetId`;
+      no `AssetId`. An amendment quote has no contract or related-quote link, and its lines
+      reach the asset only through the quote action (change-policy-mapping.md → Questions to
+      settle in the plan);
     - its `QuoteLineDetail` rows (dated by `EffectiveFrom` and `EffectiveTo`);
     - `QuoteLineItemAttribute` for configured products;
     - the header `Subtotal`, `Discount` and `TotalPrice`.
-3. **Reprice** (Place Sales Transaction with a Quote PATCH) and read again: nothing
-   should move.
+3. **Reprice** and read again: nothing should move. Use Reprice All or a Place request
+   with Force pricing, or a Place request that includes a line record. A Place request
+   that patches only the quote header isn't priced under System pricing: it is priced
+   only when it carries at least one quote or order line (or line attribute) record, so a
+   header-only PATCH leaves the lines untouched and "nothing moved" proves nothing. A
+   request that carries a context id is priced whenever the transaction has lines (not
+   measured). Force always prices [Platform behaviour, traced].
 4. **Create the order** (`createOrdersFromQuote`), reprice it, and read `OrderItem`,
-   `OrderItemDetail` and `OrderItemAttribute`.
+   `OrderItemDetail` and `OrderItemAttribute`. Read the order's `EffectiveDate` back: it is
+   set to the earlier of the day the order is created and the earliest line start date on
+   the quote, and nothing in the call sets it. A quote that starts in the future therefore
+   gives an order dated today, and a past start gives an order dated at the earliest start.
+   For a dated replay set the line start dates (in the past to backdate) before creating
+   the order [Measured: 2026-11-12, 264, a 2027-01-01 start gave an order dated the run
+   date] [Platform behaviour, traced]. Lines with no start date are ignored. This is the standard advanced quote-to-order path only; industry processors and time-zone conversion weren't checked (`quote-negotiation-rounds` has the order-creation detail). Whether each
+   order of a split gets its own minimum, and where the order item's service date comes
+   from on amendment lines, wasn't established: read each created order back [Platform
+   behaviour, traced in part].
 5. **Activate the order.** Fill its bill-to contact and addresses first: backdated-change
    orders were refused without them [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`
    → Activating the order]. An amendment quote's `AccountId` is null; its account is in
@@ -37,7 +53,9 @@ For each change, record the state after every step:
     - `AssetStatePeriod` (`StartDate`, `EndDate`, `Quantity`, `Amount`, `Mrr`);
     - `AssetStatePeriodAttribute`;
     - `AssetAction` (`Type`, `CategoryEnum`, `QuantityChange`, `Amount`), which links to
-      the order lines through `AssetActionSource.ReferenceEntityItemId`.
+      the order lines through `AssetActionSource.ReferenceEntityItemId`: the order line's
+      Id, or its `OrderItemDetail` Id when the line has detail rows (SKILL.md Quick Rule 2)
+      [Platform behaviour, traced].
     - For a CML bundle that will be amended again, the root's latest asset action source
       rows must carry the node status (SKILL.md Quick Rule 2). `AssetAction.ActionDate` is
       the activation time, so the latest action is the last one activated. The field is
@@ -95,7 +113,8 @@ through activation before the next; a reprice moved nothing at any step:
 Amendments on a CML bundle depend on the configurator's node status: on one of these orgs
 (the answer reset reproduced on the other) `AssetActionSource.RLM_ConstraintEngineNodeStatus__c`
 was empty after every activation while `OrderItem.RLM_ConstraintEngineNodeStatus__c` was
-filled. Copying the order lines' value onto the asset action sources before amending stopped
+filled. That conflicts with the platform reading in SKILL.md Quick Rule 2, where item-sourced
+rows take a mapped line value; the cause is **Open** (live check: which rows were blank). Copying the order lines' value onto the asset action sources before amending stopped
 the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
 
 ## Open: measure before promising
