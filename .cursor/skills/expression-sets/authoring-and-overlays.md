@@ -69,13 +69,17 @@ What worked, on every run whose overlays were valid, in two fresh 264 `ent-sb0` 
 [Measured: 2026-11-11]:
 
 1. Export the procedure import-ready (`export_expression_set.py --for-import --out <file>`).
+   To build a new procedure rather than replace the exported one (the shipped procedure stays
+   untouched, SKILL.md → Quick Rules), rename
+   it before merging: the top-level `apiName`, the top-level `name` and the version `apiName`
+   (SKILL.md → DO NOT); the measured build did that.
 2. Apply every overlay to that JSON locally, in order, with `apply_overlay()` from
    `scripts/expression_sets/_overlay.py` (the merge the CLI uses, which mirrors the CCI task's),
-   passing the version API name.
+   passing the version API name (the new one if you renamed).
 3. Import it once with `import_expression_set.py --input-file <file>` (preview, then `--confirm`),
    which replaces the existing procedure in place, or creates it under a new name. The import
    runs the offline validator before it writes, but the platform can still refuse a step's
-   content at create or replace, and that run then fails.
+   content: a parameter it rejects failed a create in the measured build.
 
 This also recovers a version a failed PATCH left inactive: re-import a known-good merged
 definition before reactivating it.
