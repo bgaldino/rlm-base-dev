@@ -224,8 +224,8 @@ SELECT Id, Status FROM ApprovalSubmission WHERE RelatedRecordId = '<NEW>'
 
 Not measured; settle on a live org before relying on them:
 
-- Why some header fields copy and others don't. Context plan mapping doesn't explain the
-  cases measured ([deep-clone.md](deep-clone.md) → What carries over).
+- Why some header fields copy and others don't. Context plan mapping may not explain
+  everything; the 2026-11-12 cases fit it ([deep-clone.md](deep-clone.md) → What carries over).
 - Whether the `deepCloneSalesTransaction` invocable needs anything beyond
   `enableTransactionCloning`, and whether it behaves like the Connect API.
 - Whether `options.recordTypeId` sets the clone's record type.

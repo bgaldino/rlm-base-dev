@@ -51,8 +51,8 @@ Documented [Help: `ind.qocal_clone_quotes_and_orders`]:
 - "To clone custom objects and custom fields, configure the context definition for the
   sales transaction"; custom child objects need `ParentReference` mapped to the parent
   record id. Measured below, custom header fields that no context plan mapped did not
-  behave alike: one copied, a picklist came back as its default and a checkbox came back
-  false.
+  behave alike: `RLM_Payment_Terms__c` copied on the 2026-11-10 org, while on the 2026-11-12
+  org a picklist came back as its default and a checkbox came back false.
 
 Measured on one org, from a source quote with one group, two evergreen lines of one
 product (line discounts 20% and 10%), one attribute row on the 20% line, synced to its
@@ -81,15 +81,18 @@ Connect API [Measured: 2026-11-12, 264]:
 |---|---|
 | A custom header picklist that no context plan mapped | The picklist's **default**, not the source's value. A source already holding the default looked as if it copied |
 | A custom header checkbox that no context plan mapped (the internal-round flag) | `false` (source: `true`) |
-| `StartDate` and the other custom header fields the rounds compared | Same as the source |
+| Two custom header fields the rounds compared (mapped in the context plan), and `StartDate` | Same as the source |
+| `RLM_Payment_Terms__c` | Same as the source, but every source held `Net 30`, the picklist default, so this run doesn't show whether it copies |
 | Line `Discount` and a custom line field mapped in the context definition | Copied on every line |
 
 Not measured: price adjustments other than the line `Discount` field (the source had no
 `QuoteLinePriceAdjustment` rows), bundles, ramp segments, header discounts, custom child
 objects, orders. Which header fields copy follows no rule settled yet: `RLM_Payment_Terms__c`
-copied on both orgs, a custom picklist and a custom checkbox did not, nor did two editable
-standard fields. Context mapping alone doesn't explain it: no context plan mapped the
-picklist, the checkbox or `RLM_Payment_Terms__c`. So after each clone, compare every header
+copied on the 2026-11-10 org; on the second org every source held its default, so that run
+doesn't tell. A custom picklist and a custom checkbox did not copy, nor did two editable
+standard fields. Context mapping may not explain everything (no context plan maps
+`RLM_Payment_Terms__c`); the 2026-11-12 cases fit it: the custom header fields that kept the
+source's value are mapped, the two that were lost are not. So after each clone, compare every header
 field a round depends on with the source and write back the ones that differ
 ([SKILL.md](SKILL.md) → Validation Checks).
 
