@@ -35,9 +35,10 @@ results, 2026-11-11).
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
     - **Never reprice a lifecycle quote after its order is activated.** Measured once on a
-      renewal quote: a full reprice (every line, pricing `Force`) after the order was activated
-      turned each renewal lot into a cancelling pair and the quote total to 0; the order and
-      assets were unchanged [Measured: 2026-11-12, 264, scratch org]. Not measured on amendments or ramped quotes; mechanism not traced. Read
+      renewal quote: a full reprice (every line, pricing `Force`, configuration `Skip`) after
+      the order was activated set the renewal lines' totals and the quote total to 0
+      [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read
+      afterwards. Not measured on amendments or ramped quotes; mechanism not traced. Read
       quote values before activation and don't reprice afterwards.
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
    with configuration rules on (the UI's inline quantity edit does this), resets the
@@ -172,11 +173,12 @@ results, 2026-11-11).
       detail row per prior positive lot, each priced from its own lot, and its quantity is the
       latest period's quantity. That needs the `enableAsIsRenewals` setting on, a
       last-transaction pricing source, no ramp, no derived-price product, no attribute
-      or price change on the line, and not an early renewal; otherwise it leaves this path. An early renewal is repriced as a cancel-and-add pair of
+      or price change on the line, and not an early renewal; otherwise it leaves this path. A non-ramped early renewal is repriced as a cancel-and-add pair of
       detail rows [Platform behaviour, traced]. A renewal on a price book list-price source is
-      one line on the combined quantity (below). Whether a renewal with an attribute or price
-      change, a ramped renewal or a derived-price product gets cancel-and-add rows or a single
-      line isn't settled [Platform behaviour, traced in part]. The
+      one line on the combined quantity (below). A ramped renewal leaves the per-lot path and
+      is repriced as a single line [Platform behaviour, traced]. Whether a renewal with an
+      attribute or price change, or of a derived-price product, gets cancel-and-add rows or a
+      single line isn't settled [Platform behaviour, traced in part]. The
       last-negotiated method copies the net unit price and has no volume-band step, so it
       doesn't re-band; a re-band needs an explicit pricing step, and only lines the step
       admits (renewal lines start at quantity 0) [Platform behaviour, traced]. A price
@@ -285,8 +287,8 @@ results, 2026-11-11).
       on Force to change a No Change line's quantity; read the saved line back [Platform
       behaviour, traced in part].
     - **A rule that counts a virtual container's lines needs those lines on the amendment.**
-      Where the top-level lines were absent from a root-only amendment, the container counted
-      none and its count rule logged an Error-severity entry, which blocks ordering (ordering
+      Where the top-level lines were absent from a root-only amendment, the container's count
+      rule reported zero and logged an Error-severity entry, which blocks ordering (ordering
       wasn't attempted). Amending the top-level assets at `quantityChange` 0 along with the
       root cleared it [Measured: 2026-11-12, 264, scratch org; one org]. The container counts
       only lines on the quote whose source matches the node it declares [Platform behaviour,
