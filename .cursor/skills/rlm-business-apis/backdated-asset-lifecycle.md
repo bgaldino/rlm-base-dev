@@ -62,7 +62,7 @@ each continued through invoice with the verifier and passed; rollback refused in
 - **Swap/upgrade/downgrade product picker** lists only products in a catalog category. In this
   run QB API Management Solution (`QB-API-MGMT`) was in none, so it couldn't be picked; Additional
   QB DataGraph and Additional API Flex/Pre-Prod could. qb-pcm now puts `QB-API-MGMT` in the
-  Software catalog's Bundle category (`PC-QB-SW-BUNDLE`); the picker hasn't been re-run since.
+  Software catalog's API category (`PC-QB-SW-API`); the picker hasn't been re-run since.
 - **The incoming swap/upgrade line uses the product's own term and billing frequency**: here a
   year from the swap date (08-01 → 2027-07-31) billed **Annual**, not co-termed with the outgoing
   asset as the API run was. So billing differs between paths: the UI swap's catch-up invoice bills
