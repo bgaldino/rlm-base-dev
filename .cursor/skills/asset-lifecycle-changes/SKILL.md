@@ -34,6 +34,11 @@ results, 2026-11-11).
    placement.** Follow the change from quote → reprice → order → reprice → activation →
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
+    - **Never reprice a lifecycle quote after its order is activated.** Repricing a renewal
+      quote after activation turned each lot into a negative and a positive row netting 0 and
+      took the quote total to 0; a reprice can't undo it, and the order is the record
+      [Measured: 2026-11-12, 264, scratch org; one org, cause not traced]. Read the quote's
+      numbers before ordering, not after activation.
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
    with configuration rules on (the UI's inline quantity edit does this), resets the
    line's attributes to the product defaults. Activation keeps them on the asset, and the
@@ -273,6 +278,13 @@ results, 2026-11-11).
       same edit isn't explained, and the check isn't known to be skipped under Force.
       Don't rely on Force to edit the quantity of a No Change line [Platform behaviour,
       traced in part].
+    - **A rule that counts a virtual container's lines needs those lines on the amendment.**
+      A virtual quote container binds only lines whose source matches the node the container
+      declares; any other line stays outside it. A count rule on a root-only amendment, where
+      the top-level lines are absent, logged an Error that blocked the order. Amending the
+      top-level assets at `quantityChange` 0 along with the root attached them and cleared it
+      [Measured: 2026-11-12, 264, scratch org; one org] and fits the binding rule
+      [Platform behaviour, traced]. Constraint side: `constraint-models`.
 8. **Ramped bundles have their own limits:** amending an API-built group-ramped bundle
    with a one-time or evergreen child failed in the measured shapes
    [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].
