@@ -31,8 +31,7 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    ends with `refresh_all_decision_tables` then `rebuild_search_index` for this reason.
    A build that loads data after those steps leaves stale tables behind.
    **The refresh flow returns before the tables are fresh, so wait before pricing**: poll
-   `check_decision_table_freshness` until the tables the flow queued are no longer Stale
-   (see *Refreshing*).
+   `check_decision_table_freshness` until it reports no Stale table (see *Refreshing*).
    Rating, qualification and tax tables have no runtime refresh at all: after editing that
    setup data, use the Manager's **Refresh stale only**, or its **Reads object** filter.
    See `lifecycle-and-refresh.md` → *After editing setup data*.
@@ -274,14 +273,19 @@ refresh type*.
 
 ### Wait for fresh tables before pricing
 
-`refresh_all_decision_tables` only queues the refreshes (`lifecycle-and-refresh.md` →
-*Queued is not refreshed*). After the flow returned, the tier, bundle-adjustment and cost tables
-stayed Stale for about three minutes [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
-Pricing in that window fails **silently**: a quote priced about half a minute after the flow
-returned got empty volume and cost lookups. The volume step ran and left the price unchanged, the
-line had no unit cost, and no error was raised [Measured: 2026-11-11, 264, fresh `ent-sb0`
-scratch org]. Before pricing, rerun `check_decision_table_freshness` until the tables the flow
-queued are no longer Stale.
+`refresh_all_decision_tables` returns before the tables are fresh: it queues the table
+refreshes and does not wait for them (`lifecycle-and-refresh.md` → *Queued is not refreshed*).
+Its log is not a checklist either: the cost book table (`RLM_CostBookEntries`) is in none of the
+`dt_*_decision_tables` lists the flow's refresh tasks queue, so no "queued" line names it. Measured on two fresh 264 `ent-sb0`
+scratch orgs on 2026-11-11:
+
+- On one, the tier, bundle-adjustment and cost tables stayed Stale for about three minutes after
+  the flow returned, then reached zero Stale.
+- On the other, a quote priced about half a minute after the flow returned got empty volume and
+  cost lookups, while its bundle adjustment applied. The volume step ran and left the price
+  unchanged, the line had no unit cost, and no error was raised.
+
+Before pricing, rerun `check_decision_table_freshness` until it reports no Stale table.
 
 ## The timing rule
 
