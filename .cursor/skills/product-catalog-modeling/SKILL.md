@@ -179,7 +179,7 @@ general SFDMU behaviour, seen on a PCM plan):
 
 | # | Fact | What to do |
 |---|---|---|
-| a | On the measured PCM plan (for the QuantumBit plan this is open; see below), after the **first** SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Run the whole plan twice on a fresh org. Never re-extract an org that had one pass; the extract would bake the defaults into the CSVs. |
+| a | On the measured PCM plan (for the QuantumBit plan this is open; see below), after the **first** SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Run the whole plan twice on a fresh org. Never re-extract an org that had one pass; the extract would bake the definition's values into the CSVs. |
 | b | A `Readonly` anchor object that children reach through a `$$` composite lookup column needs a CSV with that `$$` column, or those lookups silently fail to resolve. [Measured: 2026-11, 264] This conflicts with `sfdmu-data-plans` → *Where a plan's CSVs live*, which says a `Readonly` object never reads a source file and its CSV is optional; that skill's live-verified case is a single-field traversal. Not reconciled: see Open questions. | Keep a CSV with the same `$$` column the children's lookup columns name; shipped plans already do. |
 | c | In a plan without `useSeparatedCSVFiles: true`, repeating an object across object sets does not give pass 2 its own data: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] Per-pass files need that flag and `objectset_source/object-set-N/` (`sfdmu-data-plans` → *Where a plan's CSVs live*). | For fact (a)'s second pass, run the plan again: that is the measured fix. |
 | d | A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | Generate codes from the full path, and check uniqueness across every level and catalog the plan loads. |
@@ -189,7 +189,7 @@ In this repo, `prepare_product_data` runs `insert_quantumbit_pcm_data` once. The
 `test_qb_pcm_idempotency` task loads the plan once, extracts the org, and reloads the
 extraction, so its second load replays the one-pass org state, not the CSVs: it is not
 fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUIdempotency`] Whether a
-one-pass QuantumBit build leaves any classification attribute at a default that differs
+one-pass QuantumBit build leaves any classification attribute at its definition's value where that differs
 from its CSV is **Open — needs live verification**: every `IsRequired` in the QB CSV is
 `false`, the documented default, but all 36 rows set `AttributeNameOverride`, whose
 first-insert value was not recorded. Inferred from the traced copy: every QuantumBit `AttributeNameOverride` equals its definition's `Name` and every `IsRequired` matches its definition, so one pass should already match the CSV; not measured. [inferred] [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
@@ -326,8 +326,8 @@ Every item marked **Open — needs live verification** in this skill and its sub
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 - **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message, which conflicts with the traced rule; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
-- **One-pass QuantumBit build.** Whether any classification attribute is left at a default
-  that differs from its CSV (inferred from the traced copy: `AttributeNameOverride` and `IsRequired` already match their definitions, so probably not; not measured). See [Loading the model](#loading-the-model).
+- **One-pass QuantumBit build.** Whether any classification attribute is left at its definition's value
+  where that differs from its CSV (inferred from the traced copy: `AttributeNameOverride` and `IsRequired` already match their definitions, so probably not; not measured). See [Loading the model](#loading-the-model).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
   sets them; Help forbids them under a *new* static bundle. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
