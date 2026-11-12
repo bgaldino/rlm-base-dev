@@ -36,7 +36,7 @@ read the row's scope before generalising it.
    from the selling model [Measured: M1]. The configurator's pricing step fills
    the frequency only for a Months (Monthly) or Annual (Annual) term unit; other units get
    no automatic value, so set it explicitly [Platform behaviour, traced]. Place with Skip gave no
-   fill (M1) [Measured: 2026-11-12, 264, scratch]. Whether Skip skips that step is not traced. A frequency that matches the pricing term (Monthly on a
+   fill (M1) [Measured: 2026-11-10, 264, scratch]. Whether Skip skips that step is not traced. A frequency that matches the pricing term (Monthly on a
    Months model, Annual on an Annual model) needed no billing treatment on the line, in an
    org where every treatment had Change Billing Frequency selected [Measured: M2]. With the
    flag off on the product's treatments, the repo's data-plan README reports the line can't be
@@ -139,7 +139,7 @@ Plan; the API values match the labels except `MilestonePlan` [Measured: M9]. On 
 `MilestonePlan` on an Evergreen line wasn't tested (the save check refuses it on Term Defined and Evergreen lines).
 
 The save check, as read, skips a blank frequency on insert and refuses a blank only when a
-saved value is changed; it applies only when billing is enabled. M1 refused a new Term
+saved line's frequency is changed and the result is blank; it applies only when billing is enabled. M1 refused a new Term
 Defined line with a blank frequency anyway; that is measured and the source read doesn't explain it.
 A save error on a line can hide the rule message. On the synchronous path, a refused line save is
 what comes back, and configuration messages from that call aren't written as error logs (traced in
