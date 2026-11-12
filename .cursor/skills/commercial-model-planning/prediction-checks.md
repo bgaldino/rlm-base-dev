@@ -126,15 +126,11 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     root answer, an optional add-on whose requirement no longer held was removed with no
     message (`asset-lifecycle-changes` Quick Rule 7). So for every refusal golden that an
     amendment or renewal reaches, write down how the change arrives (an answer change or
-    a line edit) and which form of the rule meets it. Then name what the solver may change
-    to satisfy the rule. A stored answer counts as changeable: the solver behaved as if a
-    stored answer were free (`constraint-models` → `quantities-from-attributes.md`, Zero
-    for a component a choice excludes), and after a Browse Catalogs add into ramp segments
-    it read a stored sizing answer as 1 (`ramped-quotes` → `ui-group-ramp.md`, step
-    4), so a rule between two answers may be met by moving the other one. Predict a removal or a changed answer, and assert the deltas, wherever
-    the solver can make one; predict the message only where nothing it may change
-    satisfies the rule. A
-    prior plan predicted a rule's message on an amendment. The answer change removed the
+    a line edit) and which form of the rule meets it. Predict the message only where a run
+    showed it on that path. Elsewhere assert the line deltas and the stored answers: a rule
+    may remove a line the rep didn't touch, and a conflict was reported through a different
+    rule than the one broken (`constraint-models` → `quantities-from-attributes.md`, Zero
+    for a component a choice excludes). A prior plan predicted a rule's message on an amendment. The answer change removed the
     add-on silently, and a line edit drew a different rule's message.
 14. **On a bundle sized by configuration answers, carry the answers across changes.**
     After each activation, read the root's asset action source rows for node status, and
