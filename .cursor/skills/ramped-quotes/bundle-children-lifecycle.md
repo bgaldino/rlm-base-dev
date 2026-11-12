@@ -44,7 +44,7 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
   Configure segment 1 and save (that sized every segment), then set the answer to Exclude in segment 2's
   configurator and save. The dialog says "Configuration changes will apply to current and all future segments":
   segments 2 and 3 kept only the root and its other children, segment 1 kept every one-time line, and no error log
-  was written. The 0 minimums raised no group-range warning (in the segment 2 configurator, or headless with
+was written (checked on one org). The 0 minimums raised no group-range warning (in the segment 2 configurator, or headless with
   Exclude, with and without defaults), and Validate Product Definition reported no errors. A contract value rolled
   up over all segments then counted the one-time children once and matched the source's figure. Switching back to
   Include, and order, amend and assetization of this shape, weren't measured.
