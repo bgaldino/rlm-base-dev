@@ -84,8 +84,9 @@ How it decides [Platform behaviour, traced]:
   Smart Approval comparison: each counts as passing under AND logic and as failing under OR
   logic [Platform behaviour, traced; Help: `ind.approvals_turn_on_smart_approvals`]. The
   Help FAQ (`ind.sf_contracts_aa_faq`) says listing a condition there forces a review; the
-  trace contradicts that. Under AND a skipped condition can only help the step
-  auto-approve. Under OR it forces a review only when every condition is skipped. Custom
+  trace contradicts that for AND logic, where a skipped condition can only help the step
+  auto-approve. Under OR a skipped condition can force a review: when it is the only
+  condition that would have passed, or when every condition is skipped. Custom
   criteria logic is not covered by the trace. To force a review, turn Use Smart Approval
   off for the step.
 

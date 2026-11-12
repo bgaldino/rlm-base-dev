@@ -212,7 +212,7 @@ items:
   rule); a change set always creates a new version; a deploy requesting
   Active over a non-Active latest version counts as changed [Platform behaviour, traced]. Deploying an
   approval flow as Active in a production org needs the org setting that lets flows deploy
-  as active (the repo's Apex test comments call it Deploy-as-active); a non-production org allows it regardless. Without it,
+  as active (the repo's Apex test skip messages call it Deploy-as-active); a non-production org allows it regardless. Without it,
   deploy as Draft and activate separately [Platform behaviour, traced]. Steps inside
   orchestrated stages keep their saved order, a possible reason an orchestration redeploys
   unchanged; that is not proven for the measured run. For a new or generated flow, deploy it, retrieve it and commit the retrieved form. Compare
