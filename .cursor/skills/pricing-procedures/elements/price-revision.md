@@ -56,8 +56,10 @@ dynamic input parameters. The Builder offers lookup, hide-waterfall and compound
   pricing, and the ramp step under a separate ListGroup for ramped amendments. [Repo]
 - With delta pricing + compound uplift, every line in the ramp group reprices on each run
   regardless of the delta setting; non-compound lines are unaffected. [Help]
-- A partial PATCH reprices only the changed lines when delta skipping applies (System pricing, PATCH,
-  completed prior status); otherwise every line reruns and the uplift is applied again to untouched
+- A partial PATCH can reprice only the changed lines and their dependents when delta skipping applies;
+  its conditions include System pricing, a PATCH, a completed prior status and no validation errors,
+  and the list is partial (see [`../runtime-and-observability.md`](../runtime-and-observability.md)).
+  Otherwise every line reruns and the uplift is applied again to untouched
   lines [Platform behaviour, traced]. Whether delta was on in the measured re-uplift is not
   established.
 

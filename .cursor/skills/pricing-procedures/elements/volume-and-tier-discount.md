@@ -105,7 +105,7 @@ Tier names are from core's element registration, no Tier step ships in this repo
   standalone tiers. Help: deactivate the schedule before adding records, reactivate after. [Help]
   On 264 any tier write fails while the schedule is active and tiers on an inactive schedule
   still price, so this repo leaves "Standard Price Adjustment Tier" inactive; don't activate it. [Repo, measured]
-  The block is deliberate: tier changes (add, remove, bound edits) are refused while the parent
+  The block is an explicit validation: tier changes (add, remove, bound edits) are refused while the parent
   schedule is active [Platform behaviour, traced]. Bundle-Based Adjustment rows have no such check
   ([`bundle-based-price.md`](./bundle-based-price.md)).
 - Tier type: Percentage, Amount (Help: a flat amount, for example US$100) or Override

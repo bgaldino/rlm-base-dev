@@ -92,9 +92,15 @@ the filter must be the first child, one filter per group].
   criterion: it evaluates every criterion and treats one that reads an empty tag as unknown. If
   the result is the same with the unknown taken as true or as false, the filter returns that
   result; if the unknown would change the result, the pricing step fails with a missing-values
-  error [Platform behaviour, traced]. So the guard works wherever it sits in the logic: a false
-  `IsNotNull` makes the unknown criterion irrelevant. A compiled-expression filter path also
-  exists in 264; its handling of unknowns is not established. The overlay and the measured result
+  error, and the filter returns false, failing the decision service [Platform behaviour, traced].
+  That error path applies only while the org-level resource-value-defaulting setting is off (the
+  pricing default); when it is on, an empty value becomes false and never errors. That a comparison
+  on an empty tag yields unknown rather than throwing was inferred from the null branch, not read from
+  the operator code. So, under those conditions, the guard works wherever it sits in the logic: a
+  false `IsNotNull` makes the unknown criterion irrelevant. A compiled-expression filter path also
+  exists in 264; it was traced to drop the row silently, without an error, when an empty value decides
+  the outcome. Which path the shipped main filter takes is undetermined, so an unguarded empty field
+  can be dropped silently or fail the step depending on the path. The overlay and the measured result
   below do not have the guard; the 2026-11-11 build did, and priced One Time lines without error
   ([Line inputs on real quotes](#line-inputs-on-real-quotes)). Without it, the live result is
   still open (see [Open questions](#open-questions)).
@@ -297,10 +303,10 @@ group ramp built in the quote UI)
 | `SubscriptionTerm` 3, unit `Annual` | As sent, `PricingTermCount` 3 | Discount applied, total over 3 terms: the correct shape |
 | A segment line of a group ramp built in the quote UI | `SubscriptionTerm` 1, unit `Annual`, a ramp identifier | Criterion 8 fails: no discount unless criterion 14 below |
 
-The pricing term count is the number of periods in the selling model's term unit: the line's
+For a line that goes through the proration engine, the pricing term count is the number of periods in the selling model's term unit: the line's
 `SubscriptionTerm` is read in that unit (36 on an Annual model is 36 annual periods, whatever unit
 the line carries), and a line with no term has its count derived from its start and end dates
-[Platform behaviour, traced]. A dates-only line is therefore priced over its dates but is not
+[Platform behaviour, traced]. An Evergreen or One Time line with a configured default term count takes that count directly, bypassing the engine; a One Time line with no default is not prorated [Platform behaviour, traced]. A dates-only line is therefore priced over its dates but is not
 established as term-bearing: criterion 3 reads `SubscriptionTerm`, which stayed null in the
 measurement above, and what Place writes to the term fields from dates was not traced.
 
@@ -371,7 +377,7 @@ expressed the rule.
   Time line's null `PricingTermUnit`. Help says a null compared tag
   returns an error, but what the error looks like, was not measured. The condition logic does not
   short-circuit, so ordering does not keep criterion 2 from being evaluated; it is the unknown-value
-  rule above that decides whether the null matters [Platform behaviour, traced]. Price a One
+  rule above that decides whether the null matters, on the legacy path; the compiled path may drop the row silently (path undetermined) [Platform behaviour, traced]. Price a One
   Time line, alone and inside a mixed bundle, through the clone with and without criterion 11.
   Until then keep criterion 11, placed before criterion 2.
 - What a Place-created line and a UI group-ramp segment line carry is measured
