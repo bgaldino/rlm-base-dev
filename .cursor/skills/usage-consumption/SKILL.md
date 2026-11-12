@@ -34,9 +34,10 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
    flow templates are Draft with a one-time schedule, so nothing runs them automatically.
    This repo's `RLM_OrchestrateUsageManagement` is different: it is deployed Active with a
    Daily schedule `[Repo: force-app/main/default/flows/RLM_OrchestrateUsageManagement.flow-meta.xml]`,
-   so a scheduled run can close an eligible period on its own. When building backdated
-   assets, record a period's usage before that period can be picked up, or a run may
-   settle it first `[inferred]`. Not established: how raw usage is aggregated into the summary, and whether the
+   so a scheduled run can close an eligible period on its own. A backdated asset's
+   past periods are eligible as soon as it exists, so record their usage before the next
+   daily run (00:00 UTC); otherwise that run closes them empty, as a first manual pass
+   would (Example 1, step 3) `[inferred]`. Not established: how raw usage is aggregated into the summary, and whether the
    period dates can be edited.
 3. **Record usage against the ANCHOR asset,** never the commitment. A commitment is
    a rate modifier, not a consumption target.
@@ -54,7 +55,7 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
 
 ## DO NOT
 
-- **DO NOT** record usage after orchestrating that period — a `UsageSummary` at
+- **DO NOT** record usage after orchestrating that period (by hand or by the daily scheduled run) — a `UsageSummary` at
   `RatableSummaryComplete` / `LiableSummaryComplete` **never reopens**, and the
   journals stay `Pending` forever with no error
 - **DO NOT** expect `clearUsageData.apex` to reopen a closed period. It drains the
@@ -228,11 +229,12 @@ grant; a Pack product *adds* allowance and carries a grant but no commitment pol
 
 Do **not** start by inspecting rates. Check ordering first:
 
-1. Was usage recorded *before* that period was orchestrated? If not, the period is
+1. Was usage recorded *before* that period was orchestrated (including the daily
+   scheduled run of `RLM_OrchestrateUsageManagement`)? If not, the period is
    unrecoverable — pick a different period.
 2. Was `USAGE_DATE` in a **past** period?
-3. Is this the account's *first* orchestration? The first pass closes every past
-   period empty.
+3. Is this the account's *first* orchestration (manual or scheduled)? The first pass
+   closes every past period empty.
 4. Were the journals uploaded to the **anchor**, not the commitment?
 
 Then `python scripts/qb_usage.py report --org <alias>` to see what actually landed.
