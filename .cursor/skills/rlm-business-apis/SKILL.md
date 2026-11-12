@@ -87,9 +87,9 @@ procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pr
   requests carried only a price book entry, no separate selling model option, and the fill did not
   take effect: a dates-only Term Defined Annual line (System pricing, configuration method Force,
   rules on) priced from its dates (term count 3), did not get the measured procedure's term-keyed
-  discount step (net 17,100, vs 16,416 once `SubscriptionTerm: 3` was sent), and read back
-  `SubscriptionTerm` null, both standalone and as a bundle component [Measured: 2026-11-11, 264,
-  scratch]. Send the term explicitly.
+  discount step and read back `SubscriptionTerm` null, both standalone (net 17,100, vs 16,416 once
+  `SubscriptionTerm: 3` was sent) and as a bundle component (16,587 vs 15,923.52) [Measured:
+  2026-11-11, 264, scratch]. Send the term explicitly.
 - **Milestone Plan on bundle components.** Place with `configurationMethod: Force` and
   configuration rules on left `BillingFrequency` blank on component service lines (`billing-setup` → M11). A second Place PATCH
   with `configurationMethod: Skip` setting `BillingFrequency` Milestone Plan and the milestone
