@@ -61,6 +61,7 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
    lines exist (not measured). Reprice All uses Force pricing [Platform behaviour, traced].
    Reprice All re-runs pricing only; Refresh Prices also re-runs configuration and taxes
    [Help: `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_view_and_edit_quotes`].
+   Don't reprice a lifecycle quote after its order is activated. Measured once on a renewal quote: a full reprice (every line, pricing `Force`, configuration `Skip`; Reprice All sends the same pricing mode) after the order was activated set the renewal lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read afterwards. Not measured on amendments or ramped quotes, or through the button; mechanism not traced.
 6. **Don't demo an inline quantity edit on an amendment of a configured product.** With
    configuration rules on it resets the line's attributes to product defaults, and activation
    keeps them on the asset [Measured: early Nov 2026, 264]. Change the quantity in the configurator.
@@ -228,7 +229,7 @@ Check the detail rows and the total before treating it as a pricing fault.
 **Prepare a header-discount demo.** Confirm Header Adjustments is on, the active pricing procedure has
 one DDS step (the repo's default procedure does), and the quote procedure plan is inactive (repo
 default). Apply the discount from Manage Header Adjustment, then click Reprice All,
-which Help requires when Delta Pricing is on, as it is in this repo
+which Help requires where Delta Pricing is on (Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables it, and it applies only when all its conditions hold, see [runtime behavior](runtime-behavior.md))
 [Help: `ind.qocal_header_adjustments_use`; Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`].
 
 ## Validation Checks
