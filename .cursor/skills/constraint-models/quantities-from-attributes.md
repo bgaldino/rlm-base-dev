@@ -520,13 +520,13 @@ type Quote {
   totals across segments `[Measured: M41]`; `total()` and the cardinalities in the example
   above already sum every instance. Read from the solver's cardinality
   check, not run: a single-line type (`split = false`) is capped at one instance per
-  relation, and a container over all segments shares one relation, so a second line of such
-  a type should fail that check `[Platform behaviour, traced]`; the measured message is the
-  one above. The refusal comes from the solver, not from Place: a relation that allows one
-  instance cannot hold one line per segment, so don't put a one-instance type in a
-  quote-level container shared across ramp segments; size it per bundle instead
-  `[Platform behaviour, traced]`. What Place does with a cloned segment line (status,
-  quantity) isn't traced. Which of the
+  relation, and a container over all segments shares one relation. A one-instance type on a
+  container shared across segments should fail the solver's one-instance check (its text is
+  "Can't have more than one instance of <type>") `[Platform behaviour, traced]`. Whether
+  that check produced the measured refusal, whose text differs, isn't established. Don't put
+  a one-instance type in a quote-level container shared across ramp segments; size it per
+  bundle instead. What Place does with a cloned segment line (status, quantity) isn't
+  traced. Which of the
   two settings alone refuses the ramp wasn't isolated. For the ramp itself, see the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
   [SKILL.md → Ramp groups and segments](SKILL.md#ramp-groups-and-segments).
 - **Don't add `closeRelation = true` to a relation the container aggregates.** With it,
@@ -582,8 +582,8 @@ Measured on 264 `[Measured: M39]`:
   custom-field values only from the detail, a line-sourced row only from the line. A mapping
   from the line alone therefore fills line-sourced rows and leaves detail-sourced ones blank,
   and the platform doesn't copy node status between them; this holds for any mapped
-  custom field. Why an answer change produces detail rows wasn't traced
-  `[Platform behaviour, traced]`.
+  custom field. An answer-change amendment takes the cancel-and-reprice path, which writes
+  those detail lines `[Platform behaviour, traced]`.
 - With a blank node status, an amendment that edited one answer reset every answer it
   didn't change to its CML default, and re-derived the children from those defaults.
   Sending an unchanged value didn't help: Place drops it. An
@@ -605,8 +605,9 @@ detail `[Repo: unpackaged/post_constraints/triggers/RLM_AssetActionSourceTrigger
 On a later build with the repo's node-status tracking deployed, the root's
 `AssetActionSource` rows carried node status after every activation, across four lifecycle
 runs, and unchanged answers held `[Measured: 2026-11-12, 264, scratch]` (one org). That
-run didn't split line-sourced from detail-sourced rows, so whether the line-sourced rows
-carry it without the trigger is not established; a live check is open.
+run didn't split line-sourced from detail-sourced rows. An earlier run saw line-sourced rows
+filled by the rule alone, but one other org saw the field blank on every row, line-sourced
+ones included; the cause is open (see asset-lifecycle-changes Quick Rule 2).
 With both, answers held through two answer-change amendments in a row on a fresh build
 `[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]`. An org built before the fix, and
 assets activated before it was deployed, still have blank rows: the trigger acts only on new
@@ -710,11 +711,11 @@ nor clears them, so a later `configure` can report success `[Platform behaviour,
 `Info` messages aren't logged. When a line save is refused, the refusal comes back and the
 call writes no error logs, so the rule's message is not logged `[Platform behaviour, traced]`.
 
-The save-time quantity rules (for example "Specify 0 in Quantity" on a No Change line) are
-field validations with no `Force` or `Skip` gate, so the configuration choice doesn't
-decide whether they fire `[Platform behaviour, traced]`. Skip refused a quantity edit
-that Force accepted; why Force passed isn't established, so don't rely on `Force` to edit
-such lines.
+The save-time quantity check behind "Specify 0 in Quantity" on a No Change line reads no
+configuration method; nothing in it is gated by `Force` or `Skip`
+`[Platform behaviour, traced in part]`. Skip refused a quantity edit that Force accepted
+`[Measured: 2026-11-11, 264]`; why Force passed isn't established, so don't rely on `Force`
+to edit such lines.
 
 `success: true` and `isSuccess: true` prove nothing about the rules. Once, the rule's
 message was only in the error log and a later `configure` returned
@@ -994,8 +995,10 @@ Each needs a live 264 org:
     `maxInstanceQty=1` admits one plan line of quantity `sites` when the plan type is
     `split = false` (the line counts 1), and not when it is `split = true`
     `[Platform behaviour, traced]`; the group still needs the plans in a product component
-    group. Not established: a group minimum of 1 with 0 lines, and whether a PCM minimum
-    reaches the CML. A candidate in neither source: one exclusion per pair of
+    group. Bundle validation reports a count mismatch for a group minimum of 1 with
+    0 lines `[Platform behaviour, traced]`; the solver range check, and the effect on order,
+    amend and assetize, are not established. Also open: whether a PCM minimum reaches the
+    model. A candidate in neither source: one exclusion per pair of
     plans, such as `support[StandardSupport] > 0 -> support[PremiumSupport] == 0`. None run.
 15. Whether `@(split = false)` keeps one line per component in later group-ramp segments
     (M24 measured only the unannotated case). Traced: each segment's root solves separately,
