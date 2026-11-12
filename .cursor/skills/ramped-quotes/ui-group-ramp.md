@@ -17,8 +17,8 @@ A rep can build a group ramp in the 264 quote editor with the same result as the
 - Product `QB-API`, list price 15,000. An attribute-based price adjustment (waterfall row
   *Calculate attribute-based prices*) takes 5,000 off, so the base is 10,000.
 
-**Re-measured 2026-11-11** on fresh 264 `ent-sb0` scratch orgs (two orgs, Compound, uplift 0 / 3 / 3)
-with a configurable bundle whose children are Term Annual, Evergreen and One-Time, CML rules on.
+**Re-measured 2026-11-11** on fresh 264 `ent-sb0` scratch orgs (two orgs, Compound, a 0% first segment
+and the same uplift in segments 2 and 3) with a configurable bundle whose children are Term Annual, Evergreen and One-Time, CML rules on.
 These runs changed steps 1, 3 and 4 below and added
 [What the segment uplift reaches](#what-the-segment-uplift-reaches).
 
@@ -39,7 +39,8 @@ These runs changed steps 1, 3 and 4 below and added
 3. **Add the product to the segments.** On the **Year 1** segment row, open Show Actions →
    **Browse Catalogs**. In the 2026-11-11 runs (fresh 264 `ent-sb0` scratch orgs) it asked for the
    **catalog first**, then **Select Segments to Add Products**; the 2026-10-29 run recorded the segment
-   prompt first. Either way, the segment prompt offers:
+   prompt first. Neither run recorded the org's Default Catalog setting, which skips the catalog picker
+   elsewhere (`transaction-line-editor/runtime-behavior.md` section 1), so the order may depend on it. Either way, the segment prompt offers:
    - Choose **Current and Subsequent Segments**. The dialog says it "adds rampable products as
      ramped line items". One add places the product in every segment, with ramp identity.
    - **Current Segment Only** "adds products as non-ramped line items" (dialog text; not tested).
@@ -59,9 +60,10 @@ These runs changed steps 1, 3 and 4 below and added
      Amend, assetization and removal results:
      [bundle-children-lifecycle.md](bundle-children-lifecycle.md). No Amend action was found on the asset pages, so amend
      and cancel were run through the API on UI-built quotes.
-   - Use a **term** selling model (for example Term Annual). On the API path an Evergreen price
-     book entry can't ramp and the segments come out without ramp identity; not tried
-     in this dialog.
+   - Use a **term** selling model (for example Term Annual) for a standalone product. On the API path an
+     Evergreen price book entry can't ramp and the segments come out without ramp identity; a standalone
+     Evergreen product wasn't tried in this dialog. An Evergreen **bundle child** added through it was
+     ramp-stamped in every segment (2026-11-11).
    - **Reprice All** is a toolbar button. Prices were already uplifted before it was clicked.
 
 ## Expected result
@@ -87,11 +89,12 @@ These round numbers hide the precision: the uplifted price is **not rounded** to
 
 ## What the segment uplift reaches
 
-Measured 2026-11-11 on a fresh 264 `ent-sb0` scratch org, Compound, uplift 0 / 3 / 3, a bundle with
-Term, Evergreen and One-Time children:
+Measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs, Compound, a bundle with Term, Evergreen
+and One-Time children:
 
 - **The segment's Unit Price Uplift % is stamped on every line in that segment**: Term, Evergreen and
-  One-Time lines alike (`UnitPriceUplift` 3, `ApplUnitPriceUpliftPct` 3 then 6.09 on all of them). Their
+  One-Time lines alike (each line carries the segment's `UnitPriceUplift` and the compounded
+  `ApplUnitPriceUpliftPct`). Their
   `NetUnitPrice` uplifts too.
 - **On the Evergreen and One-Time lines `TotalPrice` didn't follow**: it stayed at quantity × the
   un-uplifted price in every segment (`NetTotalPrice` wasn't read), so line totals disagreed with

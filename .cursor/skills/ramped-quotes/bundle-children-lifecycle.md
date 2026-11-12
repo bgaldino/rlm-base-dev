@@ -59,16 +59,18 @@ three-segment Annual ramp.
 **A CML-sized default component splits into two instances in the configurator** (one of the orgs). With a child that is
 `IsDefaultComponent` (quantity 1) and sized by a rule `relation[T] == <answer>`, the configurator kept the default
 instance at 1 and added a second instance for the rest (1 + n−1). Each component group counted both instances and
-exceeded its maximum of 1 (a range warning per group), and the two instances priced on different volume bands. Setting each instance to the rule's
-quantity in segment 1 fixed segment 1 only: segments 2 and 3 kept a split that broke the rule, flagged only by the
-group-range warning. With `IsDefaultComponent` false on the sized children (a required child must be a default, so
+exceeded its maximum of 1 (a range warning per group), and the two instances priced on different volume bands. Correcting segment 1 in the
+configurator to one instance at the rule's quantity fixed segment 1 only: segments 2 and 3 kept the default
+instance beside it (n + 1), which broke the rule and was flagged only by the group-range warning. With `IsDefaultComponent` false on the sized children (a required child must be a default, so
 it was made optional), each child was one instance at the rule's quantity in every segment, with no warning. The
 API path doesn't show this when it sends the child lines itself with `addDefaultConfiguration: false`.
 
 The CML fix is `@(split = false)` on each component type a rule sizes: it kept default components as one line at
-the rule's quantity in the configurator (measured outside a ramp, 2026-11-11; see
-[`constraint-models/quantities-from-attributes.md`](../constraint-models/quantities-from-attributes.md)). Whether
-it also holds in later ramp segments was not measured.
+the rule's quantity in the configurator (2026-11-11; see
+[`constraint-models/quantities-from-attributes.md`](../constraint-models/quantities-from-attributes.md)). On the
+second org, where every sized component type was `@(split = false)` and the children stayed default components,
+the UI ramp held one line per child at the rule's quantity in every segment. Correcting a split segment 1 by hand
+wasn't repeated there.
 
 ## Cloning a segment that holds a bundle
 

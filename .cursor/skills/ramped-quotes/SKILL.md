@@ -88,7 +88,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
     The segment's Unit Price Uplift % lands on One-Time and Evergreen lines too, whose `TotalPrice`
     doesn't follow the uplifted net; set `UnitPriceUplift` 0 on a line to exempt it. The uplifted
     price keeps full precision (not cents); add a rounding step after the ramp uplift if the source
-    rounds. Measured 2026-11-11 on a fresh 264 `ent-sb0` scratch org; see
+    rounds. Measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs; see
     [ui-group-ramp.md → What the segment uplift reaches](ui-group-ramp.md#what-the-segment-uplift-reaches)
     and [compound-uplift.md](compound-uplift.md).
 
@@ -145,10 +145,10 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   starts with its **own** Id. One that starts with `Quote_QuoteLineItem_<other Id>` hasn't been
   fully priced since its clone. (`build_quote_to_asset.py` asserts this.)
 - **DO NOT** trust the lines you didn't touch after a **partial line PATCH on a Compound ramp.**
-  Measured 2026-11-11 on a fresh 264 `ent-sb0` scratch org (a UI-built ramp, uplift 0 / 3 / 3): a
+  Measured 2026-11-11 on a fresh 264 `ent-sb0` scratch org (a UI-built Compound ramp): a
   Place PATCH (`pricingPref: "System"`, `configurationMethod: Force`) that set only some lines'
   `UnitPriceUplift` re-applied the uplift to the other ramp lines. Their `NetUnitPrice` was uplifted
-  again on top of the already uplifted net (segment 2 by 3% more, segment 3 by 6.09% more), while
+  again on top of the already uplifted net (each segment by its applied % once more), while
   their `TotalPrice` stayed put. **Reprice All** in the line editor restored every line; a `Force`
   reprice wasn't tried for this case. Possibly a platform defect. To reproduce: on a Compound UI ramp,
   PATCH `UnitPriceUplift` on some lines of segments 2 and 3 only, then read the other lines'
@@ -437,10 +437,11 @@ per-period subtotal and **% of TCV**, and the ramp-by-product matrix (grouped on
 `RampIdentifier`, labelled by `Product2.Name`/`StockKeepingUnit`). Sum the
 platform-computed **`NetTotalPrice`** for TCV and subtotals — it is the
 **post-discount, prorated** line total that propagates to the posted invoice
-(`scripts/txn_data_harness/docs/contracts-sales-txn-quote.md`). `TotalPrice` is the
-gross list total and **overstates** TCV whenever an uplift, discount, or proration
-changes the net; do **not** sum it, and do **not** derive totals from `Quantity ×
-NetUnitPrice` (unreliable for term-priced/prorated lines). Both totals are read-only
+(`scripts/txn_data_harness/docs/contracts-sales-txn-quote.md`). Do **not** sum `TotalPrice`:
+it isn't reliably the net total. In the 2026-11-11 UI ramps (fresh 264 `ent-sb0` scratch orgs) it
+equalled quantity × net on Term lines but stayed at the un-uplifted price on One-Time and Evergreen
+lines (Quick Rule 10). Do **not** derive totals from `Quantity × NetUnitPrice` either (unreliable for
+term-priced/prorated lines). Both totals are read-only
 (never *set* them) but queryable; all numbers come from the priced quote.
 
 ## <a name="discovering-ids"></a>Discovering ids
