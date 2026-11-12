@@ -81,10 +81,9 @@ years (`SubscriptionTerm` 2 `Annual`), quantity 1. `TotalPrice` 2,000. Shipped: 
 `Annual` gives 3. `[Platform behaviour, traced]` The count is the Proration step's multiplier,
 read in the selling model's unit, falling back to the dates when no term is given; a One-Time line
 carries 0 only where the procedure sets it (the shipped procedure's constant `[Repo]`).
-A line given only start and end dates gets its term count from the dates
-but keeps `SubscriptionTerm` null `[Measured]` (what Place itself writes for a dates-only line is not established), so filters that read `SubscriptionTerm` (such as a
+A line given only start and end dates gets its term count from the dates, but Place does not derive `SubscriptionTerm` from dates `[Platform behaviour, traced]`. The trace shows Place filling a missing term tag from a Term Defined selling model in the pricing context, but not that fill reaching the saved line: a measured dates-only Term Defined Annual line, placed with Force and rules on, read back `SubscriptionTerm` null both standalone and as a bundle component `[Measured: 2026-11-11, 264, scratch]`. Filters that read `SubscriptionTerm` (such as a
 commitment-term discount, `../../pricing-procedures/elements/commitment-term-discount.md`)
-skip it.
+therefore skip such a line; send the term explicitly.
 
 ### Margin units
 
