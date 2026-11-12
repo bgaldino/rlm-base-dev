@@ -375,6 +375,108 @@ Pick one per relation; using both is an [open item](#open-items).
 
 ---
 
+## Checks across top-level lines: a virtual `Quote` container
+
+A rule that spans lines with no parent in common (a plan sold as its own line beside the
+bundle, say) goes on a virtual container that holds each of them as a relation
+`[Dev guide: cml_best_practice_virtual_quote_root]`. The shipped QuantumBit bundle model has
+one `[Repo: datasets/constraints/qb/QuantumBitBundle/blobs/ESDV_QuantumBitBundle_V1.ffxblob]`.
+Container relations have no `ProductRelatedComponent`, so no `Port` association
+([SKILL.md → Ports are per bundle relation](SKILL.md#ports-are-per-bundle-relation-not-per-type)).
+
+```
+@(virtual = "true")
+type Quote {
+    @(sourceContextNode = "SalesTransaction.SalesTransactionItem")
+    relation platform : Platform[0..1] {
+        platformSites = total(sites);
+    }
+    @(sourceContextNode = "SalesTransaction.SalesTransactionItem")
+    relation basicPlan : BasicPlan[0..500];
+    @(sourceContextNode = "SalesTransaction.SalesTransactionItem")
+    relation proPlan : ProPlan[0..500];
+
+    int qSites = [0..500];
+    constraint(qSites == platform.platformSites);
+
+    message(qSites > 0 && basicPlan[BasicPlan] + proPlan[ProPlan] != qSites,
+            "Cover every site with exactly one plan.", "Error");
+}
+```
+
+- **Give every container relation
+  `@(sourceContextNode = "SalesTransaction.SalesTransactionItem")`.** The annotation names
+  the context path of a virtual container's instances
+  `[Dev guide: cml_relationship_annotations]`; the dev guide's virtual-root example omits
+  it. Without it no line attached to the container: Place and `configure` succeeded, the
+  container's own rules ran, and every rule on the line types silently stopped
+  `[Measured: M34]`.
+- **Check across lines with `message(..., "Error")`, not constraints.** Constraints on a
+  container relation to top-level lines didn't refuse a rep's lines: the solver rewrote
+  them and added instances, once a second bundle root, to satisfy the rule. An `Error`
+  message refused without moving anything: an error log row with its text, as in
+  [Reading a result](#reading-a-result) `[Measured: M35]`. Bound the bundle relation
+  `[0..1]`.
+- **Don't add `closeRelation = true` to a relation the container aggregates.** With it,
+  `total()` and `max()` on that relation failed with "There's a goal execution error in
+  your CML code" instead of the rule's message `[Measured: M36]`.
+- **Read a bundle's child quantity through the relation path** (`platform.addOns[AddOn]`)
+  rather than staging it in an `int` on the bundle set equal to the cardinality. In one
+  model, that `int` changed how the solver met an add-on rule: it dropped a default
+  add-on instead of raising it. Seen twice in that model only `[Measured: M37]`.
+- A quote that holds the plan lines but not the bundle (an amendment of the plan assets
+  alone, say) has nothing in `platform`, so this check doesn't compare the plans with
+  `sites` there.
+- `validate_cml` warns "Missing port association" for each container relation and
+  "Missing type association" for the container type `[Repo: tasks/rlm_cml.py]`
+  `[Measured: M37]`. Those warnings are expected.
+
+---
+
+## Answers on an amendment
+
+An amendment that changed a root answer re-derived the children: the amendment lines
+carried the quantity changes `[Measured: M38]`. What it keeps of the other answers depends
+on the engine's node status, which records which answers the rep set (per answer,
+`cfgStatus` `User`, `Default` or `Engine`); the values themselves come from the line
+attributes `[Measured: M39]`. The Constraint Rules Engine setup copies the node status
+from the source asset's latest asset action source onto new quote or order lines
+`[Help: ind.product_configurator_set_up_constraint_engine_prerequisites]`; this repo ships
+the quote-line trigger and the node-status fields
+`[Repo: unpackaged/post_constraints/triggers/RLM_QuoteItemTrigger.trigger]`.
+
+Measured on 264 `[Measured: M39]`:
+
+- Activation filled `AssetActionSource` node status only when the context definition had
+  an order → asset rule: `AssetActionSource` node status from `SalesTransactionItem` node
+  status, in `AssetToSalesTransactionMapping`. Help's Constraint Rules Engine
+  context-definition article lists only the asset → transaction rule
+  `[Help: ind.product_configurator_set_up_constraint_engine_context_definitions]`, and so
+  does this repo's plan `[Repo: datasets/context_plans/ConstraintEngineNodeStatus]`.
+- Even with that rule, rows made from an order item detail stayed blank. An answer change
+  activates as a cancel-and-reprice pair whose rows reference order item details, so the
+  next amendment started blank again.
+- With a blank node status, an amendment that edited one answer reset every answer it
+  didn't send to its CML default, and re-derived the children from those defaults. An
+  amendment that changed only a line quantity, with no answer in the request, was
+  unaffected.
+
+So, before amending a CML bundle's answers:
+
+1. **Check** that the root's latest `AssetActionSource` rows carry the node status
+   (`RLM_ConstraintEngineNodeStatus__c` in this repo). It's a long-text field: read it,
+   since SOQL can't filter on it. Check again after each activation in a multi-step
+   replay.
+2. **If it's blank,** backfill it from the order item's value before amending
+   `[Measured: M39]`, or send every answer that differs from its CML default in the
+   amendment request, not only the changed one (follows from the reset; not run).
+
+The fix in this repo, an order → asset context rule plus a before-insert trigger on
+`AssetActionSource` that fills detail-sourced rows, is a separate change; check whether
+the org has it before relying on it. Assets activated before it keep blank rows.
+
+---
+
 ## Warnings that don't block
 
 | Severity | Runtime behaviour | Source |
@@ -623,7 +725,7 @@ If the `support` relation's `[1..1]` bound rejects two plans first (an
 The 2026-11-10 rows come from a temporary probe model on a 264 (API v68.0) scratch org:
 rules added to an active bundle model, imported and cycled, then read back through
 `message(...)` values in a `configure` response after a Place with rules on. Row M21 is an
-earlier headless test of a different model. The 2026-11-11 rows (M22 to M33) come from fresh
+earlier headless test of a different model. The 2026-11-11 rows (M22 to M39) come from fresh
 264 `ent-sb0` scratch orgs: a bundle model built on this file's patterns (more than a dozen
 components sized from root answers, the largest relation above 9,999), probe models, and
 the line editor and configurator UI. Quotes went through Place with rules on (`Force`),
@@ -665,6 +767,12 @@ was run.
 | M31 | Place PATCH of a bundle child's quantity with `IsQuantityEditable = false` on its PRC (two quotes); then `createOrdersFromQuote`; then the quantity set back | `isSuccess: true`, the line saved and repriced; within seconds a `RevenueTransactionErrorLog` (BundleValidation: the quantity "can't be edited"); the order refused, "existing Revenue Transaction Error Logs". Setting it back deleted the log. The line editor saved the same edit with a warning icon and the same log | 2026-11-11 |
 | M32 | Place of a rejected configuration without `BillingFrequency` on Term-defined and Evergreen lines | `FIELD_INTEGRITY_EXCEPTION` on the root, "… BillingFrequency can't be null", instead of the rule. Valid configurations placed without it | 2026-11-11 |
 | M33 | One state breaking two rules: a line-form rule (add-on present → other plan's quantity 0) and the answer-sized plan rule | One message, the plan rule's; the test targeted the first rule. With the first rule also stated on the answer (add-on present → the answer is the required plan), its own message | 2026-11-11 |
+| M34 | A virtual `Quote` container whose relations had no `sourceContextNode` (relations to the bundle and to top-level lines; also a single `relation lineitems : LineItem;`) | Place and `configure` succeeded; the bundle's rules didn't run (defaults at 1, nothing sized); a probe `message` on the container fired and one on the bundle didn't. Declaration order made no difference | 2026-11-11 |
+| M35 | The container with `sourceContextNode`: constraints and preferences sizing top-level plan lines from a bundle answer; then the same checks as `message(..., "Error")` with the bundle relation `[0..1]` | Constraints: two plans placed at full quantity became n − 1 + 1; a plan edited down got the other plan added for the rest; a bundle add-on that the check forbade beside a plan was dropped; with the bundle relation `[0..10]` a second bundle root was added. `Error` messages: lines unchanged, an error log row with the message; `configure` could report success | 2026-11-11 |
+| M36 | `closeRelation = true` on the container's bundle relation, which carries `total()` and `max()` aggregates | "There's a goal execution error in your CML code: IntTotalAttrConstraint(…)" (and IntMinMaxAttrConstraint) instead of the rule's message | 2026-11-11 |
+| M37 | An `int` on the bundle set equal to an add-on's cardinality, for the container to read; `validate_cml` on the model with the container | The default add-on was dropped instead of raised to its rule's quantity, with and without the container (two runs, one model); reading the cardinality through the container's relation path restored it. `validate_cml`: "Missing port/type association" warnings for the container | 2026-11-11 |
+| M38 | Amendment changing a root sizing answer | The children re-derived; the amendment lines carried the changes as quantity deltas | 2026-11-11 |
+| M39 | Node status through sell → activate → amend → activate → amend on the shipped bundle model; context rule `AssetActionSource` ⇐ `SalesTransactionItem` added to `AssetToSalesTransactionMapping`; then a before-insert trigger on `AssetActionSource` | Node status holds `cfgStatus` per answer, not values. Without the rule: every asset action source blank; an amendment changing one answer reset an unsent answer to its CML default (`cfgStatus` Default). With the rule: rows from order items filled; rows from order item details (the answer change's cancel-and-reprice pair) blank, so the next amendment reset again. With the trigger as well: both filled, answers held across two amendments. A line-only amendment was unaffected without either. A backfill of blank rows from the order item's value also kept the answers | 2026-11-11 |
 
 ---
 
@@ -703,24 +811,23 @@ Each needs a live 264 org:
 11. Whether a literal `%` in a message string is passed through or read as a Java format
     specifier. The dev guide documents Java format for these strings
     `[Dev guide: cml_logical_constraints]`; the worked example avoids `%`.
-12. Whether a sizing model re-derives service quantities on an amendment, both when the
-    root's sizing answer changes (`sites` from 23 to 30, say) and when the amendment
-    changes only a line quantity. The sources stop short of it. A future-dated order with
-    CML products can be amended, but the amendment "doesn't conform to all the rules"
-    `[Help: ind.qocal_future_dated_order_amendments_important_considerations]`. The
-    Constraint Rules Engine setup copies the engine's `ConstraintEngineNodeStatus` from the
-    source asset's latest asset action source onto lines that a quote or order action
-    creates `[Help: ind.product_configurator_set_up_constraint_engine_prerequisites]`; this
-    repo ships the quote-line trigger
-    `[Repo: unpackaged/post_constraints/triggers/RLM_QuoteItemTrigger.trigger]`.
+12. Whether an amendment that changes only a line quantity re-derives the quantities that
+    depend on it (an answer change does, M38; see
+    [Answers on an amendment](#answers-on-an-amendment)), and which rules run on an
+    amendment. A future-dated order with CML products can be amended, but the amendment
+    "doesn't conform to all the rules"
+    `[Help: ind.qocal_future_dated_order_amendments_important_considerations]`.
     Configurator requests take a `validateAmendRenewCancel` option that runs amend, renew
     and cancel validations `[Dev guide: connect_requests_configuration_options_input]`.
-    None says which rules run on an amendment or whether a cardinality is solved again.
+    Order-type amendments, renewals and cancellations weren't run for node status.
 13. How to model a mixed per-site plan split, which
     [Exactly one of a choice group](#exactly-one-of-a-choice-group) can't express.
     Candidates, neither in the dev guide nor run: an answer per plan (a site count each,
     constrained to sum to `sites`, each driving its plan's cardinality), or per-site child
-    instances that each carry a plan.
+    instances that each carry a plan. One route was run: the plans as top-level lines
+    sized outside the configurator and checked on a virtual container
+    ([Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)),
+    which leaves a quote without the bundle unchecked.
 14. How to require exactly one plan, each sized per site, when the rep picks the plan by
     adding it ([Exactly one plan when each plan is sized per site](#exactly-one-plan-when-each-plan-is-sized-per-site)).
     Unsettled: whether `count(<condition>)` counts lines or quantity; whether Group Type
@@ -747,7 +854,9 @@ Each needs a live 264 org:
 5. Each "per N" rule is checked at an exact multiple and one past it. If any relation's
    upper bound is above 9,999, the model sets `property maxRelationSize` equal to the
    largest declared upper bound, and the answers that produce the largest quantity are tested.
-6. Review notes use `Info`; nothing meant as advice uses `Warning` or `Error`.
+6. Review notes use `Info`; nothing meant as advice uses `Warning` or `Error`. Checks
+   across top-level lines are `Error` messages on a virtual container whose relations all
+   carry `sourceContextNode`.
 7. Headless test: placed with rules on and a `BillingFrequency` on every recurring line,
    answers that bind (checked against non-default values), every quantity asserted as one
    line per `@(split = false)` component, every rejection asserted by the message of a rule it breaks, and

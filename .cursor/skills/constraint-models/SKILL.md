@@ -435,7 +435,7 @@ the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
 
 | File | Read this when… |
 |---|---|
-| [`quantities-from-attributes.md`](quantities-from-attributes.md) | A model must set component quantities from answers on the bundle: one per site, an optional add-on per site, per N rounded up, zero unless a choice is made, chained derivations such as service hours and a percentage for project management. Covers cardinality vs read-only quantity, `@(split = false)` for one line per component, the 9,999 relation cap and `maxRelationSize`, rounding and `int` vs `decimal`, per-instance scope and `parent()`, exclusions, non-blocking `Info` messages and headless testing (where a rejection's message appears: `configure` and `RevenueTransactionErrorLog`), with a fictional worked example. Read it before writing `ceil()`, `/` or `^` in CML: its DO NOT list and measured table cover how they behave on 264. |
+| [`quantities-from-attributes.md`](quantities-from-attributes.md) | A model must set component quantities from answers on the bundle: one per site, an optional add-on per site, per N rounded up, zero unless a choice is made, chained derivations such as service hours and a percentage for project management. Covers cardinality vs read-only quantity, `@(split = false)` for one line per component, the 9,999 relation cap and `maxRelationSize`, rounding and `int` vs `decimal`, per-instance scope and `parent()`, exclusions, cross-line checks on a virtual `Quote` container (`sourceContextNode`, `Error` messages), answers on an amendment (node status on the asset action source), non-blocking `Info` messages and headless testing (where a rejection's message appears: `configure` and `RevenueTransactionErrorLog`), with a fictional worked example. Read it before writing `ceil()`, `/` or `^` in CML: its DO NOT list and measured table cover how they behave on 264. |
 
 ---
 
@@ -532,7 +532,9 @@ Before calling a constraint-model change done:
   "Unsupported annotation 'sites' on attribute 'sites'", and `constraint(sites > 3 ->
   sites == 4, …)` warns "… 'sites' on constraint/rule" (checked against the validator
   locally, 2026-11-11). A model with such warnings imported, activated and ran on fresh
-  264 `ent-sb0` scratch orgs (2026-11-11).
+  264 `ent-sb0` scratch orgs (2026-11-11). A virtual `Quote` container also draws
+  "Missing port association" and "Missing type association" warnings; its relations have
+  no `Port` by design.
 - **A standalone `import_cml` never cycles the version.** `prepare_constraints` covers
   this at steps 9-10, but shipping a model change usually means running `import_cml` on
   its own — where the upload lands and nothing redeploys. There is no single task that
