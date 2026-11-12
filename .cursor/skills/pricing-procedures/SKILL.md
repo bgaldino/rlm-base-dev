@@ -227,7 +227,8 @@ cost and margin. See [`procedure-anatomy-and-ordering.md`](procedure-anatomy-and
 **Quantity discount by bands.** Choose Volume Discount (the whole quantity priced at the
 band it reaches) or Tier Discount (each band priced separately) with
 [`elements/volume-and-tier-discount.md`](elements/volume-and-tier-discount.md). Then
-refresh the adjustment-tier decision table before you Simulate.
+refresh the adjustment-tier decision table before you Simulate. Units added on an amendment
+don't re-band as shipped; that file has the measured overlay that makes them.
 
 **Extra discount for a long commitment term.** No pricing element is built for term-based discounts.
 Use a List Group whose filter selects the long-term lines and whose Formula-Based Pricing step
@@ -296,13 +297,15 @@ Checklist:
 - [`elements/commitment-term-discount.md`](elements/commitment-term-discount.md) — a
   commitment-term discount (annual Term Defined lines committed 36+ months get a further
   percentage off) built from a List Group filter and Formula-Based Pricing: tags, filter logic,
-  rounding, placement before term pricing, the overlay, a measured headless-pricing result, and
+  rounding, placement before term pricing, the overlay, a measured headless-pricing result, what
+  real quote lines must carry (term in the selling model's unit, ramp lines, a header switch), and
   the Price Adjustment Matrix alternative, plus rounding before a negotiated discount. Read it when
   a discount depends on the subscription term.
 - [`elements/root-answer-child-price.md`](elements/root-answer-child-price.md) — a child line's
   price driven by an answer on the bundle root (for example a regional uplift on some children):
   the documented routes (CML `parent()` into a price-impacting child attribute, Formula-Based
-  Pricing over a header tag, a Price Adjustment Matrix), each cited, and what is still open.
+  Pricing over a header tag, a Price Adjustment Matrix), each cited; route 1 measured end to end.
 - [`elements/price-revision-compound-uplift.md`](elements/price-revision-compound-uplift.md)
   — compound ramp uplift on Price Revision: prerequisites, ramp-path bindings, tracked
-  default vs the 264 template, the compounding arithmetic, and what can't compound.
+  default vs the 264 template, the compounding arithmetic, rounding after the uplift, and what
+  can't compound.

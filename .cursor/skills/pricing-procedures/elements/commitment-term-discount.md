@@ -8,11 +8,14 @@
 > `ind.product_catalog_product_selling_model.htm`,
 > `ind.pricing_add_the_price_adjustment_matrix_element.htm`; dev guide
 > `actions_obj_run_salesforce_headless_pricing.htm`; shipped `RLM_DefaultPricingProcedure`; a live
-> run on a 264 scratch org (QuantumBit build) on 2026-11-10.
+> run on a 264 scratch org (QuantumBit build) on 2026-11-10; real quotes and headless runs on a
+> fresh 264 `ent-sb0` scratch org on 2026-11-11.
 >
 > Tags: `[Help: …]`, `[Dev guide: …]`, `[Repo: …]`, and `[Measured: 2026-11-10, 264]` for a
 > result observed live on that org: a headless pricing run (request and response shapes in
 > [`../runtime-and-observability.md`](../runtime-and-observability.md)), a describe, or a save.
+> `[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]` marks the second run, which priced
+> real quotes (Place Sales Transaction, configuration rules on) as well as headless requests.
 
 A commitment-term discount gives an extra percentage off a subscription line because the customer
 commits to a long term. The rule modeled here: **annual Term Defined subscriptions committed for 36
@@ -51,7 +54,9 @@ All are standard tags on the `SalesTransactionItem` node of the sales transactio
 | `NetUnitPrice` | `NetUnitPrice` | The running net unit price after the standard discounts |
 
 The term is compared in its own unit, so the filter accepts either form of a 36-month commitment:
-36 or more `Months`, or 3 or more `Annual`. Both were measured.
+36 or more `Months`, or 3 or more `Annual`. Both were measured. On a saved quote line, though, only
+the selling model's own unit gives the right line total; see
+[Line inputs on real quotes](#line-inputs-on-real-quotes).
 
 ## Configuration
 
@@ -84,8 +89,10 @@ the filter must be the first child, one filter per group].
   guards, as in Help's example (`{LineItem equals isNotNull} AND {LineItem equals 100}`):
   `1 AND 11 AND 2 AND 3 AND 4 AND 9 AND 10 AND ((5 AND 6) OR (7 AND 8))`. The guard only helps if
   the engine evaluates the condition logic left to right and stops at the first false criterion,
-  which is not documented. The overlay and the measured result below do not have it; both points
-  are open (see [Open questions](#open-questions)).
+  which is not documented. The overlay and the measured result below do not have it; the
+  2026-11-11 build did, and priced One Time lines without error
+  ([Line inputs on real quotes](#line-inputs-on-real-quotes)). Without it, both points are open
+  (see [Open questions](#open-questions)).
 - Criterion 9 copies the shipped discount filters, which skip last-transaction lines so an amended
   or renewed line does not take a discount a second time [Repo: `RLM_DefaultPricingProcedure`,
   `Filterlineswithoutlasttransactionpricing`]. Without it, an amendment that keeps the prior net
@@ -270,6 +277,49 @@ Lines 1 and 2 reproduce the golden test exactly. Line 3 shows the filter keys on
 type, not the term. Before the overlay the clone returned 16,587.00 on lines 1 to 4, as the default
 does, so the difference comes from the new group alone.
 
+## Line inputs on real quotes
+
+The run above passed the term inline, so it did not show what a saved quote line carries. On real
+quotes created with Place Sales Transaction [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
+
+| Line as created | What it carries | Result |
+|---|---|---|
+| Start and end dates only, no term | `SubscriptionTerm` null, `SubscriptionTermUnit` `Annual` | Criterion 3 fails, so the group **skips** the line |
+| `SubscriptionTerm` 36, unit `Months`, on an Annual selling model | `PricingTermCount` 36 | The discount applied, but the line total counted **36 terms** instead of 3 |
+| `SubscriptionTerm` 3, unit `Annual` | `PricingTermCount` 3 | Discount applied, total over 3 terms: the correct shape |
+| A segment line of a group ramp built in the quote UI | `SubscriptionTerm` 1, unit `Annual`, a ramp identifier | Criterion 8 fails, so the group skips it unless ramp lines are let through (criterion 14 below) |
+
+So give every Term Defined line the term in its selling model's pricing term unit (3 `Annual` for
+36 months on an annual model), not in months and not as dates alone. The headless run above,
+which also passed an end date, counted 36 `Months` as 3 terms; why the saved line differs was not
+isolated.
+
+**Optional criteria** measured in the same build, appended to the filter:
+
+| # | Resource | Operator | Value | Purpose |
+|---|---|---|---|---|
+| 11 | `PricingTermUnit` | IsNotNull | | Guard for criterion 2 (see Configuration) |
+| 12 | `<header switch tag>` | Equals | `true` | Apply the discount only when a header checkbox is on |
+| 13 | `<header switch tag>` | IsNotNull | | Guard for criterion 12 |
+| 14 | `ItemRampIdentifier` | IsNotNull | | Let group-ramp segment lines through |
+
+Condition logic with all four:
+`1 AND 11 AND 2 AND 9 AND 10 AND 13 AND 12 AND ((3 AND 4 AND ((5 AND 6) OR (7 AND 8))) OR 14)`.
+
+- **With criterion 11 in place**, One Time and Evergreen lines priced unchanged with no line
+  error, alone and mixed with a matching line in one request (headless).
+- **A header tag works as a list-filter criterion.** The switch was a Checkbox on `Quote`, mapped
+  into the sales transaction context as a `SalesTransaction` attribute and tag of data type
+  BOOLEAN (context mapping: [`../../context-service/SKILL.md`](../../context-service/SKILL.md)).
+  The line-level filter read it directly: switch on, the discount applied; off, it did not.
+- **Changing only the header does not reprice the lines.** A Place PATCH that changed only the
+  switch saved it and left the line prices as they were; Reprice All in the line editor (or any
+  line change) applied it.
+- **Criterion 14 admits every group-ramp segment line**, whatever the ramp's length, so it
+  assumes the ramp itself is the commitment. If ramps shorter than the threshold exist, add a
+  check for them [inferred]. In the measured ramp the group ran after the ramp uplift, so each
+  segment took the discount on its uplifted net.
+
 ## Verify
 
 1. Price a matching and a non-matching line through the clone (headless pricing as above, or
@@ -283,6 +333,10 @@ does, so the difference comes from the new group alone.
 | Symptom | Cause | Fix |
 |---|---|---|
 | A 36-month line is not discounted | Its `SubscriptionTermUnit` is not `Months` or `Annual`, or `PricingTermUnit` is not `Annual` | Check the line's unit; add a criterion pair for the unit you sell in |
+| A 36-month quote line is not discounted | The line has start and end dates but no `SubscriptionTerm` | Set `SubscriptionTerm` in the selling model's unit (3 `Annual`) ([Line inputs on real quotes](#line-inputs-on-real-quotes)) |
+| Line total counts one term per month | `SubscriptionTerm` in `Months` on an Annual selling model | Same fix: 3 `Annual`, not 36 `Months` |
+| Group-ramp segment lines are not discounted | Each segment line carries a term of 1 | Add criterion 14 (`ItemRampIdentifier` IsNotNull) |
+| A header switch change has no effect | Only the header changed, so the lines were not repriced | Reprice All, or change a line |
 | Discount applied twice on an amendment | Criterion 9 removed | Keep `ItemPricingSource NotEquals 'LastTransaction'` |
 | A 36-month renewal line gets the uplift but not the 4% | Criterion 9 skips lines from a Last Transaction asset, which this repo makes the default source | Expected as built (inferred, not measured); see criterion 9 → renewals |
 | Totals do not move with the unit price | Group placed after the term pricing groups, or Subscription Price reads `ListPrice` | Move it before `Applyproratedpricingtotermdefinedlines`; bind Subscription Price's Net Unit Price to `NetUnitPrice` |
@@ -302,16 +356,19 @@ expressed the rule.
 
 ## Open questions
 
-- One Time lines were not in the run. **Open — needs live verification:** what an unguarded
-  criterion 2 does on a One Time line's null `PricingTermUnit`. Help says a null compared tag
+- One Time lines were not in the 2026-11-10 run. With criterion 11 in place they priced without
+  error on 2026-11-11 ([Line inputs on real quotes](#line-inputs-on-real-quotes)).
+  **Open — needs live verification:** what an unguarded criterion 2 (no criterion 11) does on a One
+  Time line's null `PricingTermUnit`. Help says a null compared tag
   returns an error, but whether the condition logic is evaluated left to right and stops at the
   first false criterion (so that criterion 1, or criterion 11 placed before criterion 2, keeps
   criterion 2 from being evaluated), and what the error looks like, was not measured. Price a One
   Time line, alone and inside a mixed bundle, through the clone with and without criterion 11.
   Until then keep criterion 11, placed before criterion 2.
-- Which `SubscriptionTermUnit` the quote line editor writes for an annual Term Defined line was not
-  measured; the filter accepts both `Months` and `Annual`. Check a real quote line before relying
-  on one.
+- What a Place-created line and a UI group-ramp segment line carry is measured
+  ([Line inputs on real quotes](#line-inputs-on-real-quotes)). Which `SubscriptionTermUnit` the
+  line editor writes when a rep adds a line by hand was not measured; check a real quote line
+  before relying on one.
 - The amendment and renewal behavior (criterion 9) was not measured. **Open — needs live
   verification:** renew, with a +5% uplift, one 36-month asset that took the 4% and one shorter
   asset renewed for 36 months, and price the renewal lines through the clone. On an as-is renewal

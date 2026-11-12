@@ -57,6 +57,17 @@ price-impacting attribute values.
   Pricing Manager; creating records needs Pricing Design Time. Prerequisites: a product
   selling model, products in a price book, at least one price-impacting attribute. [Help]
   Schedule and record setup: [`../../pricing-setup/price-adjustment-schedules.md`](../../pricing-setup/price-adjustment-schedules.md).
+- Inserting an `AttributeBasedAdjustment` record directly (REST, schedule deactivated first as
+  above) refuses `AttributeCount`,
+  `PricingTerm`, `PricingTermUnit`, `ScheduleType` and `SellingModelType` with
+  `INVALID_FIELD_FOR_INSERT_UPDATE`: the platform derives them. Send the rule, schedule, product,
+  selling model, currency, `EffectiveFrom`, `AdjustmentType` and `AdjustmentValue`. With the
+  rule's Attribute Adjustment Conditions already saved, the platform filled
+  `AttributeAdjConditionsHash` on insert. A negative Percentage value is accepted and works as an
+  uplift ([`root-answer-child-price.md`](root-answer-child-price.md) → Route 1 measured)
+  [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. The repo's SFDMU
+  `AttributeBasedAdjustment.csv` files carry those derived columns; how SFDMU handles them was not
+  checked here.
 - The procedure's schedule input is a Text constant holding the schedule record Id (Help
   copies it from the record URL); refresh the Attribute Discount Entries table after
   activating. [Help]
