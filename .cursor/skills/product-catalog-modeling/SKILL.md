@@ -22,7 +22,7 @@ decisions; loading the result is `sfdmu-data-plans`, the field-level schema is
 Every product claim carries its source: `[Help: <article>]` (the 264 Help snapshot under
 `docs/salesforce/264/help/articles/`), `[Dev guide: <article>]` (`docs/salesforce/264/dev-guide/articles/`),
 `[Repo: <file>]`, or `[Measured: <date>, 264]` (a live 264 build; `[Measured: <date>, fresh 264 ent-sb0 scratch org]`
-names the org: a newly built scratch org of the repo's `ent-sb0` shape). A claim only a live
+names the org: a newly built scratch org of the repo's `ent-sb0` shape), `[Platform behaviour, traced]` (a platform mechanism read in source), or `[Platform behaviour, traced in part]` (mechanism read in source, but scope, path or consequence not established). A claim only a live
 org could settle is marked **Open — needs live verification**. Help article ids below
 drop the `.md` suffix of the snapshot file name.
 
@@ -139,7 +139,7 @@ the detail and the sources.
 | **Where an attribute value is set** | Definition → classification attr → product attr → bundle override. | Lower levels are more specific but must be reviewed when a higher level changes. | Bundle overrides break attribute-based pricing. [Help: `ind.product_catalog_attribute_fields.htm`; `ind.pricing_attribute_based_pricing_limits.htm`] |
 | **Selling model** | One Time / Term-Defined / Evergreen from the pricing basis. | Each extra model adds a PBE and an option per product. | Proration, renewal and the Subscription price element read it. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md) |
 | **`IsAssetizable`** | True when the sale must leave something to amend, renew or cancel. | False keeps the asset table clean for consumables. | Root value overrides children. [Help: `ind.product_catalog_create_bundled_products.htm`] |
-| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses to put it in a category, so offer it as a bundle component. | Search did not find it, but a quote placed by API with it alone was accepted, ordered and activated. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
+| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses to put it in a category (the only refusal measured or found in the modules searched [Platform behaviour, traced in part]), so offer it as a bundle component. | Search did not find it, but a quote placed by API with it alone was accepted, ordered and activated. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
 | **Catalog / category placement** | Catalogs by audience or business unit; categories for browsing. | More catalogs means more category rows to keep coded uniquely. | Drives Product Discovery browsing; categories, not catalogs, hold products. [`catalogs-and-loading.md`](catalogs-and-loading.md) |
 | **Family** | A coarse product line other systems filter on. | A free picklist value becomes a contract. | Whatever keys on it (search facets, Apex, rules) breaks on a rename. [`catalogs-and-loading.md`](catalogs-and-loading.md#product-family-is-a-contract) |
 
@@ -253,7 +253,7 @@ assetizable, so every child is assetizable whatever its own flag says. [Help: `i
 - "Child lookups load blank in my new PCM plan." → facts (b)–(d) above, then
   `sfdmu-data-plans`.
 - "Place says *Could not find product with ID* for a product I just loaded." → the decision-table
-  refresh and search index rebuild after the load (fact f in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264)).
+  refresh (a stale table is plausible, not shown; no search-index dependence found [Platform behaviour, traced in part]) and the measured search index rebuild after the load (fact f in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264)).
 - "A group I set to pick one says its number of child products is out of range, but I
   picked one product." → check whether the product is on two lines (a CML-sized default
   component splits); see
@@ -307,8 +307,7 @@ Every item marked **Open — needs live verification** in this skill and its sub
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods).
 - **Is `ProductCategory.Code` unique per org or per catalog?** The snapshot does not say.
   Fact (d) only proves that a plan keyed on `Code` alone conflates levels. **Open — needs live verification.**
-- **A non-assetizable child under an assetizable root.** Help says the root wins; whether
-  a child flagged false then appears as an asset with lifecycle actions is **Open — needs live verification.**
+- **A non-assetizable child under an assetizable root.** Traced from order-to-asset handling, bundle assembly not traced [Platform behaviour, traced in part]: the root wins and the child gets lifecycle actions ([`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#isassetizable)); only the consequence for children kept non-tracked is not traced further.
 - **Which end date stops a sale.** Help contradicts itself on `DiscontinuedDate` vs
   `EndOfLifeDate`. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#other-lifecycle-fields-on-product2).
 - **How a mixed-model bundle co-terminates and renews.** Co-termination for any shape;
