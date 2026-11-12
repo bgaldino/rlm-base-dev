@@ -37,7 +37,7 @@ root line).
 | M8 | `SubscriptionTerm: 12` on the Term Defined Annual line | End date 2038-11-30 from a 2026-12-01 start, total 12 × 3,240. The term counts the selling model's pricing term unit (years here), not months |
 | M9 | Describe of the transaction and billing objects | `QuoteLineItem.BillingFrequency`, `OrderItem.BillingFrequency2` and `AssetStatePeriod.BillingFrequency`, each labelled Billing Frequency, API values `MilestonePlan` (label Milestone Plan), `Weekly`, `Monthly`, `Quarterly`, `Semi-Annual`, `Annual`; `Asset` has no billing frequency field. `BillingTerm` (label Billing Term) on the quote line, order product and asset action source. `QuoteLineItem.ProductSellingModelId` is read-only (Place refused it; the price book entry sets it). `Order.PaymentTermId`, `BillingAccount.PaymentTermId` and `BillingScheduleGroup.PaymentTermId` exist; `Quote` has no standard payment-term field, only the repo's `RLM_Payment_Terms__c` |
 | M10 | Org state after a full build | Active: `RLM_Order_to_Billing_Schedule_Flow`. Inactive: the standard `o2bsflows` (*Order To Billing Schedule Flow*). Three active policies, 15 active treatments (all with Change Billing Frequency), two active payment terms, no billing milestone plans |
-| M11 | One-time service lines as components of a bundle, each with `MilestonePlan` and *Milestone Billing Treatment* in `BillingTreatmentId`, placed with `configurationMethod: Force` and configuration rules on (second org, see Scope) | Place returned success, but `BillingFrequency` was stored blank on those lines; `BillingTreatmentId` was kept. Read the frequency back after placing; a success response doesn't mean it was kept |
+| M11 | One-time service lines as components of a bundle, each with `MilestonePlan` and *Milestone Billing Treatment* in `BillingTreatmentId`, placed with `configurationMethod: Force` and configuration rules on (second org, see Scope) | Place returned success, but `BillingFrequency` was stored blank on those lines; `BillingTreatmentId` was kept. Read the frequency back after placing; a success response doesn't mean it was kept. The save check refuses Milestone Plan on non-One-Time lines and accepts a treatment with a blank frequency, so it neither explains nor rules out a silent drop; cause not established [Platform behaviour, traced in part] |
 
 M2 and M3 together narrow a statement in the qb-billing README, which says a Term Defined
 line needs an explicit `BillingTreatmentId` with Change Billing Frequency
@@ -79,13 +79,15 @@ Repeat this for the frequencies a plan promises, on the route the demo will use:
 - A line whose frequency matches its pricing term, when the product's policy treatments have
   Change Billing Frequency off.
 - A one-time line with a milestone treatment and no frequency (accepted in M5, and what M11
-  left on bundle components): does activation build a milestone plan for it?
+  left on bundle components): the source says activation builds the plan from the treatment
+  alone [Platform behaviour, traced]; not yet confirmed on a live org.
 - A route that keeps `MilestonePlan` on a bundle component placed with configuration Force
   (M11): a later PATCH with configuration Skip, or the same placement with rules off.
 - A service added by an amendment (a new product on the amendment order, not a change to an
   existing asset) carrying a milestone treatment: does activating the amendment order create
   a billing milestone plan for it, with `enableMilestoneBillingForAmend` on (as the repo
-  ships) and off? Read its `BillingSchedule.Category`, `BillingMilestonePlanId` and billing
+  ships) and off? With the setting off the source gives no plan for an amendment schedule
+  [Platform behaviour, traced]; the on case for an added line is unread. Read its `BillingSchedule.Category`, `BillingMilestonePlanId` and billing
   schedule group [Dev guide: `sforce_api_objects_billingschedule`]. Also: does a plan made by
   hand for that order product or quote line link to its billing schedule?
 - An approved Net 60 quote through order and invoice: which due date the invoice gets.
