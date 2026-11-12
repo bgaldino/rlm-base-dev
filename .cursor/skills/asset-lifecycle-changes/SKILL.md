@@ -34,12 +34,12 @@ results, 2026-11-11).
    placement.** Follow the change from quote → reprice → order → reprice → activation →
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
-    - **Never reprice a lifecycle quote after its order is activated.** Repricing a renewal
-      quote after activation turned each lot into a negative and a positive row netting 0 and
-      took the quote total to 0; the order and assets were unchanged, so the order is the
-      record [Measured: 2026-11-12, 264, scratch org; one renewal quote, cause not traced].
-      Amendment quotes weren't tried. Read the quote's numbers before ordering, not after
-      activation.
+    - **Never reprice a lifecycle quote after its order is activated.** Measured once on a
+      non-ramped renewal quote: an API `Force` reprice of every line (configuration `Skip`)
+      after the order was activated turned each renewal lot into a cancelling pair and the
+      quote total to 0; the order and assets were unchanged [Measured: 2026-11-12, 264,
+      scratch org]. Not measured on amendments or ramped quotes; mechanism not traced. Read
+      quote values before activation and don't reprice afterwards.
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
    with configuration rules on (the UI's inline quantity edit does this), resets the
    line's attributes to the product defaults. Activation keeps them on the asset, and the
