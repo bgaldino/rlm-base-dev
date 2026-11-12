@@ -288,8 +288,9 @@ results, 2026-11-11).
       behaviour, traced in part].
     - **A rule that counts a virtual container's lines needs those lines on the amendment.**
       Where the top-level lines were absent from a root-only amendment, the container's count
-      rule reported zero and logged an Error-severity entry, which blocks ordering (ordering
-      wasn't attempted). Amending the top-level assets at `quantityChange` 0 along with the
+      rule fired (its message implied no matching lines) and logged an Error-severity entry,
+      which blocks ordering (any configurator error-log row blocks ordering, Warning included;
+      see change-policy-mapping.md; ordering wasn't attempted here). Amending the top-level assets at `quantityChange` 0 along with the
       root cleared it [Measured: 2026-11-12, 264, scratch org; one org]. The container counts
       only lines on the quote whose source matches the node it declares [Platform behaviour,
       traced]; that the added amendment lines bound to it is inferred from the cleared error,
