@@ -57,7 +57,7 @@ QuantumBit scratch org; worked example in
   `SalesTransactionItemSource`, …). Values passed inline price the line without any record:
   `ListPrice` still came from the price book entry, and `UnitPrice` was used as the input unit price.
 - Required line inputs; without each one, pricing failed with the error shown [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
-  - `SalesTransactionItemSource` (a per-line string such as `LINE_1` worked): without it the first step fails
+  - `SalesTransactionItemSource` (a per-line string such as `PROBE_LINE_1` worked): without it the first step fails
     with `nulltagName = LineItem`.
   - `PeriodBoundary` (`Anniversary` worked): without it, `INVALID_PERIOD_BOUNDARY`.
   - `StartDate`, and `EndDate` where the line has one, as date-times

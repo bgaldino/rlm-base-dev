@@ -211,7 +211,7 @@ standard tags from the line's `StartQuantity` and `EndQuantity`), then:
 | Steps (shipped default names) | Change to the filter's condition logic |
 |---|---|
 | Every group whose filter has `ItemPricingSource NotEquals 'LastTransaction'` (criterion `k`), except the contract volume group `Applyvolumebaseddiscountstolineswithcontractandwithoutderivedpricing`: input unit price, item net total, both attribute groups, bundle, non-contract volume, manual and amount/percentage discounts, plus any custom group with the same exclusion | `k` → `(k OR (LineItemQuantity > 0 AND ItemStartQuantity > 0))`: positive adds take the new-sale chain |
-| The last-transaction filters `SetNetUnitPriceforLastTransactionPricing` (under `ListContainer`) and `Filterlineswithlasttransactionpricing` (under `Filterlineswithlasttransactionpricingandassignnettotalprice`) | `k` → `(k AND (LineItemQuantity <= 0 OR ItemStartQuantity IsNull OR ItemStartQuantity <= 0))`: positive adds leave the last-price lane |
+| The last-transaction filters `SetNetUnitPriceforLastTransactionPricing` (under `ListContainer`) and `Filterlineswithlasttransactionpricing` (under `Filterlineswithlasttransactionpricingandassignnettotalprice`) | Their `ItemPricingSource Equals 'LastTransaction'` criterion `k` → `(k AND (LineItemQuantity <= 0 OR ItemStartQuantity IsNull OR ItemStartQuantity <= 0))`: positive adds leave the last-price lane |
 | The non-contract volume step `Calculatenetunitpriceandnettotalpriceaftervolumebaseddiscount` | `LowerBound` and `UpperBound` → `ItemEndQuantity`, the quantity after the change (equal to the line quantity on a new sale); `Quantity` stays `LineItemQuantity` |
 
 Leave the other contract-pricing paths and price revision unchanged. One of the two attribute
@@ -229,7 +229,7 @@ rounding step and a term discount), with this overlay merged last
   units carried the new one.
 - A reduction still credited last in, first out, at the prior prices.
 - A renewal stayed on per-lot last prices: renewal lines have `StartQuantity` 0, so the new filters
-  don't admit them. New-sale ramp lines also have `StartQuantity` 0.
+  don't admit them.
 - New sales priced exactly as before, at quantities on both sides of a band edge.
 
 Know before adopting it:
