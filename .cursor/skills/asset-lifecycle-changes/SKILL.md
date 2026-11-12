@@ -35,10 +35,9 @@ results, 2026-11-11).
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
     - **Never reprice a lifecycle quote after its order is activated.** Measured once on a
-      non-ramped renewal quote: an API `Force` reprice of every line (configuration `Skip`)
-      after the order was activated turned each renewal lot into a cancelling pair and the
-      quote total to 0; the order and assets were unchanged [Measured: 2026-11-12, 264,
-      scratch org]. Not measured on amendments or ramped quotes; mechanism not traced. Read
+      renewal quote: a full reprice (every line, pricing `Force`) after the order was activated
+      turned each renewal lot into a cancelling pair and the quote total to 0; the order and
+      assets were unchanged [Measured: 2026-11-12, 264, scratch org]. Not measured on amendments or ramped quotes; mechanism not traced. Read
       quote values before activation and don't reprice afterwards.
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
    with configuration rules on (the UI's inline quantity edit does this), resets the
@@ -173,10 +172,11 @@ results, 2026-11-11).
       detail row per prior positive lot, each priced from its own lot, and its quantity is the
       latest period's quantity. That needs the `enableAsIsRenewals` setting on, a
       last-transaction pricing source, no ramp, no derived-price product, no attribute
-      or price change on the line, and not an early renewal; otherwise it leaves this path. An early renewal, or an as-is
-      renewal with an attribute or price change, was read as cancel-and-add detail rows; whether
-      the other exits (ramp, derived-price product, list-price source) are priced as a single
-      line or as cancel-and-add rows isn't settled [Platform behaviour, traced in part]. The
+      or price change on the line, and not an early renewal; otherwise it leaves this path. An early renewal is repriced as a cancel-and-add pair of
+      detail rows [Platform behaviour, traced]. A renewal on a price book list-price source is
+      one line on the combined quantity (below). Whether a renewal with an attribute or price
+      change, a ramped renewal or a derived-price product gets cancel-and-add rows or a single
+      line isn't settled [Platform behaviour, traced in part]. The
       last-negotiated method copies the net unit price and has no volume-band step, so it
       doesn't re-band; a re-band needs an explicit pricing step, and only lines the step
       admits (renewal lines start at quantity 0) [Platform behaviour, traced]. A price
@@ -276,14 +276,14 @@ results, 2026-11-11).
       own reports the first rule that failed or related rules' messages (inferred, not
       traced). Which status Place assigns an amendment add-on line wasn't read [Platform
       behaviour, traced in part].
-    - Force is what was measured to work for general amendment-line edits through Place
-      (`configurationMethod: Force`); with `Skip` one was refused ("Specify 0 in Quantity of the Quote Line Item record with the
-      action of type No Change") [Measured: 2026-11-11, 264]. The message is a save-time
-      quantity check: a No Change line must have quantity 0 (only that check is traced). Nothing in it
-      looks at the configuration method, so it isn't gated by Skip; why Force accepted the
-      same edit isn't explained, and the check isn't known to be skipped under Force.
-      A No Change line's quantity edit shouldn't depend on Force [Platform
-      behaviour, traced in part]; the quantity validator has no Force or Skip gate.
+    - Edit amendment lines through Place with `configurationMethod: Force`, as the measured
+      runs did; with `Skip`, a quantity edit on a No Change line was refused ("Specify 0 in
+      Quantity of the Quote Line Item record with the action of type No Change")
+      [Measured: 2026-11-11, 264]. The message is a save-time quantity check: a No Change line
+      must have quantity 0 (only that check is traced). Nothing in it looks at the
+      configuration method, so why Force accepted the same edit isn't explained. Don't rely
+      on Force to change a No Change line's quantity; read the saved line back [Platform
+      behaviour, traced in part].
     - **A rule that counts a virtual container's lines needs those lines on the amendment.**
       Where the top-level lines were absent from a root-only amendment, the container counted
       none and its count rule logged an Error-severity entry, which blocks ordering (ordering

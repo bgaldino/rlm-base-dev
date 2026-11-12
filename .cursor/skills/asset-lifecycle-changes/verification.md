@@ -16,9 +16,10 @@ For each change, record the state after every step:
    on the top-level asset, `quantityChange` 0, Quote output), then made the change with a
    Place request.
 2. **Make the change and read the quote.** Edit an amendment line or answer through Place
-   with `configurationMethod: Force` (and `executeConfigurationRules: true` for rules on),
-   which is what was measured to work for general line edits; a No Change line's quantity
-   edit shouldn't depend on it (SKILL.md Quick Rule 7). With `Skip` a line edit was refused [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Then read:
+   with `configurationMethod: Force` (and `executeConfigurationRules: true` for rules on), as in
+   the measured runs. With `Skip` a quantity edit on a No Change line was refused [Measured:
+   2026-11-11, 264, fresh `ent-sb0` scratch org]; Force accepted it for a reason not traced,
+   so don't rely on Force for that edit (SKILL.md Quick Rule 7). Then read:
     - each line's `Quantity`, `UnitPrice` and `TotalPrice`. On an amendment quote
       `Quantity` is the delta, and `StartQuantity` and `EndQuantity` the totals before and
       after. A line's source asset is on `QuoteAction.SourceAssetId`; `QuoteLineItem` has
