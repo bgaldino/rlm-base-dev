@@ -85,10 +85,16 @@ become parameters). Proration has no lookup table. Extra outputs can be added in
   and are set per type (Evergreen, One Time) in Pricing Setup. [Core]
 - Proration policy applies only to **term-defined or evergreen** selling models. [Help: `ind.pricing_create_a_proration_policy.htm`]
 - Setup -> Salesforce Pricing Setup: default **pricing term count** for Evergreen and One Time
-  (numeric). Blank = computed dynamically from start/end dates. Evergreen `1` = price is one
-  billing period. [Help: `ind.pricing_configure_proration_settings.htm`]
-- Month precision: whole months / term; a partial month is rounded to the nearest whole
-  number in that mode. Month-plus-day proration is supported for any frequency. [Help: `ind.pricing_proration_variables.htm`]
+  (numeric). Evergreen `1` = price is one billing period. [Help: `ind.pricing_configure_proration_settings.htm`]
+  A stored default for the line's type bypasses the proration engine and is used directly as the term
+  count. Evergreen with no default: the count is computed from the dates. One Time with no default:
+  the Proration step gives the line no multiplier, so it is not prorated there; Help's "blank =
+  computed dynamically" does not hold for One Time [Platform behaviour, traced].
+- Month precision [Help: `ind.pricing_proration_variables.htm`] says a partial month is rounded to the nearest whole
+  number in that mode. Traced: with Allow Partial Proration Periods off the count is whole periods (a touched partial
+  period counts as 1); with it on, only the first and last period are fractional (days used over that period's actual
+  days, e.g. 15 of 30 = 0.5) and interior periods stay whole [Platform behaviour, traced, annual frequency]. Rounding to
+  the nearest whole number was not traced and is unresolved. Month-plus-day proration is supported for any frequency. [Help]
 - Remainder Strategy (policy): put the rounding remainder in the first or last period so
   period amounts sum to the original ($100/3 -> 33.34/33.33/33.33 or 33.33/33.33/33.34). [Help]
 - If "Allow partial proration periods" is off, the engine charges the full pricing period. [Help]
@@ -212,5 +218,5 @@ Snapshot. Discover: `python scripts/expression_sets/describe_expression_set.py -
 | `SellingModelType` / `SubscriptionTermUnit` binding | `ProductSellingModel`, `ItemSubscriptionTermUnit` | `SellingModelType`, `PricingTermUnit` | parameter names fixed; bound tag is free | Both valid; Help example tags are samples |
 | Net Unit Price binding | `ListPrice` | `NetUnitPrice` (prorated groups), `InputUnitPrice` (non-prorated) | parameter `NetUnitPrice` only | Bind the post-discount price (repo) |
 | Parameters required | Help example maps Day/Month like the rest | n/a | Day/Month optional | Core |
-| Blank One Time default | Blank = term count computed dynamically from dates (both types) | n/a | One Time, no default: not prorated by the engine | Unresolved conflict; core note kept, test live |
+| Blank One Time default | Blank = term count computed dynamically from dates (both types) | n/a | One Time, no default: no multiplier from the Proration step, not prorated [Platform behaviour, traced] | Core; Help's blank = computed does not hold for One Time |
 | `ProductId`/`ProductSellingModelId` | n/a | assumed on Proration | not parameters | Core: drop |

@@ -103,8 +103,11 @@ Tier names are from core's element registration, no Tier step ships in this repo
   effective range. [Help]
 - Tiers must belong to a price adjustment schedule of type Volume; you cannot create
   standalone tiers. Help: deactivate the schedule before adding records, reactivate after. [Help]
-  On 264 any tier write fails while the schedule is active and tiers on an inactive schedule
+  On 264 adding or removing a tier, or changing its bounds, fails while the schedule is active (the guard refuses nothing else it names; an update that leaves the bounds alone is not refused by it, though updates to other tier fields were not traced separately [Platform behaviour, traced in part]) and tiers on an inactive schedule
   still price, so this repo leaves "Standard Price Adjustment Tier" inactive; don't activate it. [Repo, measured]
+  The block is an explicit validation: adding or removing a tier and bound edits are refused while the parent
+  schedule is active [Platform behaviour, traced]. Bundle-Based Adjustment rows have no such check
+  ([`bundle-based-price.md`](./bundle-based-price.md)).
 - Tier type: Percentage, Amount (Help: a flat amount, for example US$100) or Override
   (Help: when the amount falls outside the pricing policy's rule). [Help] Amount subtracts
   from the unit price, per [Core] below. Percentage is entered as a whole number (10 for
@@ -197,7 +200,11 @@ The `PriceAdjustmentScheduleId` constant resource is a procedure variable whose 
 As shipped, units added on an amendment do not re-band. Assets carry `PricingSource`
 `LastTransaction`; every non-contract new-sale group in the shipped default filters on
 `ItemPricingSource NotEquals 'LastTransaction'`, and the last-transaction lane prices those lines
-from the asset's last net price. The volume step also bands on `LineItemQuantity`
+from the asset's last net price. Skipping the volume and discount steps for last-transaction lines is
+by design in the shipped procedure [Platform behaviour, traced]; a line takes that lane when its pricing
+source is last transaction, which the amend hook sets for a cancel, for a quantity of zero or less on an
+amend or no-change line, and when the asset or an ancestor asset carries that source (what sets the
+asset's own source was not traced). The volume step also bands on `LineItemQuantity`
 [Repo: `RLM_DefaultPricingProcedure`], which on an amendment line is the delta, not the new total.
 On a procedure cloned from the shipped default, which has the same lanes, added units took the
 asset's last net price, with no volume step [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch
