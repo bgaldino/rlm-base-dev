@@ -30,8 +30,9 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
 1. **Refresh after any catalog, pricing, rate or contract change.** `prepare_rlm_org`
    ends with `refresh_all_decision_tables` then `rebuild_search_index` for this reason.
    A build that loads data after those steps leaves stale tables behind.
-   **The refresh flow returns before the tables are fresh, so wait before pricing**: poll
-   `check_decision_table_freshness` until it reports no Stale table (see *Refreshing*).
+   **The refresh flow returns before the tables are fresh, so wait before pricing**: rerun
+   `check_decision_table_freshness` until the tables your pricing reads are no longer Stale
+   (see *Refreshing*).
    Rating, qualification and tax tables have no runtime refresh at all: after editing that
    setup data, use the Manager's **Refresh stale only**, or its **Reads object** filter.
    See `lifecycle-and-refresh.md` → *After editing setup data*.
@@ -285,7 +286,8 @@ scratch orgs on 2026-11-11:
   cost lookups, while its bundle adjustment applied. The volume step ran and left the price
   unchanged, the line had no unit cost, and no error was raised.
 
-Before pricing, rerun `check_decision_table_freshness` until it reports no Stale table.
+Before pricing, rerun `check_decision_table_freshness` until the tables your pricing reads (here
+the volume tier, bundle adjustment and cost book tables) are no longer Stale.
 
 ## The timing rule
 
@@ -372,7 +374,7 @@ not know read that object.
 - `python scripts/ai/skill_manifest.py --check` resolves this skill and its sub-files.
 - `cci task run check_decision_table_freshness --org "your-cci-alias"` reports every table with a
   verdict, and the count matches the `DecisionTable` row count in the org.
-- After `refresh_all_decision_tables`, no table is Stale.
+- After `refresh_all_decision_tables` and its refreshes finish, no table is Stale.
 - A table you deliberately made stale (edit any object it reads) flips to Stale and the
   reason names that object.
 - Any name added to a `dt_*_decision_tables` list resolves to a real `DeveloperName` in
