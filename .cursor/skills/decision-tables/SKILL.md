@@ -30,6 +30,9 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
 1. **Refresh after any catalog, pricing, rate or contract change.** `prepare_rlm_org`
    ends with `refresh_all_decision_tables` then `rebuild_search_index` for this reason.
    A build that loads data after those steps leaves stale tables behind.
+   **The refresh flow returns before the tables are fresh, so wait before pricing**: rerun
+   `check_decision_table_freshness` until the tables your pricing reads are no longer Stale
+   (see *Refreshing*).
    Rating, qualification and tax tables have no runtime refresh at all: after editing that
    setup data, use the Manager's **Refresh stale only**, or its **Reads object** filter.
    See `lifecycle-and-refresh.md` → *After editing setup data*.
@@ -269,6 +272,22 @@ incremental is requested, the platform chooses the type itself (org preference
 later of the two stamps; see `lifecycle-and-refresh.md` → *Release 264 chooses the
 refresh type*.
 
+### Wait for fresh tables before pricing
+
+`refresh_all_decision_tables` returns before the tables are fresh. The table refreshes it
+queues finish later (`lifecycle-and-refresh.md` → *Queued is not refreshed*), and so did the
+cost book table, which none of those refreshes names.
+Measured on two fresh 264 `ent-sb0` scratch orgs on 2026-11-11:
+
+- On one, the tier, bundle-adjustment and cost tables stayed Stale for about three minutes after
+  the flow returned, then reached zero Stale.
+- On the other, a quote priced about half a minute after the flow returned got empty volume and
+  cost lookups, while its bundle adjustment applied. The volume step ran and left the price
+  unchanged, the line had no unit cost, and no error was raised.
+
+Before pricing, rerun `check_decision_table_freshness` until the tables your pricing reads (here
+the volume tier, bundle adjustment and cost book tables) are no longer Stale.
+
 ## The timing rule
 
 > **A refresh must fire when the table's source criteria become TRUE — not when the
@@ -340,8 +359,9 @@ it. `pipefail` and `grep` make a missing line an error rather than an empty answ
 Combine modes as `"strict,json"`; with `pipefail` a strict failure still fails the pipeline.
 
 **Pricing looks wrong and the data looks right.** Run the check first. A Stale verdict
-naming the object you just edited is the answer; refresh and re-test before debugging
-anything else.
+naming the object you just edited is the answer; refresh, wait for the tables (*Wait for fresh
+tables before pricing*), and re-test before debugging anything else. A skipped discount or a
+missing unit cost with no error is what pricing too soon after a refresh looks like.
 
 **Adding a rate to an existing card.** `RateCardEntry` feeds several tables. After the
 load, refresh — the check will name every table that went stale, including ones you did
@@ -353,7 +373,7 @@ not know read that object.
 - `python scripts/ai/skill_manifest.py --check` resolves this skill and its sub-files.
 - `cci task run check_decision_table_freshness --org "your-cci-alias"` reports every table with a
   verdict, and the count matches the `DecisionTable` row count in the org.
-- After `refresh_all_decision_tables`, no table is Stale.
+- After `refresh_all_decision_tables` and its refreshes finish, no table is Stale.
 - A table you deliberately made stale (edit any object it reads) flips to Stale and the
   reason names that object.
 - Any name added to a `dt_*_decision_tables` list resolves to a real `DeveloperName` in
