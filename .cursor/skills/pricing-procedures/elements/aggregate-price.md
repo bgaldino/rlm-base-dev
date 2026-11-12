@@ -65,7 +65,8 @@ The encoding allows `section-count` greater than 1 and the parser reads each sec
 ## Where operators
 
 Conditions are checked per line, in index order, ANDed; the first false stops the
-check. A condition whose field is absent from the line is skipped. On aggregate lines every comparison (not `isNull`/`isNotNull`) on a present-but-null value throws. [Core]
+check, so later conditions are not evaluated once one fails: put the cheapest or most selective first
+[Platform behaviour, traced, direct line path; the roll-up and propagation path evaluates with null handling on, and its short-circuit was not separately established]. A condition whose field is absent from the line is skipped. On aggregate lines every comparison (not `isNull`/`isNotNull`) on a present-but-null value throws. [Core]
 
 | Operator | Meaning / types | Quirk |
 |---|---|---|
