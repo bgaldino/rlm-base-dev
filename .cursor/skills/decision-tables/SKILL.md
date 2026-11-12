@@ -274,8 +274,9 @@ refresh type*.
 
 ### Wait for fresh tables before pricing
 
-`refresh_all_decision_tables` returns before the tables are fresh: it queues the table
-refreshes and does not wait for them (`lifecycle-and-refresh.md` → *Queued is not refreshed*).
+`refresh_all_decision_tables` returns before the tables are fresh. The table refreshes it
+queues finish later (`lifecycle-and-refresh.md` → *Queued is not refreshed*), and so did the
+cost book table, which none of those refreshes names.
 Measured on two fresh 264 `ent-sb0` scratch orgs on 2026-11-11:
 
 - On one, the tier, bundle-adjustment and cost tables stayed Stale for about three minutes after
