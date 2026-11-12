@@ -83,8 +83,8 @@ A literal `None` is a value, not an absence: a filter for blank does not match i
 source's values onto existing ones.** The `Family` picklist is unrestricted, so a load stores any value
 through the API, but a value that is not one of the org's picklist values is not offered in
 the UI's Family picklist. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
-`QuantityUnitOfMeasure` behaves the same way: a load stored units that are not among its
-picklist values. [Measured: same org] A clean load is therefore no check on these values;
+`QuantityUnitOfMeasure` likewise stored units that are not among its picklist values (the UI
+wasn't checked). [Measured: same org] A clean load is therefore no check on these values;
 compare the plan's distinct `Family` and `QuantityUnitOfMeasure` values with the org's
 picklist values before loading. Add a new Family value to the `Product2Family`
 standard value set (a metadata deploy) in the same change as the plan that uses it. In this
