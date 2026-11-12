@@ -103,7 +103,7 @@ and One-Time children:
   segments 2 and 3 (Place PATCH), then **Reprice All**, brought them back to the un-uplifted price
   with consistent totals. Use it when only some products should escalate (a filter on the
   procedure's ramp uplift step is an alternative; not measured).
-- That partial PATCH also re-uplifted the lines it didn't touch; see SKILL.md → DO NOT (partial PATCH
+- That partial PATCH also re-uplifted the lines it didn't touch (one org); see SKILL.md → DO NOT (partial PATCH
   on a compound ramp). Always finish a ramp line edit with **Reprice All**.
 
 ## Verify

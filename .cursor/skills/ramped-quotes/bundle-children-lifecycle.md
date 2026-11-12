@@ -47,7 +47,7 @@ and One-Time children, CML rules on, added with Browse Catalogs → *Current and
 three-segment Annual ramp.
 
 - **Every child lands in every segment, with ramp identity.** One-Time and Evergreen children too: each segment
-  held the same set of lines, all with a `RampIdentifier`.
+  held the same set of products, every line with a `RampIdentifier` (a split, below, adds extra instances).
 - **An Evergreen child is one period per segment** (`PricingTermCount` 1 on each segment's line).
 - **A One-Time child is quoted once per segment.** Each segment's line is a separate quote line, so the platform
   quote total counts the child N times. A contract value that should count it once must be computed per segment (or the child kept out of later

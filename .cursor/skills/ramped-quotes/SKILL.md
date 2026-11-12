@@ -84,11 +84,12 @@ quote UI (`ui-group-ramp.md`, measured on 264).
    Asset per segment it sits in; built in the UI a one-time child is stamped and, left in N segments, becomes one Asset whose
    quantity accumulates (1, 2, 3 over three segments). See
    [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
-10. **In a UI-built group ramp, a segment's uplift applies to every line in it, and isn't rounded.**
-    The segment's Unit Price Uplift % lands on One-Time and Evergreen lines too, whose `TotalPrice`
-    doesn't follow the uplifted net; set `UnitPriceUplift` 0 on a line to exempt it. The uplifted
-    price keeps full precision (not cents); add a rounding step after the ramp uplift if the source
-    rounds. Measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs; see
+10. **In a UI-built Compound group ramp, a segment's uplift applies to every line in it, and isn't
+    rounded.** The segment's Unit Price Uplift % lands on One-Time and Evergreen lines too, whose
+    `TotalPrice` doesn't follow the uplifted net; set `UnitPriceUplift` 0 on a line to exempt it
+    (measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs). The uplifted price keeps full
+    precision, not cents (one of those orgs; the other already rounded after the uplift); add a
+    rounding step after the ramp uplift if the source rounds. A Standard UI ramp wasn't measured. See
     [ui-group-ramp.md → What the segment uplift reaches](ui-group-ramp.md#what-the-segment-uplift-reaches)
     and [compound-uplift.md](compound-uplift.md).
 
