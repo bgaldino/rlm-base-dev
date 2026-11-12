@@ -165,7 +165,7 @@ case: see [Checks across top-level lines](#checks-across-top-level-lines-a-virtu
 ## Raising the 9,999 cap: `maxRelationSize`
 
 `maxRelationSize` is the largest cardinality of any single relation in the model. Its
-default is 9,999 and its maximum 1,073,741,823 `[Platform behaviour, traced]`. It is a clamp on every relation's upper bound, and on the quantity of a line in a single-line type. It is a model-level `property`, written
+default is 9,999 and its maximum 1,073,741,823 (the dev guide says 1073741824) `[Platform behaviour, traced]` `[Dev guide: cml_relationships]`. It is a clamp on every relation's upper bound, and on the quantity of a line in a single-line type. It is a model-level `property`, written
 before the types `[Dev guide: cml_relationships]` (*Set Maximum Relationship Size*):
 
 ```
@@ -398,7 +398,8 @@ Pick one per relation; using both is an [open item](#open-items).
 **An optional line the caller did not fix is only a candidate.** A line is a real,
 fixed component the rules must hold once its status is user-set or changed, or when it comes
 from an owned asset or a read-only relation. Any other optional line (a default, a
-rule-derived one, a rep's add in the request that makes it, one re-sent as new) is a
+rule-derived one, one re-sent as new; a rep's add in the request that makes it arrives as
+new, see below) is a
 candidate the solver builds only if a rule or cardinality needs it. A `require` treats a violated condition as satisfied, so when
 its condition fails, the solver can satisfy it with the add-on absent: the line vanishes and
 the result is a success with no message. A fixed line, or a relation whose minimum is above
@@ -424,8 +425,11 @@ two unrelated sizing rules while the stored answer was A `[Measured: M40]`.
 Whether the solver may change a stored answer depends on its node status, which only a
 context that tracks node status (the node-status tag in the context definition, with the
 constraints permission) carries. On such a context a rep-entered answer is fixed once its status is user-set or changed:
-a rep update arrives as changed, and a rep add in the same request arrives as new, which the
-solver treats as a candidate. It becomes user-set once the engine has run after it. The solver
+a rep update arrives as changed, and a rep add in the same request arrives as new. A new
+line is a candidate line in the solver; how a new line's attributes are treated is not traced
+`[Platform behaviour, traced in part]`. That sits oddly with the refusal of a hand-added
+line in the mode B case below (M40): consistent only if the line was fixed another way, which
+isn't established. It becomes user-set once the engine has run after it. The solver
 re-derives an answer when the context has no node-status tag, when the value came from a
 default or from a value the model computed (an engine value), or when the line is re-sent as
 a fresh add `[Platform behaviour, traced]`. This repo's context plan has the tag
@@ -689,7 +693,7 @@ and a warning on the line. The rows are written after a successful save, the old
 that source are purged and recreated on every Place, and a bare `configure` neither writes
 nor clears them, so a later `configure` can report success `[Platform behaviour, traced]`.
 `Info` messages aren't logged. When a line save is refused, the refusal comes back and the
-call writes no error logs, so it masks the rule's message `[Platform behaviour, traced]`.
+call writes no error logs, so the rule's message is not logged `[Platform behaviour, traced]`.
 
 `success: true` and `isSuccess: true` prove nothing about the rules. Once, the rule's
 message was only in the error log and a later `configure` returned
