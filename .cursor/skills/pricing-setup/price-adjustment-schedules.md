@@ -26,9 +26,9 @@ Permission: Salesforce Pricing Design Time; Salesforce Pricing Manager for the A
 Prerequisites: a product selling model and products in a price book. [Help]
 
 1. Use a predefined schedule (Standard Price Adjustment Tier, Standard Attribute Based Adjustment, Standard Bundle Based Adjustment) or create one: App Launcher > Price Adjustment Schedules > New. Name; Adjustment Method (Range or Slab); Schedule Type (Volume, Attribute, Bundle); Effective From (and optional Effective To; blank means indefinite). Existing schedules can be cloned. [Help]
-2. **Deactivate** the schedule before adding records to it. [Help] On 264 any tier write fails while the schedule is active, and tiers on an inactive schedule still price, so this repo leaves "Standard Price Adjustment Tier" inactive. [Repo, measured]
+2. **Deactivate** the schedule before adding records to it. [Help] On 264 a tier write failed while the schedule was active, and tiers on an inactive schedule still price, so this repo leaves "Standard Price Adjustment Tier" inactive. [Repo, measured; the measurement covered tier loads, not every write type] [Platform behaviour, traced] Adding or removing a tier (insert, delete, undelete, an upsert that inserts), or changing its bounds, fails while its schedule is active; updates that leave the bounds alone are allowed.
 3. Add child records (below). Direct launch from the App Launcher also works, then pick the schedule.
-4. Open the schedule and select Active (Help). For volume tiers on 264 this is not needed for pricing and blocks later tier writes (step 2).
+4. Open the schedule and select Active (Help). For volume tiers on 264 this is not needed for pricing and blocks later tier adds, removals and bound changes (step 2).
 5. Refresh the adjustment decision tables ([refresh rule](./import-export-and-bulk-data.md#after-load-refresh-rule)).
 
 Editing: updating price details creates another record rather than editing in place (Help; wording partly lost in the snapshot). [Help]
@@ -39,7 +39,7 @@ Product, product selling model, schedule (type Volume; no standalone tiers), tie
 
 - Bounds are inclusive and tiers cannot overlap; tiers sharing an effective date must be consecutive with no gaps.
 - For a unique Product + Selling Model + Schedule + Currency + Effective Dates, quantity ranges must not overlap; avoid duplicates, especially with multicurrency off.
-- [Repo] The platform rejects insert/update/delete of a tier while its schedule is active. [Platform behaviour, traced] This is write-time validation only (inserting, deleting or undeleting tiers, editing bounds); the procedure-path tier lookup has no active input, so an inactive tier row still prices there (a separate store-pricing path does filter on active). Delete or exclude tiers you do not want priced.
+- [Platform behaviour, traced] Adding or removing a tier, or changing its bounds, fails while its schedule is active (insert, delete, undelete, an upsert that inserts, and any lower or upper bound change); updates that do not touch the bounds are allowed. [Repo, measured] A tier load on an active schedule failed. This is write-time validation only; the procedure-path tier lookup has no active input, so an inactive tier row still prices there (a separate store-pricing path does filter on active). Delete or exclude tiers you do not want priced.
 
 ### Attribute-based
 
@@ -97,7 +97,7 @@ Simulate a line at a quantity inside a band and check the waterfall step.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Cannot add or change tiers | Schedule is active | Deactivate, edit, refresh (reactivating is not needed for volume tiers on 264; step 4) |
+| Cannot add or remove tiers, or change their bounds | Schedule is active | Deactivate, edit, refresh (reactivating is not needed for volume tiers on 264; step 4) |
 | Tier discount missing for non-USD | Schedule duplicated per currency, or currency not matched. A missing child row in that currency is a non-match, so no adjustment [Platform behaviour, traced; not measured] ([open question](./import-export-and-bulk-data.md#open-questions)) | Single schedule; load one child row per currency ([Adding a currency](./import-export-and-bulk-data.md#adding-a-currency)) |
 | Attribute discount not applied (numeric) | Value without `.0` | Use `10.0` |
 | Attribute discount not applied after migration, table fresh | Conditions hash mismatch | Save an affected condition unchanged, then run a validation transaction |
