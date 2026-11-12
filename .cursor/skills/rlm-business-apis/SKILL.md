@@ -87,8 +87,9 @@ procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pr
   requests (price book entry only, no selling model set on the line) the saved unit became the
   selling model's `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line
   (System pricing, configuration method Force, rules on) priced from its dates (term count 3) and
-  did not get the measured procedure's term-keyed discount step, both standalone (net 17,100, vs
-  16,416 once `SubscriptionTerm: 3` was sent) and as a bundle component (16,587 vs 15,923.52)
+  did not get the term-keyed discount step that the measured org's customised pricing procedure
+  adds (not a shipped step), both standalone (net 17,100, vs 16,416 once `SubscriptionTerm: 3` was
+  sent) and as a bundle component (16,587 vs 15,923.52)
   [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. Send the
   term explicitly.
 - **Milestone Plan on bundle components.** Place with `configurationMethod: Force` and
