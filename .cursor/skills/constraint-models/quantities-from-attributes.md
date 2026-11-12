@@ -522,7 +522,11 @@ type Quote {
   check, not run: a single-line type (`split = false`) is capped at one instance per
   relation, and a container over all segments shares one relation, so a second line of such
   a type should fail that check `[Platform behaviour, traced]`; the measured message is the
-  one above. Which of the
+  one above. The refusal comes from the solver, not from Place: a relation that allows one
+  instance cannot hold one line per segment, so don't put a one-instance type in a
+  quote-level container shared across ramp segments; size it per bundle instead
+  `[Platform behaviour, traced]`. What Place does with a cloned segment line (status,
+  quantity) isn't traced. Which of the
   two settings alone refuses the ramp wasn't isolated. For the ramp itself, see the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
   [SKILL.md → Ramp groups and segments](SKILL.md#ramp-groups-and-segments).
 - **Don't add `closeRelation = true` to a relation the container aggregates.** With it,
@@ -573,7 +577,13 @@ Measured on 264 `[Measured: M39]`:
   `[Repo: datasets/context_plans/ConstraintEngineNodeStatus]`.
 - Even with that rule, rows made from an order item detail stayed blank. An answer change
   activates as a cancel-and-reprice pair whose rows reference order item details, so the
-  next amendment started blank again.
+  next amendment started blank again. Traced: activation writes one row per order item, or
+  one per order item detail when the item has details; a detail-sourced row takes mapped
+  custom-field values only from the detail, a line-sourced row only from the line. A mapping
+  from the line alone therefore fills line-sourced rows and leaves detail-sourced ones blank,
+  and the platform doesn't copy node status between them; this holds for any mapped
+  custom field. Why an answer change produces detail rows wasn't traced
+  `[Platform behaviour, traced]`.
 - With a blank node status, an amendment that edited one answer reset every answer it
   didn't change to its CML default, and re-derived the children from those defaults.
   Sending an unchanged value didn't help: Place drops it. An
@@ -592,6 +602,11 @@ So, before amending a CML bundle's answers:
 This repo ships the fix: the order → asset context rule above, plus a before-insert trigger
 on `AssetActionSource` that fills a blank row from its order item, directly or through the
 detail `[Repo: unpackaged/post_constraints/triggers/RLM_AssetActionSourceTrigger.trigger]`.
+On a later build with the repo's node-status tracking deployed, the root's
+`AssetActionSource` rows carried node status after every activation, across four lifecycle
+runs, and unchanged answers held `[Measured: 2026-11-12, 264, scratch]` (one org). That
+run didn't split line-sourced from detail-sourced rows, so whether the line-sourced rows
+carry it without the trigger is not established; a live check is open.
 With both, answers held through two answer-change amendments in a row on a fresh build
 `[Measured: 2026-11-11, 264, fresh ent-sb0 scratch org]`. An org built before the fix, and
 assets activated before it was deployed, still have blank rows: the trigger acts only on new
@@ -694,6 +709,12 @@ that source are purged and recreated on every Place, and a bare `configure` neit
 nor clears them, so a later `configure` can report success `[Platform behaviour, traced]`.
 `Info` messages aren't logged. When a line save is refused, the refusal comes back and the
 call writes no error logs, so the rule's message is not logged `[Platform behaviour, traced]`.
+
+The save-time quantity rules (for example "Specify 0 in Quantity" on a No Change line) are
+field validations with no `Force` or `Skip` gate, so the configuration choice doesn't
+decide whether they fire `[Platform behaviour, traced]`. Skip refused a quantity edit
+that Force accepted; why Force passed isn't established, so don't rely on `Force` to edit
+such lines.
 
 `success: true` and `isSuccess: true` prove nothing about the rules. Once, the rule's
 message was only in the error log and a later `configure` returned
