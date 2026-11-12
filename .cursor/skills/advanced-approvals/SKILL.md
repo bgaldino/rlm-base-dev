@@ -27,14 +27,16 @@ scratch org built by this repo.
    [Help: `ind.approvals_advanced_approvals`]. An approval workflow is an orchestration flow
    of stages and steps: background steps run flows, and approval steps assign work items
    [Help: `ind.approvals_example_configure_an_approval_workflow`].
-2. **Reduce every condition to a Number or Text value before the approval stage.**
+2. **Reduce every condition to a single flow-resolved value of a supported type (Number or
+   Text always works) before the approval stage.**
    - Conditions can test a background step's outputs, another step's outputs (the shipped
      Director step reads `Manager_Approver.Outputs.approvalDecision`) and flow formulas. Line
      values aren't one of those, so aggregate them (a maximum level, a count of lines below
      floor) into quote-level numbers in a background step or a roll-up first.
-   - Smart Approvals accepts a fixed list of condition datatypes and operators and no NOT
-     in the criteria logic; anything else sends the step to manual review
-     ([limitations.md](limitations.md) → Smart Approvals).
+   - Smart Approvals: the Help says Number or Text only and no NOT operator
+     [Help: `ind.approvals_smart_approval_limitations`]. The traced allow-list is wider
+     (datatypes and operators in [limitations.md](limitations.md) → Smart Approvals);
+     treat Number and Text as the documented-safe types.
 3. **Model "each level also needs the levels below" as one serial chain.** Step N starts
    when the level is at least N and step N−1 was approved. Give each independent
    dimension its own chain name so it runs in parallel. The repo ships this
@@ -203,8 +205,9 @@ items:
   strings differ, counts as changed [Platform behaviour, traced]. Which property differed in
   the measured run is not established, and numeric fields compare as numbers, so the trace
   gives no support for a `0.0` rule. An Active latest version plus an identical file
-  creates no version; a Draft latest version is overwritten in place; a changed file over an
-  Active or Obsolete latest version creates one [Platform behaviour, traced]. Steps inside
+  creates no version; a changed file over a Draft latest version overwrites it in place; a changed
+  file over an Active or Obsolete latest version creates a new one; a deploy requesting
+  Active over a non-Active latest version counts as changed [Platform behaviour, traced]. Steps inside
   orchestrated stages keep their saved order, a possible reason an orchestration redeploys
   unchanged; that is not proven for the measured run. For a new or generated flow, deploy it, retrieve it and commit the retrieved form. Compare
   `SELECT VersionNumber, Status FROM Flow WHERE Definition.DeveloperName = '<flow>'`
