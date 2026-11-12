@@ -59,6 +59,8 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
   products must be in a price book. [Help: `ind.pricing_create_bundle_based_adjustments.htm`]
   See [Selling model of the bundle root](#selling-model-of-the-bundle-root).
 
+Configurator validation of component selling models [Platform behaviour, traced]: for a Term Defined or Evergreen parent, each child must carry the **same** selling model and subscription term; a blank or different model, or a different term, draws a message. A parent model of None is treated as One Time: its children must then have no model or a One Time model, and term is not compared. A model chosen on a line must be one of that product's own options (a Term Defined line is also checked against the option's Minimum, Maximum and Increment). These are non-blocking messages on the configurator response; whether they block save or Place is **Open — needs live verification** (the locked bundle measured in `bundles-and-cardinality.md` quoted a Term Defined root with One Time and Evergreen children).
+
 Children keep their **own** options, which may differ from the root's. In the QuantumBit
 Starter bundle the root is One-Time while a maintenance child is Term Annual.
 [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductSellingModelOption.csv`] How a mixed-model bundle
@@ -108,8 +110,10 @@ applies to every child**, whatever the child's own flag. [Help: `ind.product_cat
 | The customer will amend, renew, cancel, transfer or swap it later | It is consumed once and has no ongoing state (a one-off fee) |
 | Usage grants hang off it (anchor and pack products create entitlement buckets after assetization) | Nothing downstream reads its asset |
 
+On order activation the root's flag decides: a non-assetizable component under an assetizable root still becomes an asset and gets lifecycle actions like its siblings, and amend, renew and cancel set the flag true on the items they touch. [Platform behaviour, traced] The consequence for children that stay non-tracked is traced no further than this: to keep a component out of the asset base, make it a separate line, not a bundle child. A standalone non-assetizable product creates no asset.
+
 Amend, renew and cancel act on assets. [Help: `ind.qocal_asset_lifecycle.htm`] So a product
-that never becomes an asset has no asset to amend or renew (inferred). Usage buckets are
+that never becomes an asset has no asset to amend or renew (inferred; true of a standalone product, not of a child of an assetizable root). Usage buckets are
 created after the pack is bought and assetized. [Help: `ind.qocal_understanding_rate_on_packs.htm`]
 A technical (fulfillment) product marked assetizable, with a Custom decomposition scope, needs
 an assetizable custom fulfillment scope configuration. [Help: `ind.dro_creating_a_technical_product.htm`]
@@ -127,7 +131,7 @@ combined with other products". [Help: `ind.product_catalog_create_simple_product
 flag is exposed on product representations returned by the catalog APIs.
 [Dev guide: `apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm`]
 
-Help does not say what enforces it. Measured [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
+Help does not say what enforces it. The only enforcement traced is the category assignment check; placing, ordering and activating do not read the flag, so it is a catalog-hygiene flag, not a sales rule. [Platform behaviour, traced] Measured [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
 
 | Step | Result |
 |---|---|
@@ -137,10 +141,10 @@ Help does not say what enforces it. Measured [Measured: 2026-11-11, fresh 264 en
 | Place it alone on a quote (rules on, `validateProductCatalog: true`), then order and activate | All accepted |
 
 **Modeling advice:** set the flag, make the add-on a bundle component, and keep it out of
-categories (the platform requires that). If no quote may sell it alone, add your own check
-(a configuration rule or a quote validation): the only refusal measured is at category
-assignment.
-Whether search hides it because of the flag or because it has no category, and what amend,
+categories (the platform requires that). To make "only with X" real, require it through a bundle
+component or add your own check (a configuration rule or a quote validation): the only
+refusal, measured and traced, is at category assignment.
+Whether search hides it because of the flag or because it has no category (the flag is in the search index documents, so a filter is plausible; its logic is not traced), and what amend,
 renew or cancel do when its companion is removed: **Open — needs live verification.** The
 QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
 
