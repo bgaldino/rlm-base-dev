@@ -10,7 +10,8 @@ check. This file covers only the CML that sizes a bundle and how to test it.
 **Claim tags.** `[Dev guide: <article>]` is the 264 developer guide snapshot under
 `docs/salesforce/264/dev-guide/articles/`, cited by file name without `.htm.md`.
 `[Help: <article>]` is the 264 Help snapshot under `docs/salesforce/264/help/articles/`,
-cited the same way. `[Repo: <file>]` is this repository. `[Measured: M<n>]` is row M<n> of
+cited the same way. `[Platform behaviour, traced]` is a rule read from the platform's own behaviour, not
+measured here; where it explains a measured row, both tags appear. `[Repo: <file>]` is this repository. `[Measured: M<n>]` is row M<n> of
 [Measured on 264](#measured-on-264), a live run on a 264 (API v68.0) scratch org. Questions
 none of these settle are listed once, under [Open items](#open-items). The worked example
 as a whole has not been run, but a model built on its patterns has (rows M22 to M33).
@@ -143,11 +144,20 @@ Where the PCM component groups had a quantity range, each split group drew a
 split, assert the line count. "Rejected" means flagged, not undone: Place saved the edit (read back
 for one downward edit) `[Measured: M23]`; read the message as in [Reading a result](#reading-a-result).
 
+When defaults are added, each default (or required, qualified) component goes in at its
+configured component quantity, 1 when unset, not always 1. With `split` unset, that line
+is fixed at its quantity, so a rule asking for more adds a separate line for the remainder.
+With `split = false` the line's quantity is a variable the solver sets up to the relation's
+maximum, so it reuses the line. With `split = true` each unit is its own line
+`[Platform behaviour, traced]`. Group ranges count lines, so a split product counts once per
+line `[Platform behaviour, traced]`.
+
 Put the annotation on each leaf type that is a sized component (in the worked example,
 every type but the abstract `Support`). Leave it off a type whose lines must carry
 different attribute values: `split = false` allows only one instance
-`[Dev guide: cml_annotation_example_split]`. Group ramps are
-[open item 15](#open-items). The types a virtual `Quote` container holds are a different
+`[Dev guide: cml_annotation_example_split]`. Each root
+solves separately, so in a group ramp a single-line type gets one line per segment
+(see [open item 15](#open-items)). The types a virtual `Quote` container holds are a different
 case: see [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container).
 
 ---
@@ -155,7 +165,7 @@ case: see [Checks across top-level lines](#checks-across-top-level-lines-a-virtu
 ## Raising the 9,999 cap: `maxRelationSize`
 
 `maxRelationSize` is the largest cardinality of any single relation in the model. Its
-default is 9,999 and its maximum 1,073,741,824. It is a model-level `property`, written
+default is 9,999 and its maximum 1,073,741,823 `[Platform behaviour, traced]`. It is a clamp on every relation's upper bound, and on the quantity of a line in a single-line type. It is a model-level `property`, written
 before the types `[Dev guide: cml_relationships]` (*Set Maximum Relationship Size*):
 
 ```
@@ -286,6 +296,12 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
   `[Dev guide: cml_group_type]`; the best-practices page says `parent` isn't supported with
   Group Type `[Dev guide: cml_cml_best_practices]`. Sizing from the root through the group
   variable doesn't need `parent()`.
+- `parent(<attr>)` with no level looks at the owners of the component's parent ports and
+  takes the first that has the attribute; otherwise it walks up the ancestors and takes the
+  nearest one that has it. `parent(<attr>, n)` goes exactly n levels (nothing if the chain
+  is shorter), and `parent(<attr>, Type)` the nearest ancestor of that type. Add a level or a
+  type when the attribute name exists at more than one level. A group level counts as a
+  parent step only if the group type declares the attribute `[Platform behaviour, traced]`.
 - **Copying a root answer down to the children.** When the components sit in PCM product
   component groups and the model declares no group types, `parent(<attr>)` with no level
   reached the root `[Measured: M27]`:
@@ -319,7 +335,7 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
 |---|---|---|
 | Relation cardinality `[1..1]` over a base type with subtypes | Bounds the relation; a subtype is then picked with `rel[Subtype] == 1` | `[Dev guide: cml_relationships]` (*skipTypeGeneration* example) |
 | A sum of subtype cardinalities | `constraint(support[StandardSupport] + support[PremiumSupport] == 1, "<message>");`, which carries a message a test can assert | `[Dev guide: cml_core_concept_examples]` (adds two cardinalities) |
-| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Limits **unique instances** chosen from the group. The chosen component can still have a high quantity | `[Dev guide: cml_group_type]` |
+| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Limits **unique instances** chosen from the group. The chosen component can still have a high quantity. The solver counts lines: a line of quantity N counts 1 for a `split = false` type and N for `split = true` | `[Dev guide: cml_group_type]` `[Platform behaviour, traced]` |
 
 Tie the choice to an answer with one implication per subtype, as in the dev guide's
 warranty example, each with its own message:
@@ -342,7 +358,7 @@ bound can't hold once `sites` is above 1; that failure itself wasn't run.
 | Tool | What the dev guide says it counts | Source |
 |---|---|---|
 | `rel.count(<condition>)` | "the number of component instances" that match the condition. Another page says that when the condition covers every instance it returns the same value as `cardinality()`. Lines or quantity: [open item 14](#open-items) | `[Dev guide: cml_relationship_variable_functions]` `[Dev guide: cml_using_proxy_variables_constraints]` |
-| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Unique instances chosen from the group; the chosen component can still have a high quantity. The annotation reference calls it the maximum cardinality for a component in a group | `[Dev guide: cml_group_type]` `[Dev guide: cml_type_annotations]` |
+| Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Unique instances chosen from the group; the chosen component can still have a high quantity. The annotation reference calls it the maximum cardinality for a component in a group. The solver sums the relations' instance counts, so a line of quantity N counts 1 for `split = false` and N for `split = true`; a conflict reads "Group Cardinality must be greater than or equal to X and less than or equal to Y". It refuses only when the CML group declares the bounds; whether a PCM group minimum reaches the CML is not established | `[Dev guide: cml_group_type]` `[Dev guide: cml_type_annotations]` `[Platform behaviour, traced]` |
 
 **When an answer picks the plan,** nothing needs counting. Size the chosen plan from the
 answer, zero the other, and drop the sum:
@@ -376,11 +392,47 @@ is [open item 14](#open-items).
 
 Pick one per relation; using both is an [open item](#open-items).
 
-**A choice that switches rules on and off behaves as if free to the solver, even when the
-answer is stored.** With `mode == "A" -> rel[T] == n` and `mode == "B" -> rel[T] == 0` on several
+**An optional line the caller did not fix is only a candidate.** A line the rep set, or one
+from an owned asset, is a real component the rules must hold. Any other optional line
+(a default, a rule-derived one, one re-sent as new) is a candidate the solver builds only if
+a rule or cardinality needs it. A `require` treats a violated condition as satisfied, so when
+its condition fails, the solver can satisfy it with the add-on absent: the line vanishes and
+the result is a success with no message. A fixed line, or a relation whose minimum is above
+0, is refused with the rule's message instead. To make a rule refuse rather than remove,
+raise the relation's minimum or state the rule on the answer too
+`[Platform behaviour, traced]`. This explains the silent removal seen on amendments, where the
+answer form of a rule removed an optional line and the line form named a different rule. That
+the line form's message comes from another rule is an inference; why the line form lacks its
+own message is not established `[Platform behaviour, traced]`.
+
+`exclude` differs: with a fixed or existing instance when its condition holds, it fails with
+its own message rather than removing the line. It removes a line silently only when the
+condition is decided true during propagation, before the rule is solved, so that depends on
+order `[Platform behaviour, traced]`.
+
+**A choice that switches rules on and off is fixed or free depending on how its stored
+answer reaches the solve.** With `mode == "A" -> rel[T] == n` and `mode == "B" -> rel[T] == 0` on several
 relations, the solver can explain a conflict in an A configuration with a B rule: one
 B rule zeroing every relation, with a message of its own, was reported for breaches of
-two unrelated sizing rules while the stored answer was A `[Measured: M40]`. So:
+two unrelated sizing rules while the stored answer was A `[Measured: M40]`.
+
+Whether the solver may change a stored answer depends on its node status, which only a
+context that tracks node status (the node-status tag in the context definition, with the
+constraints permission) carries. On such a context a rep-entered answer is fixed: it arrives
+as new or changed in the request that sets it, and as user-set afterwards. The solver
+re-derives an answer when the context has no node-status tag, when the value came from a
+default or from a value the model computed (an engine value), or when the line is re-sent as
+a fresh add `[Platform behaviour, traced]`. This repo's context plan has the tag
+(`RLM_ConstraintEngineNodeStatus__c`). Which of those cases M40 and M41 measured is not
+established; the measured message and argument facts below hold regardless.
+
+On a conflict the reported message is the first rule that failed, kept for the whole
+solve. When the failing rule has no message of its own, the messages of related failed
+rules are joined, so a flipped branch can surface as the other branch's rule. A message
+argument prints its value only if every argument is already set at that moment; if any is
+not, the text keeps a raw `{}`. A value that does not match the current rule may come from an
+earlier attempt in the same request; cause not established
+`[Platform behaviour, traced]`. So:
 
 - **Give each relation its own pair of branch rules, both carrying that relation's message**
   (an exception to [Quick Rule 6](#quick-rules)). That named the right rule
@@ -429,7 +481,18 @@ type Quote {
   `[Dev guide: cml_relationship_annotations]`; the dev guide's virtual-root example omits
   it. Without it no line attached to the container: Place and `configure` succeeded, the
   container's own rules ran, and every rule on the line types silently stopped
-  `[Measured: M34]`.
+  `[Measured: M34]`. A container relation accepts only a line whose source matches its
+  `sourceContextNode`, and whose type is the relation's type or a subtype; a line with no
+  matching relation passes through untouched, outside the container
+  `[Platform behaviour, traced]`.
+- **Lines the container attaches are real components of the solve.** They are written back
+  to the quote, including lines the solver created, which is why a constraint on a container
+  relation can resize a line or add one `[Platform behaviour, traced]`.
+- **The container is handed the whole transaction.** The configurator receives every line
+  of the quote, across all ramp segments and groups, as one set; nothing partitions it per
+  group before the model runs. A relation on the container therefore counts lines across
+  segments. Only a `groupBy` container scopes by group
+  `[Platform behaviour, traced]`.
 - **Check across lines with `message(..., "Error")`, not constraints.** Constraints on a
   container relation to top-level lines didn't refuse a rep's lines: the solver rewrote
   them and added instances, once a second bundle root, to satisfy the rule. An `Error`
@@ -445,16 +508,27 @@ type Quote {
   their summed totals (`qSites` in the example) to their total across segments, and leave
   `split = false` off the types the container holds. Write each check as a comparison of
   totals across segments `[Measured: M41]`; `total()` and the cardinalities in the example
-  above already sum every instance. Which of the two settings alone refuses the ramp wasn't
-  isolated. For the ramp itself, see the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
+  above already sum every instance. A single-line type (`split = false`) allows one
+  instance per relation, and a container over all segments shares one relation, so a second
+  line of such a type fails with that message `[Platform behaviour, traced]`. Which of the
+  two settings alone refuses the ramp wasn't isolated. For the ramp itself, see the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
   [SKILL.md → Ramp groups and segments](SKILL.md#ramp-groups-and-segments).
 - **Don't add `closeRelation = true` to a relation the container aggregates.** With it,
   `total()` and `max()` on that relation failed with "There's a goal execution error in
-  your CML code" instead of the rule's message `[Measured: M36]`.
+  your CML code" instead of the rule's message `[Measured: M36]`. `closeRelation` pins the
+  relation's count to the components that already exist (plus any the solver is still to
+  instantiate), so the solver can't search a larger count `[Platform behaviour, traced]`.
+  Why that produces the goal error with `total()` or `max()` is not established.
 - **Read a bundle's child quantity through the relation path** (`platform.addOns[AddOn]`)
   rather than staging it in an `int` on the bundle set equal to the cardinality. In one
   model, that `int` changed how the solver met an add-on rule: it dropped a default
-  add-on instead of raising it. Seen twice in that model only `[Measured: M37]`.
+  add-on instead of raising it. Seen twice in that model only `[Measured: M37]`. A default
+  add-on is a try-first preference the solver may drop: it tries to add the default and
+  falls back to no line if anything after it fails, and it accepts the first consistent
+  solution. Values are tried low first, so an `int` tied to the relation count can settle low
+  and leave the default dropped `[Platform behaviour, traced]`. Why the `int` binding flipped
+  the outcome from raised to dropped in that model is not established. To keep a count,
+  state it: a relation minimum, or a required line.
 - A quote that holds the plan lines but not the bundle (an amendment of the plan assets
   alone, say) has nothing in `platform`, so this check doesn't compare the plans with
   `sites` there.
@@ -550,11 +624,17 @@ in front of it (step 1 below).
    `[Dev guide: connect_requests_configurator_preference_input]`, and
    `executeConfigurationRules: true` alone runs nothing at Place
    `[Repo: .cursor/skills/constraint-models/SKILL.md]`. With rules off, `configure`
-   returned `success` for an invalid combination `[Measured: M21]`.
+   returned `success` for an invalid combination `[Measured: M21]`. `Force` and `System`
+   both run the rules and let Place save the result with errors; `Skip` runs none, so
+   nothing is logged; a quote-placement request that omits the choice is `Skip`. A quote-placement request with a "run and
+   block errors" choice refuses the save instead `[Platform behaviour, traced]`.
 2. **Send each answer so it binds, then check that it did.** In a Place graph, a
    `QuoteLineItemAttribute` with `AttributeDefinitionId` and `AttributeValue` (plus
    `AttributePicklistValueId` for a picklist) bound to the CML variable named by the
-   definition's developer name, with no `AttributeName`. A number stored with a decimal
+   definition's developer name, with no `AttributeName`. The definition id is what
+   identifies the attribute; the name is optional, and the platform looks it up from the
+   definition when it is missing. A row with neither can't resolve
+   `[Platform behaviour, traced]`. A number stored with a decimal
    (`"12.0"`) still bound to an `int` `[Measured: M30]`. Product Configurator API requests are different:
    there, an attribute created or updated without `AttributeName` isn't matched to its CML
    variable and the engine applies the CML default
@@ -594,6 +674,13 @@ and the error log, a few seconds after Place:
 | Place | `isSuccess: true`; it saved what it was sent `[Measured: M29]` | `isSuccess: true` |
 | `configure` | Usually `success: true`, `solverStatus: "error"`, `errors: []`, the rule's message in `messages` `[Measured: M29]` | `success: true`, `solverStatus: "success"`, `errors: []` `[Repo: .cursor/skills/constraint-models/SKILL.md]` |
 | `RevenueTransactionErrorLog` on the quote | A row with the rule's message in `ConfiguratorErrorMessage` `[Measured: M29]` | No row with a constraint's failure message |
+
+Place never fails on a rule message, Error or Warning: the messages become error log rows
+and a warning on the line. The rows are written after a successful save, the old ones for
+that source are purged and recreated on every Place, and a bare `configure` neither writes
+nor clears them, so a later `configure` can report success `[Platform behaviour, traced]`.
+`Info` messages aren't logged. When a line save is refused, the refusal comes back and the
+call writes no error logs, so it masks the rule's message `[Platform behaviour, traced]`.
 
 `success: true` and `isSuccess: true` prove nothing about the rules. Once, the rule's
 message was only in the error log and a later `configure` returned
@@ -869,12 +956,20 @@ Each needs a live 264 org:
     which leaves a quote without the bundle unchecked.
 14. How to require exactly one plan, each sized per site, when the rep picks the plan by
     adding it ([Exactly one plan when each plan is sized per site](#exactly-one-plan-when-each-plan-is-sized-per-site)).
-    Unsettled: whether `count(<condition>)` counts lines or quantity; whether Group Type
-    `maxInstanceQty=1` admits one plan line of quantity `sites`, given that the two dev-guide
-    pages describe it differently. A candidate in neither source: one exclusion per pair of
+    Unsettled: whether `count(<condition>)` counts lines or quantity. Traced: a Group Type
+    `maxInstanceQty=1` admits one plan line of quantity `sites` when the plan type is
+    `split = false` (the line counts 1), and not when it is `split = true`
+    `[Platform behaviour, traced]`; the group still needs the plans in a product component
+    group. Not established: a group minimum of 1 with 0 lines, and whether a PCM minimum
+    reaches the CML. A candidate in neither source: one exclusion per pair of
     plans, such as `support[StandardSupport] > 0 -> support[PremiumSupport] == 0`. None run.
 15. Whether `@(split = false)` keeps one line per component in later group-ramp segments
-    (M24 measured only the unannotated case).
+    (M24 measured only the unannotated case). Traced: each segment's root solves separately,
+    so nothing carries a split decision or a reuse pool between segments, and a
+    single-line type gets one line per component in each segment. Whether a cloned segment
+    line is fixed or a candidate, and its quantity, are decided on the Place side, which
+    isn't traced `[Platform behaviour, traced]`. A container over all segments is one solve
+    (see [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)).
 
 ---
 
