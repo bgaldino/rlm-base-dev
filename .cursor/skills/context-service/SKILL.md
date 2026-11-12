@@ -79,7 +79,9 @@ expression-set steps that consume it. This skill is consumable by any AI agent
    (rules 1–8) is design-time schema; a runtime *instance* is hydrated from
    records, queried, and persisted back. A runtime `contextId` is a
    **request-scoped** opaque cache handle (UUID/hex — never prefix-validate it)
-   that (at the default REQUEST scope) does **not** survive across separate calls.
+   that (at the default REQUEST scope) does **not** survive across separate calls (REQUEST
+   contexts are never stored; only SESSION ones are, and Place Sales Transaction takes one back
+   as `contextDetails`; see `runtime-and-persistence.md`).
    The runtime helper scripts exist **to debug/validate runtime behavior**, not as
    a production runtime (engines like pricing/DocGen/BRE hydrate their own
    contexts). `context_session.py` sequences create→use→persist→delete from one

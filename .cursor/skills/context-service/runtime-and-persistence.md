@@ -182,6 +182,16 @@ This is governed by **`metadata.contextScope`** on the create body
   openly available; SESSION scope is pilot-limited, and REQUEST is the recommended
   scope for customer use cases.
 
+A `REQUEST`-scope context is never written to the shared cache, so its id resolves only inside
+the request that built it; only `SESSION` contexts are stored. `[Platform behaviour, traced]`
+The supported way to hold a context across calls is the Place Sales Transaction input
+`contextDetails` (`{contextId, scope: "SESSION"}`), which the line editor sends when context
+reuse is enabled for the org (the reuse setting below, or a large deal). `[Platform behaviour,
+traced in part]` Not established: whether a direct API call with `SESSION` scope needs a specific
+permission beyond the pilot gate measured above (the check was not found where the build runs).
+A cached context also expires (`contextTtl`), so it is not durable. This is consistent with the
+rule to chain create, query and persist inside one Apex or Flow transaction otherwise.
+
 Consequences:
 
 - On a normal (non-pilot / REQUEST-scope) org a `contextId` from one `sf`/CLI
