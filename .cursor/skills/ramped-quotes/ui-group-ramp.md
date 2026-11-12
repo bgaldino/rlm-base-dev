@@ -62,11 +62,12 @@ These runs changed steps 1, 3 and 4 below and added
      Amend, assetization and removal results:
      [bundle-children-lifecycle.md](bundle-children-lifecycle.md). No Amend action was found on the asset pages, so amend
      and cancel were run through the API on UI-built quotes.
-   - **A CML-sized bundle added straight into the segments comes in unsized** (2026-11-11, two fresh 264
-     `ent-sb0` scratch orgs, rules on). Added without configuring it first, every component was at quantity 1
-     in every segment, as if no rules had run. Opening segment 1's configurator then showed the stored sizing
-     answer solved down to fit those lines (a stored answer read as 1). Re-entering the answer and saving re-derived
-     every quantity in every segment. So re-enter the answers in segment 1's configurator after the add
+   - **A CML-sized bundle added straight into the segments doesn't come in at its answers' sizes** (2026-11-11,
+     two fresh 264 `ent-sb0` scratch orgs, rules on). Added without configuring it first: on one org every
+     component was at quantity 1 in every segment while the stored answer kept its value, and opening segment 1's
+     configurator then showed that answer solved down to fit those lines (it read as 1); on the other org the
+     bundle came in sized for a sizing answer of 1. Re-entering the answer and saving re-derived every quantity
+     in every segment. So re-enter the answers in segment 1's configurator after the add
      (placing the bundle already sized through the API was not measured in a group ramp). Configuring it
      in the Browse Catalogs dialog before the add, on a ramp quote whose model held a cross-line check,
      showed the answer at 1 with that check's error and Save disabled (one run).
