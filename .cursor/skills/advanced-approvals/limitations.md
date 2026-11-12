@@ -70,12 +70,12 @@ How it decides [Platform behaviour, traced]:
   evaluation error sends the step to manual review. There is no separate Percent or
   roll-up type.
 - Range test as coded: each condition becomes a lower and upper bound from its left and
-  right sides (for less-than, equals and text operators lower = left, upper = right; for
-  greater-than, lower = right, upper = left; is null and is blank use the left side for
+  right sides (for less than, less or equal, equals, not equal and the text operators lower = left,
+  upper = right; for greater than and greater or equal, lower = right, upper = left; is null and is blank use the left side for
   both). The step auto-approves only when the earlier approved range contains the new one
   [Platform behaviour, traced]. Whether the left side is the evaluated value, so which
   direction a changed value must move to stay inside, is not established; do not rely on it
-  until measured with the setting on (live check Q-L6).
+  until measured with the setting on.
 - A step Smart Approval auto-approves completes as Approved, so a later step reading its
   outcome sees Approved: the auto-reviewed item posts an Approve decision [Platform
   behaviour, traced; no live run with the setting on]. Conditions a step skips are neutral

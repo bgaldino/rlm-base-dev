@@ -211,10 +211,10 @@ items:
   latest version creates a new one; a versioned name uses a separate path (not traced to a
   rule); a change set always creates a new version; a deploy requesting
   Active over a non-Active latest version counts as changed [Platform behaviour, traced]. Deploying an
-  approval flow as Active needs the org's option to deploy flows as active (Process
-  Automation Settings); a non-production org allows it regardless. Without it, deploy as
-  Draft and activate separately. The default on a fresh scratch org is not established
-  (live check Q-L7) [Platform behaviour, traced]. Steps inside
+  approval flow as Active in a production org needs the org setting that allows processes
+  and flows to deploy as active ("Deploy processes and flows as active", the name the
+  repo's Apex test comments use); a non-production org allows it regardless. Without it,
+  deploy as Draft and activate separately [Platform behaviour, traced]. Steps inside
   orchestrated stages keep their saved order, a possible reason an orchestration redeploys
   unchanged; that is not proven for the measured run. For a new or generated flow, deploy it, retrieve it and commit the retrieved form. Compare
   `SELECT VersionNumber, Status FROM Flow WHERE Definition.DeveloperName = '<flow>'`
