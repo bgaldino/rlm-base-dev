@@ -69,8 +69,17 @@ How it decides [Platform behaviour, traced]:
   (for example In, Not In, Is Empty, Was Set, Is Changed), a NOT in the logic, or an
   evaluation error sends the step to manual review. There is no separate Percent or
   roll-up type.
-- Which direction a changed value must move to count as still within the approved range
-  is not established; do not rely on it until measured with the setting on.
+- Range test as coded: each condition becomes a lower and upper bound from its left and
+  right sides (for less-than, equals and text operators lower = left, upper = right; for
+  greater-than, lower = right, upper = left; is null and is blank use the left side for
+  both). The step auto-approves only when the earlier approved range contains the new one
+  [Platform behaviour, traced]. Whether the left side is the evaluated value, so which
+  direction a changed value must move to stay inside, is not established; do not rely on it
+  until measured with the setting on (live check Q-L6).
+- A step Smart Approval auto-approves completes as Approved, so a later step reading its
+  outcome sees Approved: the auto-reviewed item posts an Approve decision [Platform
+  behaviour, traced; no live run with the setting on]. Conditions a step skips are neutral
+  in the comparison.
 
 ## Preview
 
@@ -122,10 +131,9 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
 - Whether a roll-up summary or Percent condition passes the Smart Approvals type check
   [inferred: the flow resolves it to Number or Currency; not verified].
 - Whether `ApprovalDelegation` appears once delegation is turned on.
-- Whether a step that Smart Approvals skips on resubmission counts as approved for a later
-  step whose entry condition reads its outcome (the shipped Director step reads
-  `Manager_Approver.Outputs.approvalDecision`); not established. No recorded run shows the shipped flow
-  skipping a step on resubmission.
+- Whether the shipped Director step, which reads `Manager_Approver.Outputs.approvalDecision`,
+  behaves as traced when Smart Approvals skips the Manager step (see the range-test bullets
+  above); no recorded run shows the shipped flow skipping a step on resubmission.
 - Whether `ActionInput__CanUseSmartApproval = true`, as the shipped steps set it, makes Smart
   Approvals skip approvers on resubmission; the docs don't name the input. With it `false` on
   every step, a resubmission after a rejection at the second step (the first approved)
