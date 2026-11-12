@@ -74,8 +74,8 @@ Repeat this for the frequencies a plan promises, on the route the demo will use:
 
 - Whether `createOrdersFromQuote` copies the quote line's `BillingTreatmentId`, `BillingTerm`,
   period boundary and a recurring `BillingFrequency` to the order product, and how the asset
-  state period gets its frequency. Only `MilestonePlan` and the milestone `BillingTreatmentId` on
-  one-time bundle components, set by a configuration-Skip Place PATCH after the Force placement,
+  state period gets its frequency. For one-time bundle components, `MilestonePlan` and the milestone
+  `BillingTreatmentId`, set by a configuration-Skip Place PATCH after the Force placement,
   were measured as reaching the order product (`OrderItem.BillingFrequency2`,
   `OrderItem.BillingTreatmentId`), and activation made one milestone plan per line
   [Measured: 2026-11-12, 264, scratch; one org].
