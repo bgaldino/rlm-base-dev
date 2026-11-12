@@ -60,7 +60,7 @@ Time, one Term Defined, one Evergreen), each required, default, quantity 1, not 
 | `createOrdersFromQuote` | **Refused** while that log exists. Setting the quantity back deletes the log. |
 | Renewal (Connect `renew`, no renewal term passed) | The Term Defined child renews for one term of its selling model; the Evergreen and One Time children come through at quantity 0. |
 
-So test the lock at order creation, or read the error log, not the save's result. The traced rule behind it: a quantity the lock refuses is an error from the configurator's bundle validation, which Place logs rather than fails on; quote-to-order refuses on **any** configurator error-log row on the quote, whatever its severity or category, not only this one. A placement that skips configuration runs no check, so no row appears. [Platform behaviour, traced] Other
+So test the lock at order creation, or read the error log, not the save's result. The traced rule behind it: a quantity the lock refuses is an error from the configurator's bundle validation, which Place logs rather than fails on; quote-to-order refuses on **any** configurator error-log row on the quote, whatever its severity or category, not only this one. This holds in the allow-errors modes (a block-errors mode was not traced), and only when catalog validation is on and configuration is not Skip; a placement that skips configuration runs no check, so no row appears. [Platform behaviour, traced] Other
 `bundlevalidation` messages are not measured this far: a CML rule that sets a locked child's
 quantity draws one (`constraint-models` run M16), and so does a group out of range (below);
 whether either blocks the order, how locked children amend, and whether the lock holds on the
@@ -115,7 +115,7 @@ bounds how many components a buyer may pick from the group. Help says it counts 
 components [Help: `ind.product_catalog_group_cardinality.htm`], but at run time it counted
 lines: a 1..1 group holding one product on two lines drew a `bundlevalidation` range
 message. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] So keep each component on one line
-([CML-sized default components](#cml-sized-default-components)). The count is of component instances (lines), not products and not summed quantity: a line of quantity N counts 1 when its CML type has `split = false`, and N when `split = true` (each unit is its own line). [Platform behaviour, traced]
+([CML-sized default components](#cml-sized-default-components)). The validator counts lines per group, not distinct products [Platform behaviour, traced]. Separately, the solver makes a `split = true` type one line per unit, so a line of quantity N counts N there and 1 when its CML type has `split = false` [Platform behaviour, traced in part].
 What the bundle validator does for a group minimum of 1 with zero lines is not established. Blank min = 0, blank
 max = unlimited; max ≥ min. With nested groups, only the **lowest-level** group's
 cardinality is enforced at run time; a parent group's limits count child groups for
@@ -134,7 +134,7 @@ validation. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_cat
 
 [Help: `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_product_relationships.htm`; Repo: `scripts/ai/query_erd.py describe ProductRelatedComponent`]
 
-Save-time checks on these fields [Platform behaviour, traced]: `IsComponentRequired` needs `IsDefaultComponent` (not applied to a set product or a classification component; a classification component needs both off). `MinBundleComponents` is only validated: not negative, and not above `MaxBundleComponents` when given. No default value for either was found, so what a load that omits them stores is not established (including the lowering seen on an Upsert; not explained).
+Save-time check on the component row [Platform behaviour, traced]: `IsComponentRequired` needs `IsDefaultComponent` (not applied to a set product or a classification component; a classification component needs both off). On the component **group** (`ProductComponentGroup`), `MinBundleComponents` is only validated: not negative, and not above `MaxBundleComponents` when given. Defaults for `IsComponentRequired` and `MinBundleComponents` were not checked, so what a load that omits them stores is not established (including the lowering seen on an Upsert; not explained).
 
 Writing component rows by API [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
 
