@@ -131,7 +131,9 @@ The Pricing Procedure, Usage Rating Procedure, and Asset Context fields all use 
 
 **Field behavior:**
 - **When not set:** The step content area is initially empty (lazy-rendered). Clicking the step title expands it and renders a combobox dropdown with available options.
-- **When set:** The dropdown is replaced by a pill (`span.slds-pill`) showing the selected value, with an X button (visible on hover) to clear it.
+- **When set:** The dropdown is replaced by a pill (`span.slds-pill`) showing the selected value, with an X button to clear it. Removing the pill **saves the empty value at once**; the dropdown that replaces it lists every procedure in the org.
+
+**Changing a set value (`configure_revenue_settings`):** the suite sets the window to 1920x1080 before opening the page, because `Maximize Browser Window` in headless Chrome shrinks it to the 800x600 default screen, where the pill's X button straddles the viewport's right edge and a Selenium click on it fails with `ElementClickInterceptedException`. The X is clicked with JavaScript, the suite waits for the pill to go, and after selecting from the combobox it reads the pill back. Pill and option names are compared **exactly**: a substring match would take `<name> Clone` for `<name>` and skip the change. If the suite clears a pill and then cannot set the new value, it fails, because the org is left with no procedure for that step.
 
 **`<li>`-scoped XPath approach:** All element searches (pills, select dropdowns, comboboxes, clear buttons) are scoped to the parent `<li>` element using XPath like `//li[.//span[contains(text(), 'Set Up Salesforce Pricing')]]//select`. This prevents cross-section interference — the `following::` XPath axis previously caused the Pricing/Usage Rating automation to accidentally find and clear the Asset Context field further down the page.
 
@@ -145,7 +147,7 @@ The Default Transaction Type field is a `<lightning-combobox>` component (distin
 
 All tests detect current state before making changes:
 - **Toggles:** Read `checked` property via JavaScript; skip click if already enabled
-- **Combobox-recipe fields (Pricing, Usage Rating, Asset Context):** Check if correct value is shown in pill within the scoped `<li>`; skip if matched. If wrong value, clear pill, wait for dropdown, select correct value.
+- **Combobox-recipe fields (Pricing, Usage Rating, Asset Context):** Check if correct value is shown in pill within the scoped `<li>`; skip if matched. If wrong value, clear pill, wait for dropdown, select correct value. Pricing and Usage Rating compare the pill exactly; Asset Context (`enable_constraints_settings`) still matches by substring.
 - **Lightning combobox (Transaction Type):** Check `Get Selected List Label`; skip if already correct
 - **Text inputs (Create Orders, Create Contracts, Manage Assets flows):** Compare current value; skip if already correct
 
