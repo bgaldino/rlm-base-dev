@@ -39,7 +39,7 @@ Product, product selling model, schedule (type Volume; no standalone tiers), tie
 
 - Bounds are inclusive and tiers cannot overlap; tiers sharing an effective date must be consecutive with no gaps.
 - For a unique Product + Selling Model + Schedule + Currency + Effective Dates, quantity ranges must not overlap; avoid duplicates, especially with multicurrency off.
-- [Repo] The platform rejects insert/update/delete of a tier while its schedule is active. [Platform behaviour, traced] This is write-time validation only (inserting, deleting or undeleting tiers, editing bounds); pricing does not check it, and the shipped tier lookup has no active input, so an inactive tier row still prices. Delete or exclude tiers you do not want priced.
+- [Repo] The platform rejects insert/update/delete of a tier while its schedule is active. [Platform behaviour, traced] This is write-time validation only (inserting, deleting or undeleting tiers, editing bounds); The procedure-path tier lookup has no active input, so an inactive tier row still prices there (a separate store-pricing path does filter on active). Delete or exclude tiers you do not want priced.
 
 ### Attribute-based
 

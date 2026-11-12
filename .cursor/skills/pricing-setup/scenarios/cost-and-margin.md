@@ -33,8 +33,9 @@ total, see [full-term-value.md](full-term-value.md).
   and currency only, so a product sold under two selling models with different terms
   (annual and monthly) can hold only one per-term cost; use a product per selling model, or
   one of the two line types gets the wrong cost `[inferred]`. Several entries for one product
-  and currency are not resolved by book or date; a single-output lookup raises a duplicate-value
-  error ([../cost-books.md](../cost-books.md#how-pricing-uses-it)).
+  and currency are not resolved by book or date. In the discount lookup path a single-output lookup
+  with several matches raises a duplicate-value error; the cost step's path was not separately
+  traced and its mode is unknown, so if the table is single-output it raises ([../cost-books.md](../cost-books.md#how-pricing-uses-it)).
 - **Services priced per hour or day:** load the loaded cost per unit, for example blended
   hourly cost × (1 + overhead), or × 8 for a day. Compute it before loading; the cost book
   holds only the result.
@@ -79,7 +80,7 @@ years (`SubscriptionTerm` 2 `Annual`), quantity 1. `TotalPrice` 2,000. Shipped: 
 `SubscriptionTerm` 36 `Months` gave `PricingTermCount` 36 and priced 36 years, where 3
 `Annual` gives 3. `[Platform behaviour, traced]` The count is the Proration step's multiplier,
 read in the selling model's unit, falling back to the dates when no term is given; a One-Time line
-carries 0 only where the procedure sets it (the shipped procedure's constant), not by default.
+carries 0 only where the procedure sets it (the shipped procedure's constant `[Repo]`).
 A line given only start and end dates gets its term count from the dates
 but keeps `SubscriptionTerm` null `[Measured]` (what Place itself writes for a dates-only line is not established), so filters that read `SubscriptionTerm` (such as a
 commitment-term discount, `../../pricing-procedures/elements/commitment-term-discount.md`)

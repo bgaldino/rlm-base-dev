@@ -155,8 +155,8 @@ horizon.
 - **A price change dated on a renewal start.** The stamp reads the source asset's lifecycle start, which
   `[Platform behaviour, traced]` is the only route from an amendment line to a contract start (the line's own start is
   the amendment date). On a change dated on a renewal's start, the formula then counts the months from the
-  original start, which can leave 0 months to the horizon. The result is unmeasured. Fix: stamp the latest renewal
-  start (the start of the current term), not the earliest asset start.
+  original start, which can leave 0 months to the horizon. The result is unmeasured. What a renewed asset's lifecycle
+  start is was not traced. Fix `[inferred]`: if the asset's lifecycle start is the original start, stamp the start of the current term instead.
 - **Not stamped:** a new-sale quote and a renewal quote. The formula counts from their own
   `StartDate`.
 - **Ramps.** An Evergreen line in a dated quote line group counts that segment's months, so
