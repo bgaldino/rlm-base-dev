@@ -11,6 +11,15 @@ Read this when a plan splits the build across sessions. Parent:
   lifecycle. Each session runs on its own kept org. Nothing from a spike goes into the
   model or the pack; its results go in `spikes/<area>/`, and the session reports each
   outcome to the main session, which records it in the verification ledger.
+    - **Two waves** (the template's P2a and P2b). Spikes a probe product can answer run
+      first, on probe products. Spikes whose must-hits need the real catalog, model and
+      prices, typically amend, cancel and renew, start once the pricing session's
+      standard-price goldens pass, on an org the pack's loader fills with the finished
+      catalog and model plans and the pricing plans so far; they still write nothing into
+      the model. A prior build ran its lifecycle spikes this way, beside the rest of its
+      pricing work.
+    - A first-wave spike that chooses a route the catalog or model must carry is a
+      dependency of the catalog session (SKILL.md step 6).
 - **Build sessions.** One per independent area, for example catalog and configuration,
   pricing and cost, negotiation and approvals. Each runs on its own org and writes its
   data plans, models and overlays from the design model; extraction doesn't write them.
@@ -30,8 +39,12 @@ promotion.
 Dependencies decide what runs in parallel. A typical chain:
 
 ```text
-extraction → spikes → catalog → (configuration ∥ pricing) → negotiation → lifecycle → pack
+extraction → (probe spikes ∥ catalog) → (configuration ∥ pricing) → (lifecycle spikes ∥ negotiation) → lifecycle → pack
 ```
+
+The lifecycle spikes start when pricing's standard-price goldens pass, not when the
+whole pricing phase ends. The catalog runs beside the probe spikes only when none of them chooses a route the
+catalog or model carries; otherwise it waits for that spike, or builds every route.
 
 ## Rules
 
@@ -77,5 +90,5 @@ extraction → spikes → catalog → (configuration ∥ pricing) → negotiatio
 | Session | Phase(s) | Org | Writes (owns) | Reads |
 |---|---|---|---|---|
 | main | P0, P1, P6–P8, P9 if chosen, integration | integration; a new org for P7 | plan, design, golden, tools, pack | everything |
-| \<area\> spikes | \<spike ids\> | own | `spikes/<area>/` | design, golden |
+| \<area\> spikes | \<spike ids\> | own (second wave: filled by the loader) | `spikes/<area>/` | design, golden; second wave: the finished plans |
 | \<area\> build | \<phase\> | own (+ dependencies loaded) | its data plans, models, overlays | design, golden, dependencies' plans |

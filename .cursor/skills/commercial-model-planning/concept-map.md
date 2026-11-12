@@ -16,7 +16,7 @@ pointer, not the skill's full open list.
 | Package priced as the sum of its contents | Configurable bundle; component groups with min and max. Decide the root's own selling model | `product-catalog-modeling` → `bundles-and-cardinality.md`, `selling-models-and-lifecycle.md` |
 | Fixed kit | Static bundle. If any child is Term Defined or Evergreen, try a locked configurable bundle; the static kit with recurring children is open | `product-catalog-modeling` → `bundles-and-cardinality.md` |
 | Option the rep picks, priced | Attribute with attribute-based price, or a component | `product-catalog-modeling` → `attributes-and-classifications.md`; `pricing-procedures` → `elements/attribute-based-price.md`; for an answer on the parent priced on a child, `elements/root-answer-child-price.md` |
-| Not sold standalone | `IsSoldOnlyWithOtherProds` | `product-catalog-modeling` → `selling-models-and-lifecycle.md` |
+| Not sold standalone | `IsSoldOnlyWithOtherProds`. The only refusal measured is at category assignment: Place, order and activation accepted the product alone, so a quote that must never sell it alone needs its own check | `product-catalog-modeling` → `selling-models-and-lifecycle.md` |
 | Not tracked in the installed base | `IsAssetizable = false` | same |
 | Product lines, categories, catalogs | Catalog categories and `Family` | `product-catalog-modeling` → `catalogs-and-loading.md` |
 | Part number per configuration | Attribute set by CML from the selection. No skill covers building one value from several selections; record it as a skill gap | — (`elements/root-answer-child-price.md` route 1 shows CML setting a child attribute, unmeasured) |
@@ -28,7 +28,7 @@ pointer, not the skill's full open list.
 | Sizing questions | Attributes on the bundle root | `constraint-models` → `quantities-from-attributes.md` |
 | Quantity derived from answers (one per user, one per block of N rounded up) | CML cardinality constraints driven by `int` variables, with an integer bracket for rounding up | `constraint-models` → `quantities-from-attributes.md` (`ceil()` doesn't round inside a constraint) |
 | Effort or hours estimator | Same, on service components | same |
-| "X only with Y", "exactly one of" | CML constraints with messages | `constraint-models` |
+| "X only with Y", "exactly one of" | CML constraints with messages. Before holding an "exactly one of" choice as a component group, check the source's changes: a later change that splits units across the choices can't run under a one-of group (prediction-checks.md check 5) | `constraint-models`; `product-catalog-modeling` Quick Rule 3 |
 | Note that doesn't block | CML message with `Info` severity. `Warning` blocks the next step until the rep acts | `constraint-models` → `quantities-from-attributes.md` |
 | Rep may change a quantity the rules size | Decide which wins: rule-owned sizing, or an editable line | `constraint-models` → `quantities-from-attributes.md` |
 
@@ -41,10 +41,10 @@ pointer, not the skill's full open list.
 | Regional or channel uplift | A documented route first: CML copies the root answer to a price-impacting child attribute plus an attribute-based price; formula-based pricing on a header value; or a price adjustment matrix over a lookup table. All three are documented but unmeasured (open); the attribute adjustment matrix is unverified. Each route needs different catalog and model pieces (the first, a price-impacting attribute on the children's classification and a CML line): list them per route (SKILL step 6) | `pricing-procedures` → `elements/root-answer-child-price.md` |
 | Order of application, rounding | Procedure element order, rounding element | `pricing-procedures` → `procedure-anatomy-and-ordering.md`, `elements/rounding-values.md` |
 | Second currency | Multicurrency price book entries, and per-currency rows for every adjustment that matches on currency (volume tiers, bundle-based adjustments) as well as cost entries | `pricing-setup`, `sfdmu-data-plans` |
-| Annual escalator | Group ramp with uplift. An API-built group-ramped bundle with a one-time or evergreen child failed to amend (`asset-lifecycle-changes` Quick Rule 8) | `ramped-quotes`; `pricing-procedures` → `elements/price-revision-compound-uplift.md` |
-| Renewal uplift | Price revision policy. Renewal uplifts apply only to term-defined selling models (Help: `ind.qocal_renewal_price_uplifts`), so an Evergreen line takes none | `pricing-setup` → `price-revision-policies.md`; `asset-lifecycle-changes` |
+| Annual escalator | Group ramp with uplift. An API-built group-ramped bundle with a one-time or evergreen child failed to amend (`asset-lifecycle-changes` Quick Rule 8). On a mixed bundle decide which lines escalate: the segment uplift reaches every line (`UnitPriceUplift` 0 exempts one), a UI-built bundle ramp puts every child in every segment and quotes a one-time child once per segment, and a compound uplift keeps four decimals, so round after it | `ramped-quotes` → `bundle-children-lifecycle.md`, `ui-group-ramp.md`; `pricing-procedures` → `elements/price-revision-compound-uplift.md` |
+| Renewal uplift | Price revision policy. Renewal uplifts apply only to term-defined selling models (Help: `ind.qocal_renewal_price_uplifts`), so an Evergreen line takes none. A policy and uplift set on the new-sale lines reached the renewal | `pricing-setup` → `price-revision-policies.md`; `asset-lifecycle-changes` → `change-policy-mapping.md` |
 | Discount for a longer commitment | List filter on term plus a formula step on Term Defined lines | `pricing-procedures` → `elements/commitment-term-discount.md` |
-| A policy the source marks approved but not yet applied in its calculator | Build it behind a quote-level switch the procedure reads; run the source's goldens with it off and the policy's own examples with it on. Ask whether two such policies stack, and for each policy's effective date | `pricing-procedures` → `elements/root-answer-child-price.md` (route 2: map the header field into the context, then read it in a formula; documented but unmeasured). A list filter on a header tag is unverified |
+| A policy the source marks approved but not yet applied in its calculator | Build it behind a quote-level switch the procedure reads; run the source's goldens with it off and the policy's own examples with it on. A policy that changes the quote's structure (an escalator built as a ramp) isn't a procedure branch: its switch decides whether the quote gets that structure. Ask whether two such policies stack, whether one switch serves them all, and for each policy's effective date | `pricing-procedures` → `elements/root-answer-child-price.md` (route 2: map the header field into the context, then read it in a formula; documented but unmeasured). A list filter on a header tag is unverified |
 | Price from cost and a target margin | Formula step on a cost looked up from a decision table | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md`; `pricing-procedures` → `elements/formula-based-pricing.md` |
 
 ## Cost and margin
@@ -54,8 +54,8 @@ pointer, not the skill's full open list.
 | Standard cost per item | Cost book entries | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md` |
 | Labour rates, loaded cost | Computed during extraction into cost entries | `pricing-setup` → `scenarios/cost-and-margin.md` (modeling costs from a source) |
 | Line and quote margin | The shipped cost-and-margin wiring, plus a roll-up for the quote total | `pricing-setup` → `scenarios/cost-and-margin.md` |
-| Contract value that counts until-cancelled lines over a fixed term | A computed value of its own; a quote total counts an Evergreen line for the Pricing Setup default term count (or, when that is blank, from the line's start and end dates), not the source's term `[inferred]` in that scenario. Read the default counts in Setup at P0 (no API is known; template P0) | `pricing-setup` → `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` |
-| A fee or commission computed from the deal's revenue | A computed value (a field or a formula), not a price adjustment. Check which deals it applies to | — |
+| Contract value that counts until-cancelled lines over a fixed term | A computed value of its own, gated on every quote structure the plan builds: ramp segments, amendments, renewals (prediction-checks.md check 8); a quote total counts an Evergreen line for the Pricing Setup default term count (or, when that is blank, from the line's start and end dates), not the source's term `[inferred]` in that scenario. Read the default counts in Setup at P0 (no API is known; template P0) | `pricing-setup` → `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` |
+| A fee or commission computed from the deal's revenue | A computed value (a field or a formula), not a price adjustment. Check which deals it applies to. Over one product line only, check the field that selects the lines is in the pricing context: the sales transaction context has no product Family | `pricing-setup` → `scenarios/full-term-value.md` |
 | Items resold at or near cost | Priced near cost by design; decide how margin and below-cost guards and discounts treat them | `pricing-setup` → `scenarios/cost-and-margin.md`; `advanced-approvals` → `matrix-modeling.md` |
 
 ## Billing
@@ -82,10 +82,10 @@ pointer, not the skill's full open list.
 
 | Source concept | Try first | Where documented |
 |---|---|---|
-| Co-termed addition | Amendment of the top-level asset. On a bundle sized from root answers, decide how "add N" maps onto the root | `asset-lifecycle-changes` → `change-policy-mapping.md`; `rlm-business-apis` → `backdated-asset-lifecycle.md` |
+| Co-termed addition | Amendment of the top-level asset. On a bundle sized from root answers, decide how "add N" maps onto the root. Added units on a `LastTransaction` asset took the last net price and didn't re-band; re-banding needed a procedure overlay (**Build (custom)**). Partial periods prorate by day | `asset-lifecycle-changes` → `change-policy-mapping.md`; `pricing-setup` → `proration-and-selling-models.md`; for a backdated replay only, `rlm-business-apis` → `backdated-asset-lifecycle.md` |
 | Swap one plan for another | Swap action | `asset-lifecycle-changes` |
 | Cancellation credit | Cancellation | `asset-lifecycle-changes` → `change-policy-mapping.md` |
-| Renewal at a new price | Renewal with a price revision policy | `asset-lifecycle-changes`, `renewal-asset-creation`, `pricing-setup` |
+| Renewal at a new price | Renewal with a price revision policy. Each lot renewed from its own last price, and a multi-year renewal needs `renewalEndDate` (a 3-year new-sale line still left a 1-year renewal term) | `asset-lifecycle-changes`, `renewal-asset-creation`, `pricing-setup` |
 | Proving a change end to end | Reprice, order, activate, check the asset | `asset-lifecycle-changes` → `verification.md` |
 
 ## Runtime surface

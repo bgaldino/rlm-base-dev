@@ -51,8 +51,14 @@ files can use it.
    extension.
 8. **The plan is reviewed before anything is built.** Present it, stop, and wait for
    approval.
-9. **Measure the build against the plan; don't rewrite the plan to match it**
+9. **Measure the build against a frozen copy of the approved plan.** The copy keeps
+   the predictions; `plan.md` is revised to as-built, each change citing its ledger ID
    ([step 9](#9-measure-the-build-against-the-plan)).
+10. **Run the prediction checks before you predict.** Each check in
+    [prediction-checks.md](prediction-checks.md) is a step whose omission modified or
+    refuted a prior plan's prediction, or sharpens a guard that build showed too weak:
+    a measurement read past its shape, a structure chosen for the new sale only, a
+    recommendation with no mechanism, a native guard on the wrong path.
 
 ## DO NOT
 
@@ -110,6 +116,9 @@ files can use it.
 - [knowledge-sources.md](knowledge-sources.md): read when deciding which rules need a
   live org. The decision rule, the coverage sweep commands, and how to record the
   result.
+- [prediction-checks.md](prediction-checks.md): read before writing decisions, the
+  rule decision record, spikes and goldens. Checks a prior build's measurements showed
+  the planner must run, each pointing at the domain skill that holds the fact.
 - [session-orchestration.md](session-orchestration.md): read when the user wants the
   build split across sessions. Org-per-session layout, file ownership, integration
   gates and session briefs.
@@ -132,6 +141,7 @@ the request already answers, and say what you assumed instead.
 | What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, billing, policies not yet in force |
 | Is the source read once, or kept in sync? | Read once means one extraction with a parity check; kept in sync adds a generator to maintain |
 | What runtime surface? | The standard Transaction Line Editor and configurator, or custom UI |
+| How are quantities derived, and may a rep override them? | Rule-owned sizing or editable defaults (`constraint-models` → `quantities-from-attributes.md`), and the amendment path. A source can say both in different places |
 | How should the work be split? | One session, sequential sessions, or parallel sessions each with its own org |
 | What matters more: accuracy of the model or polish of the experience? | Decides where the effort and the live verification go |
 | Who answers questions about what the source *means*? | The person who owns the source (a pricing team, a product manager), not always the person asking for the build. Some inconsistencies only they can settle |
@@ -142,7 +152,10 @@ the request already answers, and say what you assumed instead.
   `openpyxl` loaded twice, with `data_only=False` and `data_only=True`). List:
     - every tab, named range, data validation, merged range and long note;
     - hidden state: hidden sheets, rows and columns, cell comments, conditional
-      formatting (often the "input cell" legend), and external links.
+      formatting, and external links;
+    - cell fills and fonts that a legend defines (input, calculated, needs attention).
+      A legend is often plain fill colour, which a values-and-formulas read misses; it
+      tells an input cell from a calculated one.
 
   Read rules by named range rather than cell address where the workbook defines one.
 - **Web store:** pages are usually rendered by JavaScript, so capture with a browser.
@@ -166,8 +179,10 @@ and the skill that covers it, and keep the source's own numbers next to it. Orde
 matters as much as the features do: write down the source's order of application and
 where it rounds. Some sources round once at the end. Decide where the build rounds (a
 Rounding Values step or a `ROUND()` in a formula; the shipped procedures have no
-Rounding Values step, `pricing-procedures` → `elements/rounding-values.md`), and add a
-golden case off the source's own examples that would show a rounding difference.
+Rounding Values step, `pricing-procedures` → `elements/rounding-values.md`), and again
+after any later step that multiplies, such as a ramp uplift
+([prediction-checks.md](prediction-checks.md) check 11). Add a golden case off the
+source's own examples that would show a rounding difference.
 
 ### 4. Decide each rule's knowledge source
 
@@ -178,7 +193,9 @@ decision rule. The plan gets two records:
 - **Per rule, the decision:** which source decides each rule. A rule can carry two
   decisions, for example **Repo** on a new sale and **Live (c)** on an amendment.
 
-Rules that need a live org become spikes, each with the source value it must hit.
+Rules that need a live org become spikes, each with the source value it must hit. Run
+the knowledge-source checks in [prediction-checks.md](prediction-checks.md) (1–4)
+first: a measurement covers only the shape and route it measured.
 
 ### 5. Golden tests
 
@@ -191,6 +208,14 @@ Rules that need a live org become spikes, each with the source value it must hit
   allowed: mark it **derived** and cite the rule's cells.
 - Recompute calculated values from inputs and match them to the source's own results
   (formula parity). A mis-read rule fails here instead of in the org.
+- **A golden an open decision affects asserts the recommended value,** tagged with the
+  decision ID, with the alternative's value beside it, and names the gate that needs the
+  owner's answer. The build proceeds on the recommendation. When the owner answers, the
+  converter regenerates the goldens; nobody edits them by hand.
+- Run the golden checks in [prediction-checks.md](prediction-checks.md) (9–15): derived
+  quantities at each answer's maximum, proration by day, rounding after each step that
+  multiplies, line inputs, where a refusal's message appears, answers carried across
+  changes, and fresh decision tables.
 - **Assert platform-enforced behaviour where the platform enforces it.** Where the
   platform accepts a change and enforces the rule later (at order, activation or
   amendment), the golden asserts at that later step.
@@ -199,8 +224,15 @@ Rules that need a live org become spikes, each with the source value it must hit
   formulas often skip a rule its policy text states (a per-line floor-margin guard, a
   never-below-cost rule). Each violation is a decision, not a silent choice.
 - **Replay lifecycle examples in date order,** with configuration rules on. Anchor
-  the timeline first (the contract start, and whether the replay's dates are in the
-  future of the build), and state whether proration is by month or by day.
+  the timeline first: the contract start, and whether the replay's dates are in the
+  future of the build. The choice is a decision:
+    - **Keep the source's dates** (future-dated): exercised in a prior build, where rules
+      ran on future-dated amendments as on current-dated ones (`asset-lifecycle-changes`
+      Quick Rule 7). Add a current-dated contract for any case that must be shown today.
+    - **Shift the replay back by whole years** (backdated): not exercised. It adds a
+      backdated new sale; read `rlm-business-apis` → `backdated-asset-lifecycle.md` first.
+    - Either way, partial periods prorate by day on the shipped policy, not by month
+      ([prediction-checks.md](prediction-checks.md) check 10).
     - At each step, run the running totals through every rule as well as the end state:
       a threshold the contract crosses part way through (a deal-size approval level,
       a band) is a decision too.
@@ -218,11 +250,16 @@ Write these in the template's order:
 - **Decisions:** each one decided or recommended, with the alternative. Check every
   recommendation and fallback against the Quick Rules of the domain skills it touches.
   A decision that depends on a marker or flag names what sets it, on every path that
-  creates the record (API, line editor, clone).
+  creates the record (API, line editor, clone). Run the structure and decision checks in
+  [prediction-checks.md](prediction-checks.md) (5–8): choose each structure against every
+  lifecycle change, name each recommendation's mechanism, and name where each native
+  guard is enforced.
 - **Phases:** each with a gate and its skills.
 - **Route prerequisites:** a spike that chooses between routes lists what each route
   needs from the catalog and the model. The catalog phase waits for that spike or
-  builds them all.
+  builds them all, and the plan's dependency line shows that edge. A prior build let a
+  pricing spike choose a route while the catalog was built beside it, and the catalog
+  and model were amended after pricing had started.
 - **Sessions:** see [session-orchestration.md](session-orchestration.md).
 - **Skills:** a phase-by-skill matrix.
 - **Skill gaps:** areas where the coverage sweep found no skill, and areas a phase
@@ -238,7 +275,14 @@ plan:
   manifest that lists its steps, side effects and gates. A loader runs Foundations'
   own CCI tasks on it with explicit paths, onto a base build.
     - The repo ships no pack format or loader. The first build writes them; plan that
-      as part of the pack phase, not as existing tooling.
+      as build work, not as existing tooling.
+    - **Write the loader at the end of the catalog phase and extend it at each later
+      gate,** not only in the pack phase. Spike sessions after the catalog and orgs that
+      replace expiring ones load from it, so the fresh-org load runs a loader exercised
+      since the catalog phase. A prior build did this, filling its later spike orgs and
+      its integration org with it. A multi-session build can outlast its orgs: the TUI
+      caps an org at 30 days, and no harness or TUI code lengthens an existing org's life
+      (`build-harness` → Keep an org for a multi-day build).
     - After every deploy, query the org for the components. A prior build saw a deploy
       from a path the project ignored (under a dot-folder) report success with an empty
       package; deploying from a temporary copy avoided it.
@@ -265,18 +309,43 @@ of the planner), review in three steps:
 
 Keep a verification ledger with [`scripts/ledger.py`](scripts/ledger.py); its `--help`
 has the commands. Run it from the plan's folder; for a private plan that folder is in
-the pack's repo, since the ledger copies the plan's rows. It reads the plan's decisions, rule decision record and P2 spike
-table, by the names [plan-template.md](plan-template.md) gives them, and gives each row:
+the pack's repo, since the ledger copies the plan's rows.
+- **Freeze the plan at approval.** Copy it to `plan-as-approved.md` and commit the copy;
+  `init --plan` reads that copy, as do the converter's plan-anchor tests. `plan.md` then
+  tracks the build: revise it to as-built, with each change citing the ledger ID or
+  decision it comes from, and the evidence log (section 7) holds the trail. A prior
+  build ran it this way.
+
+The ledger reads the plan's decisions, rule decision record and P2 spike table, by the
+names [plan-template.md](plan-template.md) gives them, and gives each row:
 - an **origin:** in the blind plan unchanged, edited, or added; or given to the planner
   (an intake answer, or a decision a person settled later), which doesn't count toward
   accuracy;
 - an **outcome,** the latest recorded (name the gate in the evidence): `affirmed`, `modified` (held with different values or
   configuration), `refuted` (failed) or `inconclusive` (not tested).
 
+For an edited row, the evidence also says whether the blind text would have held.
 Sessions report each outcome with its evidence; the main session records it. Findings
-go to the ledger and the evidence log, never into the plan's predictions, so the plan
-stays measurable. A refuted skill claim is fixed in that skill
+go to the ledger and the evidence log, and into `plan.md` as as-built revisions that
+cite them; never into `plan-as-approved.md`, so the predictions stay measurable. A
+refuted skill claim is fixed in that skill
 ([knowledge-sources.md](knowledge-sources.md) → After the build).
+
+**Score each later blind regeneration against the measured outcomes.** When the
+planning skill or the domain skills change, a fresh session regenerates the plan blind
+from the same source (step 8), and its accuracy is scored:
+1. `ledger.py truth` writes `truth.json` beside the ledger: every measured item, with
+   what the plan predicted and what the build measured.
+2. A fresh judge agent, given only the regenerated plan and `truth.json`, labels every
+   item by topic, since the regeneration's IDs won't match: **hit** (predicts the
+   measured result), **hedged** (doesn't assert it, but routes it to a live measurement
+   that would find it), **miss** (asserts what the build refuted or changed) or
+   **absent** (doesn't address it). The judgments file format is in `--help`.
+3. `ledger.py score <judgments.json> <label>` writes the tally to `regen-scores.md`,
+   beside the measured plan's own baseline (affirmed = hit, modified or refuted = miss,
+   inconclusive = hedged), and lists what is still missed or absent. Those items point
+   at the next skill fixes ([knowledge-sources.md](knowledge-sources.md) → After the
+   build).
 
 ---
 
@@ -348,6 +417,8 @@ Before presenting the plan:
 - Rule IDs and counts agree across the register, the rule decision record and the
   golden tests.
 - Every area has a knowledge-source row, and every live spike has a value it must hit.
+- Each check in [prediction-checks.md](prediction-checks.md) that applies ran, and its
+  result is in the decision, rule row, spike or golden it touches.
 - Every decision is marked decided (with a date) or recommended (with the alternative).
 - Nothing in a public file names customer, brand or third-party commercial data.
 - The plan's self-review checklist ([plan-template.md](plan-template.md)) passes.

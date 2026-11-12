@@ -234,6 +234,45 @@ class LedgerTest(unittest.TestCase):
         self.assertIn("**rule:R-02** (refuted): s: c", card)
         self.assertNotIn("X-01", json.dumps(self.ledger()))
 
+    def test_truth_and_score(self):
+        self.init()
+        self.run_ledger("record", "R-01", "affirmed", "ok")
+        self.run_ledger("record", "R-02", "refuted", "90.00", "--path", "fallback")
+        self.run_ledger("record", "S-1", "inconclusive", "not run")
+        self.run_ledger("record", "D1", "affirmed", "intake, excluded")
+        p = self.run_ledger("truth")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        tr = json.loads((self.dir / "verification/truth.json").read_text())
+        self.assertEqual(sorted(tr), ["rule:R-01", "rule:R-02", "spike:S-1"])
+        self.assertEqual(tr["rule:R-02"]["path_taken"], ["fallback"])
+
+        judged = {"rule:R-01": {"label": "hit"}, "rule:R-02": {"label": "hedged", "where": "S-9"},
+                  "spike:S-1": {"label": "absent", "why": "dropped"}}
+        (self.dir / "j.json").write_text(json.dumps(judged))
+        p = self.run_ledger("score", "j.json", "r2")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        out = (self.dir / "verification/regen-scores.md").read_text()
+        self.assertIn("| measured plan (baseline) | 1 | 1 | 1 | 0 | 2/3 |", out)
+        self.assertIn("| r2 | 1 | 1 | 0 | 1 | 2/3 |", out)
+        self.assertIn("**spike:S-1** (spike, was inconclusive): absent", out)
+        self.run_ledger("score", "j.json", "r2")
+        self.assertEqual((self.dir / "verification/regen-scores.md").read_text().count("## r2"), 1)
+
+    def test_score_refuses_incomplete_or_bad_judgments(self):
+        self.init()
+        self.run_ledger("record", "R-01", "affirmed", "ok")
+        p = self.run_ledger("score", "j.json", "r2")
+        self.assertIn("run truth first", p.stderr)
+        self.run_ledger("truth")
+        (self.dir / "j.json").write_text(json.dumps({"rule:R-02": {"label": "hit"}}))
+        p = self.run_ledger("score", "j.json", "r2")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("missing ['rule:R-01']", p.stderr)
+        (self.dir / "j.json").write_text(json.dumps({"rule:R-01": {"label": "close"}}))
+        p = self.run_ledger("score", "j.json", "r2")
+        self.assertIn("bad labels", p.stderr)
+        self.assertFalse((self.dir / "verification/regen-scores.md").exists())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

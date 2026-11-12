@@ -7,9 +7,14 @@ live org. Parent: [commercial-model-planning](SKILL.md).
 
 **The repo decides** when one of these holds and no live trigger below applies:
 - a skill holds a dated, measured fact or a shipped reference (XML, dataset, overlay)
-  for the exact feature;
+  for the exact feature, in the shape and route the plan builds (UI- or API-built,
+  component or top-level line, the same mix of selling models);
 - the release's snapshot (Help or developer guide) documents the feature and nothing
-  measured in the repo contradicts it.
+  measured in the repo contradicts it. List the inputs and position the plan assumes,
+  so the build gate checks each ([prediction-checks.md](prediction-checks.md) check 2).
+
+A measurement of another shape is **Repo (inferred)**, or **Live** when a later phase
+depends on it ([prediction-checks.md](prediction-checks.md) check 1).
 
 **Having no skill is not a trigger on its own.** A feature with no skill but with
 snapshot coverage is decided by the snapshot. Record it as a skill gap, not as a live
@@ -101,7 +106,10 @@ amendment). Spikes come from the per-rule record.
 Every rule decided **Live** becomes a spike, with:
 - the value it must hit, in the platform's own measure (for example the amount an
   Evergreen line shows for the Pricing Setup default term count: one period at `1`),
-  with the source's value reached through the mapping,
+  with the source's value reached through the mapping. Where the behaviour is open, the
+  must-hit is still the source's value, not a list of guessed platform outcomes,
+- the fallback that reaches the source value if the native result misses it
+  ([prediction-checks.md](prediction-checks.md) check 3),
 - the skills and articles to read before touching the org,
 - the smallest case that proves it,
 - for a spike that chooses between routes, each route's prerequisites

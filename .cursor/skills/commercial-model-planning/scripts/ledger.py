@@ -4,9 +4,11 @@
 Part of the commercial-model-planning skill (SKILL.md step 9). Standard library only.
 Run from the folder that holds the plan:
 
-    python3 ledger.py init --plan plan.md [--blind <blind plan>] [--intake D1-D6] [--owner D7,D8]
+    python3 ledger.py init --plan plan-as-approved.md [--blind <blind plan>] [--intake D1-D6] [--owner D7,D8]
     python3 ledger.py record <ID> <outcome> "<evidence>" [--path "<what was built>"] [--skill "<file: claim>"]
     python3 ledger.py report     # writes scorecard.md next to the ledger
+    python3 ledger.py truth      # writes truth.json: every measured item, predicted vs measured
+    python3 ledger.py score <judgments.json> <label>   # tallies a judged regeneration
 
 Items are table rows of the plan (plan-template.md), the first cell being the ID:
   decision  tables with "#" as first column, under a heading or bold label "2. Decisions"
@@ -25,6 +27,17 @@ Outcome: affirmed, modified (held with different values or configuration), refut
 
 Re-running init adds new rows and keeps outcomes and each row's first text, so the
 blind measurement survives plan revisions; --rebuild re-reads the rows.
+
+Scoring a later blind regeneration: its IDs won't match this plan's, so a fresh judge
+reads the regenerated plan with truth.json and labels every measured item:
+  hit     the plan predicts the measured result (route, value or behaviour)
+  hedged  the plan doesn't assert it, but routes it to a live measurement that would find it
+  miss    the plan asserts what the build refuted or changed
+  absent  the plan doesn't address it
+judgments.json: {"<truth key>": {"label": "...", "where": "<plan section or ID>", "why": "<one line>"}}
+score writes regen-scores.md next to the ledger, one section per label, with the
+measured plan's own baseline (affirmed = hit, modified or refuted = miss,
+inconclusive = hedged) beside the regeneration.
 """
 import argparse
 import json
@@ -314,6 +327,70 @@ def report(args):
     print(f"wrote {out_path}")
 
 
+JUDGE_LABELS = ("hit", "hedged", "miss", "absent")
+BASELINE = {"affirmed": "hit", "modified": "miss", "refuted": "miss", "inconclusive": "hedged"}
+
+
+def truth(args):
+    ledger_path = Path(args.ledger)
+    ledger = load(ledger_path)
+    out = {}
+    for key, v in ledger["items"].items():
+        if v["origin"] in ("intake", "owner") or v["outcome"] == "pending":
+            continue
+        ev = v["evidence"]
+        out[key] = {"kind": v["kind"], "origin": v["origin"], "outcome": v["outcome"],
+                    "predicted": v["prediction"],
+                    "measured": [e.get("evidence", "") for e in ev],
+                    "path_taken": [e["path_taken"] for e in ev if "path_taken" in e],
+                    "skill_claim": [e["skill_claim"] for e in ev if "skill_claim" in e]}
+    out_path = ledger_path.with_name("truth.json")
+    out_path.write_text(json.dumps(out, indent=1, ensure_ascii=False) + "\n")
+    print(f"{len(out)} measured items written to {out_path}")
+
+
+def score(args):
+    ledger_path = Path(args.ledger)
+    truth_path = ledger_path.with_name("truth.json")
+    if not truth_path.exists():
+        sys.exit(f"no truth file at {truth_path}; run truth first")
+    tr = json.loads(truth_path.read_text())
+    judged = json.loads(Path(args.judgments).read_text())
+    missing, extra = sorted(set(tr) - set(judged)), sorted(set(judged) - set(tr))
+    if missing or extra:
+        sys.exit(f"judgments must cover exactly the measured items; missing {missing}, extra {extra}")
+    bad = sorted(k for k, j in judged.items() if not isinstance(j, dict) or j.get("label") not in JUDGE_LABELS)
+    if bad:
+        sys.exit(f"bad labels for {bad}; use one of {JUDGE_LABELS}")
+
+    def tally(label_of):
+        return {lab: sum(1 for k in tr if label_of(k) == lab) for lab in JUDGE_LABELS}
+    new = tally(lambda k: judged[k]["label"])
+    base = tally(lambda k: BASELINE[tr[k]["outcome"]])
+    n = len(tr)
+
+    def row(name, t):
+        return (f"| {name} | {t['hit']} | {t['hedged']} | {t['miss']} | {t['absent']} | "
+                f"{t['hit'] + t['hedged']}/{n} |")
+    block = [f"## {args.label}", "",
+             f"Judged from `{Path(args.judgments).name}` against `{truth_path.name}` ({n} measured items).", "",
+             "| | Hit | Hedged | Miss | Absent | First-time accurate (hit + hedged) |",
+             "|---|---|---|---|---|---|",
+             row("measured plan (baseline)", base), row(args.label, new), "",
+             "Still missed or absent:", ""]
+    still = [k for k in tr if judged[k]["label"] in ("miss", "absent")]
+    block += [f"- **{k}** ({tr[k]['kind']}, was {tr[k]['outcome']}): {judged[k]['label']} at "
+              f"{judged[k].get('where') or '—'}. {judged[k].get('why', '')}".rstrip() for k in still] or ["None."]
+    out_path = ledger_path.with_name("regen-scores.md")
+    old = (out_path.read_text() if out_path.exists() else
+           "# Regeneration scores\n\nGenerated by `ledger.py score`. Do not edit by hand. Each "
+           "regeneration is judged against the build's measured outcomes.\n\n")
+    old = re.sub(rf"## {re.escape(args.label)}\n.*?(?=\n## |\Z)", "", old, flags=re.S).rstrip() + "\n\n"
+    out_path.write_text(old + "\n".join(block) + "\n")
+    print(f"{args.label}: hit {new['hit']}, hedged {new['hedged']}, miss {new['miss']}, "
+          f"absent {new['absent']} of {n} (baseline hit + hedged {base['hit'] + base['hedged']})")
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -322,7 +399,7 @@ def main(argv=None):
     sub = p.add_subparsers(dest="cmd", required=True)
 
     i = sub.add_parser("init", help="build or update the ledger from the plan")
-    i.add_argument("--plan", required=True, help="the plan the build follows")
+    i.add_argument("--plan", required=True, help="the plan as approved: a frozen copy (SKILL.md step 9)")
     i.add_argument("--blind", help="the blind plan, as generated before any edit (remembered)")
     i.add_argument("--intake", help="decision IDs given at intake, e.g. D1-D6 (remembered; a new list replaces it)")
     i.add_argument("--owner", help="decision IDs a person settled after the blind plan, e.g. D7,D8 "
@@ -339,6 +416,12 @@ def main(argv=None):
     r.set_defaults(func=record)
 
     sub.add_parser("report", help="write the scorecard").set_defaults(func=report)
+    sub.add_parser("truth", help="write truth.json: every measured item, predicted vs measured"
+                   ).set_defaults(func=truth)
+    sc = sub.add_parser("score", help="tally a judged regeneration into regen-scores.md")
+    sc.add_argument("judgments", help="JSON of {truth key: {label, where, why}}")
+    sc.add_argument("label", help="the regeneration's name, e.g. r2; a rerun replaces its section")
+    sc.set_defaults(func=score)
     args = p.parse_args(argv)
     args.func(args)
 
