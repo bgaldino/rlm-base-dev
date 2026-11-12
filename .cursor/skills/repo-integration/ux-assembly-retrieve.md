@@ -38,6 +38,28 @@ python scripts/ux/ux_tool.py apply-drift                               # writeba
 
 `ux_tool.py` takes **`--target-org`** with the **SF CLI** alias or username (e.g. `rlm-base__beta`), never a CCI alias. See `AGENTS.md` — Org Identity. `assemble` takes its flags from `project.custom` in `cumulusci.yml`; the org-facing commands (`retrieve`, `diff`, `writeback`, `capture-drift`, `apply-drift`) take the flags recorded in `unpackaged/post_ux/assembly_manifest.json` by the last assembly, so they match what was deployed. `--flag name=value` overrides either. **Note:** the `assemble_and_deploy_ux` *task* takes the **CCI** alias in `--org` (the default cci org when omitted; it raises if neither is set); `-o deploy false` runs assembly locally with no org at all.
 
+## Patching an org's page outside the assembler
+
+This is for a pack kept outside the repo (a private build) that changes a page on **one org**.
+It edits neither `templates/` nor `unpackaged/post_ux/`; a page the repo ships still changes
+only through a template patch and the assembler.
+
+- **Route** — Write the patch YAML in the repo's patch format, retrieve the org's deployed page
+  (`sf project retrieve start --manifest … --target-metadata-dir <tmp> --unzip`), parse it with
+  ElementTree, apply each patch with `FLEXIPAGE_OPS[patch["type"]].apply(root, patch, logger)`
+  from `scripts/ux/_patch_ops.py` (`apply_patch(root, patch, logger)` dispatches the same way and
+  raises on an unknown type), write it with `scripts/ux/_xml.py::write_xml`, deploy that folder
+  with `--metadata-dir`, then retrieve the page again and check each patch landed. Run from the
+  repo root so `scripts.ux` imports.
+- **Hide an existing action in place** — `insert_action` skips an action already in the list,
+  so a visibility rule can't be added to one that is there. Use `remove_action` for it, then
+  `insert_action` with `after:` the action that preceded it and the action as
+  `{name, visibility: [{field, operator, value}]}`. The pair is idempotent on a rerun.
+- **Measured** on one fresh 264 scratch org (2026-11-12): five quote-page actions given a
+  visibility rule this way, one action removed and line-editor columns added; the deploy
+  succeeded and the re-retrieved page had each action with its rule. The page wasn't looked at
+  in the UI.
+
 ## DO NOT
 
 - **DO NOT** edit `unpackaged/post_ux/` to “fix” UX — fix **`templates/`** and re-run assembly (or follow drift writeback).
