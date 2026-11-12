@@ -181,12 +181,7 @@ was not determined, and the context-id case was not measured. After changing a h
 reads, include a line record in the same request, use Force pricing, or click Reprice All. Pricing can also be
 skipped by an org-level platform setting that has no documented name [Platform behaviour, traced].
 A line PATCH on the graph-style Place path reprices the transaction, but on a Compound group ramp a partial line edit can re-apply the
-uplift to lines you didn't touch. Delta Pricing is a beta org preference with no default (the repo's scratch
-org definitions, `config/project-scratch-def.json` and most `orgs/*.json`, enable it; not dev-mfg or the TFID
-shapes; an org that doesn't set it should have it off, not read live). It applies only to a PATCH with System
-pricing, on a quote with a completed calculation status and no validation errors, when dual save is off. With it on, a partial
-PATCH re-runs the edited lines and the lines that depend on them and skips the rest; with it off or its
-conditions unmet, every line runs through the procedure again, where a non-idempotent uplift step
+uplift to lines you didn't touch. Delta pricing is declared in source as a beta org preference with no default (Help doesn't label it beta), so an org that doesn't set it should have it off (not read live) [Platform behaviour, traced]. Every repo build turns it on: `prepare_rlm_org` deploys `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml` with `enableDeltaPricing` true, and most scratch definitions set it too [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]. It applies only when all its conditions hold, among them a PATCH with System pricing, a completed calculation status, no validation errors, Dual Persistence mode off, the pricing permissions and the update-tracking settings (list partial; see pricing-procedures → runtime and observability) [Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]; otherwise every line runs again. With it on, a partial PATCH re-runs the edited lines and the lines that depend on them and skips the rest; with it off or its conditions unmet, every line runs through the procedure again, where a non-idempotent uplift step
 re-applies [Platform behaviour, traced]. Which relations count as a dependency isn't traced, and whether
 Delta Pricing was on in the measurement is not established (`ramped-quotes` SKILL.md → DO NOT). A header edit in the record UI wasn't measured. For quotes,
 Help's Reprice All requirement names updates to Quote Line Items outside the line editors, not the
@@ -199,8 +194,7 @@ Quote header (for orders it covers Order records too)
 
 **Manage Header Adjustment** > type (**Amount**, **Percentage**, **Amount Override**) > value >
 distribution (**Equal**, or **Proportionate** to each line's list price × quantity). Where Delta Pricing is on
-(the repo's scratch org definitions enable it, not dev-mfg or the TFID shapes; it applies only to a System-pricing PATCH
-on a quote with a completed calculation status and no validation errors, with dual save off), click **Reprice All** afterwards. The waterfall shows each line's share. Users need
+(Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables it, and it applies only when all its conditions hold, see the Delta pricing conditions in section 4 above), click **Reprice All** afterwards. The waterfall shows each line's share. Users need
 Salesforce Pricing Run Time User.
 
 **The setup is in the pricing procedure, not the editor.** Manage Header Adjustment takes the type,

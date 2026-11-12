@@ -131,8 +131,11 @@ and One-Time children:
 - That partial PATCH also re-uplifted the lines it didn't touch (one org). Source shows that untouched lines
   are re-run, and a non-idempotent uplift re-applied, when delta pricing is off or its conditions don't all
   hold; with it on, only the edited lines and their dependents re-run [Platform behaviour, traced]. The
-  measured org was Foundations-built (delta pricing enabled by the org definitions) but its setting wasn't
-  read there (live check). See SKILL.md → DO NOT (partial PATCH on a compound ramp). Always finish a ramp line edit with
+  2026-11-11 org was built from the repo's scratch definition (delta pricing enabled) but its setting wasn't
+  read there (live check). On a second org with delta pricing read on, a System PATCH of one Year 2 line
+  changed no line's pricing waterfall yet re-uplifted `NetUnitPrice` on every uplifted line, totals unchanged
+  [Measured: 2026-11-12, 264, scratch; one org]; that fits neither "every line runs again" nor "edited lines and
+  dependents", and the path is not traced. See SKILL.md → DO NOT (partial PATCH on a compound ramp). Always finish a ramp line edit with
   **Reprice All**.
 
 ## Verify

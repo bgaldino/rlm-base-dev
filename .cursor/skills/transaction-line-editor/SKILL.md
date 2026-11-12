@@ -232,9 +232,7 @@ Check the detail rows and the total before treating it as a pricing fault.
 **Prepare a header-discount demo.** Confirm Header Adjustments is on, the active pricing procedure has
 one DDS step (the repo's default procedure does), and the quote procedure plan is inactive (repo
 default). Apply the discount from Manage Header Adjustment, then click Reprice All,
-which Help requires where Delta Pricing is on (the repo's scratch org definitions enable it, not dev-mfg or the
-TFID shapes; it applies only to a System-pricing PATCH on a quote with a completed calculation status and no
-validation errors, with dual save off)
+which Help requires where Delta Pricing is on (Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables it, and it applies only when all its conditions hold, see [runtime behavior](runtime-behavior.md))
 [Help: `ind.qocal_header_adjustments_use`; Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`].
 
 ## Validation Checks
