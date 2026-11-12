@@ -300,8 +300,11 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
   takes the first that has the attribute; otherwise it walks up the ancestors and takes the
   nearest one that has it. `parent(<attr>, n)` goes exactly n levels (nothing if the chain
   is shorter), and `parent(<attr>, Type)` the nearest ancestor of that type. Add a level or a
-  type when the attribute name exists at more than one level. A group level counts as a
-  parent step only if the group type declares the attribute `[Platform behaviour, traced]`.
+  type when the attribute name exists at more than one level. If group types are modelled
+  as components, a group is a parent step, and the attribute resolves at that level only if
+  the group type declares it; otherwise the walk continues to the bundle. Group nesting in
+  the shipped CML is not established, and the dev guide pages above disagree about `parent()`
+  with Group Type, so this part is partial `[Platform behaviour, traced, partial]`.
 - **Copying a root answer down to the children.** When the components sit in PCM product
   component groups and the model declares no group types, `parent(<attr>)` with no level
   reached the root `[Measured: M27]`:
@@ -392,18 +395,20 @@ is [open item 14](#open-items).
 
 Pick one per relation; using both is an [open item](#open-items).
 
-**An optional line the caller did not fix is only a candidate.** A line the rep set, or one
-from an owned asset, is a real component the rules must hold. Any other optional line
-(a default, a rule-derived one, one re-sent as new) is a candidate the solver builds only if
-a rule or cardinality needs it. A `require` treats a violated condition as satisfied, so when
+**An optional line the caller did not fix is only a candidate.** A line is a real,
+fixed component the rules must hold once its status is user-set or changed, or when it comes
+from an owned asset or a read-only relation. Any other optional line (a default, a
+rule-derived one, a rep's add in the request that makes it, one re-sent as new) is a
+candidate the solver builds only if a rule or cardinality needs it. A `require` treats a violated condition as satisfied, so when
 its condition fails, the solver can satisfy it with the add-on absent: the line vanishes and
 the result is a success with no message. A fixed line, or a relation whose minimum is above
 0, is refused with the rule's message instead. To make a rule refuse rather than remove,
 raise the relation's minimum or state the rule on the answer too
-`[Platform behaviour, traced]`. This explains the silent removal seen on amendments, where the
-answer form of a rule removed an optional line and the line form named a different rule. That
-the line form's message comes from another rule is an inference; why the line form lacks its
-own message is not established `[Platform behaviour, traced]`.
+`[Platform behaviour, traced]`. This is a mechanism consistent with the silent removal seen on
+amendments, where the answer form of a rule removed an optional line and the line form named
+a different rule; which status Place gives those amendment lines is not traced. That the
+line form's message comes from another rule is an inference; why the line form lacks its own
+message is not established `[Platform behaviour, traced]`.
 
 `exclude` differs: with a fixed or existing instance when its condition holds, it fails with
 its own message rather than removing the line. It removes a line silently only when the
@@ -418,8 +423,9 @@ two unrelated sizing rules while the stored answer was A `[Measured: M40]`.
 
 Whether the solver may change a stored answer depends on its node status, which only a
 context that tracks node status (the node-status tag in the context definition, with the
-constraints permission) carries. On such a context a rep-entered answer is fixed: it arrives
-as new or changed in the request that sets it, and as user-set afterwards. The solver
+constraints permission) carries. On such a context a rep-entered answer is fixed once its status is user-set or changed:
+a rep update arrives as changed, and a rep add in the same request arrives as new, which the
+solver treats as a candidate. It becomes user-set once the engine has run after it. The solver
 re-derives an answer when the context has no node-status tag, when the value came from a
 default or from a value the model computed (an engine value), or when the line is re-sent as
 a fresh add `[Platform behaviour, traced]`. This repo's context plan has the tag
@@ -491,8 +497,8 @@ type Quote {
 - **The container is handed the whole transaction.** The configurator receives every line
   of the quote, across all ramp segments and groups, as one set; nothing partitions it per
   group before the model runs. A relation on the container therefore counts lines across
-  segments. Only a `groupBy` container scopes by group
-  `[Platform behaviour, traced]`.
+  segments. No scoping by group was found other than a `groupBy` container; how the engine
+  handles a container in a group ramp isn't determined `[Platform behaviour, traced]`.
 - **Check across lines with `message(..., "Error")`, not constraints.** Constraints on a
   container relation to top-level lines didn't refuse a rep's lines: the solver rewrote
   them and added instances, once a second bundle root, to satisfy the rule. An `Error`
@@ -508,9 +514,11 @@ type Quote {
   their summed totals (`qSites` in the example) to their total across segments, and leave
   `split = false` off the types the container holds. Write each check as a comparison of
   totals across segments `[Measured: M41]`; `total()` and the cardinalities in the example
-  above already sum every instance. A single-line type (`split = false`) allows one
-  instance per relation, and a container over all segments shares one relation, so a second
-  line of such a type fails with that message `[Platform behaviour, traced]`. Which of the
+  above already sum every instance. Read from the solver's cardinality
+  check, not run: a single-line type (`split = false`) is capped at one instance per
+  relation, and a container over all segments shares one relation, so a second line of such
+  a type should fail that check `[Platform behaviour, traced]`; the measured message is the
+  one above. Which of the
   two settings alone refuses the ramp wasn't isolated. For the ramp itself, see the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
   [SKILL.md → Ramp groups and segments](SKILL.md#ramp-groups-and-segments).
 - **Don't add `closeRelation = true` to a relation the container aggregates.** With it,
@@ -675,7 +683,8 @@ and the error log, a few seconds after Place:
 | `configure` | Usually `success: true`, `solverStatus: "error"`, `errors: []`, the rule's message in `messages` `[Measured: M29]` | `success: true`, `solverStatus: "success"`, `errors: []` `[Repo: .cursor/skills/constraint-models/SKILL.md]` |
 | `RevenueTransactionErrorLog` on the quote | A row with the rule's message in `ConfiguratorErrorMessage` `[Measured: M29]` | No row with a constraint's failure message |
 
-Place never fails on a rule message, Error or Warning: the messages become error log rows
+With `Force` or `System` (or the quote-placement "run and allow errors" choice), Place never
+fails on a rule message, Error or Warning: the messages become error log rows
 and a warning on the line. The rows are written after a successful save, the old ones for
 that source are purged and recreated on every Place, and a bare `configure` neither writes
 nor clears them, so a later `configure` can report success `[Platform behaviour, traced]`.

@@ -401,7 +401,7 @@ Three attributes do the work:
   fired and one on `== "Yearly"` did not; `== "Yearly"` rules fired in Yearly segments.
 
 A virtual `Quote` container is not scoped to a group: the configurator receives every line of the quote,
-across all segments, as one set, and only a `groupBy` container scopes by group
+across all segments, as one set, and no scoping by group was found other than a `groupBy` container
 (`[Platform behaviour, traced]`; see [quantities-from-attributes.md](quantities-from-attributes.md#checks-across-top-level-lines-a-virtual-quote-container)).
 
 Groups don't support rules such as `hide`, `disable` or `recommend`, which act on a condition. Use `require` in groups.
