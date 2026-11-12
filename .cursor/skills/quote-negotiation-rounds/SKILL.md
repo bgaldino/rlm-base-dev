@@ -52,7 +52,7 @@ cloning the previous round. Claims are tagged: `[Help: <article>]` and
    customer-facing round synced. One quote syncs per opportunity: setting
    `Opportunity.SyncedQuoteId` to a new round unsynced the previous one
    [Measured: 2026-11-10, 264]. Sync with `syncQuoteOpportunity`, not that field write: the
-   write leaves the sync unfinished and `createOrdersFromQuote` refuses the quote
+   write left the sync unfinished for the one to two minutes observed, and `createOrdersFromQuote` refused the quote
    ([Award round to order](#award-round-to-order)) [Measured: 2026-11-12, 264]. Help converts
    an accepted quote into an order [Help: `ind.qocal_create_orders_from_a_quote`].
 7. **An internal round needs a gate you build and test.** The docs have no internal-only
