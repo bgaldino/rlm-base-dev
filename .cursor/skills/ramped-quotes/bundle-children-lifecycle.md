@@ -56,10 +56,10 @@ was written (checked on one org). The 0 minimums raised no group-range warning (
   up over all segments then counted the one-time children once and matched the source's figure. Switching back to
   Include, and order, amend and assetization of this shape, weren't measured. That the 0 minimums raised no
   range warning isn't a rule for a minimum of 1. A solver group-range check exists only where the model declares
-  instance bounds on the group; a separate bundle validation also counts lines (untraced at minimum 1). The
+  instance bounds on the group; a separate bundle validation reports a count mismatch for a group minimum of 1 with 0 lines
+  [Platform behaviour, traced]; the solver range check, and the effect on order, amend and assetize, aren't established. The
   solver counts a quantity-N line as 1 with `split = false`, N with `split = true`, and the lines built when
-  unset. Whether a PCM minimum reaches the model, or what a minimum of 1 with no lines does, isn't established
-  (live check) [Platform behaviour, traced in part].
+  unset. Whether a PCM minimum reaches the model isn't established (live check) [Platform behaviour, traced in part].
 - A **required** child cannot be removed by unticking: its checkbox is disabled in the segment 2 configurator and the line's row
   menu has no delete.
 - UI adds of the test bundles failed with `UNKNOWN_EXCEPTION` and no lines written while `IsDefault` was false on their
@@ -177,9 +177,10 @@ On or after the Lifecycle Start Date of **every** asset in the request, and befo
 one. One-time and evergreen Assets have no end date, so only the start bound applies to them. On an API-built bundle a one-time child in
 later segments starts its own Asset there, so the earliest allowed amend date moves to the last segment's start (inferred from the every-asset rule; an amend at
 2027-06-01, before the 2028 and 2029 one-time Asset starts, returned a 400). The upper bound for null-end Assets was not
-measured. An amend or cancel dated before an existing renewal's start is refused; date it on or after the latest renewal start
-(on or after is allowed). A ramped asset refuses an amend dated before any later change even where earlier-dated amends are
-otherwise allowed, and an ordered plain renewal blocks it the same way [Platform behaviour, traced].
+measured. An asset with a future ramped renewal refused an earlier amend (an ordered plain renewal blocked it the same
+way) as measured, and source agrees: an amend or cancel dated before an ordered renewal's start is refused, and on or after
+the latest renewal start is allowed (subject to the org's pending-operation limit). A ramped asset refuses an amend dated
+before any later change even where earlier-dated amends are otherwise allowed [Platform behaviour, traced].
 
 ## Renewal
 

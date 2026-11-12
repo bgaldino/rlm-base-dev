@@ -148,7 +148,7 @@ A discount that must apply on every quote, not by a rep's hand, is a pricing que
 |--------|--------------|--------|
 | **Save** | Prices inline edits | [Help: `ind.qocal_view_and_edit_quotes`] |
 | **Instant Pricing** | Reprices each price-impacting change at once; turns off on page reload or session expiry. *Instant Pricing Active by Default* (STLE only) turns it on by default | [Help: `ind.qocal_view_and_edit_quotes`, `ind.qocal_turn_on_quote_and_order_capture`] |
-| **Reprice All** | Full repricing of every line, even with no changes and even with Delta Pricing on; sends Force pricing with configuration skipped (traced request shape) [Platform behaviour, traced] | [Help: `ind.qocal_reprice_all_quotes_and_orders`] |
+| **Reprice All** | Full repricing of every line, even with no changes and even where Delta Pricing is on; sends Force pricing with configuration skipped (traced request shape) [Platform behaviour, traced] | [Help: `ind.qocal_reprice_all_quotes_and_orders`] |
 | **Refresh Prices** | Pricing, configuration and taxes | [Help: `ind.qocal_view_and_edit_quotes`] |
 | **Estimate Taxes** | Tax estimate; needs the Revenue Setting *Add Estimated Taxes to Quotes and Orders* | [Help: `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_turn_on_quote_and_order_capture`] |
 
@@ -181,8 +181,10 @@ was not determined, and the context-id case was not measured. After changing a h
 reads, include a line record in the same request, use Force pricing, or click Reprice All. Pricing can also be
 skipped by an org-level platform setting that has no documented name [Platform behaviour, traced].
 A line PATCH on the graph-style Place path reprices the transaction, but on a Compound group ramp a partial line edit can re-apply the
-uplift to lines you didn't touch. Delta Pricing is a beta org preference (the Foundations org definitions
-enable it); it applies only to a PATCH with System pricing when dual save is off. With it on, a partial
+uplift to lines you didn't touch. Delta Pricing is a beta org preference with no default (the repo's scratch
+org definitions, `config/project-scratch-def.json` and most `orgs/*.json`, enable it; not dev-mfg or the TFID
+shapes; an org that doesn't set it should have it off, not read live). It applies only to a PATCH with System
+pricing, on a quote with a completed calculation status and no validation errors, when dual save is off. With it on, a partial
 PATCH re-runs the edited lines and the lines that depend on them and skips the rest; with it off or its
 conditions unmet, every line runs through the procedure again, where a non-idempotent uplift step
 re-applies [Platform behaviour, traced]. Which relations count as a dependency isn't traced, and whether
@@ -196,8 +198,9 @@ Quote header (for orders it covers Order records too)
 [Help: `ind.qocal_header_adjustments_use`, `ind.qocal_header_adjustments_overview`]
 
 **Manage Header Adjustment** > type (**Amount**, **Percentage**, **Amount Override**) > value >
-distribution (**Equal**, or **Proportionate** to each line's list price × quantity). With Delta Pricing on
-(this repo), click **Reprice All** afterwards. The waterfall shows each line's share. Users need
+distribution (**Equal**, or **Proportionate** to each line's list price × quantity). Where Delta Pricing is on
+(the repo's scratch org definitions enable it, not dev-mfg or the TFID shapes; it applies only to a System-pricing PATCH
+on a quote with a completed calculation status and no validation errors, with dual save off), click **Reprice All** afterwards. The waterfall shows each line's share. Users need
 Salesforce Pricing Run Time User.
 
 **The setup is in the pricing procedure, not the editor.** Manage Header Adjustment takes the type,
