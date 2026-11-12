@@ -69,9 +69,9 @@ procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pr
 - `DiscountAmount` is **per unit**: on a line with a quantity above 1 it lowered `NetUnitPrice`
   by the amount sent, not the line total by it. The shipped default procedure's Manual Discount
   step is per unit as well [Platform behaviour, traced].
-- On a line that carried a `DiscountAmount`, a PATCH sending `DiscountAmount: 0` with `Discount: 5`
-  was refused (`isSuccess` false, FIELD_INTEGRITY_EXCEPTION "You can't specify a discount both as a
-  percentage and an amount...") and the line was unchanged. `0` counts as a value, and `Discount: 5`
+- A PATCH sending `DiscountAmount: 0` with `Discount: 5` was refused, both on a fresh line and on
+  one that carried a `DiscountAmount` (`isSuccess` false, FIELD_INTEGRITY_EXCEPTION "You can't
+  specify a discount both as a percentage and an amount...") and the line was unchanged. `0` counts as a value, and `Discount: 5`
   alone was refused the same way while the stored amount remained. Sending `DiscountAmount: null`
   with `Discount: 5` cleared the amount and the 5 % applied [Measured: 2026-11-12, 264, scratch].
   Check `isSuccess` in the response body: an unread refusal looks like a no-op.
@@ -81,10 +81,13 @@ procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pr
 
 **Other Place results.**
 
-- Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. Source shows a
-  Place path that fills a missing term from a Term Defined selling model, but it did not take effect
-  on the measured lines: a dates-only Term Defined Annual line (System pricing, configuration method
-  Force, rules on) priced from its dates (term count 3), got no commitment discount, and read back
+- Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace shows
+  Place filling a missing term context tag with the selling model's pricing term when the line's
+  selling model option is Term Defined, but not that fill reaching the saved line. The measured
+  requests carried only a price book entry, no separate selling model option, and the fill did not
+  take effect: a dates-only Term Defined Annual line (System pricing, configuration method Force,
+  rules on) priced from its dates (term count 3), did not get the measured procedure's term-keyed
+  discount step (net 17,100, vs 16,416 once `SubscriptionTerm: 3` was sent), and read back
   `SubscriptionTerm` null, both standalone and as a bundle component [Measured: 2026-11-11, 264,
   scratch]. Send the term explicitly.
 - **Milestone Plan on bundle components.** Place with `configurationMethod: Force` and

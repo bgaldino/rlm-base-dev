@@ -32,7 +32,7 @@ From *Backdate Asset Transactions* and *Considerations for Assets with Backdated
   usage-based products"*, with either Order or Quote output. The same asset accepts a future
   date. Help's rule about usage products with "both a future-dated and a backdated change"
   reads as if such changes could exist; the platform doesn't allow them. `RLM_ARC_Assets` now
-  stops a past date for usage-based assets with its own error screen (todo 306).
+  stops a past date for usage-based assets with its own error screen.
 
 ## UI path: `RLM_ARC_Assets`
 
@@ -70,10 +70,10 @@ each continued through invoice with the verifier and passed; rollback refused in
 - **Transfer: run Create Order on one transfer quote only.** `RLM_CreateOrdersFromQuote` makes
   both the source and target orders from either quote; running it on the second quote makes a
   duplicate pair. Activate the source order first.
-- **Early renewal with a ramp schedule (UI, todo 306).** Override → *Create a ramp schedule* →
+- **Early renewal with a ramp schedule (UI).** Override → *Create a ramp schedule* →
   Yearly, 24 months. The End Date field hides; the ramp duration sets the end. The quote matched
   the API run exactly: Year 1 814.43, Year 2 3,242.23. Its order invoiced to net 0.00.
-- **Usage-based assets (UI, todo 306).** A past date on Amend, Cancel or Renew shows the flow's
+- **Usage-based assets (UI).** A past date on Amend, Cancel or Renew shows the flow's
   error, *"This change can't be backdated: the selected assets include usage-based products…"*,
   with the asset listed; Previous returns to the date screen. A future date goes straight to the
   quote.
@@ -81,7 +81,7 @@ each continued through invoice with the verifier and passed; rollback refused in
   blank and have no Opportunity, so `RLM_Update_Quote_Billing_Info_From_Opportunity_Account`
   used to skip them and Create Order stopped at *"This quote isn't ready to create orders yet"*.
   It now also defaults bill-to contact and addresses from the account for any quote without an
-  Opportunity (todo 305).
+  Opportunity.
 
 ## API path
 
