@@ -11,7 +11,7 @@ check. This file covers only the CML that sizes a bundle and how to test it.
 `docs/salesforce/264/dev-guide/articles/`, cited by file name without `.htm.md`.
 `[Help: <article>]` is the 264 Help snapshot under `docs/salesforce/264/help/articles/`,
 cited the same way. `[Platform behaviour, traced]` is a rule read from the platform's own behaviour, not
-measured here; where it explains a measured row, both tags appear. `[Repo: <file>]` is this repository. `[Measured: M<n>]` is row M<n> of
+measured here; where it explains a measured row, both tags appear. `[Platform behaviour, traced in part]` is the same, but only the mechanism was read in source; its scope, path or consequence isn't established. `[Repo: <file>]` is this repository. `[Measured: M<n>]` is row M<n> of
 [Measured on 264](#measured-on-264), a live run on a 264 (API v68.0) scratch org. Questions
 none of these settle are listed once, under [Open items](#open-items). The worked example
 as a whole has not been run, but a model built on its patterns has (rows M22 to M33).
@@ -304,7 +304,7 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
   as components, a group is a parent step, and the attribute resolves at that level only if
   the group type declares it; otherwise the walk continues to the bundle. Group nesting in
   the shipped CML is not established, and the dev guide pages above disagree about `parent()`
-  with Group Type, so this part is partial `[Platform behaviour, traced, partial]`.
+  with Group Type, so this part is partial `[Platform behaviour, traced in part]`.
 - **Copying a root answer down to the children.** When the components sit in PCM product
   component groups and the model declares no group types, `parent(<attr>)` with no level
   reached the root `[Measured: M27]`:
