@@ -123,8 +123,11 @@ IF(ISBLANK(StartDate), NULL,
 ```
 
 That is: in a dated quote line group (a ramp segment), the months from the line's start to
-the group's end; otherwise *Horizon Months* less the whole months from the commitment start
-(the stamp, else the quote's `StartDate`) to the line's start, never below 0. *Horizon
+the group's end; otherwise *Horizon Months* less the calendar months from the commitment start
+(the stamp, else the quote's `StartDate`) to the line's start, never below 0. It assumes
+segments and the commitment start on the 1st of a month: the formula counts calendar months
+and ignores the day, so a segment from 2027-02-15 to 2028-02-14 counts 13. Every measured date
+was the 1st of a month. *Horizon
 Months* on the amendment quote must hold the original commitment's length (a field default
 does it when every commitment has the same length) `[inferred]`.
 
