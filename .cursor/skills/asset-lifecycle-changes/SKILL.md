@@ -19,7 +19,10 @@ moves to a cheaper plan, cancels an add-on or renews at a new price. The domain
 skills cover the individual APIs. This one covers the modeling decisions and the
 behaviour you have to verify, because Help describes how to set lifecycle changes up but
 not the numbers they produce. Claims are tagged `[Help: <article>]`, `[Dev guide: <article>]`,
-`[Repo: <path>]` and `[Measured: <date>, 264]`. The 2026-11-05 runs were on QuantumBit
+`[Repo: <path>]` and `[Measured: <date>, 264]`. `[Platform behaviour, traced]` is a rule
+read from the platform's own behaviour, not measured here; where it explains a measured
+claim, both tags appear. `[Platform behaviour, traced in part]` is the same, but only the
+mechanism was read; its scope, path or consequence isn't established. The 2026-11-05 runs were on QuantumBit
 builds. The 2026-11-11 runs were on fresh 264 `ent-sb0` scratch orgs, on a bundle sized by
 CML root answers, priced by a procedure cloned from the shipped default with overlays,
 with configuration rules on ([verification.md](verification.md) → Measured
@@ -55,7 +58,26 @@ results, 2026-11-11).
       order-to-asset rule (`AssetActionSource` ⇐ `SalesTransactionItem` in
       `AssetToSalesTransactionMapping`), and never fills rows made from order product
       detail rows: the cancel-and-reprice pair an answer-change amendment writes on the
-      root [Measured: 2026-11-11, 264, scratch org]. So the repo ships both halves: the
+      root [Measured: 2026-11-11, 264, scratch org].
+    - **Why detail rows stay blank.** Activation writes one asset action source row per
+      order line, or one per order line detail when the line has details; a detail-sourced
+      row takes its quantity and prices from the detail, and its `ReferenceEntityItemId` is
+      the detail's Id. Nothing in activation writes node status. A custom field reaches
+      these rows only through the order-to-asset custom-field mapping: an item-sourced row
+      reads the mapped tags on the line's node, a detail-sourced row reads only the mapped
+      tags on the detail's own node. A rule mapping from the line therefore fills item rows
+      and leaves detail rows blank, and no native step copies status from line to detail.
+      This holds for any mapped custom tag, not just node status [Platform behaviour,
+      traced]. An answer-change amendment reprices the line as a cancel-and-add pair, and the
+      next amendment copies the saved status from the first row of the asset's
+      action-source set; if that row is a detail-sourced row with no status, the status is
+      blank and the answers reset. Which row sorts first wasn't verified [Platform behaviour,
+      traced in part]. One measurement conflicts: on one org the field was empty on every
+      row, item-sourced ones included, while the order line's was filled (verification.md).
+      The trace expects item rows to fill when the rule exists, so the cause (detail rows
+      only, a different field name, the rule or tag absent) isn't established: **Open**, a
+      live check.
+    - So the repo ships both halves: the
       rule in its context plan [Repo: `datasets/context_plans/ConstraintEngineNodeStatus`],
       and a before-insert trigger that fills a blank row from its order product, directly
       or through the detail row [Repo:
@@ -97,7 +119,11 @@ results, 2026-11-11).
       attribute amendment [Help: `ind.qocal_fdo_examples_of_amendment_types_and_results`]
       applied to the root line only. Activation wrote new state periods and
       "Change / Upsells" actions [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
-      Quick Rule 2 has the reset of the other answers that comes with it.
+      The cancel-and-reprice decision is made per line, from whether that line's own asset
+      shows an attribute change, so a changed root can reprice while an unchanged child
+      takes the plain delta path: expect mixed pricing shapes inside one bundle amendment.
+      How a root answer change is mapped onto the child assets' attributes wasn't read
+      [Platform behaviour, traced in part]. Quick Rule 2 has the reset of the other answers that comes with it.
     - An amendment that changes a component's plan or price is an amendment of the
       top-level asset too. Help describes a price amendment, which changes price without
       changing quantity, attributes or bundle configuration and works on bundles [Help:
@@ -107,7 +133,12 @@ results, 2026-11-11).
       the quote action Amend / FieldAmendment, delta quantity 0, detail rows crediting each
       earlier lot at the old price and charging the full quantity at the new one, and, after
       activation, a new state period MRR and a "Change / Upsells" action [Measured:
-      2026-11-11, 264, fresh `ent-sb0` scratch org]. A plan held as a root answer moved all
+      2026-11-11, 264, fresh `ent-sb0` scratch org]. A line that would have been No Change
+      is promoted to Amend / FieldAmendment when a price or other mapped field differs from
+      the latest state period's, checked only for assets with no attribute change; the
+      priced result is a cancel-and-reprice pair with delta quantity 0 [Platform behaviour,
+      traced in part]. How the change's date relative to existing or future state periods
+      (a renewal's start, say) affects which period it is compared with wasn't isolated. A plan held as a root answer moved all
       of the component's units when the answer changed; moving part of them was refused in
       a model whose component group allows one plan
       ([change-policy-mapping.md](change-policy-mapping.md)). A plan held as an attribute
@@ -122,6 +153,29 @@ results, 2026-11-11).
     - A reduction's detail rows came one per earlier lot it drew from, last in, first out.
       A renewal priced each lot on its own row [Measured: 2026-11-11, 264, fresh `ent-sb0`
       scratch org].
+    - **Why LIFO.** Lots are ordered by action date descending, then start date descending,
+      positive before negative, then line number. A negative amendment walks them and writes
+      one negative detail row per lot, for the smaller of the lot's quantity and what's left
+      to remove, priced from that lot's own price: the credit is each lot's price, not
+      today's, and not a blended one. The walk covers the unexpired lots. What a full removal
+      leaves on the asset (a 0 state period was measured, above) wasn't traced [Platform
+      behaviour, traced in part].
+    - **Why per lot on a renewal.** A renewal at the last negotiated price gets one positive
+      detail row per prior positive lot, each priced from its own lot, and its quantity is the
+      latest period's quantity. That needs the `enableAsIsRenewals` setting on, a
+      last-transaction pricing source, no ramp, no derived-price product, and no attribute
+      or price change on the line; otherwise the line is repriced as a single line. The
+      last-negotiated method copies the net unit price and has no volume-band step, so it
+      doesn't re-band; a re-band needs an explicit pricing step, and only lines the step
+      admits (renewal lines start at quantity 0) [Platform behaviour, traced]. A price
+      revision policy applies to each lot's row separately, only when the renewal date falls
+      inside the policy's validity window; whether it reaches the asset at activation wasn't
+      read [Platform behaviour, traced in part]. A renewal on an asset whose pricing source
+      is the price book list price takes no per-lot path: it is one line on the combined
+      quantity, from today's list price, through the same adjustment steps as a new sale, so
+      bands are expected to apply to the total. That is the expected behaviour from the
+      steps it runs; the tier arithmetic wasn't traced or measured [Platform behaviour,
+      traced in part].
     - Read detail rows, or coalesce them, in anything that reports line prices.
 5. **One-time lines have no term to renew; Term Defined bundles renew in place.**
     - Renewing a one-time product sets its quantity to zero [Help:
@@ -148,7 +202,15 @@ results, 2026-11-11).
       net unit price × the remaining term count. The Default Proration Policy that `qb-pcm`
       ships [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProrationPolicy.csv`] counted whole annual periods left plus the days left in the current one ÷ that
       period's days (184/366 in a leap year), so a months-remaining figure matches only on
-      an anniversary [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. A Term
+      an anniversary [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. The count
+      is the number of periods, with the first and last partial period counted as its days
+      (inclusive, actual calendar days under the actual-days time period type) over the
+      days in that full period, so a leap year changes the denominator (184/365 in a normal
+      year, 184/366 in a leap year). A 30-day-month type counts 30 days a month, and turning
+      partial periods off counts whole periods only. Read for the annual frequency with the
+      actual-days type; that the first period runs to the calendar year end is inferred from
+      the measured numbers, and other frequencies weren't read [Platform behaviour, traced
+      in part]. A Term
       Defined top-level cancellation (`initiateCancellation`) and the invoice-level values
       are separate measurements ([verification.md](verification.md) → Open).
     - Evergreen reductions were priced on quotes (one period, in last-in-first-out rows) but
@@ -175,9 +237,29 @@ results, 2026-11-11).
       removed the add-on on the amendment silently, with `configure` success and no error
       log [Measured: 2026-11-11, 264]. Read the deltas of an answer change for lines the rep
       didn't touch.
+    - **Why it is silent.** A line the caller doesn't fix (status Engine, Required or New) is
+      only a candidate for the solve, not a built component. A requirement rule fires only
+      when its condition holds, and a violated condition counts as satisfied, so the solver
+      can satisfy the rule by choosing add-on count 0 and not instantiating the candidate:
+      the line vanishes from the result, which becomes deltas, with success and no message.
+      The rule's own message appears only when the count can't reach 0: the line is a real
+      component (user-set or changed status, a user-set descendant or attribute, or a
+      read-only/asset relation), or the relation's minimum is above 0. Lines sourced from
+      assets are fixed and conflict instead of dropping. To make a rule refuse rather than
+      remove, give the relation a minimum above zero or tie the add-on to the answer the
+      other way. In the line-form copy the measured refusal named another rule's message: a
+      failure on a constraint with no message of its own reports the first rule that failed
+      or related rules' messages (inferred, not traced). Which status Place sends for
+      amendment add-on lines, and the mirror-image exclusion rule, weren't traced
+      [Platform behaviour, traced in part].
     - Edit amendment lines through Place with `configurationMethod: Force`; with `Skip` it
       was refused ("Specify 0 in Quantity of the Quote Line Item record with the
-      action of type No Change") [Measured: 2026-11-11, 264].
+      action of type No Change") [Measured: 2026-11-11, 264]. The message is a save-time
+      quantity check: a No Change line needs a start quantity and quantity 0. Nothing in it
+      looks at the configuration method, so it isn't gated by Skip; why Force accepted the
+      same edit isn't explained, and the check isn't known to be skipped under Force.
+      Don't rely on Force to edit the quantity of a No Change line [Platform behaviour,
+      traced in part].
 8. **Ramped bundles have their own limits:** amending an API-built group-ramped bundle
    with a one-time or evergreen child failed in the measured shapes
    [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].
