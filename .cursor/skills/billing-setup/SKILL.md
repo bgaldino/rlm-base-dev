@@ -33,7 +33,10 @@ read the row's scope before generalising it.
    Frequency) and `AssetStatePeriod.BillingFrequency`; `Asset` has none [Measured: M9].
 2. **Set the frequency on every Term Defined and Evergreen line you place through the API.**
    Place Sales Transaction refused a Term Defined line without one rather than default it
-   from the selling model [Measured: M1]. A frequency that matches the pricing term (Monthly on a
+   from the selling model [Measured: M1]. The configurator's pricing step fills
+   the frequency only for a Months (Monthly) or Annual (Annual) term unit; other units get
+   no automatic value, so set it explicitly [Platform behaviour, traced]. Place with Skip gave no
+   fill (M1) [Measured: 2026-11-10, 264, scratch]. Whether Skip skips that step is not traced. A frequency that matches the pricing term (Monthly on a
    Months model, Annual on an Annual model) needed no billing treatment on the line, in an
    org where every treatment had Change Billing Frequency selected [Measured: M2]. With the
    flag off on the product's treatments, the repo's data-plan README reports the line can't be
@@ -48,6 +51,11 @@ read the row's scope before generalising it.
    accepted, and Milestone Plan on a Term Defined line was refused [Measured: M4–M6]. Bill services in milestones on a one-time selling model.
    On bundle components placed with configuration Force and rules on, Place stored the
    frequency blank and kept the treatment, with success; read the frequency back [Measured: M11].
+   The save check explains the refusals, not the drop: Milestone Plan is legal only on One-Time
+   lines, and a treatment with a blank frequency is accepted. Why Place blanked the frequency on a
+   component is not established; Skip kept it on a standalone line (M5; also standalone, not a component) and was not tried on a
+   component [Platform behaviour, traced in part]. Don't generalise past a component placed with
+   Force and rules on.
 5. **In advance or in arrears is the treatment item's Billing Type, not a line field.**
    Advance bills on the billing date on or before the start date; Arrears on the first one
    after it; None is for milestone billing
@@ -128,7 +136,15 @@ Plan; the API values match the labels except `MilestonePlan` [Measured: M9]. On 
 | Term Defined, Evergreen | A different cadence | Needed (run on Term Defined, M3), with Change Billing Frequency (Help) |
 | One Time | Blank, or `MilestonePlan` with a milestone treatment on the line (not kept in M11: bundle components placed with configuration Force, rules on) | Optional with a blank frequency [Measured: M2, M5] |
 
-`MilestonePlan` on an Evergreen line wasn't tested.
+`MilestonePlan` on an Evergreen line wasn't tested (the save check refuses it on Term Defined and Evergreen lines).
+
+The save check, as read, skips a blank frequency on insert and refuses a blank only when a
+saved line's frequency is changed and the result is blank; it applies only when billing is enabled. M1 refused a new Term
+Defined line with a blank frequency anyway; that is measured and the source read doesn't explain it.
+A save error on a line can hide the rule message. On the synchronous path, a refused line save is
+what comes back, and configuration messages from that call aren't written as error logs (traced in
+part; the asynchronous path wasn't traced), so read the response rather than the error log
+[Platform behaviour, traced in part]. Amend, renew and cancel lines have further rules not read.
 
 - **Combining periods:** `BillingTerm` bills several frequency units as one period, for
   example Monthly with a term of 3. It defaults to 1 [Help: `ind.billing_multiple_term_billing`]
@@ -177,7 +193,12 @@ billing schedule start) or event-based (someone marks it accomplished), and carr
 percentage or a flat amount [Help: `ind.billing_milestone_treatment_and_item_create`]
 [Help: `ind.billing_milestone_create`]. Order activation creates a billing milestone plan
 from the treatment and links it to the order product's billing schedule. To edit that plan,
-set it back to Draft [Help: `ind.billing_milestone_usecase`].
+set it back to Draft [Help: `ind.billing_milestone_usecase`]. A schedule whose billing term unit is Milestone
+Plan, with no plan attached, of category Original (or Amendment with the amend setting on), on a
+milestone treatment, gets its plan created at activation from the treatment's items, one for one,
+and activated; if a plan with the same reference item exists it is updated rather than duplicated;
+you don't author the plan [Platform behaviour, traced]. Whether a
+one-time line with a milestone treatment and no frequency produces such a schedule is unread. Not measured live in this repo.
 
 **When a source names no milestones,** Revenue Cloud still needs, for each milestone:
 - a name;
@@ -197,6 +218,11 @@ Milestone Plans for Amended Billing Schedules* makes or links one for amendment 
 due on or after the cancellation date (event-based ones once the original order's event
 milestone is invoiced and posted). Billing then issues a credit memo for the part not
 invoiced [Help: `ind.billing_milestone_amended_renewed_canceled_assets`].
+A plan is created from treatment for an amendment schedule only when that setting is on and
+the amendment's treatment (or, without one, the original group's) is a milestone treatment; a
+preconfigured plan carried on the amendment, which Help says is linked, wasn't traced. A
+non-milestone amend treatment gives an ordinary schedule. With the setting off, no plan is made for the
+amendment schedule; original schedules aren't gated by it [Platform behaviour, traced].
 The repo turns that setting on (`enableMilestoneBillingForAmend`)
 [Repo: `unpackaged/post_billing/settings/Billing.settings-meta.xml`].
 
@@ -211,7 +237,8 @@ what the amendment carries. It doesn't say which of them hold with the setting o
 | No billing treatment | A new plan from the original billing schedule group's treatment; the original plan isn't reused |
 
 **A service that an amendment adds** (a new product on the amendment, not a change to a
-milestone-billed asset) is none of those cases. Help says to use the same
+milestone-billed asset) is none of those cases. The amend rule above was read for amendment
+schedules; the source read doesn't separate an added product. Help says to use the same
 order-to-billing-schedule flow or API for amendments as for new sales
 [Help: `ind.billing_schedules_from_orders`], and the default-off rule above speaks of amend
 orders without separating new products. Whether activating the amendment order gives such a
