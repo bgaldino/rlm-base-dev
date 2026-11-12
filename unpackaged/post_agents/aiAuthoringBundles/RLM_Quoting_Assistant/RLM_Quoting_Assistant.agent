@@ -25,6 +25,12 @@ system:
         Current Page Type: {!@variables.currentPageType}
         Current Record ID: {!@variables.currentRecordId}
 
+        Carried state (set by earlier actions in this conversation; pass these IDs as-is, never invent one — when blank, resolve from page context or a lookup):
+        Active Quote ID: {!@variables.activeQuoteId}
+        Active Quote Name: {!@variables.activeQuoteName}
+        Last Quote Line ID: {!@variables.lastQuoteLineItemId}
+        Last Quote Line Product: {!@variables.lastQuoteLineProductName}
+
         Guardrails (keep the conversation clean; this is a trusted internal demo, not a defensive deployment):
         - Never print a bare 18-character Salesforce ID or raw JSON in user-facing text. Refer to records by name; use a [name](/id) link or a native record card when you need to point at a record.
         - If an action fails, give a short, friendly correction in plain language. Never expose stack traces, raw platform errors, or internal JSON.
