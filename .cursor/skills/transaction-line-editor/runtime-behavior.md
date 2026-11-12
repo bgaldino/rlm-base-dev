@@ -181,8 +181,24 @@ was not determined, and the context-id case was not measured. After changing a h
 reads, include a line record in the same request, use Force pricing, or click Reprice All. Pricing can also be
 skipped by an org-level platform setting that has no documented name [Platform behaviour, traced].
 A line PATCH on the graph-style Place path reprices the transaction, but on a Compound group ramp a partial line edit can re-apply the
-uplift to lines you didn't touch. Delta pricing is declared in source as a beta org preference with no default (Help doesn't label it beta), so an org that doesn't set it should have it off (not read live) [Platform behaviour, traced]. Every repo build turns it on: `prepare_rlm_org` deploys `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml` with `enableDeltaPricing` true, and most scratch definitions set it too [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]. It applies only when all its conditions hold, among them a PATCH with System pricing, a completed calculation status, the pricing permissions and the update-tracking settings [Platform behaviour, traced], and no validation errors and Dual Persistence mode off [Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`] (list partial; see pricing-procedures → runtime and observability); otherwise every line runs again. With it on, a partial PATCH re-runs the edited lines and the lines that depend on them and skips the rest, except that Help says a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`], which fits the re-uplift of untouched ramp lines; with it off or its conditions unmet, every line runs through the procedure again, where a non-idempotent uplift step
-re-applies [Platform behaviour, traced]. Which relations count as a dependency isn't traced, and Delta Pricing was probably on in the 2026-11-11 measurement but wasn't read there; on a second org with it read on, a System PATCH still re-uplifted every uplifted line (`ramped-quotes` SKILL.md → DO NOT). A header edit in the record UI wasn't measured. For quotes,
+uplift to lines you didn't touch. Delta pricing is an org setting (Setup > Revenue Settings > Delta Pricing for Quotes and Orders), off unless enabled;
+its platform declaration marks it beta, though neither Help nor the Metadata API reference says so, and its documented
+default is false [Metadata API: `meta_revenuemanagementsettings`], so an org that doesn't set it has it off. The repo
+enables it in `config/project-scratch-def.json` and most `orgs/*.json` (not dev-mfg or the TFID shapes), and
+`prepare_rlm_org` deploys it as true from the pre settings bundle on every build, so every Foundations-built org has it
+on [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]. Delta skipping applies only when the setting
+is on and the save is a PATCH edit with System pricing, Dual Persistence mode off, a completed calculation status and no
+validation errors [Platform behaviour, traced; Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]; further
+conditions (pricing permissions, update-tracking settings) also apply, so treat the list as partial (see
+pricing-procedures → runtime and observability); otherwise every line reprices, and a non-idempotent uplift step
+re-applies. When it applies, a partial PATCH re-runs the edited lines and the lines that depend on them and skips the
+rest, except that Help says a Compound Uplift Price Revision step reprices every line in the ramp group on each run
+regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`], which fits the
+re-uplift of untouched ramp lines [Platform behaviour, traced]. Which relations count as a dependency isn't traced.
+Delta Pricing was probably on in the 2026-11-11 measurement but wasn't read there; on a second org with it read on, a
+System PATCH of one ramp line with no field change ran no pricing procedure on any line yet still re-applied the compound
+uplift to every uplifted line, totals unchanged [Measured: 2026-11-12, 264, scratch; one org]; the Help rule fits which
+lines moved but not that no waterfall changed, and that path is not traced (`ramped-quotes` SKILL.md → DO NOT). A header edit in the record UI wasn't measured. For quotes,
 Help's Reprice All requirement names updates to Quote Line Items outside the line editors, not the
 Quote header (for orders it covers Order records too)
 [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
