@@ -199,8 +199,9 @@ As shipped, units added on an amendment do not re-band. Assets carry `PricingSou
 `ItemPricingSource NotEquals 'LastTransaction'`, and the last-transaction lane prices those lines
 from the asset's last net price. The volume step also bands on `LineItemQuantity`
 [Repo: `RLM_DefaultPricingProcedure`], which on an amendment line is the delta, not the new total.
-Added units took the asset's last net price, with no volume step [Measured: 2026-11-11, 264,
-fresh `ent-sb0` scratch org]. The amendment flow itself is in
+On a procedure cloned from the shipped default, which has the same lanes, added units took the
+asset's last net price, with no volume step [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch
+org]. The amendment flow itself is in
 [`../../asset-lifecycle-changes/SKILL.md`](../../asset-lifecycle-changes/SKILL.md).
 
 A source rule like "added units price at the band for the new total; existing units keep their

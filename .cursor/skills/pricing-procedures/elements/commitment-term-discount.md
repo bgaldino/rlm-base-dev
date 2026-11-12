@@ -312,7 +312,8 @@ Logic: `1 AND 11 AND 2 AND 9 AND 10 AND 13 AND 12 AND ((3 AND 4 AND ((5 AND 6) O
 - The header switch was a `Quote` Checkbox mapped into the sales transaction context as a
   `SalesTransaction` tag of data type BOOLEAN
   ([`../../context-service/SKILL.md`](../../context-service/SKILL.md)); the line filter read it.
-  Changing only the switch did not reprice the lines; Reprice All in the line editor did.
+  A header-only Place PATCH of the switch (`pricingPref` `System`) did not reprice the lines;
+  Reprice All in the line editor did. Other ways of changing the header were not measured.
 - Criterion 14 admits every group-ramp segment line, whatever the ramp's length [inferred from the
   filter]. The group runs after the ramp uplift, so each segment took the discount on its uplifted
   net.
@@ -333,7 +334,7 @@ Logic: `1 AND 11 AND 2 AND 9 AND 10 AND 13 AND 12 AND ((3 AND 4 AND ((5 AND 6) O
 | A 36-month quote line is not discounted | The line has start and end dates but no `SubscriptionTerm` | Set `SubscriptionTerm` in the selling model's unit (3 `Annual`) ([Line inputs on real quotes](#line-inputs-on-real-quotes)) |
 | Line total counts 36 terms | `SubscriptionTerm` 36 `Months` sent on an Annual selling model; Place saved it as 36 `Annual` | Same fix: 3 `Annual` |
 | Group-ramp segment lines are not discounted | Each segment line carries a term of 1 | Add criterion 14 (`ItemRampIdentifier` IsNotNull) |
-| A header switch change has no effect | Only the header changed, so the lines were not repriced | Reprice All in the line editor |
+| A header switch change has no effect | A header-only Place PATCH did not reprice the lines | Reprice All in the line editor |
 | Discount applied twice on an amendment | Criterion 9 removed | Keep `ItemPricingSource NotEquals 'LastTransaction'` |
 | A 36-month renewal line gets the uplift but not the 4% | Criterion 9 skips lines from a Last Transaction asset, which this repo makes the default source | Expected as built (inferred, not measured); see criterion 9 → renewals |
 | Totals do not move with the unit price | Group placed after the term pricing groups, or Subscription Price reads `ListPrice` | Move it before `Applyproratedpricingtotermdefinedlines`; bind Subscription Price's Net Unit Price to `NetUnitPrice` |
