@@ -55,8 +55,9 @@ results, 2026-11-11).
       order-to-asset rule (`AssetActionSource` ⇐ `SalesTransactionItem` in
       `AssetToSalesTransactionMapping`), which the repo's context plan doesn't have, and
       never fills rows made from order product detail rows: the cancel-and-reprice pair an
-      answer-change amendment writes on the root. So even with the rule, the amendment after
-      an answer change starts blank again [Measured: 2026-11-11, 264, scratch org].
+      answer-change amendment writes on the root [Measured: 2026-11-11, 264, scratch org].
+      So even with the rule, the next amendment's lines would start blank, since the trigger
+      reads only those rows.
       Configurator side: `constraint-models` → `quantities-from-attributes.md` → open item 12.
     - **Check and work around.** After every activation in a multi-step replay, read the
       root's latest asset action source rows (verification.md step 6). Where they're blank,
