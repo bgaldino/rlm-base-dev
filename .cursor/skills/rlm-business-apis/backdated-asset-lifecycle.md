@@ -4,8 +4,8 @@ Read this when you need an asset change that **took effect in the past**: an ame
 cancellation, renewal, transfer, swap, upgrade or downgrade with an effective date before
 today, verified all the way to the invoice. Parent skill: [SKILL.md](SKILL.md).
 
-**Evidence base:** live runs on 264, 2026-10-28, on a scratch org (todos 246 and 306) and on
-a second, fresh scratch build of main (todo 306). Plain term product `QB-API-PROD` (Term
+**Evidence base:** live runs on 264, 2026-10-28, on one scratch org and on
+a second, fresh scratch build of main. Plain term product `QB-API-PROD` (Term
 Annual, billed monthly at 270.00, USD); ramps on `QB-GEN-AI-LIC`; usage on `QB-DB`. Effective
 date 2026-08-01, invoiced through today (2026-10-28) before the change; monthly advance billing
 bills October in full. Treat every "measured" below as those runs, not as a general rule. Other
@@ -231,7 +231,7 @@ starts 2027-08-01, a year after the renewal, not after the asset's start.
 - `RLM_ARC_AssetValidator` still blocks swap, upgrade/downgrade, transfer and rollback for ramped
   assets, as 264 Help requires.
 
-**Early renewal of a ramped asset: the zero price comes from the platform** (todo 309). Measured
+**Early renewal of a ramped asset: the zero price comes from the platform**. Measured
 on a group ramp (`QB-API-PROD`) and a line ramp (`QB-GEN-AI-LIC`). The pricing log was read on
 quote-only, future-dated runs; the backdated run zero-priced the same way (table above).
 
@@ -384,4 +384,4 @@ qty 1 and `08-01→2027-05-31` qty 2. A backdated cancel on 2026-09-01 then ende
 - **Early renewal of a ramp asset.** It goes through headlessly: `initiateRenewal` with
   `rampOptionsDetails`, the input the UI's *Create a ramp schedule* sets. The Connect `renew`
   resource has no such input. But the platform prices the new segments at zero (above),
-  so a backdated one can't be verified through invoice (todo 309).
+  so a backdated one can't be verified through invoice.

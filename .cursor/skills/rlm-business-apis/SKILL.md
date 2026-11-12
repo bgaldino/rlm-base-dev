@@ -107,7 +107,7 @@ platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemD
 - This repo keeps **as-is renewals on** (`enableAsIsRenewals=true` in
   `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`), so renewals behave this way
   too. Turning it off moves a plain renewal's price back to the parent, but leaves cancels and
-  negative amendments unchanged (measured, todo 157). Per-lot as-is pricing also needs the
+  negative amendments unchanged (measured). Per-lot as-is pricing also needs the
   asset's `PricingSource` to be `LastTransaction` (blank or `PriceBookListPrice` does not qualify),
   no ramp, no derived-price product, no price or attribute change, and not an early renewal
   [Platform behaviour, traced]. Otherwise the line is not priced per lot; changed and early
