@@ -51,10 +51,20 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       Rule 3).
     - Where any change needs it, the item is its own top-level line. Cross-line checks
       then sit on a virtual `Quote` container (`constraint-models` →
-      `quantities-from-attributes.md`, Checks across top-level lines).
+      `quantities-from-attributes.md`, Checks across top-level lines). If the plan also
+      builds group ramps, that container sees every segment's lines at once: a `[0..1]`
+      relation or a one-instance type there refuses the ramp, so cross-line checks
+      compare totals across segments (`ramped-quotes`).
+    - A group ramp of a configurable bundle is a structure too. Every child, One-Time
+      included, repeats in every segment of a UI-built ramp, and unticking a child that a
+      rule sizes is silently undone. Before predicting a ramp's contract value, name how
+      the repeats leave later segments. A root answer that sizes the one-time children to
+      0, set in segment 2, reached the later segments and left segment 1 alone; it needs
+      those groups' minimums at 0 (`ramped-quotes` → `bundle-children-lifecycle.md`).
 
    A prior plan kept such a choice as a component and needed that fallback after its
-   lifecycle spikes.
+   lifecycle spikes. Another sent the ramp repeats to a spike whose options didn't
+   include the root answer the build used.
 6. **Every recommendation names its mechanism, and every layer that could refuse it.**
    "Treat the rule as new-sale only" or "permit the split on amendment" isn't a
    mechanism. Name the condition in the model, the procedure step or the validation that
@@ -71,11 +81,21 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
    (`product-catalog-modeling` → `selling-models-and-lifecycle.md`).
 8. **Gate a custom computation on every quote structure the plan creates.** A value
    that counts terms or dates (contract value, cost over the term) runs on plain quotes,
-   ramp segments (dated line groups), amendments (the months left from the asset's
-   start) and renewals; list each as a golden case. If it sums a subset of lines, such as
-   one product line, check that the field selecting them is in the pricing context. The
-   sales transaction context has no product Family (`pricing-setup` →
-   `scenarios/full-term-value.md`; `context-service`).
+   ramp segments, amendments and renewals; list each as a golden case, with the count
+   each one uses:
+    - In a ramp segment (a dated line group), an until-cancelled line counts that
+      segment's months, not the whole term. This applies to cost as well as value.
+    - On an amendment, it counts the months left from the contract's start. That start
+      isn't on the quote: name the mechanism that puts it there (a flow stamping it from
+      the amended lines' source assets) and the full reprice that has to follow, because
+      the first price is calculated before the stamp lands.
+    - If it sums a subset of lines, such as one product line, check that the field
+      selecting them is in the pricing context. The sales transaction context has no
+      product Family.
+
+   See `pricing-setup` → `scenarios/full-term-value.md` and `context-service`. A golden
+   that keeps a running total across changes builds on each step's platform value (check
+   10), not the source's measure.
 
 ## Golden tests (step 5)
 
@@ -97,11 +117,18 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     and end dates alone had none, so it got no discount; a header-only Place change
     didn't reprice (`pricing-procedures` → `elements/commitment-term-discount.md`, Line
     inputs on real quotes).
-13. **Assert a refusal where its message appears.** Place returned success for a
-    configuration it then logged as an error; the message can appear only in
-    `RevenueTransactionErrorLog` or a later `configure`. A rule can also remove a line
-    silently, so read the deltas (`constraint-models` → `quantities-from-attributes.md`,
-    Reading a result; `asset-lifecycle-changes` Quick Rule 7).
+13. **Assert a refusal where its message appears, and on each path decide whether it
+    appears at all.** Place returned success for a configuration it then logged as an
+    error; the message can appear only in `RevenueTransactionErrorLog` or a later
+    `configure` (`constraint-models` → `quantities-from-attributes.md`, Reading a result).
+    A rule can also remove a line instead of refusing. On an amendment that changes a
+    root answer, an optional add-on whose requirement no longer held was removed with no
+    message (`asset-lifecycle-changes` Quick Rule 7). So for every refusal golden that an
+    amendment or renewal reaches, write down how the change arrives (an answer change or
+    a line edit) and which form of the rule meets it. Predict a removal, and assert the
+    line delta, where the rule removes; predict the message only where it refuses. A
+    prior plan predicted a rule's message on an amendment. The answer change removed the
+    add-on silently, and a line edit drew a different rule's message.
 14. **On a bundle sized by configuration answers, carry the answers across changes.**
     After each activation, read the root's asset action source rows for node status, and
     run two answer-change amendments in a row with every unchanged answer asserted.
