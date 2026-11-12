@@ -42,8 +42,8 @@ path or consequence was not established (the text says what is missing).
    attribute row gained one holding the default [Measured: 2026-11-10, 264]; a custom header
    picklist came back as its default and a custom header checkbox as `false`
    [Measured: 2026-11-12, 264]. A clone is rebuilt from the quote's context definition, so a
-   field the definition does not map is expected to come back at its default (one field copied
-   unexplained) [Platform behaviour, traced in part] ([deep-clone.md](deep-clone.md) → What
+   field the definition does not map is expected to come back at its default (one field copied,
+   unexplained by the repo's plans) [Platform behaviour, traced in part] ([deep-clone.md](deep-clone.md) → What
    carries over). Write back
    every round header field that differs from the source.
 4. **Rename every clone.** It arrives as "<source name> Copy" [Measured: 2026-11-10, 264]. No
@@ -58,7 +58,8 @@ path or consequence was not established (the text says what is missing).
    customer-facing round synced. One quote syncs per opportunity: setting
    `Opportunity.SyncedQuoteId` to a new round unsynced the previous one
    [Measured: 2026-11-10, 264]. Sync with `syncQuoteOpportunity`, not that field write. With
-   Asynchronous Opportunity Sync on (the measured case) the write only marks the quote as
+   Asynchronous Opportunity Sync on (the measured case; it applies only to quotes with the
+   Revenue Cloud pricing type) the write only marks the quote as
    syncing, and no completion step was found in the logic read, so waiting does not help; and `createOrdersFromQuote` refused the quote
    ([Award round to order](#award-round-to-order)) [Measured: 2026-11-12, 264;
    Platform behaviour, traced in part]. Help converts
@@ -138,8 +139,8 @@ ships). Reprice each round before submitting it.
   [Help: `ind.qocal_clone_quotes_and_orders`; Measured: 2026-11-10, 264]. The repo's
   `RLM_Approval_Status__c` came over blank while `RLM_Approval_Level__c` (a roll-up of the
   cloned lines) came over set [Measured: 2026-11-10, 264]. So a cloned round shows a level
-  and no status until it is submitted. The clone logic itself never sets an approval status or
-  `IsSyncing`; whether a custom status field comes back blank depends on whether the context
+  and no status until it is submitted. The clone module has no reference to an approval status or
+  `IsSyncing` (keyword search; the save through Place Sales Transaction was not traced); whether a custom status field comes back blank depends on whether the context
   definition maps it and whether it is editable, and the platform's defaulting on save was not
   traced [Platform behaviour, traced in part].
 - **The previous round stays as it was.** Its submission is untouched by the clone; a
@@ -187,8 +188,10 @@ ships). Reprice each round before submitting it.
    [Platform behaviour, traced in part]. The check applies only with Asynchronous Opportunity
    Sync on; without it the field write is expected to run an older inline sync and order
    creation not to check sync state [inferred: only the early return and the order-side guard
-   were read]. Whether that setting is on in a fresh 264 org is not established: read
-   `enableAsynchronousQuoteOpportunitySync` on the org.
+   were read]. The setting is declared off by default [Platform behaviour, traced]; this repo's
+   `post_utils` settings bundle turns it on (`enableAsynchronousQuoteOpportunitySync`), and the
+   `syncQuoteOpportunity` action's access check is that same setting. On a fresh org built
+   another way, read `enableAsynchronousQuoteOpportunitySync`.
 2. Set it to Accepted, then Create Order [Help: `ind.qocal_create_orders_from_a_quote`], or
    `createOrdersFromQuote` with `quoteId` [Dev guide: `actions_obj_create_orders_from_quote`].
    `createOrderFromQuote` is deprecated from API 65.0 [Dev guide: `actions_obj_create_order_from_quote`].
@@ -267,10 +270,10 @@ SELECT Id, Status FROM ApprovalSubmission WHERE RelatedRecordId = '<NEW>'
 
 Not measured; settle on a live org before relying on them:
 
-- Why one custom header field copied with no context mapping (one field copied unexplained).
+- Why one custom header field copied although no context plan in this repo maps it (the org's
+  active definition was not read; a mapping there is the first thing to check).
 - Whether a mapped but non-editable, formula or output-only field survives a clone, and how a
   large (async) transaction clone carries fields ([deep-clone.md](deep-clone.md) → What carries over).
-- Whether Asynchronous Opportunity Sync is on by default in a fresh 264 org.
 - Whether Create Order refuses a Draft or Rejected quote (not run live).
 - Whether the `deepCloneSalesTransaction` invocable needs anything beyond
   `enableTransactionCloning`, and whether it behaves like the Connect API.
