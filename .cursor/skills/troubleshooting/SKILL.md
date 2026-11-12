@@ -830,8 +830,9 @@ in Setup.
 ### "Could not find product with ID ..."
 
 **Cause:** the product id a line carries was not returned for that account, price book and context
-(not in the transaction's price book or catalog, or excluded by a qualification procedure), or the id is empty ("ID: null") [Platform
-behaviour, traced in part]. Product details are cached per session context, so a catalog change
+(not in the transaction's price book or catalog), or the id is empty ("ID: null") [Platform
+behaviour, traced in part]. A qualification procedure excluding the product would plausibly do the
+same (inferred, not traced). Product details are cached per session context, so a catalog change
 after the first configure in the same context may not show until a new context is used.
 
 **Fix:** check the line's product id and its price book entry first. After a load that adds
@@ -843,11 +844,11 @@ is not established.
 
 **Cause:** with Asynchronous Opportunity Sync on, order creation refuses a quote that is marked
 syncing and was modified after the opportunity's last sync time [Platform behaviour, traced]. Which
-saves count (for example flow or pricing saves) was not established. Measured on two quotes
-(sync, then a Status: Accepted write, then `createOrdersFromQuote`
-was refused) [Measured: 2026-11-12, 264, scratch]. On one quote, a retry 15 s later with no second sync succeeded; the traced rule doesn't
-explain that. The other was ordered on the first try after a fresh sync with no later write. Which
-save moved the quote was not identified.
+saves count (for example flow or pricing saves) was not established. Measured twice:
+`createOrdersFromQuote` straight after a successful `syncQuoteOpportunity` refused this message (on
+one quote a Status: Accepted write came in between) [Measured: 2026-11-12, 264, scratch].
+A retry about 15 s later, with no second sync, created the order; the traced rule doesn't explain
+that. Which save moved the quote was not identified.
 
 **Fix:** re-sync after the last change, including the status write, before ordering. See
 `quote-negotiation-rounds`.

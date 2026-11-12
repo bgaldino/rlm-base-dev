@@ -62,8 +62,10 @@ Key endpoints (see the reference doc for exact request shapes):
 - `POST /connect/revenue-management/assets/actions/cancel` — Cancel asset
 - `POST /industries/cpq/quotes/actions/get-instant-price` — Instant pricing
 
-**Line discounts in a Place PATCH.** Measured on one fresh 264 scratch org (2026-11-12), with
-Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`, `configurationMethod: Skip`):
+**Line discounts in a Place PATCH.** Measured on 264 scratch orgs (2026-11-12), with Place PATCHes
+on existing `QuoteLineItem`s (`pricingPref: Force`, `configurationMethod: Skip`); the per-unit result
+is from a fresh org, and the refusal results below are from one loaded org whose pricing procedure
+was customised:
 
 - `DiscountAmount` is **per unit**: on a line with a quantity above 1 it lowered `NetUnitPrice`
   by the amount sent, not the line total by it.
@@ -108,11 +110,11 @@ platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemD
 - This repo keeps **as-is renewals on** (`enableAsIsRenewals=true` in
   `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`), so renewals behave this way
   too. Turning it off moves a plain renewal's price back to the parent, but leaves cancels and
-  negative amendments unchanged (measured). Per-lot as-is pricing also needs the
+  negative amendments unchanged (measured). Per-lot as-is pricing also needs: the
   pricing source the renewal resolves from the asset (its own `PricingSource`, else the nearest
-  parent asset's) to be `LastTransaction`; `PriceBookListPrice`, or blank all the way up, does not
-  qualify, no ramp, no derived-price product, no price or attribute change, and not an early renewal
-  [Platform behaviour, traced]. Otherwise the line is not priced per lot. Early renewals get
+  parent asset's) to be `LastTransaction` (`PriceBookListPrice`, or blank all the way up, does not
+  qualify); no ramp; no derived-price product; no price or attribute change; and not an early
+  renewal [Platform behaviour, traced]. Otherwise the line is not priced per lot. Early renewals get
   cancel-and-add detail rows [Platform behaviour, traced]; whether a renewal with a price or
   attribute change does is not settled [Platform behaviour, traced in part].
 - Advanced Detail Line Pricing does not change any of it.
