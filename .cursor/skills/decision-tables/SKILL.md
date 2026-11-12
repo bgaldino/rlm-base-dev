@@ -31,7 +31,7 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    ends with `refresh_all_decision_tables` then `rebuild_search_index` for this reason.
    A build that loads data after those steps leaves stale tables behind.
    **The refresh flow returns before the tables are fresh, so wait before pricing**: poll
-   `check_decision_table_freshness` until the tables the flow refreshed are no longer Stale
+   `check_decision_table_freshness` until the tables the flow queued are no longer Stale
    (see *Refreshing*).
    Rating, qualification and tax tables have no runtime refresh at all: after editing that
    setup data, use the Manager's **Refresh stale only**, or its **Reads object** filter.
@@ -275,17 +275,13 @@ refresh type*.
 ### Wait for fresh tables before pricing
 
 `refresh_all_decision_tables` only queues the refreshes (`lifecycle-and-refresh.md` →
-*Queued is not refreshed*), and the wait is minutes, not seconds. After the flow returned, the
-tier, bundle-adjustment and cost tables stayed Stale for about three minutes
-[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. Pricing in that window fails
-**silently**: a quote priced about half a minute after the flow returned got empty volume and
-cost lookups. The volume step ran and left the price unchanged, the line had no unit cost, and no
-error was raised, so the numbers looked plausible; a quote priced after the refreshes finished
-took the volume discount [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. After a
-refresh, rerun `check_decision_table_freshness` until the tables the flow refreshed are no
-longer Stale, then price. A Stale verdict the flow can't clear (a table it doesn't refresh, such
-as rating, qualification or tax tables, or one over-reported because a source criterion wasn't
-reproduced) won't change by waiting: read the reason the verdict gives.
+*Queued is not refreshed*). After the flow returned, the tier, bundle-adjustment and cost tables
+stayed Stale for about three minutes [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
+Pricing in that window fails **silently**: a quote priced about half a minute after the flow
+returned got empty volume and cost lookups. The volume step ran and left the price unchanged, the
+line had no unit cost, and no error was raised [Measured: 2026-11-11, 264, fresh `ent-sb0`
+scratch org]. Before pricing, rerun `check_decision_table_freshness` until the tables the flow
+queued are no longer Stale.
 
 ## The timing rule
 
@@ -358,10 +354,9 @@ it. `pipefail` and `grep` make a missing line an error rather than an empty answ
 Combine modes as `"strict,json"`; with `pipefail` a strict failure still fails the pipeline.
 
 **Pricing looks wrong and the data looks right.** Run the check first. A Stale verdict
-naming the object you just edited is the answer; refresh, wait until the check no longer shows
-the refreshed tables Stale, and re-test before debugging anything else. A price that skipped a discount or lost its
-unit cost, with no error, is what pricing during a refresh looks like (*Wait for fresh tables
-before pricing*).
+naming the object you just edited is the answer; refresh, wait for the tables (*Wait for fresh
+tables before pricing*), and re-test before debugging anything else. A skipped discount or a
+missing unit cost with no error is what pricing too soon after a refresh looks like.
 
 **Adding a rate to an existing card.** `RateCardEntry` feeds several tables. After the
 load, refresh — the check will name every table that went stale, including ones you did
@@ -373,8 +368,7 @@ not know read that object.
 - `python scripts/ai/skill_manifest.py --check` resolves this skill and its sub-files.
 - `cci task run check_decision_table_freshness --org "your-cci-alias"` reports every table with a
   verdict, and the count matches the `DecisionTable` row count in the org.
-- After `refresh_all_decision_tables`, no table is Stale once the queued refreshes finish
-  (poll the check; it can take minutes after the flow returns).
+- After `refresh_all_decision_tables`, no table is Stale.
 - A table you deliberately made stale (edit any object it reads) flips to Stale and the
   reason names that object.
 - Any name added to a `dt_*_decision_tables` list resolves to a real `DeveloperName` in
