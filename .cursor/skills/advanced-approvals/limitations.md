@@ -53,6 +53,11 @@ After a full approval, the next submission is a new request, not a resubmission.
 
 [Help: `ind.approvals_preview_feature_limitations`]. A real submission is the test.
 
+To see the values a background data flow passes, run that flow on its own
+([actions-and-objects.md](actions-and-objects.md) → Read the approval data)
+[Measured: 2026-11-12, 264], rather than the Help's workaround of mock output values, which
+edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
+
 ## Email and alerts
 
 - Eight notification reasons. One template per flow, step and reason
@@ -92,9 +97,12 @@ After a full approval, the next submission is a new request, not a resubmission.
   step whose entry condition reads its outcome (the shipped Director step reads
   `Manager_Approver.Outputs.approvalDecision`). No recorded run shows the shipped flow
   skipping a step on resubmission.
-- Whether the shipped steps' `ActionInput__CanUseSmartApproval` input is the Use Smart
-  Approval property in Flow Builder; the design doc treats it as the step's Smart Approval
-  input, and the docs don't name it.
+- Whether `ActionInput__CanUseSmartApproval = true`, as the shipped steps set it, makes Smart
+  Approvals skip approvers on resubmission; the docs don't name the input. With it `false` on
+  every step, a resubmission after a rejection at the second step (the first approved)
+  opened a new first-step work item, `Assigned`, `IsEligibleForSmartApproval` false
+  [Measured: 2026-11-12, 264], as expected if it is the Use Smart Approval setting. No run
+  with it `true` is recorded.
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.
 - Whether `ApprovalWorkItem` standard fields accept a sObject `update()`: the Help says no

@@ -64,7 +64,20 @@ where each level is computed:
 | Pricing procedure → line field → roll-up on the quote | Line-based levels (discount per line, a line below floor or cost) | `approval_flags.json` writes `RLM_Approval_Level_Calc__c`; `Quote.RLM_Approval_Level__c` is MAX of it |
 | Approval data flow (background step) | Quote-level values (margin, net value, term, billing frequency, payment terms), and the MAX across dimensions | `RLM_Quote_Approval_Data` returns `DiscountApprovalLevel`, `PaymentTerms` |
 | Roll-up summary field | A MAX, MIN or count over lines | `Quote.RLM_Approval_Level__c` (MAX of `QuoteLineItem.RLM_Approval_Level_Calc__c`) |
+| A loop over the lines in the approval data flow | Line conditions on the line's product (family, a custom product flag), which a roll-up summary's filter can't reach | None shipped; measured below |
 
+- **Line conditions in a loop:** get the quote's lines (Get Records on `QuoteLineItem` by
+  `QuoteId`, all records), loop over them, and count or take the maximum in assignments;
+  turn the results into levels after the loop. In a measured run [Measured: 2026-11-12, 264]:
+    - a flow formula read `Product2.Family` and a custom `Product2` field through the loop
+      variable (`{!<loop>.Product2.Family}`) over the Get Records collection;
+    - Percent fields come in percent units: a line `Discount` of 24% reads as 24, so test
+      `> 20`, not `> 0.20`;
+    - a line-floor count (line `Margin` below a floor) and a below-cost count
+      (`NetUnitPrice < UnitCost`) each raised the level on the lines they should, and not on
+      the others.
+
+  The loop reads the lines' stored values, so reprice first all the same.
 - **"Any line below X":** express it as a count of lines that break the rule, then test
   "count > 0". Smart Approvals rejects the NOT operator, so don't write it as "NOT all lines
   pass" [Help: `ind.approvals_smart_approval_limitations`].
@@ -95,7 +108,8 @@ where each level is computed:
 - The shipped procedure computes line margin (`ItemMargin__std`, net total less unit cost
   times quantity, over net total) only for lines with a unit cost, before the header discount
   steps [Repo: the procedure, `Filterlineswithunitcost` and `Calculatetotalcostandmargin`].
-  A guard placed where the flags sit can read it; decide what a line with no cost means.
+  A guard placed where the flags sit can read it; decide what a line with no cost means. A
+  guard can also be counted in the data flow's line loop (above).
 - A guard sees only the line's resulting values. A round's bulk discount (the same discount
   set on every line) and a rep's override on one line end up in the same fields, and nothing
   in the shipped model records which set them. If the source treats them differently,
@@ -134,7 +148,11 @@ where each level is computed:
   [Repo: `unpackaged/post_approvals/flows/RLM_Quote_Smart_Approval.flow-meta.xml`].
 - **Several dimensions, one approver ladder:** take the MAX of the dimension levels into one
   `ApprovalLevel` and drive the single chain from it. The approvers are the same people, so
-  one chain avoids duplicate work items.
+  one chain avoids duplicate work items. With a modified copy of the shipped flows that folds
+  every dimension, payment terms included, into `ApprovalLevel`, no level → Approved with no
+  work items; level 1 → the first approver; a non-standard payment term set at level 2 → the
+  first two approvers in turn; level 3 → all three in turn. Each submission and its quote
+  ended Approved [Measured: 2026-11-12, 264].
 - **Several dimensions, separate sign-offs:** give each its own `ApprovalChainName` when a
   dimension needs its own sign-off, usually from different approvers. Chains in one stage
   run in parallel [Help: `ind.approvals_types_of_approvals`]. The shipped `Finance` chain is
@@ -186,8 +204,11 @@ where each level is computed:
       [Help: `ind.approvals_smart_or_rule_based_approvals`].
     - A source that says "a resubmission restarts the chain" wants every approver to review
       again: turn Smart Approval off on that chain's steps. Left on, it skips approvers on a
-      rejected or recalled resubmission. That the shipped input is this setting is an open
-      question in [limitations.md](limitations.md).
+      rejected or recalled resubmission. With `ActionInput__CanUseSmartApproval` `false` on
+      every step, a resubmission after the second step rejected (the first approved) opened
+      a new first-step work item, `Assigned`, `IsEligibleForSmartApproval` false
+      [Measured: 2026-11-12, 264]. No run with it `true` is recorded
+      ([limitations.md](limitations.md)).
     - After a full approval, any later submission is a new request, so the chain restarts
       whatever the setting [Help: `ind.approvals_smart_or_rule_based_approvals`].
 
