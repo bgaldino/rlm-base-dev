@@ -285,6 +285,12 @@ Measured on two fresh 264 `ent-sb0` scratch orgs on 2026-11-11:
   cost lookups, while its bundle adjustment applied. The volume step ran and left the price
   unchanged, the line had no unit cost, and no error was raised.
 
+Why a lookup returns nothing while a refresh runs is not established. Source reading shows each
+refresh's data is kept separately, keyed by table and refresh time, and the superseded copy is
+normally removed after the new one completes (purging is disabled in some paths). It did not show whether a lookup during a refresh reads the
+old, an empty or a partial copy. `[Platform behaviour, traced in part]` Treat the empty result
+above as measured only, and do not assume stale-but-complete data while a refresh is running.
+
 Before pricing, rerun `check_decision_table_freshness` until the tables your pricing reads (here
 the volume tier, bundle adjustment and cost book tables) are no longer Stale.
 

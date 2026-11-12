@@ -176,20 +176,22 @@ There is deliberately no automatic refresh for these:
 
 ### Release 264 chooses the refresh type (`AutoSelectRefreshDT`)
 
-⭐ **In 264 the request does not fix the type that runs.** Read from Core source
-(`DecisionTableMediumVolumeBuilderJob` on the 264 patch branch — implementation, not a
-documented contract, and the 264 Help does not describe it) and confirmed on a fresh
-264 build, 2026-10-27:
+⭐ **In 264 the request does not fix the type that runs.** Read from the
+platform's refresh logic (implementation, not a documented contract; the 264 Help does not
+describe it) and confirmed on a fresh 264 build, 2026-10-27:
 
 - `isDecisionTableIncremental = true` is honored: an incremental runs. Two cases force a
   full anyway: the table's last incremental failed (`HasIncrementalSyncFailed`), or its
   source object hard-deletes records.
 - `false` and **omitted are the same**: the platform chooses. It runs **full** when the
   last full refresh is more than 24 hours old, when the table is not an sObject-sourced
-  MediumVolume (HBase) table (CSV upload, LowVolume, Data Cloud), or when nothing can be
-  counted. Otherwise it runs **incremental** if under `IncrementalRefreshThreshold`
-  (an org value, default 20%) of the rows changed since the later of the two stamps,
-  and full above it.
+  MediumVolume (HBase) table (CSV upload, LowVolume, Data Cloud), when the table holds no
+  records or its cached data is missing, when its last incremental failed, when its source
+  object hard-deletes records (price book entries are one), or when nothing can be counted.
+  Otherwise it runs **incremental** if the changed rows since the later of the two stamps
+  are under `IncrementalRefreshThreshold` (an org value, default 20%) of the table's rows
+  **and** within an incremental row limit, and full above either. Any error in this
+  decision falls back to full. `[Platform behaviour, traced]`
 - Measured: a full request on all 40 tables of a fresh build, 2 hours after the first
   refresh, ran as **incremental on 12** — `LastIncrementalSyncDate` moved and
   `LastSyncDate` did not. An explicit incremental request on a table with no
@@ -199,13 +201,12 @@ documented contract, and the 264 Help does not describe it) and confirmed on a f
   consequential"). LowVolume tables reject an explicit incremental request.
 - The org preference **`AutoSelectRefreshDT`** turns this **off**. Its Setup toggle,
   "Auto Select Refresh for Decision Tables" (Setup → Decision Tables → Settings), is
-  an **opt-out**: ON suppresses auto-selection, and the request decides again. Core
-  plans to rename it `SuppressAutoSelectRefreshDT` in 266.
+  an **opt-out**: ON suppresses auto-selection, and the request decides again.
 - **Freshness is the later of `LastSyncDate` and `LastIncrementalSyncDate`**, the rule
-  the Decision Table app page uses. 264 Setup shows only the full date; GUS W-24264525
-  fixes that in 266. GUS W-24425582 ("[264] Incremental refresh is not updating Price
-  book Entry Decision Table") is fixed in 266, so an incremental stamp on a price book
-  table can be trusted less until then.
+  the Decision Table app page uses. 264 Setup shows only the full date. A
+  price book entry table should always run full under auto-select, because its
+  source hard-deletes; if an incremental stamp appears (for example from an explicit
+  incremental request), check the rows before trusting it. `[inferred]`
 
 No caller here refuses or rewrites the request: the CCI tasks, the Decision Table
 Manager and `refresh_decision_table.py` all send it as given. The Manager and
