@@ -12,7 +12,8 @@ check. This file covers only the CML that sizes a bundle and how to test it.
 `[Help: <article>]` is the 264 Help snapshot under `docs/salesforce/264/help/articles/`,
 cited the same way. `[Platform behaviour, traced]` is a rule read from the platform's own behaviour, not
 measured here; where it explains a measured row, both tags appear. `[Platform behaviour, traced in part]` is the same, but only the mechanism was read in source; its scope, path or consequence isn't established. `[Repo: <file>]` is this repository. `[Measured: M<n>]` is row M<n> of
-[Measured on 264](#measured-on-264), a live run on a 264 (API v68.0) scratch org. Questions
+[Measured on 264](#measured-on-264), a live run on a 264 (API v68.0) scratch org. Claims
+tagged `[Measured: <date>, …]` come from separate lifecycle runs, scoped as stated. Questions
 none of these settle are listed once, under [Open items](#open-items). The worked example
 as a whole has not been run, but a model built on its patterns has (rows M22 to M33).
 Where the dev guide and the org disagree, this file follows the org and says so.
@@ -891,8 +892,9 @@ earlier headless test of a different model. The 2026-11-11 rows (M22 to M41) com
 components sized from root answers, the largest relation above 9,999), probe models, the
 shipped QuantumBit bundle model (part of M39), and the line editor and configurator UI. M37's
 `validate_cml` result is a local run of the validator. Quotes went through Place with rules on (`Force`),
-then `configure`, then a query of `RevenueTransactionErrorLog`. Nothing else in this file
-was run.
+then `configure`, then a query of `RevenueTransactionErrorLog`. Apart from the dated
+`[Measured: <date>, …]` claims, which come from separate lifecycle runs scoped as stated,
+nothing else in this file was run.
 
 | # | Run | Result | Date |
 |---|---|---|---|
@@ -952,9 +954,11 @@ Each needs a live 264 org:
    allow-errors modes, and the bundle-validation row is written only when catalog
    validation is on and configuration is not `Skip`; a placement that skips configuration
    runs no check, so no row appears. Under a quote-placement "run and block errors" choice,
-   Place refuses the save when the message is an error (traced for Place, unmeasured for
-   this check; the severity this check carries on that path was not traced: M16 saw it as
-   a warning).
+   Place refuses the save instead `[Platform behaviour, traced]`; the trace does not
+   separate Error from Warning messages, so whether a warning alone refuses the save is not
+   established, and what this check does under that choice is unmeasured. The trace reads
+   this check's message as an error, while M16 reported it in `configure` as a warning. A
+   Warning-only row refusing the order is traced, not measured.
 2. How a large cardinality (600 service hours) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
