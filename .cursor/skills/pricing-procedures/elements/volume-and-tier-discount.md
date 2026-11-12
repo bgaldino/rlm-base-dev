@@ -103,9 +103,9 @@ Tier names are from core's element registration, no Tier step ships in this repo
   effective range. [Help]
 - Tiers must belong to a price adjustment schedule of type Volume; you cannot create
   standalone tiers. Help: deactivate the schedule before adding records, reactivate after. [Help]
-  On 264 any tier write fails while the schedule is active and tiers on an inactive schedule
+  On 264 adding or removing a tier, or changing its bounds, fails while the schedule is active (other edits to an existing tier are allowed [Platform behaviour, traced]) and tiers on an inactive schedule
   still price, so this repo leaves "Standard Price Adjustment Tier" inactive; don't activate it. [Repo, measured]
-  The block is an explicit validation: tier changes (add, remove, bound edits) are refused while the parent
+  The block is an explicit validation: adding or removing a tier and bound edits are refused while the parent
   schedule is active [Platform behaviour, traced]. Bundle-Based Adjustment rows have no such check
   ([`bundle-based-price.md`](./bundle-based-price.md)).
 - Tier type: Percentage, Amount (Help: a flat amount, for example US$100) or Override

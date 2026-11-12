@@ -95,12 +95,13 @@ python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> -
   on 2,400: 2,696.64, not 2,544); active with it `true`, a header discount is distributed twice (10% on
   5,240: 4,244.40, not 4,716); inactive, PST runs the Revenue Settings procedure (2,544 / 4,716, full
   waterfall). [Repo, measured]
-- Why it doubles: with a plan active, the plan's procedures run in section order and then the Revenue
+- Why a price revision doubles: with a plan active, the plan's procedures run in section order and then the Revenue
   Settings default procedure also runs, unless "Exclude Default and Sales Transaction Type Pricing
   Procedures" is on. Two procedures then price the same lines, and a non-idempotent element (price
-  revision) applies twice [Platform behaviour, traced]. Turn the setting on, or put every element in
-  the plan. With the setting on, the plan code does not explain a header discount distributed twice;
-  that stays [Repo, measured] with the cause not traced. The plan's context definition must match the
+  revision) applies twice [Platform behaviour, traced]. Turning the setting on removes the double price
+  revision; it does not remove the header-discount doubling measured above (cause not traced). The
+  other route is to put every element in the plan and leave the default procedure empty of them
+  [Platform behaviour, traced]. The plan's context definition must match the
   pricing context definition or no plan procedure runs [Platform behaviour, traced].
 
 ## 4. Procedure output resolution

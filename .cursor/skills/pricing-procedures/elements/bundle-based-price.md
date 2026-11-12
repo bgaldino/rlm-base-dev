@@ -54,7 +54,7 @@ as shipped. [inferred]
   each. [Help]
 - A `BundleBasedAdjustment` row inserted while its schedule was **active** succeeded, and after
   a decision-table refresh it priced the component [Measured: 2026-11-11, 264, fresh `ent-sb0`
-  scratch org]. The adjustment validation has no check on the schedule's active flag, whereas tier changes are refused while the schedule is active [Platform behaviour, traced]; do not treat this as a supported way to change an active schedule. Volume tiers behave differently: a tier write fails while its schedule is active
+  scratch org]. The adjustment validation has no check on the schedule's active flag, whereas adding or removing a tier and bound edits are refused while the schedule is active [Platform behaviour, traced]; do not treat this as a supported way to change an active schedule. Volume tiers behave differently: a tier write fails while its schedule is active
   ([`volume-and-tier-discount.md`](volume-and-tier-discount.md) → Rules and limits, [Repo,
   measured]). Help still says to deactivate a
   schedule before adding records
