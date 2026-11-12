@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-11-10T20:04:46.147721Z",
+  "assembled_at": "2026-11-12T21:40:46.642879Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -468,6 +468,11 @@
       "dest": "unpackaged/post_ux/flexipages/RLM_Quote_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml",
       "patches": [
+        {
+          "feature": "utils",
+          "patch_type": "insert_action",
+          "description": "insert actions: Quote.RLM_SyncQuoteToOpportunity"
+        },
         {
           "feature": "approvals",
           "patch_type": "insert_action",

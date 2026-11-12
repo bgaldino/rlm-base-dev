@@ -43,6 +43,9 @@
                             <value>SyncQuote</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>Quote.RLM_SyncQuoteToOpportunity</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>CreatePdf</value>
                         </valueListItems>
                         <valueListItems>

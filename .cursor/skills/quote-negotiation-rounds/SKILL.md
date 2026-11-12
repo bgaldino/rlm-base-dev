@@ -168,7 +168,11 @@ ships). Reprice each round before submitting it.
    quote to opportunity only, flattens bundles and drops attributes (same article). With
    Asynchronous Opportunity Sync on, flows call `syncQuoteOpportunity`
    [Dev guide: `actions_obj_sync_quote_opportunity`]. The repo's quote page has the
-   `SyncQuote` action [Repo: `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`].
+   `SyncQuote` action [Repo: `templates/flexipages/base/RLM_Quote_Record_Page.flexipage-meta.xml`],
+   but the platform hides it while Asynchronous Opportunity Sync is on, which `post_utils` turns
+   on: the record actions API offered it with the setting off and not with it on, on the same org
+   [Measured: 2026-11-12, 264]. In the UI, use the repo's Sync to Opportunity action, which calls
+   `syncQuoteOpportunity` [Repo: `unpackaged/post_utils/flows/RLM_SyncQuoteToOpportunity.flow-meta.xml`].
    Headlessly, call `syncQuoteOpportunity` with `quoteId`. Measured: it returned no `aotId`, and
    the opportunity had its products when read after the call (no timing recorded). Writing
    `Opportunity.SyncedQuoteId` instead left `IsSyncing` true with no opportunity products, and
