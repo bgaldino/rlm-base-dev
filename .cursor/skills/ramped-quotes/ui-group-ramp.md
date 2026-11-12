@@ -5,7 +5,7 @@
 A rep can build a group ramp in the 264 quote editor with the same result as the API build:
 - one shared `RampIdentifier`;
 - a `SegmentIdentifier` per line;
-- the uplift type on every line;
+- the uplift type on every ramp-stamped line;
 - uplifting prices.
 
 **Compound** was verified through order and activation, which created one Asset with an
@@ -71,6 +71,11 @@ These runs changed steps 1, 3 and 4 below and added
      (placing the bundle already sized through the API was not measured in a group ramp). Configuring it
      in the Browse Catalogs dialog before the add, on a ramp quote whose model held a cross-line check,
      showed the answer at 1 with that check's error and Save disabled (one run).
+     Why the add lands at quantity 1 is consistent with this, not shown for this path: a placement with no
+     configuration choice skips the rules, so lines arrive at default quantities, and the configurator then
+     reconciled the stored answer to those lines [Platform behaviour, traced in part]. The UI add call
+     itself wasn't traced and which side the solver gives way on is engine behaviour, so treat the
+     answer-solved-down result as measured, not as a platform rule.
    - Use a **term** selling model (for example Term Annual) for a standalone product. On the API path an
      Evergreen price book entry can't ramp and the segments come out without ramp identity. Through this
      dialog too, a standalone Evergreen product added with *Current and Subsequent Segments* landed in every
@@ -123,8 +128,11 @@ and One-Time children:
   segments 2 and 3 (Place PATCH), then **Reprice All**, brought them back to the un-uplifted price
   with consistent totals. Use it when only some products should escalate (a filter on the
   procedure's ramp uplift step is an alternative; not measured).
-- That partial PATCH also re-uplifted the lines it didn't touch (one org); see SKILL.md → DO NOT (partial PATCH
-  on a compound ramp). Always finish a ramp line edit with **Reprice All**.
+- That partial PATCH also re-uplifted the lines it didn't touch (one org). Source shows that untouched lines
+  are re-run, and a non-idempotent uplift re-applied, when delta pricing's conditions don't all hold
+  [Platform behaviour, traced in part]; whether delta pricing was on in the measured case isn't established
+  (live check). See SKILL.md → DO NOT (partial PATCH on a compound ramp). Always finish a ramp line edit with
+  **Reprice All**.
 
 ## Verify
 
