@@ -323,7 +323,10 @@ each cloning the most recent ramped group:
 
 The v68 clone response is `{ requestId, salesTransactionId, success, errors }`
 (`docs/salesforce/264/dev-guide/articles/connect_responses_clone_sales_transaction_output.htm.md`)
-— there is **no** `trackerId`. `success:false` with a populated `errors[]` is a
+— no `trackerId` for a standard-size transaction, which copies inline. A large
+transaction does return a tracker id that must be waited on; see
+[quote-negotiation-rounds → deep-clone.md](../quote-negotiation-rounds/deep-clone.md#response-and-completion).
+`success:false` with a populated `errors[]` is a
 synchronous failure — stop. On `success:true` the save runs **async**: `requestId`
 identifies that process, and the observable gate is `Quote.CalculationStatus` —
 poll it to a settled state ([Status](#status)) before the next call. Do **not**
