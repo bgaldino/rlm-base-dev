@@ -84,10 +84,11 @@ quote UI (`ui-group-ramp.md`, measured on 264).
    Asset per segment it sits in; built in the UI a one-time child is stamped and, left in N segments, becomes one Asset whose
    quantity accumulates (1, 2, 3 over three segments). See
    [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
-10. **In a UI-built Compound group ramp, a segment's uplift applies to every line in it, and isn't
+10. **In a UI-built Compound group ramp, a segment's uplift applies to every ramp-stamped line in it, and isn't
     rounded.** The segment's Unit Price Uplift % lands on One-Time and Evergreen lines too, whose
     `TotalPrice` doesn't follow the uplifted net; set `UnitPriceUplift` 0 on a line to exempt it
-    (measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs). The uplifted price keeps full
+    (measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs). A line without a `RampIdentifier`
+    took no uplift (a standalone Evergreen product, one org). The uplifted price keeps full
     precision, not cents (one of those orgs; the other already rounded after the uplift); add a
     rounding step after the ramp uplift if the source rounds. These behaviours weren't measured on a
     Standard ramp (the 2026-10-29 Standard UI run had one Term product and exact prices). See
@@ -126,11 +127,21 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   [constraint-models → Ramp groups and segments](../constraint-models/SKILL.md#ramp-groups-and-segments).
   The bundles tested in ramped segments, added in the quote UI or cloned, kept ramp ids on every line; see
   [Cloning a segment that holds a bundle](bundle-children-lifecycle.md#cloning-a-segment-that-holds-a-bundle).
+- **DO NOT** allow only one instance per type on a virtual transaction (`Quote`) container in a group ramp.
+  The container sees every segment's lines at once. Measured 2026-11-11 (fresh 264 `ent-sb0` scratch org,
+  quote UI): with the bundle relation `[0..1]` and `@(split = false)` on the top-level line types it held,
+  the ramp quote got "You can't add more than one of the same '<product>' product to the '<type>' product
+  class" and the configurator couldn't save. Widening those relations' cardinality and dropping
+  `split = false` from those types (changed together) fixed it. Write the container's cross-line checks as
+  totals across all segments. The container pattern, including its `[0..1]` bundle bound for an unramped
+  quote, is in
+  [constraint-models → Checks across top-level lines](../constraint-models/quantities-from-attributes.md#checks-across-top-level-lines-a-virtual-quote-container).
 - **DO NOT** treat a null `RampIdentifier` on read-back as a graph mistake — it
   usually means the org's **context definitions are stale**; a Context Definition
   sync fixes it (see `.cursor/skills/context-service/SKILL.md`). Other known causes: a line a
   group-level CML `require` added (DO NOT above), and a one-time or evergreen bundle child added with
-  `AddProducts` into ramped segments (Quick Rule 9).
+  `AddProducts` into ramped segments (Quick Rule 9), and a standalone Evergreen line
+  ([ui-group-ramp.md](ui-group-ramp.md)).
 - **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. On a
   `CompletedWithPricing` quote, System runs **delta pricing**, which can skip lines it considers
   unchanged. A segment created by clone can keep its clone-time price indefinitely. Exactly which
@@ -172,7 +183,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 | Resolve Account / Pricebook / Product2 / PricebookEntry ids | [Discovering ids](#discovering-ids) |
 | Build a non-ramp quote → order → asset | `scripts/build_quote_to_asset.py`; `.cursor/skills/txn-data-harness/SKILL.md` |
 | The v68 Connect endpoint catalog (place, clone, ramp-deal, amend/renew/cancel) | `docs/salesforce/264/dev-guide/index.md` (tracked 264 dev-guide index — use the `/connect/rev/...` payloads above). `docs/api/transaction-management-apis-reference.md` is a v68-grounded summary of the same routes; prefer the dev-guide page when the two disagree |
-| A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md`; for a line a group-level CML `require` added, or a one-time/evergreen child added with `AddProducts`, see [DO NOT](#do-not) and Quick Rule 9 |
+| A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md`; for a line a group-level CML `require` added, or a one-time/evergreen child added with `AddProducts`, see [DO NOT](#do-not) and Quick Rule 9; a standalone Evergreen line carries none ([ui-group-ramp.md](ui-group-ramp.md)) |
 
 ## The proven build sequence
 
@@ -557,7 +568,7 @@ only with a rounding step after the ramp uplift, see `compound-uplift.md`).
 - `field-legality.md` — which ramp and pricing line fields are writable on live 264. Read it when a
   call rejects a field.
 - `bundle-children-lifecycle.md` — a group-ramped bundle with a one-time or evergreen child: limiting the child to
-  segment 1, what a UI-built bundle ramp carries per segment (every child, split default components), assetization shape, the amend/cancel 500 on API-built bundles (UI-built differ), renewal rules and lifecycle-recipe prerequisites. Read it before
+  segment 1 (unticking it, or a root answer that zeroes rule-sized children), what a UI-built bundle ramp carries per segment (every child, split default components), assetization shape, the amend/cancel 500 on API-built bundles (UI-built differ), renewal rules and lifecycle-recipe prerequisites. Read it before
   amending, cancelling or renewing a ramped bundle.
 - `ui-group-ramp.md` — building a Standard or Compound group ramp in the 264 quote UI (Create Ramp
   Schedule → Edit Ramp Schedule → Browse Catalogs into *Current and Subsequent Segments*), the

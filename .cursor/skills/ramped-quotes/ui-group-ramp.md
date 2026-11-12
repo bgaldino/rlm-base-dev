@@ -53,17 +53,30 @@ These runs changed steps 1, 3 and 4 below and added
      was set true on the `ProductSellingModelOption` rows of the bundle and its children (which row matters wasn't
      isolated). Unticking an optional child in segment 2 or 3's configurator removed it from that segment and later ones
      in the test (segment 1 not tested; no constraint model referenced the bundle); a required child can't be removed.
-     A child that a CML rule sizes is silently re-added instead (2026-11-11). A configurable bundle added with
+     A child that a CML rule sizes is silently re-added instead (2026-11-11); a root answer that zeroes it in
+     segment 2 does remove it from segment 2 on: see
+     [Limiting a one-time child to segment 1](bundle-children-lifecycle.md#limiting-a-one-time-child-to-segment-1). A configurable bundle added with
      *Current and Subsequent Segments* puts every child, One-Time and Evergreen too, in every segment, and a CML-sized
      default component can split into two instances: see
      [What a UI-built bundle ramp carries](bundle-children-lifecycle.md#what-a-ui-built-bundle-ramp-carries).
      Amend, assetization and removal results:
      [bundle-children-lifecycle.md](bundle-children-lifecycle.md). No Amend action was found on the asset pages, so amend
      and cancel were run through the API on UI-built quotes.
+   - **A CML-sized bundle added straight into the segments doesn't come in at its answers' sizes** (2026-11-11,
+     two fresh 264 `ent-sb0` scratch orgs, rules on). Added without configuring it first: on one org every
+     component was at quantity 1 in every segment while the stored answer kept its value, and opening segment 1's
+     configurator then showed that answer solved down to fit those lines (it read as 1); on the other org the
+     bundle came in sized for a sizing answer of 1. Re-entering the answer and saving re-derived every quantity
+     in every segment. So re-enter the answers in segment 1's configurator after the add
+     (placing the bundle already sized through the API was not measured in a group ramp). Configuring it
+     in the Browse Catalogs dialog before the add, on a ramp quote whose model held a cross-line check,
+     showed the answer at 1 with that check's error and Save disabled (one run).
    - Use a **term** selling model (for example Term Annual) for a standalone product. On the API path an
-     Evergreen price book entry can't ramp and the segments come out without ramp identity; a standalone
-     Evergreen product wasn't tried in this dialog. An Evergreen **bundle child** added through it was
-     ramp-stamped in every segment (2026-11-11).
+     Evergreen price book entry can't ramp and the segments come out without ramp identity. Through this
+     dialog too, a standalone Evergreen product added with *Current and Subsequent Segments* landed in every
+     segment with no `RampIdentifier` and took no uplift (2026-11-11; see
+     [What the segment uplift reaches](#what-the-segment-uplift-reaches)). An Evergreen **bundle child** added
+     through it was ramp-stamped in every segment (2026-11-11).
    - **Reprice All** is a toolbar button. Prices were already uplifted before it was clicked.
 
 ## Expected result
@@ -95,10 +108,14 @@ These round numbers hide the precision: the uplifted price is **not rounded** to
 Measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs, Compound, a bundle with Term, Evergreen
 and One-Time children:
 
-- **The segment's Unit Price Uplift % is stamped on every line in that segment**: Term, Evergreen and
-  One-Time lines alike (each line carries the segment's `UnitPriceUplift` and the compounded
+- **The segment's Unit Price Uplift % is applied to every ramp-stamped line in that segment**: Term, Evergreen and
+  One-Time lines alike (each carries the segment's `UnitPriceUplift` and the compounded
   `ApplUnitPriceUpliftPct`; segment 1, at 0%, read null for both fields, not 0). Their
   `NetUnitPrice` uplifts too.
+- **A line without ramp identity takes none.** A standalone Evergreen product added with *Current and
+  Subsequent Segments* had no `RampIdentifier` in any segment; in segments 2 and 3 it carried the
+  segment's `UnitPriceUplift`, but its `ApplUnitPriceUpliftPct` was blank and its `NetUnitPrice` stayed at the segment 1 price (one org; the other confirmed the missing
+  `RampIdentifier`). It needs no `UnitPriceUplift` 0 exemption.
 - **On the Evergreen and One-Time lines `TotalPrice` didn't follow**: it stayed at quantity × the
   un-uplifted price in every segment (`NetTotalPrice` wasn't read), so line totals disagreed with
   quantity × net. Term lines' `TotalPrice` did follow.
