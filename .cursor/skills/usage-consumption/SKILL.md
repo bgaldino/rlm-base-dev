@@ -30,9 +30,13 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
    day after the run time (and it has started); run the orchestration after that. Running it
    earlier in the same period (more than about a day before the end) creates nothing, so a demo
    cannot settle the current period early. No other completion trigger was found
-   [Platform behaviour, traced in part]. The shipped orchestration and
-   scheduled flows are Draft templates with a one-time schedule, so nothing runs them
-   automatically. Not established: how raw usage is aggregated into the summary, and whether the
+   [Platform behaviour, traced in part]. The platform's own orchestration and scheduled
+   flow templates are Draft with a one-time schedule, so nothing runs them automatically.
+   This repo's `RLM_OrchestrateUsageManagement` is different: it is deployed Active with a
+   Daily schedule `[Repo: force-app/main/default/flows/RLM_OrchestrateUsageManagement.flow-meta.xml]`,
+   so a scheduled run can close an eligible period on its own. When building backdated
+   assets, record a period's usage before that period can be picked up, or a run may
+   settle it first `[inferred]`. Not established: how raw usage is aggregated into the summary, and whether the
    period dates can be edited.
 3. **Record usage against the ANCHOR asset,** never the commitment. A commitment is
    a rate modifier, not a consumption target.

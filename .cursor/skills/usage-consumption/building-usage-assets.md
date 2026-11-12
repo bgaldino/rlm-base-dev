@@ -127,7 +127,7 @@ python scripts/build_quote_to_asset.py --org <alias> --accounts "<acct>" \
   assuming it.
   Why: only the first period's bucket is created with the asset, in the source read. Later buckets come from the
   entitlement refresh (the invocable action, the refresh flow, or the scheduled refresh batch
-  job); the shipped scheduled flow is a Draft template, so schedule or run the refresh yourself.
+  job); the platform's scheduled refresh flow template is Draft, and this repo ships no refresh flow, so schedule or run the refresh yourself.
   One run creates every missing past period, up to the entitlement end. The scheduled batch skips
   a Pending entitlement; a grant that doesn't allow renewal is skipped; without a bucket for a period, all usage in it is overage
   [Platform behaviour, traced]. Which of these applied in the observed org is not established.
