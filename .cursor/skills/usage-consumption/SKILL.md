@@ -27,12 +27,13 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
    Getting this wrong is unrecoverable for that period.
 2. **Book usage into a PAST period.** Drawdown and final rating settle only when a
    period *completes*. A period is picked up for summarising once its end is less than one
-   day after the run time, and no other completion trigger was found; running the orchestration
-   earlier in the same period creates nothing for it, so move the run date (or the period end)
-   rather than waiting [Platform behaviour, traced in part]. The shipped orchestration and
+   day after the run time (and it has started); run the orchestration after that. Running it
+   earlier in the same period (more than about a day before the end) creates nothing, so a demo
+   cannot settle the current period early. No other completion trigger was found
+   [Platform behaviour, traced in part]. The shipped orchestration and
    scheduled flows are Draft templates with a one-time schedule, so nothing runs them
-   automatically. Not established: how raw usage is aggregated into the summary, and whether a
-   user can edit the period dates.
+   automatically. Not established: how raw usage is aggregated into the summary, and whether the
+   period dates can be edited.
 3. **Record usage against the ANCHOR asset,** never the commitment. A commitment is
    a rate modifier, not a consumption target.
 4. **Orchestrate several times.** One pass does not settle the pipeline —
