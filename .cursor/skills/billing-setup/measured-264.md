@@ -76,6 +76,8 @@ Repeat this for the frequencies a plan promises, on the route the demo will use:
   period boundary and a recurring `BillingFrequency` to the order product, and how the asset
   state period gets its frequency. Only `MilestonePlan` on one-time bundle components was
   measured as copied (`OrderItem.BillingFrequency2`) [Measured: 2026-11-12, 264, scratch; one org].
+  After the Skip PATCH, the milestone `BillingTreatmentId` on those lines also reached the order,
+  and activation made a milestone plan per line (measured, 2026-11-12, 264, scratch; one org).
 - Whether the UI defaults `BillingFrequency` from the selling model when a rep adds a line.
   The API didn't (M1).
 - `MilestonePlan` on an Evergreen line.

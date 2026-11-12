@@ -84,7 +84,7 @@ procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pr
 - Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace shows
   Place filling a missing term context tag with the selling model's pricing term when the line's
   selling model option is Term Defined, but not that fill reaching the saved line. In the measured
-  requests (price book entry only, no selling model set on the line) the saved unit was
+  requests (price book entry only, no `ProductSellingModelId` in the request; the saved line's selling model was Term Defined) the saved unit was
   `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line
   (System pricing, configuration method Force, rules on) priced from its dates (term count 3) and
   did not get the term-keyed discount step that the measured org's customised pricing procedure
@@ -120,11 +120,11 @@ platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemD
 - This repo keeps **as-is renewals on** (`enableAsIsRenewals=true` in
   `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`), so renewals behave this way
   too. Turning it off moves a plain renewal's price back to the parent, but leaves cancels and
-  negative amendments unchanged (measured). Per-lot as-is pricing also needs: the
-  asset's `PricingSource` to be `LastTransaction` (`PriceBookListPrice` does not qualify;
-  whether a blank value falls back to the nearest parent, as traced for amendment add-lines, is not
-  established for renewals); no ramp; no derived-price product; no price or attribute change; and
-  not an early renewal [Platform behaviour, traced]. Otherwise the line is not priced per lot. Early renewals get
+  negative amendments unchanged (measured). Per-lot as-is pricing also needs a
+  last-transaction pricing source on the renewal (a price book list price source does not qualify;
+  which asset or line field supplies it for a renewal was not traced, so a blank `PricingSource`
+  on the asset or line is not proof either way); no ramp; no derived-price product; no price or
+  attribute change; and not an early renewal [Platform behaviour, traced]. Otherwise the line is not priced per lot. Early renewals get
   cancel-and-add detail rows [Platform behaviour, traced]; whether a renewal with a price or
   attribute change does is not settled [Platform behaviour, traced in part].
 - Advanced Detail Line Pricing does not change any of it.
