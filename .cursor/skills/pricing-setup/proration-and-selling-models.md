@@ -156,6 +156,6 @@ Then Simulate with Effective From/To and compare to the table above.
 ## Open questions
 
 - Help's quarterly example prints 3.427 and 3.436464 for the same case ($687.29 uses the latter); the 3.427 arithmetic gives $685.48. The semi-annual no-partial example prints 3.0 / $1,200 next to what reads as a leftover drafting note; two touched periods give 2.0 / $800 (inferred). The same article's utilized range "28-Mar to 4-Apr (130 Days)" should read 4-Aug.
-- Month precision: resolved above (partial periods off: whole month; on: day fraction). Weekly arithmetic ($144.12 x 10.71 = about $1,543.5) does not reproduce $1,543.36. Treat these as illustrative.
+- Month precision: reconciled by the partial-month trace above (partial periods off: whole month; on: day fraction); not live-verified. Weekly arithmetic ($144.12 x 10.71 = about $1,543.5) does not reproduce $1,543.36. Treat these as illustrative.
 - The monthly examples 5 and 6 repeat the annual case with $800 (a doc error, inferred).
 - The context tags carrying policy values are not documented. (The Pricing Setup default term counts have no API at all; see [Default term counts](#default-term-counts).)
