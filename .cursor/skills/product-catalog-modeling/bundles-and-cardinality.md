@@ -49,14 +49,23 @@ bundle**: `ConfigureDuringSale=Allowed`, every child under a group, each child w
 (`IsQuantityEditable`) off, and group limits that pass
 [Validate Product Definition](#mistakes-validate-product-definition-catches).
 [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_bundled_product_validations.htm`]
-On one measured component with `IsQuantityEditable = false`, a CML rule that set its
-quantity returned `success: true`, and the line drew a PCM `bundlevalidation` warning. [Repo: `constraint-models/quantities-from-attributes.md`, run M16]
-Root and child renewal rules by selling model are in
+Measured on a locked configurable bundle with a Term Defined root and four children (two One
+Time, one Term Defined, one Evergreen), each required, default, quantity 1, not editable and
+`Proportional` [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
+
+| Where | What happened |
+|---|---|
+| Configurator | Opens; each child's include checkbox, quantity and purchasing option (selling model) show, **disabled**. |
+| Line editor, or Place Sales Transaction with rules on | A child quantity edit **saves** and reprices (warning icon in the line editor; `isSuccess: true` from Place). Within seconds the platform writes a `RevenueTransactionErrorLog` (BundleValidation). |
+| `createOrdersFromQuote` | **Refused** while that log exists. Setting the quantity back deletes the log. |
+| Renewal (Connect `renew`, no renewal term passed) | The Term Defined child renews for one term of its selling model; the Evergreen and One Time children come through at quantity 0. |
+
+So test the lock at order creation, or read the error log, not the save's result. Other
+`bundlevalidation` messages are not measured this far: a CML rule that sets a locked child's
+quantity draws one (`constraint-models` run M16), and so does a group out of range (below);
+whether either blocks the order, how locked children amend, and whether the lock holds on the
+renewal quote: **Open — needs live verification.** Renewal rules by selling model are in
 [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
-Whether a fully locked configurable bundle still opens the configurator and shows each
-child's selling model selection, and how its locked children behave on amend and renew
-(whether a child's selling model or quantity can change, whether the lock holds on the
-renewal quote): **Open — needs live verification.**
 
 ## Structure rules
 
@@ -102,7 +111,11 @@ CML must name each member.
 ## Two kinds of cardinality
 
 **Group cardinality** (`ProductComponentGroup.MinBundleComponents` / `MaxBundleComponents`)
-counts **distinct components** a buyer may pick from the group. Blank min = 0, blank
+bounds how many components a buyer may pick from the group. Help says it counts distinct
+components [Help: `ind.product_catalog_group_cardinality.htm`], but at run time it counted
+lines: a 1..1 group holding one product on two lines drew a `bundlevalidation` range
+message. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] So keep each component on one line
+([CML-sized default components](#cml-sized-default-components)). Blank min = 0, blank
 max = unlimited; max ≥ min. With nested groups, only the **lowest-level** group's
 cardinality is enforced at run time; a parent group's limits count child groups for
 validation. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_catalog_cardinality_examples.htm`; `ind.product_catalog_bundled_product_validations.htm`]
@@ -116,9 +129,16 @@ validation. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_cat
 | Allow quantity changes | `IsQuantityEditable` | Off → no min/max can be entered |
 | Quantity / Min / Max | `Quantity`, `MinQuantity`, `MaxQuantity` | Default and bounds of the **quantity** of that product |
 | Price includes component | `DoesBundlePriceIncludeChild` | Bundle price covers the child; quantity must be locked |
-| Quantity scaling method | `QuantityScaleMethod` | None, Constant, Proportional (see below) |
+| Quantity scaling method | `QuantityScaleMethod` | Constant, Proportional, or blank (see below) |
 
 [Help: `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_product_relationships.htm`; Repo: `scripts/ai/query_erd.py describe ProductRelatedComponent`]
+
+Writing component rows by API [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
+
+- `ParentProductRole` and `ChildProductRole` are not writable; the platform sets them from
+  the `ProductRelationshipType`. Leave them out of a hand-written insert. (The shipped PCM
+  plans carry both columns, from extraction, and load.)
+- `MinQuantity`, when given, must be at least 1. Leave it blank for no minimum.
 
 For a classification component, its min/max/default quantity apply to **each** product the
 buyer picks from that class, while the group bounds how many distinct products. Example:
@@ -157,14 +177,38 @@ number of distinct children. [Help: `ind.product_catalog_cardinality_examples.ht
 | Constant | Fixed at design-time quantity; *Allow quantity changes* must be off | — |
 | Proportional | Child = parent qty × child qty; with *Allow quantity changes* on, editable only in the configurator during a **new sale**, read-only in the line editor | **Read-only** in the configurator: the original ratio stays for the asset's life; change the parent quantity instead |
 
-Proportional is the default when *Allow quantity changes* is off at creation; None when on.
-Help's warning says child quantities are read-only in the runtime cart when the method is
-Constant or "Default" (a value its own list of methods does not include), even on legacy
-rows with *Allow quantity changes*. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_local_cardinality.htm`]
+Help: Proportional is the default when *Allow quantity changes* is off at creation, None when
+on; child quantities are read-only in the runtime cart when the method is Constant or
+"Default" (a value its own list of methods does not include). [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_local_cardinality.htm`]
+In the 264 API the picklist holds only `Constant` and `Proportional`; writing `None` is
+rejected (`INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`). An editable row is left blank for None,
+but a locked row inserted blank through the API was stored `Proportional`, so give new locked
+rows a method. (The QuantumBit plan has locked rows with a blank method; what a load stores
+for them was not checked.) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] A locked
+child's quantity edit still saved in the line editor; see
+[the locked bundle measurement](#static-kit-or-locked-configurable-bundle-when-children-recur).
 
 **Downstream:** choosing Proportional fixes the parent-to-child ratio for every later
 amendment. If a customer must later change one child's quantity independently, model it
-with None (or as a separate line). [Help: `ind.product_catalog_product_relationships.htm`]
+with None (blank, with *Allow quantity changes* on) or as a separate line. [Help: `ind.product_catalog_product_relationships.htm`]
+
+## CML-sized default components
+
+When a CML rule sets a default component's quantity (for example `relation[Type] == n`) and
+the component's CML type has no `split` annotation, the component **splits**: the default
+line keeps its PCM quantity and the solver adds a second line for the rest. Seen in the UI
+configurator and on Place with `addDefaultConfiguration: true`; a hand edit below the rule's
+quantity split the same way instead of being rejected. The second line counts against the
+group's max (above), and in a group ramp the later segments kept the split. A non-default
+component gave one line. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
+
+Fix it in the model: `@(split = false)` on the component's CML type keeps one instance
+[Dev guide: `cml_annotation_example_split.htm`], so the default line takes the rule's
+quantity and a hand edit to another quantity is rejected with the rule's message. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
+Dropping `IsDefaultComponent` also avoids the split, but loses the pre-selection, and a
+required child must stay a default. [Help: `ind.product_catalog_local_cardinality.htm`]
+`constraint-models` covers the CML; its run M14 (one line) doesn't say whether the component
+was a default.
 
 ## Quote visibility
 

@@ -21,7 +21,8 @@ decisions; loading the result is `sfdmu-data-plans`, the field-level schema is
 
 Every product claim carries its source: `[Help: <article>]` (the 264 Help snapshot under
 `docs/salesforce/264/help/articles/`), `[Dev guide: <article>]` (`docs/salesforce/264/dev-guide/articles/`),
-`[Repo: <file>]`, or `[Measured: <date>, 264]` (a live 264 build). A claim only a live
+`[Repo: <file>]`, or `[Measured: <date>, 264]` (a live 264 build; `[Measured: <date>, fresh 264 ent-sb0 scratch org]`
+names the org: a newly built scratch org of the repo's `ent-sb0` shape). A claim only a live
 org could settle is marked **Open — needs live verification**. Help article ids below
 drop the `.md` suffix of the snapshot file name.
 
@@ -35,8 +36,10 @@ drop the `.md` suffix of the snapshot file name.
    placement. Then it is a product (a component, or a variation product). See
    [Product vs attribute vs component](#product-vs-attribute-vs-component).
 3. **Configurable bundle components live under groups, never directly under the root**,
-   and groups nest at most two levels. Group cardinality counts *distinct* components;
-   component cardinality counts *quantity*. [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_group_cardinality.htm`]
+   and groups nest at most two levels. Component cardinality counts *quantity*. Group
+   cardinality counts *distinct* components in Help, but counted **lines** at run time, so
+   keep each component on one line ([`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality)).
+   [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_group_cardinality.htm`; Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
 4. **Attributes reach a product only through a product classification.** Put an attribute
    that drives a price on the classification the adjustment names, not on its parent, and
    never override it in a bundle context. [Help: `ind.product_catalog_product_classifications.htm`; `ind.pricing_attribute_based_pricing_limits.htm`]
@@ -136,7 +139,7 @@ the detail and the sources.
 | **Where an attribute value is set** | Definition → classification attr → product attr → bundle override. | Lower levels are more specific but must be reviewed when a higher level changes. | Bundle overrides break attribute-based pricing. [Help: `ind.product_catalog_attribute_fields.htm`; `ind.pricing_attribute_based_pricing_limits.htm`] |
 | **Selling model** | One Time / Term-Defined / Evergreen from the pricing basis. | Each extra model adds a PBE and an option per product. | Proration, renewal and the Subscription price element read it. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md) |
 | **`IsAssetizable`** | True when the sale must leave something to amend, renew or cancel. | False keeps the asset table clean for consumables. | Root value overrides children. [Help: `ind.product_catalog_create_bundled_products.htm`] |
-| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | Runtime enforcement is not documented. | **Open — needs live verification.** |
+| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses to put it in a category, so offer it as a bundle component. | Search did not find it, but a quote placed by API with it alone was accepted, ordered and activated. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
 | **Catalog / category placement** | Catalogs by audience or business unit; categories for browsing. | More catalogs means more category rows to keep coded uniquely. | Drives Product Discovery browsing; categories, not catalogs, hold products. [`catalogs-and-loading.md`](catalogs-and-loading.md) |
 | **Family** | A coarse product line other systems filter on. | A free picklist value becomes a contract. | Whatever keys on it (search facets, Apex, rules) breaks on a rename. [`catalogs-and-loading.md`](catalogs-and-loading.md#product-family-is-a-contract) |
 
@@ -191,6 +194,11 @@ from its CSV is **Open — needs live verification**: every `IsRequired` in the 
 `false`, the documented default, but all 36 rows set `AttributeNameOverride`, whose
 first-insert value was not recorded. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
+After a load of new products, run the `refresh_all_decision_tables` flow and the
+`rebuild_search_index` task before placing a quote. That and two more load facts (a `Family`
+value missing from the picklist, component fields an insert can't set or values it rejects) are facts (f)–(h) in
+[`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264).
+
 Two more load constraints that shape the model, from the QB plan: bundle depth is capped by
 the org value `MaxBundleDepth` (default 3, ceiling 5; the repo's scratch shapes set 5), and
 several PCM lookups are create-only, so a partial failure needs a delete before a reload.
@@ -244,6 +252,12 @@ assetizable, so every child is assetizable whatever its own flag says. [Help: `i
   override on that attribute. This skill, then `pricing-procedures`.
 - "Child lookups load blank in my new PCM plan." → facts (b)–(d) above, then
   `sfdmu-data-plans`.
+- "Place says *Could not find product with ID* for a product I just loaded." → the decision-table
+  refresh and search index rebuild after the load (fact f in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264)).
+- "A group I set to pick one says its number of child products is out of range, but I
+  picked one product." → check whether the product is on two lines (a CML-sized default
+  component splits); see
+  [`bundles-and-cardinality.md`](bundles-and-cardinality.md#cml-sized-default-components).
 - "The configurator lets me pick two from a pick-one group." → check the group holds
   products, not child groups: only the lowest-level group's cardinality is enforced at run
   time ([`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality)).
@@ -268,12 +282,19 @@ Review the CSVs for these, each a rule above:
   or an editable quantity.
 - No classification component is required or default.
 - Every group's `MinBundleComponents` ≤ distinct children, and required children ≤ `MaxBundleComponents`.
+- Every `Family` value is a value of the org's `Family` picklist, or the same change adds it
+  to the `Product2Family` standard value set.
+- No `ProductCategoryProduct` row names a product with `IsSoldOnlyWithOtherProds` true; the
+  platform refuses that assignment.
+- No `QuantityScaleMethod` is the literal `None`; the 264 picklist rejects it
+  ([`bundles-and-cardinality.md`](bundles-and-cardinality.md#quantity-scaling-and-lifecycle)).
 - Every product has at most one `IsDefault` selling model option; term-defined and
   evergreen options carry a proration policy where proration is wanted.
 - Category codes are unique across all levels and catalogs; no row's `ParentCategory.Code` equals its own `Code`.
 - Price-impacting attributes sit on the classification the adjustment names and are not overridden in a bundle.
 
-After a load into an org: run the plan's second pass (fact a), run **Validate Product
+After a load into an org: run the plan's second pass (fact a), then the `refresh_all_decision_tables` flow and
+the `rebuild_search_index` task, run **Validate Product
 Definition** on each changed bundle in PCM [Help: `ind.product_catalog_bundled_product_validations.htm`], and
 configure one bundle in the configurator with rules on.
 
@@ -281,26 +302,27 @@ configure one bundle in the configurator with rules on.
 
 Every item marked **Open — needs live verification** in this skill and its sub-files:
 
-- **`IsSoldOnlyWithOtherProds` runtime effect.** Help says only "sell only with other
-  products"; no snapshot article says whether Product Discovery hides the product, the
-  cart rejects it alone, or both, nor how it interacts with amend and renew. **Open — needs
-  live verification.** [Help: `ind.product_catalog_create_simple_products.htm`]
+- **`IsSoldOnlyWithOtherProds`.** Whether search hides it for the flag or for the missing
+  category, and what amend, renew or cancel do when its companion is removed. See
+  [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods).
 - **Is `ProductCategory.Code` unique per org or per catalog?** The snapshot does not say.
   Fact (d) only proves that a plan keyed on `Code` alone conflates levels. **Open — needs live verification.**
 - **A non-assetizable child under an assetizable root.** Help says the root wins; whether
   a child flagged false then appears as an asset with lifecycle actions is **Open — needs live verification.**
 - **Which end date stops a sale.** Help contradicts itself on `DiscontinuedDate` vs
   `EndOfLifeDate`. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#other-lifecycle-fields-on-product2).
-- **How a mixed-model bundle co-terminates and renews**, beyond the one-time rule,
-  including what a Term Defined or Evergreen root renews for its Evergreen children
-  (One Time children renew as No Change, quantity 0, under any root). See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
+- **How a mixed-model bundle co-terminates and renews.** Co-termination for any shape;
+  renewal beyond the one-time rule and the one measured shape (a locked configurable bundle
+  with a Term Defined root). See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 - **Which mixed root/child shapes ramp deals support.** Help's ramp-deal considerations
   list them, but the snapshot drops the supported marks. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
 - **Recurring children in a fixed kit.** Which selling model a static kit's Term Defined
-  or Evergreen child is quoted, renewed and billed on; and whether a fully locked
-  configurable bundle still opens the configurator, and how its locked children amend and
-  renew. See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur).
+  or Evergreen child is quoted, renewed and billed on; how a locked configurable bundle's
+  children amend, and whether the lock holds on its renewal quote. See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur).
+- **Which `bundlevalidation` messages block an order.** A locked child's hand-edited
+  quantity does; a CML-set locked quantity and a group out of range are not measured. See
+  [`bundles-and-cardinality.md`](bundles-and-cardinality.md#static-kit-or-locked-configurable-bundle-when-children-recur).
 - **Bundle-based adjustments under a new static bundle**, whose component rows carry
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
