@@ -72,14 +72,19 @@ How it decides [Platform behaviour, traced]:
 - Range test as coded: each condition becomes a lower and upper bound from its left and
   right sides (for less than, less or equal, equals, not equal and the text operators lower = left,
   upper = right; for greater than and greater or equal, lower = right, upper = left; is null and is blank use the left side for
-  both). The step auto-approves only when the earlier approved range contains the new one
-  [Platform behaviour, traced]. Whether the left side is the evaluated value, so which
+  both). A condition passes only when the earlier approved range contains the new one and its
+  evaluation succeeded; for Text, Picklist and Multi-select picklist both bounds must match,
+  ignoring case. The step's criteria logic combines the results [Platform behaviour,
+  traced]. Whether the left side is the evaluated value, so which
   direction a changed value must move to stay inside, is not established; do not rely on it
   until measured with the setting on.
 - A step Smart Approval auto-approves completes as Approved, so a later step reading its
   outcome sees Approved: the auto-reviewed item posts an Approve decision [Platform
-  behaviour, traced; no live run with the setting on]. Conditions a step skips are neutral
-  in the comparison.
+  behaviour, traced; no live run with the setting on]. Conditions listed in the step's Smart Approval Skip Conditions count as met under AND
+  logic and as not met under OR logic [Platform behaviour, traced]. The Help FAQ
+  (`ind.sf_contracts_aa_faq`) says listing a condition there forces a review, which the
+  trace contradicts for AND logic; to force a review, turn Use Smart Approval off for the
+  step.
 
 ## Preview
 
