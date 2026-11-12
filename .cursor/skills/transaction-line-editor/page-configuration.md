@@ -135,7 +135,7 @@ Supported actions (API names are case-sensitive):
 | Estimate Taxes | `EstimateTaxes` | Tax estimate for the transaction |
 | Import Lines | `ImportQuoteLineItems` | Upload lines from an external source |
 | Create Ramp Schedule | `CreateRampSchedule` | Create a group ramp schedule |
-| Manage Header Adjustment | `ManageHeaderAdjustment` and `HeaderAdjustment` in the table's two API-name columns; `QuoteAdjustment` / `OrderAdjustment` elsewhere in Help (Open, see parent) | Header discount or override |
+| Manage Header Adjustment | `HeaderAdjustment`; `QuoteAdjustment` and `OrderAdjustment` are aliases of it, and Help's table also lists `ManageHeaderAdjustment` [Platform behaviour, traced] | Header discount or override |
 
 The table has two API-name columns (*Action API Name* and *API Name*); they differ only for Manage
 Header Adjustment. Help also names `ExpandAllGroups` and `CollapseAllGroups` in a syntax example.
@@ -154,13 +154,15 @@ Browse Catalogs is not in the list; whether it can be moved is Open.
 to one group; actions reorder within a group but groups can't be dragged into a new order. Only
 built-in actions are in the action picker. With nothing configured, the default is four groups:
 `QuoteAdjustment`, `AddAssets`, `ImportQuoteLineItems`, then the rest with four visible. The run-time
-limit is stated three ways: the considerations article says only the first 10 actions show, the
+limit is stated three ways in Help: the considerations article says only the first 10 actions show, the
 configuration article says 10 visible action slots across all groups, and the release note says 10
-**groups** show and the rest go to an overflow menu. The release note also says the visual UI replaces
+**groups** show and the rest go to an overflow menu. The STLE's limit is global: 10 inline actions across
+all groups combined, the rest under a More menu, and narrow layouts show only 2 inline. It caps rendering,
+not configured actions [Platform behaviour, traced]. The release note also says the visual UI replaces
 the text box, that existing text-box values carry over, and that the header hides actions a rep can't
 use and shows the next one in the group
 [Release notes: `release-notes.rn_transaction_management_stle_enhance_button_groups`]. Help gives the
-text-box steps and the button-group model side by side. Which UI and limit a 264 org has is Open.
+text-box steps and the button-group model side by side. Which UI a 264 org has is Open.
 
 **In this repo** neither page template sets a line editor action-button property, so both editors
 show the default layout [Repo: both page templates]. Don't confuse it with the record page's

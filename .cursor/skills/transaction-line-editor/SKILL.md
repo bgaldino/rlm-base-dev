@@ -56,7 +56,9 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 5. **Reprice after anything that changed lines outside the editor.** API, Process Builder,
    trigger and manual field updates invalidate the pricing status and need Reprice All [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
    A header-only Place PATCH, even of a field pricing reads, left the line prices unchanged until
-   Reprice All [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org].
+   Reprice All [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. Under System pricing only a request
+   that includes a line (or line attribute) record reprices; Reprice All uses Force pricing
+   [Platform behaviour, traced].
    Reprice All re-runs pricing only; Refresh Prices also re-runs configuration and taxes
    [Help: `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_view_and_edit_quotes`].
 6. **Don't demo an inline quantity edit on an amendment of a configured product.** With
@@ -153,18 +155,14 @@ patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` add
    article, button groups and an action picker; the release note
    `release-notes.rn_transaction_management_stle_enhance_button_groups` says the visual UI
    replaces the text box.
-2. What the 10-item runtime limit counts: **10 actions** (`ind.qocal_action_button_group_important_considerations`),
-   **10 visible action slots across all groups** (`ind.qocal_configure_placement_of_action_buttons`),
-   or **10 groups** with the rest in an overflow menu (release note).
-3. The API name for Manage Header Adjustment. The Help table's two API-name columns give
-   `ManageHeaderAdjustment` and `HeaderAdjustment`; the default layout and prerequisites name
-   `QuoteAdjustment` / `OrderAdjustment`, and the repo's quote highlights panel uses `QuoteAdjustment`.
+2. Which Help wording of the 10-item limit a 264 org follows is closed for the STLE: the cap is global across
+   groups (see `page-configuration.md`).
+3. (Closed) The Manage Header Adjustment API name is `HeaderAdjustment`; see `page-configuration.md`.
 4. Whether Browse Catalogs can be placed or removed through the line editor's action-button
    configuration; it is not in the Help's list of supported action API names. The repo places it
    as a record-page highlights-panel action (`BrowseCatalog`) instead.
-5. Whether Reprice All validates configuration on 264. Help says it skips configuration, but its
-   success toast read "The prices were refreshed and the configuration was validated."
-   [Measured: early Nov 2026, 264].
+5. (Closed) Reprice All skips configuration; the success toast's wording is not evidence it validated it
+   [Platform behaviour, traced].
 6. Which Setup label `enableRevInstPricingDefaultPref` maps to (assumed *Instant Pricing Active
    by Default*), and whether `enableRevenueAdjustment`, which the repo's Revenue Settings file and
    scratch definitions set to true, is the **Header Adjustments** setting. The 264 dev guide doesn't

@@ -148,7 +148,7 @@ A discount that must apply on every quote, not by a rep's hand, is a pricing que
 |--------|--------------|--------|
 | **Save** | Prices inline edits | [Help: `ind.qocal_view_and_edit_quotes`] |
 | **Instant Pricing** | Reprices each price-impacting change at once; turns off on page reload or session expiry. *Instant Pricing Active by Default* (STLE only) turns it on by default | [Help: `ind.qocal_view_and_edit_quotes`, `ind.qocal_turn_on_quote_and_order_capture`] |
-| **Reprice All** | Full repricing of every line, even with no changes and even with Delta Pricing on; skips configuration | [Help: `ind.qocal_reprice_all_quotes_and_orders`] |
+| **Reprice All** | Full repricing of every line, even with no changes and even with Delta Pricing on; uses Force pricing and skips configuration, so it does not validate bundle configuration [Platform behaviour, traced] | [Help: `ind.qocal_reprice_all_quotes_and_orders`] |
 | **Refresh Prices** | Pricing, configuration and taxes | [Help: `ind.qocal_view_and_edit_quotes`] |
 | **Estimate Taxes** | Tax estimate; needs the Revenue Setting *Add Estimated Taxes to Quotes and Orders* | [Help: `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_turn_on_quote_and_order_capture`] |
 
@@ -163,15 +163,28 @@ must be repriced before activation; the same applies to quote lines
 
 Measured: **Reprice All on a quote whose lines are already priced changed nothing** and showed "The prices
 were refreshed and the configuration was validated." [Measured: early Nov 2026, 264]. The message's
-mention of configuration conflicts with Help's "skips configuration"; see the parent's Open list.
+mention of configuration does not mean Reprice All validated it: Reprice All sends a Force-pricing request
+that skips configuration [Platform behaviour, traced]. Which action or save step produces that wording
+was not isolated.
 
 Measured: **a header-only Place PATCH doesn't reprice the lines.** A Place PATCH that changed only a quote
 header field, one the pricing procedure reads through the sales transaction context, saved the field
 and left every line's price as it was; a header-only PATCH with no field change didn't reprice either
 (each line's `PriceWaterfallIdentifier` stayed the same). **Reprice All** applied the new header value to the lines
-[Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. After changing a header field that pricing
-reads, click Reprice All. Changing a line instead wasn't measured, and on a Compound group ramp a
-partial line edit re-uplifts untouched lines (`ramped-quotes` SKILL.md → DO NOT). A header edit in the record UI wasn't measured. For quotes,
+[Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. The rule behind it: under System pricing a Place
+request is priced only when it includes at least one quote or order line record, or line attribute record
+(any create, update or delete; an unchanged-value line PATCH counts). A request with only the header record
+is not priced, whichever header field changed. Force pricing (Reprice All) always prices
+[Platform behaviour, traced]. A request that carries a context id is priced whenever the transaction has
+lines, so a header-only change through that path would reprice; which path a given client request takes
+was not determined, and the context-id case was not measured. After changing a header field that pricing
+reads, include a line record in the same request, use Force pricing, or click Reprice All. Pricing is also
+skipped entirely when the org's skip-pricing-engine-on-quote setting is on [Platform behaviour, traced].
+A line PATCH reprices the transaction, but on a Compound group ramp a partial line edit can re-apply the
+uplift to lines you didn't touch: pricing can skip unchanged lines only when Delta Pricing's conditions
+all hold, and otherwise every line runs through the procedure again, where a non-idempotent uplift step
+re-applies [Platform behaviour, traced]. Whether Delta Pricing was on in the measurement is not
+established (`ramped-quotes` SKILL.md → DO NOT). A header edit in the record UI wasn't measured. For quotes,
 Help's Reprice All requirement names updates to Quote Line Items outside the line editors, not the
 Quote header (for orders it covers Order records too)
 [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
