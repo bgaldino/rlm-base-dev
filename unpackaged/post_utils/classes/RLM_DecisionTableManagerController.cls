@@ -23,7 +23,7 @@
  * not move. Watching LastSyncDate makes a working incremental refresh look dead.
  * And in Release 264 a FULL request can run as incremental: unless incremental is
  * requested, the platform picks the type (org preference AutoSelectRefreshDT, read
- * from Core's DecisionTableMediumVolumeBuilderJob), and it does not consult
+ * from the platform's refresh logic), and it does not consult
  * IsIncrementalSyncEnabled. So freshness is judged against the LATER of the two
  * stamps — the rule the Decision Table app page uses (issue #587) — and nothing
  * here gates a request on IsIncrementalSyncEnabled.
