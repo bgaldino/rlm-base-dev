@@ -47,8 +47,11 @@ For each change, record the state after every step:
    behaviour, traced in part].
 5. **Activate the order.** Fill its bill-to contact and addresses first: backdated-change
    orders were refused without them [Repo: `rlm-business-apis/backdated-asset-lifecycle.md`
-   → Activating the order]. An amendment quote's `AccountId` is null; its account is in
-   `QuoteAccountId` [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
+   → Activating the order]. Amendment, renewal and cancellation quotes leave `AccountId` null and
+   set `QuoteAccountId` when the org has quotes without an opportunity enabled (Foundations
+   scratch definitions enable it); read the account from `QuoteAccountId`. The null
+   `AccountId` was measured on one org [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch
+   org]; the condition is inferred from code paths [inferred].
 6. **Read the asset:**
     - `AssetStatePeriod` (`StartDate`, `EndDate`, `Quantity`, `Amount`, `Mrr`);
     - `AssetStatePeriodAttribute`;

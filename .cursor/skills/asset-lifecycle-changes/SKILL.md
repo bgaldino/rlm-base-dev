@@ -36,9 +36,10 @@ results, 2026-11-11).
    drift later ([verification.md](verification.md)).
     - **Never reprice a lifecycle quote after its order is activated.** Repricing a renewal
       quote after activation turned each lot into a negative and a positive row netting 0 and
-      took the quote total to 0; a reprice can't undo it, and the order is the record
-      [Measured: 2026-11-12, 264, scratch org; one org, cause not traced]. Read the quote's
-      numbers before ordering, not after activation.
+      took the quote total to 0; the order and assets were unchanged, so the order is the
+      record [Measured: 2026-11-12, 264, scratch org; one renewal quote, cause not traced].
+      Amendment quotes weren't tried. Read the quote's numbers before ordering, not after
+      activation.
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
    with configuration rules on (the UI's inline quantity edit does this), resets the
    line's attributes to the product defaults. Activation keeps them on the asset, and the
@@ -96,7 +97,9 @@ results, 2026-11-11).
       either restate every answer that differs from its CML default (in a second Place
       request after the reset, where it counts as a change), or before amending copy each
       row's node status from its order product (`ReferenceEntityItemId`, directly or
-      through the detail row's `OrderItemId`). Blank rows are expected on an org built
+      through the detail row's `OrderItemId`; the reference item may be the order line or its
+      detail row, and node status isn't copied between line-sourced and detail-sourced rows
+      [Platform behaviour, traced]). Blank rows are expected on an org built
       before the rule and trigger shipped, and on assets activated before they were
       deployed: the trigger acts only on new rows. Read every line's delta before ordering.
 3. **Amend, renew and cancel act on top-level assets.** Help's amend, renew and cancel
@@ -279,12 +282,13 @@ results, 2026-11-11).
       Don't rely on Force to edit the quantity of a No Change line [Platform behaviour,
       traced in part].
     - **A rule that counts a virtual container's lines needs those lines on the amendment.**
-      A virtual quote container binds only lines whose source matches the node the container
-      declares; any other line stays outside it. A count rule on a root-only amendment, where
-      the top-level lines are absent, logged an Error that blocked the order. Amending the
-      top-level assets at `quantityChange` 0 along with the root attached them and cleared it
-      [Measured: 2026-11-12, 264, scratch org; one org] and fits the binding rule
-      [Platform behaviour, traced]. Constraint side: `constraint-models`.
+      Where the top-level lines were absent from a root-only amendment, the container counted
+      none and its count rule logged an Error-severity entry, which blocks ordering (ordering
+      wasn't attempted). Amending the top-level assets at `quantityChange` 0 along with the
+      root cleared it [Measured: 2026-11-12, 264, scratch org; one org]. The container counts
+      only lines on the quote whose source matches the node it declares [Platform behaviour,
+      traced]; that the added amendment lines bound to it is inferred from the cleared error,
+      not read. Constraint side: `constraint-models`.
 8. **Ramped bundles have their own limits:** amending an API-built group-ramped bundle
    with a one-time or evergreen child failed in the measured shapes
    [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].
