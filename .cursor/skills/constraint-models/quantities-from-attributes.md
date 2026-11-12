@@ -457,7 +457,8 @@ Measured on 264 `[Measured: M39]`:
   activates as a cancel-and-reprice pair whose rows reference order item details, so the
   next amendment started blank again.
 - With a blank node status, an amendment that edited one answer reset every answer it
-  didn't send to its CML default, and re-derived the children from those defaults. An
+  didn't change to its CML default, and re-derived the children from those defaults.
+  Sending an unchanged value didn't help: Place drops it. An
   amendment that changed only a line quantity, with no answer in the request, was
   unaffected.
 
@@ -468,8 +469,7 @@ So, before amending a CML bundle's answers:
    since SOQL can't filter on it. Check again after each activation in a multi-step
    replay.
 2. **If it's blank,** backfill it from the order item's value before amending
-   `[Measured: M39]`, or send every answer that differs from its CML default in the
-   amendment request, not only the changed one (follows from the reset; not run).
+   `[Measured: M39]`. Re-sending the unchanged answers doesn't work around it.
 
 The fix in this repo, an order → asset context rule plus a before-insert trigger on
 `AssetActionSource` that fills detail-sourced rows, is a separate change; check whether
@@ -727,8 +727,9 @@ rules added to an active bundle model, imported and cycled, then read back throu
 `message(...)` values in a `configure` response after a Place with rules on. Row M21 is an
 earlier headless test of a different model. The 2026-11-11 rows (M22 to M39) come from fresh
 264 `ent-sb0` scratch orgs: a bundle model built on this file's patterns (more than a dozen
-components sized from root answers, the largest relation above 9,999), probe models, and
-the line editor and configurator UI. Quotes went through Place with rules on (`Force`),
+components sized from root answers, the largest relation above 9,999), probe models, the
+shipped QuantumBit bundle model (M39), and the line editor and configurator UI. M37's
+`validate_cml` result is a local run of the validator. Quotes went through Place with rules on (`Force`),
 then `configure`, then a query of `RevenueTransactionErrorLog`. Nothing else in this file
 was run.
 
@@ -772,7 +773,7 @@ was run.
 | M36 | `closeRelation = true` on the container's bundle relation, which carries `total()` and `max()` aggregates | "There's a goal execution error in your CML code: IntTotalAttrConstraint(…)" (and IntMinMaxAttrConstraint) instead of the rule's message | 2026-11-11 |
 | M37 | An `int` on the bundle set equal to an add-on's cardinality, for the container to read; `validate_cml` on the model with the container | The default add-on was dropped instead of raised to its rule's quantity, with and without the container (two runs, one model); reading the cardinality through the container's relation path restored it. `validate_cml`: "Missing port/type association" warnings for the container | 2026-11-11 |
 | M38 | Amendment changing a root sizing answer | The children re-derived; the amendment lines carried the changes as quantity deltas | 2026-11-11 |
-| M39 | Node status through sell → activate → amend → activate → amend on the shipped bundle model; context rule `AssetActionSource` ⇐ `SalesTransactionItem` added to `AssetToSalesTransactionMapping`; then a before-insert trigger on `AssetActionSource` | Node status holds `cfgStatus` per answer, not values. Without the rule: every asset action source blank; an amendment changing one answer reset an unsent answer to its CML default (`cfgStatus` Default). With the rule: rows from order items filled; rows from order item details (the answer change's cancel-and-reprice pair) blank, so the next amendment reset again. With the trigger as well: both filled, answers held across two amendments. A line-only amendment was unaffected without either. A backfill of blank rows from the order item's value also kept the answers | 2026-11-11 |
+| M39 | Node status through sell → activate → amend → activate → amend on the shipped bundle model; context rule `AssetActionSource` ⇐ `SalesTransactionItem` added to `AssetToSalesTransactionMapping`; then a before-insert trigger on `AssetActionSource` | Node status holds `cfgStatus` per answer, not values. Without the rule: every asset action source blank; an amendment changing one answer reset every unchanged answer, sent or not, to its CML default (`cfgStatus` Default). With the rule: rows from order items filled; rows from order item details (the answer change's cancel-and-reprice pair) blank, so the next amendment reset again. With the trigger as well: both filled, answers held across two amendments. A line-only amendment was unaffected without either. A backfill of blank rows from the order item's value also kept the answers | 2026-11-11 |
 
 ---
 
