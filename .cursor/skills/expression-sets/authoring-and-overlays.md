@@ -55,6 +55,35 @@ python scripts/expression_sets/export_expression_set_overlay.py --target-org <sf
 See the toolkit guide’s [existing-step and read-back rules](../../../scripts/expression_sets/README.md#existing-steps-and-verification)
 for `addSteps` replay, `updateSteps` edits, and verification shared by the CLI and CCI task.
 
+### Several overlays on one procedure: merge locally, import once
+
+Applying overlays one after another to the same procedure is not reliable. On a clone of the
+default pricing procedure that already carried one applied overlay, applying a second with
+`apply_expression_set_overlay.py --confirm` failed at the Connect PATCH with
+`JSON_PARSER_ERROR: Unexpected end-of-input in null at [line:1, column:3]`. As designed for a
+failed PATCH, the tool left the version **deactivated** (see SKILL.md → *Mutation lifecycle*)
+[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. The cause was not isolated: the
+tool's simulated merge reported no errors, and the same overlays merged locally imported cleanly.
+
+What worked, on every run whose overlays were valid, in two fresh 264 `ent-sb0` scratch orgs
+[Measured: 2026-11-11]:
+
+1. Export the procedure import-ready (`export_expression_set.py --for-import --out <file>`).
+   To build a new procedure rather than replace the exported one (the shipped procedure stays
+   untouched, SKILL.md → Quick Rules), rename
+   it before merging: the top-level `apiName`, the top-level `name` and the version `apiName`
+   (SKILL.md → DO NOT); the measured build did that.
+2. Apply every overlay to that JSON locally, in order, with `apply_overlay()` from
+   `scripts/expression_sets/_overlay.py` (the merge the CLI uses, which mirrors the CCI task's),
+   passing the version API name (the new one if you renamed).
+3. Import it once with `import_expression_set.py --input-file <file>` (preview, then `--confirm`),
+   which replaces the existing procedure in place, or creates it under a new name. The import
+   runs the offline validator before it writes, but the platform can still refuse a step's
+   content: a parameter it rejects failed a create in the measured build.
+
+This also recovers a version a failed PATCH left inactive: re-import a known-good merged
+definition before reactivating it.
+
 ### Top-level vs child steps are sliced differently
 
 | | Top-level step | Child step |
