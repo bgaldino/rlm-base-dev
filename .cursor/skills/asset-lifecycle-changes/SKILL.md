@@ -69,8 +69,9 @@ results, 2026-11-11).
       and leaves detail rows blank, and no native step copies status from line to detail.
       This holds for any mapped custom tag, not just node status [Platform behaviour,
       traced]. An answer-change amendment reprices the line as a cancel-and-add pair, and the
-      next amendment copies the saved status from the first row of the asset's
-      action-source set; if that row is a detail-sourced row with no status, the status is
+      next amendment copies the saved status from the first row of the selected
+      action-source set (the filtered set for an attribute-change amendment, all rows sorted
+      by date for a normal renew); if that row is a detail-sourced row with no status, the status is
       blank and the answers reset. Which row sorts first wasn't verified [Platform behaviour,
       traced in part]. One measurement conflicts: on one org the field was empty on every
       row, item-sourced ones included, while the order line's was filled (verification.md).
@@ -163,8 +164,8 @@ results, 2026-11-11).
     - **Why per lot on a renewal.** A renewal at the last negotiated price gets one positive
       detail row per prior positive lot, each priced from its own lot, and its quantity is the
       latest period's quantity. That needs the `enableAsIsRenewals` setting on, a
-      last-transaction pricing source, no ramp, no derived-price product, and no attribute
-      or price change on the line; otherwise the line is repriced as a single line. The
+      last-transaction pricing source, no ramp, no derived-price product, no attribute
+      or price change on the line, and not an early renewal; otherwise the line is repriced as a single line. The
       last-negotiated method copies the net unit price and has no volume-band step, so it
       doesn't re-band; a re-band needs an explicit pricing step, and only lines the step
       admits (renewal lines start at quantity 0) [Platform behaviour, traced]. A price
@@ -174,8 +175,10 @@ results, 2026-11-11).
       is the price book list price takes no per-lot path: it is one line on the combined
       quantity, from today's list price, through the same adjustment steps as a new sale, so
       bands are expected to apply to the total. That is the expected behaviour from the
-      steps it runs; the tier arithmetic wasn't traced or measured [Platform behaviour,
-      traced in part].
+      steps it runs; the tier arithmetic wasn't traced or measured. The two paths aren't
+      the same switch: the list-price method follows the asset's renewal pricing type (blank
+      counts as last negotiated), the per-lot path follows its pricing source [Platform
+      behaviour, traced in part].
     - Read detail rows, or coalesce them, in anything that reports line prices.
 5. **One-time lines have no term to renew; Term Defined bundles renew in place.**
     - Renewing a one-time product sets its quantity to zero [Help:
@@ -237,8 +240,10 @@ results, 2026-11-11).
       removed the add-on on the amendment silently, with `configure` success and no error
       log [Measured: 2026-11-11, 264]. Read the deltas of an answer change for lines the rep
       didn't touch.
-    - **Why it is silent.** A line the caller doesn't fix (status Engine, Required or New) is
-      only a candidate for the solve, not a built component. A requirement rule fires only
+    - **Why it is silent.** A line the caller doesn't fix is only a candidate for the solve,
+      not a built component. That is the solver's general mechanism; in a context definition
+      that tracks node status, a line the rep added (New) or changed (Changed) counts as
+      user-set there, so it isn't a mere candidate. A requirement rule fires only
       when its condition holds, and a violated condition counts as satisfied, so the solver
       can satisfy the rule by choosing add-on count 0 and not instantiating the candidate:
       the line vanishes from the result, which becomes deltas, with success and no message.
@@ -247,15 +252,16 @@ results, 2026-11-11).
       read-only/asset relation), or the relation's minimum is above 0. Lines sourced from
       assets are fixed and conflict instead of dropping. To make a rule refuse rather than
       remove, give the relation a minimum above zero or tie the add-on to the answer the
-      other way. In the line-form copy the measured refusal named another rule's message: a
-      failure on a constraint with no message of its own reports the first rule that failed
-      or related rules' messages (inferred, not traced). Which status Place sends for
-      amendment add-on lines, and the mirror-image exclusion rule, weren't traced
-      [Platform behaviour, traced in part].
+      other way. Exclude rules refuse with their own message when the add-on is fixed and
+      drop it silently when it isn't (order-dependent). In the line-form copy the measured
+      refusal named another rule's message: a failure on a constraint with no message of its
+      own reports the first rule that failed or related rules' messages (inferred, not
+      traced). Which status Place assigns an amendment add-on line wasn't read [Platform
+      behaviour, traced in part].
     - Edit amendment lines through Place with `configurationMethod: Force`; with `Skip` it
       was refused ("Specify 0 in Quantity of the Quote Line Item record with the
       action of type No Change") [Measured: 2026-11-11, 264]. The message is a save-time
-      quantity check: a No Change line needs a start quantity and quantity 0. Nothing in it
+      quantity check: a No Change line must have quantity 0 (only that check is traced). Nothing in it
       looks at the configuration method, so it isn't gated by Skip; why Force accepted the
       same edit isn't explained, and the check isn't known to be skipped under Force.
       Don't rely on Force to edit the quantity of a No Change line [Platform behaviour,
