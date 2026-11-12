@@ -23,8 +23,10 @@ Force` with configuration rules on (`executeConfigurationRules: true`), as a bun
 one-time service lines were components of a Term Defined root (`QuoteLineRelationship` to the
 root line).
 
-Rows tagged `[Measured: 2026-11-12 ...]` after the second-org rows come from a third scratch org
-(release 264) with a bundle quote ordered and activated.
+Items tagged `[Measured: 2026-11-12 ...]` in this file and in SKILL.md come from a third scratch org
+(release 264, API v68.0) built from this repo with another catalog loaded: a bundle quote placed
+with Force and rules on, its one-time service lines then PATCHed with configuration Skip, ordered
+and activated, and two later amendments of that contract ordered and activated.
 
 ## Results
 

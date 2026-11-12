@@ -155,7 +155,7 @@ horizon.
 - **A price change dated on a renewal start.** The stamp reads the source asset's lifecycle start, which
   `[Platform behaviour, traced]` is the only route from an amendment line to a contract start (the line's own start is
   the amendment date). On a change dated on a renewal's start, the formula then counts the months from the
-  original start, which can leave 0 months to the horizon. A custom months-remaining value counted from the original commitment start was 0 for a price change dated at the renewal start `[Measured: 2026-11-12, 264, scratch; one org]`; the line's own change value and billing schedules were unaffected. What a renewed asset's lifecycle
+  original start, which can leave 0 months to the horizon. A custom months-remaining value was 0 for a price change dated at the renewal start, after the original commitment's end `[Measured: 2026-11-12, 264, scratch; one org]`; the line's own change value and billing schedules were as expected. What a renewed asset's lifecycle
   start is was not traced. Fix `[inferred]`: if the asset's lifecycle start is the original start, stamp the start of the current term instead.
 - **Not stamped:** a new-sale quote and a renewal quote. The formula counts from their own
   `StartDate`.
