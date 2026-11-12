@@ -214,7 +214,9 @@ standard tags from the line's `StartQuantity` and `EndQuantity`), then:
 | The last-transaction filters `SetNetUnitPriceforLastTransactionPricing` (under `ListContainer`) and `Filterlineswithlasttransactionpricing` (under `Filterlineswithlasttransactionpricingandassignnettotalprice`) | `k` → `(k AND (LineItemQuantity <= 0 OR ItemStartQuantity IsNull OR ItemStartQuantity <= 0))`: positive adds leave the last-price lane |
 | The non-contract volume step `Calculatenetunitpriceandnettotalpriceaftervolumebaseddiscount` | `LowerBound` and `UpperBound` → `ItemEndQuantity`, the quantity after the change (equal to the line quantity on a new sale); `Quantity` stays `LineItemQuantity` |
 
-Leave the contract-pricing paths and price revision unchanged. Each filter change adds criteria
+Leave the other contract-pricing paths and price revision unchanged. One of the two attribute
+groups (`Setattributebasedpricingforlineswithoutderivedpricing`) is itself a contract path, since
+it requires `IsContracted` true; the measured overlay changed it with the rest. Each filter change adds criteria
 and rewrites the logic; filter mechanics are in
 [`list-group-and-list-operation.md`](list-group-and-list-operation.md).
 

@@ -21,8 +21,8 @@ A commitment-term discount gives an extra percentage off a subscription line bec
 commits to a long term. The rule modeled here: **annual Term Defined subscriptions committed for 36
 months or more get a further 4% off, applied after the line's other standard discounts; the
 discounted net is rounded to the cent, then the 4% is applied, then the result is rounded again.**
-Shorter terms and Evergreen lines are unchanged; One Time lines were not priced (see
-[Open questions](#open-questions)).
+Shorter terms and Evergreen lines are unchanged. One Time lines were not in the first run; a later
+run priced them without error with criterion 11 in place (see [Open questions](#open-questions)).
 
 Worked example (the golden test): list 18,000, 5% and 3% discounts → net 16,587.00 → × 0.96 →
 **15,923.52**. A 24-month term stays at **16,587.00**.
@@ -315,8 +315,10 @@ Condition logic with all four:
   BOOLEAN (context mapping: [`../../context-service/SKILL.md`](../../context-service/SKILL.md)).
   The line-level filter read it directly: switch on, the discount applied; off, it did not.
 - **Changing only the header does not reprice the lines.** A Place PATCH that changed only the
-  switch saved it and left the line prices as they were; Reprice All in the line editor (or any
-  line change) applied it.
+  switch saved it and left the line prices as they were; Reprice All in the line editor applied
+  it. A line change probably reprices it too, as the root-answer edit in
+  [`root-answer-child-price.md`](root-answer-child-price.md) repriced its lines [inferred; not
+  measured for the switch].
 - **Criterion 14 admits every group-ramp segment line**, whatever the ramp's length, so it
   assumes the ramp itself is the commitment. If ramps shorter than the threshold exist, add a
   check for them [inferred]. In the measured ramp the group ran after the ramp uplift, so each
@@ -338,7 +340,7 @@ Condition logic with all four:
 | A 36-month quote line is not discounted | The line has start and end dates but no `SubscriptionTerm` | Set `SubscriptionTerm` in the selling model's unit (3 `Annual`) ([Line inputs on real quotes](#line-inputs-on-real-quotes)) |
 | Line total counts one term per month | `SubscriptionTerm` in `Months` on an Annual selling model | Same fix: 3 `Annual`, not 36 `Months` |
 | Group-ramp segment lines are not discounted | Each segment line carries a term of 1 | Add criterion 14 (`ItemRampIdentifier` IsNotNull) |
-| A header switch change has no effect | Only the header changed, so the lines were not repriced | Reprice All, or change a line |
+| A header switch change has no effect | Only the header changed, so the lines were not repriced | Reprice All in the line editor |
 | Discount applied twice on an amendment | Criterion 9 removed | Keep `ItemPricingSource NotEquals 'LastTransaction'` |
 | A 36-month renewal line gets the uplift but not the 4% | Criterion 9 skips lines from a Last Transaction asset, which this repo makes the default source | Expected as built (inferred, not measured); see criterion 9 → renewals |
 | Totals do not move with the unit price | Group placed after the term pricing groups, or Subscription Price reads `ListPrice` | Move it before `Applyproratedpricingtotermdefinedlines`; bind Subscription Price's Net Unit Price to `NetUnitPrice` |
