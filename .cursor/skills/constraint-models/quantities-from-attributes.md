@@ -154,7 +154,7 @@ maximum, so it reuses the line. With `split = true` each unit is its own line
 line `[Platform behaviour, traced]`.
 
 Put the annotation on each leaf type that is a sized component (in the worked example,
-every type but the abstract `Support`). Leave it off a type whose lines must carry
+every type but the abstract `Care`). Leave it off a type whose lines must carry
 different attribute values: `split = false` allows only one instance
 `[Dev guide: cml_annotation_example_split]`. Each root
 solves separately, so in a group ramp a single-line type gets one line per segment
@@ -236,8 +236,8 @@ Use an integer bracket inside a constraint. It pins the one integer `q` with
 
 | Need | Constraint | Measured |
 |---|---|---|
-| `x / N`, rounded up | `constraint(q * N >= x && (q - 1) * N < x, "<message>");` | `x` = 23, `N` = 10 → 3 `[Measured: M9]` |
-| `p` percent of `x`, rounded up | `constraint(q * 100 >= p * x && (q - 1) * 100 < p * x, "<message>");` | `x` = 752, `p` = 15 → 113 `[Measured: M10]` |
+| `x / N`, rounded up | `constraint(q * N >= x && (q - 1) * N < x, "<message>");` | `x` = 27, `N` = 10 → 3 `[Measured: M9]` (inputs illustrative; the run used other values with the same rounding results) |
+| `p` percent of `x`, rounded up | `constraint(q * 100 >= p * x && (q - 1) * 100 < p * x, "<message>");` | `x` = 630, `p` = 8 → 51 `[Measured: M10]` (inputs illustrative; the run used other values with the same rounding results) |
 
 Give `q` an explicit domain and drive the cardinality from it (Quick Rule 3). The bracket
 keeps the calculation inside a constraint, as the dev guide asks
@@ -312,12 +312,12 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
 
   ```
   type Root : LineItem {
-      string region = ["North", "South"];
-      relation software : Software[0..500];
+      string climate = ["Dry", "Humid"];
+      relation sensors : Sensor[0..500];
   }
   @(split = false)
   type Software : LineItem {
-      string region = parent(region);
+      string climate = parent(climate);
   }
   ```
 
@@ -478,10 +478,10 @@ type Quote {
     @(sourceContextNode = "SalesTransaction.SalesTransactionItem")
     relation proPlan : ProPlan[0..500];
 
-    int qSites = [0..500];
-    constraint(qSites == platform.platformPlots);
+    int qPlots = [0..500];
+    constraint(qPlots == platform.platformPlots);
 
-    message(qSites > 0 && basicPlan[BasicPlan] + proPlan[ProPlan] != qSites,
+    message(qPlots > 0 && basicPlan[BasicPlan] + proPlan[ProPlan] != qPlots,
             "Cover every plot with exactly one plan.", "Error");
 }
 ```
@@ -516,7 +516,7 @@ type Quote {
   "You can't add more than one of the same '<product>' product to the '<type>' product
   class" and the configurator couldn't save `[Measured: M41]`. Widen the bundle relation to
   the most segments a ramp can have, widen the line relations and the ints that hold
-  their summed totals (`qSites` in the example) to their total across segments, and leave
+  their summed totals (`qPlots` in the example) to their total across segments, and leave
   `split = false` off the types the container holds. Write each check as a comparison of
   totals across segments `[Measured: M41]`; `total()` and the cardinalities in the example
   above already sum every instance. Read from the solver's cardinality
@@ -859,7 +859,7 @@ Expected quantities (hand-computed from the rules above; the whole model has not
 
 | Answers | Sensor / bracket | Battery | Seat | Relay | Setup h | Calib. h | Coord. h | Care | Review note |
 |---|---|---|---|---|---|---|---|---|---|
-| 23 plots, 180 staff, 3 zones, Solar, Basic | 23 / 23 | 6 | 180 | 3 | 158 | 30 | 23 (188 × 12% = 22.56) | Basic 1, Plus 0 | no |
+| 30 plots, 180 staff, 3 zones, Solar, Basic | 30 / 30 | 8 | 180 | 3 | 200 | 30 | 28 (230 × 12% = 27.6) | Basic 1, Plus 0 | no |
 | 8 plots, 40 staff, 10 zones, Solar, Basic | 8 / 8 | 2 (exact multiple) | 40 | 10 | 68 | 100 | 21 (168 × 12% = 20.16) | Basic 1, Plus 0 | **yes, Info** |
 | 5 plots, 30 staff, 10 zones, Solar, Plus | 5 / 5 | 2 (one past a multiple) | 30 | 10 | 50 | 100 | 18 (150 × 12% = 18, exact) | Plus 1, Basic 0 | no |
 | 5 plots, 30 staff, 10 zones, Grid, Plus | 5 / 5 | 0 (Grid) | 30 | 10 | 50 | 100 | 18 (150 × 12% = 18, exact) | Plus 1, Basic 0 | no |
@@ -869,7 +869,7 @@ those rules' messages and no other:
 
 | Submit | Expect one of |
 |---|---|
-| 23 plots, Solar, battery line set to 5 by hand | `Batteries: expected 6.`, `Batteries: one per 4 plots, rounded up, for 23 plots.` |
+| 30 plots, Solar, battery line set to 5 by hand | `Batteries: expected 8.`, `Batteries: one per 4 plots, rounded up, for 30 plots.` |
 | Basic answer, both care plans on the bundle | `Choose exactly one care plan.`, `Plus care needs the Plus answer.` |
 | 10 plots, sensor line set to 9 by hand | `One sensor per plot: expected 10.` |
 
@@ -896,20 +896,20 @@ shipped QuantumBit bundle model (part of M39), and the line editor and configura
 `validate_cml` result is a local run of the validator. Quotes went through Place with rules on (`Force`),
 then `configure`, then a query of `RevenueTransactionErrorLog`. Apart from the dated
 `[Measured: <date>, …]` claims, which come from separate lifecycle runs scoped as stated,
-nothing else in this file was run.
+nothing else in this file was run. In rows M1 to M10 the inputs are illustrative; the runs used other values with the same rounding results.
 
 | # | Run | Result | Date |
 |---|---|---|---|
-| M1 | `15 / 10` and `23 / 10` inside `constraint(...)` | 1, and 2.00 into a `decimal(2)`: `int / int` truncated | 2026-11-10 |
-| M2 | `int q = 23 / 10;` inline | 2 | 2026-11-10 |
-| M3 | `ceil(15 / 10)` inside `constraint(...)` | 1 | 2026-11-10 |
-| M4 | `ceil(2.30)` inside `constraint(...)`, on a `decimal(2)` variable, a literal or a `double(2)`, in a named or unnamed constraint | 2.30 | 2026-11-10 |
-| M5 | `ceil(<int variable> / 10)` inline, the variable holding 23 and set by a constraint in the same solve | 3 | 2026-11-10 |
-| M6 | `ceil(2.30)` inline | 3.00, or 3 into an `int` | 2026-11-10 |
-| M7 | `int == ceil(23 * 0.1)` inside `constraint(...)`; `int x = ceil(23 * 0.1);` inline | Inside: the model failed to activate, "couldn't find a solution … for the rule". Inline: 3 | 2026-11-10 |
-| M8 | `((15 + 99) / 100) * 100` inside `constraint(...)` | 100 | 2026-11-10 |
-| M9 | `q * 10 >= x && (q - 1) * 10 < x` inside `constraint(...)`, `x` = 23 | 3 | 2026-11-10 |
-| M10 | `q * 100 >= 15 * x && (q - 1) * 100 < 15 * x` inside `constraint(...)`, `x` = 752 | 113 | 2026-11-10 |
+| M1 | `17 / 10` and `27 / 10` inside `constraint(...)` | 1, and 2.00 into a `decimal(2)`: `int / int` truncated | 2026-11-10 |
+| M2 | `int q = 27 / 10;` inline | 2 | 2026-11-10 |
+| M3 | `ceil(17 / 10)` inside `constraint(...)` | 1 | 2026-11-10 |
+| M4 | `ceil(2.70)` inside `constraint(...)`, on a `decimal(2)` variable, a literal or a `double(2)`, in a named or unnamed constraint | 2.70 | 2026-11-10 |
+| M5 | `ceil(<int variable> / 10)` inline, the variable holding 27 and set by a constraint in the same solve | 3 | 2026-11-10 |
+| M6 | `ceil(2.70)` inline | 3.00, or 3 into an `int` | 2026-11-10 |
+| M7 | `int == ceil(27 * 0.1)` inside `constraint(...)`; `int x = ceil(27 * 0.1);` inline | Inside: the model failed to activate, "couldn't find a solution … for the rule". Inline: 3 | 2026-11-10 |
+| M8 | `((17 + 99) / 100) * 100` inside `constraint(...)` | 100 | 2026-11-10 |
+| M9 | `q * 10 >= x && (q - 1) * 10 < x` inside `constraint(...)`, `x` = 27 | 3 | 2026-11-10 |
+| M10 | `q * 100 >= 8 * x && (q - 1) * 100 < 8 * x` inside `constraint(...)`, `x` = 630 | 51 | 2026-11-10 |
 | M11 | `int p = 2 ^ 3;` inline | 8 | 2026-11-10 |
 | M12 | `constraint(p == 2 ^ 3)`, with and without parentheses | A false constraint; the model failed to activate, "extra variables [… FalseConstraint]". Whether `^` acts as XOR wasn't tested | 2026-11-10 |
 | M13 | `int x = a * b;` inline, 15 × 10; `+` and `*` in constraints and inline | 150; both operators evaluated | 2026-11-10 |
@@ -926,7 +926,7 @@ nothing else in this file was run.
 | M24 | Configurator UI (two orgs). Without the annotation: a default sized child. With it: an existing root line reconfigured (add-on ticked at 1, `plots` changed) and a fresh bundle add from Browse Catalogs | Without: two instances (1 + the rest); in a group ramp, later segments kept a stale split that broke the constraint, with only a group-range warning; non-default children were one instance. With: one line per child at the rule's quantity, the add-on raised to `plots`, each line resized when `plots` changed, defaults kept, no warning | 2026-11-11 |
 | M25 | A relation declared with an upper bound above 9,999, its cardinality set by a constraint from an `int` whose domain reaches the same bound, no `maxRelationSize` | A quantity just below 9,999 solved; one just above was rejected with the sizing rule's message, not a limit message. A CML-only `int` above 9,999 solved | 2026-11-11 |
 | M26 | The M25 case with the PRC `MaxQuantity` above the needed quantity; then with `property maxRelationSize` set to the relation's upper bound | `MaxQuantity`: still rejected. The property: the bound itself solved | 2026-11-11 |
-| M27 | `string region = parent(region);` in child types, no level; children in PCM component groups; no group types in the model; only the root's answer sent (two orgs) | Each child's attribute record held the root's value; editing the root's answer re-derived it and repriced; also in the configurator UI | 2026-11-11 |
+| M27 | `string climate = parent(climate);` in child types, no level; children in PCM component groups; no group types in the model; only the root's answer sent (two orgs) | Each child's attribute record held the root's value; editing the root's answer re-derived it and repriced; also in the configurator UI | 2026-11-11 |
 | M28 | The M27 child types under a bundle root that isn't a type in the model; one child placed alone | Under that root: the children kept their attribute default. Alone: no attribute record written. Solver success, no message, both | 2026-11-11 |
 | M29 | Place (rules on, `Force`) of configurations the rules reject | Place `isSuccess: true`, saving what it was sent. `configure`: `success: true`, `solverStatus: "error"`, `errors: []`, the rule's message in `messages` at type `error`; an error log of `Severity` Error with the message in `ConfiguratorErrorMessage`. Bundle-validation warnings in the same run were logged as a separate row of `Severity` Warning. In one case the message was only in the error log, and a later `configure` returned `solverStatus: "success"` | 2026-11-11 |
 | M30 | Place graph answers as `QuoteLineItemAttribute` with `AttributeDefinitionId`, `AttributeValue` and, for picklists, `AttributePicklistValueId`; no `AttributeName` | Bound to the CML variables named by the definitions' developer names; a number stored with a decimal (`"12.0"`) bound to an `int` | 2026-11-11 |
@@ -963,7 +963,7 @@ Each needs a live 264 org:
    warning; group-range results of the same validator are warning-type. A
    Warning-only bundle-validation row also refused the order in a `Force` run with configuration
    rules off (not `Skip`) `[Measured: 2026-11-11, 264, Force with configuration rules off]`.
-2. How a large cardinality (600 service hours) displays in the configurator and the
+2. How a large cardinality (hundreds of units) displays in the configurator and the
    Transaction Line Editor.
 3. What a rep sees in the configurator or the Transaction Line Editor when they edit the
    quantity of a line that a `constraint` sizes on a `@(split = false)` type (error

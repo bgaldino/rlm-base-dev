@@ -223,7 +223,7 @@ results, 2026-11-11).
       net unit price × the remaining term count. The Default Proration Policy that `qb-pcm`
       ships [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProrationPolicy.csv`] counted whole annual periods left plus the days left in the current one ÷ that
       period's days (275/366 in a leap year), so a months-remaining figure matches only on
-      an anniversary [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. The count
+      an anniversary [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org] (day counts illustrative; the rule is what was measured). The count
       is the number of periods, with the first and last partial period counted as its days
       (inclusive, actual calendar days under the actual-days time period type) over the
       days in that full period, so a leap year changes the denominator (275/365 in a normal
