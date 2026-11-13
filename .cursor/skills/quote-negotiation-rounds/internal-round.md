@@ -1,6 +1,6 @@
 # An Internal What-If Round
 
-Read this when one round (a walk-away price, a what-if) must never be presented to
+Read this when one round (a lowest-acceptable-price scenario, a what-if) must never be presented to
 the customer, synced to the opportunity forecast, or turned into an order. Parent:
 [quote-negotiation-rounds](SKILL.md).
 
