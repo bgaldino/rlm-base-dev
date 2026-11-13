@@ -90,8 +90,9 @@ pointer, not the skill's full open list.
 
 ## Order fulfilment
 
-`dro-plans` holds one live smoke and otherwise authoring guidance, so most of these rows are decided per rule from
-the Help articles named here ([knowledge-sources.md](knowledge-sources.md)).
+`dro-plans` holds one live smoke and otherwise authoring guidance, so for most rows the Help articles named here are
+the evidence. Decide each rule's source with [knowledge-sources.md](knowledge-sources.md); where Help disagrees
+with itself, that is trigger (d).
 
 | Source concept | Try first | Where documented |
 |---|---|---|
@@ -101,7 +102,7 @@ the Help articles named here ([knowledge-sources.md](knowledge-sources.md)).
 | No changes after a step | Point of no return: compare when it applies and which items it locks with what the source says | Help `ind.dro_point_of_no_return_state_propagation`, `ind.dro_considerations_for_changing_in_flight_orders` |
 | At-risk windows, retries, escalation | Jeopardy and fallout rules | `dro-plans` → `objects-and-relationships.md`; Help `ind.dro_configure_fulfillment_step_jeopardy_rules`, `ind.dro_configure_fallout_rules` |
 | Billing or the installed base started by a fulfilment step | In a live smoke, activation, billing schedules and assets completed while the fulfilment plan was still in progress, and two added fulfilment Milestone steps completed on their own while existing manual and billing steps stayed open (one org). A step that "starts billing", "records the installed base" or waits for a person needs a decided route | `dro-plans` → `examples-and-grounding.md`; `billing-setup` |
-| Fulfilment across periods: ramped sales, amendments, renewals and cancellations | Time-awareness. Help says it can't be turned off, so turning it on is a decision; Help also disagrees on how a ramped sale decomposes without it | Help `ind.dro_considerations_for_backdated_changes_in_dynamic_revenue_orchestrator`, `ind.dro_time_aware_fulfillment_enable`, `ind.dro_ramp_deal_decomposition`, `ind.dro_time_aware_fulfillment_example_add` |
+| Fulfilment of backdated or future-dated changes, and of ramped sales | Time-awareness. Without it, a backdated or future-dated change can get the wrong fulfilment action; a dated replay that keeps the source's future dates (SKILL.md step 5) makes such changes. Help says it can't be turned off, so turning it on is a decision, and disagrees on how a ramped sale decomposes without it | Help `ind.dro_considerations_for_backdated_changes_in_dynamic_revenue_orchestrator`, `ind.dro_time_aware_fulfillment_enable`, `ind.dro_ramp_deal_decomposition`, `ind.dro_time_aware_fulfillment_example_add` |
 
 ## Runtime surface
 
