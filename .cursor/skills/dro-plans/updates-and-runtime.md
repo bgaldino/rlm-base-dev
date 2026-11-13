@@ -179,7 +179,7 @@ except the fallout and jeopardy match fields (from describe) and statements mark
   step. A decision-table lookup returned nothing, so the freshness link for these rules
   was not tested.
 - **Cancel of a non-assetizable technical line.** Cancelling the bundle's root asset decomposed the copy
-  product's line as an Add of quantity 0, not a Cancel, and its Add steps still ran; no
+  product's line as an Add of quantity 0, not a Cancel, and its Add steps were still created and started; no
   fulfillment asset was created or changed for it, while the assetizable lines decomposed as
   Cancel [Measured: 2026-11-13, 264, scratch, one org]. Design Add steps to tolerate a zero
   quantity [inferred from one run].

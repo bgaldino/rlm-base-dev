@@ -100,8 +100,8 @@ Measured outside group ramps, on a Term Defined bundle [Measured: 2026-11-11, 26
   as a date (the quote was created); a configuration rule then refused that change, so it
   wasn't ordered.
 
-On one 264 scratch org [Measured: 2026-11-13, 264, scratch, one org], no capability setting was
-found in the org's settings metadata or Help. A standalone (not bundled), unramped Term Annual asset whose renewal was
+No capability setting was found in the captured Help or, on one 264 scratch org, in the org's
+settings metadata. On that org [Measured: 2026-11-13, 264, scratch, one org], a standalone (not bundled), unramped Term Annual asset whose renewal was
 ordered and activated accepted a Connect amend and a cancel dated before its renewal start, and an amend dated
 on the start; the refusal the trace predicts did not reproduce at quote stage. The quotes were not
 ordered, so a refusal at order or activation is untested. Treat the gate as unexplained, not as a
