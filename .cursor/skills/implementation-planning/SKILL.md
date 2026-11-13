@@ -59,7 +59,8 @@ files can use it.
     [prediction-checks.md](prediction-checks.md) is a step whose omission modified or
     refuted a prior plan's prediction, or sharpens a guard that build showed too weak:
     a measurement read past its shape, a structure chosen for the new sale only, a
-    recommendation with no mechanism, a native guard on the wrong path.
+    recommendation with no mechanism, a native guard on the wrong path. Check 16 applies
+    domain-skill guidance, not a measured miss.
 
 ## DO NOT
 
@@ -369,8 +370,8 @@ options, a tab of discount tiers, and a calculator tab that prices a sample orde
 - **Knowledge sources:** run the sweep for each area and decide from what it finds:
     - An area a skill documents with measurements is **Repo**, unless a live trigger
       applies to one of its rules.
-    - An area only the Help or developer guide documents is **Snapshot**, and a skill
-      gap.
+    - An area where only the Help or developer guide documents the mechanism its rules
+      need is **Snapshot**, and a skill gap.
     - A rule that a skill's measured defect, or a measured contradiction of the docs,
       touches in the shape it was measured in is **Live (b)**; in another shape it follows
       [prediction-checks.md](prediction-checks.md) check 1. The area row only summarizes its rules.

@@ -96,7 +96,7 @@ with itself, that is trigger (d).
 
 | Source concept | Try first | Where documented |
 |---|---|---|
-| The work each sold item creates (something to ship, a service to switch on) | Technical products and decomposition rules: decomposition scope, quantity method and step scope. Count the expected lines, steps and dependencies ([prediction-checks.md](prediction-checks.md) check 16) | `dro-plans` → `authoring-and-deployment.md`; Help `ind.dro_decomposition_scope` |
+| The work each sold item creates (something to ship, a service to switch on) | A fulfilment scenario on the sold product selecting a step group; technical products and decomposition rules (decomposition scope, quantity method, step scope) only where the source names separate outputs to track or group. Count the expected lines, steps and dependencies ([prediction-checks.md](prediction-checks.md) check 16) | `dro-plans` → `authoring-and-deployment.md`; Help `ind.dro_decomposition_scope` |
 | Steps and the order they run in | Step definitions in step groups, with dependency scopes | `dro-plans` → `authoring-and-deployment.md`, `examples-and-grounding.md` (shipped dependency scopes flagged for runtime verification); Help `ind.dro_set_dependencies_between_fulfillment_steps`, `ind.dro_custom_scope_step_dependencies` |
 | A step that may not start before a date | Future-dated steps, a DRO setting | Help `ind.dro_configure_steps_for_future_execution` |
 | No changes after a step | Point of no return: compare when it applies and which items it locks with what the source says | Help `ind.dro_point_of_no_return_state_propagation`, `ind.dro_considerations_for_changing_in_flight_orders` |
