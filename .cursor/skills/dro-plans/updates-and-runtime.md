@@ -137,23 +137,37 @@ introduce a blanket extra approval for ordinary configuration updates.
   completes [inferred].
   Two amendments placed through the plain amend route, one with the flag set, were both
   accepted with no refusal [Measured: 2026-11-13, 264, scratch, one org]; that route showed
-  no enforcement, and enforcement itself was not tested. Which order items a PONR covers
-  (the whole bundle or that line) and whether the supplemental route enforces it were not
-  run; test them there before promising either.
+  no enforcement, and enforcement itself was not tested.
+- **PONR scope (freeze output).** Freezing the order returned an allowed flag per order item.
+  With a PONR step In Progress on one child of a bundle, every line of that bundle was denied,
+  root and sibling included; a PONR step In Progress on a standalone line denied only that line, not a bundle in
+  the same order, and a separate, earlier control order with no PONR step (its callout had failed and its other
+  steps were Pending) froze to Frozen with every line allowed [Measured: 2026-11-13, 264,
+  scratch, one org]. A supplemental quantity change on the activated order was refused with
+  two stated reasons, that its order products had been converted to assets and had billing
+  schedules; no PONR refusal was observed [Measured: 2026-11-13, 264, scratch, one org], so whether the route enforces the PONR is still
+  untested. A plain freeze, with no force-freeze-during-execution option applied, left a plan
+  with a step In Progress Freezing, not Frozen
+  [Measured: 2026-11-13, 264, scratch, one org].
 - **Order-wide scenarios:** Help documents different post-submission modification
   limits from product/classification scenarios; do not assume every change applies.
 
 ## Measured Runtime Behaviour
 
 Each item is one scratch org, 264, 2026-11-13 [Measured: 2026-11-13, 264, scratch, one org],
-except the fallout and jeopardy match fields (from describe) and the not-run item.
+except the fallout and jeopardy match fields (from describe) and statements marked as Help's.
 
 - **Future-dated steps (setting on).** A step delayed from the previous step's execution
   by two minutes waited, then started. A step waiting on a scheduled date still waited for
-  its dependencies. A step with an offset from the source line's start date did not wait,
-  even with a future service date and an order dated a month out; the cause is not
-  known, and Help doesn't settle it. Don't promise a start-date offset without a live
-  check.
+  its dependencies. A step with an offset from the source line's start date did not wait
+  when the line's service date was a month out and the order was dated today; on two further
+  orders with the order date and the line service date a month out (the second also with the
+  quote line's start dates), a 10-day offset and a 3-minute offset from that date both
+  started at plan creation, and the next-run time carried no offset [Measured: 2026-11-13, 264,
+  scratch, one org]. On all three orders the decomposed technical lines had null service and
+  end dates [Measured: 2026-11-13, 264, scratch, one org], which may explain it [inferred];
+  Help doesn't settle it. Don't promise a start-date offset; use a previous-step delay
+  instead (the two-minute delay above waited, then started).
 - **Amendment decomposition.** An amendment created a new plan holding the full step set,
   not a delta: unchanged lines decomposed with cancel and add, and a changed quantity was
   a full replace. One fulfillment asset's quantity after the amendment did not match its
@@ -165,8 +179,17 @@ except the fallout and jeopardy match fields (from describe) and the not-run ite
   although a retry rule exists; both unexplained. A rule existing doesn't show it applied: verify on a live
   step. A decision-table lookup returned nothing, so the freshness link for these rules
   was not tested.
-- **Not run (outside the measured items):** a dependency across order items; test one
-  live before relying on it.
+- **Cancel of a non-assetizable technical line.** Cancelling the bundle's root asset decomposed the copy
+  product's line as an Add of quantity 0, not a Cancel, and its Add steps were still created and started; no
+  fulfillment asset was created or changed for it, while the assetizable lines decomposed as
+  Cancel [Measured: 2026-11-13, 264, scratch, one org]. Design Add steps to tolerate a zero
+  quantity [inferred from one run].
+- **Dependency across order items.** A plan-scope step whose dependency was set at line scope
+  waited for every instance across the order items, not one line [Measured: 2026-11-13, 264, scratch, one org]. Help says a
+  dependency between line-scope steps pairs steps of the same line only; that pairing was not
+  measured, and neither was the cross-plan scope. The
+  measured run completed manual steps by setting their state directly; the engine accepted it,
+  but that is not a documented route, so don't use it as a recipe for a live order.
 
 ## Update Acceptance Scenarios
 

@@ -93,7 +93,10 @@ quote UI (`ui-group-ramp.md`, measured on 264).
     one ramp line with delta pricing on [Measured: 2026-11-12, 264, scratch, another org], each moved the
     net unit price of the other uplifted lines by the segment uplift again, unrounded, on a Compound ramp;
     totals did not change. After the Place PATCH, the line editor's Reprice All restored them
-    [Measured: 2026-11-11, 264, scratch, one org]; after the System PATCH the restore was not run. Run it
+    [Measured: 2026-11-11, 264, scratch, one org]. After a System PATCH on a delta-pricing org, a Force
+    reprice of the whole quote with no line changes restored every net price exactly [Measured: 2026-11-13,
+    264, scratch, one org; Compound ramp, three segments, two products, delta pricing on; quote only, not
+    ordered; a Place call with Force pricing, not the line-editor button]. Run a whole-quote reprice
     after any ramp edit and read the net prices, not the totals `[inferred]`. The cause is not isolated. A line without a `RampIdentifier`
     took no uplift (a standalone Evergreen product, one org). The uplifted price keeps full
     precision, not cents (one of those orgs; the other already rounded after the uplift); add a
@@ -195,7 +198,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   `UnitPriceUplift` re-applied the uplift to the other ramp lines. Their `NetUnitPrice` was uplifted
   again on top of the already uplifted net (each segment by its applied % once more), while
   their `TotalPrice` stayed put. **Reprice All** in the line editor restored every line; a `Force`
-  reprice wasn't tried for this case. What the source shows: when delta
+  reprice wasn't tried for this Place-PATCH case; it was tried after a System PATCH (see above). What the source shows: when delta
   skipping doesn't apply, every line runs through every pricing element again, and the uplift step isn't
   idempotent, so an untouched line is uplifted again; when it applies, only the edited lines and their
   dependents re-run [Platform behaviour, traced]. Help adds that a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; that fits the re-uplift of untouched ramp lines [inferred]. The 2026-11-11 org was built from the repo's scratch
