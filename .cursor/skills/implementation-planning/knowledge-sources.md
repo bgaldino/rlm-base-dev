@@ -28,7 +28,8 @@ gap too if no skill shows the pattern.
 **A skill's `[inferred]` claim is a hypothesis,** not a measured fact. Record it as
 **Repo (inferred)**, decided at its build gate, unless it predicts that shipped
 behaviour is wrong for the rule (for example a shipped formula that overstates margin
-on multi-year lines). Then it is trigger (b).
+on multi-year lines). Then it is trigger (b). A measured limitation carried to another
+shape is not such a claim; it follows [prediction-checks.md](prediction-checks.md) check 1.
 
 **A live org decides** when one of these holds:
 
