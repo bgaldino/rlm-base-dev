@@ -337,6 +337,14 @@ results, 2026-11-11).
       only lines on the quote whose source matches the node it declares [Platform behaviour,
       traced]; that the added amendment lines bound to it is inferred from the cleared error,
       not read. Constraint side: `constraint-models`.
+    - **The reverse, top-level lines without the root, raised no rule message.** An amendment of
+      the top-level assets alone (one plan's line reduced, a new top-level line of the other
+      plan added, no root) priced, ordered and activated with rules on, with 0 messages and no
+      error log [Measured: 2026-11-12, 264, scratch, one org]. The container check that
+      compares those lines with the root's answer didn't apply with no bundle on the quote, so
+      those lines went unchecked [inferred, consistent with the no-bundle result in constraint-models]. A split rule that
+      must hold on that path would need a quote-level validation that reads the assets (a
+      custom build) [inferred].
 8. **Ramped bundles have their own limits:** amending an API-built group-ramped bundle
    with a one-time or evergreen child failed in the measured shapes
    [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].
