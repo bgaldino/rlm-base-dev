@@ -43,6 +43,11 @@ configured tasks; Salesforce CLI (`sf`) inspects and operates on the target org.
    rule references and evaluation after creating, changing, or clearing conditions.
 8. Read back every intended record and relationship. Report configuration,
    runtime composition, and end-to-end fulfillment verification separately.
+9. Treat the repository's runtime facts (milestone auto-completion, activation
+   completing while the plan stays open, null `OrderItemId` on technical lines) as one
+   undated smoke plus one dated recheck, each on one org, not a rule. See
+   [examples-and-grounding.md](examples-and-grounding.md#live-quantumbit-bundle-smoke),
+   including its open contradiction with Help and the recheck's measured limits.
 
 ## DO NOT
 
