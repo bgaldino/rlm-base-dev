@@ -55,6 +55,14 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       builds group ramps, that container sees every segment's lines at once: a `[0..1]`
       bundle relation together with one-instance types there refused the ramp, so
       cross-line checks compare totals across segments (`ramped-quotes`).
+    - Weigh the two ways to hold a split. Top-level lines on a container is the route
+      that was run; its costs are that the rules no longer size those lines (the
+      converter or the rep does), a quote without the bundle goes unchecked, and an
+      amendment of the root alone must carry those lines too, or the container's count
+      rule fires an Error (`asset-lifecycle-changes` Quick Rule 7). Keeping the split
+      inside the bundle, an answer per option constrained to sum, wasn't run
+      (`constraint-models` → `quantities-from-attributes.md`, open item 13): choose it
+      only with a spike, and the top-level route as its fallback.
     - A group ramp of a configurable bundle is a structure too. Every child, One-Time
       included, repeats in every segment of a UI-built ramp, and unticking a child that a
       rule sizes is silently undone. Before predicting a ramp's contract value, name how
@@ -93,8 +101,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     - If it sums a subset of lines, such as one product line, check that the field
       selecting them is in the pricing context. The sales transaction context has no
       product Family.
-    - If amendment quotes go through approval (no amendment submission is recorded:
-      `advanced-approvals` → `matrix-modeling.md` §1), give each quote-level dimension
+    - If amendment quotes go through approval (`advanced-approvals` →
+      `matrix-modeling.md` §1), give each quote-level dimension
       (deal size, margin, and discount when the source measures it on the quote rather
       than per line) a basis there: the change, or the contract after it. A ratio taken
       on the change alone can land in a different level from the contract after it, so

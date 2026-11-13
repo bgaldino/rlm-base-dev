@@ -171,8 +171,8 @@ the request already answers, and say what you assumed instead.
   or capture dates.
 - **Number the rules.** A rule is one behaviour the source states and that can be
   tested on its own: a sizing rule, a discount program, a policy, an approval trigger,
-  a change type. Use the source's own IDs where it has them (SR-01, P-03); otherwise
-  give each one an ID. The register goes in the plan's section 3.0
+  a change type. Use the source's own IDs where it has them; otherwise give each one
+  an ID. The register goes in the plan's section 3.0
   ([plan-template.md](plan-template.md)). The mapping, the rule decision record and the
   golden tests all refer to these IDs, so the counts agree.
 

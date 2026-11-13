@@ -95,7 +95,9 @@ Always include a **Reprice** set (price again, then order, amend and renew) and 
 configuration answers, the unchanged answers through two answer changes in a row). Include each attribute's
 minimum and maximum, every option the source allows that its worked examples don't
 use, and a check for anything the source marks internal-only (for example a round
-that must never be presented).
+that must never be presented). Billing cases cover every order the plan creates (the
+new sale, each amendment, each renewal), not only the first; for a milestone-billed
+service, state what a quantity an amendment adds is billed by (`billing-setup`).
 
 ## 5. Phases, gates, skills
 
