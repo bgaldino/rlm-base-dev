@@ -98,7 +98,7 @@ use, and a check for anything the source marks internal-only (for example a roun
 that must never be presented). Billing cases cover every order the plan creates (the
 new sale, each amendment, cancellation and renewal), not only the first. For a
 milestone-billed service, state what a quantity an amendment adds is billed by, and
-record billing of a service an amendment adds as an open decision (`billing-setup`).
+record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
 
 ## 5. Phases, gates, skills
 
