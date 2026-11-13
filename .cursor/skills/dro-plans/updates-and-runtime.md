@@ -141,11 +141,11 @@ introduce a blanket extra approval for ordinary configuration updates.
 - **PONR scope (freeze output).** Freezing the order returned an allowed flag per order item.
   With a PONR step In Progress on one child of a bundle, every line of that bundle was denied,
   root and sibling included; a PONR step In Progress on a standalone line denied only that line, not a bundle in
-  the same order, and a control
-  order with no PONR froze with every line allowed [Measured: 2026-11-13, 264, scratch, one
-  org]. A supplemental quantity change on the activated order was refused because its order
-  products had been converted to assets and had billing schedules, not for the PONR
-  [Measured: 2026-11-13, 264, scratch, one org], so whether the route enforces the PONR is still
+  the same order, and a control order with no PONR step (its callout had failed and its other
+  steps were Pending) froze to Frozen with every line allowed [Measured: 2026-11-13, 264,
+  scratch, one org]. A supplemental quantity change on the activated order was refused with
+  two stated reasons, that its order products had been converted to assets and had billing
+  schedules; no PONR refusal was observed [Measured: 2026-11-13, 264, scratch, one org], so whether the route enforces the PONR is still
   untested. With the force-freeze-during-
   execution setting not set, a plan with a step In Progress stayed Freezing, not Frozen
   [Measured: 2026-11-13, 264, scratch, one org].
@@ -159,14 +159,15 @@ except the fallout and jeopardy match fields (from describe) and statements mark
 
 - **Future-dated steps (setting on).** A step delayed from the previous step's execution
   by two minutes waited, then started. A step waiting on a scheduled date still waited for
-  its dependencies. A step with an offset from the source line's start date did not wait,
-  even with a future service date and an order dated a month out; on two further orders with
-  the order date and the line service date in the future (the second also with the quote
-  line's start dates), a 10-day offset and a 3-minute offset from that date both
+  its dependencies. A step with an offset from the source line's start date did not wait
+  when the line's service date was a month out and the order was dated today; on two further
+  orders with the order date and the line service date a month out (the second also with the
+  quote line's start dates), a 10-day offset and a 3-minute offset from that date both
   started at plan creation, and the next-run time carried no offset [Measured: 2026-11-13, 264,
-  scratch, one org]. The decomposed technical lines had null service and end dates
-  [Measured: 2026-11-13, 264, scratch, one org], which may explain it [inferred]; Help doesn't settle it. Don't promise a start-date offset; use a
-  previous-step delay, which was measured to work.
+  scratch, one org]. On all three orders the decomposed technical lines had null service and
+  end dates [Measured: 2026-11-13, 264, scratch, one org], which may explain it [inferred];
+  Help doesn't settle it. Don't promise a start-date offset; use a previous-step delay
+  instead (the two-minute delay above waited, then started).
 - **Amendment decomposition.** An amendment created a new plan holding the full step set,
   not a delta: unchanged lines decomposed with cancel and add, and a changed quantity was
   a full replace. One fulfillment asset's quantity after the amendment did not match its
