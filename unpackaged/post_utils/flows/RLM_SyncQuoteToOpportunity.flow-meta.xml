@@ -224,7 +224,7 @@
             <targetReference>Can_Sync</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Sync_Error</targetReference>
+            <targetReference>Lookup_Error</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -252,7 +252,7 @@
             <targetReference>Opportunity_Sync_State</targetReference>
         </connector>
         <faultConnector>
-            <targetReference>Sync_Error</targetReference>
+            <targetReference>Lookup_Error</targetReference>
         </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -408,6 +408,22 @@
             <fieldType>DisplayText</fieldType>
         </fields>
         <nextOrFinishButtonLabel>Sync</nextOrFinishButtonLabel>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Lookup_Error</name>
+        <label>Lookup Error</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>LookupErrorText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The quote wasn&apos;t synced.&lt;/strong&gt; Nothing was changed.&lt;/p&gt;&lt;p&gt;The quote or its opportunity couldn&apos;t be read. Ask your Salesforce admin, and include the details below.&lt;/p&gt;&lt;p&gt;Details: {!$Flow.FaultMessage}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>
     </screens>
