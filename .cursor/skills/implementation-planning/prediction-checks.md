@@ -23,7 +23,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
    skill had measured it on an API-built ramp and on an optional child; a UI-built ramp
    of the plan's bundle put every child in every segment (`ramped-quotes` →
    `bundle-children-lifecycle.md`). The same holds for a measured limitation: it is
-   trigger (b) only in the shape it was measured in.
+   trigger (b) only in the shape it was measured in. A measurement whose run didn't
+   record a setting the plan changes is outside its measured conditions for that plan.
 2. **Name the inputs a documented element is assumed to take.** An element the snapshot
    documents, at a position or with an input the docs don't show, is **Snapshot** when
    nothing contradicts it. List the parameters and context fields the plan assumes, so
@@ -192,3 +193,9 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     instances (with their scopes, items and source lines), and count the expected
     fulfilment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). Decide
     each edge's shape like any rule ([knowledge-sources.md](knowledge-sources.md)).
+    - Count groups and step definitions per item before step instances.
+    - On each lifecycle order, list the items and steps it creates and each line's
+      action: an amendment built the full step set (`dro-plans` → `updates-and-runtime.md`),
+      so an item created once per order recurs unless its scope spans orders.
+    - Say what happens to an edge whose predecessor isn't on that order's plan; don't
+      assume it is re-pointed.

@@ -121,13 +121,13 @@ The usual phases:
 
 | Phase | Typical content |
 |---|---|
-| P0 Environment | Integration org through the build harness, on a named scenario or shape, with a lifetime that covers the build (shipped scenarios use `days: 1`; see `build-harness` → Keep an org for a multi-day build); feature and enablement checks; tooling. A checklist of the org settings the plan relies on. Some have no known API (a 264 build found them in no settings metadata or sObject or Tooling describe): the Salesforce Pricing Setup default term counts (Evergreen, One Time) are read in Setup → Salesforce Pricing Setup → Proration Settings (a fresh 264 `ent-sb0` org showed Evergreen 1, One Time 0), or the plan adds a step that sets them |
+| P0 Environment | Integration org through the build harness, on a named scenario or shape, with a lifetime that covers the build (shipped scenarios use `days: 1`; see `build-harness` → Keep an org for a multi-day build); feature and enablement checks; tooling. A checklist of the org settings the plan relies on. Some have no known API (a 264 build found them in no settings metadata or sObject or Tooling describe): the Salesforce Pricing Setup default term counts (Evergreen, One Time) are read in Setup → Salesforce Pricing Setup → Proration Settings (a fresh 264 `ent-sb0` org showed Evergreen 1, One Time 0), or the plan adds a step that sets them. Copy each domain skill's settings checklist the plan relies on (for fulfilment, `dro-plans` → `authoring-and-deployment.md`), each marked on, off or n/a |
 | P1 Extraction | Source → design model and golden values; the converter's acceptance tests (section 3, Extraction); an independent re-check: a fresh agent, without the converter, recomputes a sample of golden values weighted to derived ones (exercised in a prior build); user reviews the design |
 | P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table with columns spike ID, rules, must hit, smallest case, read first. Usually two waves, exercised in a prior build, in one table with the wave in a column, or under sub-labels **P2a** and **P2b** that both sit inside the P2 section, before the P3 label (the ledger reads no spike table after it): **P2a**, spikes a probe product can answer (pricing routes, surface), beside or before P3; **P2b**, spikes whose must-hits need the real catalog, model and prices (amend, cancel, renew), run on an org the loader fills after the pricing gate's standard-price goldens pass |
 | P3 Catalog, then configuration | Data plans derived from the base build's own plans; CML; the route prerequisites of every P2a spike that touches them; the first loader (SKILL.md step 7) |
 | P4 Pricing and cost | Price books, adjustments, procedure changes, cost wiring. The gate prices only after the decision tables it reads are fresh (`decision-tables` Quick Rule 1) |
 | P5 Negotiation, approvals, runtime surface | Quote rounds, approvals, Transaction Line Editor configuration |
-| P6 Lifecycle, billing and fulfilment | Order, activate, amend, swap, cancel, renew; billing frequency, treatments and payment terms on the order; fulfilment, with its composition (lines, steps, dependencies) gated apart from its execution. Load and read back the fulfilment configuration before the first order of any chain whose fulfilment a gate counts: a submitted plan doesn't pick up later configuration, and a lifecycle order's fulfilment actions depend on what its earlier orders created (`dro-plans` → `authoring-and-deployment.md`) |
+| P6 Lifecycle, billing and fulfilment | Order, activate, amend, swap, cancel, renew; billing frequency, treatments and payment terms on the order; fulfilment, with its composition (lines, steps, dependencies) gated apart from its execution. Load and read back the fulfilment configuration before the first order of any chain whose fulfilment a gate counts: a submitted plan doesn't pick up later configuration, and a lifecycle order's fulfilment actions depend on what its earlier orders created (`dro-plans` → `authoring-and-deployment.md`). Read the order-activation prerequisites the domain skills record before the first order (`dro-plans` → `examples-and-grounding.md`, Recheck) |
 | P7 Pack and fresh-org load | Every gate in one run on a new org, with the loader extended since P3; reload changes nothing |
 | P8 Walkthrough and sign-off | Independent verifier, then the user |
 | P9 Promotion | Public repo through a pull request, if chosen; its own approval |
@@ -180,7 +180,8 @@ Then list **extensions to existing skills** separately.
 - [ ] Every skill, sub-file and snapshot article named exists.
 - [ ] Every script the plan cites lives in the pack or the repo, not in a scratch or
   temporary folder.
-- [ ] Every rule row names its fallback, or says why none is needed.
+- [ ] Every row of the rule decision record names its fallback, or says why none is
+  needed; list any row that doesn't.
 - [ ] Every rule that rejects or warns has its message in the plan.
 - [ ] Goldens on platform-enforced behaviour assert where the platform enforces it.
 - [ ] Every spike that chooses a route lists each route's prerequisites
