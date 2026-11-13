@@ -66,7 +66,8 @@ Key endpoints (see the reference doc for exact request shapes):
 record list"), so include the Quote record (a PATCH on it) alongside the line PATCHes. Sending
 `executeConfigurationRules` inside `configurationPref` was rejected by the request parser
 (a JSON parser error, nothing written); the requests were not kept, so the exact nesting is not
-recorded (the documented place is under `configurationOptions`). Those PATCHes then ran with
+recorded (directly in `configurationPref` or under `configurationOptions`; the documented place
+is under `configurationOptions`). Those PATCHes then ran with
 `configurationMethod` only, so this says nothing about rules-on requests nested as documented
 [Measured: 2026-11-12, 264, scratch].
 

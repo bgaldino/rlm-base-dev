@@ -857,7 +857,7 @@ after another sync. Which other saves moved the quote was not identified.
 
 This repo's build turns the setting on [Repo: `unpackaged/post_utils/settings/RevenueManagement.settings-meta.xml`]. It read true after the build
 [Measured: 2026-11-12, 264, scratch]; the fresh-org default is not measured, because the build
-changes it.
+sets it.
 
 **Fix:** set the status before syncing, or sync again after the status write and any other change,
 then order [inferred from the traced rule; not measured]. If it still refuses, retry after a short
