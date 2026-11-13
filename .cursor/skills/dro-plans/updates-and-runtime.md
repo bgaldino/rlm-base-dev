@@ -128,13 +128,23 @@ introduce a blanket extra approval for ordinary configuration updates.
 - **Compensation:** amended/canceled completed steps are not automatically recreated
   or rerun. Configured Amend/Cancel Step Groups provide the compensating steps.
   Check reverse compensation and propagated states when relevant.
-- **PONR:** a bundle reaching Point of No Return restricts its changes; inspect
-  scope. The submission action documents an override, but it is never an automatic
-  workaround for an invalid change.
+- **PONR:** Help sets the Point of No Return state when a step marked PONR goes In
+  Progress, and spreads it within the bundle: a commercial parent to its children, a
+  commercial child to its parent, and a technical item to the commercial items associated
+  with it [Help: `ind.dro_point_of_no_return_state_propagation`]. Items in the same order
+  but outside the bundle stay changeable [Help:
+  `ind.dro_considerations_for_changing_in_flight_orders`], which matches the measured
+  freeze scope below. So a source rule "no changes once step X is done" means marking the
+  step after X, which reaches In Progress only when X is complete [inferred from Help].
+  The submission action documents an override, but it is never an automatic
+  workaround for an invalid change. PONR guards in-flight (supplemental) changes; a plain
+  amendment was accepted with the flag set (below), so a source rule that must also stop
+  asset amendments or cancellations needs its own validation [inferred].
 - **PONR flag placement:** the flag set on a step definition was copied onto the step at
   plan creation, on a Pending dependent step as well as an In Progress one
-  [Measured: 2026-11-13, 264, scratch, one org], so it is not set when the step starts or
-  completes [inferred].
+  [Measured: 2026-11-13, 264, scratch, one org]. The copied flag marks where the state will
+  apply; Help's state applies when the step goes In Progress (above), not when the flag is
+  copied [inferred].
   Two amendments placed through the plain amend route, one with the flag set, were both
   accepted with no refusal [Measured: 2026-11-13, 264, scratch, one org]; that route showed
   no enforcement, and enforcement itself was not tested.
@@ -156,6 +166,11 @@ introduce a blanket extra approval for ordinary configuration updates.
 
 Each item is one scratch org, 264, 2026-11-13 [Measured: 2026-11-13, 264, scratch, one org],
 except the fallout and jeopardy match fields (from describe) and statements marked as Help's.
+Time-awareness wasn't recorded for these runs: no time-awareness setting appeared in the
+org's retrieved DRO settings metadata [Measured: 2026-11-13, 264, scratch, one org;
+retrieved settings metadata]. Help says it is off by default and can't be turned off once
+on [Help: `ind.dro_time_aware_fulfillment_enable`], so a plan that turns it on is outside
+these conditions; rerun the amendment and cancel checks there.
 
 - **Future-dated steps (setting on).** A step delayed from the previous step's execution
   by two minutes waited, then started. A step waiting on a scheduled date still waited for
@@ -171,14 +186,41 @@ except the fallout and jeopardy match fields (from describe) and statements mark
 - **Amendment decomposition.** An amendment created a new plan holding the full step set,
   not a delta: unchanged lines decomposed with cancel and add, and a changed quantity was
   a full replace. One fulfillment asset's quantity after the amendment did not match its
-  line's end quantity; unexplained.
+  line's end quantity; unexplained. Help lists a No Change action for lines whose
+  attributes and quantity don't change [Help: `ind.dro_fulfillment_order_line_item_actions`],
+  but here unchanged lines came through as cancel and add, so excluding No Change from a
+  scenario or condition does not by itself keep them from running steps [inferred]. Record
+  each technical line's action on the first amendment before designing for it.
+- **An item across orders.** On a later new-sale order for the same account [Measured:
+  2026-11-13, 264, scratch, one org]: an assetizable technical product with Account scope
+  got Amend on the fulfillment asset an earlier order had created (the line's fulfillment
+  asset start and end quantities read 1 and 2); another assetizable Account-scope item got No Change on its existing
+  asset; a non-assetizable Account-scope item got Add with no asset. The source
+  relationship's `Action` read Add for all three, so read `FulfillmentOrderLineItem.Action`,
+  not the relationship. Help sets the line to Amend whenever it differs from its fulfillment
+  asset, whatever the order line's action [Help: `ind.dro_fulfillment_order_line_item_actions`].
+  Help defines Account scope as one instance across the account's orders and Order scope as
+  one per order, which can't be assetized [Help: `ind.dro_decomposition_scope`]. So work
+  that must act on an item an earlier order created needs a scope that spans orders, on an
+  assetizable technical product; a custom scope wasn't measured, and an Order-scope item
+  recurs on every order [inferred from Help]. Check the line actions on the first later
+  order.
 - **Fallout and jeopardy rules** match on step type, with an optional integration
   definition, flow definition and error code; this is from the rule objects' describe,
   not a run. Measured on the org's steps: a step's jeopardy threshold was null on
   manual steps, and a failed callout step (credential missing) showed zero retries
   although a retry rule exists; both unexplained. A rule existing doesn't show it applied: verify on a live
   step. A decision-table lookup returned nothing, so the freshness link for these rules
-  was not tested.
+  was not tested. For planning: a jeopardy rule targets callouts through an integration
+  definition and manual or auto tasks through a flow definition, and a blank field applies
+  it to every step of that kind [Help: `ind.dro_configure_fulfillment_step_jeopardy_rules`,
+  `ind.dro_sla_jeopardy_administration`]; fallout rules cover callouts and auto tasks, with
+  retries and a queue for fatally failed steps [Help: `ind.dro_configure_fallout_rules`].
+  Help names no rule for Milestone steps. A separate window or queue per step needs its own
+  flow or integration definition per step [inferred]. A source's "at risk after N" needs a
+  decided estimated duration, because the threshold counts back from it [Help:
+  `ind.dro_configure_fulfillment_step_jeopardy_rules`]. Help describes a jeopardy status and
+  notification, not reassigning a late step to someone else [inferred from Help's silence].
 - **Cancel of a non-assetizable technical line.** Cancelling the bundle's root asset decomposed the copy
   product's line as an Add of quantity 0, not a Cancel, and its Add steps were still created and started; no
   fulfillment asset was created or changed for it, while the assetizable lines decomposed as

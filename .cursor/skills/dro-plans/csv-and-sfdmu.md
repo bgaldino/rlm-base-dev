@@ -186,9 +186,13 @@ fields before creation. Non-assetizable, unpriced technical products are this
 example's choice, not a requirement for every technical catalog. The shipped QuantumBit
 technical products (`datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`) are `IsAssetizable`
 true. Help says to mark a technical product assetizable to manage it as an asset, with an
-assetizable custom scope configuration. A source that keeps fulfilment items out of the
-installed base should set `IsAssetizable` false on every technical product
-[inferred, Help names no such rule]. On one scratch org, decomposition created a
+assetizable custom scope configuration. The installed base (the commercial `Asset`) does
+not decide a technical product's `IsAssetizable`: with the flag true, the technical lines
+got fulfillment assets and no `Asset` rows [Measured: 2026-11-13, 264, scratch, one org].
+Choose the flag by whether a later order must act on the item: an
+assetizable item keeps a fulfillment asset that a later order can amend
+([updates-and-runtime.md](updates-and-runtime.md) → An item across orders), and an
+Order-scope item can't be assetized [Help: `ind.dro_decomposition_scope`]. On one scratch org, decomposition created a
 fulfillment asset for each assetizable technical line and none for a copy product with
 the flag false, while the commercial asset was created regardless [Measured: 2026-11-13,
 264, scratch, one org]. After a later amendment of the same bundle there was still no

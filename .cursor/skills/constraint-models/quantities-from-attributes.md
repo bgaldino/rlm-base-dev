@@ -332,9 +332,9 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
   [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container))
   did receive the bundle root's answer through `parent()`; a quote with no bundle kept the
   default `[Measured: M42]`. In a build with a regional price-impacting attribute, such a held
-  top-level support line took the root's answer and the regional deals priced to their expected
-  values `[Measured: M44]`, consistent with the line being priced from the answer; its own price wasn't read. Check it at the
-  catalog gate.
+  top-level support line took the root's answer, and its own net unit price took the regional
+  adjustment in each of two regions and matched its expected value `[Measured: M44]`. Check it at
+  the catalog gate.
 
 ---
 
@@ -954,7 +954,7 @@ nothing else in this file was run. In rows M1 to M10 the inputs, and in all rows
 | M41 | A virtual `Quote` container (relations with `sourceContextNode`) in a configurator group ramp, a bundle root and a top-level line in each segment: bundle relation `[0..1]` and `@(split = false)` on the top-level line types; then the bundle relation `[0..10]`, wider line relations, no `split = false` on those types, the check comparing totals across segments | First: "You can't add more than one of the same '<product>' product to the '<type>' product class"; the configurator couldn't save. Then, in three segments added with *Current and Subsequent Segments*: segments 1 and 2 configured and saved, segment 3 changed through propagation; no error log | 2026-11-11 |
 | M42 | `parent(<attribute>)` in the types of top-level lines held by a virtual `Quote` container relation (with `sourceContextNode`), a bundle root carrying the answer; the same lines on a quote with no bundle | Held lines took the root's answer (two values tried, each reached the held lines); a quote with no bundle kept the attribute default. One org, illustrative attribute | 2026-11-11 |
 | M43 | Configurator group ramp (Annual, three segments, suite added with *Current and Subsequent Segments*) of a bundle whose component types carried `@(split = false)` (the top-level support types in the container did not); segments 1 and 2 configured and saved, one segment's answer changed to switch some components off | Each segment held one line per component at the rule's quantity, no error log; the changed answer reached the later segment. Years that excluded the one-time children held only the root and the software lines (top-level lines aside). Two orgs; correcting a segment-1 split by hand was not run | 2026-11-11 |
-| M44 | A top-level support line held by a virtual `Quote` container relation, its regional attribute taken from the bundle root's answer through `parent()` and priced by a regional adjustment on its classification; deals in two regions | Regional deals priced to the expected values with the support line on the quote; the run did not isolate that line's own price from the child lines'. One org, illustrative attribute | 2026-11-11 |
+| M44 | A top-level support line held by a virtual `Quote` container relation, its regional attribute taken from the bundle root's answer through `parent()` and priced by a regional adjustment on its classification; deals in two regions | The support line's own net unit price took the regional adjustment and matched its expected value in each region. One org, illustrative attribute | 2026-11-11 |
 | M45 | Implications on a bundle answer that picks one of two options; a line of the option the answer didn't pick placed against it | That line rejected with the rule's message, present in the error log; a later `configure` reported success. One org | 2026-11-11 |
 
 ---
@@ -1023,8 +1023,13 @@ Each needs a live 264 org:
       and checked on a virtual container
       ([Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)).
       The configurator no longer owns the sizing (by design). Top-level assets had to be carried
-      on root amendments, and a quote without the bundle was left unchecked [Measured: 2026-11-12,
-      264, scratch, one org].
+      on root amendments at `quantityChange` 0, and a quote without the bundle was left unchecked
+      [Measured: 2026-11-12, 264, scratch, one org]: an amendment of the top-level assets alone
+      (one plan's line reduced, a new top-level line of the other plan added) priced, ordered
+      and activated with rules on, 0 messages and no error log. The container's check against
+      the root's answer didn't apply there [inferred, consistent with M42's no-bundle quote], so a
+      split rule on that path needs a quote-level validation that reads the assets (a custom
+      build). See `asset-lifecycle-changes` Quick Rule 7.
     - *Answer-per-option route* (not run): keeps the sizing rules in the model, so the
       configurator owns them. Whether the sum constraint and the per-option cardinalities hold
       together is untested.

@@ -216,10 +216,25 @@ start date, with the next billing date at the first date-based item's offset
 [Measured: 2026-11-12, 264, scratch]. One org and one treatment. Whether a
 one-time line with a milestone treatment and no frequency produces such a schedule is unread.
 
+**Marking an event milestone done.** An event-based plan item waits in Waiting for Milestone
+Accomplishment until someone selects Milestone accomplished on it
+(`BillingMilestonePlanItem.IsMilestoneAccomplished`, updateable); saving moves it to Ready for
+Invoicing, and after activation that field is the only one you can edit on event items [Help:
+`ind.billing_milestone_usecase`, `ind.billing_milestone_create`,
+`ind.billing_milestone_treatment_and_item_create`] [Dev guide:
+`sforce_api_objects_billingmilestoneplanitem`]. The invoice run's target date then decides which
+accomplished milestones are invoiced [Help:
+`ind.billing_understand_target_date_and_billing_period_count`]. Help names no link from
+fulfillment steps to billing milestones [inferred from Help's silence], so a source milestone tied
+to a delivery step needs a decided way to be marked: a billing user, or automation such as a
+fulfillment AutoTask flow that sets the field [inferred, not measured]. Without one the
+milestone's invoice never comes due.
+
 **When a source names no milestones,** Revenue Cloud still needs, for each milestone:
 - a name;
 - date-based or event-based, and for a date, the offset and its unit;
-- a percentage or a flat amount.
+- a percentage or a flat amount;
+- for an event milestone, who or what marks it accomplished (above).
 
 Any share left after the items is a remainder item that the platform adds, invoiced with the
 final milestone [Help: `ind.billing_milestone_usecase`]. Ask the source's owner for these;

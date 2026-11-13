@@ -203,8 +203,9 @@ before any later change even where earlier-dated amends are otherwise allowed [P
 - An evergreen line needs `PeriodBoundary: Anniversary` (without it the order fails: "Evergreen order products must have an
   Anniversary period boundary") and a billing treatment.
 - Use **Quote** output for these recipes. `outputRecordType: Order` failed on the test org with *"We couldn't fetch the data
-  for RLM_SalesTransactionContext context definition"* for every action, ramps or not (undiagnosed, org-specific until
-  reproduced elsewhere).
+  for RLM_SalesTransactionContext context definition"* for every action, ramps or not (not diagnosed on that org). Two causes are known since: a procedure tag
+  with a Quote-lens row and no Order-lens row, and a custom attribute mapped on the Quote lens only (see
+  `.cursor/skills/troubleshooting/SKILL.md` → Place on an Order fails).
 
 ## `Product2.CanRamp`
 
