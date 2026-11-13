@@ -145,7 +145,10 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     compound ramp uplift isn't rounded to the cent (`pricing-procedures` →
     `elements/price-revision-compound-uplift.md`; `ramped-quotes` Quick Rule 10), so if
     the source rounds an uplifted price, a plan that rounds before the uplift needs a
-    second rounding after it.
+    second rounding after it. That step rounds the base times the cumulative factor once; a
+    source that rounds each year and compounds from the rounded price can differ by a cent
+    from the third segment on (`ramped-quotes` → `compound-uplift.md`, not told apart in
+    the measured runs), so carry both values through a mapping or record a decision.
 12. **State the line inputs a pricing step filters on,** as the placing script sends
     them. A commitment-term step read `SubscriptionTerm`, and a line placed with start
     and end dates alone had none, so it got no discount; a header-only Place change
