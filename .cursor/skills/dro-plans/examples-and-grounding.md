@@ -96,7 +96,8 @@ target, and treat a person's sign-off as a manual task unless a run shows otherw
 [inferred]. In the recheck, activation created the assets and billing schedules before any
 step ran, and the smoke's activation, billing and asset checks passed while its plan stayed
 open, so plan the installed base and billing from activation, not from a step
-[inferred].
+[inferred]. For marking an event billing milestone, see
+[billing-setup](../billing-setup/SKILL.md).
 
 #### Recheck
 
