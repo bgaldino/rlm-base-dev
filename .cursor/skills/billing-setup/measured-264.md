@@ -19,7 +19,8 @@ All five products had *Billing Policy - Advance*. The test quotes were deleted a
 
 M11 is from a second scratch org (release 264, API v68.0, 2026-11-12) built from this repo with
 another catalog loaded. Its quote was placed with Place Sales Transaction, `configurationMethod:
-Force` with configuration rules on (`executeConfigurationRules: true`), as a bundle: the
+Force` with configuration rules on (`configurationPref.configurationOptions.executeConfigurationRules:
+true`), as a bundle: the
 one-time service lines were components of a Term Defined root (`QuoteLineRelationship` to the
 root line).
 

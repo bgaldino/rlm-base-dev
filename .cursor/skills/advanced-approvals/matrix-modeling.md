@@ -207,18 +207,24 @@ where each level is computed:
   [Help: `ind.approvals_smart_or_rule_based_approvals`]; eligibility rules are in
   [limitations.md](limitations.md). All four shipped steps pass
   `ActionInput__CanUseSmartApproval = true` [Repo: `unpackaged/post_approvals/flows/RLM_Quote_Smart_Approval.flow-meta.xml`].
-    - With level conditions (`Level >= N`), a value that moved within its band still meets
-      them, so that step is skipped. The Help example skips two approvers whose ranges were
-      still met and routes only to the third [Help: `ind.approvals_smart_approvals`]. A
+    - With a level condition (`Level > N`), a step is skipped only when the new level is equal
+      to or lower than the approved one; a higher level that still meets the `>` condition
+      goes to review [Measured: 2026-11-12, 264, scratch; Number conditions, `>` and `<` only].
+      `>=` follows the same traced bounds ([limitations.md](limitations.md)) but was not
+      measured. That
+      narrows the Help's "conditions still met" (direction rule: [limitations.md](limitations.md)
+      → Smart Approvals). The Help example skips two approvers whose ranges were still met and
+      routes only to the third [Help: `ind.approvals_smart_approvals`; narrowed by the
+      measurement above]. A
       re-review that depends on how much a value changed is Rule-Based Auto-Approvals
       [Help: `ind.approvals_smart_or_rule_based_approvals`].
     - A source that says "a resubmission restarts the chain" wants every approver to review
-      again: turn Smart Approval off on that chain's steps. Left on, it skips approvers on a
-      rejected or recalled resubmission. With `ActionInput__CanUseSmartApproval` `false` on
+      again: turn Smart Approval off on that chain's steps. Left on, it can skip approvers on a
+      rejected or recalled resubmission (only where the direction rule holds). With `ActionInput__CanUseSmartApproval` `false` on
       every step, a resubmission after the second step rejected (the first approved) opened
       a new first-step work item, `Assigned`, `IsEligibleForSmartApproval` false
-      [Measured: 2026-11-12, 264]. No run with it `true` is recorded
-      ([limitations.md](limitations.md)).
+      [Measured: 2026-11-12, 264]. With it `true`, the direction rule for which resubmissions
+      auto-approve is in [limitations.md](limitations.md) → Smart Approvals.
     - After a full approval, any later submission is a new request, so the chain restarts
       whatever the setting [Help: `ind.approvals_smart_or_rule_based_approvals`].
 

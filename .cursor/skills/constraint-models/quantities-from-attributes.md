@@ -651,7 +651,7 @@ Run the parent skill's headless `configure` check
 in front of it (step 1 below).
 
 1. **Place with configuration rules on:** `configurationMethod: Force` with
-   `executeConfigurationRules: true`. `configurationMethod` defaults to `Skip`
+   `configurationOptions.executeConfigurationRules: true` (both in `configurationPref`). `configurationMethod` defaults to `Skip`
    `[Dev guide: connect_requests_configurator_preference_input]`, and
    `executeConfigurationRules: true` alone runs nothing at Place
    `[Repo: .cursor/skills/constraint-models/SKILL.md]`. With rules off, `configure`
@@ -714,11 +714,17 @@ nor clears them, so a later `configure` can report success `[Platform behaviour,
 `Info` messages aren't logged. When a line save is refused, the refusal comes back and the
 call writes no error logs, so the rule's message is not logged `[Platform behaviour, traced]`.
 
-The save-time quantity check behind "Specify 0 in Quantity" on a No Change line reads no
-configuration method; nothing in it is gated by `Force` or `Skip`
-`[Platform behaviour, traced in part]`. Skip refused a quantity edit that Force accepted
-`[Measured: 2026-11-11, 264]`; why Force passed isn't established, so don't rely on `Force`
-to edit such lines.
+The save-time quantity check behind "Specify 0 in Quantity" fires only while a line's
+action type is No Change and reads no configuration method
+`[Platform behaviour, traced in part]`. On a new-business line `Force` accepted an edit to 8
+and `Skip` an edit to 6; an edit to 0 was refused by both ("Quantity must be nonzero",
+FIELD_INTEGRITY_EXCEPTION) with the line unchanged
+`[Measured: 2026-11-12, 264, scratch; System pricing, configuration rules not sent]`. On a
+No Change amendment line `Skip` refused a non-zero quantity (INVALID_INPUT, "Specify 0 in
+Quantity..."), while `Force`
+accepted it and turned the action type to Amend (at quantity 0 too)
+`[Measured: 2026-11-12, 264, scratch; one standalone asset, single-line quotes, System pricing]`;
+details in `asset-lifecycle-changes` Quick Rule 7. Read every saved line back after either method.
 
 `success: true` and `isSuccess: true` prove nothing about the rules. Once, the rule's
 message was only in the error log and a later `configure` returned

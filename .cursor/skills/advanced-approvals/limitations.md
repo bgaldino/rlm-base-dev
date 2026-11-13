@@ -75,12 +75,18 @@ How it decides [Platform behaviour, traced]:
   both). A condition passes only when the earlier approved range contains the new one and its
   evaluation succeeded; for Text, Picklist and Multi-select picklist both bounds must match,
   ignoring case. The step's criteria logic combines the results [Platform behaviour,
-  traced]. Whether the left side is the evaluated value, so which
-  direction a changed value must move to stay inside, is not established; do not rely on it
-  until measured with the setting on.
+  traced]. The results match the left side being the evaluated value, so the new range must sit inside the
+  earlier approved one [Measured: 2026-11-12, 264, scratch]. With "value > threshold", a
+  resubmission auto-approves when the new value is lower than or equal to the approved value
+  and goes to review when it is higher; with "value < limit", it auto-approves when the new
+  value is higher or equal and goes to review when it is lower. Equal auto-approved in both runs.
+  Limits of the measurement: Number conditions only; an admin acted on every item; Smart
+  Approval was on through the shipped flow's step input, and the Setup page was not read.
+  Other types and operators are still unmeasured.
 - A step Smart Approval auto-approves completes as Approved, so a later step reading its
-  outcome sees Approved: the auto-reviewed item posts an Approve decision [Platform
-  behaviour, traced; no live run with the setting on]. Conditions listed in the step's Smart Approval Skip Conditions are left out of the
+  outcome sees Approved: the auto-reviewed item posts an Approve decision [Platform behaviour, traced]. A later step whose entry
+  condition reads the earlier step's decision = Approve started after the earlier step was
+  auto-approved [Measured: 2026-11-12, 264, scratch]. Conditions listed in the step's Smart Approval Skip Conditions are left out of the
   Smart Approval comparison [Help: `ind.approvals_turn_on_smart_approvals`]: each counts as
   passing under AND logic and as failing under OR logic [Platform behaviour, traced]. The
   Help FAQ (`ind.sf_contracts_aa_faq`) says listing a condition there forces a review; the
@@ -142,15 +148,14 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
 - Whether a roll-up summary or Percent condition passes the Smart Approvals type check
   [inferred: the flow resolves it to Number or Currency; not verified].
 - Whether `ApprovalDelegation` appears once delegation is turned on.
-- Whether the shipped Director step, which reads `Manager_Approver.Outputs.approvalDecision`,
-  behaves as traced when Smart Approvals skips the Manager step (see 'A step Smart Approval
-  auto-approves completes as Approved' above); no recorded run shows the shipped flow skipping a step on resubmission.
-- Whether `ActionInput__CanUseSmartApproval = true`, as the shipped steps set it, makes Smart
-  Approvals skip approvers on resubmission; the docs don't name the input. With it `false` on
+- Whether `ActionInput__CanUseSmartApproval` is the Use Smart Approval setting; the docs don't
+  name the input. With it `false` on
   every step, a resubmission after a rejection at the second step (the first approved)
   opened a new first-step work item, `Assigned`, `IsEligibleForSmartApproval` false
-  [Measured: 2026-11-12, 264], as expected if it is the Use Smart Approval setting. No run
-  with it `true` is recorded.
+  [Measured: 2026-11-12, 264], as expected if it is the Use Smart Approval setting. With it
+  `true` (as the shipped steps set it), resubmissions auto-approved a step that was approved in the earlier submission and whose
+  range still held, and the step rejected there went to review again
+  [Measured: 2026-11-12, 264, scratch]; the Approval Settings page was not read.
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.
 - Whether `ApprovalWorkItem` standard fields accept a sObject `update()`: the Help says no

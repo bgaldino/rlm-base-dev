@@ -39,7 +39,7 @@ line itself, or onto the header. Route 1 works live; routes 2 and 3 are [open](#
 ### Route 1 measured
 
 Built on a Place Sales Transaction quote (`configurationMethod: Force`,
-`executeConfigurationRules: true`) and in the configurator UI [Measured: 2026-11-11, 264, fresh
+`configurationOptions.executeConfigurationRules: true` in `configurationPref`) and in the configurator UI [Measured: 2026-11-11, 264, fresh
 `ent-sb0` scratch org; attribute names illustrative]:
 
 - **Only the root carries the answer.** The request set ClimateZone on the root line alone. The model

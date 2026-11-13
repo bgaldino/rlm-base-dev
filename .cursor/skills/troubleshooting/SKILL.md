@@ -855,6 +855,11 @@ write came between the sync and the order. A retry on that quote about 15 s late
 sync, created the order; the traced rule doesn't explain that. The other quote was ordered later,
 after another sync. Which other saves moved the quote was not identified.
 
+This repo's `post_utils` bundle turns the setting on [Repo: `unpackaged/post_utils/settings/RevenueManagement.settings-meta.xml`]. It read true after the build
+[Measured: 2026-11-12, 264, scratch]. It is declared with no default-on attribute, so it is
+expected off until set [Platform behaviour, traced]; the fresh-org value is not measured,
+because the build sets it.
+
 **Fix:** set the status before syncing, or sync again after the status write and any other change,
 then order [inferred from the traced rule; not measured]. If it still refuses, retry after a short
 wait (a retry about 15 s later worked once). Note that the `quote-negotiation-rounds` final-round steps

@@ -210,10 +210,19 @@ items:
   InvalidDraft) latest version overwrites it in place and one over an Active or Obsolete
   latest version creates a new one; a versioned name uses a separate path (not traced to a
   rule); a change set always creates a new version; a deploy requesting
-  Active over a non-Active latest version counts as changed [Platform behaviour, traced]. Deploying an
+  Active over a non-Active latest version counts as changed. A deploy that does not request
+  Active compares against the stored status, so a status-only change to Draft over an Active
+  flow is not a change [Platform behaviour, traced]; measured, it created no version and the
+  flow stayed Active [Measured: 2026-11-12, 264, scratch]. Deploying an
   approval flow as Active in a production org needs the org setting that lets flows deploy
   as active (the repo's Apex test skip messages call it Deploy-as-active); a non-production org allows it regardless. Without it,
-  deploy as Draft and activate separately [Platform behaviour, traced]. Steps inside
+  deploy as Draft and activate separately [Platform behaviour, traced; production gating is
+  not measured]. In a scratch org built by this repo the setting read off (Metadata API field
+  `enableFlowDeployAsActiveEnabled` in FlowSettings; a fresh org was not read separately); a changed approval orchestration
+  deployed as Active still became the new Active version and the old one became Obsolete, and
+  an unchanged redeploy as Active created no version. A redeploy with only the status changed
+  to Draft over an Active flow also created no version and did not deactivate the flow
+  [Measured: 2026-11-12, 264, scratch; non-production]. Steps inside
   orchestrated stages keep their saved order, a possible reason an orchestration redeploys
   unchanged; that is not proven for the measured run. For a new or generated flow, deploy it, retrieve it and commit the retrieved form. Compare
   `SELECT VersionNumber, Status FROM Flow WHERE Definition.DeveloperName = '<flow>'`
