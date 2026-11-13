@@ -14,7 +14,8 @@ Items are table rows of the plan (plan-template.md), the first cell being the ID
   decision  tables with "#" as first column, under a heading or bold label "2. Decisions"
   rule      tables with a first column starting "Rule", under "Rule decision record"
   spike     tables with a "must hit" column, under the label "P2 Live spikes"
-A bold label's section ends at the next heading or bold label. init fails if it finds
+A bold label's section ends at the next heading or bold label, except a phase label's own
+sub-labels (**P2a, **P2b under **P2 ...). init fails if it finds
 no rule or decision rows.
 
 Origin: blind (unchanged from the blind plan), edited (its blind text kept), added,

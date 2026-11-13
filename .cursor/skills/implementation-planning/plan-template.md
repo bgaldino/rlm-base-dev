@@ -30,9 +30,9 @@ One bullet per capability area, each phrased as something checkable. End with:
 ## 2. Decisions
 
 Only decision tables start with a `#` column (the ledger reads every one here). Number
-decisions in this order: intake answers (in the intake's order), source questions the
-owner has already settled, open source questions, then build decisions, so the ranges
-`ledger.py init --intake` and `--owner` take are contiguous.
+intake answers first, in the intake's order, so `ledger.py init --intake` takes one range.
+Decisions a person settles after the blind plan keep their IDs and go to `--owner` as a
+list (`D7,D9`).
 
 | # | Decision | Recommendation |
 |---|---|---|
@@ -118,7 +118,7 @@ The usual phases:
 |---|---|
 | P0 Environment | Integration org through the build harness, on a named scenario or shape, with a lifetime that covers the build (shipped scenarios use `days: 1`; see `build-harness` → Keep an org for a multi-day build); feature and enablement checks; tooling. A checklist of the org settings the plan relies on. Some have no known API (a 264 build found them in no settings metadata or sObject or Tooling describe): the Salesforce Pricing Setup default term counts (Evergreen, One Time) are read in Setup → Salesforce Pricing Setup → Proration Settings (a fresh 264 `ent-sb0` org showed Evergreen 1, One Time 0), or the plan adds a step that sets them |
 | P1 Extraction | Source → design model and golden values; the converter's acceptance tests (section 3, Extraction); an independent re-check: a fresh agent, without the converter, recomputes a sample of golden values weighted to derived ones (exercised in a prior build); user reviews the design |
-| P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table with columns spike ID, rules, must hit, smallest case, read first. Usually two waves, exercised in a prior build, in one table with the wave in a column or under sub-labels **P2a** and **P2b**: **P2a**, spikes a probe product can answer (pricing routes, surface), beside or before P3; **P2b**, spikes whose must-hits need the real catalog, model and prices (amend, cancel, renew), run on an org the loader fills after the pricing gate's standard-price goldens pass |
+| P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table with columns spike ID, rules, must hit, smallest case, read first. Usually two waves, exercised in a prior build, in one table with the wave in a column, or under sub-labels **P2a** and **P2b** that both sit inside the P2 section, before the P3 label (the ledger reads no spike table after it): **P2a**, spikes a probe product can answer (pricing routes, surface), beside or before P3; **P2b**, spikes whose must-hits need the real catalog, model and prices (amend, cancel, renew), run on an org the loader fills after the pricing gate's standard-price goldens pass |
 | P3 Catalog, then configuration | Data plans derived from the base build's own plans; CML; the route prerequisites of every P2a spike that touches them; the first loader (SKILL.md step 7) |
 | P4 Pricing and cost | Price books, adjustments, procedure changes, cost wiring. The gate prices only after the decision tables it reads are fresh (`decision-tables` Quick Rule 1) |
 | P5 Negotiation, approvals, runtime surface | Quote rounds, approvals, Transaction Line Editor configuration |
