@@ -10,7 +10,7 @@ below are illustrative, not a recommended policy):
 
 | Dimension | Level 1 | Level 2 | Level 3 | Measured on |
 |---|---|---|---|---|
-| Discount (per line) | > 8% | > 18% | > 28% | each line |
+| Discount (per line) | > 7% | > 15% | > 25% | each line |
 | Blended margin | < 55% | < 50% | < 45% | the quote |
 | Net value | — | > $2M | > $8M | the quote |
 | Other triggers | a manually overridden line price; any non-catalog line | quote validity longer than 30 days | — | line or quote |
@@ -20,7 +20,7 @@ Two policy rules decide the shape:
   take the maximum.
 - **A level usually also needs the levels below it:** the levels form a serial chain.
 
-Every percentage also needs a base. "Discount > 18%" can be measured off list price, or off
+Every percentage also needs a base. "Discount > 15%" can be measured off list price, or off
 a standard price that already includes contract, bundle or volume pricing; the same line can
 land on different levels under each. That is a modeling decision the source must state; if
 it doesn't, ask and record the answer. §2 shows what the shipped level measures.
@@ -82,7 +82,7 @@ where each level is computed:
     - a flow formula read `Product2.Family` and a custom `Product2` field through the loop
       variable (`{!<loop>.Product2.Family}`) over the Get Records collection;
     - Percent fields come in percent units: a line `Discount` of 24% reads as 24, so test
-      `> 20`, not `> 0.20`;
+      `> 15`, not `> 0.15`;
     - a line-floor count (line `Margin` below a floor) and a below-cost count
       (`NetUnitPrice < UnitCost`) each raised the level on the lines they should, and not on
       the others.
@@ -145,7 +145,7 @@ where each level is computed:
   [Dev guide: `sforce_api_objects_quotelinegroup`] or is written to each line's `Discount`,
   which the shipped level reads. Don't count on a group discount to keep a round's discount
   out of the level until that is measured ([limitations.md](limitations.md)).
-- A pass-through line priced at or near cost (a travel line, say) trips a below-cost or
+- A pass-through line priced at or near cost trips a below-cost or
   floor-margin guard on every quote. Exclude it by a marker the filter tests, such as a
   product attribute or line field, not by product name. The source must also say whether
   excluded lines still count in a blended margin.
@@ -160,8 +160,8 @@ where each level is computed:
   `ApprovalLevel` and drive the single chain from it. The approvers are the same people, so
   one chain avoids duplicate work items. With a modified copy of the shipped flows that folds
   every dimension, payment terms included, into `ApprovalLevel`, no level → Approved with no
-  work items; level 1 → the first approver; a non-standard payment term set at level 2 → the
-  first two approvers in turn; level 3 → all three in turn. Each submission and its quote
+  work items; level 1 → the first approver; a non-standard payment term mapped to a middle
+  level → the approvers up to that level, in turn; level 3 → all three in turn. Each submission and its quote
   ended Approved [Measured: 2026-11-12, 264].
 - **Several dimensions, separate sign-offs:** give each its own `ApprovalChainName` when a
   dimension needs its own sign-off, usually from different approvers. Chains in one stage

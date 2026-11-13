@@ -14,7 +14,7 @@ description: >-
 
 # Advanced Approvals — Modeling, Building and Verifying Approvals
 
-Use this skill to turn a sign-off policy ("over 18% needs a Director; below 50% margin
+Use this skill to turn a sign-off policy ("over 15% needs a Director; below 50% margin
 needs a Director; over $8M needs the VP") into Revenue Cloud Advanced Approvals. It also
 covers running and checking a submission, and extending the approval workflow this repo
 already ships. Claims are tagged: `[Help: <article>]` and `[Dev guide: <article>]` from
