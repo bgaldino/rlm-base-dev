@@ -72,7 +72,7 @@ cover line-editor "\btransaction line editor\b"
   show as coverage everywhere.
 - **Use word boundaries.** "rounding" also matches "grounding" and "surrounding";
   "clone" matches dozens of files. Record the regex next to each count in the plan; in a table cell, escape each `|` as `\|`
-  (`a\b\|\bb`), or it splits the cell when rendered and in `ledger.py`.
+  (`a\b\|\bb`), or it splits the cell, and unescape it before running the regex again.
 - **List files, not skills.** A skill that mentions a term once in a table looks the
   same, by skill name, as one with a sub-file about it. The sweep prints each matching
   file; open the ones that look like coverage.
