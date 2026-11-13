@@ -16,7 +16,7 @@ For each change, record the state after every step:
    on the top-level asset, `quantityChange` 0, Quote output), then made the change with a
    Place request.
 2. **Make the change and read the quote.** Edit an amendment line or answer through Place
-   with `configurationMethod: Force` (and `executeConfigurationRules: true` for rules on), as in
+   with `configurationMethod: Force` (and `configurationPref.configurationOptions.executeConfigurationRules: true` for rules on), as in
    the measured runs. One earlier observation had `Skip` refusing a quantity edit on a No Change line
    that Force accepted [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]; it was not
    reproduced on a new-business line [Measured: 2026-11-12, 264, scratch], and the No Change

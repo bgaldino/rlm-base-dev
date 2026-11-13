@@ -651,7 +651,7 @@ Run the parent skill's headless `configure` check
 in front of it (step 1 below).
 
 1. **Place with configuration rules on:** `configurationMethod: Force` with
-   `executeConfigurationRules: true`. `configurationMethod` defaults to `Skip`
+   `configurationOptions.executeConfigurationRules: true` (both in `configurationPref`). `configurationMethod` defaults to `Skip`
    `[Dev guide: connect_requests_configurator_preference_input]`, and
    `executeConfigurationRules: true` alone runs nothing at Place
    `[Repo: .cursor/skills/constraint-models/SKILL.md]`. With rules off, `configure`
@@ -720,8 +720,9 @@ configuration method; nothing in it is gated by `Force` or `Skip`
 and `Skip` an edit to 6; an edit to 0 was refused by both ("Quantity must be nonzero",
 FIELD_INTEGRITY_EXCEPTION) with the line unchanged
 `[Measured: 2026-11-12, 264, scratch]`. One earlier observation had `Skip` refusing an edit that `Force` accepted on a No Change
-line (`[Measured: 2026-11-11, 264]`); that was not reproduced. The "Specify 0 in Quantity"
-message on a No Change amend line was not re-run, so that case stays open: read the saved
+line (`[Measured: 2026-11-11, 264]`); the new-business line above showed no such divergence,
+and neither that No Change case nor the "Specify 0 in Quantity" message on a No Change amend
+line was re-run, so that case stays open: read the saved
 line back rather than relying on either method.
 
 `success: true` and `isSuccess: true` prove nothing about the rules. Once, the rule's
