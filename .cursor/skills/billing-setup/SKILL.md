@@ -217,7 +217,9 @@ one-time line with a milestone treatment and no frequency produces such a schedu
 
 Any share left after the items is a remainder item that the platform adds, invoiced with the
 final milestone [Help: `ind.billing_milestone_usecase`]. Ask the source's owner for these;
-until they answer, list them as open decisions in the plan. The repo's milestone treatment
+until they answer, list them as open decisions in the plan. Meanwhile build the milestone
+route with a placeholder treatment (the repo's example below), assert only that activation creates
+the plans, and don't assert amounts or names; don't fall back to one-time billing. The repo's milestone treatment
 (four items, 10/20/50/10 percent) is an example, not a default for services
 ([shipped-billing.md](shipped-billing.md)).
 

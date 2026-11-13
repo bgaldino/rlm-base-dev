@@ -4,7 +4,8 @@
 > `ind.pricing_understand_price_revisions.htm`, `ind.pricing_apply_policy_driven_price_revisions.htm`,
 > `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm`,
 > `ind.qocal_consumer_price_index_and_price_uplifts.htm`, `ind.qocal_considerations_ramp_deals.htm`; repo: `../pricing-wiring/price-revision-cpi.md`.
-> Not live-verified.
+> Mostly not live-verified; renewal rows measured in
+> [`../asset-lifecycle-changes/change-policy-mapping.md`](../asset-lifecycle-changes/change-policy-mapping.md).
 
 A Price Revision Policy holds the uplift formula and validity; an Index Rate holds a benchmark
 (for example CPI) per region and period. The Price Revision element reads both to uplift renewal prices.

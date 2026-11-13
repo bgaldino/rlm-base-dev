@@ -60,7 +60,7 @@ path or consequence was not established (the text says what is missing).
    [Measured: 2026-11-10, 264]. Sync with `syncQuoteOpportunity`, not that field write. With
    Asynchronous Opportunity Sync on (the measured case; it applies only to quotes with the
    Revenue Cloud pricing type) the write only marks the quote as
-   syncing, and no completion step was found in the logic read, so waiting does not help; and `createOrdersFromQuote` refused the quote
+   syncing, and no completion step was found in the logic read, so waiting does not help for the field write; and `createOrdersFromQuote` refused the quote
    ([Final round to order](#final-round-to-order)) [Measured: 2026-11-12, 264;
    Platform behaviour, traced in part]. Help converts
    an accepted quote into an order [Help: `ind.qocal_create_orders_from_a_quote`].
@@ -108,7 +108,7 @@ path or consequence was not established (the text says what is missing).
 | First offer | New quote on the opportunity | Yes | Its own submission | Synced while it is current |
 | Each later customer-facing round (as many as the deal needs) | Deep clone of the previous customer-facing round, renamed | Yes | New submission | Sync moves to it |
 | Internal what-if round (optional) | Deep clone of any round, renamed and marked internal | **No** | Its own submission if policy needs sign-off on that price | **Never** |
-| Final | Deep clone of the round the customer accepted (or an internal round whose numbers match it), renamed | Yes | New submission | Synced; set to Accepted; Create Order |
+| Final | Deep clone of the round the customer accepted (or an internal round whose numbers match it), renamed | Yes | New submission | Set to Accepted; synced last; Create Order (retry on "currently syncing") |
 
 - **Naming:** "<Opportunity> — R<n> <label>", for example "Example Corp renewal — R2 What-if
   (internal)". Rounds sort by name and read in list views.
@@ -166,7 +166,14 @@ ships). Reprice each round before submitting it.
 
 ## Final round to order
 
-1. Sync the final round: Start Sync on the quote [Help:
+Order of operations: write the status (Accepted, if your process sets it) and any other quote
+edit first, sync last, then create the order [inferred from the traced rule in step 1; this order
+was not itself run]. A quote write after the sync can make Create Order refuse it as "currently
+syncing" (step 1). On that refusal, retry about 15 s later or sync again; the 15 s retry created
+the order without a second sync on one quote (sync, then Accepted, then Create Order); the traced
+rule doesn't explain that [Measured: 2026-11-12, 264, scratch; one quote].
+
+1. Sync the final round (after any status write): Start Sync on the quote [Help:
    `ind.qocal_considerations_syncing_quotes_and_opportunities_in_revenue_cloud`]. Sync runs
    quote to opportunity only, flattens bundles and drops attributes (same article). With
    Asynchronous Opportunity Sync on, flows call `syncQuoteOpportunity`
@@ -186,7 +193,8 @@ ships). Reprice each round before submitting it.
    stays marked `IsSyncing` after a good sync (a code comment says this is intended; not
    otherwise confirmed); completion is "last sync time is not
    earlier than the quote's last modified time", not `IsSyncing` false. So any later edit to the
-   quote, including a system or pricing save, needs another sync before ordering. Which saves
+   quote, including a system or pricing save, needs another sync before ordering by the traced rule
+   (a retry about 15 s later without a re-sync worked once; the rule doesn't explain it). Which saves
    change the quote's last modified time was not established
    [Platform behaviour, traced in part]. The check applies only with Asynchronous Opportunity
    Sync on; without it the field write is expected to run an older inline sync and order
@@ -196,7 +204,7 @@ ships). Reprice each round before submitting it.
    `syncQuoteOpportunity` action's access check is that same setting. This repo's `post_utils`
    settings bundle turns it on (`enableAsynchronousQuoteOpportunitySync`); on an org built
    another way, read that setting.
-2. Set it to Accepted, then Create Order [Help: `ind.qocal_create_orders_from_a_quote`], or
+2. Create Order [Help: `ind.qocal_create_orders_from_a_quote`], or
    `createOrdersFromQuote` with `quoteId` [Dev guide: `actions_obj_create_orders_from_quote`].
    `createOrderFromQuote` is deprecated from API 65.0 [Dev guide: `actions_obj_create_order_from_quote`].
    The order `createOrdersFromQuote` created was Draft with `EffectiveDate` = the day it ran,
@@ -232,8 +240,8 @@ one round is internal only.
 2. Each later customer-facing round = Connect clone of the previous one; rename; change discounts
    with bulk edit; reprice; recall the previous round's submission if still open; submit.
 3. The internal round = clone of the round it models; rename "(internal)"; set the flag; never sync.
-4. Final = clone of the accepted round; rename; clear any internal flag; submit; sync;
-   Accepted; Create Order.
+4. Final = clone of the accepted round; rename; clear any internal flag; submit; Accepted;
+   sync; Create Order (retry on "currently syncing").
 5. Check: each round's totals match the source's figures for that round.
 
 ### Example 2 — Headless clone
@@ -285,7 +293,7 @@ Not measured; settle on a live org before relying on them:
   `enableTransactionCloning`, and whether it behaves like the Connect API.
 - Whether `options.recordTypeId` sets the clone's record type.
 - Whether an object state definition can govern `Quote.Status`.
-- What a clone does to bundles, ramp segments, header discounts and `QuoteLinePriceAdjustment`
+- What a clone does to static or nested bundles, ramp segments, header discounts and `QuoteLinePriceAdjustment`
   rows.
 
 ## Sub-files

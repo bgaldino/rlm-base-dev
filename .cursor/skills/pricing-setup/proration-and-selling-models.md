@@ -79,7 +79,7 @@ labels EndOfPeriod; bind `LastDayOfPeriod` [Core]), day/month for DayOfPeriod on
 Multiplier = time used / total time in period; "month-plus-day" proration works for any frequency.
 [Platform behaviour, traced] The count is day-based: the number of periods, where only the first and last
 (partial) period count as days used / days in that full period, inclusive actual calendar days under an actual-days
-policy (the default). The denominator is that period's real length, so a partial period in a leap year is over 366 (period boundaries inferred from measured values).
+policy (the default). The denominator is that period's real length, so a partial period in a leap year is over 366 (period boundaries inferred from measured values, all on contracts starting 1 January; for another start date measure one mid-period change first).
 Partial periods off: whole periods only. A 30-day-month type counts a full month as 30 days (the 30/360 variant caps the day at 30; the actual-days-with-30-day-months variant counts partial months in actual days). The remainder strategy
 changes the money split, not the count. The paragraph above is traced for annual frequency and the actual-days type; not verified beyond that.
 From the separate partial-month trace (not the annual path): a partial month is a whole month when partial periods are off, and the day fraction (15 of 30 = 0.5) when on; only the first and last period are fractional, interior periods stay whole. Rounding applies to the money at the currency scale, not to the count.
