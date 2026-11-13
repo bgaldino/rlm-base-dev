@@ -111,7 +111,7 @@ Then Simulate a known product and compare the waterfall with the source row.
 ## Open questions
 
 - Whether Package Manager components include price book records (Help implies metadata only).
-- [Platform behaviour, traced] A lookup with no row for the transaction currency returns no match (`CurrencyIsoCode` is a required equals input in the shipped recipe tables). For an adjustment or tier lookup the line gets no adjustment, with no conversion from the corporate currency found; a list-price lookup returns no price. Procedure and lookup path only; whether an empty result is skipped or raises an error is inferred (no error was seen in the source), not measured. Load a row per currency.
+- [Platform behaviour, traced] A lookup with no row for the transaction currency returns no match (`CurrencyIsoCode` is a required equals input in the shipped recipe tables). For an adjustment or tier lookup the line gets no adjustment, with no conversion from the corporate currency found; a list-price lookup returns no price. Procedure and lookup path only; no error is raised in the traced path; not measured. Load a row per currency.
 - Whether the predefined adjustment tables need the Currency field added by hand when multicurrency is enabled after the procedure exists; Help names only Price Book Entries V2 for that step (`ind.qocal_create_a_pricing_procedure_for_product_discovery.htm`).
 - `PricebookEntryDerivedPrice` has `CurrencyIsoCode` (Dev Guide) and the repo plan keys it on currency, but the plan ships no rows, so per-currency derived prices are untested here.
 - What Help means by "Only the Place Sales Transaction API supports multi-currency transactions" (`ind.qocal_set_up_multiple_currencies.htm`).

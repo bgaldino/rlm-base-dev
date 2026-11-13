@@ -4,8 +4,8 @@
 > regions in any org (Help): `.cursor/skills/pricing-setup/price-revision-policies.md`.
 
 How a **Price Revision Policy** changes a price in `RLM_DefaultPricingProcedure`, how CPI data is
-seeded, and how to check a result. Measured 2026-10-29 on a fresh 264 build (r1-306) with the quote
-procedure plan inactive (todo 314).
+seeded, and how to check a result. Measured 2026-10-29 on a fresh 264 build with the quote
+procedure plan inactive.
 
 ## What's involved
 
@@ -67,13 +67,15 @@ waterfall does standard pricing when the policy type is `PriceIndex`, so compoun
 with a Flat policy or no policy [Platform behaviour, traced].
 
 So the CPI ramp row above is the fallback, measured: each segment gets its own year's rate plus its
-uplift, with no compounding. It isn't a supported demo path (todo 317).
+uplift, with no compounding. It isn't a supported demo path.
 
 **Per-lot uplift.** The policy applies to an item only when the line's effective date falls
 inside the policy's effective window. On an as-is renewal each prior lot has its own detail line,
-the policy is set on each lot's detail line, and the uplift applies to that lot's own price, not
-to a combined price [Platform behaviour, traced]. How the policy is copied to the asset at
-activation was not read.
+the revision is applied separately on each lot's detail line, and the uplift applies to that
+lot's own price, not to a combined price [Platform behaviour, traced]. At activation a new sale
+copies the policy from the order line; later periods inherit it from the previous period, so
+changing the policy on an amendment line doesn't change it on the asset [Platform behaviour,
+traced; not measured].
 
 On an as-is renewal the price sits on the detail line (`QuoteLineDetail`), and the parent
 `NetUnitPrice` is null. Read the detail lines (see `rlm-business-apis/SKILL.md` → *Where an ARC

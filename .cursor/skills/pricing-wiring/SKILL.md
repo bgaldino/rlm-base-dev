@@ -291,9 +291,11 @@ Future feature packs should mirror this split.
 ## Runtime-created pricing rows
 
 A decision table goes stale the moment its source object gains or changes a row, and
-pricing then prices from the table as last refreshed, as if that row did not exist. A lookup
-with no matching row returns no match, so the line gets no price or no adjustment from that
-table, with no error [Platform behaviour, traced: procedure lookup path only]. Most
+pricing then prices from the table as last refreshed, as if that row did not exist. A changed
+source row prices at its old value until the refresh. A lookup with no matching row returns no
+match: the step sets no price or adjustment from that table, and values from earlier steps are
+kept, not zeroed; no error is raised in the traced path [Platform behaviour, traced: procedure
+lookup path only; with output resolution on, Help says the line stops instead]. Most
 pricing sources in this repo are loaded once at org build and never touched again, so in
 practice the tables stay correct. The ones that bite are the sources normal selling
 writes to *after* the build.
@@ -339,7 +341,7 @@ error handling to a flow that calls `refreshDecisionTable`:
 | Shape | What you get | Where it shows |
 |---|---|---|
 | Invalid or inactive `DecisionTableApiName` | **A Flow fault** (*"The decision table API Name is invalid…"*), not a `Failed` status | Nowhere on `DecisionTable` — an unresolvable name identifies no table record to stamp. Only the flow's own fault handling sees it. |
-| Accepted refresh that then fails | `status = Queued`, async job result | `RefreshStatus` (seen going `Initiated` then `Completed` on one org; not traced) and `RefreshFailureReason` |
+| Accepted refresh that then fails | `status = Queued`, async job result | `RefreshStatus` (observed on a live org going `Initiated` then `Completed`; not traced) and `RefreshFailureReason` |
 
 Consequences:
 
@@ -448,14 +450,18 @@ Check in order:
 
 ### Wrong-currency price returned (multicurrency orgs)
 
-A lookup step that does **not** pass `CurrencyIsoCode` has no currency to match on, so rows
-for different currencies are not told apart and a currency can price from another currency's
-row [inferred; which row wins was not traced]. The symptom is a *plausible* price, not an
-error. Where the step does pass `CurrencyIsoCode` (the shipped recipe tables take it as a
-required Equals input) and the table has no row for that currency, the lookup returns no match:
-no price or no adjustment from that table, no error, and no conversion from the corporate
-currency [Platform behaviour, traced: procedure lookup path only]. More than one match in a
-single-output lookup raises a duplicate-value error.
+A lookup step that does **not** pass `CurrencyIsoCode` does not match on currency. If the
+table has rows for the product in more than one currency, a single-output lookup fails with a
+duplicate-value error; with output resolution on, one row is picked by priority, and it can be
+another currency's [Platform behaviour, traced: procedure lookup path only]. If the only row is
+in another currency, the line prices from it [inferred]. In those last two cases the symptom is a
+*plausible* price, not an error.
+
+Where the step does pass `CurrencyIsoCode` (the shipped recipe tables take it as a required
+Equals input) and the table has no row for that currency, the lookup returns no match: the step
+sets no price or adjustment from that table, earlier values are kept, no error is raised in the
+traced path, and there is no conversion from the corporate currency [Platform behaviour, traced:
+procedure lookup path only; with output resolution on, Help says the line stops instead].
 
 **Fix:** add `CurrencyIsoCode` as an input on **every** lookup step that resolves a
 currency-denominated value — list price, adjustment schedule, and adjustment tier
@@ -479,7 +485,7 @@ Offline guard: `python tests/test_qb_multicurrency_data.py`.
 Live guard: `cci task run validate_multicurrency_rates`.
 
 **Refreshing exchange rates in the plans.** qb/en-US qb-pricing's `CurrencyType.csv` is the rate table for
-the USD-corporate shapes that share a currency with qb (q3 since todo 328), so refresh it there and copy
+the USD-corporate shapes that share a currency with qb (q3 shares it), so refresh it there and copy
 the shared rates. qb/ja's is JPY-corporate (USD 0.00663): never point the task's `csv_path` at it, as it
 would write USD-based rates into a JPY-based table.
 
@@ -502,7 +508,7 @@ would write USD-based rates into a JPY-based table.
    `-o iso_codes` it patches every active non-corporate currency, including q3's own and mfg's.
 
 Prices in a currency follow its rate, so never change one without the other. mfg keeps its own rates
-until todo 327.
+until it is aligned separately.
 
 ### active version update failures
 
