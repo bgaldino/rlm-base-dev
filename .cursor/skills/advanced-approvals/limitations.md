@@ -153,7 +153,8 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   every step, a resubmission after a rejection at the second step (the first approved)
   opened a new first-step work item, `Assigned`, `IsEligibleForSmartApproval` false
   [Measured: 2026-11-12, 264], as expected if it is the Use Smart Approval setting. With it
-  `true` (as the shipped steps set it), resubmissions auto-approved the steps whose range still held
+  `true` (as the shipped steps set it), resubmissions auto-approved a step that was approved in the earlier submission and whose
+  range still held, and the step rejected there went to review again
   [Measured: 2026-11-12, 264, scratch]; the Approval Settings page was not read.
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.
