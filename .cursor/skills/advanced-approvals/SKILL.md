@@ -220,8 +220,9 @@ items:
   not measured]. In a scratch org built by this repo the setting read off (Metadata API field
   `enableFlowDeployAsActiveEnabled` in FlowSettings; a fresh org was not read separately); a changed approval orchestration
   deployed as Active still became the new Active version and the old one became Obsolete, and
-  an unchanged redeploy created no version. That redeploy (status only, to Draft, over an Active
-  flow) did not deactivate the flow [Measured: 2026-11-12, 264, scratch; non-production]. Steps inside
+  an unchanged redeploy as Active created no version. A redeploy with only the status changed
+  to Draft over an Active flow also created no version and did not deactivate the flow
+  [Measured: 2026-11-12, 264, scratch; non-production]. Steps inside
   orchestrated stages keep their saved order, a possible reason an orchestration redeploys
   unchanged; that is not proven for the measured run. For a new or generated flow, deploy it, retrieve it and commit the retrieved form. Compare
   `SELECT VersionNumber, Status FROM Flow WHERE Definition.DeveloperName = '<flow>'`
