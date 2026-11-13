@@ -10,8 +10,8 @@
 > Route 1 was built and measured end to end on a fresh 264 `ent-sb0` scratch org on 2026-11-11,
 > configuration rules on; routes 2 and 3 were not built.
 
-The need: a child line's price depends on an answer given on the bundle root. Example: a suite
-bundle asks for a Region on the root, and its Software and Support child lines take a regional
+The need: a child line's price depends on an answer given on the bundle root. Example: a kit
+bundle asks for a ClimateZone on the root, and its Installation and Warranty child lines take a climate-zone
 uplift. The documented routes move the answer to a place a pricing element reads: onto the child
 line itself, or onto the header. Route 1 works live; routes 2 and 3 are [open](#open-questions).
 
@@ -22,16 +22,16 @@ line itself, or onto the header. Route 1 works live; routes 2 and 3 are [open](#
   child is the documented way to cascade a bundle-level choice to every child; the dev guide's
   example does exactly that and notes the inherited value can affect price
   [Dev guide: `cml_using_proxy_variables_constraints.htm`, *Parent*]. For the example, the child
-  type declares `string Region = parent(Region);`. Under a Product Component Group the group is an
-  intermediate parent, so reach the root with `parent(Region, 1)` or dot notation from the bundle
+  type declares `string ClimateZone = parent(ClimateZone);`. Under a Product Component Group the group is an
+  intermediate parent, so reach the root with `parent(ClimateZone, 1)` or dot notation from the bundle
   [Dev guide: `cml_best_practice_parent_products.htm`]; the dev guide contradicts itself here, see
   [`../../constraint-models/quantities-from-attributes.md`](../../constraint-models/quantities-from-attributes.md)
-  → Scope. Live, `parent(Region)` with no level reached the root in a model that declares no
+  → Scope. Live, `parent(ClimateZone)` with no level reached the root in a model that declares no
   group types ([Route 1 measured](#route-1-measured)). Authoring and deployment: [`../../constraint-models/SKILL.md`](../../constraint-models/SKILL.md).
-- **Pricing side.** Make `Region` a price-impacting attribute on the child product's own
+- **Pricing side.** Make `ClimateZone` a price-impacting attribute on the child product's own
   classification, not an inherited one, and do not override it in the bundle context: the override
   stops the adjustment applying [Help: `ind.pricing_attribute_based_pricing_limits.htm`]. Then add
-  an Attribute Based Adjustment per region value on the child products. Matching, the
+  an Attribute Based Adjustment per ClimateZone value on the child products. Matching, the
   whole-attribute-set rule and schedule setup are in [`attribute-based-price.md`](attribute-based-price.md);
   attribute placement in
   [`../../product-catalog-modeling/attributes-and-classifications.md`](../../product-catalog-modeling/attributes-and-classifications.md).
@@ -40,13 +40,13 @@ line itself, or onto the header. Route 1 works live; routes 2 and 3 are [open](#
 
 Built on a Place Sales Transaction quote (`configurationMethod: Force`,
 `executeConfigurationRules: true`) and in the configurator UI [Measured: 2026-11-11, 264, fresh
-`ent-sb0` scratch org]:
+`ent-sb0` scratch org; attribute names illustrative]:
 
-- **Only the root carries the answer.** The request set Region on the root line alone. The model
+- **Only the root carries the answer.** The request set ClimateZone on the root line alone. The model
   wrote the child's `QuoteLineItemAttribute`, and Attribute-Based Price priced the child from it. So the value is saved on the line and
   hydrated into the pricing context before that step. In the configurator UI the children took
   the root's value too (with a value that has no adjustment row, so no uplift was priced there).
-- **`parent(Region)` with no level reached the root** from children that sit in a product
+- **`parent(ClimateZone)` with no level reached the root** from children that sit in a product
   component group, in a model that declares no group types. Whether a model that declares group
   types needs the level argument was not measured.
 - **Catalog set-up used:** each affected child is based on a classification that carries
@@ -83,10 +83,10 @@ Built on a Place Sales Transaction quote (`configurationMethod: Force`,
   customer info or product attributes, linked to quote fields
   [Help: `ind.pricing_add_the_price_adjustment_matrix_element.htm`]. Recipe registration,
   single-row matching and refresh are in [`price-adjustment-matrix.md`](price-adjustment-matrix.md). Key the table on the
-  region and the product, so only the affected children match.
+  climate zone and the product, so only the affected children match.
 - The shipped PRM procedure already runs a Price Adjustment Matrix per line keyed on a header tag
   (`PartnerAccount__c`) [Repo: `RLM_PRM_DISTI_Pricing_Procedure`, `partner_account.json`], so the
-  region can come from the header as in route 2. Keying on a line tag such as route 1's child
+  climate zone can come from the header as in route 2. Keying on a line tag such as route 1's child
   attribute is marked [inferred] in that file.
 - Choose this route when business users must maintain the uplifts as data.
 

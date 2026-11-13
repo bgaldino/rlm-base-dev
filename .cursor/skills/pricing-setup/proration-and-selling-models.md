@@ -89,7 +89,7 @@ prorates a half month to 0.5; both hold under different partial-period settings 
 ## How pricing uses it
 
 - Subscription element: unit price x quantity x pricing term count; Proration element emits the term count.
-- [Platform behaviour, traced] In the shipped default procedure the term count is the Proration step's multiplier. The step reads the selling model's pricing term unit (not the line's own unit) as both the period and the term unit, and the line's `SubscriptionTerm` as the term; with no end date the end is start + term (in that unit) - 1 day. A line with dates only has the count derived from them. So send a term in the selling model's unit (36 on an Annual model is 36 periods) or dates. Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace shows Place filling a missing term context tag with the selling model's pricing term when the line's selling model option is Term Defined, but not that fill reaching the saved line. In the measured requests (price book entry only, no `ProductSellingModelId` in the request; the saved line's selling model was Term Defined) the saved unit was `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line (System pricing, configuration method Force, rules on) priced from its dates (term count 3) and did not get the term-keyed discount step that the measured org's customised pricing procedure adds (not a shipped step) when a header switch is on (it was on), both standalone (net 17,100, vs 16,416 when the line was sent with `SubscriptionTerm` 3 and unit `Annual` instead of an end date) and as a bundle component (16,587 vs 15,923.52 on the same change) [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. So for pricing, dates suffice; send the term explicitly when anything reads `SubscriptionTerm` (such as a commitment-term discount filter, which skips such a line).
+- [Platform behaviour, traced] In the shipped default procedure the term count is the Proration step's multiplier. The step reads the selling model's pricing term unit (not the line's own unit) as both the period and the term unit, and the line's `SubscriptionTerm` as the term; with no end date the end is start + term (in that unit) - 1 day. A line with dates only has the count derived from them. So send a term in the selling model's unit (48 on an Annual model is 48 periods; term illustrative) or dates. Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace shows Place filling a missing term context tag with the selling model's pricing term when the line's selling model option is Term Defined, but not that fill reaching the saved line. In the measured requests (price book entry only, no `ProductSellingModelId` in the request; the saved line's selling model was Term Defined) the saved unit was `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line (System pricing, configuration method Force, rules on) was priced from its dates alone (a whole-year term count) and came out higher by exactly the missing commitment-term step, because the term-keyed discount never ran. That step is one the measured org's customised pricing procedure adds when a header switch is on (it was on; not a shipped step). The result held both standalone and as a bundle component, against a line sent with `SubscriptionTerm` and unit `Annual` instead of an end date [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. So for pricing, dates suffice; send the term explicitly when anything reads `SubscriptionTerm` (such as a commitment-term discount filter, which skips such a line).
 - One-time and evergreen use the Pricing Setup default when set (see element file).
 - How the policy and option values reach the element (via context tags) is not in Help; see the element file.
 
@@ -118,13 +118,13 @@ Periods, remainder `AddToLast`, partial periods allowed):
 
 | Line dates | `PricingTermCount` |
 |---|---|
-| 2027-07-01 to 2029-12-31 | 2.504109589 (2 + 184/365) |
-| 2028-07-01 to 2029-12-31 | 1.5027 (1 + 184/366) |
+| 2026-04-01 to 2028-12-31 | 2.753424658 (2 + 275/365) |
+| 2028-04-01 to 2029-12-31 | 1.7514 (1 + 275/366) |
 | Dates covering whole years | a whole number (2 and 1 measured) |
 
-Whole years count 1 each and the partial year counts by days, so 30 months is not 2.5 terms. Both measured values
-fit a partial period at the start of the line (July to December, 184 days) divided by the length of the calendar
-year it falls in (365 in 2027, 366 in 2028); which period anchoring produces this wasn't isolated, so check dates
+Whole years count 1 each and the partial year counts by days, so 33 months is not 2.75 terms. Both values (dates illustrative; the rule is what was measured)
+fit a partial period at the start of the line (April to December, 275 days) divided by the length of the calendar
+year it falls in (365 in 2026, 366 in 2028); which period anchoring produces this wasn't isolated, so check dates
 that cross a leap year against a live run. A source
 that prorates by months remaining ÷ 12 differs by the day fraction: on a mid-term amendment or co-termed add the
 line totals won't match it. Either accept the day-based value or state the source's value as the

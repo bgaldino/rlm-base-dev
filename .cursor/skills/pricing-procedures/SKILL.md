@@ -295,7 +295,7 @@ Checklist:
   metadata shape (where one is known), shipped snapshot, how to verify, troubleshooting,
   open questions.
 - [`elements/commitment-term-discount.md`](elements/commitment-term-discount.md) — a
-  commitment-term discount (annual Term Defined lines committed 36+ months get a further
+  commitment-term discount (annual Term Defined lines committed 48+ months get a further
   percentage off) built from a List Group filter and Formula-Based Pricing: tags, filter logic,
   rounding, placement before term pricing, the overlay, a measured headless-pricing result, what
   real quote lines must carry (term in the selling model's unit, ramp lines, a header switch), and

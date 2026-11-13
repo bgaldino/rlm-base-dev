@@ -15,8 +15,8 @@ description: >-
 
 # Quote Negotiation Rounds — Rounds as Quote Versions
 
-Use this skill when a deal moves through pricing rounds (for example Opening, Round 2, an
-internal Floor round and Award) and each round needs its own discounts and approval, with
+Use this skill when a deal moves through pricing rounds (for example a first offer, further customer-facing
+rounds, an internal what-if round and a final round) and each round needs its own discounts and approval, with
 one round becoming the order. Each round is a quote on the same opportunity, made by deep
 cloning the previous round. Claims are tagged: `[Help: <article>]` and
 `[Dev guide: <article>]` from `docs/salesforce/264/`, `[Repo: <path>]`, and
@@ -54,14 +54,14 @@ path or consequence was not established (the text says what is missing).
    repo's approval status field came over blank, and submitting it created a new submission
    while the source's stayed in progress [Measured: 2026-11-10, 264]. Smart Approvals skips
    steps only on a resubmission of the same record ([Approvals per round](#approvals-per-round)).
-6. **One round syncs at a time, and only the Award round becomes the order.** Keep the current
+6. **One round syncs at a time, and only the final round becomes the order.** Keep the current
    customer-facing round synced. One quote syncs per opportunity: setting
    `Opportunity.SyncedQuoteId` to a new round unsynced the previous one
    [Measured: 2026-11-10, 264]. Sync with `syncQuoteOpportunity`, not that field write. With
    Asynchronous Opportunity Sync on (the measured case; it applies only to quotes with the
    Revenue Cloud pricing type) the write only marks the quote as
    syncing, and no completion step was found in the logic read, so waiting does not help; and `createOrdersFromQuote` refused the quote
-   ([Award round to order](#award-round-to-order)) [Measured: 2026-11-12, 264;
+   ([Final round to order](#final-round-to-order)) [Measured: 2026-11-12, 264;
    Platform behaviour, traced in part]. Help converts
    an accepted quote into an order [Help: `ind.qocal_create_orders_from_a_quote`].
 7. **An internal round needs a gate you build and test.** The docs have no internal-only
@@ -105,16 +105,16 @@ path or consequence was not established (the text says what is missing).
 
 | Round | How it starts | Customer sees it | Approval | Syncs / orders |
 |---|---|---|---|---|
-| Opening | New quote on the opportunity | Yes | Its own submission | Synced while it is current |
-| Round 2 | Deep clone of Opening, renamed | Yes | New submission | Sync moves to it |
-| Floor (internal) | Deep clone of Round 2, renamed and marked internal | **No** | Its own submission if policy needs sign-off on the floor | **Never** |
-| Award | Deep clone of the round the customer accepted (usually Round 2 or a revision of it), renamed | Yes | New submission | Synced; set to Accepted; Create Order |
+| First offer | New quote on the opportunity | Yes | Its own submission | Synced while it is current |
+| Each later customer-facing round (as many as the deal needs) | Deep clone of the previous customer-facing round, renamed | Yes | New submission | Sync moves to it |
+| Internal what-if round (optional) | Deep clone of any round, renamed and marked internal | **No** | Its own submission if policy needs sign-off on that price | **Never** |
+| Final | Deep clone of the round the customer accepted (or an internal round whose numbers match it), renamed | Yes | New submission | Synced; set to Accepted; Create Order |
 
-- **Naming:** "<Opportunity> — R<n> <label>", for example "Example Corp renewal — R3 Floor
+- **Naming:** "<Opportunity> — R<n> <label>", for example "Example Corp renewal — R2 What-if
   (internal)". Rounds sort by name and read in list views.
 - **Relating:** all rounds share the opportunity (the clone keeps it). If reports need a
   round number or the source round, add custom fields; the repo ships none.
-- **Award from Floor?** If the award matches the floor's numbers, clone the Floor round and
+- **Final from the internal round?** If the final matches the internal round's numbers, clone the internal round and
   check the clone's internal marker is clear after it settles; a measured clone came back
   unflagged [Measured: 2026-11-12, 264] ([internal-round.md](internal-round.md)).
 
@@ -161,9 +161,9 @@ ships). Reprice each round before submitting it.
     submission has only one step (in the repo, a level-1 quote on Net 30 creates only the Manager item) can't
     qualify.
 
-## Award round to order
+## Final round to order
 
-1. Sync the Award round: Start Sync on the quote [Help:
+1. Sync the final round: Start Sync on the quote [Help:
    `ind.qocal_considerations_syncing_quotes_and_opportunities_in_revenue_cloud`]. Sync runs
    quote to opportunity only, flattens bundles and drops attributes (same article). With
    Asynchronous Opportunity Sync on, flows call `syncQuoteOpportunity`
@@ -220,18 +220,18 @@ ships). Reprice each round before submitting it.
 
 ## Examples
 
-### Example 1 — Map a four-round workbook
+### Example 1 — Map a multi-round source
 
-Source: each deal has Opening, Round 2, Floor (internal) and Award tabs, each with its own
-discount per product line and an approval level.
+Source: each deal has several rounds, each with its own line discounts and an approval level;
+one round is internal only.
 
-1. Opening = a new quote. Load lines and discounts; reprice; submit.
-2. Round 2 = Connect clone of Opening; rename; change discounts with bulk edit; reprice;
-   recall Opening's submission if still open; submit.
-3. Floor = clone of Round 2; rename "(internal)"; set the flag; never sync.
-4. Award = clone of the accepted round; rename; clear any internal flag; submit; sync;
+1. First offer = a new quote. Load lines and discounts; reprice; submit.
+2. Each later customer-facing round = Connect clone of the previous one; rename; change discounts
+   with bulk edit; reprice; recall the previous round's submission if still open; submit.
+3. The internal round = clone of the round it models; rename "(internal)"; set the flag; never sync.
+4. Final = clone of the accepted round; rename; clear any internal flag; submit; sync;
    Accepted; Create Order.
-5. Golden test: each round's totals match the workbook's tab for that round.
+5. Check: each round's totals match the source's figures for that round.
 
 ### Example 2 — Headless clone
 

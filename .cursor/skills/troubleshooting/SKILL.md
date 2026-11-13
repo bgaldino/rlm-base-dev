@@ -857,7 +857,7 @@ after another sync. Which other saves moved the quote was not identified.
 
 **Fix:** set the status before syncing, or sync again after the status write and any other change,
 then order [inferred from the traced rule; not measured]. If it still refuses, retry after a short
-wait (a retry about 15 s later worked once). Note that the `quote-negotiation-rounds` Award steps
+wait (a retry about 15 s later worked once). Note that the `quote-negotiation-rounds` final-round steps
 sync before setting Accepted. See `quote-negotiation-rounds`.
 
 ### Place on an Order fails with "couldn't fetch the data for ... context definition"
