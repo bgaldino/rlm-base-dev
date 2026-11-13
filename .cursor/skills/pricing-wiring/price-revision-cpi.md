@@ -75,7 +75,8 @@ the revision is applied separately on each lot's detail line, and the uplift app
 lot's own price, not to a combined price [Platform behaviour, traced]. At activation a new sale
 copies the policy from the order line; amendments and renewals read it from the current asset
 state period, when that period's policy field is in the context definition, so changing the policy
-on an amendment line doesn't change it on the asset [Platform behaviour, traced; not measured].
+on an amendment line doesn't change it on the asset [Platform behaviour, traced in part; not
+measured]. Without that field in the context definition, the case was not read.
 
 On an as-is renewal the price sits on the detail line (`QuoteLineDetail`), and the parent
 `NetUnitPrice` is null. Read the detail lines (see `rlm-business-apis/SKILL.md` → *Where an ARC
