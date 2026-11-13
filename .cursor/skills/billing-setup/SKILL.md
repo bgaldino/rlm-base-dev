@@ -56,8 +56,9 @@ read the row's scope before generalising it.
    component is not established [Platform behaviour, traced in part]. Skip kept it on a standalone line (M5). To keep it on
    components, place first, then send a second Place PATCH of the component lines with
    configuration Skip, `BillingFrequency` `MilestonePlan` and the milestone `BillingTreatmentId`:
-   both were kept, no price moved, `createOrdersFromQuote` copied the frequency
-   (`OrderItem.BillingFrequency2` `MilestonePlan`) and activation built one plan per line
+   both were kept, no price moved, the frequency and the milestone treatment were on the order
+   products after `createOrdersFromQuote` (`OrderItem.BillingFrequency2` `MilestonePlan`,
+   `OrderItem.BillingTreatmentId`) and activation built one plan per line
    [Measured: 2026-11-12, 264, scratch]. One org and one bundle; the cause of the
    drop stays open. Read the frequency back after each Place.
 5. **In advance or in arrears is the treatment item's Billing Type, not a line field.**

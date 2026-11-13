@@ -50,6 +50,7 @@ CCI output, then jump to the relevant section below.
 | 24 (prepare_constraints) | Constraints + CML import | [Constraints / CML Errors](#constraints--cml-errors) |
 | 30 (prepare_ux) | UX assembly + deploy | [UX Assembly Errors](#ux-assembly-errors) |
 | 33 (refresh_all_decision_tables) | Decision table refresh | [Decision Table Errors](#decision-table-errors) |
+| *(post-build, runtime)* | Place, quote-to-order and order API errors | [Quote and Order API Errors](#quote-and-order-api-errors) |
 
 ---
 
@@ -821,6 +822,46 @@ INSERT.
 **Fix:** The `update_product_fulfillment_decomp_rules` task re-saves the
 records to trigger ruleset generation. If it still fails, manually re-save
 in Setup.
+
+---
+
+## Quote and Order API Errors
+
+### "Could not find product with ID ..."
+
+**Cause:** the product id a line carries was not returned for that account, price book and context
+(not in the transaction's price book or catalog), or the id is empty ("ID: null") [Platform
+behaviour, traced in part]. A qualification procedure excluding the product would plausibly do the
+same (inferred, not traced). Product details are cached per session context, so a catalog change
+after the first configure in the same context may not show until a new context is used [Platform
+behaviour, traced].
+
+**Fix:** check the line's product id and its price book entry first. After a load that adds
+products, the error was measured to stop once the decision-table refresh and search index rebuild
+finished (`product-catalog-modeling/catalogs-and-loading.md` fact f); which of the two is the cause
+is not established.
+
+### `createOrdersFromQuote` refuses: "currently syncing ... uncommitted changes"
+
+**Cause:** with Asynchronous Opportunity Sync on, order creation refuses a quote that is marked
+syncing and was modified after the opportunity's last sync time [Platform behaviour, traced]. Which
+saves count (for example flow or pricing saves) was not established. Measured on two quotes
+[Measured: 2026-11-12, 264, scratch]. `createOrdersFromQuote` after a successful
+`syncQuoteOpportunity` refused with this message. On the quote whose steps were logged, a Status: Accepted
+write came between the sync and the order. A retry on that quote about 15 s later, with no second
+sync, created the order; the traced rule doesn't explain that. The other quote was ordered later,
+after another sync. Which other saves moved the quote was not identified.
+
+**Fix:** set the status before syncing, or sync again after the status write and any other change,
+then order [inferred from the traced rule; not measured]. If it still refuses, retry after a short
+wait (a retry about 15 s later worked once). Note that the `quote-negotiation-rounds` Award steps
+sync before setting Accepted. See `quote-negotiation-rounds`.
+
+### Place on an Order fails with "couldn't fetch the data for ... context definition"
+
+Seen with `pricingPref` System or Force while Skip succeeded [Measured: 2026-11-12, 264, scratch; one org]; that org's pricing procedure was customised.
+A quote-only custom mapping is one known cause but did not explain this case; cause open. See
+`rlm-business-apis/backdated-asset-lifecycle.md` and `context-service`.
 
 ---
 

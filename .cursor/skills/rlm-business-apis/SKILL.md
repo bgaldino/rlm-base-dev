@@ -62,16 +62,43 @@ Key endpoints (see the reference doc for exact request shapes):
 - `POST /connect/revenue-management/assets/actions/cancel` — Cancel asset
 - `POST /industries/cpq/quotes/actions/get-instant-price` — Instant pricing
 
-**Line discounts in a Place PATCH.** Measured on one fresh 264 scratch org (2026-11-12), with
-Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`, `configurationMethod: Skip`):
+**Line discounts in a Place PATCH.** Measured on 264 scratch orgs (2026-11-12) whose pricing
+procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`,
+`configurationMethod: Skip`):
 
 - `DiscountAmount` is **per unit**: on a line with a quantity above 1 it lowered `NetUnitPrice`
-  by the amount sent, not the line total by it.
-- On a line that carried a `DiscountAmount`, a PATCH sending `DiscountAmount: 0` with
-  `Discount: 5` returned success and changed nothing: the net unit price stayed the
-  amount-discounted one. Sending `DiscountAmount: null` with `Discount: 5` cleared the amount,
-  and the 5 % applied.
-- Read the line back after the PATCH; a success response doesn't show which discount applied.
+  by the amount sent, not the line total by it. The shipped default procedure's Manual Discount
+  step is per unit as well [Platform behaviour, traced].
+- A PATCH sending `DiscountAmount: 0` with `Discount: 5` was refused, both on a fresh line and on
+  one that carried a `DiscountAmount` (`isSuccess` false, FIELD_INTEGRITY_EXCEPTION "You can't
+  specify a discount both as a percentage and an amount...") and the line was unchanged. `0` counts as a value, and `Discount: 5`
+  alone was refused the same way while the stored amount remained. Sending `DiscountAmount: null`
+  with `Discount: 5` cleared the amount and the 5 % applied [Measured: 2026-11-12, 264, scratch].
+  Check `isSuccess` in the response body: an unread refusal looks like a no-op.
+- Send one discount field per line. To switch type, send the other as `null` in the same PATCH, then
+  read the line back. A quote line with both fields non-null is refused at save [Platform
+  behaviour, traced].
+
+**Other Place results.**
+
+- Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace shows
+  Place filling a missing term context tag with the selling model's pricing term when the line's
+  selling model option is Term Defined, but not that fill reaching the saved line. In the measured
+  requests (price book entry only, no `ProductSellingModelId` in the request; the saved line's selling model was Term Defined) the saved unit was
+  `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line
+  (System pricing, configuration method Force, rules on) priced from its dates (term count 3) and
+  did not get the term-keyed discount step that the measured org's customised pricing procedure
+  adds when a header switch is on (it was on) (not a shipped step), both standalone (net 17,100, vs 16,416 when the line was sent
+  with `SubscriptionTerm` 3 and unit `Annual` instead of an end date) and as a bundle component
+  (16,587 vs 15,923.52 on the same change)
+  [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. Send the
+  term explicitly.
+- **Milestone Plan on bundle components.** Place with `configurationMethod: Force` and
+  configuration rules on left `BillingFrequency` blank on component service lines (`billing-setup` → M11). A second Place PATCH
+  with `configurationMethod: Skip` setting `BillingFrequency` Milestone Plan and the milestone
+  `BillingTreatmentId` on those lines kept both, moved no price, and both were on the order products
+  after `createOrdersFromQuote` [Measured: 2026-11-12, 264, scratch; one org]. Why the first Place drops it is not
+  established.
 
 **Backdated asset changes** (amend, cancel, renew, transfer, swap, upgrade, downgrade with an
 effective date in the past; rollback's refusal): the invocable inputs, activation prerequisites,
@@ -93,7 +120,13 @@ platform moves the unit price to the child **`QuoteLineDetail`** / **`OrderItemD
 - This repo keeps **as-is renewals on** (`enableAsIsRenewals=true` in
   `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`), so renewals behave this way
   too. Turning it off moves a plain renewal's price back to the parent, but leaves cancels and
-  negative amendments unchanged (measured, todo 157).
+  negative amendments unchanged (measured). Per-lot as-is pricing also needs a
+  last-transaction pricing source on the renewal (a price book list price source does not qualify;
+  which asset or line field supplies it for a renewal was not traced, so a blank `PricingSource`
+  on the asset or line is not proof either way); no ramp; no derived-price product; no price or
+  attribute change; and not an early renewal [Platform behaviour, traced]. Otherwise the line is not priced per lot. Early renewals get
+  cancel-and-add detail rows [Platform behaviour, traced]; whether a renewal with a price or
+  attribute change does is not settled [Platform behaviour, traced in part].
 - Advanced Detail Line Pricing does not change any of it.
 
 ```bash

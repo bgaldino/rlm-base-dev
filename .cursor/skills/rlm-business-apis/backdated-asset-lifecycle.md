@@ -4,8 +4,8 @@ Read this when you need an asset change that **took effect in the past**: an ame
 cancellation, renewal, transfer, swap, upgrade or downgrade with an effective date before
 today, verified all the way to the invoice. Parent skill: [SKILL.md](SKILL.md).
 
-**Evidence base:** live runs on 264, 2026-10-28, on pk049-r1 (`ent-r1`, todos 246 and 306) and on
-a fresh `ent-r1` build of main (`r1-306`, todo 306). Plain term product `QB-API-PROD` (Term
+**Evidence base:** live runs on 264, 2026-10-28, on one scratch org and on
+a second, fresh scratch build of main. Plain term product `QB-API-PROD` (Term
 Annual, billed monthly at 270.00, USD); ramps on `QB-GEN-AI-LIC`; usage on `QB-DB`. Effective
 date 2026-08-01, invoiced through today (2026-10-28) before the change; monthly advance billing
 bills October in full. Treat every "measured" below as those runs, not as a general rule. Other
@@ -32,7 +32,7 @@ From *Backdate Asset Transactions* and *Considerations for Assets with Backdated
   usage-based products"*, with either Order or Quote output. The same asset accepts a future
   date. Help's rule about usage products with "both a future-dated and a backdated change"
   reads as if such changes could exist; the platform doesn't allow them. `RLM_ARC_Assets` now
-  stops a past date for usage-based assets with its own error screen (todo 306).
+  stops a past date for usage-based assets with its own error screen.
 
 ## UI path: `RLM_ARC_Assets`
 
@@ -70,10 +70,10 @@ each continued through invoice with the verifier and passed; rollback refused in
 - **Transfer: run Create Order on one transfer quote only.** `RLM_CreateOrdersFromQuote` makes
   both the source and target orders from either quote; running it on the second quote makes a
   duplicate pair. Activate the source order first.
-- **Early renewal with a ramp schedule (UI, todo 306).** Override → *Create a ramp schedule* →
+- **Early renewal with a ramp schedule (UI).** Override → *Create a ramp schedule* →
   Yearly, 24 months. The End Date field hides; the ramp duration sets the end. The quote matched
   the API run exactly: Year 1 814.43, Year 2 3,242.23. Its order invoiced to net 0.00.
-- **Usage-based assets (UI, todo 306).** A past date on Amend, Cancel or Renew shows the flow's
+- **Usage-based assets (UI).** A past date on Amend, Cancel or Renew shows the flow's
   error, *"This change can't be backdated: the selected assets include usage-based products…"*,
   with the asset listed; Previous returns to the date screen. A future date goes straight to the
   quote.
@@ -81,7 +81,7 @@ each continued through invoice with the verifier and passed; rollback refused in
   blank and have no Opportunity, so `RLM_Update_Quote_Billing_Info_From_Opportunity_Account`
   used to skip them and Create Order stopped at *"This quote isn't ready to create orders yet"*.
   It now also defaults bill-to contact and addresses from the account for any quote without an
-  Opportunity (todo 305).
+  Opportunity.
 
 ## API path
 
@@ -113,6 +113,14 @@ succeeded once the missing Order mappings were added, on a plain term asset). Th
 Order-output prices match Quote output: Order and OrderItem have no matching custom fields, so those attributes
 arrive empty. The message hides the underlying cause. Diff the two mappings' custom (`__c`) attributes, and see
 `.cursor/skills/context-service/authoring-and-lifecycle.md` (one mapping rule per lens).
+A different case, measured on one 264 scratch org whose pricing procedure and context definition carried project-specific additions [Measured: 2026-11-12, 264, scratch]: Place on an
+**Order** with `pricingPref` System or Force (even a header-only PATCH) failed with the same message,
+while `pricingPref: Skip` succeeded; the order was left `CalculationStatus` PriceCalculationFailed with
+totals unchanged and no error-log record. Binding the quote-only custom attributes on the Order lens did
+not clear it there, so adding the custom `__c` mappings above is not always enough; a pricing-procedure
+variable with no Order-lens attribute at all is still possible (an Apex hydration of the Order lens
+succeeded, but it queries only the tags it asks for). Cause not established: most failures in the pricing procedure's context-tag query are replaced by this generic message, so it doesn't show the underlying error [Platform behaviour, traced]; whether amend, renew or cancel with Order output
+fail the same way on that org was not tried. Don't treat a Skip success as proof the order priced.
 
 Gotchas, all measured:
 
@@ -224,7 +232,7 @@ starts 2027-08-01, a year after the renewal, not after the asset's start.
 - `RLM_ARC_AssetValidator` still blocks swap, upgrade/downgrade, transfer and rollback for ramped
   assets, as 264 Help requires.
 
-**Early renewal of a ramped asset: the zero price comes from the platform** (todo 309). Measured
+**Early renewal of a ramped asset: the zero price comes from the platform**. Measured
 on a group ramp (`QB-API-PROD`) and a line ramp (`QB-GEN-AI-LIC`). The pricing log was read on
 quote-only, future-dated runs; the backdated run zero-priced the same way (table above).
 
@@ -238,9 +246,8 @@ quote-only, future-dated runs; the backdated run zero-priced the same way (table
   traced. An override step in the procedure wasn't tried; it would be expected to price at list,
   not at the last transaction price.
 - **A ramped early renewal of a *plain* asset inherits the price correctly.**
-- **`enableAsIsRenewals` doesn't apply** (per core source, not measured): a renewal of a ramped
-  asset is never as-is.
-- **GUS W-23406678** has the same symptom and was closed "Not a bug".
+- **`enableAsIsRenewals` doesn't apply**: a renewal of a ramped asset never takes the per-lot
+  as-is path [Platform behaviour, traced; not measured].
 
 To check a renewal quote:
 
@@ -368,7 +375,7 @@ sf data query -o <sf-alias> -q "SELECT StartDate, EndDate, Quantity FROM AssetSt
 sf data query -o <sf-alias> -q "SELECT LifecycleStartDate, LifecycleEndDate, CurrentQuantity FROM Asset WHERE Id = '<assetId>'"
 ```
 
-From the first API run on pk049-r1 (a `QB-API-FLEX` asset, 2026-06-01 → 2027-05-31, not a
+From the first API run on the first scratch org (a `QB-API-FLEX` asset, 2026-06-01 → 2027-05-31, not a
 verifier run): a backdated amend +1 on 2026-08-01 split the asset's periods into `06-01→07-31`
 qty 1 and `08-01→2027-05-31` qty 2. A backdated cancel on 2026-09-01 then ended them, and
 `LifecycleEndDate`, on 2026-08-31.
@@ -377,5 +384,5 @@ qty 1 and `08-01→2027-05-31` qty 2. A backdated cancel on 2026-09-01 then ende
 
 - **Early renewal of a ramp asset.** It goes through headlessly: `initiateRenewal` with
   `rampOptionsDetails`, the input the UI's *Create a ramp schedule* sets. The Connect `renew`
-  resource has no such input. But the platform prices the new segments at zero (above, W-23406678),
-  so a backdated one can't be verified through invoice (todo 309).
+  resource has no such input. But the platform prices the new segments at zero (above),
+  so a backdated one can't be verified through invoice.
