@@ -95,11 +95,11 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       product Family.
     - If amendment quotes go through approval (no amendment submission is recorded:
       `advanced-approvals` → `matrix-modeling.md` §1), give each quote-level dimension
-      (margin, deal size, discount) a basis there: the change, or the contract after it.
-      A margin or discount ratio over a reduction (revenue and cost both negative) equals
-      the ratio of the removed lines, so removing low-margin lines can land in a high
-      level `[inferred]`. Decide the basis, skip the dimension when revenue is at or below
-      zero, or accept the level.
+      (deal size, margin, and discount when the source measures it on the quote rather
+      than per line) a basis there: the change, or the contract after it. A ratio taken
+      on the change alone can land in a different level from the contract after it, so
+      compute each amendment golden's ratio on the chosen basis, and decide what a change
+      with revenue at or below zero does.
 
    See `pricing-setup` → `scenarios/full-term-value.md` and `context-service`. A golden
    that keeps a running total across changes carries each step's platform value next to
