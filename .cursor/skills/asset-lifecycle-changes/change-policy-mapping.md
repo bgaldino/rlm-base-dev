@@ -103,7 +103,7 @@ with no end date, are **Open** ([verification.md](verification.md) → Open).
 ## Questions to settle in the plan
 
 - Which lines are bundle components, and must any be changeable on their own?
-- Does a growing count (sites, users) live in the bundle root's quantity or in a root
+- Does a growing count (locations, seats) live in the bundle root's quantity or in a root
   attribute that sizes the children? An amendment's `quantityChange` moves only the quantity;
   changing the answer on the amendment re-derives the children, and can reset the other
   answers (Quick Rules 2 and 3).

@@ -101,15 +101,15 @@ The Standard price book gave the same results.
 
 ## Measured results (fresh 264 `ent-sb0` scratch orgs, 2026-11-11)
 
-On a Term Defined bundle sized by CML root answers (sites, users), with Term Defined, evergreen
+On a Term Defined bundle sized by CML root answers (locations, seats), with Term Defined, evergreen
 monthly and one-time components, three annual periods, configuration rules on, and every
 asset's `PricingSource` `LastTransaction`. The ordered changes ran in date order, each
 through activation before the next; a reprice moved nothing at any step:
 
 | Change | Quote | After order and activation |
 |---|---|---|
-| Root answer changed (more sites), mid-period | Each CML-sized child as a delta line at its price; other children 0; root a −1 / +1 detail pair at 0.00. Term Defined lines at 2 + 275/365 terms (day counts illustrative; the rule is what was measured) | New state periods from the amendment date; "Change / Upsells" per delta, amounts equal to the line totals |
-| Second answer changed (more users) on a later amendment | The first answer reset to its CML default and its children came back negative, until restated in a second Place request (SKILL.md Quick Rule 2) | Ordered after the restatement; state periods carry both answers |
+| Root answer changed (more locations), mid-period | Each CML-sized child as a delta line at its price; other children 0; root a −1 / +1 detail pair at 0.00. Term Defined lines at 2 + 275/365 terms (day counts illustrative; the rule is what was measured) | New state periods from the amendment date; "Change / Upsells" per delta, amounts equal to the line totals |
+| Second answer changed (more seats) on a later amendment | The first answer reset to its CML default and its children came back negative, until restated in a second Place request (SKILL.md Quick Rule 2) | Ordered after the restatement; state periods carry both answers |
 | Added units on a `LastTransaction` asset | A plain delta line at the asset's last net price; no volume-band step; existing units unchanged | State period at the new total, MRR at the last price |
 | The same, with a re-band overlay on the procedure ([change-policy-mapping.md](change-policy-mapping.md) → volume-band row) | The added units at the band for the new total | MRR = existing units at their old price + added units at the new band |
 | Term Defined component to 0 on an anniversary | −qty × net unit × 1 term, in two last-in-first-out detail rows | Component asset kept; state period 0 from the date; "Change / Downsells" for the credit |

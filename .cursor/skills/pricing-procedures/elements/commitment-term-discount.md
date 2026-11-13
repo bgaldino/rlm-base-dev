@@ -28,7 +28,7 @@ run priced them without error with criterion 11 in place (see [Open questions](#
 Worked example: list 1,000, 10% and 5% discounts → net 855.00 → × 0.94 →
 **803.70**. A 36-month term stays at **855.00**.
 
-The threshold, term forms, rate and amounts here are illustrative; the measured run used a different threshold and rate. What was measured is the behaviour: the filter accepts either term unit, both roundings run, and Subscription Price follows `NetUnitPrice`.
+All figures here are illustrative; the full note is under [Measured result](#measured-result).
 
 ## When to use it
 
@@ -166,7 +166,7 @@ the filter must be the first child, one filter per group].
   Measured: 2026-11-10, 264].
 - `ROUND(x, 2)` rounds half up at the second decimal: 10.005 became 10.01, then
   10.01 × 0.94 = 9.4094 became 9.41. A single rounding (10.005 × 0.94 = 9.4047) would give 9.40,
-  so a measured result showing the higher cent proves both roundings ran [Measured: 2026-11-10, 264; the values shown are illustrative].
+  so a measured result showing the higher cent proves both roundings ran [Measured: 2026-11-10, 264; values shown are illustrative].
 - To make the rate configurable, put `0.94` (or the percentage) in a Numeric constant
   (overlay `addVariables`) and reference it in the formula. Not measured.
 
@@ -187,7 +187,7 @@ phases 9 and 10].
   and `PricingTermCount` into `ItemNetTotalPrice` [Repo: `RLM_DefaultPricingProcedure`; the Help
   example binds `ListPrice` instead, `ind.pricing_add_the_subscription_price_proration_element.htm`].
   So the formula only has to write `NetUnitPrice`: the line total follows (803.70 × 4 =
-  3,214.80, illustrative amounts) [Measured: 2026-11-10, 264; the behaviour, not the amounts]. In a procedure whose Subscription Price reads `ListPrice`,
+  3,214.80, illustrative amounts) [Measured: 2026-11-10, 264; values shown are illustrative]. In a procedure whose Subscription Price reads `ListPrice`,
   it does not.
 - Far ahead of DDS and the aggregates, so the tail rule does not apply
   ([`formula-based-pricing.md`](formula-based-pricing.md) → Placement).
@@ -220,7 +220,7 @@ ordering, Shipped). Treat the position as the source's requirement and model it 
 ## Overlay shape
 
 Applied to the clone with `apply_expression_set_overlay.py --no-cascade --confirm`; captured shape
-(boilerplate envelope flags omitted, same as the shipped steps) [Measured: 2026-11-10, 264; the threshold, label and rate in this JSON are illustrative, not the values applied]:
+(boilerplate envelope flags omitted, same as the shipped steps) [Measured: 2026-11-10, 264; values shown are illustrative]:
 
 ```json
 {
@@ -273,11 +273,11 @@ No `addVariables` and no `externalDependencies`: every reference is a standard t
 A disposable clone of `RLM_DefaultPricingProcedure` with the overlay above, priced through
 `runSalesforceHeadlessPricing` with the procedure named (see
 [`../runtime-and-observability.md`](../runtime-and-observability.md) → API-based verification).
-Products: a QuantumBit Term Annual product (illustrative price book list 6,500 USD) on lines 1, 2, 4 and 5, and
+Products: a QuantumBit Term Annual product (price book list 6,500 USD, illustrative) on lines 1, 2, 4 and 5, and
 an Evergreen product (illustrative list 310 USD) on line 3. Lines 1 to 4 pass
 `UnitPrice` 1,000 and `Discount` 14.5, which the shipped procedure uses as the input unit price and
 the percentage discount. 1,000 × (1 − 0.145) = 855.00, the same pre-term net as 10% then 5%
-(1,000 × 0.90 × 0.95). Start 2026-11-10, quantity 1 [Measured: 2026-11-10, 264; the behaviour, not the amounts, which are illustrative].
+(1,000 × 0.90 × 0.95). Start 2026-11-10, quantity 1 [Measured: 2026-11-10, 264; values shown are illustrative].
 
 The threshold, term forms, rate and amounts here are illustrative; the measured run used a different threshold and rate. What was measured is the behaviour: the filter accepts either term unit, both roundings run, and Subscription Price follows `NetUnitPrice`. Table values, including the 9.41 row, are illustrative and recomputed for the neutral rate.
 
@@ -309,7 +309,7 @@ group ramp built in the quote UI)
 For a line that goes through the proration engine, the pricing term count is the number of periods in the selling model's term unit: the line's
 `SubscriptionTerm` is read in that unit (48 on an Annual model is 48 annual periods, whatever unit
 the line carries), and a line with no term has its count derived from its start and end dates
-[Platform behaviour, traced]. An Evergreen or One Time line with a configured default term count takes that count directly, bypassing the engine; a One Time line with no default is not prorated [Platform behaviour, traced]. A dates-only line is therefore priced over its dates, but Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace shows Place filling a missing term context tag with the selling model's pricing term when the line's selling model option is Term Defined, but not that fill reaching the saved line. In the measured requests (price book entry only, no `ProductSellingModelId` in the request; the saved line's selling model was Term Defined) the saved unit was `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line (System pricing, configuration method Force, rules on), priced from its dates alone (a whole-year term count), the line was higher by exactly the missing commitment-term step, because the term-keyed discount never ran. That step is one the measured org's customised pricing procedure adds when a header switch is on (it was on; not a shipped step). The result held both standalone and as a bundle component, against a line sent with `SubscriptionTerm` and unit `Annual` instead of an end date [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. Send the term explicitly.
+[Platform behaviour, traced]. An Evergreen or One Time line with a configured default term count takes that count directly, bypassing the engine; a One Time line with no default is not prorated [Platform behaviour, traced]. A dates-only line is therefore priced over its dates, but Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace shows Place filling a missing term context tag with the selling model's pricing term when the line's selling model option is Term Defined, but not that fill reaching the saved line. In the measured requests (price book entry only, no `ProductSellingModelId` in the request; the saved line's selling model was Term Defined) the saved unit was `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line (System pricing, configuration method Force, rules on) was priced from its dates alone (a whole-year term count) and came out higher by exactly the missing commitment-term step, because the term-keyed discount never ran. That step is one the measured org's customised pricing procedure adds when a header switch is on (it was on; not a shipped step). The result held both standalone and as a bundle component, against a line sent with `SubscriptionTerm` and unit `Annual` instead of an end date [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. Send the term explicitly.
 
 So send every Term Defined line's term in its selling model's unit (4 `Annual` for 48 months on an
 annual model). The `Months` criteria (5 and 6) were seen matching only in headless runs.

@@ -201,7 +201,7 @@ PCM attribute imported into CML takes the attribute's developer name as its vari
 | One per answer unit | `constraint(sensors[Sensor] == plots, "One sensor per plot: expected {}.", plots);` | `[Dev guide: cml_logical_constraints]` (message with `{}` arguments) |
 | Per N, rounded up | `constraint(batteryQty * 4 >= plots && (batteryQty - 1) * 4 < plots, "<message>");` | See [Rounding up](#rounding-up) |
 | Zero unless a choice is made | `constraint(power != "Solar" -> batteryQty == 0, "<message>");` | `[Dev guide: cml_logical_constraints]` |
-| One per answer unit, only if the rep adds it | `relation security : SecurityAddOn[0..200];` with `constraint(security[SecurityAddOn] > 0 -> security[SecurityAddOn] == plots, "<message>");` | `[Dev guide: cml_annotation_example_sequence]` (Examples 4 and 5). See the note below the table |
+| One per answer unit, only if the rep adds it | `relation shade : ShadeKit[0..200];` with `constraint(shade[ShadeKit] > 0 -> shade[ShadeKit] == plots, "<message>");` | `[Dev guide: cml_annotation_example_sequence]` (Examples 4 and 5). See the note below the table |
 | Equal to another component's quantity | `constraint(brackets[SensorBracket] == sensors[Sensor], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead (see [Chained derivations](#chained-derivations)) |
 | A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
 
@@ -250,7 +250,7 @@ Calculations and Aggregations*). For `ceil()` inside a constraint, see [DO NOT](
 
 ## Chained derivations
 
-When one quantity depends on others (project-management hours as a share of all other
+When one quantity depends on others (coordination hours as a share of all other
 service hours), compute in stages:
 
 1. Each base quantity in its own `int` variable with an explicit domain, set by its own
@@ -316,7 +316,7 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
       relation sensors : Sensor[0..500];
   }
   @(split = false)
-  type Software : LineItem {
+  type Sensor : LineItem {
       string climate = parent(climate);
   }
   ```

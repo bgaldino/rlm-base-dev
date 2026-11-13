@@ -14,7 +14,7 @@ description: >-
 
 # Asset Lifecycle Changes — Amend, Swap, Cancel, Renew
 
-Use this skill when a model has to survive after the sale: a customer adds sites,
+Use this skill when a model has to survive after the sale: a customer adds locations,
 moves to a cheaper plan, cancels an add-on or renews at a new price. The domain
 skills cover the individual APIs. This one covers the modeling decisions and the
 behaviour you have to verify, because Help describes how to set lifecycle changes up but
@@ -119,7 +119,7 @@ results, 2026-11-11).
     - `quantityChange` is the quantity to add to or reduce from the asset's existing
       quantity, and the amend inputs take no attribute values [Dev guide:
       `actions_obj_amend_assets`, `connect_requests_amend_input`]. On a bundle sized by a
-      root attribute (sites, users), "add 5 sites" is therefore not `quantityChange: 5`,
+      root attribute (locations, seats), "add 5 locations" is therefore not `quantityChange: 5`,
       which changes the root's own quantity and leaves the sizing attribute as it was.
     - **Changing the root's sizing answer on an amendment re-derives the children.** Amend
       the root with `quantityChange` 0, then set the answer with a Place request, rules on.
@@ -338,10 +338,10 @@ results, 2026-11-11).
 
 ## Examples
 
-**"Add 5 sites in month 7, co-termed."** If the suite's quantity counts sites, amend the
+**"Add 5 locations in month 7, co-termed."** If the suite's quantity counts locations, amend the
 top-level suite asset with `initiateAmendment`, using `quantityChange: 5` and
-`amendStartDate` set to month 7. If sites are a root attribute that sizes the children,
-amend with `quantityChange` 0 and set the sites answer with a Place request, rules on; the
+`amendStartDate` set to month 7. If locations are a root attribute that sizes the children,
+amend with `quantityChange` 0 and set the locations answer with a Place request, rules on; the
 children re-derive as delta lines (Quick Rule 3). Then reprice, create the order and
 activate. Check:
 - the prorated value against the source's; Term Defined lines count the partial period by

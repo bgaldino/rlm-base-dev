@@ -31,8 +31,8 @@ scratch org built by this repo.
    Text is the documented-supported type) before the approval stage.**
    - Conditions can test a background step's outputs, another step's outputs (the shipped
      Director step reads `Manager_Approver.Outputs.approvalDecision`) and flow formulas. Line
-     values aren't one of those, so aggregate them (a maximum level, a count of lines below
-     floor) into quote-level numbers in a background step or a roll-up first.
+     values aren't one of those, so aggregate them (a maximum level, a count of lines breaking
+     a guard) into quote-level numbers in a background step or a roll-up first.
    - Smart Approvals: the Help says Number or Text only and no NOT operator
      [Help: `ind.approvals_smart_approval_limitations`]. The traced allow-list is wider
      (datatypes and operators in [limitations.md](limitations.md) → Smart Approvals);

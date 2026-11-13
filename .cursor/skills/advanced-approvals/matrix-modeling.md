@@ -13,7 +13,7 @@ below are illustrative, not a recommended policy):
 | Discount (any line or product line) | > 8% | > 18% | > 28% | each line, or each product-line total |
 | Blended margin | < 55% | < 50% | < 45% | the quote |
 | Net value | — | > $2M | > $8M | the quote |
-| Other triggers | a manually overridden line price; any line below its margin floor | term > 48 months; any line sold below cost | — | line or quote |
+| Other triggers | a manually overridden line price; any non-catalog line | quote validity longer than 30 days | — | line or quote |
 
 Two policy rules decide the shape:
 - **"The highest level triggered applies":** compute one level per dimension, then take
@@ -71,7 +71,7 @@ where each level is computed:
 
 | Where | Use for | Repo precedent |
 |---|---|---|
-| Pricing procedure → line field → roll-up on the quote | Line-based levels (discount per line, a line below floor or cost) | `approval_flags.json` writes `RLM_Approval_Level_Calc__c`; `Quote.RLM_Approval_Level__c` is MAX of it |
+| Pricing procedure → line field → roll-up on the quote | Line-based levels (discount per line, a non-catalog line, a line below a margin floor or cost where the source has such a guard) | `approval_flags.json` writes `RLM_Approval_Level_Calc__c`; `Quote.RLM_Approval_Level__c` is MAX of it |
 | Approval data flow (background step) | Quote-level values (margin, net value, term, billing frequency, payment terms), and the MAX across dimensions | `RLM_Quote_Approval_Data` returns `DiscountApprovalLevel`, `PaymentTerms` |
 | Roll-up summary field | A MAX, MIN or count over lines | `Quote.RLM_Approval_Level__c` (MAX of `QuoteLineItem.RLM_Approval_Level_Calc__c`) |
 | A loop over the lines in the approval data flow | Line conditions on the line's product (family, a custom product flag), which a roll-up summary's filter can't reach | None shipped; measured below |
