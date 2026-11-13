@@ -20,7 +20,7 @@ For each change, record the state after every step:
    the measured runs. On a No Change line, `Skip` refused a non-zero quantity ("Specify 0 in
    Quantity...") and `Force` accepted it, turning the line's `QuoteAction.Type` to Amend, even
    at quantity 0 [Measured: 2026-11-12, 264, scratch; one standalone asset, single-line quotes,
-   System pricing]. `Skip` runs no configuration rules, so check rules separately. On a bundle amendment quote `Force` on one component also turned other lines to Amend (the root each time, the other component in one of two runs) [Measured: 2026-11-12, 264, scratch, one org]; `Skip` plus a `QuoteAction` Amend edit turned only the edited line; read every line's `QuoteAction.Type` back (SKILL.md Quick Rule 7). Then read:
+   System pricing]. The `Skip` run wrote no configurator log, so don't rely on it to report a broken rule; check rules separately. On a bundle amendment quote `Force` on one component also turned other lines to Amend (the root each time, the other component in one of two runs) [Measured: 2026-11-12, 264, scratch, one org]; `Skip` plus a `QuoteAction` Amend edit turned only the edited line; read every line's `QuoteAction.Type` back (SKILL.md Quick Rule 7). Then read:
     - each line's `Quantity`, `UnitPrice` and `TotalPrice`. On an amendment quote
       `Quantity` is the delta, and `StartQuantity` and `EndQuantity` the totals before and
       after. A line's source asset is on `QuoteAction.SourceAssetId`; `QuoteLineItem` has
@@ -140,6 +140,7 @@ the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
   line, or a swap of the component asset. A price amendment on a component's line, a plan
   held as a root answer, and a partial move under a one-plan group are measured (above;
   [change-policy-mapping.md](change-policy-mapping.md)).
+- **Evergreen component removal to 0, and a Force-edited reduction through to an order:** only `Skip` plus a `QuoteAction` edit was ordered; the `Force` quote was blocked by a configurator log.
 - **Evergreen swaps:** what a swap's outgoing side credits on an evergreen line. Evergreen
   reductions (standalone, and a one-lot bundle component) and the renewal of a standalone
   evergreen asset are measured: SKILL.md Quick Rules 5 and 6, and

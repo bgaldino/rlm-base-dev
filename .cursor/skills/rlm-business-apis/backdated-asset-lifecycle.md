@@ -118,7 +118,7 @@ A different case, measured on one 264 scratch org whose pricing procedure and co
 while `pricingPref: Skip` succeeded; the order was left `CalculationStatus` PriceCalculationFailed with
 totals unchanged and no error-log record. Binding the quote-only custom attributes on the Order lens did
 not clear it there, so adding the custom `__c` mappings above is not always enough.
-Cause found on that org by bisection, no mechanism measured [Measured: 2026-11-12, 264, scratch; one org]:
+On that org, bisection found the cause (no mechanism measured) [Measured: 2026-11-12, 264, scratch; one org]:
 an Apex query of the procedure's declared context tags on the Order lens failed with "Invalid tag attribute
 name key" for one stock tag that had no attribute row on the Order lens (the Quote lens passed). Adding an
 Order-lens attribute row with no source field cleared it: a Place reprice with Force and an
@@ -135,7 +135,7 @@ Gotchas, all measured:
 - **Renew an expired asset:** pass a start date. Without one: *"Select Override Renewal Term to
   renew expired or future-dated assets"*. A past start date is accepted, although the dev guide
   says "today's date or a future date".
-- **Asset quantity:** read `Asset.CurrentQuantity`. `Asset.Quantity` stays null on these assets.
+- **Asset quantity:** read `Asset.CurrentQuantity`. `Asset.Quantity` stays null on these assets. After an Evergreen bundle-component reduction `CurrentQuantity` still read the old quantity once (unexplained, one org), so also read the `AssetStatePeriod` covering the date; see asset-lifecycle-changes Quick Rule 6.
 - **Swap/upgrade/downgrade incoming line** (`inGroup.records[]`, a `QuoteLineItem` POST): give it
   `Product2Id`, `PricebookEntryId`, `UnitPrice`, `Quantity`, `StartDate` (the effective date) and
   `EndDate` (co-term with the outgoing asset's `LifecycleEndDate`). Without `EndDate`: *"Specify
