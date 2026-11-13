@@ -100,8 +100,8 @@ minimum and maximum, every option the source allows that its worked examples don
 use, and a check for anything the source marks internal-only (for example a round
 that must never be presented). Billing cases cover every order the plan creates (the
 new sale, each amendment, cancellation and renewal), not only the first. The one measured
-invoice route invoiced only schedules due by today (`rlm-business-apis` →
-`backdated-asset-lifecycle.md`, Billing; a future target date wasn't tried), so on a
+invoice route invoiced through today, sending only schedules due by then (`rlm-business-apis` →
+`backdated-asset-lifecycle.md`, Billing); invoicing to a future date isn't covered. So on a
 future-dated replay, check billing at schedule level, and say which invoice values wait
 for the replay-dates decision ([SKILL.md](SKILL.md), dated replay). For a
 milestone-billed service, state what a quantity an amendment adds is billed by, and
@@ -183,8 +183,8 @@ Then list **extensions to existing skills** separately.
 - [ ] Goldens on platform-enforced behaviour assert where the platform enforces it.
 - [ ] Every spike that chooses a route lists each route's prerequisites
   ([SKILL.md](SKILL.md) step 6), and the dependency line shows the phase that waits for it.
-- [ ] Every spike's must-hit is the source's value in the platform's measure (through a
-  stated mapping or decision), with the fallback if native misses it; none lists guessed
+- [ ] Every spike's must-hit is the source's value (through a stated mapping where the
+  platform measures differently, or a decision), with the fallback if native misses it; none lists guessed
   platform outcomes ([prediction-checks.md](prediction-checks.md)
   check 3).
 - [ ] Every structure was run against every lifecycle change in the source, and every

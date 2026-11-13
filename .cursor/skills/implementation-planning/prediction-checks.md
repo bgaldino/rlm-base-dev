@@ -21,9 +21,10 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
    answer. A prior plan cited "one-time children in segment 1 only" as measured. The
    skill had measured it on an API-built ramp and on an optional child; a UI-built ramp
    of the plan's bundle put every child in every segment (`ramped-quotes` →
-   `bundle-children-lifecycle.md`). The same holds for a recorded limitation: it is
-   trigger (b) under the conditions it was measured in (route, lifecycle step, shape,
-   configuration); elsewhere it is **Repo (inferred)** or **Live**, as above. A failure
+   `bundle-children-lifecycle.md`). The same holds for a measured limitation: it is
+   trigger (b) only under the conditions it was measured in. In another shape, record it
+   as **Repo (inferred)** with the plan allowing for it, or **Live** when a later phase
+   depends on the answer. A failure
    measured when amending an API-built ramp doesn't make building a ramp in the UI a
    trigger (b) spike.
 2. **Name the inputs a documented element is assumed to take.** An element the snapshot
@@ -32,9 +33,10 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
    its build gate checks each one. A prior build found a parameter that a skill listed
    as optional, and the build used, refused at creation (`pricing-procedures` →
    `elements/rounding-values.md`, Configuration).
-3. **A spike's must-hit is the source's value, not a guess at the platform's.** Express it
-   in the platform's measure through a stated mapping (such as day-based proration), or
-   through a decision that makes the build match the source. Where a
+3. **A spike's must-hit is the source's value, not a guess at the platform's.** Where the
+   platform measures differently, carry the source value through a stated mapping (such
+   as day-based proration), or record the decision that makes the build match the
+   source. Where a
    skill marks a behaviour open, don't list candidate platform outcomes as must-hits: a
    prior spike listed two and the platform produced a third. State the source value, what
    to record about the native result, and the fallback that reaches the source value if
@@ -150,10 +152,10 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     didn't reprice (`pricing-procedures` → `elements/commitment-term-discount.md`, Line
     inputs on real quotes). State them for every way the plan creates lines: segment
     lines of a UI-built group ramp carried a term of 1 (same file, Line inputs on real
-    quotes; fix: criterion 14).
-    If any gate prices an order (an order reprice, or an action with Order output), the
-    pricing gate also checks the procedure's declared tags on the Order lens: a declared
-    tag with a Quote-lens row and no Order-lens row failed order pricing, and a field-less
+    quotes; fix: criterion 14, ORed with the term criteria).
+    If any gate runs an action with Order output or reprices an order, the pricing gate
+    also checks the procedure's declared tags on the Order lens: a declared tag with a
+    Quote-lens row and no Order-lens row failed an Order-output action, and a field-less
     Order-lens row cleared it (a tag with no row on either lens passed; one org, cause not
     traced) (`pricing-procedures` → `operations-and-troubleshooting.md`;
     `context-service` → `authoring-and-lifecycle.md`).

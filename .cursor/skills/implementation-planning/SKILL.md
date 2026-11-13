@@ -75,7 +75,8 @@ files can use it.
   scope, or a data choice such as a line the rule never touches) and recommend it;
   give the literal reading as the alternative and list the examples it breaks. If no
   reading keeps both, prefer a resolution the source states itself (a note on the
-  example), and give each option's values.
+  example), and give each option's values; if it states none, recommend the stated rule
+  and list the examples it breaks.
 - **DO NOT** put customer, brand or third-party commercial data in the public repo.
   Decide where the plan and data live (Quick Rule 1). A private plan may name real
   data; this skill and anything public may not.
@@ -186,8 +187,8 @@ matters as much as the features do: write down the source's order of application
 where it rounds. Some sources round once at the end. Decide where the build rounds (a
 Rounding Values step or a `ROUND()` in a formula; the shipped procedures have no
 Rounding Values step, `pricing-procedures` → `elements/rounding-values.md`), and again
-after any later step that multiplies, such as a ramp uplift
-([prediction-checks.md](prediction-checks.md) check 11). Add a golden case off the
+after a later step that multiplies, such as a ramp uplift, only where the source rounds
+after it ([prediction-checks.md](prediction-checks.md) check 11). Add a golden case off the
 source's own examples that would show a rounding difference.
 
 ### 4. Decide each rule's knowledge source
@@ -219,8 +220,8 @@ first: a measurement covers only the shape and route it measured.
   owner's answer. The build proceeds on the recommendation. When the owner answers, the
   converter regenerates the goldens; nobody edits them by hand.
 - Run the golden checks in [prediction-checks.md](prediction-checks.md) (9–15): derived
-  quantities at each answer's maximum, proration by day, rounding after each step that
-  multiplies, line inputs, where a refusal's message appears, answers carried across
+  quantities at each answer's maximum, proration by day, rounding only where the source
+  rounds, line inputs, where a refusal's message appears, answers carried across
   changes, and fresh decision tables.
 - **Assert platform-enforced behaviour where the platform enforces it.** Where the
   platform accepts a change and enforces the rule later (at order, activation or
