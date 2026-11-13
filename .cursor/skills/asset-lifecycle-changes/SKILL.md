@@ -281,13 +281,15 @@ results, 2026-11-11).
       traced). Which status Place assigns an amendment add-on line wasn't read [Platform
       behaviour, traced in part].
     - Edit amendment lines through Place with `configurationMethod: Force`, as the measured
-      runs did; with `Skip`, a quantity edit on a No Change line was refused ("Specify 0 in
-      Quantity of the Quote Line Item record with the action of type No Change")
-      [Measured: 2026-11-11, 264]. The message is a save-time quantity check: a No Change line
+      runs did. One earlier observation had `Skip` refusing a quantity edit on a No Change line
+      ("Specify 0 in Quantity of the Quote Line Item record with the action of type No Change")
+      [Measured: 2026-11-11, 264]; a later run on a new-business line found `Force` and `Skip`
+      identical (see constraint-models → quantities-from-attributes.md) and did not reproduce
+      the divergence [Measured: 2026-11-12, 264, scratch]. The No Change case was not re-run,
+      so it stays open. The message is a save-time quantity check: a No Change line
       must have quantity 0 (only that check is traced). Nothing in it looks at the
-      configuration method, so why Force accepted the same edit isn't explained. Don't rely
-      on Force to change a No Change line's quantity; read the saved line back [Platform
-      behaviour, traced in part].
+      configuration method. Don't rely on either method to change a No Change line's
+      quantity; read the saved line back [Platform behaviour, traced in part].
     - **A rule that counts a virtual container's lines needs those lines on the amendment.**
       Where the top-level lines were absent from a root-only amendment, the container's count
       rule fired (its message implied no matching lines) and logged an Error-severity entry,

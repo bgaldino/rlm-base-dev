@@ -75,12 +75,18 @@ How it decides [Platform behaviour, traced]:
   both). A condition passes only when the earlier approved range contains the new one and its
   evaluation succeeded; for Text, Picklist and Multi-select picklist both bounds must match,
   ignoring case. The step's criteria logic combines the results [Platform behaviour,
-  traced]. Whether the left side is the evaluated value, so which
-  direction a changed value must move to stay inside, is not established; do not rely on it
-  until measured with the setting on.
+  traced]. The left side is the evaluated value, so the new range must sit inside the
+  earlier approved one [Measured: 2026-11-12, 264, scratch]. With "value > threshold", a
+  resubmission auto-approves when the new value is lower than or equal to the approved value
+  and goes to review when it is higher; with "value < limit", it auto-approves when the new
+  value is higher or equal and goes to review when it is lower. Equal always auto-approves.
+  Limits of the measurement: Number conditions only; an admin acted on every item; Smart
+  Approval was on through the shipped flow's step input, and the Setup page was not read.
+  Other types and operators are still unmeasured.
 - A step Smart Approval auto-approves completes as Approved, so a later step reading its
-  outcome sees Approved: the auto-reviewed item posts an Approve decision [Platform
-  behaviour, traced; no live run with the setting on]. Conditions listed in the step's Smart Approval Skip Conditions are left out of the
+  outcome sees Approved: the auto-reviewed item posts an Approve decision. A later step whose entry
+  condition reads the earlier step's decision = Approve started after the earlier step was
+  auto-approved [Measured: 2026-11-12, 264, scratch]. Conditions listed in the step's Smart Approval Skip Conditions are left out of the
   Smart Approval comparison [Help: `ind.approvals_turn_on_smart_approvals`]: each counts as
   passing under AND logic and as failing under OR logic [Platform behaviour, traced]. The
   Help FAQ (`ind.sf_contracts_aa_faq`) says listing a condition there forces a review; the

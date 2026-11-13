@@ -848,7 +848,9 @@ is not established.
 
 **Cause:** with Asynchronous Opportunity Sync on, order creation refuses a quote that is marked
 syncing and was modified after the opportunity's last sync time [Platform behaviour, traced]. Which
-saves count (for example flow or pricing saves) was not established. Measured on two quotes
+saves count (for example flow or pricing saves) was not established. This repo's build turns the
+setting on (`post_utils`); the fresh-org default is not measured, because the build changes it
+[Measured: 2026-11-12, 264, scratch]. Measured on two quotes
 [Measured: 2026-11-12, 264, scratch]. `createOrdersFromQuote` after a successful
 `syncQuoteOpportunity` refused with this message. On the quote whose steps were logged, a Status: Accepted
 write came between the sync and the order. A retry on that quote about 15 s later, with no second

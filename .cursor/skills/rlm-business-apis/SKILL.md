@@ -62,6 +62,12 @@ Key endpoints (see the reference doc for exact request shapes):
 - `POST /connect/revenue-management/assets/actions/cancel` — Cancel asset
 - `POST /industries/cpq/quotes/actions/get-instant-price` — Instant pricing
 
+**Place PATCH request shape.** A graph with no `Quote` record is refused ("No quote found in the
+record list"), so include the Quote record (a PATCH on it) alongside the line PATCHes. Sending
+`executeConfigurationRules` inside `configurationPref` was rejected by the request parser (a JSON
+parser error, nothing written); the PATCHes ran with `configurationMethod` only
+[Measured: 2026-11-12, 264, scratch].
+
 **Line discounts in a Place PATCH.** Measured on 264 scratch orgs (2026-11-12) whose pricing
 procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pricingPref: Force`,
 `configurationMethod: Skip`):
@@ -89,6 +95,11 @@ procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pr
   (System pricing, configuration method Force, rules on) was priced from its dates alone (a whole-year term count) and came out higher by exactly the missing commitment-term step, because the term-keyed discount never ran. That step is one the measured org's customised pricing procedure adds when a header switch is on (it was on; not a shipped step). The result held both standalone and as a bundle component, against a line sent with `SubscriptionTerm` and unit `Annual` instead of an end date
   [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. Send the
   term explicitly.
+- A dates-only PATCH on an existing line left `SubscriptionTerm` at its old value (stale), while
+  the pricing term count followed the new dates and the total repriced from them; this matched
+  on two measurements. A line created with dates only has `SubscriptionTerm` null, the unit
+  filled from the selling model, and the term count taken from the dates
+  [Measured: 2026-11-12, 264, scratch].
 - **Milestone Plan on bundle components.** Place with `configurationMethod: Force` and
   configuration rules on left `BillingFrequency` blank on component service lines (`billing-setup` → M11). A second Place PATCH
   with `configurationMethod: Skip` setting `BillingFrequency` Milestone Plan and the milestone

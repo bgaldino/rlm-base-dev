@@ -213,7 +213,13 @@ items:
   Active over a non-Active latest version counts as changed [Platform behaviour, traced]. Deploying an
   approval flow as Active in a production org needs the org setting that lets flows deploy
   as active (the repo's Apex test skip messages call it Deploy-as-active); a non-production org allows it regardless. Without it,
-  deploy as Draft and activate separately [Platform behaviour, traced]. Steps inside
+  deploy as Draft and activate separately [Platform behaviour, traced; production gating is
+  not measured]. In a scratch org the setting is off by default (Metadata API field
+  `enableFlowDeployAsActiveEnabled` in FlowSettings); a changed approval orchestration
+  deployed as Active still became the new Active version and the old one became Obsolete, and
+  an unchanged redeploy created no version. A redeploy with only the status changed to Draft
+  over an Active flow created no version and changed nothing: a status-only change to Draft
+  does not deactivate [Measured: 2026-11-12, 264, scratch; non-production]. Steps inside
   orchestrated stages keep their saved order, a possible reason an orchestration redeploys
   unchanged; that is not proven for the measured run. For a new or generated flow, deploy it, retrieve it and commit the retrieved form. Compare
   `SELECT VersionNumber, Status FROM Flow WHERE Definition.DeveloperName = '<flow>'`
