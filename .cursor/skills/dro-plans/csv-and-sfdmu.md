@@ -194,10 +194,11 @@ none for a copy product with the flag false, while the commercial asset was crea
 Choose the flag by whether a later order must act on the item [inferred]. An assetizable
 item keeps a fulfillment asset that a later order can amend
 ([updates-and-runtime.md](updates-and-runtime.md) → An item across orders, measured). An
-Order-scope item can't be assetized [Help: `ind.dro_decomposition_scope`]. After a later amendment of the same bundle there
-was still no fulfillment asset for the copy product, and a cancel of the bundle's root asset gave that line an Add of
-quantity 0 with no asset change [Measured: 2026-11-13, 264, scratch, one org]. Verify the
-result by checking that no fulfillment asset exists for the technical lines after the Add,
+Order-scope item can't be assetized [Help: `ind.dro_decomposition_scope`]. After a later
+amendment of the same bundle there was still no fulfillment asset for the copy product, and
+a cancel of the bundle's root asset gave that line an Add of quantity 0 with no asset change
+[Measured: 2026-11-13, 264, scratch, one org]. Verify the result by checking that no
+fulfillment asset exists for this example's non-assetizable technical lines after the Add,
 any amendment and any cancel.
 
 In pass 2, restrict the Product2 ReadOnly query to the two SKUs. Add this rule:
