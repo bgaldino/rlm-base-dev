@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <helpText>A &quot;motor starting special application&quot; is any situation where a generator is sized or designed specifically to handle the massive, brief surge of power required to start an electric motor.</helpText>
+        <isActive>true</isActive>
+        <name>Special Application</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>Do you require a motor starting special application?</questionText>
+        <responseValues>None - Standard
+Motor Starting</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Select</dataType>
+    <developerName>Special_Application</developerName>
+    <name>Special Application</name>
+    <questionCategory>Power Management</questionCategory>
+</AssessmentQuestion>
