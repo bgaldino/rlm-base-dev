@@ -17,10 +17,10 @@ For each change, record the state after every step:
    Place request.
 2. **Make the change and read the quote.** Edit an amendment line or answer through Place
    with `configurationMethod: Force` (and `configurationPref.configurationOptions.executeConfigurationRules: true` for rules on), as in
-   the measured runs. One earlier observation had `Skip` refusing a quantity edit on a No Change line
-   that Force accepted [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]; it was not
-   reproduced on a new-business line [Measured: 2026-11-12, 264, scratch; System pricing, configuration rules not sent], and the No Change
-   case stays open, so don't rely on either method for that edit (SKILL.md Quick Rule 7). Then read:
+   the measured runs. On a No Change line, `Skip` refused a non-zero quantity ("Specify 0 in
+   Quantity...") and `Force` accepted it, turning the line's `QuoteAction.Type` to Amend, even
+   at quantity 0 [Measured: 2026-11-12, 264, scratch; one standalone asset, System pricing]
+   (SKILL.md Quick Rule 7). Then read:
     - each line's `Quantity`, `UnitPrice` and `TotalPrice`. On an amendment quote
       `Quantity` is the delta, and `StartQuantity` and `EndQuantity` the totals before and
       after. A line's source asset is on `QuoteAction.SourceAssetId`; `QuoteLineItem` has

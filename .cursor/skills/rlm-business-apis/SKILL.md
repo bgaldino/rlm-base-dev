@@ -97,8 +97,8 @@ procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pr
   (System pricing, configuration method Force, rules on) was priced from its dates alone (a whole-year term count) and came out higher by exactly the missing commitment-term step, because the term-keyed discount never ran. That step is one the measured org's customised pricing procedure adds when a header switch is on (it was on; not a shipped step). The result held both standalone and as a bundle component, against a line sent with `SubscriptionTerm` and unit `Annual` instead of an end date
   [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. Send the
   term explicitly.
-- A second measurement matches the dates-only create above: a line created with dates only had
-  `SubscriptionTerm` null, the unit filled from the selling model, and the term count taken from
+- A second dates-only create (configuration method not recorded) matched it on the saved fields:
+  the line had `SubscriptionTerm` null, the unit filled from the selling model, and the term count taken from
   the dates [Measured: 2026-11-12, 264, scratch]. A dates-only PATCH on an existing line (one
   measurement; configuration method Skip, System pricing, a Term Defined Annual line created
   with a term) left `SubscriptionTerm` at its old value (stale), while the pricing term count

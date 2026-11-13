@@ -281,15 +281,21 @@ results, 2026-11-11).
       traced). Which status Place assigns an amendment add-on line wasn't read [Platform
       behaviour, traced in part].
     - Edit amendment lines through Place with `configurationMethod: Force`, as the measured
-      runs did. One earlier observation had `Skip` refusing a quantity edit on a No Change line
-      ("Specify 0 in Quantity of the Quote Line Item record with the action of type No Change")
-      [Measured: 2026-11-11, 264]; a later run on a new-business line had `Force` accept an edit to 8 and `Skip` an edit to 6,
-      and both refuse an edit to 0 (see constraint-models → quantities-from-attributes.md);
-      the new-business line showed no such divergence [Measured: 2026-11-12, 264, scratch; System pricing, configuration rules not sent]. The No Change case was not re-run,
-      so it stays open. The message is a save-time quantity check: a No Change line
-      must have quantity 0 (only that check is traced). Nothing in it looks at the
-      configuration method. Don't rely on either method to change a No Change line's
-      quantity; read the saved line back [Platform behaviour, traced in part].
+      runs did. On a No Change amendment line (`quantityChange` 0), `Skip` with a non-zero
+      quantity was refused (`isSuccess` false, INVALID_INPUT "Specify 0 in Quantity of the
+      Quote Line Item record with the action of type No Change") and the line was unchanged;
+      `Skip` with 0 succeeded and changed nothing. `Force` accepted the same edit and turned
+      the line's `QuoteAction.Type` from No Change to Amend (`Quantity` the delta,
+      `EndQuantity` = `StartQuantity` + delta). `Force` with quantity 0 also turned it to
+      Amend, so a Force PATCH on a No Change line you meant to leave alone makes it an Amend
+      line. `Skip` with a `QuoteAction` PATCH setting `Type` Amend in the same request
+      accepted the edit with the same end state [Measured: 2026-11-12, 264, scratch; one
+      standalone Term Defined asset, System pricing, configuration rules at default; bundle
+      components not re-run]. The message is a save-time quantity check that fires only while
+      the action type is No Change and reads no configuration method; how `Force` changes the
+      action type is not traced [Platform behaviour, traced in part]. On a new-business line
+      `Force` and `Skip` both accepted non-zero edits and refused 0 (see constraint-models →
+      quantities-from-attributes.md). Read the saved line and its `QuoteAction.Type` back.
     - **A rule that counts a virtual container's lines needs those lines on the amendment.**
       Where the top-level lines were absent from a root-only amendment, the container's count
       rule fired (its message implied no matching lines) and logged an Error-severity entry,
