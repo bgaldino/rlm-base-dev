@@ -222,7 +222,7 @@ first: a measurement covers only the shape and route it measured.
 - Run the golden checks in [prediction-checks.md](prediction-checks.md) (9–16): derived
   quantities at each answer's maximum, proration by day, rounding only where the source
   rounds, line inputs, where a refusal's message appears, answers carried across
-  changes, and fresh decision tables.
+  changes, fresh decision tables, and a counted fulfilment.
 - **Assert platform-enforced behaviour where the platform enforces it.** Where the
   platform accepts a change and enforces the rule later (at order, activation or
   amendment), the golden asserts at that later step.

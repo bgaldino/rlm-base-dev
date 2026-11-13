@@ -5,7 +5,8 @@ golden tests with [implementation-planning](SKILL.md). A prior build tracked eve
 prediction a blind plan made and recorded each outcome as it was measured (SKILL.md
 step 9). Where a prediction was modified or refuted because the planner skipped a step,
 that step is a check below. Check 15 sharpens a guard the plans already had: the build
-measured why a freshness check alone wasn't enough. The platform facts live in the
+measured why a freshness check alone wasn't enough. Check 16 applies `dro-plans`
+guidance; no build has measured a fulfilment yet. The platform facts live in the
 domain skills named; this file says when the plan must apply them.
 
 Run each check that applies, and record the result where the plan already holds that
