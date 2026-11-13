@@ -217,9 +217,12 @@ Custom full-term fields on the order products (mapped from the quote lines), plu
 roll-up on the order that sums them, carried the quote's full-term value to the order and
 summed it on new-sale orders [Measured: 2026-11-12, 264, scratch, one org]. An amendment
 approval that added the account's activated orders' roll-ups to the change gave the level the
-source's matrix assigns [Measured: 2026-11-12, 264, scratch, one org]; the summed value itself
-wasn't checked against a full-term expectation. Order totals alone count an until-cancelled
-line for one period, so a threshold on the full commitment needs the full-term roll-up, not
+source's matrix assigns, and the summed value matched the expected running full-term value, on
+amendments before any renewal [Measured: 2026-11-12, 264, scratch, one org]. A renewal priced per
+lot carries no full-term value (Not stamped, above), so its order added 0 and a later amendment
+left the renewal out of the sum [Measured: 2026-11-12, 264, scratch, one org]; compute renewal
+values elsewhere before relying on the roll-up after a renewal. Order totals alone count an
+until-cancelled line for one pricing period, so a threshold on the full commitment needs the full-term roll-up, not
 the order total `[inferred]`. Which account a roll-up sums
 by on an amendment quote is a build detail (the quote's account field, since an
 amendment quote can leave the plain account field null).

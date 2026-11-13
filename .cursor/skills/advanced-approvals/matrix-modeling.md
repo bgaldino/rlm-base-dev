@@ -9,7 +9,7 @@ List each dimension and its thresholds as levels 0–N, where 0 means no approva
 below are illustrative, not a recommended policy). A money threshold stated in one currency
 on a build with two currencies needs a decision: convert each quote's amount at a stated
 rate and compare in the threshold's currency, or state a threshold per currency and compare
-in the quote's own. Record the rate and its date [inferred, not measured]:
+in the quote's own; record the rate and its date [inferred, not measured]. Illustrative levels:
 
 | Dimension | Level 1 | Level 2 | Level 3 | Measured on |
 |---|---|---|---|---|
@@ -47,10 +47,13 @@ the contract value after it.
   a threshold keyed on `OriginalActionType = Amend` misses them. A threshold on the value after the
   change has to be computed in the approval data flow. One route worked: the contract value after
   the change, summed from custom full-term value fields on the prior activated orders' products
-  (rolled up to each order) by the quote's account, plus the change, put an amendment in the level
-  the source's matrix assigns on a real submission [Measured: 2026-11-12, 264, scratch, one org];
+  (rolled up to each order) by the quote's account, plus the change, matched the expected running value
+  and put an amendment in the level the source's matrix assigns on a real submission, on amendments
+  before any renewal [Measured: 2026-11-12, 264, scratch, one org]. A renewal priced per lot carried no
+  full-term value, so its order added 0 and a later amendment left the renewal out of the sum
+  [Measured: 2026-11-12, 264, scratch, one org];
   other sources for it are open ([limitations.md](limitations.md)). Order totals alone count an until-cancelled line for one
-  billing period, so a threshold on the full commitment needs the full-term roll-up, not the
+  pricing period, so a threshold on the full commitment needs the full-term roll-up, not the
   order total [inferred, from how the order total is built].
   When it sums prior orders by account, read the account the action wrote. With quotes
   without an opportunity allowed (this repo's scratch org definitions enable it), amendment
@@ -164,9 +167,11 @@ where each level is computed:
   which the shipped level reads. Don't count on a group discount to keep a round's discount
   out of the level until that is measured ([limitations.md](limitations.md)).
 - A pass-through line resold at or near cost trips a below-cost guard only
-  when its net price falls under cost: just under cost raised the level, at cost it did not, and
-  at cost with no discount the floor-margin guard did not trip either [Measured: 2026-11-12, 264,
-  scratch, one org; one pass-through line, standalone]. Two
+  when its net price falls under cost: just under cost raised the level, at cost it did not
+  [Measured: 2026-11-12, 264, scratch, one org; one pass-through line]. A floor-margin guard built to
+  test only lines priced away from their round did not flag that line at list with no discount in
+  bundle round quotes, even where its margin was under the floor [Measured: 2026-11-12, 264, scratch,
+  one org]; that follows from the guard's design, not the platform. Two
   ways to handle it, both design choices. Keep it out of round discounts, so it never goes
   under cost. Or exempt it from the guards by a marker the filter tests, such as a product
   attribute or line field, not by product name. A marker exclusion narrows a source rule
