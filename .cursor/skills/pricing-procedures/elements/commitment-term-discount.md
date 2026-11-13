@@ -109,7 +109,7 @@ the filter must be the first child, one filter per group].
   or renewed line does not take a discount a second time [Repo: `RLM_DefaultPricingProcedure`,
   `Filterlineswithoutlasttransactionpricing`]. Without it, an amendment that keeps the prior net
   unit price would lose another 6%. That case was not measured.
-- **What criterion 9 means for a renewal** (for example a 48-month renewal at +3%):
+- **What criterion 9 means for a renewal** (for example a 48-month renewal at +2%):
   - The shipped default prices a last-transaction line on its own path. When its `NetUnitPrice`
     is null, `ListContainer` (step 8) assigns `InputUnitPrice` to it, the setup Help gives for
     pricing from the last transaction [Help: `ind.qocal_set_up_price_amendments.htm`]. Every
@@ -388,7 +388,7 @@ expressed the rule.
   line editor writes when a rep adds a line by hand was not measured; check a real quote line
   before relying on one.
 - The amendment and renewal behavior (criterion 9) was not measured. **Open — needs live
-  verification:** renew, with a +3% uplift, one 48-month asset that took the 6% and one shorter
+  verification:** renew, with a +2% uplift, one 48-month asset that took the 6% and one shorter
   asset renewed for 48 months, and price the renewal lines through the clone. On an as-is renewal
   the parent `NetUnitPrice` is null and the price sits on `QuoteLineDetail`
   ([`../../pricing-wiring/price-revision-cpi.md`](../../pricing-wiring/price-revision-cpi.md)), so

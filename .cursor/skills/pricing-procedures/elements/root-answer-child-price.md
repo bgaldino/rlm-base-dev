@@ -40,7 +40,7 @@ line itself, or onto the header. Route 1 works live; routes 2 and 3 are [open](#
 
 Built on a Place Sales Transaction quote (`configurationMethod: Force`,
 `executeConfigurationRules: true`) and in the configurator UI [Measured: 2026-11-11, 264, fresh
-`ent-sb0` scratch org]:
+`ent-sb0` scratch org; attribute names illustrative]:
 
 - **Only the root carries the answer.** The request set ClimateZone on the root line alone. The model
   wrote the child's `QuoteLineItemAttribute`, and Attribute-Based Price priced the child from it. So the value is saved on the line and

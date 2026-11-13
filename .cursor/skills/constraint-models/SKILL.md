@@ -532,7 +532,7 @@ Before calling a constraint-model change done:
   count against a known-good baseline for the models you are touching.
   Many such notes are false positives: the validator reads any `<identifier> =` or
   `<identifier> ==` on a declaration, `constraint` or `message` line as an annotation key
-  (`ANNOTATION_KEY_RE` in `tasks/rlm_cml.py`). So `int plots = [1..120];` warns
+  (`ANNOTATION_KEY_RE` in `tasks/rlm_cml.py`). So `int plots = [1..120];` (name illustrative) warns
   "Unsupported annotation 'plots' on attribute 'plots'", and `constraint(plots > 3 ->
   plots == 4, …)` warns "… 'plots' on constraint/rule" (checked against the validator
   locally, 2026-11-11). A model with such warnings imported, activated and ran on fresh

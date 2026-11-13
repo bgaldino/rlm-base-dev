@@ -37,7 +37,7 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
   unticked was not measured.
 - **A root answer that zeroes the one-time children does work** (two fresh 264 `ent-sb0` scratch orgs, 2026-11-11,
   rules on, quote UI). The build:
-  - a required choice attribute on the bundle root (for example Keep/Drop, default Keep);
+  - a required choice attribute on the bundle root (for example Keep/Drop, default Keep; names illustrative, also in the measured run below);
   - in CML, each one-time child relation keeps its sizing rule under Keep and gets `== 0` under Drop. Give each
     relation its own Drop rule carrying that relation's message: with one shared Drop rule, its message was the
     one reported when a different sizing rule broke on a Keep bundle (consistent with the solver treating the

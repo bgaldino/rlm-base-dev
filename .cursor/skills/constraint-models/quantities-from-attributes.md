@@ -884,7 +884,7 @@ shipped QuantumBit bundle model (part of M39), and the line editor and configura
 `validate_cml` result is a local run of the validator. Quotes went through Place with rules on (`Force`),
 then `configure`, then a query of `RevenueTransactionErrorLog`. Apart from the dated
 `[Measured: <date>, …]` claims, which come from separate lifecycle runs scoped as stated,
-nothing else in this file was run. In rows M1 to M10 the inputs are illustrative; the runs used other values with the same rounding behaviour.
+nothing else in this file was run. In rows M1 to M10 the inputs, and in all rows the identifiers, are illustrative; the runs used other values and names with the same behaviour.
 
 | # | Run | Result | Date |
 |---|---|---|---|
