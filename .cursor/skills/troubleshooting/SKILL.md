@@ -868,7 +868,7 @@ the sync-again step follows from the traced rule]. See
 
 ### Place on an Order fails with "couldn't fetch the data for ... context definition"
 
-Seen with `pricingPref` System or Force while Skip succeeded [Measured: 2026-11-12, 264, scratch; one org]; that org's pricing procedure was customised.
+Seen with `pricingPref` System or Force while Skip succeeded [Measured: 2026-11-12, 264, scratch; one org]; that org's pricing procedure was customised. It hit a plain reprice of an existing order, not only amend, cancel or renew with Order output, and the order had priced when `createOrdersFromQuote` created it.
 A quote-only custom mapping is one known cause but did not explain this case. There the cause was
 a stock procedure tag with no attribute row on the Order lens, found by bisecting the declared tags
 (Apex tag query on the Order lens) and fixed by a field-less Order-lens row [Measured: 2026-11-12, 264,

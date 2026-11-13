@@ -84,7 +84,9 @@ Measured outside group ramps, on a Term Defined bundle [Measured: 2026-11-11, 26
   the ramped renewal above did (Quick Rule 5).
 - An amendment dated exactly on a renewal's start date was accepted after that renewal was
   ordered and activated. It was a price amendment on an evergreen component's line.
-  Where the amend-before-amend capability is off, the platform refuses an amendment,
+  The working rule is this traced gate. No public setting name for the capability was found in
+  the captured Help; reading it by trying a no-change dated before an unramped asset's latest
+  renewal start (refused when off) follows from the trace, unmeasured `[inferred]`. Where the amend-before-amend capability is off, the platform refuses an amendment,
   cancellation or no-change dated before the asset's latest renewal start (or while a
   later state period exists), and allows one on or after that start; with it on,
   earlier-dated amendments are allowed, except that ramped assets still refuse (a separate
@@ -97,8 +99,9 @@ Measured outside group ramps, on a Term Defined bundle [Measured: 2026-11-11, 26
   as a date (the quote was created); a configuration rule then refused that change, so it
   wasn't ordered.
 
-Whether the date window holds outside group-ramped bundles, and its upper bound for assets
-with no end date, are **Open** ([verification.md](verification.md) → Open).
+Measured confirmation of the traced gate with the capability on and off, whether the date
+window holds outside group-ramped bundles, and its upper bound for assets with no end date,
+are **Open** ([verification.md](verification.md) → Open).
 
 ## Questions to settle in the plan
 
@@ -108,6 +111,9 @@ with no end date, are **Open** ([verification.md](verification.md) → Open).
   changing the answer on the amendment re-derives the children, and can reset the other
   answers (Quick Rules 2 and 3).
 - Which selling model does each line use? That decides renewals and credits.
+- Which contract are the change examples priced from: the original deal, or the latest
+  renewal or amendment of it? The unit price, term and start date a change line uses follow
+  that contract, so settle it before reading an example's numbers.
 - Does the source state an evergreen line's values over a term (a total credit over the
   remaining term)? The quote counts an evergreen line for a pricing term count, not the
   term. Salesforce Pricing Setup's Evergreen default sets it: at 1 the price is one billing

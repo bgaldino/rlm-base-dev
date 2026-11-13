@@ -1,0 +1,472 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Standard Sync Quote to Opportunity action. It copies the quote&apos;s lines to the opportunity&apos;s products; with Asynchronous Opportunity Sync on, writing the synced quote alone marks the quote as syncing without copying anything. A standard quote is copied before the action returns, with no tracker Id; a large quote is queued as a background job and the action returns its tracker Id.</description>
+        <name>Sync_Quote_To_Opportunity</name>
+        <label>Sync Quote to Opportunity</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>syncQuoteOpportunity</actionName>
+        <actionType>syncQuoteOpportunity</actionType>
+        <connector>
+            <targetReference>Was_Sync_Accepted</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Roll_Back_Failed_Sync</targetReference>
+        </faultConnector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>quoteId</name>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>syncQuoteOpportunity</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <apiVersion>68.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <description>A quote syncs only to its own opportunity, and a quote without a price book has no products to sync.</description>
+        <name>Can_Sync</name>
+        <label>Can Sync</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Get_Opportunity</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Can Sync</defaultConnectorLabel>
+        <rules>
+            <name>Quote_Has_No_Opportunity</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Quote.OpportunityId</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>No_Opportunity</targetReference>
+            </connector>
+            <label>No Opportunity</label>
+        </rules>
+        <rules>
+            <name>Quote_Has_No_Price_Book</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Quote.Pricebook2Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>No_Price_Book</targetReference>
+            </connector>
+            <label>No Price Book</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Only an open opportunity is synced, as RLM_SyncRenewalQuoteOnOrderActivation does. An opportunity that already syncs with this quote only needs the lines copied again; one that syncs with no quote or with another quote is first switched to this quote.</description>
+        <name>Opportunity_Sync_State</name>
+        <label>Opportunity Sync State</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Set_Synced_Quote</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not Synced With This Quote</defaultConnectorLabel>
+        <rules>
+            <name>Opportunity_Not_Readable</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Opportunity.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Opportunity_Not_Found</targetReference>
+            </connector>
+            <label>Not Readable</label>
+        </rules>
+        <rules>
+            <name>Opportunity_Is_Closed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Opportunity.IsClosed</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Opportunity_Closed</targetReference>
+            </connector>
+            <label>Closed</label>
+        </rules>
+        <rules>
+            <name>Synced_With_This_Quote</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Opportunity.SyncedQuoteId</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>recordId</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Sync_Quote_To_Opportunity</targetReference>
+            </connector>
+            <label>Synced With This Quote</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>A large quote is synced by a background job, and the action returns the job&apos;s tracker Id; a standard quote is already copied, and no tracker Id comes back.</description>
+        <name>Is_Background_Sync</name>
+        <label>Is Background Sync</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Sync_Done</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Copied</defaultConnectorLabel>
+        <rules>
+            <name>Tracker_Returned</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Sync_Quote_To_Opportunity.aotId</leftValueReference>
+                <operator>IsBlank</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Sync_Queued</targetReference>
+            </connector>
+            <label>Queued</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>The action returns isSuccess = false, without faulting, when validation fails or the background job can&apos;t be queued.</description>
+        <name>Was_Sync_Accepted</name>
+        <label>Was Sync Accepted</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Roll_Back_Rejected_Sync</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Rejected</defaultConnectorLabel>
+        <rules>
+            <name>Sync_Accepted</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Sync_Quote_To_Opportunity.isSuccess</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Is_Background_Sync</targetReference>
+            </connector>
+            <label>Accepted</label>
+        </rules>
+    </decisions>
+    <description>Quick action on the quote that syncs its lines to its opportunity&apos;s products, so the opportunity can be forecast from the quote. With Asynchronous Opportunity Sync on, which post_utils turns on for RLM_SyncRenewalQuoteOnOrderActivation, the platform hides the standard Start Sync button, and this action replaces it. It syncs as soon as it opens, with no confirmation, and shows one result screen. An opportunity that syncs with no quote or with another quote is set to sync with this quote and given its price book, as the order-activation flow does; then the standard Sync Quote to Opportunity action copies the lines. A fault or rejected sync rolls back the synced-quote change. A synced quote that changes afterwards must be synced again before Create Order accepts it; order activation can&apos;t do it, because Create Order refuses before any order exists. As with any successful sync, RLM_CloseRenewalOpportunityOnQuoteSync closes the opportunity as Closed Won when the quote&apos;s orders are all activated.</description>
+    <environments>Default</environments>
+    <interviewLabel>RLM Sync Quote to Opportunity {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Sync Quote to Opportunity</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>Flow</processType>
+    <recordLookups>
+        <name>Get_Quote</name>
+        <label>Get Quote</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Can_Sync</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Lookup_Error</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Quote</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Name</queriedFields>
+        <queriedFields>OpportunityId</queriedFields>
+        <queriedFields>Pricebook2Id</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <name>Get_Opportunity</name>
+        <label>Get Opportunity</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Opportunity_Sync_State</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Lookup_Error</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Quote.OpportunityId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Opportunity</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>Name</queriedFields>
+        <queriedFields>IsClosed</queriedFields>
+        <queriedFields>SyncedQuoteId</queriedFields>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordRollbacks>
+        <description>Rolls back the synced-quote change when the sync action faults, so the opportunity isn&apos;t left syncing with a quote whose lines were never copied.</description>
+        <name>Roll_Back_Failed_Sync</name>
+        <label>Roll Back Failed Sync</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Sync_Error</targetReference>
+        </connector>
+    </recordRollbacks>
+    <recordRollbacks>
+        <description>Rolls back the synced-quote change when the sync action rejects the request.</description>
+        <name>Roll_Back_Rejected_Sync</name>
+        <label>Roll Back Rejected Sync</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Sync_Rejected</targetReference>
+        </connector>
+    </recordRollbacks>
+    <recordUpdates>
+        <description>Makes this quote the opportunity&apos;s synced quote and sets the opportunity&apos;s price book to the quote&apos;s in the same update: a sync needs them to match, and an opportunity with no price book rejects the synced quote alone. An opportunity whose products come from a different price book rejects the update, and the error screen shows why.</description>
+        <name>Set_Synced_Quote</name>
+        <label>Set Synced Quote</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Sync_Quote_To_Opportunity</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Sync_Error</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Opportunity.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Pricebook2Id</field>
+            <value>
+                <elementReference>Get_Quote.Pricebook2Id</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>SyncedQuoteId</field>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Opportunity</object>
+    </recordUpdates>
+    <screens>
+        <name>Lookup_Error</name>
+        <label>Lookup Error</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>LookupErrorText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The quote wasn&apos;t synced.&lt;/strong&gt; Nothing was changed.&lt;/p&gt;&lt;p&gt;The quote or its opportunity couldn&apos;t be read. Ask your Salesforce admin, and include the details below.&lt;/p&gt;&lt;p&gt;Details: {!$Flow.FaultMessage}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>No_Opportunity</name>
+        <label>No Opportunity</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>NoOpportunityText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;{!Get_Quote.Name}&lt;/strong&gt; isn&apos;t linked to an opportunity, so there&apos;s nothing to sync it to.&lt;/p&gt;&lt;p&gt;Set the quote&apos;s opportunity, then try again.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>No_Price_Book</name>
+        <label>No Price Book</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>NoPriceBookText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;{!Get_Quote.Name}&lt;/strong&gt; has no price book yet, so it has no products to sync.&lt;/p&gt;&lt;p&gt;Add products to the quote, then try again.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Opportunity_Not_Found</name>
+        <label>Opportunity Not Found</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>OpportunityNotFoundText</name>
+            <fieldText>&lt;p&gt;You don&apos;t have access to the opportunity of &lt;strong&gt;{!Get_Quote.Name}&lt;/strong&gt;, so the quote wasn&apos;t synced.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Opportunity_Closed</name>
+        <label>Opportunity Closed</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>OpportunityClosedText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt; is closed, so the quote wasn&apos;t synced.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Sync_Done</name>
+        <label>Sync Done</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>SyncDoneText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt; now has the products from &lt;strong&gt;{!Get_Quote.Name}&lt;/strong&gt;.&lt;/p&gt;&lt;p&gt;If you change the quote, sync it again before you create an order.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Sync_Queued</name>
+        <label>Sync Queued</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>SyncQueuedText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;{!Get_Quote.Name}&lt;/strong&gt; is syncing to &lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt; in the background.&lt;/p&gt;&lt;p&gt;If you change the quote, sync it again before you create an order.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Sync_Rejected</name>
+        <label>Sync Rejected</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>SyncRejectedText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The quote wasn&apos;t synced.&lt;/strong&gt; &lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt; and its products are unchanged.&lt;/p&gt;&lt;p&gt;Something on the opportunity or its products, such as a validation rule, blocked the sync. Ask your Salesforce admin, and include the details below. The failure is also logged in the quote&apos;s Revenue Transaction Error Logs list.&lt;/p&gt;&lt;p&gt;Details: {!Sync_Quote_To_Opportunity.errorCode} {!Sync_Quote_To_Opportunity.errorMessage}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Sync_Error</name>
+        <label>Sync Error</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>SyncErrorText</name>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The quote wasn&apos;t synced.&lt;/strong&gt; &lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt; and its products are unchanged.&lt;/p&gt;&lt;p&gt;If you can&apos;t edit &lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt;, ask its owner to sync the quote. Otherwise, ask your Salesforce admin, and include the details below.&lt;/p&gt;&lt;p&gt;Details: {!$Flow.FaultMessage}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Quote</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <variables>
+        <description>Quote Id, supplied by the Quote.RLM_SyncQuoteToOpportunity quick action.</description>
+        <name>recordId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>

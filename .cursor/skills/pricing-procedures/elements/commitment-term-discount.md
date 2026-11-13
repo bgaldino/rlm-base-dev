@@ -180,6 +180,11 @@ phases 9 and 10].
 
 - After phase 7 (attribute, bundle, volume, manual and amount/percentage discounts), so the 6% is
   taken from the already discounted net, as the rule requires.
+- **Other position, for a source that applies negotiated discounts on top of programs:** after volume and before
+  Manual Discount. The term discount is then taken before the negotiated one. Not measured. Percentage
+  negotiated discounts only change cent rounding, but an amount discount differs by more (illustrative: a
+  10.00 amount off a 100.00 line with a 6% term discount nets 84.00 when the term discount comes first and 84.60
+  when it comes second). Record which order the source means.
 - After phase 8 (price revision): the 6% is taken from the revised price. Moving it before price
   revision only changes cent rounding, since both are multiplicative. Not measured.
 - **Before** Proration and Subscription Price (phase 10). In the shipped default, Subscription Price
