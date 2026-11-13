@@ -102,7 +102,7 @@ bundle (`PROD-455868158`): `PROD-455868158` (OmniRack DC42 Series) →
 Anchor). The first five are `Type=Bundle` in `Product2.csv`; the last is a
 plain leaf product, not itself a bundle. That is **5 bundle levels** — two
 past the PCM `MaxBundleDepth` org value's default of 3, and exactly the
-value's hard ceiling (see `orgs/README.md`). Every scratch org definition
+value every scratch shape here sets (see `orgs/README.md`). Every scratch org definition
 with a `features` array (every `orgs/*.json` and `orgs/internal/*.json`,
 plus `config/project-scratch-def.json` — **not** `orgs/tfid/*.json`, which
 are template pointers with no `features` array; see below) sets

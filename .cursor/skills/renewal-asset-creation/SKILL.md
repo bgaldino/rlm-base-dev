@@ -63,7 +63,16 @@ Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreati
    renewal/amendment history *after* augment (surviving unmarked action/period count
    ≠ 1) is refused entirely, so the restore step can't overlap or clobber genuine
    history.
-6. **Everything ships through a feature branch + PR.** Never commit to `main` /
+6. **An asset's renewal term is not the quote line's `SubscriptionTerm`.** At
+   activation of a new sale the asset takes `RenewalTerm`/`RenewalTermUnit` from the
+   order item's pricing term and unit, only when the order has no contract and both
+   values are present; amend, renew and cancel activation copy the asset's existing
+   value [Platform behaviour, traced]. One measurement saw a line sold for 3 Annual
+   give an asset renewal term of 1 Annual [Measured: 2026-11-11, 264, scratch],
+   consistent with the selling model's pricing term. A longer renewal therefore needs a renewal end date or a selling model whose
+   pricing term matches, not a larger sale term [inferred]. How the line's pricing
+   term is populated was not fully traced.
+7. **Everything ships through a feature branch + PR.** Never commit to `main` /
    `preview/*` / `release/*`. This skill and its scripts are their own branch — adding
    them to an unrelated feature branch trips `check_branch_scope.py`.
 

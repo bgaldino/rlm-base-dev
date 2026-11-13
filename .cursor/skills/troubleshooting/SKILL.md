@@ -223,11 +223,14 @@ Series**, `PROD-455868158`) nests 6 products across 5 component links —
 → `PROD-384361183` → `PROD-1956857281` — but a fresh scratch org defaults the
 PCM `MaxBundleDepth` org value to 3. SFDMU reports each failing row and the
 build carries on, so the load finishes "successfully" with the deep bundle
-silently truncated at level 3 — nothing else in the log calls this out.
+cut off at level 3 and nothing else in the log calling it out [Measured: before the
+fix below, scratch; PR #516]. The default of 3 is measured; where it comes from was not
+traced.
 
 **Fix:** Every scratch org definition with a `features` array
 (`orgs/*.json`, `orgs/internal/*.json`, `config/project-scratch-def.json`)
-carries `MaxBundleDepth:5` (the max this org value supports). Live-verified
+carries `MaxBundleDepth:5` (the highest value used here; the platform ceiling was not
+traced). Live-verified
 in [PR #516](https://github.com/bgaldino/rlm-base-dev/pull/516): a fresh
 scratch org built from an updated shape loaded all 234/234
 `ProductRelatedComponent` rows with no depth error in the log. If you hit
@@ -239,9 +242,8 @@ whether the template's source org has `MaxBundleDepth` raised is a separate,
 unverified question) — add the same feature value where a `features` array
 exists, or raise the org value directly where it doesn't. Scratch orgs
 otherwise default to depth 3, and this org value has no Setup UI or Metadata
-API surface to raise after the fact (it is
-`scratchOrgFeatureOptOut="SUPPORT_ONLY"` in Core's UDD, so a persistent org
-without it needs a Salesforce Support case, not a repo change).
+API surface found to raise after the fact, so a persistent org without it
+probably needs a Salesforce Support case rather than a repo change [inferred].
 
 ---
 
@@ -480,9 +482,10 @@ whose expression-set version is inactive fails loudly: "Ensure that this
 procedure has at least one active version."
 
 **Fix:** first read the failure's health report. If it says the
-expression-set version is **not confirmed inactive** after a failed PATCH, the
-version may be half-written: inspect it and deactivate it before touching the
-plan, because an active plan would route pricing to it. Then query the plan
+expression-set version is **not confirmed inactive** after a failed PATCH, its
+state is not confirmed: it was read back as still active, or could not be read at
+all (whether a failed PATCH can leave it half-written or active was not traced) [Repo]. Inspect it and deactivate it before
+touching the plan, because an active plan would route pricing to it [inferred]. Then query the plan
 (`SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion`). If the change belongs
 to `RLM_DefaultPricingProcedure`, leave the plan inactive: the plan is not the cause,
 so check that procedure's active version and the Revenue Settings default procedure.
