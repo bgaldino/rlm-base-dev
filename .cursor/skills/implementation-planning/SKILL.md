@@ -71,12 +71,11 @@ files can use it.
   calculator. Real inconsistencies become decisions, not silent choices. When a note
   states a rule and a formula breaks it, recommend the stated rule, and keep the
   formula's cached values only to check the extraction. When a stated rule breaks a
-  worked example's stated outcome, look for a reading that keeps both (a narrower
-  scope, or a data choice such as a line the rule never touches) and recommend it;
-  give the literal reading as the alternative and list the examples it breaks. If no
-  reading keeps both, prefer a resolution the source states itself (a note on the
-  example), and give each option's values; if it states none, recommend the stated rule
-  and list the examples it breaks.
+  worked example's stated outcome, follow a resolution the source states itself (a note
+  on the example). Otherwise look for a reading that keeps both (a narrower scope, or a
+  data choice such as a line the rule never touches) and recommend it, with the literal
+  reading as the alternative; if none keeps both, recommend the stated rule. Either way,
+  list the examples the literal reading breaks.
 - **DO NOT** put customer, brand or third-party commercial data in the public repo.
   Decide where the plan and data live (Quick Rule 1). A private plan may name real
   data; this skill and anything public may not.
