@@ -55,8 +55,8 @@ Built on a Place Sales Transaction quote (`configurationMethod: Force`,
   illustrative]. In a build whose top-level support line sat in that container (the line's product based on
   the regional classification, the region taken from the root's answer through `parent()`), that line's own net
   unit price took the regional adjustment in each of two regions and matched its expected value [Measured:
-  2026-11-11, 264, scratch, one org]. So a held top-level line is priced from the root's answer; no separate
-  region input is needed on it.
+  2026-11-11, 264, scratch, one org]. That is consistent with a held top-level line being priced from the
+  root's answer with no separate region input on it [inferred].
   A support-only quote (no bundle) kept the default. Assert it at the catalog gate; details in
   [`quantities-from-attributes.md`](../../constraint-models/quantities-from-attributes.md) (M42).
 - **Catalog set-up used:** each affected child is based on a classification that carries

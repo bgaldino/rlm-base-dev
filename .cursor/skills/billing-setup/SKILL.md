@@ -228,7 +228,7 @@ accomplished milestones are invoiced [Help:
 fulfillment steps to billing milestones [inferred from Help's silence], so a source milestone tied
 to a delivery step needs a decided way to be marked: a billing user, or automation such as a
 fulfillment AutoTask flow that sets the field [inferred, not measured]. Without one the
-milestone's invoice never comes due.
+item stays waiting and is not invoiced [inferred from Help].
 
 **When a source names no milestones,** Revenue Cloud still needs, for each milestone:
 - a name;

@@ -1023,11 +1023,11 @@ Each needs a live 264 org:
       and checked on a virtual container
       ([Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)).
       The configurator no longer owns the sizing (by design). Top-level assets had to be carried
-      on root amendments at `quantityChange` 0, and a quote without the bundle was left unchecked
-      [Measured: 2026-11-12, 264, scratch, one org]: an amendment of the top-level assets alone
+      on root amendments at `quantityChange` 0, and a quote without the bundle raised no rule
+      message [Measured: 2026-11-12, 264, scratch, one org]: an amendment of the top-level assets alone
       (one plan's line reduced, a new top-level line of the other plan added) priced, ordered
       and activated with rules on, 0 messages and no error log. The container's check against
-      the root's answer didn't apply there [inferred, consistent with M42's no-bundle quote], so a
+      the root's answer didn't apply there, so the quote went unchecked [inferred, consistent with M42's no-bundle quote], so a
       split rule on that path needs a quote-level validation that reads the assets (a custom
       build). See `asset-lifecycle-changes` Quick Rule 7.
     - *Answer-per-option route* (not run): keeps the sizing rules in the model, so the
