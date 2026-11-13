@@ -140,7 +140,7 @@ the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
   line, or a swap of the component asset. A price amendment on a component's line, a plan
   held as a root answer, and a partial move under a one-plan group are measured (above;
   [change-policy-mapping.md](change-policy-mapping.md)).
-- **Evergreen component removal to 0, and a Force-edited reduction through to an order:** only `Skip` plus a `QuoteAction` edit was ordered; the `Force` quote was refused because the test bundle lacked a required child, a test-setup gap, not a `Force` limit.
+- **Evergreen component removal to 0, and a Force-edited reduction through to an order:** only `Skip` plus a `QuoteAction` edit was ordered; the `Force` quote was refused because the test bundle lacked a required child, a test-setup gap; whether `Force` orders on a complete bundle is unmeasured.
 - **Evergreen swaps:** what a swap's outgoing side credits on an evergreen line. Evergreen
   reductions (standalone, and a one-lot bundle component) and the renewal of a standalone
   evergreen asset are measured: SKILL.md Quick Rules 5 and 6, and
