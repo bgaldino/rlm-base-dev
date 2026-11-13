@@ -59,8 +59,9 @@ catalog or model carries; otherwise it waits for that spike, or builds every rou
    Robot output, and an SFDMU load rewrites its plan's `export.json` in place, so two
    loads of one plan file collide wherever they run (`build-harness` → Run several builds
    at once). Otherwise run those steps one at a time. Each session writes only the
-   folders it owns; at its gate the main session copies them into its own checkout to
-   review and commit (rule 3).
+   folders it owns; at its gate the main session copies them into its own checkout of
+   the repo that owns them (the pack's repo for a private pack) to review and commit
+   (rule 3).
 3. **Only the main session commits,** after reviewing a session's files at its gate.
    This stops two sessions racing on one git index.
 4. **Every brief stands alone.** It names:
