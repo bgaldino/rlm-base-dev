@@ -128,7 +128,8 @@ lines to fill an empty UI panel.
    steps; a step that several items need with different predecessors needs one definition
    in each item's group. The same holds for one item fed by several source products whose
    work waits on different predecessors: one definition per case with a condition on the
-   source product, or a separate technical item [inferred]. Count groups and step definitions before step instances.
+   source product, or a separate technical item [inferred].
+   Count groups and step definitions before step instances.
 5. If two outputs have separate groups, design dependencies between their actual
    instances. Do not copy a per-line dependency and assume it pairs different
    technical outputs. Discover source linkage and apply the documented scope

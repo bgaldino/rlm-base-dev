@@ -198,8 +198,8 @@ these conditions; rerun the amendment and cancel checks there.
   Help doesn't settle it. Don't promise a start-date offset; use a previous-step delay
   instead (the two-minute delay above waited, then started).
 - **Amendment decomposition.** An amendment created a new plan holding the full step set,
-  not a delta, and a changed quantity was a full replace. One fulfillment asset's quantity after the amendment did not match its
-  line's end quantity; unexplained. Help lists a No Change action for lines whose
+  not a delta, and a changed quantity was a full replace. One fulfillment asset's quantity
+  after the amendment did not match its line's end quantity; unexplained. Help lists a No Change action for lines whose
   attributes and quantity don't change [Help: `ind.dro_fulfillment_order_line_item_actions`],
   but on a bundle amendment two of the unchanged lines came through as an add of 1 (fulfillment
   asset 0 to 1) and a cancel of -1 (asset 1 to 0), while another line of the same order was No
@@ -226,8 +226,9 @@ these conditions; rerun the amendment and cancel checks there.
   appear on every later order that carries a line decomposing to it, with Amend or No Change,
   and its group's steps compose again unless their conditions skip those actions [inferred
   from the measured actions]; "no new instance" doesn't mean "no line". When a step is
-  skipped by its condition and Skip Branch is on, Help skips the branch that depends on it
-  [Help: `ind.dro_define_conditions_for_a_fulfillment_step_to_run`]; decide that per edge.
+  skipped by its condition and Skip Branch is on, Help skips the branch that depends solely
+  on it [Help: `ind.dro_define_conditions_for_a_fulfillment_step_to_run`]; decide that per
+  edge.
   Check the line actions on the first later order.
 - **Fallout and jeopardy rules** match on step type, with an optional integration
   definition, flow definition and error code; this is from the rule objects' describe,
