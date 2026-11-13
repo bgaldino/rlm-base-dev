@@ -3,7 +3,7 @@
 > Sub-file of `.cursor/skills/pricing-setup/SKILL.md`, indexed in [README.md](README.md).
 > Release 264. No Help example; this is custom wiring on a clone of the pricing procedure.
 > Sources are tagged `[Repo: <path>]`, `[inferred]` and `[Measured]` (measured 2026-11-11, except where a tag carries its own date, on a
-> fresh 264 `ent-sb0` scratch org). The example uses neutral round numbers.
+> fresh 264 scratch org). The example uses neutral round numbers.
 
 **Goal:** a quote shows a full-term value, a full-term cost and a full-term margin (a
 "commitment" or "contract value") next to the platform's quote total, plus an optional
@@ -157,11 +157,11 @@ horizon.
   the amendment date). On a change dated on a renewal's start, the formula then counts the months from the
   original start, which can leave 0 months to the horizon. A custom months-remaining value was 0 for a price change dated at the renewal start, after the original commitment's end `[Measured: 2026-11-12, 264, scratch; one org]`; the line's own change value matched the expected value, and billing showed a monthly credit and a monthly charge schedule per changed line. What a renewed asset's lifecycle
   start is was not traced. Fix `[inferred]`: if the asset's lifecycle start is the original start, stamp the start of the current term instead.
-- **Not stamped:** a new-sale quote and a renewal quote. The formula counts from their own
-  `StartDate`. On a renewal priced per lot, line-level full-term fields stayed blank: the lines'
+- **Not stamped:** a new-sale quote and a renewal quote. On a new-sale quote the formula counts
+  from its own `StartDate`. On a renewal priced per lot, line-level full-term fields stayed blank: the lines'
   net unit price was null, the prices sat on per-lot detail rows, a procedure step ran per lot but its
-  output had nowhere to land, and a quote roll-up read 0 `[Measured: 2026-11-12, 264, scratch; one
-  org, renewal quote, not ordered]`. Compute renewal full-term values outside the procedure and gate
+  output was not saved to the line or to a mapped detail field, and a quote roll-up read 0
+  `[Measured: 2026-11-12, 264, scratch; one org, two renewal quotes, one ordered and activated]`. Compute renewal full-term values outside the procedure and gate
   them on a renewal quote; a before-save route was built but not verified.
 - **Ramps.** An Evergreen line in a dated quote line group counts that segment's months, so
   segments that span the horizon count it between them `[Measured]`. This also covers an

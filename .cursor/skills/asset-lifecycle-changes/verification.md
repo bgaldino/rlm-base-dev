@@ -20,7 +20,7 @@ For each change, record the state after every step:
    the measured runs. On a No Change line, `Skip` refused a non-zero quantity ("Specify 0 in
    Quantity...") and `Force` accepted it, turning the line's `QuoteAction.Type` to Amend, even
    at quantity 0 [Measured: 2026-11-12, 264, scratch; one standalone asset, single-line quotes,
-   System pricing]; read every line's `QuoteAction.Type` back (SKILL.md Quick Rule 7). Then read:
+   System pricing]. On a bundle amendment quote `Force` on one component also turned the sibling lines to Amend [Measured: 2026-11-12, 264, scratch, one org]; read every line's `QuoteAction.Type` back (SKILL.md Quick Rule 7). Then read:
     - each line's `Quantity`, `UnitPrice` and `TotalPrice`. On an amendment quote
       `Quantity` is the delta, and `StartQuantity` and `EndQuantity` the totals before and
       after. A line's source asset is on `QuoteAction.SourceAssetId`; `QuoteLineItem` has
@@ -142,12 +142,12 @@ the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
   [change-policy-mapping.md](change-policy-mapping.md)).
 - **Evergreen swaps:** what a swap's outgoing side credits on an evergreen line. A
   standalone Evergreen reduction (`quantityChange` < 0) credited one period per lot, last in,
-  first out, through activation [Measured: 2026-11-12, 264, scratch, one org]; as a bundle
-  component it was priced on quotes only.
-- **Renewing a standalone evergreen asset:** measured on one org, no longer open. The
-  assets came back as "No Change" lines at quantity 0 and were untouched; a price amendment
-  dated on the renewal start, after activation, uplifted them [Measured: 2026-11-12, 264,
-  scratch, one org] ([change-policy-mapping.md](change-policy-mapping.md)).
+  first out, through activation [Measured: 2026-11-12, 264, scratch, one org]. A bundle
+  component reduced by 2 of 5 (a single lot) was ordered and activated through Skip plus a
+  `QuoteAction` Amend edit: a new state period at 3, one credit schedule for the 2
+  [Measured: 2026-11-12, 264, scratch, one org; per-lot and last-in-first-out credits on a
+  component not tested]. Evergreen swaps are open; renewing a standalone evergreen asset is measured (SKILL.md
+  Quick Rule 5 and [change-policy-mapping.md](change-policy-mapping.md)).
 - **An earlier-dated change against a future-dated one:** the amend and cancel articles
   say it's refused, while *Future-Dated Changes* and its examples allow it
   ([change-policy-mapping.md](change-policy-mapping.md) → Replay the source's changes in

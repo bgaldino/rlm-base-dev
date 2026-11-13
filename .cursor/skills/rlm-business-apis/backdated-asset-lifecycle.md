@@ -121,12 +121,13 @@ not clear it there, so adding the custom `__c` mappings above is not always enou
 Cause found on that org by bisection, no mechanism measured [Measured: 2026-11-12, 264, scratch; one org]:
 an Apex query of the procedure's declared context tags on the Order lens failed with "Invalid tag attribute
 name key" for one stock tag that had no attribute row on the Order lens (the Quote lens passed). Adding an
-Order-lens attribute row with no source field cleared it: Place reprice with System or Force and an
-Order-output amend then succeeded, and removing the row brought the tag-query failure back. The generic
+Order-lens attribute row with no source field cleared it: a Place reprice with Force and an
+Order-output amend then succeeded (System pricing, renew and cancel with Order output were not rerun after the fix), and removing the row brought the tag-query failure back. The generic
 message hides this because most failures in the procedure's context-tag query are replaced by it
 [Platform behaviour, traced]. Check: query the declared tags on the Order lens (halve the set to find the
-offender) and add a field-less attribute row for each missing one. That every declared tag needs a row on
-every lens that prices is a reading of this one case. Don't treat a Skip success as proof the order priced.
+offender) and add a field-less attribute row for each tag that has a Quote-lens row but no Order-lens row.
+Other declared tags with no row on either lens passed on that org, so don't add rows for every declared tag.
+Don't treat a Skip success as proof the order priced.
 
 Gotchas, all measured:
 

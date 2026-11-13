@@ -109,8 +109,8 @@ Connect API [Measured: 2026-11-12, 264]:
 
 A Connect deep clone of a configurable-bundle quote whose component quantities come from root
 attribute answers carried every component line, its quantity, its line `Discount`, a mapped
-custom line field and the root answers, on three clones (one org, illustrative)
-[Measured: 2026-11-12, 264, scratch; one org].
+custom line field and the root answers, on three clones [Measured: 2026-11-12, 264, scratch; one org].
+Static and nested bundles were not measured.
 
 Not measured: price adjustments other than the line `Discount` field (the source had no
 `QuoteLinePriceAdjustment` rows), ramp segments, header discounts, custom child

@@ -108,7 +108,7 @@ path or consequence was not established (the text says what is missing).
 | First offer | New quote on the opportunity | Yes | Its own submission | Synced while it is current |
 | Each later customer-facing round (as many as the deal needs) | Deep clone of the previous customer-facing round, renamed | Yes | New submission | Sync moves to it |
 | Internal what-if round (optional) | Deep clone of any round, renamed and marked internal | **No** | Its own submission if policy needs sign-off on that price | **Never** |
-| Final | Deep clone of the round the customer accepted (or an internal round whose numbers match it), renamed | Yes | New submission | Synced; set to Accepted; Create Order |
+| Final | Deep clone of the round the customer accepted (or an internal round whose numbers match it), renamed | Yes | New submission | Set to Accepted; synced last; Create Order (retry on "currently syncing") |
 
 - **Naming:** "<Opportunity> — R<n> <label>", for example "Example Corp renewal — R2 What-if
   (internal)". Rounds sort by name and read in list views.
@@ -167,9 +167,11 @@ ships). Reprice each round before submitting it.
 ## Final round to order
 
 Order of operations: write the status (Accepted, if your process sets it) and any other quote
-edit first, sync last, then create the order. A quote write after the sync can make Create Order
-refuse it as "currently syncing" (step 1). On that refusal, sync again and retry; one retry
-about 15 s later also worked without a second sync (one quote) [Measured: 2026-11-12, 264, scratch].
+edit first, sync last, then create the order [inferred from the traced rule in step 1; this order
+was not itself run]. A quote write after the sync can make Create Order refuse it as "currently
+syncing" (step 1). On that refusal, retry about 15 s later or sync again; the 15 s retry created
+the order without a second sync in the runs that used it (sync, then Accepted, then Create Order)
+[Measured: 2026-11-12, 264, scratch].
 
 1. Sync the final round (after any status write): Start Sync on the quote [Help:
    `ind.qocal_considerations_syncing_quotes_and_opportunities_in_revenue_cloud`]. Sync runs
@@ -237,8 +239,8 @@ one round is internal only.
 2. Each later customer-facing round = Connect clone of the previous one; rename; change discounts
    with bulk edit; reprice; recall the previous round's submission if still open; submit.
 3. The internal round = clone of the round it models; rename "(internal)"; set the flag; never sync.
-4. Final = clone of the accepted round; rename; clear any internal flag; submit; sync;
-   Accepted; Create Order.
+4. Final = clone of the accepted round; rename; clear any internal flag; submit; Accepted;
+   sync; Create Order (retry on "currently syncing").
 5. Check: each round's totals match the source's figures for that round.
 
 ### Example 2 — Headless clone

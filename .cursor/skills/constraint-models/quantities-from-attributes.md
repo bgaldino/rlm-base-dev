@@ -330,8 +330,8 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
   no attribute record. Both solved with no message `[Measured: M28]`. A top-level line that a
   virtual `Quote` container relation holds (with `sourceContextNode`, see
   [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container))
-  did receive the bundle root's answer through `parent()`, while a line no container relation
-  holds got none; a quote with no bundle kept the default `[Measured: M42]`. Check it at the
+  did receive the bundle root's answer through `parent()`; a quote with no bundle kept the
+  default `[Measured: M42]`. Check it at the
   catalog gate.
 
 ---
@@ -888,7 +888,7 @@ If the `warranties` relation's `[1..1]` bound rejects two warranties first (an
 The 2026-11-10 rows come from a temporary probe model on a 264 (API v68.0) scratch org:
 rules added to an active bundle model, imported and cycled, then read back through
 `message(...)` values in a `configure` response after a Place with rules on. Row M21 is an
-earlier headless test of a different model. The 2026-11-11 rows (M22 to M41) come from fresh
+earlier headless test of a different model. The 2026-11-11 rows (M22 to M42) come from fresh
 264 `ent-sb0` scratch orgs: a bundle model built on this file's patterns (more than a dozen
 components sized from root answers, the largest relation above 9,999), probe models, the
 shipped QuantumBit bundle model (part of M39), and the line editor and configurator UI. M37's

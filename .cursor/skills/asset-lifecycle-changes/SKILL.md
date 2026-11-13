@@ -34,7 +34,7 @@ results, 2026-11-11).
    placement.** Follow the change from quote → reprice → order → reprice → activation →
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
-    - **Never reprice a renewal quote after its order is activated; don't on an amendment either until it is measured.** Measured once on a
+    - **Never reprice a renewal quote after its order is activated; don't on an amendment or ramped quote either until it is measured.** Measured once on a
       renewal quote: a full reprice (every line, pricing `Force`, configuration `Skip`) after
       the order was activated set the renewal lines' totals and the quote total to 0
       [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read
@@ -232,9 +232,9 @@ results, 2026-11-11).
       is the number of periods, with the first and last partial period counted as its days
       (inclusive, actual calendar days under the actual-days time period type) over the
       days in that full period, so a leap year changes the denominator (275/365 in a normal
-      year, 275/366 in a leap year). A 30-day-month type counts 30 days a month (not run: whether it reproduces a
+      year, 275/366 in a leap year). A 30-day-month type counts 30 days a month (not run: one scratch org offered no such policy type to create, so whether it reproduces a
       months-remaining source value on a mid-period start is unmeasured, and a selling
-      model's proration options take the policy only at create), and turning
+      model's proration options take the policy only at create [inferred]), and turning
       partial periods off counts whole periods only. Read for the annual frequency with the
       actual-days type; that the first period runs to the calendar year end is inferred from
       the measured numbers, and other frequencies weren't read [Platform behaviour, traced
@@ -247,8 +247,12 @@ results, 2026-11-11).
       [Measured: 2026-11-12, 264, scratch, one org; standalone asset, not a bundle
       component]. Help says an evergreen reduction takes units last in, first out
       from the current quantity, and a swap acts as an add plus a negative amendment [Help:
-      `ind.qocal_fdo_examples_of_amendment_types_and_results`], but not what a swap credits.
-      Evergreen swap credits are **Open** ([verification.md](verification.md) → Open).
+      `ind.qocal_fdo_examples_of_amendment_types_and_results`]; it doesn't say what either
+      credits, and the reduction credit above is measured. A reduction of an Evergreen
+      bundle component by 2 of 5 (one lot), ordered and activated through Skip plus a
+      `QuoteAction` Amend edit, gave a new state period at the reduced quantity and one credit
+      schedule for the 2 [Measured: 2026-11-12, 264, scratch, one org]; per-lot credits on a
+      component and the Force path to an order weren't completed. Evergreen swap credits are **Open** ([verification.md](verification.md) → Open).
     - A source's term-total value for an evergreen line (a total credit over the remaining
       term) doesn't compare with the quote directly: the quote counts the line for its
       pricing term count, not the term ([change-policy-mapping.md](change-policy-mapping.md)
@@ -301,7 +305,13 @@ results, 2026-11-11).
       accepted the edit with the same end state [Measured: 2026-11-12, 264, scratch; one
       standalone Term Defined asset, System pricing, configuration rules at default; single-line
       amendment quotes, so whether Force also changes No Change lines not in the PATCH was not
-      measured; bundle components not re-run]. The message is a save-time quantity check that fires only while
+      measured]. On a three-line bundle amendment quote (root and two components, all No Change),
+      `Skip` with quantity 1 on the Evergreen component was refused the same way, and `Force` with
+      quantity 1 on the Term Annual component turned that line and both siblings (root included) to
+      Amend, while `Force` on the Evergreen component turned only that line and the root; `Skip` plus the
+      `QuoteAction` Amend PATCH on the Term Annual component turned only that line [Measured:
+      2026-11-12, 264, scratch, one org; why Force flipped siblings differently by component
+      is unknown]. A Force edit can therefore change lines you didn't touch. The message is a save-time quantity check that fires only while
       the action type is No Change and reads no configuration method; how `Force` changes the
       action type is not traced [Platform behaviour, traced in part]. On a new-business line
       `Force` and `Skip` both accepted non-zero edits and refused 0 (see constraint-models →

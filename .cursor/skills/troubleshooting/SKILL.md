@@ -860,9 +860,10 @@ This repo's `post_utils` bundle turns the setting on [Repo: `unpackaged/post_uti
 expected off until set [Platform behaviour, traced]; the fresh-org value is not measured,
 because the build sets it.
 
-**Fix:** set the status (and make any other change) before syncing, sync last, then order. If it
-refuses, sync again and retry; a retry about 15 s later, with no second sync, also worked once
-[Measured: 2026-11-12, 264, scratch; the sync-again step follows from the traced rule]. See
+**Fix:** set the status (and make any other change) before syncing, sync last, then order
+[inferred from the traced rule; this order was not run]. If it refuses, retry about 15 s later, or
+sync again; the retry with no second sync created the order [Measured: 2026-11-12, 264, scratch;
+the sync-again step follows from the traced rule]. See
 `quote-negotiation-rounds` → Final round to order.
 
 ### Place on an Order fails with "couldn't fetch the data for ... context definition"
