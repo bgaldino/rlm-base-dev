@@ -100,7 +100,8 @@ plan finished, so plan the installed base and billing from activation, not from 
 #### Recheck
 
 [Measured: 2026-11-13, 264, scratch, one org] A repeat on one scratch org carrying the
-shipped DRO configuration, run through order creation and activation by API:
+shipped DRO configuration plus additive test step definitions, a test product and a
+scenario, run through order creation and activation by API:
 
 - Assets and billing schedules were created at activation, before any step ran. A
   Milestone step with no unmet dependency completed within about a second with nobody

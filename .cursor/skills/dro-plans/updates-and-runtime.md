@@ -165,7 +165,8 @@ Each item is one scratch org, 264, 2026-11-13 [Measured: 2026-11-13, 264, scratc
   although a retry rule exists; both unexplained. A rule existing doesn't show it applied: verify on a live
   step. A decision-table lookup returned nothing, so the freshness link for these rules
   was not tested.
-- **Not run:** a dependency across order items.
+- **Not run (outside the measured items):** a dependency across order items; test one
+  live before relying on it.
 
 ## Update Acceptance Scenarios
 
