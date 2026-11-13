@@ -40,7 +40,7 @@ two with `diff <(jq -S 'del(.instance)' a.json) <(jq -S 'del(.instance)' b.json)
 
 Every `features` array in this directory (and `config/project-scratch-def.json`)
 carries `MaxBundleDepth:5`. It raises the PCM `MaxBundleDepth` org value from its
-scratch-org default of 3 to 5 — the maximum this org value supports — so the
+scratch-org default of 3 to 5 (the highest value this repo uses; the platform ceiling was not traced) so the
 **QuantumBit - OmniRack DC42 Series** bundle's 6-product, 5-link nesting (in
 the `qb-pcm` SFDMU plan) loads in full. Without it, 56 of this plan's 234
 `ProductRelatedComponent` rows (per the plan's tracked record count — see
@@ -54,6 +54,6 @@ loaded, no depth error). `orgs/tfid/*.json` files are template pointers with no
 failure mode and `datasets/sfdmu/qb/en-US/qb-pcm/README.md` for the dataset side.
 
 If you add a new scratch org definition under `orgs/`, carry this value forward —
-it has no Setup UI or Metadata API surface, so there is no way to raise it after
-the org is built; a persistent org (sandbox, DE) that still needs it requires a
-Salesforce Support case, not a repo change.
+no Setup UI or Metadata API surface was found to raise it after the org is built,
+so a persistent org (sandbox, DE) that still needs it probably needs a Salesforce
+Support case rather than a repo change.

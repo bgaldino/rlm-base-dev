@@ -224,7 +224,8 @@ Series**, `PROD-455868158`) nests 6 products across 5 component links —
 PCM `MaxBundleDepth` org value to 3. SFDMU reports each failing row and the
 build carries on, so the load finishes "successfully" with the deep bundle
 cut off at level 3 and nothing else in the log calling it out [Measured: before the
-fix below, 264, scratch]. Why level 3 is the cut was not traced.
+fix below, scratch; PR #516]. The default of 3 is measured; where it comes from was not
+traced.
 
 **Fix:** Every scratch org definition with a `features` array
 (`orgs/*.json`, `orgs/internal/*.json`, `config/project-scratch-def.json`)
@@ -482,8 +483,8 @@ procedure has at least one active version."
 
 **Fix:** first read the failure's health report. If it says the
 expression-set version is **not confirmed inactive** after a failed PATCH, its
-state is unknown (the tool could not read it back; whether a failed PATCH can leave
-it half-written or active was not traced) [Repo]. Inspect it and deactivate it before
+state is not confirmed: it was read back as still active, or could not be read at
+all (whether a failed PATCH can leave it half-written or active was not traced) [Repo]. Inspect it and deactivate it before
 touching the plan, because an active plan would route pricing to it [inferred]. Then query the plan
 (`SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion`). If the change belongs
 to `RLM_DefaultPricingProcedure`, leave the plan inactive: the plan is not the cause,
