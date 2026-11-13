@@ -157,8 +157,8 @@ Put the annotation on each leaf type that is a sized component (in the worked ex
 every type but the abstract `Finish`). Leave it off a type whose lines must carry
 different attribute values: `split = false` allows only one instance
 `[Dev guide: cml_annotation_example_split]`. Each root
-solves separately, so in a group ramp a single-line type gets one line per segment
-`[Measured: M43]`. The types a virtual `Quote` container holds are a different
+solves separately `[Platform behaviour, traced in part]`; in a group ramp a single-line type got one line per
+component in each segment `[Measured: M43]`. The types a virtual `Quote` container holds are a different
 case: see [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container).
 
 ---
@@ -333,7 +333,7 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
   did receive the bundle root's answer through `parent()`; a quote with no bundle kept the
   default `[Measured: M42]`. In a build with a regional price-impacting attribute, such a held
   top-level support line took the root's answer and the regional deals priced to their expected
-  values `[Measured: M44]`, so the line is priced from the answer, not only handed it. Check it at the
+  values `[Measured: M44]`, consistent with the line being priced from the answer; its own price wasn't read. Check it at the
   catalog gate.
 
 ---
@@ -954,7 +954,7 @@ nothing else in this file was run. In rows M1 to M10 the inputs, and in all rows
 | M40 | A choice answer switching several relations between a sizing rule and zero (`mode == A -> rel == n`, `mode == B -> rel == 0`), the stored answer A: one B rule for every relation with its own message; then a B rule per relation carrying that relation's message, arguments from ints set per mode; then arguments from ints the other answers fix | One B rule: configurations breaking two unrelated sizing rules were reported with its message. Per relation: the broken rule named, but its arguments printed the rejected line's own quantity or a raw `{}`. Answer-fixed arguments: the rule's normal text; on a quote with the B answer, a line placed by hand was refused with that text, stating the A quantity | 2026-11-11 |
 | M41 | A virtual `Quote` container (relations with `sourceContextNode`) in a configurator group ramp, a bundle root and a top-level line in each segment: bundle relation `[0..1]` and `@(split = false)` on the top-level line types; then the bundle relation `[0..10]`, wider line relations, no `split = false` on those types, the check comparing totals across segments | First: "You can't add more than one of the same '<product>' product to the '<type>' product class"; the configurator couldn't save. Then, in three segments added with *Current and Subsequent Segments*: segments 1 and 2 configured and saved, segment 3 changed through propagation; no error log | 2026-11-11 |
 | M42 | `parent(<attribute>)` in the types of top-level lines held by a virtual `Quote` container relation (with `sourceContextNode`), a bundle root carrying the answer; the same lines on a quote with no bundle | Held lines took the root's answer (two values tried, each reached the held lines); a quote with no bundle kept the attribute default. One org, illustrative attribute | 2026-11-11 |
-| M43 | Configurator group ramp (Annual, three segments, suite added with *Current and Subsequent Segments*) of a bundle whose sized component types were all `@(split = false)`, defaults kept; segments 1 and 2 configured and saved, one segment's answer changed to switch some components off | Each segment held one line per component at the rule's quantity, no error log; the changed answer reached the later segment. Years that excluded the one-time children held only the root and the software lines. Two orgs; correcting a segment-1 split by hand was not run | 2026-11-11 |
+| M43 | Configurator group ramp (Annual, three segments, suite added with *Current and Subsequent Segments*) of a bundle whose sized component types were all `@(split = false)`, defaults kept; segments 1 and 2 configured and saved, one segment's answer changed to switch some components off | Each segment held one line per component at the rule's quantity, no error log; the changed answer reached the later segment. Years that excluded the one-time children held only the root and the software lines (top-level lines aside). Two orgs; correcting a segment-1 split by hand was not run | 2026-11-11 |
 | M44 | A top-level support line held by a virtual `Quote` container relation, its regional attribute taken from the bundle root's answer through `parent()` and priced by a regional adjustment on its classification; deals in two regions | Regional deals priced to the expected values with the support line on the quote; the notes don't isolate that line's own price from the child lines'. One org, illustrative attribute | 2026-11-11 |
 | M45 | An option answer on a bundle sizing one option's relation from the answer and the others' to 0, on component types; a line of the non-chosen option placed against the answer | Chosen option at the answer's quantity; the other option's line rejected with the rule's message, present in the error log; a later `configure` reported success. One org | 2026-11-11 |
 
@@ -1054,6 +1054,7 @@ Each needs a live 264 org:
     segments `[Platform behaviour, traced in part]`; whether a cloned segment line is fixed or a candidate, and its
     quantity, are decided on the Place side, which isn't traced. A container over all segments is one solve
     (see [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container); M41).
+
 ---
 
 ## Validation Checks
