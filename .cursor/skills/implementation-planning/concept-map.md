@@ -17,7 +17,7 @@ pointer, not the skill's full open list.
 | Fixed kit | Static bundle. If any child is Term Defined or Evergreen, try a locked configurable bundle; the static kit with recurring children is open | `product-catalog-modeling` → `bundles-and-cardinality.md` |
 | Option the rep picks, priced | Attribute with attribute-based price, or a component | `product-catalog-modeling` → `attributes-and-classifications.md`; `pricing-procedures` → `elements/attribute-based-price.md`; for an answer on the parent priced on a child, `elements/root-answer-child-price.md` |
 | Not sold standalone | `IsSoldOnlyWithOtherProds`. The only refusal measured is at category assignment: Place, order and activation accepted the product alone, so a quote that must never sell it alone needs its own check | `product-catalog-modeling` → `selling-models-and-lifecycle.md` |
-| Not tracked in the installed base | `IsAssetizable = false` | same |
+| Not tracked in the installed base | `IsAssetizable = false` on a standalone product. A bundle child follows its root: under an assetizable root it still becomes an asset, so a child that must stay out of the installed base becomes a separate line | same (`IsAssetizable`) |
 | Product lines, categories, catalogs | Catalog categories and `Family` | `product-catalog-modeling` → `catalogs-and-loading.md` |
 | Part number per configuration | Attribute set by CML from the selection. No skill covers building one value from several selections; record it as a skill gap | — (`elements/root-answer-child-price.md` route 1 shows CML setting a child attribute, unmeasured) |
 
@@ -54,7 +54,7 @@ pointer, not the skill's full open list.
 | Standard cost per item | Cost book entries | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md` |
 | Labour rates, loaded cost | Computed during extraction into cost entries | `pricing-setup` → `scenarios/cost-and-margin.md` (modeling costs from a source) |
 | Line and quote margin | The shipped cost-and-margin wiring, plus a roll-up for the quote total | `pricing-setup` → `scenarios/cost-and-margin.md` |
-| Contract value that counts until-cancelled lines over a fixed term | A computed value of its own, gated on every quote structure the plan builds: ramp segments, amendments, renewals (prediction-checks.md check 8); a quote total counts an Evergreen line for the Pricing Setup default term count (or, when that is blank, from the line's start and end dates), not the source's term `[inferred]` in that scenario. Read the default counts in Setup at P0 (no API is known; template P0) | `pricing-setup` → `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` |
+| Contract value that counts until-cancelled lines over a fixed term | A computed value of its own, gated on every quote structure the plan builds: ramp segments, amendments, renewals (prediction-checks.md check 8); a quote total counts an Evergreen line without an end date for one period, not the source's term: the shipped procedure gives it a term count of 1, measured in `scenarios/full-term-value.md`. Don't raise that count to get a full-term figure; it changes every Evergreen price. Read the default counts in Setup at P0 (no API is known; template P0) | `pricing-setup` → `scenarios/full-term-value.md`, `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` |
 | A fee or commission computed from the deal's revenue | A computed value (a field or a formula), not a price adjustment. Check which deals it applies to. Over one product line only, check the field that selects the lines is in the pricing context: the sales transaction context has no product Family | `pricing-setup` → `scenarios/full-term-value.md` |
 | Items resold at or near cost | Priced near cost by design; decide how margin and below-cost guards and discounts treat them | `pricing-setup` → `scenarios/cost-and-margin.md`; `advanced-approvals` → `matrix-modeling.md` |
 
@@ -63,7 +63,7 @@ pointer, not the skill's full open list.
 | Source concept | Try first | Where documented |
 |---|---|---|
 | Billing frequency (annual, monthly) | `BillingFrequency` set on every Term Defined and Evergreen line placed through the API (a Term Defined line without one was refused). A cadence different from the pricing term needs a treatment that allows it | `billing-setup` |
-| In advance vs in arrears; milestone billing | Billing policy and treatment. Milestones the source doesn't name are a decision for its owner, not invented | `billing-setup` |
+| In advance vs in arrears; milestone billing | Billing policy and treatment. Milestones the source doesn't name are a decision for its owner, not invented. Decide how amendments bill too: a quantity increase on a milestone-billed service is measured in `billing-setup`, but a service the amendment adds is open there, so record it as an open decision | `billing-setup` (amendments) |
 | Payment terms | `Order.PaymentTermId` for invoicing; the shipped approval reads a custom quote picklist, and nothing copies one to the other. Decide how they meet | `billing-setup`; `advanced-approvals` |
 | Non-standard billing as an approval trigger | A quote-level value computed from the lines' billing frequency (in the approval data flow, or a roll-up count of non-standard lines) that the approval condition tests | `advanced-approvals` → `matrix-modeling.md` |
 
@@ -74,8 +74,8 @@ pointer, not the skill's full open list.
 | Rounds or versions of a bid | One quote per round, by deep clone; the winning round becomes the order | `quote-negotiation-rounds` |
 | An internal what-if round that must never be presented | A marker on the quote plus a guard on presenting and ordering it | `quote-negotiation-rounds` |
 | Discount per product line | Manual line discounts. A line-editor group discount is open: unmeasured inside a bundle, and Propagation ships off. Not a header discount: it was measured applying twice with an active procedure plan and `skipOrgSttPricing` on | `pricing-procedures` → `elements/manual-discount.md`, `elements/price-propagation.md`; `transaction-line-editor` → `runtime-behavior.md` |
-| Approval matrix by discount, margin, size | Advanced Approvals: one level per dimension, the maximum drives a cumulative chain. State what "discount" is measured against (list, or a standard price after programs) | `advanced-approvals` → `matrix-modeling.md` |
-| Line-level guards (below floor, below cost) | A count of breaking lines as an approval condition, with a marker so a round's bulk discount and an individual override can be told apart; name what sets the marker on each path | `advanced-approvals` → `matrix-modeling.md` |
+| Approval matrix by discount, margin, size | Advanced Approvals: one level per dimension, the maximum drives a cumulative chain. State what "discount" is measured against (list, or a standard price after programs). Give every dimension a basis on amendments, not only deal size (prediction-checks.md check 8) | `advanced-approvals` → `matrix-modeling.md` (deal size only) |
+| Line-level guards (below floor, below cost) | A count of breaking lines as an approval condition, with a marker so a round's bulk discount and an individual override can be told apart; name what sets the marker on each path. A line the round leaves undiscounted by design (resold at cost, priced to a target margin) carries a marker equal to its own discount, or a flag that keeps it out of the override test; otherwise it reads as an override | `advanced-approvals` → `matrix-modeling.md` |
 | "Resubmit from the start" after a rejection | Smart Approval off on that chain's steps, or accepted as a difference | `advanced-approvals` → `matrix-modeling.md`, `limitations.md` |
 
 ## Lifecycle
@@ -85,7 +85,7 @@ pointer, not the skill's full open list.
 | Co-termed addition | Amendment of the top-level asset. On a bundle sized from root answers, decide how "add N" maps onto the root. Added units on a `LastTransaction` asset took the last net price and didn't re-band; re-banding needed a procedure overlay (**Build (custom)**). Partial periods prorate by day | `asset-lifecycle-changes` → `change-policy-mapping.md`; `pricing-setup` → `proration-and-selling-models.md`; for a backdated replay only, `rlm-business-apis` → `backdated-asset-lifecycle.md` |
 | Swap one plan for another | Swap action | `asset-lifecycle-changes` |
 | Cancellation credit | Cancellation | `asset-lifecycle-changes` → `change-policy-mapping.md` |
-| Renewal at a new price | Renewal with a price revision policy. Each lot renewed from its own last price, and a multi-year renewal needs `renewalEndDate` (a 3-year new-sale line still left a 1-year renewal term) | `asset-lifecycle-changes`, `renewal-asset-creation`, `pricing-setup` |
+| Renewal at a new price | Renewal with a price revision policy. Each lot renewed from its own last price, and a multi-year renewal needs `renewalEndDate` (a 3-year new-sale line still left a 1-year renewal term) | `asset-lifecycle-changes` (Quick Rule 4, `change-policy-mapping.md`); `pricing-setup` → `price-revision-policies.md`; `renewal-asset-creation` for renewal test data only |
 | Proving a change end to end | Reprice, order, activate, check the asset | `asset-lifecycle-changes` → `verification.md` |
 
 ## Runtime surface

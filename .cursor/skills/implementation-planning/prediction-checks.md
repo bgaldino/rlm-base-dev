@@ -93,6 +93,11 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     - If it sums a subset of lines, such as one product line, check that the field
       selecting them is in the pricing context. The sales transaction context has no
       product Family.
+    - An approval dimension computed for the quote (margin, deal size, discount) runs on
+      amendments too, so give each one a basis there: the change, or the contract after
+      it. A ratio over a change whose revenue and cost are both negative comes out
+      positive and can land in a high level; decide the basis, skip the dimension when
+      revenue is at or below zero, or accept the level.
 
    See `pricing-setup` → `scenarios/full-term-value.md` and `context-service`. A golden
    that keeps a running total across changes carries each step's platform value next to
