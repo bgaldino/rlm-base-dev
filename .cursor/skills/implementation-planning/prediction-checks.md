@@ -104,10 +104,11 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     - If it sums a subset of lines, such as one product line, check that the field
       selecting them is in the pricing context. The sales transaction context has no
       product Family.
-    - If amendment quotes go through approval (no amendment submission is
-      recorded: `advanced-approvals` → `matrix-modeling.md` §1), give each quote-level dimension
+    - If amendment quotes go through approval, give each quote-level dimension
       (deal size, margin, and discount when the source measures it on the quote rather
-      than per line) a basis there: the change, or the contract after it. A ratio taken
+      than per line) a basis there: the change, or the contract after it
+      (`advanced-approvals` → `matrix-modeling.md` §1 records a route for the contract
+      after it). A ratio taken
       on the change alone can land in a different level from the contract after it, so
       compute each amendment golden's ratio on the chosen basis, and decide what a change
       with revenue at or below zero does.
