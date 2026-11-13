@@ -4,8 +4,8 @@
 > regions in any org (Help): `.cursor/skills/pricing-setup/price-revision-policies.md`.
 
 How a **Price Revision Policy** changes a price in `RLM_DefaultPricingProcedure`, how CPI data is
-seeded, and how to check a result. Measured 2026-10-29 on a fresh 264 build (r1-306) with the quote
-procedure plan inactive (todo 314).
+seeded, and how to check a result. Measured 2026-10-29 on a fresh 264 build with the quote
+procedure plan inactive.
 
 ## What's involved
 
@@ -43,8 +43,11 @@ decision-table rate for the policy's Region on the line's date. The step's `Rate
       fields are on the RLM quote line layout.
    3. Reprice.
 3. **Ramps: don't use CPI.** Help doesn't support a CPI policy on ramped products (see below). For a
-   ramp uplift, use segment uplifts with Standard or Compound and a Flat policy (measured), or no
-   policy (allowed by core code; not measured here). See `ramped-quotes/SKILL.md`.
+   ramp uplift, use segment uplifts with Standard or Compound and a Flat policy (measured). A
+   ramp uplift with no policy is not measured here; compounding with a Flat policy or no policy is
+   what the platform allows [Core], but treat no policy as untested. See
+   `ramped-quotes/SKILL.md` and `ramped-quotes/compound-uplift.md` (a SKU with CPI renewal uplift
+   can't be used to verify a compound ramp).
 
 ## Expected results
 
@@ -59,13 +62,21 @@ decision-table rate for the policy's Region on the line's date. The step's `Rate
 - "You can't use compound uplift with Consumer Price Index (CPI) uplifts";
 - "You can't apply renewal price uplifts tied to the Consumer Price Index (CPI) to ramped products".
 
-The platform doesn't error; it falls back to standard pricing. That is deliberate per GUS
-W-22986417 (264): "Compound Pricing waterfall should do standard pricing when policy type is
-priceindex". Core's `PriceRevisionKnowledgeModel.isCompoundEligible` allows compounding only with a
-Flat policy or no policy.
+The platform doesn't error; it falls back to standard pricing. That is deliberate: the compound
+waterfall does standard pricing when the policy type is `PriceIndex`, so compounding is allowed only
+with a Flat policy or no policy [Core].
 
 So the CPI ramp row above is the fallback, measured: each segment gets its own year's rate plus its
-uplift, with no compounding. It isn't a supported demo path (todo 317).
+uplift, with no compounding. It isn't a supported demo path.
+
+**Per-lot uplift.** The policy applies to an item only when the line's effective date falls
+inside the policy's effective window. On an as-is renewal each prior lot has its own detail line,
+the revision is applied separately on each lot's detail line, and the uplift applies to that
+lot's own price, not to a combined price [Platform behaviour, traced]. At activation a new sale
+copies the policy from the order line; amendments and renewals read it from the current asset
+state period, when that period's policy field is in the context definition, so changing the policy
+on an amendment line doesn't change it on the asset [Platform behaviour, traced in part; not
+measured]. Without that field in the context definition, the case was not read.
 
 On an as-is renewal the price sits on the detail line (`QuoteLineDetail`), and the parent
 `NetUnitPrice` is null. Read the detail lines (see `rlm-business-apis/SKILL.md` → *Where an ARC
@@ -91,11 +102,12 @@ rate) and `PolicyAdjustment`, and it should **appear once**.
   compounds: 2,400 → 2,544 → 2,696.64 for 4% + 2. The plan is built inactive by default
   (`procedureplans_active: false`); see `datasets/sfdmu/procedure-plans/README.md` → *Activation*.
 - **Region** on `IndexRate` and `PriceRevisionPolicy` has no defined values, and it behaves
-  differently from org to org (cause unknown; details in the plan README):
+  differently from org to org (cause unknown, not found in source; details in the plan README):
   - on two `ent-r1` orgs it's restricted but accepts `US`;
   - on an `ent-sb0` org it accepts anything.
 
-  Use `US`. Adding another value through Setup on a restricted org hasn't been tried.
+  Use `US`. Adding another value through Setup on a restricted org hasn't been tried. Whether
+  `IndexRate` rows are gated on an active flag when the decision table is built was not established.
 - **Index rate ranges for one Region can't overlap.** Policies of the same PolicyType and Region
   can't overlap either ("The selected effective dates are already in use"; probed on one org). A
   hand-made policy of the same type and Region for the same years makes the plan's rows fail;

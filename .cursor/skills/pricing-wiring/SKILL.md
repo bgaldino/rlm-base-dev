@@ -291,7 +291,13 @@ Future feature packs should mirror this split.
 ## Runtime-created pricing rows
 
 A decision table goes stale the moment its source object gains or changes a row, and
-pricing then silently prices as if that row did not exist — no error, no warning. Most
+pricing then prices from the table as last refreshed, as if that row did not exist. A changed
+source row prices at its old value until the refresh. A lookup with no matching row returns no
+match: an adjustment or tier step leaves the price from earlier steps unchanged, and a list-price
+step sets no list price (one set by an earlier step is kept, not zeroed [Core, via
+`pricing-procedures/elements/list-price.md`]; a new line has none to keep); no error is raised in
+the traced path [Platform behaviour, traced: procedure lookup path only; for a List Price or Price Tracking step with output resolution on, Help says
+the line stops instead]. Most
 pricing sources in this repo are loaded once at org build and never touched again, so in
 practice the tables stay correct. The ones that bite are the sources normal selling
 writes to *after* the build.
@@ -337,7 +343,7 @@ error handling to a flow that calls `refreshDecisionTable`:
 | Shape | What you get | Where it shows |
 |---|---|---|
 | Invalid or inactive `DecisionTableApiName` | **A Flow fault** (*"The decision table API Name is invalid…"*), not a `Failed` status | Nowhere on `DecisionTable` — an unresolvable name identifies no table record to stamp. Only the flow's own fault handling sees it. |
-| Accepted refresh that then fails | `status = Queued`, async job result | `RefreshStatus` (observed cycling `Initiated` → `Completed`) and `RefreshFailureReason` |
+| Accepted refresh that then fails | `status = Queued`, async job result | `RefreshStatus` (observed on a live org going `Initiated` then `Completed`; not traced) and `RefreshFailureReason` |
 
 Consequences:
 
@@ -446,13 +452,34 @@ Check in order:
 
 ### Wrong-currency price returned (multicurrency orgs)
 
-A lookup step that does **not** pass `CurrencyIsoCode` matches the first row for the
-product regardless of currency — so every currency silently prices at whichever row
-the table returns first. The symptom is a *plausible* price, not an error.
+A lookup step that does **not** pass `CurrencyIsoCode` does not match on currency [inferred: what
+an omitted required input does was not traced]. If the
+table has rows for the product in more than one currency, a single-output lookup fails with a
+duplicate-value error; with output resolution on, a List Price or Price Tracking step picks the final
+row(s) from the candidates by its resolution strategy (for example minimum or maximum price
+[Help]) and candidate priority [Platform behaviour, traced: priority resolution, procedure lookup
+path only], and the chosen row can be another currency's [inferred: the lookup returns every currency's row]. A Price
+Adjustment Matrix with Stack or Sequence resolution applies every matched row [Core, via
+`price-adjustment-matrix.md`]; if its Use As List column stays unique with per-currency rows,
+every currency's row may apply [inferred, not traced], which usually gives a visibly wrong
+price. A Volume Discount lookup has no output resolution, so several currency rows give the
+duplicate-value error [Core]; a Tier Discount lookup returns the overlapping bands and logs
+`OVERLAPPING_ADJUSTMENT_TIERS` [Core; table shape inferred]. If the only row is in another
+currency, the line prices from it [inferred]. In the resolution-pick and lone-row cases the
+symptom is a *plausible* price, not an error.
+
+Where the step does pass `CurrencyIsoCode` (the shipped recipe tables take it as a required
+Equals input) and the table has no row for that currency, the lookup returns no match: an
+adjustment or tier step leaves the earlier price unchanged, a list-price step sets no list price
+(a new line then has none), no error is raised in the traced path, and there is no conversion from the corporate currency [Platform behaviour, traced:
+procedure lookup path only; for a List Price or Price Tracking step with output resolution on,
+Help says the line stops instead].
 
 **Fix:** add `CurrencyIsoCode` as an input on **every** lookup step that resolves a
 currency-denominated value — list price, adjustment schedule, and adjustment tier
-lookups alike. Missing it on the tier step alone still yields wrong discounts.
+lookups alike. Missing it on the tier step alone still breaks tier pricing: with rows in several currencies, a
+duplicate-value error on Volume or overlapping bands logged on Tier; with one row in another
+currency, that row's values.
 
 Currency must also *reach* the record for the step to filter on it. Records created
 by quick actions and flows default to the **running user's** currency, not the
@@ -472,7 +499,7 @@ Offline guard: `python tests/test_qb_multicurrency_data.py`.
 Live guard: `cci task run validate_multicurrency_rates`.
 
 **Refreshing exchange rates in the plans.** qb/en-US qb-pricing's `CurrencyType.csv` is the rate table for
-the USD-corporate shapes that share a currency with qb (q3 since todo 328), so refresh it there and copy
+the USD-corporate shapes that share a currency with qb (q3 shares it), so refresh it there and copy
 the shared rates. qb/ja's is JPY-corporate (USD 0.00663): never point the task's `csv_path` at it, as it
 would write USD-based rates into a JPY-based table.
 
@@ -495,7 +522,7 @@ would write USD-based rates into a JPY-based table.
    `-o iso_codes` it patches every active non-corporate currency, including q3's own and mfg's.
 
 Prices in a currency follow its rate, so never change one without the other. mfg keeps its own rates
-until todo 327.
+until it is aligned separately.
 
 ### active version update failures
 
