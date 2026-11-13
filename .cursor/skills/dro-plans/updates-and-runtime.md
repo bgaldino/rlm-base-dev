@@ -161,7 +161,8 @@ except the fallout and jeopardy match fields (from describe) and statements mark
   by two minutes waited, then started. A step waiting on a scheduled date still waited for
   its dependencies. A step with an offset from the source line's start date did not wait,
   even with a future service date and an order dated a month out; on two further orders with
-  every date on the order and its lines in the future, a 10-day offset and a 3-minute offset from that date both
+  the order date and the line service date in the future (the second also with the quote
+  line's start dates), a 10-day offset and a 3-minute offset from that date both
   started at plan creation, and the next-run time carried no offset [Measured: 2026-11-13, 264,
   scratch, one org]. The decomposed technical lines had null service and end dates
   [Measured: 2026-11-13, 264, scratch, one org], which may explain it [inferred]; Help doesn't settle it. Don't promise a start-date offset; use a

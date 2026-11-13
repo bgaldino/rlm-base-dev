@@ -87,7 +87,7 @@ Measured outside group ramps, on a Term Defined bundle [Measured: 2026-11-11, 26
   The traced gate below is unconfirmed: a quote-stage check did not reproduce it (see after
   this list). No public setting name for the capability was found in
   the captured Help; reading it by trying a no-change dated before an unramped asset's latest
-  renewal start (refused when off) follows from the trace, unmeasured `[inferred]`. Where the amend-before-amend capability is off, the platform refuses an amendment,
+  renewal start (refused when off) follows from the trace, unmeasured `[inferred]`. The trace says that where the amend-before-amend capability is off, the platform refuses an amendment,
   cancellation or no-change dated before the asset's latest renewal start (or while a
   later state period exists), and allows one on or after that start; with it on,
   earlier-dated amendments are allowed, except that ramped assets still refuse (a separate
@@ -101,8 +101,8 @@ Measured outside group ramps, on a Term Defined bundle [Measured: 2026-11-11, 26
   wasn't ordered.
 
 On one 264 scratch org [Measured: 2026-11-13, 264, scratch, one org], no capability setting was
-found in the org's settings metadata or Help. An unramped term asset whose renewal was ordered and
-activated accepted a Connect amend and a cancel dated before its renewal start, and an amend dated
+found in the org's settings metadata or Help. A standalone (not bundled), unramped Term Annual asset whose renewal was
+ordered and activated accepted a Connect amend and a cancel dated before its renewal start, and an amend dated
 on the start; the refusal the trace predicts did not reproduce at quote stage. The quotes were not
 ordered, so a refusal at order or activation is untested. Treat the gate as unexplained, not as a
 platform defect.
