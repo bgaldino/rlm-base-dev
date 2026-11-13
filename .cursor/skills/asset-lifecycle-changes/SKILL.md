@@ -338,9 +338,9 @@ results, 2026-11-11).
 
 ## Examples
 
-**"Add 5 locations in month 7, co-termed."** If the suite's quantity counts locations, amend the
+**"Add 5 locations mid-term, co-termed."** If the suite's quantity counts locations, amend the
 top-level suite asset with `initiateAmendment`, using `quantityChange: 5` and
-`amendStartDate` set to month 7. If locations are a root attribute that sizes the children,
+`amendStartDate` set to the mid-term date. If locations are a root attribute that sizes the children,
 amend with `quantityChange` 0 and set the locations answer with a Place request, rules on; the
 children re-derive as delta lines (Quick Rule 3). Then reprice, create the order and
 activate. Check:

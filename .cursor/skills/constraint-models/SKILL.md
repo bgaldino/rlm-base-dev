@@ -439,7 +439,7 @@ the [ramped-quotes skill](../ramped-quotes/SKILL.md) and
 
 | File | Read this when… |
 |---|---|
-| [`quantities-from-attributes.md`](quantities-from-attributes.md) | A model must set component quantities from answers on the bundle: one per answer unit, an optional add-on per unit, per N rounded up, zero unless a choice is made, chained derivations such as service hours and a percentage for coordination. Covers cardinality vs read-only quantity, `@(split = false)` for one line per component, the 9,999 relation cap and `maxRelationSize`, rounding and `int` vs `decimal`, per-instance scope and `parent()`, exclusions (a choice that switches rules on and off, and the messages that explain its conflicts), cross-line checks on a virtual `Quote` container (`sourceContextNode`, `Error` messages, group-ramp segments), answers on an amendment (node status on the asset action source), non-blocking `Info` messages and headless testing (where a rejection's message appears: `configure` and `RevenueTransactionErrorLog`), with a fictional worked example. Read it before writing `ceil()`, `/` or `^` in CML: its DO NOT list and measured table cover how they behave on 264. |
+| [`quantities-from-attributes.md`](quantities-from-attributes.md) | A model must set component quantities from answers on the bundle: one per answer unit, an optional add-on per unit, per N rounded up, zero unless a choice is made, chained derivations such as service hours and a percentage for audit. Covers cardinality vs read-only quantity, `@(split = false)` for one line per component, the 9,999 relation cap and `maxRelationSize`, rounding and `int` vs `decimal`, per-instance scope and `parent()`, exclusions (a choice that switches rules on and off, and the messages that explain its conflicts), cross-line checks on a virtual `Quote` container (`sourceContextNode`, `Error` messages, group-ramp segments), answers on an amendment (node status on the asset action source), non-blocking `Info` messages and headless testing (where a rejection's message appears: `configure` and `RevenueTransactionErrorLog`), with a fictional worked example. Read it before writing `ceil()`, `/` or `^` in CML: its DO NOT list and measured table cover how they behave on 264. |
 
 ---
 
@@ -532,7 +532,7 @@ Before calling a constraint-model change done:
   count against a known-good baseline for the models you are touching.
   Many such notes are false positives: the validator reads any `<identifier> =` or
   `<identifier> ==` on a declaration, `constraint` or `message` line as an annotation key
-  (`ANNOTATION_KEY_RE` in `tasks/rlm_cml.py`). So `int plots = [1..500];` warns
+  (`ANNOTATION_KEY_RE` in `tasks/rlm_cml.py`). So `int plots = [1..120];` warns
   "Unsupported annotation 'plots' on attribute 'plots'", and `constraint(plots > 3 ->
   plots == 4, …)` warns "… 'plots' on constraint/rule" (checked against the validator
   locally, 2026-11-11). A model with such warnings imported, activated and ran on fresh

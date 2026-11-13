@@ -297,7 +297,7 @@ does, so the difference comes from the new group alone.
 
 The run above passed the term inline. On real quotes (Place Sales Transaction; the last row is a
 group ramp built in the quote UI)
-[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]:
+[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org; term illustrative, measured with a different term]:
 
 | Line as sent | Saved line | Result |
 |---|---|---|
@@ -345,6 +345,8 @@ Logic: `1 AND 11 AND 2 AND 9 AND 10 AND 13 AND 12 AND ((3 AND 4 AND ((5 AND 6) O
    `NetUnitPrice` and `TotalPrice` on `QuoteLineItem`.
 
 ## Troubleshooting
+
+Term values in this table are illustrative; the measured runs used a different term.
 
 | Symptom | Cause | Fix |
 |---|---|---|

@@ -201,7 +201,7 @@ PCM attribute imported into CML takes the attribute's developer name as its vari
 | One per answer unit | `constraint(sensors[Sensor] == plots, "One sensor per plot: expected {}.", plots);` | `[Dev guide: cml_logical_constraints]` (message with `{}` arguments) |
 | Per N, rounded up | `constraint(hubQty * 20 >= plots && (hubQty - 1) * 20 < plots, "<message>");` | See [Rounding up](#rounding-up) |
 | Zero unless a choice is made | `constraint(power != "Solar" -> batteryQty == 0, "<message>");` | `[Dev guide: cml_logical_constraints]` |
-| One per answer unit, only if the rep adds it | `relation shade : ShadeKit[0..200];` with `constraint(shade[ShadeKit] > 0 -> shade[ShadeKit] == plots, "<message>");` | `[Dev guide: cml_annotation_example_sequence]` (Examples 4 and 5). See the note below the table |
+| One per answer unit, only if the rep adds it | `relation shade : ShadeKit[0..120];` with `constraint(shade[ShadeKit] > 0 -> shade[ShadeKit] == plots, "<message>");` | `[Dev guide: cml_annotation_example_sequence]` (Examples 4 and 5). See the note below the table |
 | Equal to another component's quantity | `constraint(batteries[BatteryPack] == hubs[Hub], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead (see [Chained derivations](#chained-derivations)) |
 | A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
 
@@ -250,8 +250,8 @@ Calculations and Aggregations*). For `ceil()` inside a constraint, see [DO NOT](
 
 ## Chained derivations
 
-When one quantity depends on others (coordination hours as a share of all other
-service hours), compute in stages:
+When one quantity depends on others (audit hours as a share of calibration
+hours), compute in stages:
 
 1. Each base quantity in its own `int` variable with an explicit domain, set by its own
    `constraint` `[Dev guide: cml_core_concept_examples]` (*Key Considerations for
@@ -313,7 +313,7 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
   ```
   type Root : LineItem {
       string climate = ["Dry", "Humid"];
-      relation sensors : Sensor[0..500];
+      relation sensors : Sensor[0..120];
   }
   @(split = false)
   type Sensor : LineItem {
@@ -347,7 +347,7 @@ warranty example, each with its own message:
 `[Dev guide: cml_logical_constraints]`.
 
 This picks one option for the whole bundle. It can't express a mixed split, with some plots
-on one mount type and the rest on another. The dev guide has no such example; how to model one
+on one option and the rest on another. The dev guide has no such example; how to model one
 is [open item 13](#open-items).
 
 ### Exactly one option when each option is sized per plot
@@ -474,9 +474,9 @@ type Quote {
         kitPlots = total(plots);
     }
     @(sourceContextNode = "SalesTransaction.SalesTransactionItem")
-    relation extension : ExtensionKit[0..500];
+    relation extension : ExtensionKit[0..120];
 
-    int qPlots = [0..500];
+    int qPlots = [0..120];
     constraint(qPlots == kit.kitPlots);
 
     message(qPlots > 0 && extension[ExtensionKit] > qPlots,
@@ -534,7 +534,7 @@ type Quote {
   relation's count to the components that already exist (plus any the solver is still to
   instantiate), so the solver can't search a larger count `[Platform behaviour, traced]`.
   Why that produces the goal error with `total()` or `max()` is not established.
-- **Read a bundle's child quantity through the relation path** (`platform.addOns[AddOn]`)
+- **Read a bundle's child quantity through the relation path** (`kit.addOns[AddOn]`)
   rather than staging it in an `int` on the bundle set equal to the cardinality. In one
   model, that `int` changed how the solver met an add-on rule: it dropped a default
   add-on instead of raising it. Seen twice in that model only `[Measured: M37]`. A default
@@ -746,7 +746,7 @@ by two numeric answers on the root product, plus two choices:
 | Battery pack | one per hub on solar power; otherwise 0 |
 | Relay | one per zone |
 | Calibration service (hours) | 10 × zones + 4 × hubs |
-| Audit service (hours) | ceil(15% of the calibration hours) |
+| Audit service (hours) | ceil(10% of the calibration hours) |
 
 ```
 type LineItem;
@@ -762,7 +762,7 @@ type GreenhouseKit : LineItem {
     int hubQty = [1..6];
     int batteryQty = [0..6];
     int calibHours = [4..184];
-    int auditHours = [1..28];
+    int auditHours = [1..19];
 
     relation warranties : Warranty[1..1];
     relation sensors : Sensor[1..120];
@@ -770,7 +770,7 @@ type GreenhouseKit : LineItem {
     relation batteries : BatteryPack[0..6];
     relation relays : Relay[0..16];
     relation calibration : CalibrationService[4..184];
-    relation audit : AuditService[1..28];
+    relation audit : AuditService[1..19];
 
     // Exactly one warranty, chosen by the answer
     constraint(warranty != "Standard" -> warranties[StandardWarranty] == 0, "Standard warranty needs the Standard answer.");
@@ -792,10 +792,10 @@ type GreenhouseKit : LineItem {
 
     constraint(relays[Relay] == zones, "One relay per zone: expected {}.", zones);
 
-    // Chained: base hours from answers and the derived hub count, then audit (15 percent, bracket)
+    // Chained: base hours from answers and the derived hub count, then audit (10 percent, bracket)
     constraint(calibHours == 10 * zones + 4 * hubQty, "Calibration hours: 10 per zone plus 4 per hub.");
-    constraint(auditHours * 100 >= 15 * calibHours && (auditHours - 1) * 100 < 15 * calibHours,
-            "Audit hours: 15 percent of calibration hours, rounded up.");
+    constraint(auditHours * 100 >= 10 * calibHours && (auditHours - 1) * 100 < 10 * calibHours,
+            "Audit hours: 10 percent of calibration hours, rounded up.");
     constraint(calibration[CalibrationService] == calibHours, "Calibration hours: expected {}.", calibHours);
     constraint(audit[AuditService] == auditHours, "Audit hours: expected {}.", auditHours);
 
@@ -847,10 +847,10 @@ Expected quantities (hand-computed from the rules above; the whole model has not
 
 | Answers | Sensor | Hub | Battery | Relay | Calib. h | Audit h | Warranty | Review note |
 |---|---|---|---|---|---|---|---|---|
-| 45 plots, 6 zones, Solar, Standard | 45 | 3 | 3 (one per hub) | 6 | 72 (60 + 12) | 11 (72 × 15% = 10.8) | Standard 1, Extended 0 | no |
-| 100 plots, 2 zones, Grid, Extended | 100 | 5 (exact multiple) | 0 (Grid) | 2 | 40 (20 + 20) | 6 (40 × 15% = 6, exact) | Extended 1, Standard 0 | **yes, Info** (5 hubs) |
-| 101 plots, 12 zones, Solar, Extended | 101 | 6 (one past a multiple) | 6 | 12 | 144 (120 + 24) | 22 (144 × 15% = 21.6) | Extended 1, Standard 0 | **yes, Info** (6 hubs) |
-| 1 plot, 0 zones, Grid, Standard | 1 | 1 | 0 (Grid) | 0 | 4 (0 + 4) | 1 (4 × 15% = 0.6) | Standard 1, Extended 0 | no |
+| 45 plots, 6 zones, Solar, Standard | 45 | 3 | 3 (one per hub) | 6 | 72 (60 + 12) | 8 (72 × 10% = 7.2) | Standard 1, Extended 0 | no |
+| 100 plots, 2 zones, Grid, Extended | 100 | 5 (exact multiple) | 0 (Grid) | 2 | 40 (20 + 20) | 4 (40 × 10% = 4, exact) | Extended 1, Standard 0 | **yes, Info** (5 hubs) |
+| 101 plots, 12 zones, Solar, Extended | 101 | 6 (one past a multiple) | 6 | 12 | 144 (120 + 24) | 15 (144 × 10% = 14.4) | Extended 1, Standard 0 | **yes, Info** (6 hubs) |
+| 1 plot, 0 zones, Grid, Standard | 1 | 1 | 0 (Grid) | 0 | 4 (0 + 4) | 1 (4 × 10% = 0.4) | Standard 1, Extended 0 | no |
 
 Rejections to assert by message. Where a state breaks more than one rule, accept any of
 those rules' messages and no other:
