@@ -156,9 +156,8 @@ except the fallout and jeopardy match fields (from describe) and the not-run ite
   check.
 - **Amendment decomposition.** An amendment created a new plan holding the full step set,
   not a delta: unchanged lines decomposed with cancel and add, and a changed quantity was
-  a full replace. A fulfillment asset's quantity after the amendment did not match the line
-  quantity in one case, and an account-scoped asset showed another quantity; both are
-  unexplained.
+  a full replace. One fulfillment asset's quantity after the amendment did not match its
+  line's end quantity; unexplained.
 - **Fallout and jeopardy rules** match on step type, with an optional integration
   definition, flow definition and error code; this is from the rule objects' describe,
   not a run. Measured on the org's steps: a step's jeopardy threshold was null on
