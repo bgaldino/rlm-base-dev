@@ -406,7 +406,7 @@
         <isViewedAsPlainText>true</isViewedAsPlainText>
         <text>Activated order {!GetFailedSyncOrder.OrderNumber} couldn&apos;t sync quote {!$Record.QuoteRecordId} to this opportunity, so the opportunity wasn&apos;t closed.
 
-Fix the error below, then sync the quote to the opportunity manually. The opportunity closes as Closed Won when the sync succeeds.
+Fix the error below, then sync the quote with Sync to Opportunity on the quote. The opportunity closes as Closed Won when the sync succeeds.
 
 Error {!$Record.ErrorCode}: {!$Record.ErrorMessage}</text>
     </textTemplates>

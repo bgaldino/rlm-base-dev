@@ -1,0 +1,10 @@
+feature: utils
+feature_flag: quantumbit
+# Adds the RLM Sync Quote to Opportunity flow action to the Quote record page highlights
+# panel, after the standard Start Sync (SyncQuote). post_utils turns on Asynchronous
+# Opportunity Sync, and with it on the platform hides Start Sync, so this is the manual sync.
+patches:
+  - type: insert_action
+    after: "SyncQuote"
+    actions:
+      - "Quote.RLM_SyncQuoteToOpportunity"
