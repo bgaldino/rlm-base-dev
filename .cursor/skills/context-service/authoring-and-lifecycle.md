@@ -64,7 +64,12 @@ one nearly every additive plan in this repo targets:
   custom attribute the pricing procedure reads that is mapped only on
   `QuoteEntitiesMapping` fails with the generic UNKNOWN_EXCEPTION "We couldn't
   fetch the data for RLM_SalesTransactionContext context definition" (Quote output
-  still works). Map every custom attribute on both lenses; `validate_context_plan.py`
+  still works). A second cause, found by bisection on one org and not traced to a mechanism:
+  a tag the procedure declares that has an attribute row on the Quote lens but none on the Order
+  lens, which a field-less Order-lens row cleared [Measured: 2026-11-12, 264, scratch, one org]; a
+  declared tag with no row on either lens passed, so don't add rows for every tag
+  ([rlm-business-apis → backdated-asset-lifecycle.md](../rlm-business-apis/backdated-asset-lifecycle.md)).
+  Map every custom attribute on both lenses; `validate_context_plan.py`
   errors on a `__c` attribute mapped on Quote only. The ContractPricing,
   PartnerAccount, PrmPricing and mfg plans map their Order lens to `Order`/`OrderItem`
   with no `sObjectField`, because those objects have no matching custom field. That

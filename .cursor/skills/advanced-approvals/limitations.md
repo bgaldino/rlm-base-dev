@@ -163,12 +163,14 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   `ApprovalChainName` and the Smart Approval fields updatable
   [Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`].
 - How to tell a round's bulk line discount from an individual line override. No documented
-  field or flag records which edit set a line's discount, and the repo ships none; whether a
-  marker field set by a second bulk edit, an API call or a flow stays accurate after a rep's
-  later edit is unmeasured. Also unmeasured: whether a discount entered on a group row stays
+  field or flag records which edit set a line's discount, and the repo ships none. A mapped line
+  field written with the discount by an API applier survived a deep clone, and a header custom
+  field reset on it ([matrix-modeling.md](matrix-modeling.md)); whether such a marker stays
+  accurate after a rep's later edit, or when set by a bulk edit or a flow, is unmeasured. Also unmeasured: whether a discount entered on a group row stays
   on the group's `Discount` field or is written to each line's `Discount`, which the shipped
   level bands.
-- On an amendment quote: which records give the contract value after the change, for a
+- On an amendment quote: which other records could give the contract value after the change, for a
   threshold that must read it (the quote's own totals carry the change); and whether the
   shipped discount level fires on amendment lines, which depends on what their `Discount`
-  field carries. No amendment submission is recorded.
+  field carries. A contract value summed from prior activated orders by the quote's account
+  worked on one org ([matrix-modeling.md](matrix-modeling.md)); other sources are untried.

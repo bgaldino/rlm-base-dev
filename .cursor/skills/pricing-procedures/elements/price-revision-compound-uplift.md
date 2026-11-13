@@ -85,7 +85,7 @@ back to a percentage: uplifts 5% then 3% give `applied% = 8.15` (not `0.0815`), 
 `NetUnitPrice = base x 1.0815`. [Live, 2026-10-28][Core: same multiplier arithmetic, seeded from `PreviousSegmentMultiplier` as a percent]
 
 **The uplifted price is not rounded to the cent.** A compound segment's `NetUnitPrice` carried
-four decimals (the base times the compounded multiplier), and the line total followed it, so a
+more than two decimals (the base times the compounded multiplier, at full precision; how many depends on the multipliers), and the line total followed it, so a
 source that rounds each year's price to the cent missed by fractions of a cent per unit
 [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. For example, with 5% then 2%,
 1,001.00 × 1.071 = 1,072.071, not 1,072.07. A rounding step that runs before the uplift, such as one before the
