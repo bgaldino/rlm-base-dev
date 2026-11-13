@@ -453,10 +453,13 @@ Check in order:
 
 A lookup step that does **not** pass `CurrencyIsoCode` does not match on currency. If the
 table has rows for the product in more than one currency, a single-output lookup fails with a
-duplicate-value error; with output resolution on, one row is picked by priority, and it can be
-another currency's [Platform behaviour, traced: procedure lookup path only]. If the only row is
-in another currency, the line prices from it [inferred]. In those last two cases the symptom is a
-*plausible* price, not an error.
+duplicate-value error; with output resolution on (List Price, Price Tracking or Price Adjustment
+Matrix only), one row is picked by priority, and it can be another currency's [Platform
+behaviour, traced: procedure lookup path only]. A Volume Discount lookup has no output
+resolution, so several currency rows give the duplicate-value error; a Tier Discount lookup
+returns the overlapping bands (`OVERLAPPING_ADJUSTMENT_TIERS`) [Core]. If the only row is in
+another currency, the line prices from it [inferred]. In the priority-pick and lone-row cases the
+symptom is a *plausible* price, not an error.
 
 Where the step does pass `CurrencyIsoCode` (the shipped recipe tables take it as a required
 Equals input) and the table has no row for that currency, the lookup returns no match: the step
@@ -467,7 +470,7 @@ Help says the line stops instead].
 
 **Fix:** add `CurrencyIsoCode` as an input on **every** lookup step that resolves a
 currency-denominated value — list price, adjustment schedule, and adjustment tier
-lookups alike. Missing it on the tier step alone still yields wrong discounts.
+lookups alike. Missing it on the tier step alone still breaks tier pricing (a duplicate-value error or overlapping bands).
 
 Currency must also *reach* the record for the step to filter on it. Records created
 by quick actions and flows default to the **running user's** currency, not the
