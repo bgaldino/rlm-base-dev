@@ -141,6 +141,19 @@ introduce a blanket extra approval for ordinary configuration updates.
   amended [Help: `ind.dro_point_of_no_return_state_propagation`], but a later amendment of the
   asset through the plain amend route was accepted with the flag set (below), so a source rule
   that must also stop asset amendments or cancellations needs its own validation [inferred].
+  Where activation creates assets and billing schedules, the supplemental route refused the
+  activated order for those reasons before any PONR check, and a Draft order could not be
+  submitted to the plan [Measured: 2026-11-13, 264, scratch, one org; see PONR scope below].
+  On such a build no in-flight change reaches a PONR check, so assert the flag and the freeze
+  output's per-line allowed flags, and carry a "no change after step X" rule that must hold
+  in a validation on the asset-amendment path [inferred]. A PONR flag on a Milestone step did
+  apply: the Milestone, the plan's only flagged step, completed within the second it started,
+  and freezing the order then denied changes to its line [Measured: 2026-11-13, 264, scratch,
+  one org; freeze output]. Help applies the state at In Progress and names no Milestone case.
+  A flagged Milestone with no unmet dependency therefore closes its line from plan start; one
+  that depends on X would close it when X completes, since a blocked Milestone completed about
+  a second after its predecessor ([examples-and-grounding.md](examples-and-grounding.md))
+  [inferred].
 - **PONR flag placement:** the flag set on a step definition was copied onto the step at
   plan creation, on a Pending dependent step as well as an In Progress one
   [Measured: 2026-11-13, 264, scratch, one org]. The copied flag marks where the state will
@@ -185,13 +198,19 @@ these conditions; rerun the amendment and cancel checks there.
   Help doesn't settle it. Don't promise a start-date offset; use a previous-step delay
   instead (the two-minute delay above waited, then started).
 - **Amendment decomposition.** An amendment created a new plan holding the full step set,
-  not a delta: unchanged lines decomposed with cancel and add, and a changed quantity was
-  a full replace. One fulfillment asset's quantity after the amendment did not match its
-  line's end quantity; unexplained. Help lists a No Change action for lines whose
-  attributes and quantity don't change [Help: `ind.dro_fulfillment_order_line_item_actions`],
-  but here unchanged lines came through as cancel and add, so excluding No Change from a
-  scenario or condition does not by itself keep them from running steps [inferred]. Record
-  each technical line's action on the first amendment before designing for it.
+  not a delta, and a changed quantity was a full replace. One fulfillment asset's quantity
+  after the amendment did not match its line's end quantity; unexplained.
+  Help lists a No Change action for lines whose attributes and quantity don't change
+  [Help: `ind.dro_fulfillment_order_line_item_actions`],
+  but on a bundle amendment two of the unchanged lines came through as an add of 1 (fulfillment
+  asset 0 to 1) and a cancel of -1 (asset 1 to 0), while another line of the same order was No
+  Change [Measured: 2026-11-13, 264, scratch, one org]. So excluding No Change from a scenario
+  or condition does not by itself keep unchanged lines from running steps [inferred]. On that
+  order the unchanged lines' pairs netted to zero (1 and -1), and the changed line's did not
+  (an add of 7 and a cancel of -5, asset 0 to 7 and 5 to 0). A condition on the action alone
+  can't separate them; whether a condition can read the pair's net quantity was not measured.
+  Record each technical line's action, quantity and fulfillment asset start and end quantities
+  on the first amendment before designing for it.
 - **An item across orders.** On a later new-sale order for the same account [Measured:
   2026-11-13, 264, scratch, one org]: an assetizable technical product with Account scope
   got Amend on the fulfillment asset an earlier order had created (the line's fulfillment
@@ -204,8 +223,14 @@ these conditions; rerun the amendment and cancel checks there.
   one per order, which can't be assetized [Help: `ind.dro_decomposition_scope`]. So work
   that must act on an item an earlier order created needs a scope that spans orders, on an
   assetizable technical product; a custom scope wasn't measured, and an Order-scope item
-  recurs on every order [inferred from Help]. Check the line actions on the first later
-  order.
+  recurs on every order [inferred from Help]. An Account-scope assetizable item can therefore
+  appear on every later order that carries a line decomposing to it, with Amend or No Change,
+  and its group's steps compose again unless their conditions skip those actions [inferred
+  from the measured actions]; "no new instance" doesn't mean "no line". When a step is
+  skipped by its condition and Skip Branch is on, Help skips the branch that depends solely
+  on it [Help: `ind.dro_define_conditions_for_a_fulfillment_step_to_run`]; decide that per
+  edge.
+  Check the line actions on the first later order.
 - **Fallout and jeopardy rules** match on step type, with an optional integration
   definition, flow definition and error code; this is from the rule objects' describe,
   not a run. Measured on the org's steps: a step's jeopardy threshold was null on
@@ -217,11 +242,18 @@ these conditions; rerun the amendment and cancel checks there.
   it to every step of that kind [Help: `ind.dro_configure_fulfillment_step_jeopardy_rules`,
   `ind.dro_sla_jeopardy_administration`]; fallout rules cover callouts and auto tasks, with
   retries and a queue for fatally failed steps [Help: `ind.dro_configure_fallout_rules`].
-  Help names no rule for Milestone steps. A separate window or queue per step needs its own
+  A step definition carries a `FlowDefinitionName` field whatever its type, empty on every
+  manual task in the measured org [Measured: 2026-11-13, 264, scratch, one org; describe and
+  query]; whether a jeopardy rule then matches a manual task through it was not run. Help
+  names no rule for Milestone steps. A separate window or queue per step needs its own
   flow or integration definition per step [inferred]. A source's "at risk after N" needs a
   decided estimated duration, because the threshold counts back from it [Help:
   `ind.dro_configure_fulfillment_step_jeopardy_rules`]. Help describes a jeopardy status and
-  notification, not reassigning a late step to someone else [inferred from Help's silence].
+  notification, names no setting for who is notified, and has no reassignment of a late
+  step [inferred from Help's silence]. After editing a fallout or jeopardy rule, refresh its
+  decision table [Help: `ind.dro_configure_fallout_rules`,
+  `ind.dro_configure_fulfillment_step_jeopardy_rules`]; the steps are in
+  [authoring-and-deployment.md](authoring-and-deployment.md).
 - **Cancel of a non-assetizable technical line.** Cancelling the bundle's root asset decomposed the copy
   product's line as an Add of quantity 0, not a Cancel, and its Add steps were still created and started; no
   fulfillment asset was created or changed for it, while the assetizable lines decomposed as
@@ -230,9 +262,13 @@ these conditions; rerun the amendment and cancel checks there.
 - **Dependency across order items.** A plan-scope step whose dependency was set at line scope
   waited for every instance across the order items, not one line [Measured: 2026-11-13, 264, scratch, one org]. Help says a
   dependency between line-scope steps pairs steps of the same line only; that pairing was not
-  measured, and neither was the cross-plan scope. The
-  measured run completed manual steps by setting their state directly; the engine accepted it,
-  but that is not a documented route, so don't use it as a recipe for a live order.
+  measured, and neither was the cross-plan scope.
+  Whether a dependent step waits when its predecessor's item isn't on the order (an optional
+  product left off) is unmeasured; check it on the first order of each shape before
+  relying on it.
+  The measured run completed manual steps by setting their state directly; the engine
+  accepted it, but that is not a documented route, so don't use it as a recipe for a live
+  order.
 
 ## Update Acceptance Scenarios
 

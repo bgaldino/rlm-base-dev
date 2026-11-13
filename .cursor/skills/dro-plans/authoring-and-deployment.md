@@ -108,7 +108,10 @@ lines to fill an empty UI panel.
    useful service example: one technical item of quantity one per source line,
    even if the commercial line's quantity is ten. `Aggregate` serves a different
    quantity requirement. Product decomposition scope controls technical-item
-   grouping; step `Scope` controls step multiplicity.
+   grouping; step `Scope` controls step multiplicity. Don't give a bundle child a scope
+   broader than its parent's; from broad to narrow the scopes run Account, Order, Bundle,
+   Order Line Item [Help: `ind.dro_decomposition_scope`]. Whether that warning reaches
+   technical outputs decomposed from a bundle's components is unmeasured.
 3. Create `ProductFulfillmentDecompRule` records using verified source and
    destination SKUs, unique names, and priorities. One source can have two rules
    for two distinct technical outcomes. Check inherited classification rules,
@@ -123,7 +126,10 @@ lines to fill an empty UI panel.
    group to a product, so every step in that group is composed for the item unless a step
    condition skips it [inferred from the schema]. Give each technical item its own group of
    steps; a step that several items need with different predecessors needs one definition
-   in each item's group. Count groups and step definitions before step instances.
+   in each item's group. The same holds for one item fed by several source products whose
+   work waits on different predecessors: one definition per case with a condition on the
+   source product, or a separate technical item [inferred].
+   Count groups and step definitions before step instances.
 5. If two outputs have separate groups, design dependencies between their actual
    instances. Do not copy a per-line dependency and assume it pairs different
    technical outputs. Discover source linkage and apply the documented scope
