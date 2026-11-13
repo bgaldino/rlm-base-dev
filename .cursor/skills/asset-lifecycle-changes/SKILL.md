@@ -156,6 +156,11 @@ results, 2026-11-11).
     - On a renewal, a cancellation or a negative amendment, the unit price moves to
       `QuoteLineDetail` / `OrderItemDetail` rows, and the parent line's `UnitPrice` is null
       [Repo: `rlm-business-apis/SKILL.md`].
+    - A pricing group keyed on net unit price admitted a reduction line, whose stored parent
+      price is null, and its full-term value matched the expected value [Measured: 2026-11-12,
+      264, scratch, one org]; that the net unit price is read from the pricing context is `[inferred]`. A per-lot renewal line
+      has no net unit price at all: its prices sit on the per-lot detail rows, so such a group
+      does not admit it ([../pricing-setup/scenarios/full-term-value.md](../pricing-setup/scenarios/full-term-value.md)).
     - A positive API amendment keeps the price on the parent.
     - A positive amendment edited in the UI also moved its price to detail rows (+2 and −1
       at the unit price) [Measured: 2026-11-05, 264].
@@ -232,7 +237,7 @@ results, 2026-11-11).
       is the number of periods, with the first and last partial period counted as its days
       (inclusive, actual calendar days under the actual-days time period type) over the
       days in that full period, so a leap year changes the denominator (275/365 in a normal
-      year, 275/366 in a leap year). The day counts were measured only on contracts starting 1 January, so the period anchor for another start date is unmeasured; measure one mid-period change on a different start date before relying on it. A 30-day-month type counts 30 days a month. Not run: no such policy type was offered to create [Measured: 2026-11-12, 264, scratch, one org], so whether it reproduces a
+      year, 275/366 in a leap year). The day counts were measured only on contracts starting 1 January; that the partial period sits at the start and is calendar-aligned is `[inferred]` from them, and the period anchor for another start date is unmeasured; measure one mid-period change on a different start date before relying on it. A 30-day-month type counts 30 days a month. Not run: no such policy type was offered to create [Measured: 2026-11-12, 264, scratch, one org], so whether it reproduces a
       months-remaining source value on a mid-period start is unmeasured. A selling
       model's proration options take the policy only at create [read from the field describe, one org]. Turning
       partial periods off counts whole periods only. Read for the annual frequency with the
@@ -241,7 +246,7 @@ results, 2026-11-11).
       in part]. A Term
       Defined top-level cancellation (`initiateCancellation`) and the invoice-level values
       are separate measurements ([verification.md](verification.md) → Open).
-    - A reduction of a standalone Evergreen asset (`quantityChange` -10, illustrative) credited
+    - A reduction of a standalone Evergreen asset (`quantityChange` -4, illustrative) credited
       one period, in one last-in-first-out detail row and one monthly credit schedule per lot, and was
       ordered and activated, with a new state period at the reduced quantity
       [Measured: 2026-11-12, 264, scratch, one org; standalone asset, not a bundle

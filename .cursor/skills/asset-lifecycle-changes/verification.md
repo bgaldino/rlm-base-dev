@@ -43,7 +43,7 @@ For each change, record the state after every step:
    the quote, and nothing in the call sets it. A quote that starts in the future therefore
    gives an order dated today, and a past start gives an order dated at the earliest start.
    For a dated replay set the line start dates (in the past to backdate) before creating
-   the order [Measured: 2026-11-12, 264, a 2027-01-01 start gave an order dated the run
+   the order [Measured: 2026-11-12, 264, a start date after the run date gave an order dated the run
    date] [Platform behaviour, traced]. Lines with no start date are ignored. Writing the order's own `EffectiveDate` to a future date on the Draft order before activation was accepted, and the order activated with schedules starting on each line's start date [Measured: 2026-11-12, 264, scratch, one org]; whether billing differs without that write wasn't tested. This is the standard advanced quote-to-order path only; industry processors and time-zone conversion weren't checked (`quote-negotiation-rounds` has the order-creation detail). Whether each
    order of a split gets its own minimum, and where the order item's service date comes
    from on amendment lines, wasn't established: read each created order back [Platform
@@ -134,7 +134,10 @@ the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
   top-level asset wasn't measured.
 - **Swap values with constraints in force.**
 - **Invoice values** for every change: the quote and order values above aren't the
-  invoice. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
+  invoice. The measured invoice route invoices schedules through today, and a request
+  holding a schedule billed past its target date is refused, so a replay dated in the future
+  has no period due yet: check billing at schedule level (amount, period, start), not invoice
+  level `[inferred]` from that route. Billing verification is in `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 - **Whether the configurator can restore the reset attributes** on an amendment line.
 - **Changing a bundle component's plan:** a plan held as an attribute on the component's
   line, or a swap of the component asset. A price amendment on a component's line, a plan
@@ -145,8 +148,11 @@ the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
   reductions (standalone, and a one-lot bundle component) and the renewal of a standalone
   evergreen asset are measured: SKILL.md Quick Rules 5 and 6, and
   [change-policy-mapping.md](change-policy-mapping.md).
-- **An earlier-dated change against a future-dated one:** the amend and cancel articles
-  say it's refused, while *Future-Dated Changes* and its examples allow it
+- **An earlier-dated change against a future-dated one:** work from the traced gate in
+  [change-policy-mapping.md](change-policy-mapping.md) (an amend-before-amend capability
+  decides; reading it by a dated try on an unramped asset is `[inferred]` from the trace). What stays open is a measured confirmation on an org with
+  the capability on and off; the traced gate is not a measurement. The amend and cancel
+  articles say it's refused, while *Future-Dated Changes* and its examples allow it
   ([change-policy-mapping.md](change-policy-mapping.md) → Replay the source's changes in
   date order). The repo's group-ramp runs changed assets before a ramp segment's future
   state period, which comes from the ramp schedule rather than a future-dated transaction,

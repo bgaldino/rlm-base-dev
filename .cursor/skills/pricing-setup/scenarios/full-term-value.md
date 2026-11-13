@@ -151,7 +151,9 @@ horizon.
   support-only amendment that reduced one Evergreen asset and added a new Evergreen line
   counted the months left on both, the new line (which has no source asset) through the
   quote's stamp; every case matched its expected full-term value, and new-sale values
-  didn't change `[Measured]`.
+  didn't change `[Measured]`. A reduction line's stored parent price is null, yet its net unit
+  price is in the pricing context `[inferred]` from the group admitting it and the value matching;
+  a per-lot renewal line has none (see Not stamped, below), so groups a to d skip it.
 - **A price change dated on a renewal start.** The stamp reads the source asset's lifecycle start, which
   `[Platform behaviour, traced]` is the only route from an amendment line to a contract start (the line's own start is
   the amendment date). On a change dated on a renewal's start, the formula then counts the months from the
@@ -206,5 +208,18 @@ the quote roll-ups and formulas by hand. On an amendment, read the quote's
 
 - Header discounts: whether *Full-Term Value* should carry a header discount, and how, is
   untested.
-- Carrying the values to the order (the same fields on `OrderItem` and `Order`, mapped for
-  the order) was not part of this measurement.
+- Carrying the values to the order is measured on a separate build (below); only the
+  header-discount question above remains untested.
+
+## Carrying the values to the order
+
+Custom full-term fields on the order products (mapped from the quote lines), plus a custom
+roll-up on the order that sums them, carried the quote's full-term value to the order and
+summed it on new-sale orders [Measured: 2026-11-12, 264, scratch, one org]. An amendment
+approval that added the account's activated orders' roll-ups to the change gave the level the
+source's matrix assigns [Measured: 2026-11-12, 264, scratch, one org]; the summed value itself
+wasn't checked against a full-term expectation. Order totals alone count an until-cancelled
+line for one period, so a threshold on the full commitment needs the full-term roll-up, not
+the order total `[inferred]`. Which account a roll-up sums
+by on an amendment quote is a build detail (the quote's account field, since an
+amendment quote can leave the plain account field null).

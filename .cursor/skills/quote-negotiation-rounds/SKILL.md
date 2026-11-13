@@ -218,7 +218,7 @@ rule doesn't explain that [Measured: 2026-11-12, 264, scratch; one quote].
    `createOrdersFromQuote` with `quoteId` [Dev guide: `actions_obj_create_orders_from_quote`].
    `createOrderFromQuote` is deprecated from API 65.0 [Dev guide: `actions_obj_create_order_from_quote`].
    The order `createOrdersFromQuote` created was Draft with `EffectiveDate` = the day it ran,
-   not the quote's start date (future start 2027-01-01) [Measured: 2026-11-12, 264]. Traced
+   not the quote's start date (a start date in the future) [Measured: 2026-11-12, 264]. Traced
    in the header-creation logic for a single order: `EffectiveDate` is the earlier of the
    creation time and the earliest line start date on the quote, so a future start gives today
    and a past start gives that earlier date; lines with no start date are ignored, and with none

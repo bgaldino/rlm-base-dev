@@ -37,9 +37,9 @@ total, see [full-term-value.md](full-term-value.md).
   with several matches raises a duplicate-value error; the cost step's path was not separately
   traced and its mode is unknown, so if the table is single-output it raises ([../cost-books.md](../cost-books.md#how-pricing-uses-it)).
 - **Services priced per hour or day:** load the loaded cost per unit, for example blended
-  hourly cost × (1 + overhead), or × 8 for a day. Compute it before loading; the cost book
+  hourly cost × (1 + overhead), or that rate × the hours in a billable day. Compute it before loading; the cost book
   holds only the result.
-- **Pass-through items** such as travel: cost close to price, so a low margin by design.
+- **Pass-through items** (costs re-billed at or near cost): cost close to price, so a low margin by design.
 
 ## Check before relying on margins
 

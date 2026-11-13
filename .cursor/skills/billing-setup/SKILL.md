@@ -49,6 +49,12 @@ read the row's scope before generalising it.
 4. **One-time lines take no frequency, or Milestone Plan (API value `MilestonePlan`).**
    Monthly on a one-time line was refused, Milestone Plan with a milestone treatment was
    accepted, and Milestone Plan on a Term Defined line was refused [Measured: M4–M6]. Bill services in milestones on a one-time selling model.
+   A source that bills a one-time charge periodically is an owner decision, not a field
+   fix. Options: Milestone Plan with a milestone treatment (accepted on a one-time line, above) and
+   one date-based milestone per instalment [Help: `ind.billing_milestone_treatment_and_item_create`],
+   periodic invoicing that way unmeasured;
+   or sell it on a recurring selling model with a term equal to the number of instalments
+   [inferred, not measured]. Don't force a recurring frequency onto the one-time line.
    On bundle components placed with configuration method Force and configuration rules on, Place stored the
    frequency blank and kept the treatment, with success; read the frequency back [Measured: M11].
    The save check explains the refusals, not the drop: Milestone Plan is legal only on One-Time
@@ -291,6 +297,14 @@ Quote and order values on a change are not the invoice. For where change values 
 `asset-lifecycle-changes`. For invoices and credit memos after a backdated change, and
 frequency changes on active assets, read `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 For milestone-billed assets, and services an amendment adds, see the milestone section above.
+
+**Notice periods on until-cancelled lines.** The 264 Help snapshot names no notice-period
+setting for billing or cancellation: its only notice terms are collections reminders and
+contract-document key terms, neither of which gates a cancellation. A source that requires
+notice before an until-cancelled line stops needs a decision, not a setting. Options:
+a validation on cancellation quotes comparing the cancellation date with the notice
+window, or a process rule outside the product. Record which, and the window's start
+(request date or quote date) [inferred, not measured].
 
 ## Examples
 

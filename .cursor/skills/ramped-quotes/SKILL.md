@@ -87,7 +87,14 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 10. **In a UI-built Compound group ramp, a segment's uplift applies to every ramp-stamped line in it, and isn't
     rounded.** The segment's Unit Price Uplift % lands on One-Time and Evergreen lines too, whose
     `TotalPrice` doesn't follow the uplifted net; set `UnitPriceUplift` 0 on a line to exempt it
-    (measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs). A line without a `RampIdentifier`
+    (measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs). No line needs the exemption when the source's one-time and evergreen items sit outside the segments (top-level, unramped lines took no uplift, below), or when every ramped line should take the uplift `[inferred]`.
+    **A line edit re-applied the compound uplift to untouched ramp lines.** A Place PATCH of only some
+    lines' `UnitPriceUplift` [Measured: 2026-11-11, 264, scratch, one org], and a System-pricing PATCH of
+    one ramp line with delta pricing on [Measured: 2026-11-12, 264, scratch, another org], each moved the
+    net unit price of the other uplifted lines by the segment uplift again, unrounded, on a Compound ramp;
+    totals did not change. After the Place PATCH, Reprice All (every line, pricing Force) restored them
+    [Measured: 2026-11-11, 264, scratch, one org]; run it after any ramp edit and read the net prices, not
+    the totals. The cause is not isolated. A line without a `RampIdentifier`
     took no uplift (a standalone Evergreen product, one org). The uplifted price keeps full
     precision, not cents (one of those orgs; the other already rounded after the uplift); add a
     rounding step after the ramp uplift if the source rounds. These behaviours weren't measured on a
