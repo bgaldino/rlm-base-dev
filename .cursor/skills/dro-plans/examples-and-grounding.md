@@ -89,8 +89,8 @@ SFDMU after simulation because no CCI alias was available; CCI-only preprocessin
 such as dynamic assignee replacement was not exercised.
 
 Open contradiction: the captured Help article for the order orchestration template
-says users complete manual tasks and milestones in the plan, whereas the smoke saw
-milestones complete without a user. The smoke is the only measurement and one org;
+says users complete manual tasks and milestones in the plan, whereas two measurements,
+each on one org (the smoke and the recheck below), saw milestones complete without a user;
 do not model a human acceptance as a Milestone on this evidence. Confirm on a live
 target, and treat a person's sign-off as a manual task unless a run shows otherwise
 [inferred]. Activation, billing schedules and assets completing before the plan
@@ -98,8 +98,8 @@ finished means the installed base and billing start at activation, not at a step
 
 #### Recheck
 
-[Measured: 2026-11-13, 264, scratch, one org] A repeat on a fresh scratch org, run
-through order creation and activation by API:
+[Measured: 2026-11-13, 264, scratch, one org] A repeat on one scratch org carrying the
+shipped DRO configuration, run through order creation and activation by API:
 
 - Assets and billing schedules were created at activation, before any step ran. A
   Milestone step with no unmet dependency completed within about a second with nobody
@@ -109,7 +109,7 @@ through order creation and activation by API:
 - Technical fulfillment lines had a null `OrderItemId`, each linked to its source line
   by `FulfillmentLineSourceRel`.
 - A Callout step whose named credential was missing went FatallyFailed and blocked every
-  dependent step; the plan stayed InProgress. Check credentials before a smoke.
+  dependent step; the plan stayed InProgress (advice: check credentials before a smoke).
 - Activating the order failed until it had a bill-to contact and a shipping address;
   order creation from a quote filled the billing address but not the contact.
 

@@ -132,8 +132,9 @@ introduce a blanket extra approval for ordinary configuration updates.
   scope. The submission action documents an override, but it is never an automatic
   workaround for an invalid change.
 - **PONR flag placement:** the flag set on a step definition was copied onto the step at
-  plan creation, on a Pending dependent step as well as an In Progress one, so it is not
-  set when the step starts or completes [Measured: 2026-11-13, 264, scratch, one org].
+  plan creation, on a Pending dependent step as well as an In Progress one
+  [Measured: 2026-11-13, 264, scratch, one org], so it is not set when the step starts or
+  completes.
   Two amendments placed through the plain amend route, one with the flag set, were both
   accepted, so that route does not show enforcement. Which order items a PONR covers
   (the whole bundle or that line) and whether the supplemental route enforces it were not
