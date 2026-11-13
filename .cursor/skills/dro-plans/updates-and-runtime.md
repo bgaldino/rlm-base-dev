@@ -141,7 +141,7 @@ introduce a blanket extra approval for ordinary configuration updates.
 - **PONR scope (freeze output).** Freezing the order returned an allowed flag per order item.
   With a PONR step In Progress on one child of a bundle, every line of that bundle was denied,
   root and sibling included; a PONR step In Progress on a standalone line denied only that line, not a bundle in
-  the same order, and a control order with no PONR step (its callout had failed and its other
+  the same order, and a separate, earlier control order with no PONR step (its callout had failed and its other
   steps were Pending) froze to Frozen with every line allowed [Measured: 2026-11-13, 264,
   scratch, one org]. A supplemental quantity change on the activated order was refused with
   two stated reasons, that its order products had been converted to assets and had billing
