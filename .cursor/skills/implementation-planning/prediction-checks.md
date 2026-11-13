@@ -128,8 +128,9 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     `proration-and-selling-models.md`, Measured: a partial year prorates by days;
     `asset-lifecycle-changes` Quick Rule 6). A mid-period change's golden carries both
     values through the mapping, or a decision makes the build match the source.
-11. **Round after every step that multiplies, not once.** A compound ramp uplift kept
-    four decimals (`pricing-procedures` → `elements/price-revision-compound-uplift.md`),
+11. **Round after every step that multiplies, not once.** A compound ramp uplift isn't
+    rounded to the cent (`pricing-procedures` → `elements/price-revision-compound-uplift.md`;
+    `ramped-quotes` Quick Rule 10),
     so a plan that rounds before the uplift needs a second rounding after it.
 12. **State the line inputs a pricing step filters on,** as the placing script sends
     them. A commitment-term step read `SubscriptionTerm`, and a line placed with start

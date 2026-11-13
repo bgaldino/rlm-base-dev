@@ -65,7 +65,8 @@ def section_lines(lines, marker):
     different sections never join). A section starts at a heading or bold label (a line
     starting "**") that holds the marker, ignoring case. A heading ends at the next heading
     of the same or a higher level; a label ends at the next heading or the next label
-    (the next phase), while bulleted bold lines ("- **Gate:**") stay inside it.
+    (the next phase), while bulleted bold lines ("- **Gate:**") stay inside it, and so do
+    a phase label's own sub-labels ("**P2a" and "**P2b" under "**P2 ...").
     Overlapping sections are read once."""
     want = marker.lower()
     keep = set()
@@ -73,12 +74,14 @@ def section_lines(lines, marker):
         level = heading_level(line)
         if want not in line.lower() or not (level or line.startswith("**")):
             continue
+        phase = re.match(r"\*\*(P\d+)(?![\w])", line)
         for i in range(start + 1, len(lines)):
             h = heading_level(lines[i])
             if h and (not level or h <= level):
                 break
             if not level and lines[i].startswith("**"):
-                break
+                if not (phase and re.match(rf"\*\*{phase.group(1)}[a-z]\b", lines[i])):
+                    break
             keep.add(i)
     return [l if i in keep else "" for i, l in enumerate(lines)]
 

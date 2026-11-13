@@ -226,7 +226,9 @@ first: a measurement covers only the shape and route it measured.
 - **Cross-rule parity.** Run each worked example through every rule in the register,
   not only its own formula: guards, dependencies and thresholds. A source's summary
   formulas often skip a rule its policy text states (a per-line floor-margin guard, a
-  never-below-cost rule). Each violation is a decision, not a silent choice.
+  never-below-cost rule). Each violation is a decision, not a silent choice. Run worked
+  examples against each other too: in the dated replay each one starts from the state
+  the one before left, and an example that ignores that state is a decision.
 - **Replay lifecycle examples in date order,** with configuration rules on. Anchor
   the timeline first: the contract start, and whether the replay's dates are in the
   future of the build. The choice is a decision:

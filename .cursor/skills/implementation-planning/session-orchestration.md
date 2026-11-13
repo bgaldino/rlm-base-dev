@@ -53,12 +53,12 @@ catalog or model carries; otherwise it waits for that spike, or builds every rou
    Each session reports its org alias. No one deletes an org without the user's yes.
 2. **No worktrees for CCI or harness work.** CCI finds the project root by a `.git`
    directory; in a git worktree `.git` is a file, so a run there uses another
-   checkout's files (or none). Run from the main checkout or a regular clone. Sessions share that
-   checkout, and each one owns specific folders; a session never writes outside them.
-   Before running harness builds or CCI loads and deploys at the same time, read
-   `build-harness` → Run several builds at once: a run id isolates only Robot output,
-   and other steps still write to the shared checkout. Build from it one at a time, or
-   give each concurrent build its own regular clone.
+   checkout's files (or none). Run from the main checkout or a regular clone. A session
+   that runs harness builds or CCI loads and deploys while another session does works in
+   its own regular clone: a run id isolates only Robot output, and loads and UX assembly
+   still write into the checkout (`build-harness` → Run several builds at once). Sessions
+   that don't build or load can share one checkout; each owns specific folders and never
+   writes outside them.
 3. **Only the main session commits,** after reviewing a session's files at its gate.
    This stops two sessions racing on one git index.
 4. **Every brief stands alone.** It names:

@@ -157,6 +157,23 @@ class LedgerTest(unittest.TestCase):
         self.assertIn("no spike rows", p.stderr)
         self.assertFalse([k for k in self.ledger() if k.startswith("spike:")])
 
+    def test_spike_waves_under_sub_labels(self):
+        start = PLAN.index("| Spike | Rules |")
+        end = PLAN.index("**P3 Catalog")
+        waves = ("**P2a** probe-product spikes\n\n"
+                 "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
+                 "| S-1 Amendment value | R-02 | 100.00 | One line | `asset-lifecycle-changes` |\n\n"
+                 "**P2b** spikes on the real catalog\n\n"
+                 "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
+                 "| S-2 Renewal value | R-02 | `a\\b\\|\\bb` | One line | `asset-lifecycle-changes` |\n\n")
+        (self.dir / "plan.md").write_text(PLAN[:start] + waves + PLAN[end:])
+        p = self.run_ledger("init", "--plan", "plan.md")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        spikes = {k: v for k, v in self.ledger().items() if k.startswith("spike:")}
+        self.assertEqual(len(spikes), 2, sorted(spikes))
+        self.assertTrue(any("a\\b|\\bb" in json.dumps(v) or "a\\\\b|\\\\bb" in json.dumps(v)
+                            for v in spikes.values()), spikes)
+
     def test_rules_in_several_tables(self):
         (self.dir / "plan.md").write_text(PLAN.replace(
             "| R-02 | Live (c) | Amendment | exact |\n",
