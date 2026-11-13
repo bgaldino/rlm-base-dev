@@ -22,7 +22,7 @@ decisions; loading the result is `sfdmu-data-plans`, the field-level schema is
 Every product claim carries its source: `[Help: <article>]` (the 264 Help snapshot under
 `docs/salesforce/264/help/articles/`), `[Dev guide: <article>]` (`docs/salesforce/264/dev-guide/articles/`),
 `[Repo: <file>]`, or `[Measured: <date>, 264]` (a live 264 build; `[Measured: <date>, fresh 264 ent-sb0 scratch org]`
-names the org: a newly built scratch org of the repo's `ent-sb0` shape). A claim only a live
+names the org: a newly built scratch org of the repo's `ent-sb0` shape), `[Platform behaviour, traced]` (a platform mechanism read in source), or `[Platform behaviour, traced in part]` (mechanism read in source, but scope, path or consequence not established). A claim only a live
 org could settle is marked **Open — needs live verification**. Help article ids below
 drop the `.md` suffix of the snapshot file name.
 
@@ -54,7 +54,7 @@ drop the `.md` suffix of the snapshot file name.
    code becomes its own parent. [Measured: 2026-11, 264; Repo: `datasets/sfdmu/qb/en-US/qb-pcm/export.json`]
 8. **Load a PCM plan twice into a fresh org, and never extract from an org that had only
    one pass**: on the measured plan, the first insert left classification attributes'
-   `AttributeNameOverride` and `IsRequired` at platform defaults. [Measured: 2026-11, 264] See [Loading the model](#loading-the-model).
+   `AttributeNameOverride` and `IsRequired` at the attribute definition's values rather than the plan's. [Measured: 2026-11, 264] See [Loading the model](#loading-the-model).
 
 ## DO NOT
 
@@ -139,7 +139,7 @@ the detail and the sources.
 | **Where an attribute value is set** | Definition → classification attr → product attr → bundle override. | Lower levels are more specific but must be reviewed when a higher level changes. | Bundle overrides break attribute-based pricing. [Help: `ind.product_catalog_attribute_fields.htm`; `ind.pricing_attribute_based_pricing_limits.htm`] |
 | **Selling model** | One Time / Term-Defined / Evergreen from the pricing basis. | Each extra model adds a PBE and an option per product. | Proration, renewal and the Subscription price element read it. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md) |
 | **`IsAssetizable`** | True when the sale must leave something to amend, renew or cancel. | False keeps the asset table clean for consumables. | Root value overrides children. [Help: `ind.product_catalog_create_bundled_products.htm`] |
-| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses to put it in a category, so offer it as a bundle component. | Search did not find it, but a quote placed by API with it alone was accepted, ordered and activated. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
+| **`IsSoldOnlyWithOtherProds`** | True for add-ons that must not be sold alone. | The platform refuses it in a category assignment, on flipping it to true on a categorised product, and on a Product Set; no refusal was found as a bundle component or at sale time [Platform behaviour, traced in part], so offer it as a bundle component. | Search did not find it, but a quote placed by API with it alone was accepted, ordered and activated. [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] |
 | **Catalog / category placement** | Catalogs by audience or business unit; categories for browsing. | More catalogs means more category rows to keep coded uniquely. | Drives Product Discovery browsing; categories, not catalogs, hold products. [`catalogs-and-loading.md`](catalogs-and-loading.md) |
 | **Family** | A coarse product line other systems filter on. | A free picklist value becomes a contract. | Whatever keys on it (search facets, Apex, rules) breaks on a rename. [`catalogs-and-loading.md`](catalogs-and-loading.md#product-family-is-a-contract) |
 
@@ -179,7 +179,7 @@ general SFDMU behaviour, seen on a PCM plan):
 
 | # | Fact | What to do |
 |---|---|---|
-| a | On the measured PCM plan (for the QuantumBit plan this is open; see below), after the **first** SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held platform defaults; a second, update pass applied the plan's values. [Measured: 2026-11, 264] | Run the whole plan twice on a fresh org. Never re-extract an org that had one pass; the extract would bake the defaults into the CSVs. |
+| a | On the measured PCM plan (for the QuantumBit plan this is open; see below), after the **first** SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Run the whole plan twice on a fresh org. Never re-extract an org that had one pass; the extract would bake the definition's values into the CSVs. |
 | b | A `Readonly` anchor object that children reach through a `$$` composite lookup column needs a CSV with that `$$` column, or those lookups silently fail to resolve. [Measured: 2026-11, 264] This conflicts with `sfdmu-data-plans` → *Where a plan's CSVs live*, which says a `Readonly` object never reads a source file and its CSV is optional; that skill's live-verified case is a single-field traversal. Not reconciled: see Open questions. | Keep a CSV with the same `$$` column the children's lookup columns name; shipped plans already do. |
 | c | In a plan without `useSeparatedCSVFiles: true`, repeating an object across object sets does not give pass 2 its own data: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] Per-pass files need that flag and `objectset_source/object-set-N/` (`sfdmu-data-plans` → *Where a plan's CSVs live*). | For fact (a)'s second pass, run the plan again: that is the measured fix. |
 | d | A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | Generate codes from the full path, and check uniqueness across every level and catalog the plan loads. |
@@ -189,10 +189,10 @@ In this repo, `prepare_product_data` runs `insert_quantumbit_pcm_data` once. The
 `test_qb_pcm_idempotency` task loads the plan once, extracts the org, and reloads the
 extraction, so its second load replays the one-pass org state, not the CSVs: it is not
 fact (a)'s second pass. [Repo: `cumulusci.yml`; `tasks/rlm_sfdmu.py` `TestSFDMUIdempotency`] Whether a
-one-pass QuantumBit build leaves any classification attribute at a default that differs
+one-pass QuantumBit build leaves any classification attribute at its definition's value where that differs
 from its CSV is **Open — needs live verification**: every `IsRequired` in the QB CSV is
 `false`, the documented default, but all 36 rows set `AttributeNameOverride`, whose
-first-insert value was not recorded. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
+first-insert value was not recorded. Inferred from the traced copy: every QuantumBit `AttributeNameOverride` equals its definition's `Name` and every `IsRequired` matches its definition, so one pass should already match the CSV; not measured. [inferred] [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProductClassificationAttr.csv`; Dev guide: `sforce_api_objects_productclassificationattr.htm`]
 
 After a load of new products, run the `refresh_all_decision_tables` flow and the
 `rebuild_search_index` task before placing a quote. That and two more load facts (a `Family`
@@ -200,7 +200,7 @@ value missing from the picklist, component fields an insert can't set or values 
 [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264).
 
 Two more load constraints that shape the model, from the QB plan: bundle depth is capped by
-the org value `MaxBundleDepth` (default 3, ceiling 5; the repo's scratch shapes set 5), and
+the org value `MaxBundleDepth` (default 3; the repo's scratch shapes set 5, the highest value used here; the platform ceiling was not traced), and
 several PCM lookups are create-only, so a partial failure needs a delete before a reload.
 [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/README.md`; `orgs/README.md`; `sfdmu-data-plans/SKILL.md`]
 
@@ -253,7 +253,7 @@ assetizable, so every child is assetizable whatever its own flag says. [Help: `i
 - "Child lookups load blank in my new PCM plan." → facts (b)–(d) above, then
   `sfdmu-data-plans`.
 - "Place says *Could not find product with ID* for a product I just loaded." → the decision-table
-  refresh and search index rebuild after the load (fact f in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264)).
+  refresh (a stale table is plausible, not shown; no search-index dependence found [Platform behaviour, traced in part]) and the measured search index rebuild after the load (fact f in [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264)).
 - "A group I set to pick one says its number of child products is out of range, but I
   picked one product." → check whether the product is on two lines (a CML-sized default
   component splits); see
@@ -285,7 +285,7 @@ Review the CSVs for these, each a rule above:
 - Every `Family` value is a value of the org's `Family` picklist, or the same change adds it
   to the `Product2Family` standard value set.
 - No `ProductCategoryProduct` row names a product with `IsSoldOnlyWithOtherProds` true; the
-  platform refuses that assignment.
+  platform refuses that assignment (and refuses setting the flag true on a product that already has one).
 - No `QuantityScaleMethod` is the literal `None`; the 264 picklist rejects it
   ([`bundles-and-cardinality.md`](bundles-and-cardinality.md#quantity-scaling-and-lifecycle)).
 - Every product has at most one `IsDefault` selling model option; term-defined and
@@ -307,8 +307,7 @@ Every item marked **Open — needs live verification** in this skill and its sub
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods).
 - **Is `ProductCategory.Code` unique per org or per catalog?** The snapshot does not say.
   Fact (d) only proves that a plan keyed on `Code` alone conflates levels. **Open — needs live verification.**
-- **A non-assetizable child under an assetizable root.** Help says the root wins; whether
-  a child flagged false then appears as an asset with lifecycle actions is **Open — needs live verification.**
+- **A non-assetizable child under an assetizable root.** Traced from order-to-asset handling, bundle assembly not traced [Platform behaviour, traced in part]: the root wins and the child gets lifecycle actions ([`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#isassetizable)); only the consequence for children kept non-tracked is not traced further.
 - **Which end date stops a sale.** Help contradicts itself on `DiscontinuedDate` vs
   `EndOfLifeDate`. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#other-lifecycle-fields-on-product2).
 - **How a mixed-model bundle co-terminates and renews.** Co-termination for any shape;
@@ -326,8 +325,9 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Bundle-based adjustments under a new static bundle**, whose component rows carry
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
-- **One-pass QuantumBit build.** Whether any classification attribute is left at a default
-  that differs from its CSV. See [Loading the model](#loading-the-model).
+- **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message, which conflicts with the traced rule; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
+- **One-pass QuantumBit build.** Whether any classification attribute is left at its definition's value
+  where that differs from its CSV (inferred from the traced copy: `AttributeNameOverride` and `IsRequired` already match their definitions, so probably not; not measured). See [Loading the model](#loading-the-model).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
   sets them; Help forbids them under a *new* static bundle. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).

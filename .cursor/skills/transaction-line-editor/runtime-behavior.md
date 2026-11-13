@@ -148,7 +148,7 @@ A discount that must apply on every quote, not by a rep's hand, is a pricing que
 |--------|--------------|--------|
 | **Save** | Prices inline edits | [Help: `ind.qocal_view_and_edit_quotes`] |
 | **Instant Pricing** | Reprices each price-impacting change at once; turns off on page reload or session expiry. *Instant Pricing Active by Default* (STLE only) turns it on by default | [Help: `ind.qocal_view_and_edit_quotes`, `ind.qocal_turn_on_quote_and_order_capture`] |
-| **Reprice All** | Full repricing of every line, even with no changes and even with Delta Pricing on; skips configuration | [Help: `ind.qocal_reprice_all_quotes_and_orders`] |
+| **Reprice All** | Full repricing of every line, even with no changes and even where Delta Pricing is on; sends Force pricing with configuration skipped (traced request shape) [Platform behaviour, traced] | [Help: `ind.qocal_reprice_all_quotes_and_orders`] |
 | **Refresh Prices** | Pricing, configuration and taxes | [Help: `ind.qocal_view_and_edit_quotes`] |
 | **Estimate Taxes** | Tax estimate; needs the Revenue Setting *Add Estimated Taxes to Quotes and Orders* | [Help: `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_turn_on_quote_and_order_capture`] |
 
@@ -163,15 +163,38 @@ must be repriced before activation; the same applies to quote lines
 
 Measured: **Reprice All on a quote whose lines are already priced changed nothing** and showed "The prices
 were refreshed and the configuration was validated." [Measured: early Nov 2026, 264]. The message's
-mention of configuration conflicts with Help's "skips configuration"; see the parent's Open list.
+mention of configuration is unexplained: Reprice All sends Force pricing with configuration skipped (traced
+request shape) [Platform behaviour, traced], but where the toast text comes from was not traced, so whether
+configuration is validated beyond that request shape is not established.
 
 Measured: **a header-only Place PATCH doesn't reprice the lines.** A Place PATCH that changed only a quote
 header field, one the pricing procedure reads through the sales transaction context, saved the field
 and left every line's price as it was; a header-only PATCH with no field change didn't reprice either
 (each line's `PriceWaterfallIdentifier` stayed the same). **Reprice All** applied the new header value to the lines
-[Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. After changing a header field that pricing
-reads, click Reprice All. Changing a line instead wasn't measured, and on a Compound group ramp a
-partial line edit re-uplifts untouched lines (`ramped-quotes` SKILL.md → DO NOT). A header edit in the record UI wasn't measured. For quotes,
+[Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. The rule behind it: under System pricing a Place
+request is priced only when it includes at least one quote or order line record, or line attribute record
+(a create, update or unchanged-value PATCH counts; a request that only deletes lines is priced only if the transaction still has lines). A request with only the header record
+is not priced, whichever header field changed. Force pricing (Reprice All) passes the request test
+unconditionally [Platform behaviour, traced]. A request that carries a context id is priced whenever the transaction has
+lines, so a header-only change through that path would reprice; which path a given client request takes
+was not determined, and the context-id case was not measured. After changing a header field that pricing
+reads, include a line record in the same request, use Force pricing, or click Reprice All. Pricing can also be
+skipped by an org-level platform setting that has no documented name [Platform behaviour, traced].
+A line PATCH on the graph-style Place path reprices the transaction, but on a Compound group ramp a partial line edit can re-apply the
+uplift to lines you didn't touch. Delta pricing is an org setting (Setup > Revenue Settings > Delta Pricing for Quotes and Orders), off unless enabled;
+its platform declaration marks it beta [Platform behaviour, traced], though neither Help nor the Metadata API reference says so, and its documented
+default is false [Metadata API: `meta_revenuemanagementsettings`], so an org that doesn't set it has it off. The repo
+enables it in `config/project-scratch-def.json` and most `orgs/*.json` (not dev-mfg or the TFID shapes), and
+`prepare_rlm_org` deploys it as true from the pre settings bundle on every build, so every Foundations-built org has it
+on [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]. Delta skipping applies only when the setting
+is on and the save is a PATCH edit with System pricing, Dual Persistence mode off, a completed calculation status (Completed with Pricing or with Tax) and no
+validation errors [Platform behaviour, traced; Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]; further
+conditions (the transaction's update tracking) also apply, so treat the list as partial (see
+pricing-procedures → runtime and observability); otherwise every line reprices, and a non-idempotent uplift step
+re-applies. When it applies, a partial PATCH re-runs the edited lines and the lines that depend on them and skips the
+rest [Platform behaviour, traced]. Help adds that a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; that fits the re-uplift of untouched ramp lines [inferred]. Which relations count as a dependency isn't traced.
+Delta Pricing was probably on in the 2026-11-11 measurement but wasn't read there; on a second org with it read on, a
+System PATCH of one ramp line with no field change (configuration Skip) left every line's waterfall id unchanged, yet re-applied the compound uplift to every uplifted line's `NetUnitPrice`, unrounded, with totals unchanged [Measured: 2026-11-12, 264, scratch; one org]. Help's rule fits which lines moved, but not the unchanged waterfalls or the uplift compounding on the stored net; that path is not traced (`ramped-quotes` SKILL.md → DO NOT). A header edit in the record UI wasn't measured. For quotes,
 Help's Reprice All requirement names updates to Quote Line Items outside the line editors, not the
 Quote header (for orders it covers Order records too)
 [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
@@ -181,8 +204,8 @@ Quote header (for orders it covers Order records too)
 [Help: `ind.qocal_header_adjustments_use`, `ind.qocal_header_adjustments_overview`]
 
 **Manage Header Adjustment** > type (**Amount**, **Percentage**, **Amount Override**) > value >
-distribution (**Equal**, or **Proportionate** to each line's list price × quantity). With Delta Pricing on
-(this repo), click **Reprice All** afterwards. The waterfall shows each line's share. Users need
+distribution (**Equal**, or **Proportionate** to each line's list price × quantity). Where Delta Pricing is on
+(Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables it, and it applies only when all its conditions hold, see the delta pricing paragraph under section 4's header-edit notes above), click **Reprice All** afterwards. The waterfall shows each line's share. Users need
 Salesforce Pricing Run Time User.
 
 **The setup is in the pricing procedure, not the editor.** Manage Header Adjustment takes the type,

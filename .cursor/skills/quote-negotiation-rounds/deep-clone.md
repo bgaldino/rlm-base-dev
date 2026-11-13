@@ -25,8 +25,7 @@ That is the form measured below; the dev guide's examples show a line id in `rec
   `success` covering only the synchronous part and `requestId` for the async status
   [Dev guide: `connect_responses_clone_sales_transaction_output`].
 - Measured on two whole-quote clones: the response also carried `trackerId` and
-  `trackerUrl` (the `ramped-quotes` skill, written from the dev guide, says there is no
-  `trackerId`); `requestId`, `trackerId` and `trackerUrl` were all null;
+  `trackerUrl` (as the `ramped-quotes` skill also records for group clones); `requestId`, `trackerId` and `trackerUrl` were all null;
   `salesTransactionId` was the **new** quote's id. After the first clone, the new quote read
   `CalculationStatus = CompletedWithPricing` on the first query, about 5 seconds later
   [Measured: 2026-11-10, 264].
@@ -50,8 +49,32 @@ Documented [Help: `ind.qocal_clone_quotes_and_orders`]:
 - The clone is created in **Draft** status. Approval work items aren't copied.
 - "To clone custom objects and custom fields, configure the context definition for the
   sales transaction"; custom child objects need `ParentReference` mapped to the parent
-  record id. Measured below, a custom header field that no repo context plan maps still
-  copied.
+  record id. Measured below, custom header fields that no context plan mapped did not
+  behave alike: `RLM_Payment_Terms__c` copied on the 2026-11-10 org, while on the 2026-11-12
+  org a picklist came back as its default and a checkbox came back false.
+
+Traced mechanism [Platform behaviour, traced]: all three routes (UI action, Connect API,
+invocable) end in the same clone service. It does not copy the quote row. It builds a context
+from the source through the context definition's quote mapping, sets `Status` to the first value
+of the Status picklist (normally Draft) and appends ` Copy` to the name, translates the context
+back to records through the same mapping (restricted fields removed), restores the related-quote,
+related-quote-type and original-action-type fields from the source, and saves the result through
+Place Sales Transaction. The mechanism therefore predicts that a quote or line
+field carries over only if the active context definition maps it, and that an unmapped custom
+header field comes back at its default (a picklist at its default value, a checkbox `false`)
+whichever route you use. That matches the measured picklist and checkbox, but one
+unmapped-looking field copied, unexplained by the repo's plans (see below), and the org's active definition was not
+read, so treat this as the expected rule, not a guarantee
+[Platform behaviour, traced in part]. To make a field carry, add it to the context definition
+and its quote mapping, or set it on the new quote after the clone. Line-side
+rewrites: the metering field is nulled, ramp and segment identifiers are regenerated (an
+action line other than Add may keep the originals when a platform gate is open), the action
+lookup is re-pointed to new actions, and foreign keys are re-pointed to the cloned records.
+The clone code reviewed has no reference to an approval status or `IsSyncing` (a keyword
+search of the clone module; the save through Place Sales Transaction was not traced)
+[Platform behaviour, traced in part]. Not traced: the large (async)
+transaction path, which may carry fields differently, and whether a mapped field that is
+non-editable, formula or output-only is dropped.
 
 Measured on one org, from a source quote with one group, two evergreen lines of one
 product (line discounts 20% and 10%), one attribute row on the 20% line, synced to its
@@ -73,11 +96,27 @@ opportunity and with an approval submission in progress [Measured: 2026-11-10, 2
 | `ApprovalSubmission`, `ApprovalWorkItem` | None |
 | `RelatedQuoteId` | Blank |
 
+Measured again on a second org, cloning whole quotes of a multi-line deal with the
+Connect API [Measured: 2026-11-12, 264]:
+
+| Item | On the clone |
+|---|---|
+| A custom header picklist that no context plan mapped | The picklist's **default**, not the source's value. A source already holding the default looked as if it copied |
+| A custom header checkbox that no context plan mapped (the internal-round flag) | `false` (source: `true`) |
+| Two custom header fields the rounds compared (mapped in the context plan), and `StartDate` | Same as the source; the two custom fields held their defaults on every source, so this run doesn't show whether they copy |
+| `RLM_Payment_Terms__c` | Same as the source, but every source held `Net 30`, the picklist default, so this run doesn't show whether it copies |
+| Line `Discount` and a custom line field mapped in the context definition | Copied on every line |
+
 Not measured: price adjustments other than the line `Discount` field (the source had no
 `QuoteLinePriceAdjustment` rows), bundles, ramp segments, header discounts, custom child
-objects, orders. Which header fields copy did not follow one obvious rule (one editable
-custom field copied, two editable standard fields did not), so check every field a round
-depends on after each clone ([SKILL.md](SKILL.md) → Validation Checks).
+objects, orders. `RLM_Payment_Terms__c` copied on the 2026-11-10 org although no context plan
+maps it in this repo (one field copied, unexplained by the repo's plans); the org's active
+definition was not read, so a mapping there is the first thing to check. On the second org
+every source held its default, so that run doesn't tell. A custom picklist and a custom checkbox did not copy, nor did two
+editable standard fields; the traced rule above explains these when the definition does not map
+them. The mapped fields on the 2026-11-12 org held their defaults, so that run doesn't test
+mapping. After each clone, compare every header field a round depends on with the source and
+write back the ones that differ ([SKILL.md](SKILL.md) → Validation Checks).
 
 ## Relating a clone to its source
 

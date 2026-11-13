@@ -2,7 +2,7 @@
 
 > Sub-file of `.cursor/skills/pricing-setup/SKILL.md`, indexed in [README.md](README.md).
 > Release 264. No Help example; this is custom wiring on a clone of the pricing procedure.
-> Sources are tagged `[Repo: <path>]`, `[inferred]` and `[Measured]` (measured 2026-11-11 on a
+> Sources are tagged `[Repo: <path>]`, `[inferred]` and `[Measured]` (measured 2026-11-11, except where a tag carries its own date, on a
 > fresh 264 `ent-sb0` scratch org). The example uses neutral round numbers.
 
 **Goal:** a quote shows a full-term value, a full-term cost and a full-term margin (a
@@ -59,7 +59,9 @@ order matters `[Measured]`.
   UI-built ramp stamped them, but an Evergreen bundle child added by API into
   already-ramped segments carries no ramp identifier
   (`../../ramped-quotes/bundle-children-lifecycle.md`) and would fall into group b, once per
-  segment.
+  segment. A line field that counts each line's months from its quote line group's end date
+  replaces group c and needs no ramp identifier; see
+  [Amendments and ramps](#amendments-and-ramps-the-months-each-evergreen-line-counts).
 - **d**: the sales transaction context has no product Family, and a roll-up summary filter
   can't use a field on another object, so you can't roll up "lines of family X" on the quote
   `[Measured]`. Write the subset value per line in the procedure and roll it up unfiltered.
@@ -81,6 +83,87 @@ Here `Full_Term_Value__c`, `Full_Term_Cost__c` and `Subset_Value__c` are the quo
 This margin is a ratio (0.57), while the line `Margin` field reads in percent units (57)
 (see [cost-and-margin.md → Margin units](cost-and-margin.md#margin-units)). Keep the two apart
 in reports.
+
+## Amendments and ramps: the months each Evergreen line counts
+
+Group b counts every Evergreen line for the whole horizon. On a mid-term amendment that
+overstates the value: an Evergreen delta line was multiplied by the whole horizon `[Measured]`.
+Count, per line, the months it covers, in a line field the procedure reads.
+
+**Where an amendment's commitment start is.** An amendment quote has no `ContractId` or
+`RelatedQuoteId`; its lines have no asset lookup (`BillingReference` is text); the sales
+transaction context hydrates no Asset node for a quote; an Evergreen asset has no
+`LifecycleEndDate`; and a quote roll-up of MAX(line `EndDate`) is blank when the amendment
+has no Term line `[Measured]`. What every amended line has is `QuoteLineItem.QuoteActionId`
+→ `QuoteAction` (`Type` Amend) → `SourceAsset.LifecycleStartDate` `[Measured]`. Nor can a
+line formula read its parent line: a formula that spans `ParentQuoteLineItem` fails to
+deploy ("Field ParentQuoteLineItem does not exist") `[Measured]`.
+
+Field names below are examples; use your own.
+
+| # | Layer | What |
+|---|---|---|
+| 1 | Quote field | Date `Commitment_Start__c` |
+| 2 | Flow | Record-triggered on `QuoteLineItem`, after save, on **create and update**: when `QuoteAction.Type` is Amend and `QuoteAction.SourceAsset.LifecycleStartDate` is set, stamp the quote's `Commitment_Start__c` with the earliest such start, as the GMT date: `DATEVALUE(LEFT(TEXT(<datetime>), 10))`. `QuoteAction` isn't triggerable. The amend API sets `QuoteActionId` when it inserts the line; on an amend sent with `quantityChange` 0 the action's `Type` read No Change after the amend (before any edit) and read Amend after a Place PATCH that changed the line's quantity `[Measured: 2026-11-12, 264, scratch; one org]`, so a create-only trigger that tests `Type` = Amend would miss those lines `[inferred]`. Plain `DATEVALUE` on the midnight-GMT start returned the previous day in a US user's time zone `[Measured]` |
+| 3 | Line formula | Number `Months_Counted__c` (below) |
+| 4 | Context | Map `Months_Counted__c` as a `SalesTransactionItem` attribute, INPUT, with a tag. A formula field mapped INPUT hydrates into pricing `[Measured]` |
+| 5 | Procedure | Group b multiplies by `<months>` (that tag) where it's set, else by `<horizon>` (formulas below), and drops its `ItemRampIdentifier` criterion; group c is removed, since the field counts a segment's months |
+
+```text
+IF(ISBLANK(StartDate), NULL,
+  IF(NOT(ISBLANK(QuoteLineGroup.EndDate)),
+    (YEAR(QuoteLineGroup.EndDate) * 12 + MONTH(QuoteLineGroup.EndDate))
+      - (YEAR(StartDate) * 12 + MONTH(StartDate)) + 1,
+    IF(OR(ISBLANK(Quote.Horizon_Months__c),
+          ISBLANK(BLANKVALUE(Quote.Commitment_Start__c, Quote.StartDate))), NULL,
+      MAX(0, Quote.Horizon_Months__c
+        - ((YEAR(StartDate) * 12 + MONTH(StartDate))
+          - (YEAR(BLANKVALUE(Quote.Commitment_Start__c, Quote.StartDate)) * 12
+             + MONTH(BLANKVALUE(Quote.Commitment_Start__c, Quote.StartDate))))))))
+```
+
+That is: in a dated quote line group (a ramp segment), the months from the line's start to
+the group's end; otherwise *Horizon Months* less the calendar months from the commitment start
+(the stamp, else the quote's `StartDate`) to the line's start, never below 0. It assumes
+segments and the commitment start on the 1st of a month: the formula counts calendar months
+and ignores the day, so a segment from 2027-02-15 to 2028-02-14 counts 13. Every measured date
+was the 1st of a month. The pricing engine prorates by days (the first and last partial period
+count days used over the days in that period, `[Platform behaviour, traced]`; see
+[proration](../proration-and-selling-models.md)), so off the 1st this months value and the line's
+`PricingTermCount` diverge; decide which one the source's number follows and do not expect the two to match
+(doc-only; not measured live). *Horizon
+Months* on the amendment quote must hold the original commitment's length (a field default
+does it when every commitment has the same length) `[inferred]`.
+
+Group b's formulas become:
+
+- *Full-Term Value* = `IF(ISNULL(<months>), IF(ISNULL(<horizon>), ItemNetTotalPrice, ROUND(NetUnitPrice * LineItemQuantity * <horizon>, 2)), ROUND(NetUnitPrice * LineItemQuantity * <months>, 2))`
+- *Full-Term Cost* = `IF(ISNULL(ItemUnitCost__std), 0, IF(ISNULL(<months>), IF(ISNULL(<horizon>), IF(ISNULL(ItemTotalCost__std), 0, ItemTotalCost__std), ROUND(ItemUnitCost__std * LineItemQuantity * <horizon>, 2)), ROUND(ItemUnitCost__std * LineItemQuantity * <months>, 2)))`
+
+`<months>` is blank where nothing maps the field (an order, say), and those lines keep the
+horizon.
+
+- **Reprice after creating the amendment.** The stamp lands after the amendment's lines are
+  created, so the first price of a new amendment still counts the whole horizon. A full
+  reprice afterwards reads it (measured: every line PATCHed through Place with pricing
+  `Force`) `[Measured]`.
+- **Measured shape.** A mid-term add on an Evergreen asset counted only the months left; a
+  support-only amendment that reduced one Evergreen asset and added a new Evergreen line
+  counted the months left on both, the new line (which has no source asset) through the
+  quote's stamp; every case matched its expected full-term value, and new-sale values
+  didn't change `[Measured]`.
+- **A price change dated on a renewal start.** The stamp reads the source asset's lifecycle start, which
+  `[Platform behaviour, traced]` is the only route from an amendment line to a contract start (the line's own start is
+  the amendment date). On a change dated on a renewal's start, the formula then counts the months from the
+  original start, which can leave 0 months to the horizon. A custom months-remaining value was 0 for a price change dated at the renewal start, after the original commitment's end `[Measured: 2026-11-12, 264, scratch; one org]`; the line's own change value matched the expected value, and billing showed a monthly credit and a monthly charge schedule per changed line. What a renewed asset's lifecycle
+  start is was not traced. Fix `[inferred]`: if the asset's lifecycle start is the original start, stamp the start of the current term instead.
+- **Not stamped:** a new-sale quote and a renewal quote. The formula counts from their own
+  `StartDate`.
+- **Ramps.** An Evergreen line in a dated quote line group counts that segment's months, so
+  segments that span the horizon count it between them `[Measured]`. This also covers an
+  Evergreen line added to every segment unramped: it carries no ramp identifier and gets no
+  ramp uplift `[Measured]`, so group c's filter would miss it and group b would count it for
+  the whole horizon once per segment.
 
 ## Example (neutral numbers)
 
@@ -111,17 +194,12 @@ sf data query -q "SELECT TotalPrice, Full_Term_Value__c, Full_Term_Cost__c, Subs
 
 Use your own field API names. Check each line against the table above (term and One-Time
 lines equal their platform totals; Evergreen lines equal per-period net × horizon, or × the
-segment's months in a group ramp), then
-the quote roll-ups and formulas by hand.
+line's months counted on an amendment or in a group ramp), then
+the quote roll-ups and formulas by hand. On an amendment, read the quote's
+`Commitment_Start__c` and each line's `Months_Counted__c` after the reprice.
 
 ## Open questions
 
-- **OPEN: amendments.** On an amendment the Evergreen value must use the **months remaining**
-  from the amendment's start, not the whole horizon. `[Measured]` Group b above multiplied an
-  Evergreen delta line on a mid-term amendment by the whole horizon and overstated the value.
-  A corrected rule (for example, the months between the line's start date and the end of
-  the original horizon) has not been built or measured. Until it is, don't present a
-  full-term value on an amendment quote.
 - Header discounts: whether *Full-Term Value* should carry a header discount, and how, is
   untested.
 - Carrying the values to the order (the same fields on `OrderItem` and `Order`, mapped for

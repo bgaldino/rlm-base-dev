@@ -56,9 +56,12 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 5. **Reprice after anything that changed lines outside the editor.** API, Process Builder,
    trigger and manual field updates invalidate the pricing status and need Reprice All [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
    A header-only Place PATCH, even of a field pricing reads, left the line prices unchanged until
-   Reprice All [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org].
+   Reprice All [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. Under System pricing, a graph-style Place request is priced
+   only if it includes a line (or line attribute) record; a request carrying a context id is priced whenever
+   lines exist (not measured). Reprice All uses Force pricing [Platform behaviour, traced].
    Reprice All re-runs pricing only; Refresh Prices also re-runs configuration and taxes
    [Help: `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_view_and_edit_quotes`].
+   Don't reprice a lifecycle quote after its order is activated. Measured once on a renewal quote: a full reprice (every line, pricing `Force`, configuration `Skip`; Reprice All sends the same pricing mode) after the order was activated set the renewal lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read afterwards. Not measured on amendments or ramped quotes, or through the button; mechanism not traced.
 6. **Don't demo an inline quantity edit on an amendment of a configured product.** With
    configuration rules on it resets the line's attributes to product defaults, and activation
    keeps them on the asset [Measured: early Nov 2026, 264]. Change the quantity in the configurator.
@@ -155,16 +158,18 @@ patch touches the line editor: `patches/approvals/RLM_Quote_Record_Page.yml` add
    replaces the text box.
 2. What the 10-item runtime limit counts: **10 actions** (`ind.qocal_action_button_group_important_considerations`),
    **10 visible action slots across all groups** (`ind.qocal_configure_placement_of_action_buttons`),
-   or **10 groups** with the rest in an overflow menu (release note).
-3. The API name for Manage Header Adjustment. The Help table's two API-name columns give
-   `ManageHeaderAdjustment` and `HeaderAdjustment`; the default layout and prerequisites name
-   `QuoteAdjustment` / `OrderAdjustment`, and the repo's quote highlights panel uses `QuoteAdjustment`.
+   or **10 groups** with the rest in an overflow menu (release note). Traced for the STLE component: a
+   global cap of 10 inline actions across groups, 2 below a width breakpoint, rest under More
+   [Platform behaviour, traced]; which UI a 264 org has stays Open.
+3. The API name for Manage Header Adjustment. Traced in part: the STLE component names it `HeaderAdjustment`
+   with `QuoteAdjustment` / `OrderAdjustment` aliases; Help's table also lists `ManageHeaderAdjustment`, and
+   whether that string is accepted was not traced. The repo's quote highlights panel uses `QuoteAdjustment`.
 4. Whether Browse Catalogs can be placed or removed through the line editor's action-button
    configuration; it is not in the Help's list of supported action API names. The repo places it
    as a record-page highlights-panel action (`BrowseCatalog`) instead.
-5. Whether Reprice All validates configuration on 264. Help says it skips configuration, but its
-   success toast read "The prices were refreshed and the configuration was validated."
-   [Measured: early Nov 2026, 264].
+5. Whether Reprice All validates configuration on 264. Help says it skips configuration, and its request shape
+   is Force pricing with configuration skipped [Platform behaviour, traced]; the success toast read "The prices
+   were refreshed and the configuration was validated." [Measured: early Nov 2026, 264] and its origin was not traced.
 6. Which Setup label `enableRevInstPricingDefaultPref` maps to (assumed *Instant Pricing Active
    by Default*), and whether `enableRevenueAdjustment`, which the repo's Revenue Settings file and
    scratch definitions set to true, is the **Header Adjustments** setting. The 264 dev guide doesn't
@@ -224,7 +229,7 @@ Check the detail rows and the total before treating it as a pricing fault.
 **Prepare a header-discount demo.** Confirm Header Adjustments is on, the active pricing procedure has
 one DDS step (the repo's default procedure does), and the quote procedure plan is inactive (repo
 default). Apply the discount from Manage Header Adjustment, then click Reprice All,
-which Help requires when Delta Pricing is on, as it is in this repo
+which Help requires where Delta Pricing is on (Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables it, and it applies only when all its conditions hold, see [runtime behavior](runtime-behavior.md))
 [Help: `ind.qocal_header_adjustments_use`; Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`].
 
 ## Validation Checks

@@ -107,9 +107,9 @@ Adding an attribute a rule must read is therefore a CML change too (`constraint-
 ## Loading attributes
 
 Measured on a 264 build of one PCM plan (for the QuantumBit plan this is open; see [`SKILL.md`](SKILL.md#loading-the-model)): after the **first** SFDMU insert on a fresh org,
-classification attributes' `AttributeNameOverride` and `IsRequired` held platform defaults;
+classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's;
 a second, update pass applied the plan's values. [Measured: 2026-11, 264] Load twice, and
-do not extract from an org that had one pass. Whether other classification-attribute fields
+do not extract from an org that had one pass. Traced explanation: on **insert** of a classification attribute the platform copies the attribute definition's `IsRequired`, `DefaultValue`, descriptions, help text and name into the new row (overwriting a supplied value when the definition's is valid), except for a row that overrides an inherited attribute; an **update** copies nothing, so the stored values stay and a later pass does not reset them. No equivalent copy was found for `ProductAttributeDefinition`. [Platform behaviour, traced] `IsComponentRequired` and `MinBundleComponents` take no value from a definition: no defaulting was found in their save checks (entity defaults not read) (see [`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality)). Whether other classification-attribute fields
 behave the same is **Open — needs live verification**.
 
 `ProductAttributeDefinition.AttributeCategoryId` and `ProductClassificationAttr.AttributeCategoryId`

@@ -14,12 +14,12 @@ description: >-
 
 # Advanced Approvals — Modeling, Building and Verifying Approvals
 
-Use this skill to turn a sign-off policy ("over 20% needs a Director; below 65% margin
-needs a Director; over $5M needs the VP") into Revenue Cloud Advanced Approvals. It also
+Use this skill to turn a sign-off policy ("over 15% needs a Director; below 50% margin
+needs a Director; over $8M needs the VP") into Revenue Cloud Advanced Approvals. It also
 covers running and checking a submission, and extending the approval workflow this repo
 already ships. Claims are tagged: `[Help: <article>]` and `[Dev guide: <article>]` from
 `docs/salesforce/264/`, `[Repo: <path>]`, and `[Measured: <date>, 264]` for a live run on a
-QuantumBit build.
+scratch org built by this repo.
 
 ## Quick Rules
 
@@ -27,13 +27,16 @@ QuantumBit build.
    [Help: `ind.approvals_advanced_approvals`]. An approval workflow is an orchestration flow
    of stages and steps: background steps run flows, and approval steps assign work items
    [Help: `ind.approvals_example_configure_an_approval_workflow`].
-2. **Reduce every condition to a Number or Text value before the approval stage.**
+2. **Reduce every condition to a single flow-resolved value of a supported type (Number or
+   Text is the documented-supported type) before the approval stage.**
    - Conditions can test a background step's outputs, another step's outputs (the shipped
      Director step reads `Manager_Approver.Outputs.approvalDecision`) and flow formulas. Line
-     values aren't one of those, so aggregate them (a maximum level, a count of lines below
-     floor) into quote-level numbers in a background step or a roll-up first.
-   - Smart Approvals needs Number or Text conditions and no NOT operator
-     [Help: `ind.approvals_smart_approval_limitations`].
+     values aren't one of those, so aggregate them (a maximum level, a count of lines breaking
+     a guard) into quote-level numbers in a background step or a roll-up first.
+   - Smart Approvals: the Help says Number or Text only and no NOT operator
+     [Help: `ind.approvals_smart_approval_limitations`]. The traced allow-list is wider
+     (datatypes and operators in [limitations.md](limitations.md) → Smart Approvals);
+     treat Number and Text as the documented-safe types.
 3. **Model "each level also needs the levels below" as one serial chain.** Step N starts
    when the level is at least N and step N−1 was approved. Give each independent
    dimension its own chain name so it runs in parallel. The repo ships this
@@ -95,7 +98,7 @@ QuantumBit build.
 
 | Situation | Use |
 |---|---|
-| Add an approval dimension to the shipped quote approval (margin, deal size, term) | This skill → [matrix-modeling.md](matrix-modeling.md), then `docs/features/composable-quote-approvals.md` |
+| Add an approval dimension to the shipped quote approval (margin, deal size, quote validity) | This skill → [matrix-modeling.md](matrix-modeling.md), then `docs/features/composable-quote-approvals.md` |
 | Map a customer's sign-off matrix onto approvals | This skill → [matrix-modeling.md](matrix-modeling.md) |
 | Approvals across negotiation rounds (each round a cloned quote) | `quote-negotiation-rounds` |
 | Submit, approve, reject, recall or inspect a submission; test headlessly | This skill → [actions-and-objects.md](actions-and-objects.md) |
@@ -122,6 +125,13 @@ This table is a snapshot as of 264 and will age. To see what ships now, run
 | `force-app/main/default/groups/` | The `Manager`, `Director` and `VP` public groups the steps assign to, shipped with no members; no task adds members |
 | `RLM_AA_Reset_Quote_Status` (record-triggered on `ApprovalSubmission`) | Sets the quote's `RLM_Approval_Status__c` to `Recalled` on recall and clears it on cancel. The shipped orchestration has no recall path and nothing that runs on cancel |
 | `datasets/sfdmu/qb/en-US/qb-approvals` + `create_approval_email_templates` | Lightning email templates and the alert definitions that link them to steps |
+
+The approval-flags bands are fixed in the overlay, so a source banded differently can't use
+`Quote.RLM_Approval_Level__c` as its discount level: against one such policy it put two
+quotes one level below the policy [Measured: 2026-11-12, 264]. Band the source's own
+thresholds in the approval data flow, from each line's `Discount` in a line loop
+([matrix-modeling.md](matrix-modeling.md) §2), or change the overlay's bands for every
+build (the design doc's Verification Checklist).
 
 Measured end to end on a QuantumBit build [Measured: 2026-11-10, 264]:
 - A 30% line discount priced to level 2 ("Director"), 20% to level 1, and 5% to level 0.
@@ -150,8 +160,8 @@ Measured end to end on a QuantumBit build [Measured: 2026-11-10, 264]:
 
 ## Examples
 
-**Add a margin dimension to the shipped approval.** The policy: blended margin below 70%
-needs a Manager, below 65% a Director, below 60% the VP.
+**Add a margin dimension to the shipped approval.** The policy: blended margin below 55%
+needs a Manager, below 50% a Director, below 45% the VP.
 - First: margin is a third dimension beyond Discount and Finance, and the design doc makes
   externalizing threshold policy a prerequisite for that
   [Repo: `docs/features/composable-quote-approvals.md`]. Do it first, or agree and record the
@@ -185,6 +195,40 @@ items:
 
 - `cci flow run prepare_approvals --org <cci_alias>` succeeds, and a rerun is idempotent
   [Repo: `docs/features/composable-quote-approvals.md` → Verification Checklist].
+- A rerun is idempotent only if no flow gets a new version. An mdapi redeploy of an unchanged
+  autolaunched flow (a generated approval data flow) made a new version every time until the
+  file was byte-identical to a retrieved copy; the approval orchestration redeployed without
+  a new version [Measured: 2026-11-12, 264]. The deploy compares the file with the stored
+  form, where named lists (formulas, constants, text templates, decisions, assignments,
+  stages and similar) are sorted by name ignoring case; the file is read in its own order and
+  strings must match exactly, so a file whose named lists are out of name order, or whose
+  strings differ, counts as changed [Platform behaviour, traced]. Which property differed in
+  the measured run is not established, and a numeric literal compares as a number (other
+  numeric properties were not audited), so the trace gives no support for a `0.0` rule for
+  those literals; a string-typed value holding a number would differ on `0` versus `0.0`. An Active latest version plus an identical file
+  creates no version; for a file deploy of an unversioned flow name, a changed file over a Draft (or
+  InvalidDraft) latest version overwrites it in place and one over an Active or Obsolete
+  latest version creates a new one; a versioned name uses a separate path (not traced to a
+  rule); a change set always creates a new version; a deploy requesting
+  Active over a non-Active latest version counts as changed. A deploy that does not request
+  Active compares against the stored status, so a status-only change to Draft over an Active
+  flow is not a change [Platform behaviour, traced]; measured, it created no version and the
+  flow stayed Active [Measured: 2026-11-12, 264, scratch]. Deploying an
+  approval flow as Active in a production org needs the org setting that lets flows deploy
+  as active (the repo's Apex test skip messages call it Deploy-as-active); a non-production org allows it regardless. Without it,
+  deploy as Draft and activate separately [Platform behaviour, traced; production gating is
+  not measured]. In a scratch org built by this repo the setting read off (Metadata API field
+  `enableFlowDeployAsActiveEnabled` in FlowSettings; a fresh org was not read separately); a changed approval orchestration
+  deployed as Active still became the new Active version and the old one became Obsolete, and
+  an unchanged redeploy as Active created no version. A redeploy with only the status changed
+  to Draft over an Active flow also created no version and did not deactivate the flow
+  [Measured: 2026-11-12, 264, scratch; non-production]. Steps inside
+  orchestrated stages keep their saved order, a possible reason an orchestration redeploys
+  unchanged; that is not proven for the measured run. For a new or generated flow, deploy it, retrieve it and commit the retrieved form. Compare
+  `SELECT VersionNumber, Status FROM Flow WHERE Definition.DeveloperName = '<flow>'`
+  (Tooling API) before and after a rerun. A new version of the approval orchestration flow
+  also ends Smart Approvals eligibility for resubmissions
+  [Help: `ind.approvals_smart_approval_limitations`].
 - The approval-flags overlay and the approvals context plan are applied by
   `prepare_approvals_pricing`, not `prepare_approvals`. On a fresh build it applies both.
   Changing thresholds on an org that already has the overlay takes a separate one-off

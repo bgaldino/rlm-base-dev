@@ -29,9 +29,38 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
   rules on), unticking an optional child sized by `relation[T] == <answer>` in segment 2's configurator was
   silently re-ticked by the solver after "Processing…", with no message. So with rules on, a rule-sized one-time
   child stays in every segment (see [What a UI-built bundle ramp carries](#what-a-ui-built-bundle-ramp-carries)).
+  This fits how the solver treats lines: an optional line the rep hasn't fixed is only a candidate, so a rule that
+  needs it makes the solver add it back with no message of its own, and a rule that can be met with none drops it
+  silently instead of refusing [Platform behaviour, traced]. Which status the configurator sends for a ticked
+  child wasn't established.
   Whether a rule that relaxes the child after segment 1 (one that reads a segment or ramp answer) would let it be
   unticked was not measured.
-- A **required** child cannot be removed that way: its checkbox is disabled in the segment 2 configurator and the line's row
+- **A root answer that zeroes the one-time children does work** (two fresh 264 `ent-sb0` scratch orgs, 2026-11-11,
+  rules on, quote UI). The build:
+  - a required choice attribute on the bundle root (for example Keep/Drop, default Keep; names illustrative, also in the measured run below);
+  - in CML, each one-time child relation keeps its sizing rule under Keep and gets `== 0` under Drop. Give each
+    relation its own Drop rule carrying that relation's message: with one shared Drop rule, its message was the
+    one reported when a different sizing rule broke on a Keep bundle (consistent with the solver treating the
+    answer as free, which it does when the answer reaches the solve as a default, engine-derived or fresh-add
+    value, not a rep-entered one on a context that tracks node status; the first-failed rule's message is kept,
+    so a flipped branch can report the other rule; which case this was isn't established; see
+    [constraint-models → a choice that switches rules](../constraint-models/quantities-from-attributes.md));
+  - in PCM, the minimum of each component group holding those children lowered to 0, and any of them that was
+    required (`IsComponentRequired`) made optional.
+
+  Configure segment 1 and save (that sized every segment), then set the answer to Drop in segment 2's
+  configurator and save. The dialog says "Configuration changes will apply to current and all future segments":
+  segments 2 and 3 kept only the root and its other children, segment 1 kept every one-time line, and no error log
+was written (checked on one org). The 0 minimums raised no group-range warning (in the segment 2 configurator, or headless with
+  Drop, with and without defaults), and Validate Product Definition reported no errors. A contract value rolled
+  up over all segments then counted the one-time children once and matched the source's figure. Switching back to
+  Keep, and order, amend and assetization of this shape, weren't measured. That the 0 minimums raised no
+  range warning isn't a rule for a minimum of 1. A solver group-range check exists only where the model declares
+  instance bounds on the group; a separate bundle validation reports a count mismatch for a group minimum of 1 with 0 lines
+  [Platform behaviour, traced]; whether the solver range check fires at a PCM-only group minimum of 1, and the effect on order, amend and assetize, aren't established. The
+  solver counts a quantity-N line as 1 with `split = false`, N with `split = true`, and the lines built when
+  unset. Whether a PCM minimum reaches the model isn't established (live check) [Platform behaviour, traced in part].
+- A **required** child cannot be removed by unticking: its checkbox is disabled in the segment 2 configurator and the line's row
   menu has no delete.
 - UI adds of the test bundles failed with `UNKNOWN_EXCEPTION` and no lines written while `IsDefault` was false on their
   `ProductSellingModelOption` rows. Setting `IsDefault = true` on the root and child options together fixed it; which row
@@ -51,7 +80,7 @@ three-segment Annual ramp.
 - **An Evergreen child is one period per segment** (`PricingTermCount` 1 on each segment's line).
 - **A One-Time child is quoted once per segment.** Each segment's line is a separate quote line, so the platform
   quote total counts the child N times. A contract value that should count it once must be computed per segment (or the child kept out of later
-  segments, which rules can block; see [Limiting a one-time child to segment 1](#limiting-a-one-time-child-to-segment-1)).
+  segments: rules re-add an unticked rule-sized child, but a root answer can zero it; see [Limiting a one-time child to segment 1](#limiting-a-one-time-child-to-segment-1)).
 - **`IsPrimarySegment` was false on every segment** (read on one of the orgs), so it can't single out segment 1; order segments by `StartDate`.
 - **The segment's uplift reaches these children too**; see
   [ui-group-ramp.md → What the segment uplift reaches](ui-group-ramp.md#what-the-segment-uplift-reaches).
@@ -64,6 +93,13 @@ configurator to one instance at the rule's quantity fixed segment 1 only: segmen
 instance beside it (n + 1), which broke the rule and was flagged only by the group-range warning. With `IsDefaultComponent` false on the sized children (a required child must be a default, so
 it was made optional), each child was one instance at the rule's quantity in every segment, with no warning. The
 API path doesn't show this when it sends the child lines itself with `addDefaultConfiguration: false`.
+
+Why: a default component is pre-added at its configured quantity (1 when unset). For a type with no `split`
+annotation that line is fixed, so a rule asking for more makes the solver add a separate line for the remainder;
+with `split = false` the line's quantity is a variable and the line is reused. Each segment's bundle root is
+solved on its own, so, per segment, a `split = false` component gets one line (outside a `Quote` container;
+with one, all segments share one solve) [Platform behaviour, traced]. Which
+status or quantity the clone gives the segment's lines is set outside the solver and wasn't traced.
 
 The CML fix is `@(split = false)` on each component type a rule sizes: it kept default components as one line at
 the rule's quantity in the configurator (2026-11-11; see
@@ -141,7 +177,10 @@ On or after the Lifecycle Start Date of **every** asset in the request, and befo
 one. One-time and evergreen Assets have no end date, so only the start bound applies to them. On an API-built bundle a one-time child in
 later segments starts its own Asset there, so the earliest allowed amend date moves to the last segment's start (inferred from the every-asset rule; an amend at
 2027-06-01, before the 2028 and 2029 one-time Asset starts, returned a 400). The upper bound for null-end Assets was not
-measured. An asset with a future ramped renewal refuses an earlier amend (an ordered plain renewal blocks it the same way).
+measured. An asset with a future ramped renewal refused an earlier amend (an ordered plain renewal blocked it the same
+way) as measured, and source agrees: an amend or cancel dated before an ordered renewal's start is refused, and on or after
+the latest renewal start is allowed (subject to the org's pending-operation limit). A ramped asset refuses an amend dated
+before any later change even where earlier-dated amends are otherwise allowed [Platform behaviour, traced].
 
 ## Renewal
 
@@ -152,6 +191,8 @@ measured. An asset with a future ramped renewal refuses an earlier amend (an ord
 - `rampOptionsDetails {segmentType, durationInMonths}`: `durationInMonths` is the **total** ramp duration (12 gave one
   segment on a 24-month span; use 24 for two yearly segments).
 - Dates for `initiateRenewal` use `yyyy-MM-dd'T'HH:mm:ss` (a bare date is `INVALID_DATE_FORMAT`).
+- The as-is renewal setting never applies to a ramped asset or line (or a derived-price product); those renewals are
+  repriced as ordinary lines [Platform behaviour, traced].
 - Ordering a ramped renewal of a term-only ramped asset extends the same asset and its ASP chain in place.
 
 ## Lifecycle prerequisites

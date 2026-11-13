@@ -79,10 +79,14 @@ QuantumBit plan uses Hardware, Software, Services, Bundle, 3rd Party Software, a
 `None` on five products, and blank on 166 of 314. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
 A literal `None` is a value, not an absence: a filter for blank does not match it.
 
-**Add a new Family value to the picklist as part of the load.** The `Family`
-picklist is unrestricted, so a load stores any value through the API, but a value that is
-not one of the org's picklist values is not offered in the UI's Family picklist.
-[Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] Add the value to the `Product2Family`
+**Add new Family and unit values to their picklists as part of the load, or map the
+source's values onto existing ones.** The `Family` picklist is unrestricted, so a load stores any value
+through the API, but a value that is not one of the org's picklist values is not offered in
+the UI's Family picklist. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]
+`QuantityUnitOfMeasure` likewise stored units that are not among its picklist values (the UI
+wasn't checked). [Measured: same org] A clean load is therefore no check on these values;
+compare the plan's distinct `Family` and `QuantityUnitOfMeasure` values with the org's
+picklist values before loading. Add a new Family value to the `Product2Family`
 standard value set (a metadata deploy) in the same change as the plan that uses it. In this
 repo that file is `force-app/main/default/standardValueSets/Product2Family.standardValueSet-meta.xml`;
 it lists the values the QuantumBit plan uses; the q3 and mfg PCM plans load values it does
@@ -122,12 +126,12 @@ cci task run rebuild_search_index --org <cci_alias>   # async: wait minutes, the
 
 | Fact | Consequence |
 |---|---|
-| **(a)** On the measured PCM plan (for the QuantumBit plan this is open; see [`SKILL.md`](SKILL.md#loading-the-model)), after the first SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held platform defaults; a second, update pass applied the plan's values. [Measured: 2026-11, 264] | Load twice. Never extract from an org that had one pass, or the defaults become the plan. |
+| **(a)** On the measured PCM plan (for the QuantumBit plan this is open; see [`SKILL.md`](SKILL.md#loading-the-model)), after the first SFDMU insert on a fresh org, classification attributes' `AttributeNameOverride` and `IsRequired` held the attribute definition's values rather than the plan's; a second, update pass applied the plan's values. [Measured: 2026-11, 264] Traced: an insert copies these from the attribute definition, an update does not. [Platform behaviour, traced] | Load twice. Never extract from an org that had one pass, or the definition's values become the plan. |
 | **(b)** A `Readonly` anchor object that children reach through a `$$` composite lookup column needs a CSV with that `$$` column, or those lookups silently fail to resolve. [Measured: 2026-11, 264] This conflicts with `sfdmu-data-plans` → *Where a plan's CSVs live* (a `Readonly` object is source-free, its CSV optional); not reconciled, see [`SKILL.md`](SKILL.md#open-questions). | When a plan anchors on objects another plan loaded through `$$` lookups, keep the anchor's CSV with the `$$` columns its children reference. |
 | **(c)** In a plan without `useSeparatedCSVFiles: true`, repeating an object across object sets: pass 2 re-reads the plan-root CSV of the same name. [Measured: 2026-11, 264] | For fact (a)'s second pass, run the plan again: that is the measured fix. |
 | **(d)** A generated category code that collided across levels made a category its own parent. [Measured: 2026-11, 264] | See *Coding categories*. |
 | **(e)** A configurator test of a bundle must place the quote with configuration rules on. [Measured: 2026-11, 264] | See `constraint-models`. |
-| **(f)** Place Sales Transaction answered "Could not find product with ID …" for newly loaded products until `refresh_all_decision_tables` and `rebuild_search_index` had run and the index build had finished, minutes later. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | After a load that adds products, run both, then retry Place until the error stops. `check_search_index_readiness` can't confirm this rebuild on an org that already had one: it reads Ready once any build has completed since the org was created (`tasks/rlm_rebuild_search_index.py`). |
+| **(f)** Place Sales Transaction answered "Could not find product with ID …" for newly loaded products until `refresh_all_decision_tables` and `rebuild_search_index` had run and the index build had finished, minutes later. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | After a load that adds products, run both, then retry Place until the error stops. The message is raised when the product lookup in the configurator step does not return the product; qualification procedures that read decision tables run there unless the recipe is the transaction recipe, so a stale table is plausible, not shown. No search-index dependence was found. [Platform behaviour, traced in part] The measured wait for both stays. `check_search_index_readiness` can't confirm this rebuild on an org that already had one: it reads Ready once any build has completed since the org was created (`tasks/rlm_rebuild_search_index.py`). |
 | **(g)** A `Family` value outside the org's picklist is stored through the API but not offered in the UI. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | Deploy the picklist value with the plan; see [Family](#product-family-is-a-contract). |
 | **(h)** On `ProductRelatedComponent`, `ParentProductRole` and `ChildProductRole` are not writable, `MinQuantity` must be at least 1 when given, and `QuantityScaleMethod` rejects `None`. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] | See [`bundles-and-cardinality.md`](bundles-and-cardinality.md#two-kinds-of-cardinality) and [quantity scaling](bundles-and-cardinality.md#quantity-scaling-and-lifecycle). |
 

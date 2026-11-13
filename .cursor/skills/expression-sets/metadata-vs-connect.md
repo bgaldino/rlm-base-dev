@@ -40,8 +40,9 @@ runs **deactivate → PATCH/POST → reactivate**, in a guarded `finally`:
    (pricing falls back to the Revenue Settings default procedure), while an active
    plan over the inactive version fails loudly. Two exceptions leave the plans
    off: `activate_after=false`, and a version that can't be confirmed off after
-   the failure (a failed full-graph PATCH can still leave it active, and an
-   active plan would route pricing to the half-written version). In that case,
+   the failure (the tool assumes a failed full-graph PATCH might leave it active,
+   and an active plan would route pricing to a half-written version; both are
+   precautions, not traced). In that case,
    with cascade on, any referencing plan that was still active is turned off
    too and reported with a restore command.
 

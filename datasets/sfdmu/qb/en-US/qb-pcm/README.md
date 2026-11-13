@@ -65,7 +65,7 @@ Upsert all 28 objects in dependency order
 | 20 | ProductRelComponentOverride   | Upsert    | `ProductRelatedComponent.Name;OverrideContext.StockKeepingUnit`                                       | 0 (excluded) |
 | 21 | ProductCatalog                | Upsert    | `Code`                                                                                                | 3       |
 | 22 | ProductCategory               | Upsert    | `Code`                                                                                                | 18      |
-| 23 | ProductCategoryProduct        | Upsert    | `ProductCategory.Code;Product.StockKeepingUnit`                                                       | 100      |
+| 23 | ProductCategoryProduct        | Upsert    | `ProductCategory.Code;Product.StockKeepingUnit`                                                       | 101      |
 | 24 | ProductQualification          | (default) | `Name`                                                                                                | 0       |
 | 25 | ProductDisqualification       | (default) | `Name`                                                                                                | 0       |
 | 26 | ProductCategoryDisqual        | (default) | `Name`                                                                                                | 0       |
@@ -102,7 +102,7 @@ bundle (`PROD-455868158`): `PROD-455868158` (OmniRack DC42 Series) →
 Anchor). The first five are `Type=Bundle` in `Product2.csv`; the last is a
 plain leaf product, not itself a bundle. That is **5 bundle levels** — two
 past the PCM `MaxBundleDepth` org value's default of 3, and exactly the
-value's hard ceiling (see `orgs/README.md`). Every scratch org definition
+value every scratch shape here sets (see `orgs/README.md`). Every scratch org definition
 with a `features` array (every `orgs/*.json` and `orgs/internal/*.json`,
 plus `config/project-scratch-def.json` — **not** `orgs/tfid/*.json`, which
 are template pointers with no `features` array; see below) sets
@@ -288,7 +288,7 @@ qb-pcm/
 │  Source CSVs — Catalogs and Categories
 ├── ProductCatalog.csv                   # 3 records
 ├── ProductCategory.csv                  # 18 records
-├── ProductCategoryProduct.csv           # 100 records
+├── ProductCategoryProduct.csv           # 101 records
 │
 │  Source CSVs — Qualifications (placeholders)
 ├── ProductQualification.csv             # 0 records (placeholder)

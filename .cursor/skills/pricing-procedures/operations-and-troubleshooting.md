@@ -95,6 +95,14 @@ python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias> -
   on 2,400: 2,696.64, not 2,544); active with it `true`, a header discount is distributed twice (10% on
   5,240: 4,244.40, not 4,716); inactive, PST runs the Revenue Settings procedure (2,544 / 4,716, full
   waterfall). [Repo, measured]
+- Why a price revision doubles: with a plan active, the plan's procedures run in section order and then the Revenue
+  Settings default procedure also runs, unless "Exclude Default and Sales Transaction Type Pricing
+  Procedures" is on. Two procedures then price the same lines, and a non-idempotent element (price
+  revision) applies twice [Platform behaviour, traced]. Turning the setting on removes the double price
+  revision; it does not remove the header-discount doubling measured above (cause not traced). The
+  other route is to put every element in the plan and leave the default procedure empty of them
+  [Platform behaviour, traced]. The plan's context definition must match the
+  pricing context definition or no plan procedure runs [Platform behaviour, traced].
 
 ## 4. Procedure output resolution
 
@@ -176,7 +184,7 @@ Element-specific errors are in the element files under [`elements/`](./elements/
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Plausible but wrong price, no error | Stale decision table [Help] (section 8); missing `CurrencyIsoCode` input on a lookup (multicurrency) [Repo, via pricing-wiring]; wrong procedure selected [inferred] | Check freshness (section 8); pricing-wiring wrong-currency entry; confirm procedure in Revenue Settings (section 1) |
+| Plausible but wrong price, no error | Stale decision table [Help] (section 8); missing `CurrencyIsoCode` input on a lookup (multicurrency): with several currency rows for the product, resolution off gives a duplicate-value error (an error, not this symptom) and, on a List Price or Price Tracking step with resolution on, a pick by resolution strategy [Help] and candidate priority [Platform behaviour, traced, via pricing-wiring] that can be another currency's row [inferred]; a Price Adjustment Matrix with Stack or Sequence resolution and Tier Discount lookups behave differently (pricing-wiring); a lone row in another currency prices the line [inferred]; wrong procedure selected [inferred] | Check freshness (section 8); pricing-wiring wrong-currency entry; confirm procedure in Revenue Settings (section 1) |
 | Element appears ignored | Not "Include in Output"; condition/list filter excludes the line; output variable overwritten by a later element; another enabled version takes precedence [inferred] (section 2) | Simulate with the waterfall; check ordering ([procedure-anatomy-and-ordering.md](./procedure-anatomy-and-ordering.md)) and the enabled versions (section 2) |
 | Only one line fails | Per-line failure (bad adjustment type, no matching table row) [inferred] | Operations Console > Debug Details tab troubleshoots a failed API call [Help] `ind.pricing_operations_console.htm`; expand the line [inferred] |
 | Error status, empty error log | A line item was not executed for pricing, so the status is Error while the log is empty [Help] `ind.pricing_understand_and_resolve_api_execution_messages.htm` | Check line filters and procedure plan routing [inferred] |
@@ -189,7 +197,7 @@ Element-specific errors are in the element files under [`elements/`](./elements/
 | Promotions misapplied after editing tag mappings | Parallel execution caches custom tag mappings at activation [Help] `ind.pricing_procedure_plan_limits.htm` | Deactivate and reactivate |
 | Hook change to Start Date/Quantity ignored by validation | ARC validation precedes the pre-pricing hook [inferred] | Set values in the PST payload [inferred] |
 | Output resolution stops a line (List Price or Price Tracking) | No Price Book decision-table row for the product | Add the row, refresh the table. For a Price Adjustment Matrix, check its adjustment table instead |
-| Per-line pricing errors [Core]: `DUPLICATE_VALUE_FOUND_IN_LOOKUP` (a lookup returned more than one row: List Price, Minimum Price, Bundle Discount and the other lookup-based discount elements incl. Price Adjustment Matrix, Base Rate in rating), `UNEXPECTED_ERROR_DURING_LOOKUP` (the lookup returned errors: List Price, Volume/Tier Discount, Bundle Discount, others), `OVERLAPPING_ADJUSTMENT_TIERS` (Volume/Tier Discount, tier range matches more than once), `INVALID_FORMULA` (Formula-Based Pricing, any failure evaluating the formula) | Duplicate rows or overlapping tiers in the decision table or matrix; lookup failure; formula that fails to evaluate | Fix the table data and refresh; fix the formula in the element |
+| Per-line pricing errors [Core]: `DUPLICATE_VALUE_FOUND_IN_LOOKUP` (a lookup returned more than one row: List Price, Minimum Price, Bundle Discount and the other lookup-based discount elements incl. Price Adjustment Matrix, Base Rate in rating), `UNEXPECTED_ERROR_DURING_LOOKUP` (the lookup returned errors: List Price, Volume/Tier Discount, Bundle Discount, others), `OVERLAPPING_ADJUSTMENT_TIERS` (Tier Discount, tier range matches more than once; overlapping Volume rows give the duplicate-value error instead, see [volume-and-tier-discount.md](./elements/volume-and-tier-discount.md)), `INVALID_FORMULA` (Formula-Based Pricing, any failure evaluating the formula) | Duplicate rows or overlapping tiers in the decision table or matrix; lookup failure; formula that fails to evaluate | Fix the table data and refresh; fix the formula in the element |
 | Save error "Add Pricing Setting as the first element…" or "You can only add one Pricing Setting element…" [Core] | Pricing Setting missing or duplicated | Keep exactly one (see save-time table in procedure-anatomy) |
 | Save error `Ensure that the lookup table in the <name> step is valid and try again.` [Core] | Lookup id cannot be resolved from the step; or the element type has no table mapped in the pricing recipe for the procedure's usage subtype (the message then reads "The pricing element type isn’t valid. Use elements that are associated with lookup tables and try again."; Discount Distribution Service is exempt from this check); or the step's table is not among the tables mapped for that type. The recipe check is skipped during package install; Minimum Price has its own table checks | Map the table in the pricing recipe for the procedure's usage subtype (pricing-wiring section A) |
 | Bulk price change not reflected | Decision tables not refreshed | Refresh (section 8) |

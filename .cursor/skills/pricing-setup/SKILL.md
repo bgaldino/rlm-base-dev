@@ -213,4 +213,5 @@ worktree, `.venv` lives in the main checkout):
     Help example); term-line cost × `PricingTermCount`; `Margin` in percent units.
   - [`scenarios/full-term-value.md`](scenarios/full-term-value.md) — a full-term value,
     cost and margin next to the platform's one-period total: per-line fields written by the
-    procedure, quote roll-ups and formulas, a fee on a product subset; amendments open.
+    procedure, quote roll-ups and formulas, a fee on a product subset; the months left on
+    an amendment and the segment's months in a group ramp.

@@ -40,7 +40,7 @@ SFDMU data plan for the Japanese QuantumBit catalog, the `ja` counterpart of `qb
 | 20 | ProductRelComponentOverride | 1 | Upsert | Name | 0 |
 | 21 | ProductCatalog | 1 | Upsert | Code | 3 |
 | 22 | ProductCategory | 1 | Upsert | Code | 18 |
-| 23 | ProductCategoryProduct | 1 | Upsert | ProductCategory.Code;Product.StockKeepingUnit | 98 |
+| 23 | ProductCategoryProduct | 1 | Upsert | ProductCategory.Code;Product.StockKeepingUnit | 99 |
 | 24 | ProductQualification | 1 | Readonly | Name | — |
 | 25 | ProductDisqualification | 1 | Readonly | Name | — |
 | 26 | ProductCategoryDisqual | 1 | Readonly | Name | — |
@@ -75,6 +75,6 @@ ProductComponentGroup.csv                # 27 records
 ProductRelatedComponent.csv              # 83 records
 ProductCatalog.csv                       # 3 records
 ProductCategory.csv                      # 18 records
-ProductCategoryProduct.csv               # 98 records
+ProductCategoryProduct.csv               # 99 records
 ```
 <!-- generate_plan_readme:end -->

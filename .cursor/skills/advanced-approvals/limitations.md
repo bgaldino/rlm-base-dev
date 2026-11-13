@@ -33,7 +33,8 @@ before telling anyone how approvals behave where the docs are unclear. Parent:
 
 A step is eligible only if all of these hold [Help: `ind.approvals_smart_approval_limitations`,
 `ind.approvals_smart_approvals`, `ind.approvals_smart_or_rule_based_approvals`]:
-- conditions are Number or Text, with at most 30 per step and no NOT operator;
+- conditions are Number or Text, with at most 30 per step and no NOT operator (the
+  traced allow-list is wider, see below);
 - no evaluation-flow entry or exit condition (that makes the whole flow ineligible);
 - no Decision before a stage whose steps start "when the stage starts";
 - the earlier submission was Rejected or Recalled, reached at least 2 steps, and had at
@@ -42,6 +43,60 @@ A step is eligible only if all of these hold [Help: `ind.approvals_smart_approva
 - no work item was reassigned during the original submission.
 
 After a full approval, the next submission is a new request, not a resubmission.
+
+The Help limitations article says Number or Text only. The allow-list traced in the
+platform source is wider (datatypes and operators below); treat Number and Text as the
+documented-safe types and the rest as source-derived, not measured. The 30-condition limit
+and the "at least 2 steps reached" and "no reassigned work item" rules are Help-sourced and
+were not seen in the traced code.
+
+How it decides [Platform behaviour, traced]:
+- A step runs Smart Approval only if its Use Smart Approval input is true and the
+  submission is eligible. The earlier submission for the same record and the same flow
+  version is the basis only if it was Recalled or Rejected; a new flow version means no basis.
+- The basis item is the newest Approved item for that step in the basis submission. If its
+  reviewer is inactive, the step goes to manual review. The current assignee is not
+  examined: if Smart Approval approves the step, the new item is created already reviewed (`IsAutoReviewed` true), under the
+  earlier reviewer, with a system comment.
+- Only a step whose flow resolves a condition object is
+  evaluated; what makes a step have one was not verified (likely, but not shown, a step
+  with entry conditions). Each condition is compared by position
+  with its earlier-run counterpart, using the single value the flow resolved for it (no
+  totals or per-line comparison); results combine through the step's criteria logic.
+- Datatypes: Boolean, Currency, Date, Date/Time, Time, Number, Picklist, Multi-select
+  picklist, Text. Operators: less than, greater than, their or-equal forms, equals, not
+  equal, starts with, ends with, contains, is null, is blank. Any other operator or type
+  (for example In, Not In, Is Empty, Was Set, Is Changed), a NOT in the logic, or an
+  evaluation error sends the step to manual review. There is no separate Percent or
+  roll-up type.
+- Range test as coded: each condition becomes a lower and upper bound from its left and
+  right sides (for less than, less or equal, equals, not equal and the text operators lower = left,
+  upper = right; for greater than and greater or equal, lower = right, upper = left; is null and is blank use the left side for
+  both). A condition passes only when the earlier approved range contains the new one and its
+  evaluation succeeded; for Text, Picklist and Multi-select picklist both bounds must match,
+  ignoring case. The step's criteria logic combines the results [Platform behaviour,
+  traced]. The results match the left side being the evaluated value, so the new range must sit inside the
+  earlier approved one [Measured: 2026-11-12, 264, scratch]. With "value > threshold", a
+  resubmission auto-approves when the new value is lower than or equal to the approved value
+  and goes to review when it is higher; with "value < limit", it auto-approves when the new
+  value is higher or equal and goes to review when it is lower. Equal auto-approved in both runs.
+  Limits of the measurement: Number conditions only; an admin acted on every item; Smart
+  Approval was on through the shipped flow's step input, and the Setup page was not read.
+  Other types and operators are still unmeasured.
+- A step Smart Approval auto-approves completes as Approved, so a later step reading its
+  outcome sees Approved: the auto-reviewed item posts an Approve decision [Platform behaviour, traced]. A later step whose entry
+  condition reads the earlier step's decision = Approve started after the earlier step was
+  auto-approved [Measured: 2026-11-12, 264, scratch]. Conditions listed in the step's Smart Approval Skip Conditions are left out of the
+  Smart Approval comparison [Help: `ind.approvals_turn_on_smart_approvals`]: each counts as
+  passing under AND logic and as failing under OR logic [Platform behaviour, traced]. The
+  Help FAQ (`ind.sf_contracts_aa_faq`) says listing a condition there forces a review; the
+  trace contradicts that for AND logic, where a skipped condition can only help the step
+  auto-approve. Under OR the step auto-approves only if a condition that is not skipped
+  passes, so skipping turns an auto-approval into a review only when every condition that
+  would have passed is skipped; with every condition skipped the step always goes to
+  review. Custom
+  criteria logic is not covered by the trace. To force a review, turn Use Smart Approval
+  off for the step.
 
 ## Preview
 
@@ -52,6 +107,11 @@ After a full approval, the next submission is a new request, not a resubmission.
 - Doesn't show dependencies across chains, and fails on approvers of type Resource.
 
 [Help: `ind.approvals_preview_feature_limitations`]. A real submission is the test.
+
+To see the values a background data flow passes, run that flow on its own
+([actions-and-objects.md](actions-and-objects.md) → Read the approval data)
+[Measured: 2026-11-12, 264], rather than the Help's workaround of mock output values, which
+edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
 
 ## Email and alerts
 
@@ -85,16 +145,17 @@ After a full approval, the next submission is a new request, not a resubmission.
 - Which Approval Settings a fresh scratch org has on, and whether Metadata API can set them.
 - Whether a Resource-type approver works at runtime, and whether there is a
   manager-hierarchy approver.
-- Whether Smart Approvals accepts roll-up summary, Percent, Currency or picklist
-  conditions as Number or Text.
+- Whether a roll-up summary or Percent condition passes the Smart Approvals type check
+  [inferred: the flow resolves it to Number or Currency; not verified].
 - Whether `ApprovalDelegation` appears once delegation is turned on.
-- Whether a step that Smart Approvals skips on resubmission counts as approved for a later
-  step whose entry condition reads its outcome (the shipped Director step reads
-  `Manager_Approver.Outputs.approvalDecision`). No recorded run shows the shipped flow
-  skipping a step on resubmission.
-- Whether the shipped steps' `ActionInput__CanUseSmartApproval` input is the Use Smart
-  Approval property in Flow Builder; the design doc treats it as the step's Smart Approval
-  input, and the docs don't name it.
+- Whether `ActionInput__CanUseSmartApproval` is the Use Smart Approval setting; the docs don't
+  name the input. With it `false` on
+  every step, a resubmission after a rejection at the second step (the first approved)
+  opened a new first-step work item, `Assigned`, `IsEligibleForSmartApproval` false
+  [Measured: 2026-11-12, 264], as expected if it is the Use Smart Approval setting. With it
+  `true` (as the shipped steps set it), resubmissions auto-approved a step that was approved in the earlier submission and whose
+  range still held, and the step rejected there went to review again
+  [Measured: 2026-11-12, 264, scratch]; the Approval Settings page was not read.
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.
 - Whether `ApprovalWorkItem` standard fields accept a sObject `update()`: the Help says no

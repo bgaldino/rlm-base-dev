@@ -32,7 +32,10 @@ total, see [full-term-value.md](full-term-value.md).
   that it scales with `PricingTermCount` the way the price does. The lookup keys on product
   and currency only, so a product sold under two selling models with different terms
   (annual and monthly) can hold only one per-term cost; use a product per selling model, or
-  one of the two line types gets the wrong cost `[inferred]`.
+  one of the two line types gets the wrong cost `[inferred]`. Several entries for one product
+  and currency are not resolved by book or date. In the discount lookup path a single-output lookup
+  with several matches raises a duplicate-value error; the cost step's path was not separately
+  traced and its mode is unknown, so if the table is single-output it raises ([../cost-books.md](../cost-books.md#how-pricing-uses-it)).
 - **Services priced per hour or day:** load the loaded cost per unit, for example blended
   hourly cost × (1 + overhead), or × 8 for a day. Compute it before loading; the cost book
   holds only the result.
@@ -74,11 +77,13 @@ years (`SubscriptionTerm` 2 `Annual`), quantity 1. `TotalPrice` 2,000. Shipped: 
 400, `Margin` 80. With the overlay: `TotalCost` 800, `Margin` 60.
 
 `[Measured]` Carry a term line's term in the selling model's unit: on an annual model,
-`SubscriptionTerm` 36 `Months` gave `PricingTermCount` 36 and priced 36 years, where 3
-`Annual` gives 3. A line given only start and end dates gets its term count from the dates
-but keeps `SubscriptionTerm` null, so filters that read `SubscriptionTerm` (such as a
+`SubscriptionTerm` 48 `Months` gave `PricingTermCount` 48 and priced 48 years, where 4
+`Annual` gives 4 (term illustrative). `[Platform behaviour, traced]` The count is the Proration step's multiplier,
+read in the selling model's unit, falling back to the dates when no term is given; a One-Time line
+carries 0 only where the procedure sets it (the shipped procedure's constant `[Repo]`).
+A line given only start and end dates gets its term count from the dates, but Place does not derive `SubscriptionTerm` from dates `[Platform behaviour, traced]`. The trace shows Place filling a missing term context tag with the selling model's pricing term when the line's selling model option is Term Defined, but not that fill reaching the saved line. In the measured requests (price book entry only, no `ProductSellingModelId` in the request; the saved line's selling model was Term Defined) the saved unit was `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line (System pricing, configuration method Force, rules on) was priced from its dates alone (a whole-year term count) and came out higher by exactly the missing commitment-term step, because the term-keyed discount never ran. That step is one the measured org's customised pricing procedure adds when a header switch is on (it was on; not a shipped step). The result held both standalone and as a bundle component, against a line sent with `SubscriptionTerm` and unit `Annual` instead of an end date `[Measured: 2026-11-11, 264, scratch]`. Why the term was not filled was not established. A filter that reads `SubscriptionTerm` (such as a
 commitment-term discount, `../../pricing-procedures/elements/commitment-term-discount.md`)
-skip it.
+skips such a line; send the term explicitly.
 
 ### Margin units
 

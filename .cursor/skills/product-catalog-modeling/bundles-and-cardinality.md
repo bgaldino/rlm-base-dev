@@ -60,7 +60,7 @@ Time, one Term Defined, one Evergreen), each required, default, quantity 1, not 
 | `createOrdersFromQuote` | **Refused** while that log exists. Setting the quantity back deletes the log. |
 | Renewal (Connect `renew`, no renewal term passed) | The Term Defined child renews for one term of its selling model; the Evergreen and One Time children come through at quantity 0. |
 
-So test the lock at order creation, or read the error log, not the save's result. Other
+So test the lock at order creation, or read the error log, not the save's result. The traced rule behind it: a quantity the lock refuses is an error from the configurator's bundle validation, which Place logs rather than fails on; quote-to-order refuses on **any** configurator error-log row on the quote, whatever its severity or category, not only this one. This holds in the allow-errors modes (under a block-errors choice Place refuses the save instead: traced for Place, unmeasured for this check), and only when catalog validation is on and configuration is not Skip; a placement that skips configuration runs no check, so no row appears. [Platform behaviour, traced] Other
 `bundlevalidation` messages are not measured this far: a CML rule that sets a locked child's
 quantity draws one (`constraint-models` run M16), and so does a group out of range (below);
 whether either blocks the order, how locked children amend, and whether the lock holds on the
@@ -80,7 +80,7 @@ renewal quote: **Open — needs live verification.** Renewal rules by selling mo
 Deleting a group deletes every component under it. [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_creation_of_a_bundled_product_structure.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`; `ind.product_catalog_bundled_product_validations.htm`]
 
 Separate from group nesting, **product-in-product depth** (a bundle inside a bundle) is
-capped by the org value `MaxBundleDepth`: default 3, ceiling 5. The QuantumBit plan has
+capped by the org value `MaxBundleDepth`: default 3; the highest value used here is 5 (the platform ceiling was not traced). The QuantumBit plan has
 one five-level chain and needs `MaxBundleDepth:5` in the scratch definition.
 [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/README.md`; `orgs/README.md`] Keep a new model at
 depth 3 unless you own the org shape.
@@ -115,7 +115,8 @@ bounds how many components a buyer may pick from the group. Help says it counts 
 components [Help: `ind.product_catalog_group_cardinality.htm`], but at run time it counted
 lines: a 1..1 group holding one product on two lines drew a `bundlevalidation` range
 message. [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] So keep each component on one line
-([CML-sized default components](#cml-sized-default-components)). Blank min = 0, blank
+([CML-sized default components](#cml-sized-default-components)). The validator counts lines per group, not distinct products [Platform behaviour, traced]. Separately, the solver makes a `split = true` type one line per unit, so a line of quantity N counts N there and 1 when its CML type has `split = false` [Platform behaviour, traced].
+A group minimum of 1 with zero selected lines is reported by bundle validation as a count mismatch; a minimum of 0 never is. The count is of lines, not quantity. The trace also shows a missing-node message for a product-class node it treats as required; which PCM setting produces that is not established (a classification component cannot be marked required). [Platform behaviour, traced] Whether the message blocks anything depends on the caller: a placement that runs configuration and allows errors (Force, System) logs it as an error-log row, and quote-to-order refuses on any such row; a "run and block errors" placement refuses the save (traced for Place, unmeasured for this check; the trace does not separate Error from Warning messages, so whether a warning alone refuses the save is not established, and the severity of the group count-mismatch message was not traced); Skip, or catalog validation off, runs no check. [Platform behaviour, traced in part] The live behaviour of a min-1 group with no lines through order, amend and assetization is not established. Blank min = 0, blank
 max = unlimited; max ≥ min. With nested groups, only the **lowest-level** group's
 cardinality is enforced at run time; a parent group's limits count child groups for
 validation. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_catalog_cardinality_examples.htm`; `ind.product_catalog_bundled_product_validations.htm`]
@@ -132,6 +133,8 @@ validation. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_cat
 | Quantity scaling method | `QuantityScaleMethod` | Constant, Proportional, or blank (see below) |
 
 [Help: `ind.product_catalog_local_cardinality.htm`; `ind.product_catalog_product_relationships.htm`; Repo: `scripts/ai/query_erd.py describe ProductRelatedComponent`]
+
+Save-time check on the component row [Platform behaviour, traced]: `IsComponentRequired` needs `IsDefaultComponent` (not applied to a set product or a classification component; a classification component needs both off). On the component **group** (`ProductComponentGroup`), `MinBundleComponents` is only validated: not negative, and not above `MaxBundleComponents` when given. No defaulting was found in the save checks (entity defaults not read), so what a load that omits them stores is not established; an invalid combination is refused, not defaulted. [Platform behaviour, traced in part] The lowering seen on an Upsert is not explained.
 
 Writing component rows by API [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org]:
 

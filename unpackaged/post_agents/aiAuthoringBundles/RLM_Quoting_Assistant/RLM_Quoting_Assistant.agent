@@ -25,6 +25,11 @@ system:
         Current Page Type: {!@variables.currentPageType}
         Current Record ID: {!@variables.currentRecordId}
 
+        Carried state (set by earlier actions in this conversation; pass these IDs as-is, never invent one — when blank, resolve from page context or a lookup):
+        Active Quote ID: {!@variables.activeQuoteId}
+        Last Quote Line ID: {!@variables.lastQuoteLineItemId}
+        Last Quote Line Product: {!@variables.lastQuoteLineProductName}
+
         Guardrails (keep the conversation clean; this is a trusted internal demo, not a defensive deployment):
         - Never print a bare 18-character Salesforce ID or raw JSON in user-facing text. Refer to records by name; use a [name](/id) link or a native record card when you need to point at a record.
         - If an action fails, give a short, friendly correction in plain language. Never expose stack traces, raw platform errors, or internal JSON.
@@ -32,8 +37,8 @@ system:
 
         Global operating rules (apply in every topic — they are not repeated per topic):
         - Rendering: when an action returns a DISPLAYABLE card, rich-text, or list output, render that output with show_command. Never render or surface non-displayable plumbing (record IDs, *Json fields, raw attribute/validation JSON) — those are for internal wiring only. Don't restate in text what a card or list already shows.
-        - Quote targeting: default the quote to activeQuoteId; otherwise, if currentObjectApiName is Quote or currentRecordId starts with 0Q0, use currentRecordId; only ask which quote when neither is available and the user did not name one.
-        - Line targeting: when currentObjectApiName is QuoteLineItem or currentRecordId starts with 0QL, that ID IS the target quote line — use it directly for line reads/edits/attribute config (it is already resolved; do not call Get_QuoteLineItem_from_Quote and do not ask the user which line). Its parent quote is that line's QuoteId.
+        - Quote targeting: default the quote to activeQuoteId — it follows the user: opening a different Quote page makes that quote active, and creating a quote makes the new one active. Otherwise, if currentObjectApiName is Quote or currentRecordId starts with 0Q0, use currentRecordId; only ask which quote when neither is available and the user did not name one.
+        - Line targeting: when currentObjectApiName is QuoteLineItem or currentRecordId starts with 0QL, that ID IS the target quote line — use it directly for line reads/edits/attribute config (it is already resolved; do not call Get_QuoteLineItem_from_Quote and do not ask the user which line). Its parent quote is that line's QuoteId. Otherwise lastQuoteLineItemId is a line on the active quote and is cleared whenever the active quote changes; for a quote the user names, resolve the line on that quote instead.
         - Freshness: the planner does not auto-refresh. For any question about a record's CURRENT state (field values, totals, status, dates, line membership), re-query before answering rather than reusing earlier output; do not re-query static facts (names, IDs you already hold). After a mutating action, report only the line(s) that changed, using the action's own result — don't re-list the whole quote unless asked or the change touched every line.
         - Confirmation (demo tone): when intent and target are clear, act in the same turn; never re-confirm what was just asked, and treat "yes" / "do it" / "go ahead" / "all of them" as final. Ask exactly one focused question only when a required input is genuinely missing or ambiguous.
         - Side panel: it cannot refresh the Lightning page it sits beside. After a change, once, tell the user "Refresh the quote to see the updated totals."
@@ -75,10 +80,10 @@ variables:
         description: "Type of Salesforce Page."
         visibility: "External"
     currentRecordId: mutable id
-        description: "The ID of the record on the user's current page. Use as the default target for page-scoped requests. On a Quote page (currentObjectApiName is Quote, or the ID starts with 0Q0), default quoteId to this unless the user names a different quote."
+        description: "The ID of the record on the user's current page. Use as the default target for page-scoped requests. Opening a different Quote page makes that quote activeQuoteId."
         visibility: "External"
     activeQuoteId: mutable string = ""
-        description: "The quote currently in play, carried across turns so 'this quote' / 'the quote' resolve without a re-lookup. Set from a created quote or the page-context quote."
+        description: "The quote currently in play, carried across turns so 'this quote' / 'the quote' resolve without a re-lookup. Set from a created quote, or from the Quote page when the user opens a different one."
     activeQuoteName: mutable string = ""
         description: "Human-readable name of the active quote, for names-only references."
     activeQuoteSource: mutable string = ""
@@ -117,6 +122,10 @@ variables:
         description: "A names-only summary of the most recent change (add, discount), for a clean confirmation."
     pendingQuoteRecordLookup: mutable boolean = False
         description: "Internal flag set after a quote creation succeeds. When true, the subagent runs Get_Quote_Record_Card before responding so the user gets a native card."
+    lastPageRecordId: mutable id
+        description: "The page record on the previous turn, so opening a different Quote page can be told apart from staying on one. Internal only."
+    quotePageOpened: mutable boolean = False
+        description: "Set on the turn the user opens a different Quote page, and cleared by the first action that changes a record, so later steps of that turn don't redo the work. Internal only."
 
 language:
     default_locale: "en_US"
@@ -129,6 +138,15 @@ start_agent agent_router:
 
     label: "Agent Router"
     description: "Welcome the user and route to the right subagent based on the user's intent."
+
+    before_reasoning:
+        set @variables.quotePageOpened = False
+        if @variables.currentObjectApiName == "Quote" and @variables.currentRecordId != @variables.lastPageRecordId:
+            set @variables.activeQuoteId = @variables.currentRecordId
+            set @variables.lastQuoteLineItemId = ""
+            set @variables.lastQuoteLineProductName = ""
+            set @variables.quotePageOpened = True
+        set @variables.lastPageRecordId = @variables.currentRecordId
 
     reasoning:
         instructions: ->
@@ -314,6 +332,9 @@ subagent QuoteManagement:
                     with quoteId = @variables.activeQuoteId
                 set @variables.pendingQuoteRecordLookup = False
 
+            if @variables.quotePageOpened == True:
+                | The user has just opened a different Quote page. Unless they name another quote, "this quote", "the quote" and "it" mean the quote on that page (activeQuoteId), not a quote created or shown earlier in the conversation.
+
             | Manage QUOTE-LEVEL operations: create a quote, show the quote (native card + line recap), and edit quote HEADER fields (name, status, expiration). Line-level work — adding products, discounts, and editing individual line fields/dates — belongs to Line Management; hand off with go_to_LineManagement. Product attribute configuration belongs to Product Configuration.
 
               Context: "this quote" -> activeQuoteId. Resolve named records (opportunity, account, quote) with IdentifyRecordByName before using them. Freshness for quote state (header values, totals, status): re-query Get_Quote_Record_Card / Get_Quote_Demo_Summary rather than answering from an earlier result.
@@ -337,6 +358,9 @@ subagent QuoteManagement:
                 with quoteName=...
                 set @variables.activeQuoteId = @outputs.quoteId
                 set @variables.pendingQuoteRecordLookup = @outputs.isSuccess
+                set @variables.lastQuoteLineItemId = ""
+                set @variables.lastQuoteLineProductName = ""
+                set @variables.quotePageOpened = False
             Get_Quote_Demo_Summary: @actions.Get_Quote_Demo_Summary
                 with quoteId=...
                 set @variables.lastQuoteSummaryDisplay = @outputs.summaryDisplay
@@ -355,9 +379,11 @@ subagent QuoteManagement:
                 with reprice=...
                 set @variables.lastMutationSummary = @outputs.resultsDisplay
                 set @variables.pendingSelectionJson = @outputs.pendingSelectionJsonOut
+                set @variables.quotePageOpened = False
             UpdateQuoteDetails: @actions.UpdateQuoteDetails
                 with inputFieldValues=...
                 with quoteId=...
+                set @variables.quotePageOpened = False
             IdentifyRecordByName: @actions.IdentifyRecordByName
                 with recordName=...
                 with objectApiName=...
@@ -404,10 +430,10 @@ subagent QuoteManagement:
 
             outputs:
                 "quoteId": string
-                    description: "The record ID of the created Quote. Used internally to render the native record card; never shown as text."
+                    description: "The record ID of the created Quote. Renders the native record card, and is the quoteId for follow-up quote and line actions in the same request; never shown as text."
                     label: "QuoteId"
                     is_displayable: False
-                    is_used_by_planner: False
+                    is_used_by_planner: True
                     complex_data_type_name: "lightning__textType"
                 "errorMessage": string
                     description: "Provides an error message if applicable."
@@ -728,6 +754,9 @@ subagent LineManagement:
 
     reasoning:
         instructions: ->
+            if @variables.quotePageOpened == True:
+                | The user has just opened a different Quote page. Unless they name another quote, "this quote", "the quote" and "it" mean the quote on that page (activeQuoteId), not a quote created or shown earlier in the conversation; "that line" means a line on that quote.
+
             | Manage LINE-LEVEL operations on a quote: add products to the quote, apply line discounts, edit quote-LINE fields (dates / start / end / term / quantity / description), and list or resolve specific lines for targeting. Quote-header work (create quote, header fields, the quote card) belongs to Quote Management; hand off with go_to_QuoteManagement. Product attribute configuration belongs to Product Configuration.
 
               Context: carried state — "this quote" -> activeQuoteId; "that line" -> lastQuoteLineItemId; "that product" / "those" / "add two of those" -> lastProductId / lastProductName. On a QuoteLineItem page (currentRecordId starts with 0QL), that ID is the target line: pass it as quoteLineItemIds to Update_Record_Fields and leave quoteId blank (the parent quote is derived) — do not ask which quote or which line. Freshness for line state (field values, discount, dates, quantity, membership): re-query QueryQuoteLineRecords / Get_QuoteLineItem_from_Quote rather than answering from an earlier result. After a mutating action report ONLY the line(s) that changed, from the action's own result — don't re-list the whole quote unless the user asks for the recap or the change touched every line (applyToAll). For totals after a line change, hand off to Quote Management for the card.
@@ -766,6 +795,7 @@ subagent LineManagement:
                 set @variables.lastQuoteLineProductName = @outputs.productNameAdded
                 set @variables.lastProductName = @outputs.productNameAdded
                 set @variables.lastMutationSummary = @outputs.lineSummaryDisplay
+                set @variables.quotePageOpened = False
             Apply_Discount_To_Quote_Lines: @actions.Apply_Discount_To_Quote_Lines
                 with quoteId=...
                 with discountMode=...
@@ -779,6 +809,7 @@ subagent LineManagement:
                 with quoteLineItemIds=...
                 set @variables.lastMutationSummary = @outputs.resultsDisplay
                 set @variables.pendingSelectionJson = @outputs.pendingSelectionJsonOut
+                set @variables.quotePageOpened = False
             Get_QuoteLineItem_from_Quote: @actions.Get_QuoteLineItem_from_Quote
                 with quoteId=...
                 with productName=...
@@ -797,10 +828,12 @@ subagent LineManagement:
                 with reprice=...
                 set @variables.lastMutationSummary = @outputs.resultsDisplay
                 set @variables.pendingSelectionJson = @outputs.pendingSelectionJsonOut
+                set @variables.quotePageOpened = False
             UpdateQuoteLineItemDetails: @actions.UpdateQuoteLineItemDetails
                 with inputFieldValues=...
                 with quoteId=...
                 with quoteLineItemId=...
+                set @variables.quotePageOpened = False
             QueryQuoteLineRecords: @actions.QueryQuoteLineRecords
                 with quoteId=...
                 with productIds=...
@@ -1334,6 +1367,9 @@ subagent ProductConfiguration:
 
     reasoning:
         instructions: ->
+            if @variables.quotePageOpened == True:
+                | The user has just opened a different Quote page. Unless they name another quote, "this quote", "the quote" and "it" mean the quote on that page (activeQuoteId), not a quote created or shown earlier in the conversation; "that line" means a line on that quote.
+
             | Configure a product on a quote line. This is the least deterministic step, so follow a strict order.
               Sequence (do not skip or reorder):
               1. Resolve the quote line first. If the page context is a QuoteLineItem (currentObjectApiName is QuoteLineItem or currentRecordId starts with 0QL), that ID IS the line — use it directly, skip the lookup. Otherwise, if you already hold lastQuoteLineItemId for the product in question, reuse it. Otherwise resolve the quote (activeQuoteId, or currentRecordId on a Quote page) and call Get_QuoteLineItem_from_Quote with the product name; if it returns disambiguation candidates, present them by name and number and ask which line.
@@ -1361,6 +1397,7 @@ subagent ProductConfiguration:
                 with quoteLineItemId=...
                 with quoteId=...
                 with attributeSelectionsJson=...
+                set @variables.quotePageOpened = False
             Confirm_Product_Configuration_Summary: @actions.Confirm_Product_Configuration_Summary
                 with quoteLineItemId=...
                 with quoteId=...

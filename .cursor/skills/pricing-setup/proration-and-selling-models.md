@@ -29,7 +29,9 @@ priced. The Proration and Subscription Price elements read them. Builder fields 
 
 **2. <a name="default-term-counts"></a>Default term counts** (Salesforce Pricing Design Time) [Help: `ind.pricing_configure_proration_settings.htm`]
 1. Setup > `Salesforce Pricing` > Salesforce Pricing Setup (`/lightning/setup/CorePricingSetup/home`), Proration Settings.
-2. Fill **Evergreen** and/or **One Time** (numeric only). Help: blank = term count computed from start/end dates at run time. Core disagrees for One Time: with no default it is not prorated; test live ([element, Resolved disagreements](../pricing-procedures/elements/proration-and-subscription.md#resolved-disagreements)).
+2. Fill **Evergreen** and/or **One Time** (numeric only). Help: blank = term count computed from start/end dates at run time. Core disagrees for One Time: with no default it is not prorated [Platform behaviour, traced: with no One Time value the line gets no multiplier from the Proration step]; test live ([element, Resolved disagreements](../pricing-procedures/elements/proration-and-subscription.md#resolved-disagreements)).
+
+[Platform behaviour, traced] A default for a line's type bypasses the engine and is used directly as the term count; with no Evergreen default the count is computed from the dates; a stored value without a colon sets neither. This applies only when the line's selling model type is mapped; otherwise the line goes to the engine.
 
 [Measured] **These two values have no API.** They were in none of the 11 settings types retrieved (among them
 `IndustriesPricing`, `RevenueManagement`, `Quote`, `Order`, `Billing`, `ProductCatalogManagement` and
@@ -75,12 +77,21 @@ option and policy values (inferred; see [the element](../pricing-procedures/elem
 `StartProrationPeriod` (AlignToCalendar, Anniversary, DayOfPeriod, and `LastDayOfPeriod`, which Help
 labels EndOfPeriod; bind `LastDayOfPeriod` [Core]), day/month for DayOfPeriod only. [Help: `ind.pricing_subscription_variables.htm`]
 Multiplier = time used / total time in period; "month-plus-day" proration works for any frequency.
+[Platform behaviour, traced] The count is day-based: the number of periods, where only the first and last
+(partial) period count as days used / days in that full period, inclusive actual calendar days under an actual-days
+policy (the default). The denominator is that period's real length, so a partial period in a leap year is over 366 (period boundaries inferred from measured values).
+Partial periods off: whole periods only. A 30-day-month type counts a full month as 30 days (the 30/360 variant caps the day at 30; the actual-days-with-30-day-months variant counts partial months in actual days). The remainder strategy
+changes the money split, not the count. The paragraph above is traced for annual frequency and the actual-days type; not verified beyond that.
+From the separate partial-month trace (not the annual path): a partial month is a whole month when partial periods are off, and the day fraction (15 of 30 = 0.5) when on; only the first and last period are fractional, interior periods stay whole. Rounding applies to the money at the currency scale, not to the count.
 Help says month precision rounds a partial month to a whole one, but its own worked example
-prorates a half month to 0.5 (see Open questions). [Help: `ind.pricing_proration_variables.htm`]
+prorates a half month to 0.5; both hold under different partial-period settings (above). [Help: `ind.pricing_proration_variables.htm`]
 
 ## How pricing uses it
 
-- Subscription element: unit price x quantity x pricing term count; Proration element emits the term count. One-time and evergreen use the Pricing Setup default when set (see element file).
+- Subscription element: unit price x quantity x pricing term count; Proration element emits the term count.
+- [Platform behaviour, traced] In the shipped default procedure the term count is the Proration step's multiplier. The step reads the selling model's pricing term unit (not the line's own unit) as both the period and the term unit, and the line's `SubscriptionTerm` as the term; with no end date the end is start + term (in that unit) - 1 day. A line with dates only has the count derived from them. So send a term in the selling model's unit (48 on an Annual model is 48 periods; term illustrative) or dates. Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace shows Place filling a missing term context tag with the selling model's pricing term when the line's selling model option is Term Defined, but not that fill reaching the saved line. In the measured requests (price book entry only, no `ProductSellingModelId` in the request; the saved line's selling model was Term Defined) the saved unit was `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line (System pricing, configuration method Force, rules on) was priced from its dates alone (a whole-year term count) and came out higher by exactly the missing commitment-term step, because the term-keyed discount never ran. That step is one the measured org's customised pricing procedure adds when a header switch is on (it was on; not a shipped step). The result held both standalone and as a bundle component, against a line sent with `SubscriptionTerm` and unit `Annual` instead of an end date [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. So for pricing, dates suffice; send the term explicitly when anything reads `SubscriptionTerm` (such as a commitment-term discount filter, which skips such a line).
+- A second dates-only create (configuration method not recorded) matched the saved fields above: `SubscriptionTerm` null, the unit filled, the term count from the dates [Measured: 2026-11-12, 264, scratch]. A dates-only PATCH on an existing line (one measurement; configuration method Skip, System pricing, a Term Defined Annual line created with a term) left `SubscriptionTerm` at its old value while the pricing term count and the total followed the new dates [Measured: 2026-11-12, 264, scratch]. Send the term again when the dates change if anything reads `SubscriptionTerm`. Details: `rlm-business-apis` (Other Place results).
+- One-time and evergreen use the Pricing Setup default when set (see element file).
 - How the policy and option values reach the element (via context tags) is not in Help; see the element file.
 
 ## Period examples (Help) [Help: `ind.pricing_*_proration_examples*.htm`]
@@ -108,13 +119,13 @@ Periods, remainder `AddToLast`, partial periods allowed):
 
 | Line dates | `PricingTermCount` |
 |---|---|
-| 2027-07-01 to 2029-12-31 | 2.504109589 (2 + 184/365) |
-| 2028-07-01 to 2029-12-31 | 1.5027 (1 + 184/366) |
+| 2026-04-01 to 2028-12-31 | 2.753424658 (2 + 275/365) |
+| 2028-04-01 to 2029-12-31 | 1.7514 (1 + 275/366) |
 | Dates covering whole years | a whole number (2 and 1 measured) |
 
-Whole years count 1 each and the partial year counts by days, so 30 months is not 2.5 terms. Both measured values
-fit a partial period at the start of the line (July to December, 184 days) divided by the length of the calendar
-year it falls in (365 in 2027, 366 in 2028); which period anchoring produces this wasn't isolated, so check dates
+Whole years count 1 each and the partial year counts by days, so 33 months is not 2.75 terms. Both values (dates illustrative; the rule is what was measured)
+fit a partial period at the start of the line (April to December, 275 days) divided by the length of the calendar
+year it falls in (365 in 2026, 366 in 2028); which period anchoring produces this wasn't isolated, so check dates
 that cross a leap year against a live run. A source
 that prorates by months remaining ÷ 12 differs by the day fraction: on a mid-term amendment or co-termed add the
 line totals won't match it. Either accept the day-based value or state the source's value as the
@@ -146,6 +157,6 @@ Then Simulate with Effective From/To and compare to the table above.
 ## Open questions
 
 - Help's quarterly example prints 3.427 and 3.436464 for the same case ($687.29 uses the latter); the 3.427 arithmetic gives $685.48. The semi-annual no-partial example prints 3.0 / $1,200 next to what reads as a leftover drafting note; two touched periods give 2.0 / $800 (inferred). The same article's utilized range "28-Mar to 4-Apr (130 Days)" should read 4-Aug.
-- Month precision: the variables article says a partial month rounds to a whole month, yet its $50 worked example prorates 15/30 days to 0.5. Which applies is unconfirmed. Weekly arithmetic ($144.12 x 10.71 = about $1,543.5) does not reproduce $1,543.36. Treat these as illustrative.
+- Month precision: reconciled by the partial-month trace above (partial periods off: whole month; on: day fraction); not live-verified. Weekly arithmetic ($144.12 x 10.71 = about $1,543.5) does not reproduce $1,543.36. Treat these as illustrative.
 - The monthly examples 5 and 6 repeat the annual case with $800 (a doc error, inferred).
 - The context tags carrying policy values are not documented. (The Pricing Setup default term counts have no API at all; see [Default term counts](#default-term-counts).)

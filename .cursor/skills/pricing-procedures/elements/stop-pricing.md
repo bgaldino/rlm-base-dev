@@ -30,7 +30,8 @@ later element runs (Aggregate Price still sums the line) and the values so far b
 
 ## Rules and limits
 - Stops immediately for that line; later elements do not run; current values are final [Help]. Aggregate Price still includes the stopped line [Core].
-- Per line only [Help].
+- Per line only [Help]. It does not stop the children of a stopped bundle parent; a child stops only if its own line meets the condition [Platform behaviour, traced].
+- Stopped lines are still counted by Aggregate Price, but only within that element's own list-group filter: a line the filter excludes is invisible to the aggregate [Platform behaviour, traced]. Price Propagation skips stopped lines, even in its own aggregation [Platform behaviour, traced].
 - Waterfall in Simulate shows where the procedure stopped [Help].
 
 ## Metadata shape
@@ -77,5 +78,5 @@ None. No procedure in `force-app/`, `unpackaged/post_procedureplans/` or `unpack
 | An unwanted discount still applies to a line you meant to stop | The line never reached Stop Pricing (the group filter is false for it), or the discount runs before the stop. Once a line reaches the stop, no later element runs for it (Aggregate Price aside), including elements in later groups [Help][Core] | Check in Simulate that the line reaches the stop; move discounts that must not apply after the stop, or exclude the line from their groups |
 
 ## Open questions
-- Effect on bundle children (does stopping a parent stop its children?): core marks only the line that runs the element as aborted, and derived-line cloning checks each child's own line id; no parent-to-child cascade was found [Core], but confirm with a live Simulate.
+- Effect on bundle children: no parent-to-child cascade was found [Platform behaviour, traced]; that is absence of a finding in the traced code, so confirm with a live Simulate.
 - Not shipped; no XML sample from a real org. The JSON skeleton above is built from the element's parameter-less definition, not from a saved step.

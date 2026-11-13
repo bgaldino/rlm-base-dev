@@ -84,10 +84,11 @@ quote UI (`ui-group-ramp.md`, measured on 264).
    Asset per segment it sits in; built in the UI a one-time child is stamped and, left in N segments, becomes one Asset whose
    quantity accumulates (1, 2, 3 over three segments). See
    [bundle-children-lifecycle.md](bundle-children-lifecycle.md).
-10. **In a UI-built Compound group ramp, a segment's uplift applies to every line in it, and isn't
+10. **In a UI-built Compound group ramp, a segment's uplift applies to every ramp-stamped line in it, and isn't
     rounded.** The segment's Unit Price Uplift % lands on One-Time and Evergreen lines too, whose
     `TotalPrice` doesn't follow the uplifted net; set `UnitPriceUplift` 0 on a line to exempt it
-    (measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs). The uplifted price keeps full
+    (measured 2026-11-11 on two fresh 264 `ent-sb0` scratch orgs). A line without a `RampIdentifier`
+    took no uplift (a standalone Evergreen product, one org). The uplifted price keeps full
     precision, not cents (one of those orgs; the other already rounded after the uplift); add a
     rounding step after the ramp uplift if the source rounds. These behaviours weren't measured on a
     Standard ramp (the 2026-10-29 Standard UI run had one Term product and exact prices). See
@@ -126,15 +127,50 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   [constraint-models → Ramp groups and segments](../constraint-models/SKILL.md#ramp-groups-and-segments).
   The bundles tested in ramped segments, added in the quote UI or cloned, kept ramp ids on every line; see
   [Cloning a segment that holds a bundle](bundle-children-lifecycle.md#cloning-a-segment-that-holds-a-bundle).
+- **DO NOT** allow only one instance per type on a virtual transaction (`Quote`) container in a group ramp.
+  The container sees every segment's lines at once: the configurator is handed every line of the quote in one
+  set, and no per-group scope was found on the input side. A `groupBy` container partitions by an attribute
+  value; whether that can scope a ramp segment wasn't shown. Source shows the solver's cardinality check allows
+  one line of an unsplit type (or in a `[0..1]` relation) per relation, and a quote-level virtual container puts
+  every segment's lines in one relation, so a second segment's line would fail it [Platform behaviour, traced in
+  part]. The measured message below is not the solver's text, so whether this check produced it isn't
+  established. What Place does to a cloned segment line's status and quantity wasn't traced (live check). See the container rule in
+  [constraint-models → Checks across top-level lines](../constraint-models/quantities-from-attributes.md#checks-across-top-level-lines-a-virtual-quote-container).
+  Measured 2026-11-11 (fresh 264 `ent-sb0` scratch org, quote UI): with the bundle relation `[0..1]` and `@(split = false)` on the top-level line types it held,
+  the ramp quote got "You can't add more than one of the same '<product>' product to the '<type>' product
+  class" and the configurator couldn't save. Widening those relations' cardinality and dropping
+  `split = false` from those types (changed together) fixed it. Write the container's cross-line checks as
+  totals across all segments. The container pattern, including its `[0..1]` bundle bound for an unramped
+  quote, is in the same section. Whether a `[0..1]` or `split = false` bound alone is the trigger, or a
+  setting is also involved, wasn't isolated (live check).
+  Model a one-instance type per bundle, not in a shared quote-level container.
 - **DO NOT** treat a null `RampIdentifier` on read-back as a graph mistake — it
   usually means the org's **context definitions are stale**; a Context Definition
   sync fixes it (see `.cursor/skills/context-service/SKILL.md`). Other known causes: a line a
   group-level CML `require` added (DO NOT above), and a one-time or evergreen bundle child added with
-  `AddProducts` into ramped segments (Quick Rule 9).
-- **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. On a
-  `CompletedWithPricing` quote, System runs **delta pricing**, which can skip lines it considers
-  unchanged. A segment created by clone can keep its clone-time price indefinitely. Exactly which
-  lines get skipped isn't traced.
+  `AddProducts` into ramped segments (Quick Rule 9), and a standalone Evergreen line
+  ([ui-group-ramp.md](ui-group-ramp.md)).
+- **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. When delta
+  pricing applies (setting on, a System-priced PATCH, and the conditions below), only the edited lines and the
+  lines that depend on them re-run, so a clone's stale lines can be skipped; Help says Compound Uplift lines in a
+  ramp group are repriced on every run regardless of delta pricing
+  [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`], so the skip would apply only to
+  lines without Compound Uplift [inferred]. A
+  segment created by clone can keep its clone-time price indefinitely.
+  Delta pricing is an org setting (Setup > Revenue Settings > Delta Pricing for Quotes and Orders), off unless
+  enabled; its platform declaration marks it beta [Platform behaviour, traced], though neither Help nor the Metadata API reference says so, and
+  its documented default is false [Metadata API: `meta_revenuemanagementsettings`], so an org that doesn't set it
+  has it off. The repo enables it in `config/project-scratch-def.json` and most `orgs/*.json` (not dev-mfg or the
+  TFID shapes), and `prepare_rlm_org` deploys it as true from the pre settings bundle on every build, so every
+  Foundations-built org has it on [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`].
+  Delta skipping applies only when the setting is on and the save is a PATCH edit with System pricing, Dual
+  Persistence mode off, a completed calculation status (Completed with Pricing or with Tax) and no validation errors
+  [Platform behaviour, traced; Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]; further conditions
+  (the transaction's update tracking) also apply, so treat the list as partial (see pricing-procedures
+  → runtime and observability); otherwise every line reprices
+  ([transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md)). Under it a
+  partial PATCH re-runs the edited lines and the lines that depend on them and skips the rest; which relations
+  count as a dependency isn't traced.
 
   Measured 2026-10-29/30 on 264 with a probe that set the uplift at placement:
   - 8 of 8 builds came out of cloning with the last segment un-uplifted (setting the uplift
@@ -152,11 +188,23 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   `UnitPriceUplift` re-applied the uplift to the other ramp lines. Their `NetUnitPrice` was uplifted
   again on top of the already uplifted net (each segment by its applied % once more), while
   their `TotalPrice` stayed put. **Reprice All** in the line editor restored every line; a `Force`
-  reprice wasn't tried for this case. Possibly a platform defect. To reproduce: on a Compound UI ramp,
+  reprice wasn't tried for this case. What the source shows: when delta
+  skipping doesn't apply, every line runs through every pricing element again, and the uplift step isn't
+  idempotent, so an untouched line is uplifted again; when it applies, only the edited lines and their
+  dependents re-run [Platform behaviour, traced]. Help adds that a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; that fits the re-uplift of untouched ramp lines [inferred]. The 2026-11-11 org was built from the repo's scratch
+  definition, so delta pricing was probably on, but its setting wasn't read there, and whether the re-uplifted
+  lines (the Term child) were dependents of the edited ones, or this is a different path, is not established
+  (live check). On a second org with the setting read as on, a System PATCH of one ramp line with no field change (configuration Skip) left every line's waterfall id unchanged, yet re-applied the compound uplift to every uplifted line's `NetUnitPrice`, unrounded, with totals unchanged [Measured: 2026-11-12, 264, scratch; one org]. Help's rule fits which lines moved, but not the unchanged waterfalls or the uplift compounding on the stored net; that path is not traced. Don't
+  rely on a partial PATCH leaving other lines untouched. To reproduce: on a Compound UI ramp,
   PATCH `UnitPriceUplift` on some lines of segments 2 and 3 only, then read the other lines'
   `NetUnitPrice` in those segments (measured with a bundle: the PATCHed lines were its Evergreen and
   One-Time children, the re-uplifted ones its Term child). Finish every ramp line edit with Reprice
   All and re-read all segments.
+- **DO NOT** reprice a lifecycle quote after its order is activated. Measured once on a renewal quote: a full reprice (every
+  line, pricing `Force`, configuration `Skip`) after the order was activated set the renewal lines' totals and the
+  quote total to 0 [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read
+  afterwards. Not measured on amendments or ramped quotes; mechanism not traced. Read
+  quote values before activation and don't reprice afterwards.
 - **DO NOT** claim a build "works" from an offline dry-run — a mutating ramp run
   must be verified against a **live 264 org**, writing only to a confirmed
   **writable** org.
@@ -172,7 +220,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
 | Resolve Account / Pricebook / Product2 / PricebookEntry ids | [Discovering ids](#discovering-ids) |
 | Build a non-ramp quote → order → asset | `scripts/build_quote_to_asset.py`; `.cursor/skills/txn-data-harness/SKILL.md` |
 | The v68 Connect endpoint catalog (place, clone, ramp-deal, amend/renew/cancel) | `docs/salesforce/264/dev-guide/index.md` (tracked 264 dev-guide index — use the `/connect/rev/...` payloads above). `docs/api/transaction-management-apis-reference.md` is a v68-grounded summary of the same routes; prefer the dev-guide page when the two disagree |
-| A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md`; for a line a group-level CML `require` added, or a one-time/evergreen child added with `AddProducts`, see [DO NOT](#do-not) and Quick Rule 9 |
+| A null `RampIdentifier` / stale context definitions | `.cursor/skills/context-service/SKILL.md`; for a line a group-level CML `require` added, or a one-time/evergreen child added with `AddProducts`, see [DO NOT](#do-not) and Quick Rule 9; a standalone Evergreen line carries none ([ui-group-ramp.md](ui-group-ramp.md)) |
 
 ## The proven build sequence
 
@@ -299,11 +347,15 @@ each cloning the most recent ramped group:
   "options": { "lineScope": "AllLines" } }
 ```
 
-The v68 clone response is `{ requestId, salesTransactionId, success, errors }`
-(`docs/salesforce/264/dev-guide/articles/connect_responses_clone_sales_transaction_output.htm.md`)
-— there is **no** `trackerId`. `success:false` with a populated `errors[]` is a
-synchronous failure — stop. On `success:true` the save runs **async**: `requestId`
-identifies that process, and the observable gate is `Quote.CalculationStatus` —
+Per the dev guide the v68 clone response is `{ requestId, salesTransactionId, success, errors }`
+(`docs/salesforce/264/dev-guide/articles/connect_responses_clone_sales_transaction_output.htm.md`);
+measured clones also returned a `trackerId` key, null in group clones (ramp runs) and in whole-quote clones, and a
+`trackerUrl` key, null in whole-quote clones (see
+[quote-negotiation-rounds → deep-clone.md](../quote-negotiation-rounds/deep-clone.md#response-and-completion)).
+`success:false` with a populated `errors[]` is a
+synchronous failure — stop. On `success:true` the save runs **async**. The dev guide says `requestId`
+identifies that process; every measured response had `requestId` null, so it can't be the gate there. The
+large-transaction clone path wasn't traced. Gate on `Quote.CalculationStatus` —
 poll it to a settled state ([Status](#status)) before the next call. Do **not**
 read or clone the next group until it settles; then read back the new group's id
 for the next clone. The quote can still read as settled from before the call, so also poll
@@ -340,8 +392,12 @@ compound result — the three calls above alone do not. It also needs the fully-
 ```
 
 Segment 1 is the baseline (leave `UnitPriceUplift` 0). `pricingPref: "Force"`
-re-runs pricing on **every** line, so the engine applies the compound uplift. `System` runs delta
-pricing and may not reprice every line (see DO NOT). Poll `CalculationStatus`
+re-runs pricing on **every** line, so the engine applies the compound uplift. On the graph-request Place
+path, `System` prices a request only if it carries at least one line or line-attribute record (an all-delete request is priced only if the header still has lines; a request holding only the Quote
+header, such as a lone `RampUpliftType` change, isn't priced); a request carrying a context id is
+priced whenever the transaction has lines, and an org setting can skip pricing altogether. `System` delta
+pricing, where the org has it on, may also skip lines (see DO NOT) [Platform behaviour, traced]; see the header-only rule in
+[transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md). Poll `CalculationStatus`
 to a settled state, then read back ([Read-back](#read-back--the-ramp-schedule)) and
 verify the compounding numerically.
 
@@ -557,7 +613,7 @@ only with a rounding step after the ramp uplift, see `compound-uplift.md`).
 - `field-legality.md` — which ramp and pricing line fields are writable on live 264. Read it when a
   call rejects a field.
 - `bundle-children-lifecycle.md` — a group-ramped bundle with a one-time or evergreen child: limiting the child to
-  segment 1, what a UI-built bundle ramp carries per segment (every child, split default components), assetization shape, the amend/cancel 500 on API-built bundles (UI-built differ), renewal rules and lifecycle-recipe prerequisites. Read it before
+  segment 1 (unticking it, or a root answer that zeroes rule-sized children), what a UI-built bundle ramp carries per segment (every child, split default components), assetization shape, the amend/cancel 500 on API-built bundles (UI-built differ), renewal rules and lifecycle-recipe prerequisites. Read it before
   amending, cancelling or renewing a ramped bundle.
 - `ui-group-ramp.md` — building a Standard or Compound group ramp in the 264 quote UI (Create Ramp
   Schedule → Edit Ramp Schedule → Browse Catalogs into *Current and Subsequent Segments*), the
