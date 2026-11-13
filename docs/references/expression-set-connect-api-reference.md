@@ -109,8 +109,9 @@ debugging a run.
    the version is off, it reactivates the procedure plans it cascaded off (an
    inactive plan silently skips its procedures; an active plan over an inactive
    version fails loudly). The plans stay off when `activate_after` is false, or
-   when the version can't be confirmed off (a failed PATCH can re-enable a
-   half-written version, and an active plan would route pricing to it). It gives
+   when the version can't be confirmed off (the tool assumes a failed PATCH
+   might leave the version half-written or active, a precaution that was not traced;
+   an active plan routing pricing to it is [inferred]). It gives
    a restore command for each record the run left inactive, except a version a
    failed PATCH may have half-written, which must be re-imported first (other
    inactive plan versions are listed for inspection only).

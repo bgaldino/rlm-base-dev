@@ -80,7 +80,7 @@ renewal quote: **Open — needs live verification.** Renewal rules by selling mo
 Deleting a group deletes every component under it. [Help: `ind.product_catalog_products.htm`; `ind.product_catalog_creation_of_a_bundled_product_structure.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`; `ind.product_catalog_bundled_product_validations.htm`]
 
 Separate from group nesting, **product-in-product depth** (a bundle inside a bundle) is
-capped by the org value `MaxBundleDepth`: default 3, ceiling 5. The QuantumBit plan has
+capped by the org value `MaxBundleDepth`: default 3; the highest value used here is 5 (the platform ceiling was not traced). The QuantumBit plan has
 one five-level chain and needs `MaxBundleDepth:5` in the scratch definition.
 [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/README.md`; `orgs/README.md`] Keep a new model at
 depth 3 unless you own the org shape.

@@ -200,7 +200,7 @@ value missing from the picklist, component fields an insert can't set or values 
 [`catalogs-and-loading.md`](catalogs-and-loading.md#pcm-load-facts-264).
 
 Two more load constraints that shape the model, from the QB plan: bundle depth is capped by
-the org value `MaxBundleDepth` (default 3, ceiling 5; the repo's scratch shapes set 5), and
+the org value `MaxBundleDepth` (default 3; the repo's scratch shapes set 5, the highest value used here; the platform ceiling was not traced), and
 several PCM lookups are create-only, so a partial failure needs a delete before a reload.
 [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/README.md`; `orgs/README.md`; `sfdmu-data-plans/SKILL.md`]
 
