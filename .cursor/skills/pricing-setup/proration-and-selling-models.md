@@ -118,13 +118,13 @@ Periods, remainder `AddToLast`, partial periods allowed):
 
 | Line dates | `PricingTermCount` |
 |---|---|
-| 2027-07-01 to 2029-12-31 | 2.504109589 (2 + 184/365) |
-| 2028-07-01 to 2029-12-31 | 1.5027 (1 + 184/366) |
+| 2026-04-01 to 2028-12-31 | 2.753424658 (2 + 275/365) |
+| 2028-04-01 to 2029-12-31 | 1.7514 (1 + 275/366) |
 | Dates covering whole years | a whole number (2 and 1 measured) |
 
-Whole years count 1 each and the partial year counts by days, so 30 months is not 2.5 terms. Both measured values
-fit a partial period at the start of the line (July to December, 184 days) divided by the length of the calendar
-year it falls in (365 in 2027, 366 in 2028); which period anchoring produces this wasn't isolated, so check dates
+Whole years count 1 each and the partial year counts by days, so 30 months is not 2.5 terms. Both values (dates illustrative; the rule is what was measured)
+fit a partial period at the start of the line (April to December, 275 days) divided by the length of the calendar
+year it falls in (365 in 2026, 366 in 2028); which period anchoring produces this wasn't isolated, so check dates
 that cross a leap year against a live run. A source
 that prorates by months remaining ÷ 12 differs by the day fraction: on a mid-term amendment or co-termed add the
 line totals won't match it. Either accept the day-based value or state the source's value as the

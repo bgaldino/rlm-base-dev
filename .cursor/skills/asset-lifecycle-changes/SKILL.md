@@ -222,12 +222,12 @@ results, 2026-11-11).
     - A Term Defined component reduced to 0 through a root amendment credited quantity ×
       net unit price × the remaining term count. The Default Proration Policy that `qb-pcm`
       ships [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/ProrationPolicy.csv`] counted whole annual periods left plus the days left in the current one ÷ that
-      period's days (184/366 in a leap year), so a months-remaining figure matches only on
+      period's days (275/366 in a leap year), so a months-remaining figure matches only on
       an anniversary [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. The count
       is the number of periods, with the first and last partial period counted as its days
       (inclusive, actual calendar days under the actual-days time period type) over the
-      days in that full period, so a leap year changes the denominator (184/365 in a normal
-      year, 184/366 in a leap year). A 30-day-month type counts 30 days a month, and turning
+      days in that full period, so a leap year changes the denominator (275/365 in a normal
+      year, 275/366 in a leap year). A 30-day-month type counts 30 days a month, and turning
       partial periods off counts whole periods only. Read for the annual frequency with the
       actual-days type; that the first period runs to the calendar year end is inferred from
       the measured numbers, and other frequencies weren't read [Platform behaviour, traced
@@ -245,7 +245,7 @@ results, 2026-11-11).
       term) doesn't compare with the quote directly: the quote counts the line for its
       pricing term count, not the term ([change-policy-mapping.md](change-policy-mapping.md)
       → Questions to settle in the plan).
-7. **Constraints apply to amendments too.** A rule such as "Shield only with Premier"
+7. **Constraints apply to amendments too.** A rule such as "a premium add-on only with the top plan"
    decides the order in which changes can run. Test each change sequence with
    configuration rules on. Help warns that an amendment of a future-dated order with
    CML products "doesn't conform to all the rules" [Help:

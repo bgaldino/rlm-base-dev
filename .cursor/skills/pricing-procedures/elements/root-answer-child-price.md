@@ -10,8 +10,8 @@
 > Route 1 was built and measured end to end on a fresh 264 `ent-sb0` scratch org on 2026-11-11,
 > configuration rules on; routes 2 and 3 were not built.
 
-The need: a child line's price depends on an answer given on the bundle root. Example: a suite
-bundle asks for a Region on the root, and its Software and Support child lines take a regional
+The need: a child line's price depends on an answer given on the bundle root. Example: a kit
+bundle asks for a Region on the root, and its Installation and Warranty child lines take a regional
 uplift. The documented routes move the answer to a place a pricing element reads: onto the child
 line itself, or onto the header. Route 1 works live; routes 2 and 3 are [open](#open-questions).
 

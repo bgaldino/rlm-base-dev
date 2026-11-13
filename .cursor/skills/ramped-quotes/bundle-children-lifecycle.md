@@ -37,10 +37,10 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
   unticked was not measured.
 - **A root answer that zeroes the one-time children does work** (two fresh 264 `ent-sb0` scratch orgs, 2026-11-11,
   rules on, quote UI). The build:
-  - a required choice attribute on the bundle root (for example Include/Exclude, default Include);
-  - in CML, each one-time child relation keeps its sizing rule under Include and gets `== 0` under Exclude. Give each
-    relation its own Exclude rule carrying that relation's message: with one shared Exclude rule, its message was the
-    one reported when a different sizing rule broke on an Include bundle (consistent with the solver treating the
+  - a required choice attribute on the bundle root (for example Keep/Drop, default Keep);
+  - in CML, each one-time child relation keeps its sizing rule under Keep and gets `== 0` under Drop. Give each
+    relation its own Drop rule carrying that relation's message: with one shared Drop rule, its message was the
+    one reported when a different sizing rule broke on a Keep bundle (consistent with the solver treating the
     answer as free, which it does when the answer reaches the solve as a default, engine-derived or fresh-add
     value, not a rep-entered one on a context that tracks node status; the first-failed rule's message is kept,
     so a flipped branch can report the other rule; which case this was isn't established; see
@@ -48,13 +48,13 @@ A group-ramped term bundle (root + term child + one-time child). Add the bundle 
   - in PCM, the minimum of each component group holding those children lowered to 0, and any of them that was
     required (`IsComponentRequired`) made optional.
 
-  Configure segment 1 and save (that sized every segment), then set the answer to Exclude in segment 2's
+  Configure segment 1 and save (that sized every segment), then set the answer to Drop in segment 2's
   configurator and save. The dialog says "Configuration changes will apply to current and all future segments":
   segments 2 and 3 kept only the root and its other children, segment 1 kept every one-time line, and no error log
 was written (checked on one org). The 0 minimums raised no group-range warning (in the segment 2 configurator, or headless with
-  Exclude, with and without defaults), and Validate Product Definition reported no errors. A contract value rolled
+  Drop, with and without defaults), and Validate Product Definition reported no errors. A contract value rolled
   up over all segments then counted the one-time children once and matched the source's figure. Switching back to
-  Include, and order, amend and assetization of this shape, weren't measured. That the 0 minimums raised no
+  Keep, and order, amend and assetization of this shape, weren't measured. That the 0 minimums raised no
   range warning isn't a rule for a minimum of 1. A solver group-range check exists only where the model declares
   instance bounds on the group; a separate bundle validation reports a count mismatch for a group minimum of 1 with 0 lines
   [Platform behaviour, traced]; whether the solver range check fires at a PCM-only group minimum of 1, and the effect on order, amend and assetize, aren't established. The
