@@ -87,7 +87,8 @@ Measured outside group ramps, on a Term Defined bundle [Measured: 2026-11-11, 26
   The traced gate below is unconfirmed: a quote-stage check did not reproduce it (see after
   this list). No public setting name for the capability was found in
   the captured Help; reading it by trying a no-change dated before an unramped asset's latest
-  renewal start (refused when off) follows from the trace, unmeasured `[inferred]`. The trace says that where the amend-before-amend capability is off, the platform refuses an amendment,
+  renewal start (refused when off) follows from the trace, unmeasured `[inferred]`; a refusal
+  would suggest off, but an acceptance did not settle it on the one org tried. The trace says that where the amend-before-amend capability is off, the platform refuses an amendment,
   cancellation or no-change dated before the asset's latest renewal start (or while a
   later state period exists), and allows one on or after that start; with it on,
   earlier-dated amendments are allowed, except that ramped assets still refuse (a separate
@@ -100,10 +101,11 @@ Measured outside group ramps, on a Term Defined bundle [Measured: 2026-11-11, 26
   as a date (the quote was created); a configuration rule then refused that change, so it
   wasn't ordered.
 
-No capability setting was found in the captured Help or, on one 264 scratch org, in the
-Revenue Management, Subscription Management, Order, Quote, Billing and Contract settings, so
-the capability's state on that org is unknown. On that org [Measured: 2026-11-13, 264,
-scratch, one org], a standalone (not bundled), unramped Term Annual asset whose renewal was
+No capability setting was found in the captured Help, or on one 264 scratch org in the
+retrieved Revenue Management, Subscription Management (empty), Order, Quote, Billing and
+Contract settings [Measured: 2026-11-13, 264, scratch, one org; retrieved settings
+metadata], so the capability's state on that org is unknown. On that org [Measured:
+2026-11-13, 264, scratch, one org], a standalone (not bundled), unramped Term Annual asset whose renewal was
 ordered and activated accepted a Connect amend and a cancel dated before its renewal start,
 and an amend dated on the start; the refusal the trace predicts for the capability off did
 not appear at quote stage, which may only mean the capability is on there. The quotes were

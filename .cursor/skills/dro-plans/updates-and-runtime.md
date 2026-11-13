@@ -146,8 +146,8 @@ introduce a blanket extra approval for ordinary configuration updates.
   scratch, one org]. A supplemental quantity change on the activated order was refused with
   two stated reasons, that its order products had been converted to assets and had billing
   schedules; no PONR refusal was observed [Measured: 2026-11-13, 264, scratch, one org], so whether the route enforces the PONR is still
-  untested. With the force-freeze-during-
-  execution setting not set, a plan with a step In Progress stayed Freezing, not Frozen
+  untested. A plain freeze, with no force-freeze-during-execution option applied, left a plan
+  with a step In Progress Freezing, not Frozen
   [Measured: 2026-11-13, 264, scratch, one org].
 - **Order-wide scenarios:** Help documents different post-submission modification
   limits from product/classification scenarios; do not assume every change applies.

@@ -150,7 +150,8 @@ the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
   [change-policy-mapping.md](change-policy-mapping.md).
 - **An earlier-dated change against a future-dated one:** the traced gate in
   [change-policy-mapping.md](change-policy-mapping.md) is unconfirmed (an amend-before-amend capability
-  decides; reading it by a dated try on an unramped asset is `[inferred]` from the trace). What stays open is a measured confirmation on an org with
+  decides; reading it by a dated try on an unramped asset is `[inferred]` from the trace: a refusal
+  would suggest off, but an acceptance did not settle it on the one org tried). What stays open is a measured confirmation on an org with
   the capability on and off; the traced gate is not a measurement. A quote-stage check
   [Measured: 2026-11-13, 264, scratch, one org; standalone unramped asset, renewal ordered
   and activated; Connect amend and cancel quotes, not ordered] did not reproduce the
