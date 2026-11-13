@@ -2,7 +2,7 @@
 
 Sub-file of the [constraint-models skill](SKILL.md). Read it when a constraint model has to
 set component quantities from answers on the bundle, for example one sensor per plot,
-batteries per four plots rounded up, or service hours computed from other quantities.
+hubs per 20 plots rounded up, or service hours computed from other quantities.
 
 The parent skill covers file layout, wiring, deployment and the headless `configure`
 check. This file covers only the CML that sizes a bundle and how to test it.
@@ -154,7 +154,7 @@ maximum, so it reuses the line. With `split = true` each unit is its own line
 line `[Platform behaviour, traced]`.
 
 Put the annotation on each leaf type that is a sized component (in the worked example,
-every type but the abstract `Care`). Leave it off a type whose lines must carry
+every type but the abstract `Warranty`). Leave it off a type whose lines must carry
 different attribute values: `split = false` allows only one instance
 `[Dev guide: cml_annotation_example_split]`. Each root
 solves separately, so in a group ramp a single-line type gets one line per segment
@@ -192,17 +192,17 @@ largest quantity; nothing below the cap shows the problem.
 
 ## Deriving quantities from attribute values
 
-The answers (plots, staff, zones) are attributes on the bundle's root product. A
+The answers (plots, zones) are attributes on the bundle's root product. A
 PCM attribute imported into CML takes the attribute's developer name as its variable name
 `[Dev guide: cml_best_practice_attribute_name]`.
 
 | Pattern | CML | Source |
 |---|---|---|
 | One per answer unit | `constraint(sensors[Sensor] == plots, "One sensor per plot: expected {}.", plots);` | `[Dev guide: cml_logical_constraints]` (message with `{}` arguments) |
-| Per N, rounded up | `constraint(batteryQty * 4 >= plots && (batteryQty - 1) * 4 < plots, "<message>");` | See [Rounding up](#rounding-up) |
+| Per N, rounded up | `constraint(hubQty * 20 >= plots && (hubQty - 1) * 20 < plots, "<message>");` | See [Rounding up](#rounding-up) |
 | Zero unless a choice is made | `constraint(power != "Solar" -> batteryQty == 0, "<message>");` | `[Dev guide: cml_logical_constraints]` |
 | One per answer unit, only if the rep adds it | `relation shade : ShadeKit[0..200];` with `constraint(shade[ShadeKit] > 0 -> shade[ShadeKit] == plots, "<message>");` | `[Dev guide: cml_annotation_example_sequence]` (Examples 4 and 5). See the note below the table |
-| Equal to another component's quantity | `constraint(brackets[SensorBracket] == sensors[Sensor], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead (see [Chained derivations](#chained-derivations)) |
+| Equal to another component's quantity | `constraint(batteries[BatteryPack] == hubs[Hub], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead (see [Chained derivations](#chained-derivations)) |
 | A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
 
 The "only if the rep adds it" row takes the dev guide's form
@@ -236,8 +236,8 @@ Use an integer bracket inside a constraint. It pins the one integer `q` with
 
 | Need | Constraint | Measured |
 |---|---|---|
-| `x / N`, rounded up | `constraint(q * N >= x && (q - 1) * N < x, "<message>");` | `x` = 27, `N` = 10 → 3 `[Measured: M9]` (inputs illustrative; the run used other values with the same rounding results) |
-| `p` percent of `x`, rounded up | `constraint(q * 100 >= p * x && (q - 1) * 100 < p * x, "<message>");` | `x` = 630, `p` = 8 → 51 `[Measured: M10]` (inputs illustrative; the run used other values with the same rounding results) |
+| `x / N`, rounded up | `constraint(q * N >= x && (q - 1) * N < x, "<message>");` | `x` = 27, `N` = 10 → 3 `[Measured: M9]` (inputs illustrative; the run used other values with the same rounding behaviour) |
+| `p` percent of `x`, rounded up | `constraint(q * 100 >= p * x && (q - 1) * 100 < p * x, "<message>");` | `x` = 630, `p` = 8 → 51 `[Measured: M10]` (inputs illustrative; the run used other values with the same rounding behaviour) |
 
 Give `q` an explicit domain and drive the cardinality from it (Quick Rule 3). The bracket
 keeps the calculation inside a constraint, as the dev guide asks
@@ -268,8 +268,8 @@ loop with a read-calculate-write chain ordered by `@(sequence = n)` on constrain
 first `[Dev guide: cml_business_centric_cml_examples]` (*Resolving Circular
 Dependencies*). This file avoids such loops instead (Validation check 4).
 
-Size domains from the answer domains. With `plots = [1..120]`, `6 * plots + 20` runs from
-26 to 740, so `[26..740]` is the domain, not `[0..99999]`. A smaller domain gives the
+Size domains from the answer domains. With `zones = [0..16]` and `hubQty = [1..6]`, `10 * zones + 4 * hubQty`
+runs from 4 to 184, so `[4..184]` is the domain, not `[0..99999]`. A smaller domain gives the
 engine fewer values to test `[Dev guide: cml_cml_best_practices]` (*Variable Domains*).
 
 The dev guide says to calculate inside constraints, not with inline expressions, for
@@ -338,25 +338,25 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
 | Tool | Behaviour | Source |
 |---|---|---|
 | Relation cardinality `[1..1]` over a base type with subtypes | Bounds the relation; a subtype is then picked with `rel[Subtype] == 1` | `[Dev guide: cml_relationships]` (*skipTypeGeneration* example) |
-| A sum of subtype cardinalities | `constraint(care[BasicCare] + care[PlusCare] == 1, "<message>");`, which carries a message a test can assert | `[Dev guide: cml_core_concept_examples]` (adds two cardinalities) |
+| A sum of subtype cardinalities | `constraint(warranties[StandardWarranty] + warranties[ExtendedWarranty] == 1, "<message>");`, which carries a message a test can assert | `[Dev guide: cml_core_concept_examples]` (adds two cardinalities) |
 | Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Limits **unique instances** chosen from the group. The chosen component can still have a high quantity. The solver counts lines: a line of quantity N counts 1 for a `split = false` type and N for `split = true` | `[Dev guide: cml_group_type]` `[Platform behaviour, traced]` |
 
 Tie the choice to an answer with one implication per subtype, as in the dev guide's
 warranty example, each with its own message:
-`constraint(carePlan != "Plus" -> care[PlusCare] == 0, "<message>");`
+`constraint(warranty != "Extended" -> warranties[ExtendedWarranty] == 0, "<message>");`
 `[Dev guide: cml_logical_constraints]`.
 
-This picks one plan for the whole bundle. It can't express a mixed split, with some plots
-on one plan and the rest on another. The dev guide has no such example; how to model one
+This picks one option for the whole bundle. It can't express a mixed split, with some plots
+on one mount type and the rest on another. The dev guide has no such example; how to model one
 is [open item 13](#open-items).
 
-### Exactly one plan when each plan is sized per plot
+### Exactly one option when each option is sized per plot
 
 The first two rows of the choice-group table above count quantity, not distinct
 components. `rel[Type]` and `cardinality()` include the quantity of every instance
 `[Dev guide: cml_using_proxy_variables_constraints]`, and a relation's bounds are a
 quantity range `[Dev guide: cml_relationships]`. M14 set a cardinality of 3 as one line of
-quantity 3 `[Measured: M14]`. So with each plan at `plots`, the sum `== 1` and a `[1..1]`
+quantity 3 `[Measured: M14]`. So with each option at `plots`, the sum `== 1` and a `[1..1]`
 bound can't hold once `plots` is above 1; that failure itself wasn't run.
 
 | Tool | What the dev guide says it counts | Source |
@@ -364,25 +364,25 @@ bound can't hold once `plots` is above 1; that failure itself wasn't run.
 | `rel.count(<condition>)` | "the number of component instances" that match the condition. Another page says that when the condition covers every instance it returns the same value as `cardinality()`. Lines or quantity: [open item 14](#open-items) | `[Dev guide: cml_relationship_variable_functions]` `[Dev guide: cml_using_proxy_variables_constraints]` |
 | Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Unique instances chosen from the group; the chosen component can still have a high quantity. The annotation reference calls it the maximum cardinality for a component in a group. The solver sums the relations' instance counts, so a line of quantity N counts 1 for `split = false` and N for `split = true`; a conflict reads "Group Cardinality must be greater than or equal to X and less than or equal to Y". The solver refuses only when the CML group declares the bounds; bundle validation is a separate check that also counts lines and reports a group minimum it can't meet ([open item 14](#open-items)) | `[Dev guide: cml_group_type]` `[Dev guide: cml_type_annotations]` `[Platform behaviour, traced]` |
 
-**When an answer picks the plan,** nothing needs counting. Size the chosen plan from the
+**When an answer picks the option,** nothing needs counting. Size the chosen option from the
 answer, zero the other, and drop the sum:
 
 ```
-relation care : Care[1..200];
-constraint(carePlan == "Basic" -> care[BasicCare] == plots, "<message>");
-constraint(carePlan == "Plus" -> care[PlusCare] == plots, "<message>");
-constraint(carePlan != "Basic" -> care[BasicCare] == 0, "<message>");
-constraint(carePlan != "Plus" -> care[PlusCare] == 0, "<message>");
+relation mounts : Mount[1..120];
+constraint(mounting == "Pole" -> mounts[PoleMount] == plots, "<message>");
+constraint(mounting == "Wall" -> mounts[WallMount] == plots, "<message>");
+constraint(mounting != "Pole" -> mounts[PoleMount] == 0, "<message>");
+constraint(mounting != "Wall" -> mounts[WallMount] == 0, "<message>");
 ```
 
-`carePlan` holds one value, so one plan carries `plots` and the other 0. The dev guide
+`mounting` holds one value, so one mount type carries `plots` and the other 0. The dev guide
 sets a subtype's cardinality behind an implication
 (`DutyRating == ... -> engine[PrimePowerEngine] == 1`) `[Dev guide: cml_relationships]`;
 here the right side is `plots`, as in the "One per answer unit" row of
 [Deriving quantities](#deriving-quantities-from-attribute-values). Not run.
 
-**When the rep picks the plan by adding it,** with no answer behind it, neither row of the
-table settles it: `count()`'s unit is unclear, and Group Type needs the plans in a product
+**When the rep picks the option by adding it,** with no answer behind it, neither row of the
+table settles it: `count()`'s unit is unclear, and Group Type needs the options in a product
 component group, while the Relationships page says not to include product component groups
 when importing product relationships from PCM `[Dev guide: cml_relationships]`. This case
 is [open item 14](#open-items).
@@ -459,7 +459,7 @@ message, which states the quantity mode A would set, not 0 `[Measured: M40]`. Me
 
 ## Checks across top-level lines: a virtual `Quote` container
 
-A rule that spans lines with no parent in common (a plan sold as its own line beside the
+A rule that spans lines with no parent in common (an extension kit sold as its own line beside the
 bundle, say) goes on a virtual container that holds each of them as a relation
 `[Dev guide: cml_best_practice_virtual_quote_root]`. The shipped QuantumBit bundle model has
 one `[Repo: datasets/constraints/qb/QuantumBitBundle/blobs/ESDV_QuantumBitBundle_V1.ffxblob]`.
@@ -470,19 +470,17 @@ Container relations have no `ProductRelatedComponent`, so no `Port` association
 @(virtual = "true")
 type Quote {
     @(sourceContextNode = "SalesTransaction.SalesTransactionItem")
-    relation platform : Platform[0..1] {
-        platformPlots = total(plots);
+    relation kit : GreenhouseKit[0..1] {
+        kitPlots = total(plots);
     }
     @(sourceContextNode = "SalesTransaction.SalesTransactionItem")
-    relation basicPlan : BasicPlan[0..500];
-    @(sourceContextNode = "SalesTransaction.SalesTransactionItem")
-    relation proPlan : ProPlan[0..500];
+    relation extension : ExtensionKit[0..500];
 
     int qPlots = [0..500];
-    constraint(qPlots == platform.platformPlots);
+    constraint(qPlots == kit.kitPlots);
 
-    message(qPlots > 0 && basicPlan[BasicPlan] + proPlan[ProPlan] != qPlots,
-            "Cover every plot with exactly one plan.", "Error");
+    message(qPlots > 0 && extension[ExtensionKit] > qPlots,
+            "At most one extension kit per plot.", "Error");
 }
 ```
 
@@ -546,9 +544,9 @@ type Quote {
   and leave the default dropped `[Platform behaviour, traced]`. Why the `int` binding flipped
   the outcome from raised to dropped in that model is not established. To keep a count,
   state it: a relation minimum, or a required line.
-- A quote that holds the plan lines but not the bundle (an amendment of the plan assets
-  alone, say) has nothing in `platform`, so this check doesn't compare the plans with
-  `plots` there.
+- A quote that holds the extension lines but not the bundle (an amendment of the extension
+  assets alone, say) has nothing in `kit`, so this check doesn't compare the extension kits
+  with `plots` there.
 - `validate_cml` warns "Missing port association" for each container relation and
   "Missing type association" for the container type `[Repo: tasks/rlm_cml.py]`
   `[Measured: M37]`. Those warnings are expected.
@@ -631,9 +629,9 @@ inferred and still open (see asset-lifecycle-changes Quick Rule 2).
 A review note for a combination that is allowed but unusual is an `Info` message:
 
 ```
-message(zones > 8 && carePlan == "Basic",
-        "Review: {} zones on Basic care. Plus is usual above 8.",
-        zones, "Info");
+message(hubQty > 4,
+        "Review: {} hubs for this kit. Consider splitting the order by greenhouse.",
+        hubQty, "Info");
 ```
 
 Syntax: `message(condition, string, arg, …, severity)`
@@ -683,7 +681,7 @@ in front of it (step 1 below).
    in [Reading a result](#reading-a-result).
 5. **Assert every component's quantity**, including the zeros, against a hand-computed
    table (see the worked example), and one line per `@(split = false)` component. Pick answers on
-   each rounding boundary: exact multiples (`plots = 8`) and one past (`plots = 9`). Add
+   each rounding boundary: exact multiples (`plots = 20`) and one past (`plots = 21`). Add
    the answers that produce the largest quantity, to test the 9,999 cap
    ([Raising the 9,999 cap](#raising-the-9999-cap-maxrelationsize)).
 6. **For each rejection, submit the conflicting state and assert that the message of a
@@ -738,19 +736,17 @@ any configurator error-log row, whatever its severity `[Platform behaviour, trac
 ### Worked example — a fictional "Greenhouse Monitoring Kit" bundle
 
 **Fictional.** No product, catalog or customer in this repository has these names. Sized
-by three answers on the root product, plus two choices:
+by two numeric answers on the root product, plus two choices:
 
 | Component | Quantity rule |
 |---|---|
+| Warranty | exactly one: Standard or Extended, by answer |
 | Sensor | one per plot |
-| Sensor bracket | one per plot, so equal to the sensor quantity |
-| Battery pack | solar power only: ceil(plots / 4); otherwise 0 |
-| Staff seat | one per staff member |
+| Hub | one per 20 plots, rounded up |
+| Battery pack | one per hub on solar power; otherwise 0 |
 | Relay | one per zone |
-| Setup service (hours) | 6 × plots + 20 |
-| Calibration service (hours) | 10 × zones |
-| Coordination (hours) | ceil(12% of setup + calibration hours) |
-| Care plan | exactly one: Basic or Plus, by answer |
+| Calibration service (hours) | 10 × zones + 4 × hubs |
+| Audit service (hours) | ceil(15% of the calibration hours) |
 
 ```
 type LineItem;
@@ -758,92 +754,84 @@ type LineItem;
 type GreenhouseKit : LineItem {
     // Answers: PCM attributes on the root product
     int plots = [1..120];
-    int staff = [1..2000];
     int zones = [0..16];
     string power = ["Grid", "Solar"];
-    string carePlan = ["Basic", "Plus"];
+    string warranty = ["Standard", "Extended"];
 
     // Derived values: explicit, smallest domains; set only by constraints
-    int batteryQty = [0..30];
-    int setupHours = [26..740];
-    int calibHours = [0..160];
-    int coordHours = [4..108];
+    int hubQty = [1..6];
+    int batteryQty = [0..6];
+    int calibHours = [4..184];
+    int auditHours = [1..28];
 
+    relation warranties : Warranty[1..1];
     relation sensors : Sensor[1..120];
-    relation brackets : SensorBracket[1..120];
-    relation batteries : BatteryPack[0..30];
-    relation seats : StaffSeat[1..2000];
+    relation hubs : Hub[1..6];
+    relation batteries : BatteryPack[0..6];
     relation relays : Relay[0..16];
-    relation setup : SetupService[26..740];
-    relation calibration : CalibrationService[0..160];
-    relation coordination : CoordinationService[4..108];
-    relation care : Care[1..1];
+    relation calibration : CalibrationService[4..184];
+    relation audit : AuditService[1..28];
 
-    // One per plot; brackets follow the same answer, not the sensor cardinality
+    // Exactly one warranty, chosen by the answer
+    constraint(warranty != "Standard" -> warranties[StandardWarranty] == 0, "Standard warranty needs the Standard answer.");
+    constraint(warranty != "Extended" -> warranties[ExtendedWarranty] == 0, "Extended warranty needs the Extended answer.");
+    constraint(warranties[StandardWarranty] + warranties[ExtendedWarranty] == 1, "Choose exactly one warranty.");
+
+    // One per plot
     constraint(sensors[Sensor] == plots, "One sensor per plot: expected {}.", plots);
-    constraint(brackets[SensorBracket] == plots, "One bracket per plot: expected {}.", plots);
 
-    // Per 4 plots, rounded up with the bracket; zero unless solar
-    constraint(power == "Solar" -> batteryQty * 4 >= plots && (batteryQty - 1) * 4 < plots,
-            "Batteries: one per 4 plots, rounded up, for {} plots.", plots);
+    // Per 20 plots, rounded up with the bracket
+    constraint(hubQty * 20 >= plots && (hubQty - 1) * 20 < plots,
+            "Hubs: one per 20 plots, rounded up, for {} plots.", plots);
+    constraint(hubs[Hub] == hubQty, "Hubs: expected {}.", hubQty);
+
+    // Zero unless solar; otherwise one per hub (chained from the derived hub count)
+    constraint(power == "Solar" -> batteryQty == hubQty, "Batteries: one per hub when power is Solar.");
     constraint(power != "Solar" -> batteryQty == 0, "Batteries: none unless power is Solar.");
     constraint(batteries[BatteryPack] == batteryQty, "Batteries: expected {}.", batteryQty);
 
-    constraint(seats[StaffSeat] == staff, "One seat per staff member: expected {}.", staff);
     constraint(relays[Relay] == zones, "One relay per zone: expected {}.", zones);
 
-    // Chained: base hours, then coordination (12 percent, bracket) from the staged variables
-    constraint(setupHours == 6 * plots + 20, "Setup hours: 6 per plot plus 20.");
-    constraint(calibHours == 10 * zones, "Calibration hours: 10 per zone.");
-    constraint(coordHours * 100 >= 12 * (setupHours + calibHours)
-            && (coordHours - 1) * 100 < 12 * (setupHours + calibHours),
-            "Coordination hours: 12 percent of setup and calibration hours, rounded up.");
-    constraint(setup[SetupService] == setupHours, "Setup hours: expected {}.", setupHours);
+    // Chained: base hours from answers and the derived hub count, then audit (15 percent, bracket)
+    constraint(calibHours == 10 * zones + 4 * hubQty, "Calibration hours: 10 per zone plus 4 per hub.");
+    constraint(auditHours * 100 >= 15 * calibHours && (auditHours - 1) * 100 < 15 * calibHours,
+            "Audit hours: 15 percent of calibration hours, rounded up.");
     constraint(calibration[CalibrationService] == calibHours, "Calibration hours: expected {}.", calibHours);
-    constraint(coordination[CoordinationService] == coordHours, "Coordination hours: expected {}.", coordHours);
+    constraint(audit[AuditService] == auditHours, "Audit hours: expected {}.", auditHours);
 
-    // Exactly one care plan, chosen by the answer
-    constraint(carePlan != "Basic" -> care[BasicCare] == 0, "Basic care needs the Basic answer.");
-    constraint(carePlan != "Plus" -> care[PlusCare] == 0, "Plus care needs the Plus answer.");
-    constraint(care[BasicCare] + care[PlusCare] == 1, "Choose exactly one care plan.");
-
-    // Non-blocking review note
-    message(zones > 8 && carePlan == "Basic",
-            "Review: {} zones on Basic care. Plus is usual above 8.",
-            zones, "Info");
+    // Non-blocking review note, triggered by a derived value
+    message(hubQty > 4,
+            "Review: {} hubs for this kit. Consider splitting the order by greenhouse.",
+            hubQty, "Info");
 }
 
 // One line per sized component (Quick Rule 8)
 @(split = false)
 type Sensor : LineItem;
 @(split = false)
-type SensorBracket : LineItem;
+type Hub : LineItem;
 @(split = false)
 type BatteryPack : LineItem;
 @(split = false)
-type StaffSeat : LineItem;
-@(split = false)
 type Relay : LineItem;
-@(split = false)
-type SetupService : LineItem;
 @(split = false)
 type CalibrationService : LineItem;
 @(split = false)
-type CoordinationService : LineItem;
-type Care : LineItem;
+type AuditService : LineItem;
+type Warranty : LineItem;
 @(split = false)
-type BasicCare : Care;
+type StandardWarranty : Warranty;
 @(split = false)
-type PlusCare : Care;
+type ExtendedWarranty : Warranty;
 ```
 
 Notes on the model:
 
-- No relation can exceed 9,999 (the largest bound is 2,000), so the model needs no
+- No relation can exceed 9,999 (the largest bound is 184), so the model needs no
   `maxRelationSize` ([Raising the 9,999 cap](#raising-the-9999-cap-maxrelationsize)).
   Widen an answer domain and check again.
-- The relation lower bounds follow the derived domains. `setup` can't be below 26
-  because `setupHours` can't. Keep the two in step when you change an answer domain.
+- The relation lower bounds follow the derived domains. `calibration` can't be below 4
+  because `calibHours` can't. Keep the two in step when you change an answer domain.
 - Each component is a bundle member, so it still needs the four records in the parent
   skill ([The four records a bundle member needs](SKILL.md#the-four-records-a-bundle-member-needs)),
   and the PCM quantity settings under
@@ -857,20 +845,20 @@ Notes on the model:
 
 Expected quantities (hand-computed from the rules above; the whole model has not been run):
 
-| Answers | Sensor / bracket | Battery | Seat | Relay | Setup h | Calib. h | Coord. h | Care | Review note |
-|---|---|---|---|---|---|---|---|---|---|
-| 30 plots, 180 staff, 3 zones, Solar, Basic | 30 / 30 | 8 | 180 | 3 | 200 | 30 | 28 (230 × 12% = 27.6) | Basic 1, Plus 0 | no |
-| 8 plots, 40 staff, 10 zones, Solar, Basic | 8 / 8 | 2 (exact multiple) | 40 | 10 | 68 | 100 | 21 (168 × 12% = 20.16) | Basic 1, Plus 0 | **yes, Info** |
-| 5 plots, 30 staff, 10 zones, Solar, Plus | 5 / 5 | 2 (one past a multiple) | 30 | 10 | 50 | 100 | 18 (150 × 12% = 18, exact) | Plus 1, Basic 0 | no |
-| 5 plots, 30 staff, 10 zones, Grid, Plus | 5 / 5 | 0 (Grid) | 30 | 10 | 50 | 100 | 18 (150 × 12% = 18, exact) | Plus 1, Basic 0 | no |
+| Answers | Sensor | Hub | Battery | Relay | Calib. h | Audit h | Warranty | Review note |
+|---|---|---|---|---|---|---|---|---|
+| 45 plots, 6 zones, Solar, Standard | 45 | 3 | 3 (one per hub) | 6 | 72 (60 + 12) | 11 (72 × 15% = 10.8) | Standard 1, Extended 0 | no |
+| 100 plots, 2 zones, Grid, Extended | 100 | 5 (exact multiple) | 0 (Grid) | 2 | 40 (20 + 20) | 6 (40 × 15% = 6, exact) | Extended 1, Standard 0 | **yes, Info** (5 hubs) |
+| 101 plots, 12 zones, Solar, Extended | 101 | 6 (one past a multiple) | 6 | 12 | 144 (120 + 24) | 22 (144 × 15% = 21.6) | Extended 1, Standard 0 | **yes, Info** (6 hubs) |
+| 1 plot, 0 zones, Grid, Standard | 1 | 1 | 0 (Grid) | 0 | 4 (0 + 4) | 1 (4 × 15% = 0.6) | Standard 1, Extended 0 | no |
 
 Rejections to assert by message. Where a state breaks more than one rule, accept any of
 those rules' messages and no other:
 
 | Submit | Expect one of |
 |---|---|
-| 30 plots, Solar, battery line set to 5 by hand | `Batteries: expected 8.`, `Batteries: one per 4 plots, rounded up, for 30 plots.` |
-| Basic answer, both care plans on the bundle | `Choose exactly one care plan.`, `Plus care needs the Plus answer.` |
+| 45 plots, Solar, battery line set to 2 by hand | `Batteries: expected 3.`, `Batteries: one per hub when power is Solar.` |
+| Standard answer, both warranties on the bundle | `Choose exactly one warranty.`, `Extended warranty needs the Extended answer.` |
 | 10 plots, sensor line set to 9 by hand | `One sensor per plot: expected 10.` |
 
 The "by hand" rows are rejected only because every component type is `@(split = false)`;
@@ -878,7 +866,7 @@ without it the edit would split the line instead
 ([One line per component](#one-line-per-component-split--false)). Read each message as in
 [Reading a result](#reading-a-result).
 
-If the `care` relation's `[1..1]` bound rejects two plans first (an
+If the `warranties` relation's `[1..1]` bound rejects two warranties first (an
 [open item](#open-items)), the message assertion catches it. Then either drop the bound to
 `[0..1]` or add the bound's message to the accepted set.
 
@@ -896,7 +884,7 @@ shipped QuantumBit bundle model (part of M39), and the line editor and configura
 `validate_cml` result is a local run of the validator. Quotes went through Place with rules on (`Force`),
 then `configure`, then a query of `RevenueTransactionErrorLog`. Apart from the dated
 `[Measured: <date>, …]` claims, which come from separate lifecycle runs scoped as stated,
-nothing else in this file was run. In rows M1 to M10 the inputs are illustrative; the runs used other values with the same rounding results.
+nothing else in this file was run. In rows M1 to M10 the inputs are illustrative; the runs used other values with the same rounding behaviour.
 
 | # | Run | Result | Date |
 |---|---|---|---|
@@ -932,9 +920,9 @@ nothing else in this file was run. In rows M1 to M10 the inputs are illustrative
 | M30 | Place graph answers as `QuoteLineItemAttribute` with `AttributeDefinitionId`, `AttributeValue` and, for picklists, `AttributePicklistValueId`; no `AttributeName` | Bound to the CML variables named by the definitions' developer names; a number stored with a decimal (`"12.0"`) bound to an `int` | 2026-11-11 |
 | M31 | Place PATCH of a bundle child's quantity with `IsQuantityEditable = false` on its PRC (two quotes); then `createOrdersFromQuote`; then the quantity set back | `isSuccess: true`, the line saved and repriced; within seconds a `RevenueTransactionErrorLog` (BundleValidation: the quantity "can't be edited"); the order refused, "existing Revenue Transaction Error Logs". Setting it back deleted the log. The line editor saved the same edit with a warning icon and the same log | 2026-11-11 |
 | M32 | Place of a rejected configuration without `BillingFrequency` on Term-defined and Evergreen lines | `FIELD_INTEGRITY_EXCEPTION` on the root, "… BillingFrequency can't be null", instead of the rule. Valid configurations placed without it | 2026-11-11 |
-| M33 | One state breaking two rules: a line-form rule (add-on present → other plan's quantity 0) and the answer-sized plan rule | One message, the plan rule's; the test targeted the first rule. With the first rule also stated on the answer (add-on present → the answer is the required plan), its own message | 2026-11-11 |
+| M33 | One state breaking two rules: a line-form rule (add-on present → other option's quantity 0) and the answer-sized option rule | One message, the option rule's; the test targeted the first rule. With the first rule also stated on the answer (add-on present → the answer is the required option), its own message | 2026-11-11 |
 | M34 | A virtual `Quote` container whose relations had no `sourceContextNode` (relations to the bundle and to top-level lines; also a single `relation lineitems : LineItem;`) | Place and `configure` succeeded; the bundle's rules didn't run (defaults at 1, nothing sized); a probe `message` on the container fired and one on the bundle didn't. Declaration order made no difference | 2026-11-11 |
-| M35 | The container with `sourceContextNode`: constraints and preferences sizing top-level plan lines from a bundle answer; then the same checks as `message(..., "Error")` with the bundle relation `[0..1]` | Constraints: two plans placed at full quantity became n − 1 + 1; a plan edited down got the other plan added for the rest; a bundle add-on that the check forbade beside a plan was dropped; with the bundle relation `[0..10]` a second bundle root was added. `Error` messages: lines unchanged, an error log row with the message; `configure` could report success | 2026-11-11 |
+| M35 | The container with `sourceContextNode`: constraints and preferences sizing top-level option lines from a bundle answer; then the same checks as `message(..., "Error")` with the bundle relation `[0..1]` | Constraints: two options placed at full quantity became n − 1 + 1; an option edited down got the other option added for the rest; a bundle add-on that the check forbade beside an option was dropped; with the bundle relation `[0..10]` a second bundle root was added. `Error` messages: lines unchanged, an error log row with the message; `configure` could report success | 2026-11-11 |
 | M36 | `closeRelation = true` on the container's bundle relation, which carries `total()` and `max()` aggregates | "There's a goal execution error in your CML code: IntTotalAttrConstraint(…)" (and IntMinMaxAttrConstraint) instead of the rule's message | 2026-11-11 |
 | M37 | An `int` on the bundle set equal to an add-on's cardinality, for the container to read; `validate_cml` on the model with the container | The default add-on was dropped instead of raised to its rule's quantity, with and without the container (two runs, one model); reading the cardinality through the container's relation path restored it. `validate_cml`: "Missing port/type association" warnings for the container | 2026-11-11 |
 | M38 | Amendment changing a root sizing answer | The children re-derived; the amendment lines carried the changes as quantity deltas | 2026-11-11 |
@@ -979,13 +967,13 @@ Each needs a live 264 org:
    later `configure` returned `solverStatus: "success"` (M29), and which rejections do
    that. (Elsewhere the message was in `configure`'s `messages` at type `error`, with
    `errors: []`.)
-8. Whether the `care` relation's `[1..1]` bound rejects two plans first, with a
+8. Whether the `warranties` relation's `[1..1]` bound rejects two warranties first, with a
    different message or none. (One state that broke two rules reported one message, M33;
    a hand-set quantity split the line or, with `@(split = false)`, was rejected, M22 and
    M23.)
 9. Whether a rep can see or edit a derived variable in the configurator, with or without
    `@(configurable = false)`.
-10. Solve time for the worked example's largest answers (120 plots, 2,000 staff, 16
+10. Solve time for the worked example's largest answers (120 plots, 16
     zones).
 11. Whether a literal `%` in a message string is passed through or read as a Java format
     specifier. The dev guide documents Java format for these strings
@@ -999,26 +987,26 @@ Each needs a live 264 org:
     Configurator requests take a `validateAmendRenewCancel` option that runs amend, renew
     and cancel validations `[Dev guide: connect_requests_configuration_options_input]`.
     Order-type amendments, renewals and cancellations weren't run for node status.
-13. How to model a mixed per-plot plan split, which
+13. How to model a mixed per-plot mount split, which
     [Exactly one of a choice group](#exactly-one-of-a-choice-group) can't express.
-    Candidates, neither in the dev guide nor run: an answer per plan (a plot count each,
-    constrained to sum to `plots`, each driving its plan's cardinality), or per-plot child
-    instances that each carry a plan. One route was run: the plans as top-level lines
+    Candidates, neither in the dev guide nor run: an answer per mount type (a plot count each,
+    constrained to sum to `plots`, each driving its mount type's cardinality), or per-plot child
+    instances that each carry a mount type. One route was run: the options as top-level lines
     sized outside the configurator and checked on a virtual container
     ([Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)),
     which leaves a quote without the bundle unchecked.
-14. How to require exactly one plan, each sized per plot, when the rep picks the plan by
-    adding it ([Exactly one plan when each plan is sized per plot](#exactly-one-plan-when-each-plan-is-sized-per-plot)).
+14. How to require exactly one option, each sized per plot, when the rep picks the option by
+    adding it ([Exactly one option when each option is sized per plot](#exactly-one-option-when-each-option-is-sized-per-plot)).
     Unsettled: whether `count(<condition>)` counts lines or quantity. Traced: a Group Type
-    `maxInstanceQty=1` admits one plan line of quantity `plots` when the plan type is
+    `maxInstanceQty=1` admits one option line of quantity `plots` when the option type is
     `split = false` (the line counts 1), and not when it is `split = true`
-    `[Platform behaviour, traced]`; the group still needs the plans in a product component
+    `[Platform behaviour, traced]`; the group still needs the options in a product component
     group. Bundle validation reports a count mismatch for a group minimum of 1 with
     0 lines `[Platform behaviour, traced]`; whether the solver range check applies to a PCM-only group minimum, and the effect on
     amend and assetize, are not established; once the mismatch is logged, quote-to-order
     refuses (open item 1; traced, not measured for an empty min-1 group). Also open: whether a PCM minimum reaches the
     model. A candidate in neither source: one exclusion per pair of
-    plans, such as `care[BasicCare] > 0 -> care[PlusCare] == 0`. None run.
+    options, such as `mounts[PoleMount] > 0 -> mounts[WallMount] == 0`. None run.
 15. Whether `@(split = false)` keeps one line per component in later group-ramp segments
     (M24 measured only the unannotated case). Traced: each segment's root solves separately,
     so nothing carries a split decision or a reuse pool between segments, and a

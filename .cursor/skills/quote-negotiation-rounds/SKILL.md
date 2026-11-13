@@ -110,7 +110,7 @@ path or consequence was not established (the text says what is missing).
 | Internal what-if round (optional) | Deep clone of any round, renamed and marked internal | **No** | Its own submission if policy needs sign-off on that price | **Never** |
 | Final | Deep clone of the round the customer accepted (or an internal round whose numbers match it), renamed | Yes | New submission | Synced; set to Accepted; Create Order |
 
-- **Naming:** "<Opportunity> — R<n> <label>", for example "Example Corp renewal — R3 What-if
+- **Naming:** "<Opportunity> — R<n> <label>", for example "Example Corp renewal — R2 What-if
   (internal)". Rounds sort by name and read in list views.
 - **Relating:** all rounds share the opportunity (the clone keeps it). If reports need a
   round number or the source round, add custom fields; the repo ships none.

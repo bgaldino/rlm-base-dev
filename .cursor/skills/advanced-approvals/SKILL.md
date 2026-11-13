@@ -98,7 +98,7 @@ scratch org built by this repo.
 
 | Situation | Use |
 |---|---|
-| Add an approval dimension to the shipped quote approval (margin, deal size, term) | This skill → [matrix-modeling.md](matrix-modeling.md), then `docs/features/composable-quote-approvals.md` |
+| Add an approval dimension to the shipped quote approval (margin, deal size, quote validity) | This skill → [matrix-modeling.md](matrix-modeling.md), then `docs/features/composable-quote-approvals.md` |
 | Map a customer's sign-off matrix onto approvals | This skill → [matrix-modeling.md](matrix-modeling.md) |
 | Approvals across negotiation rounds (each round a cloned quote) | `quote-negotiation-rounds` |
 | Submit, approve, reject, recall or inspect a submission; test headlessly | This skill → [actions-and-objects.md](actions-and-objects.md) |

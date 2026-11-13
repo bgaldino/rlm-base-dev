@@ -19,7 +19,7 @@ test. Each says which.
 
 ## Recommended combination
 
-1. **Mark** the round with a flag field and the parent skill's name convention ("<Opportunity> — R3 What-if (internal)").
+1. **Mark** the round with a flag field and the parent skill's name convention ("<Opportunity> — R2 What-if (internal)").
 2. **Block** with validation rules on the flag: on Quote, Status Presented or Accepted, and the
    flag set while `IsSyncing` is true; on Opportunity, a `SyncedQuote` whose flag is set; on
    Order, a `Quote` whose flag is set. Each held in the run measured above: the status writes,

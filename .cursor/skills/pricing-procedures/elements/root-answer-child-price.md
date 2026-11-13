@@ -31,7 +31,7 @@ line itself, or onto the header. Route 1 works live; routes 2 and 3 are [open](#
 - **Pricing side.** Make `ClimateZone` a price-impacting attribute on the child product's own
   classification, not an inherited one, and do not override it in the bundle context: the override
   stops the adjustment applying [Help: `ind.pricing_attribute_based_pricing_limits.htm`]. Then add
-  an Attribute Based Adjustment per region value on the child products. Matching, the
+  an Attribute Based Adjustment per ClimateZone value on the child products. Matching, the
   whole-attribute-set rule and schedule setup are in [`attribute-based-price.md`](attribute-based-price.md);
   attribute placement in
   [`../../product-catalog-modeling/attributes-and-classifications.md`](../../product-catalog-modeling/attributes-and-classifications.md).
@@ -83,10 +83,10 @@ Built on a Place Sales Transaction quote (`configurationMethod: Force`,
   customer info or product attributes, linked to quote fields
   [Help: `ind.pricing_add_the_price_adjustment_matrix_element.htm`]. Recipe registration,
   single-row matching and refresh are in [`price-adjustment-matrix.md`](price-adjustment-matrix.md). Key the table on the
-  region and the product, so only the affected children match.
+  climate zone and the product, so only the affected children match.
 - The shipped PRM procedure already runs a Price Adjustment Matrix per line keyed on a header tag
   (`PartnerAccount__c`) [Repo: `RLM_PRM_DISTI_Pricing_Procedure`, `partner_account.json`], so the
-  region can come from the header as in route 2. Keying on a line tag such as route 1's child
+  climate zone can come from the header as in route 2. Keying on a line tag such as route 1's child
   attribute is marked [inferred] in that file.
 - Choose this route when business users must maintain the uplifts as data.
 
