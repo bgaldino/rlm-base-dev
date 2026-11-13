@@ -860,16 +860,20 @@ This repo's `post_utils` bundle turns the setting on [Repo: `unpackaged/post_uti
 expected off until set [Platform behaviour, traced]; the fresh-org value is not measured,
 because the build sets it.
 
-**Fix:** set the status before syncing, or sync again after the status write and any other change,
-then order [inferred from the traced rule; not measured]. If it still refuses, retry after a short
-wait (a retry about 15 s later worked once). Note that the `quote-negotiation-rounds` final-round steps
-sync before setting Accepted. See `quote-negotiation-rounds`.
+**Fix:** set the status (and make any other change) before syncing, sync last, then order
+[inferred from the traced rule; this order was not run]. If it refuses, retry about 15 s later, or
+sync again; the retry with no second sync created the order [Measured: 2026-11-12, 264, scratch; one quote;
+the sync-again step follows from the traced rule]. See
+`quote-negotiation-rounds` → Final round to order.
 
 ### Place on an Order fails with "couldn't fetch the data for ... context definition"
 
 Seen with `pricingPref` System or Force while Skip succeeded [Measured: 2026-11-12, 264, scratch; one org]; that org's pricing procedure was customised.
-A quote-only custom mapping is one known cause but did not explain this case; cause open. See
-`rlm-business-apis/backdated-asset-lifecycle.md` and `context-service`.
+A quote-only custom mapping is one known cause but did not explain this case. There the cause was
+a stock procedure tag with no attribute row on the Order lens, found by bisecting the declared tags
+(Apex tag query on the Order lens) and fixed by a field-less Order-lens row [Measured: 2026-11-12, 264,
+scratch; one org]. Query the procedure's declared tags on the Order lens, halving the set to find the
+offender. See `rlm-business-apis/backdated-asset-lifecycle.md` and `context-service`.
 
 ---
 

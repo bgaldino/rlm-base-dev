@@ -117,17 +117,25 @@ A different case, measured on one 264 scratch org whose pricing procedure and co
 **Order** with `pricingPref` System or Force (even a header-only PATCH) failed with the same message,
 while `pricingPref: Skip` succeeded; the order was left `CalculationStatus` PriceCalculationFailed with
 totals unchanged and no error-log record. Binding the quote-only custom attributes on the Order lens did
-not clear it there, so adding the custom `__c` mappings above is not always enough; a pricing-procedure
-variable with no Order-lens attribute at all is still possible (an Apex hydration of the Order lens
-succeeded, but it queries only the tags it asks for). Cause not established: most failures in the pricing procedure's context-tag query are replaced by this generic message, so it doesn't show the underlying error [Platform behaviour, traced]; whether amend, renew or cancel with Order output
-fail the same way on that org was not tried. Don't treat a Skip success as proof the order priced.
+not clear it there, so adding the custom `__c` mappings above is not always enough.
+On that org, bisection found the cause (no mechanism measured) [Measured: 2026-11-12, 264, scratch; one org].
+An Apex query of the procedure's declared context tags on the Order lens failed with "Invalid tag attribute
+name key" for one stock tag that had no attribute row on the Order lens (the Quote lens passed). Adding an
+Order-lens attribute row with no source field cleared it: a Place reprice with Force and an
+Order-output amend then succeeded (System pricing, renew and cancel with Order output were not rerun after the fix), and removing the row brought the tag-query failure back. The generic
+message hides this because most failures in the procedure's context-tag query are replaced by it
+[Platform behaviour, traced]. Check: query the declared tags on the Order lens (halve the set to find the
+offender) and add a field-less attribute row for each tag that has a Quote-lens row but no Order-lens row
+[inferred from the one tag found]. One other declared tag with no row on either lens passed on
+that org, so don't add rows for every declared tag.
+Don't treat a Skip success as proof the order priced.
 
 Gotchas, all measured:
 
 - **Renew an expired asset:** pass a start date. Without one: *"Select Override Renewal Term to
   renew expired or future-dated assets"*. A past start date is accepted, although the dev guide
   says "today's date or a future date".
-- **Asset quantity:** read `Asset.CurrentQuantity`. `Asset.Quantity` stays null on these assets.
+- **Asset quantity:** read `Asset.CurrentQuantity`. `Asset.Quantity` stays null on these assets. After an Evergreen bundle-component reduction `CurrentQuantity` still read the old quantity after activation (read twice; unexplained, one org), so also read the `AssetStatePeriod` covering the date; see asset-lifecycle-changes Quick Rule 6.
 - **Swap/upgrade/downgrade incoming line** (`inGroup.records[]`, a `QuoteLineItem` POST): give it
   `Product2Id`, `PricebookEntryId`, `UnitPrice`, `Quantity`, `StartDate` (the effective date) and
   `EndDate` (co-term with the outgoing asset's `LifecycleEndDate`). Without `EndDate`: *"Specify

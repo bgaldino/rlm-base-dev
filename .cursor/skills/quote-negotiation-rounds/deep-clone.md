@@ -107,8 +107,13 @@ Connect API [Measured: 2026-11-12, 264]:
 | `RLM_Payment_Terms__c` | Same as the source, but every source held `Net 30`, the picklist default, so this run doesn't show whether it copies |
 | Line `Discount` and a custom line field mapped in the context definition | Copied on every line |
 
+A Connect deep clone of a configurable-bundle quote whose component quantities come from root
+attribute answers carried every component line, its quantity, its line `Discount`, a mapped
+custom line field and the root answers, on three clones [Measured: 2026-11-12, 264, scratch; one org].
+Static and nested bundles were not measured.
+
 Not measured: price adjustments other than the line `Discount` field (the source had no
-`QuoteLinePriceAdjustment` rows), bundles, ramp segments, header discounts, custom child
+`QuoteLinePriceAdjustment` rows), ramp segments, header discounts, custom child
 objects, orders. `RLM_Payment_Terms__c` copied on the 2026-11-10 org although no context plan
 maps it in this repo (one field copied, unexplained by the repo's plans); the org's active
 definition was not read, so a mapping there is the first thing to check. On the second org

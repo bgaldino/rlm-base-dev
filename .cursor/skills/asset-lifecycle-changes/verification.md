@@ -20,7 +20,7 @@ For each change, record the state after every step:
    the measured runs. On a No Change line, `Skip` refused a non-zero quantity ("Specify 0 in
    Quantity...") and `Force` accepted it, turning the line's `QuoteAction.Type` to Amend, even
    at quantity 0 [Measured: 2026-11-12, 264, scratch; one standalone asset, single-line quotes,
-   System pricing]; read every line's `QuoteAction.Type` back (SKILL.md Quick Rule 7). Then read:
+   System pricing]. On an incomplete test bundle `Skip` plus a `QuoteAction` edit was ordered while `Force` was refused by a validation log (SKILL.md Quick Rule 7), so check rules and bundle validation separately when you use `Skip`. On a bundle amendment quote `Force` on one component also turned other lines to Amend (the root each time, the other component in one of two runs) [Measured: 2026-11-12, 264, scratch, one org]; `Skip` plus a `QuoteAction` Amend edit turned only the edited line; read every line's `QuoteAction.Type` back (SKILL.md Quick Rule 7). Then read:
     - each line's `Quantity`, `UnitPrice` and `TotalPrice`. On an amendment quote
       `Quantity` is the delta, and `StartQuantity` and `EndQuantity` the totals before and
       after. A line's source asset is on `QuoteAction.SourceAssetId`; `QuoteLineItem` has
@@ -44,7 +44,7 @@ For each change, record the state after every step:
    gives an order dated today, and a past start gives an order dated at the earliest start.
    For a dated replay set the line start dates (in the past to backdate) before creating
    the order [Measured: 2026-11-12, 264, a 2027-01-01 start gave an order dated the run
-   date] [Platform behaviour, traced]. Lines with no start date are ignored. This is the standard advanced quote-to-order path only; industry processors and time-zone conversion weren't checked (`quote-negotiation-rounds` has the order-creation detail). Whether each
+   date] [Platform behaviour, traced]. Lines with no start date are ignored. Writing the order's own `EffectiveDate` to a future date on the Draft order before activation was accepted, and the order activated with schedules starting on each line's start date [Measured: 2026-11-12, 264, scratch, one org]; whether billing differs without that write wasn't tested. This is the standard advanced quote-to-order path only; industry processors and time-zone conversion weren't checked (`quote-negotiation-rounds` has the order-creation detail). Whether each
    order of a split gets its own minimum, and where the order item's service date comes
    from on amendment lines, wasn't established: read each created order back [Platform
    behaviour, traced in part].
@@ -140,13 +140,11 @@ the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
   line, or a swap of the component asset. A price amendment on a component's line, a plan
   held as a root answer, and a partial move under a one-plan group are measured (above;
   [change-policy-mapping.md](change-policy-mapping.md)).
-- **Evergreen reductions and swaps:** what an amendment with `quantityChange` < 0, or a
-  swap's outgoing side, credits on an evergreen line. Reductions priced on quotes that weren't
-  ordered; the only evergreen credit measured through activation is a cancellation's (above).
-- **Renewing a standalone evergreen asset.** Help rules out uplift and end-date changes for
-  evergreen assets but doesn't say what the renewal quote does to the line
-  ([change-policy-mapping.md](change-policy-mapping.md)). In a bundle renewal the evergreen
-  component was a "No Change" line at quantity 0 (above).
+- **Evergreen component removal to 0, and a Force-edited reduction through to an order:** only `Skip` plus a `QuoteAction` edit was ordered; the `Force` quote was refused because the test bundle lacked a required child, a test-setup gap; whether `Force` orders on a complete bundle is unmeasured.
+- **Evergreen swaps:** what a swap's outgoing side credits on an evergreen line. Evergreen
+  reductions (standalone, and a one-lot bundle component) and the renewal of a standalone
+  evergreen asset are measured: SKILL.md Quick Rules 5 and 6, and
+  [change-policy-mapping.md](change-policy-mapping.md).
 - **An earlier-dated change against a future-dated one:** the amend and cancel articles
   say it's refused, while *Future-Dated Changes* and its examples allow it
   ([change-policy-mapping.md](change-policy-mapping.md) → Replay the source's changes in
