@@ -165,7 +165,8 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
 - How to tell a round's bulk line discount from an individual line override. No documented
   field or flag records which edit set a line's discount, and the repo ships none. A mapped line
   field written with the discount by an API applier survived a deep clone, and a header custom
-  field reset on it ([matrix-modeling.md](matrix-modeling.md)); whether such a marker stays
+  field reset on it [Measured: 2026-11-12, 264, scratch, one org]
+  ([matrix-modeling.md](matrix-modeling.md)); whether such a marker stays
   accurate after a rep's later edit, or when set by a bulk edit or a flow, is unmeasured. Also unmeasured: whether a discount entered on a group row stays
   on the group's `Discount` field or is written to each line's `Discount`, which the shipped
   level bands.

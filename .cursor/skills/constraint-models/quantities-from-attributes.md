@@ -2,7 +2,7 @@
 
 Sub-file of the [constraint-models skill](SKILL.md). Read it when a constraint model has to
 set component quantities from answers on the bundle, for example one badge per seat,
-kiosks per 25 seats rounded up, or service hours computed from other quantities.
+two kiosks per 25 seats rounded up, or service hours computed from other quantities.
 
 The parent skill covers file layout, wiring, deployment and the headless `configure`
 check. This file covers only the CML that sizes a bundle and how to test it.
@@ -105,7 +105,7 @@ Where the dev guide and the org disagree, this file follows the org and says so.
 | Count the instances in a relation | `cardinality()` or `count(<condition>)` | `cardinality()` includes the quantity of every instance of that type `[Dev guide: cml_using_proxy_variables_constraints]` |
 
 `relation[Type] == n` sets a **quantity**. The dev guide's `count()` example satisfies
-`supports[SupportPlan] == 2` by adding one support product with quantity 2, not two
+`warranties[Warranty] == 2` by adding one warranty product with quantity 2, not two
 products `[Dev guide: cml_relationship_variable_functions]`. The org did the same `[Measured: M14]`.
 A line already on the quote can change that; see
 [One line per component](#one-line-per-component-split--false).
@@ -154,7 +154,7 @@ maximum, so it reuses the line. With `split = true` each unit is its own line
 line `[Platform behaviour, traced]`.
 
 Put the annotation on each leaf type that is a sized component (in the worked example,
-every type but the abstract `SupportPlan`). Leave it off a type whose lines must carry
+every type but the abstract `Finish`). Leave it off a type whose lines must carry
 different attribute values: `split = false` allows only one instance
 `[Dev guide: cml_annotation_example_split]`. Each root
 solves separately, so in a group ramp a single-line type gets one line per segment
@@ -202,7 +202,7 @@ PCM attribute imported into CML takes the attribute's developer name as its vari
 | Per N, rounded up | `constraint(kioskQty * 25 >= 2 * seats && (kioskQty - 1) * 25 < 2 * seats, "<message>");` | See [Rounding up](#rounding-up) |
 | Zero unless a choice is made | `constraint(mounting != "Floor" -> standQty == 0, "<message>");` | `[Dev guide: cml_logical_constraints]` |
 | One per answer unit, only if the rep adds it | `relation banners : BannerKit[0..200];` with `constraint(banners[BannerKit] > 0 -> banners[BannerKit] == seats, "<message>");` | `[Dev guide: cml_annotation_example_sequence]` (Examples 4 and 5). See the note below the table |
-| Equal to another component's quantity | `constraint(stands[FloorStand] == 2 * kiosks[Kiosk], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead (see [Chained derivations](#chained-derivations)) |
+| Equal to another component's quantity | `constraint(stands[FloorStand] == kiosks[Kiosk], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead (see [Chained derivations](#chained-derivations)) |
 | A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
 
 The "only if the rep adds it" row takes the dev guide's form
@@ -343,12 +343,12 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
 | Tool | Behaviour | Source |
 |---|---|---|
 | Relation cardinality `[1..1]` over a base type with subtypes | Bounds the relation; a subtype is then picked with `rel[Subtype] == 1` | `[Dev guide: cml_relationships]` (*skipTypeGeneration* example) |
-| A sum of subtype cardinalities | `constraint(supports[EmailSupport] + supports[PhoneSupport] + supports[OnSiteSupport] == 1, "<message>");`, which carries a message a test can assert | `[Dev guide: cml_core_concept_examples]` (adds two cardinalities) |
+| A sum of subtype cardinalities | `constraint(finishes[MatteFinish] + finishes[GlossFinish] + finishes[SatinFinish] == 1, "<message>");`, which carries a message a test can assert | `[Dev guide: cml_core_concept_examples]` (adds two cardinalities) |
 | Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Limits **unique instances** chosen from the group. The chosen component can still have a high quantity. The solver counts lines: a line of quantity N counts 1 for a `split = false` type and N for `split = true` | `[Dev guide: cml_group_type]` `[Platform behaviour, traced]` |
 
 Tie the choice to an answer with one implication per subtype, as in the dev guide's
-support-plan example, each with its own message:
-`constraint(support != "Phone" -> supports[PhoneSupport] == 0, "<message>");`
+warranty example, each with its own message (here with this file's finish example):
+`constraint(finish != "Gloss" -> finishes[GlossFinish] == 0, "<message>");`
 `[Dev guide: cml_logical_constraints]`.
 
 This picks one option for the whole bundle. It can't express a mixed split, with some seats
@@ -635,7 +635,7 @@ A review note for a combination that is allowed but unusual is an `Info` message
 
 ```
 message(kioskQty > 12,
-        "Review: {} kiosks for this booth. Consider splitting the order by hall.",
+        "Review: {} kiosks for this booth. Consider splitting the order.",
         kioskQty, "Info");
 ```
 
@@ -751,7 +751,7 @@ by two numeric answers on the root product, plus two choices:
 
 | Component | Quantity rule |
 |---|---|
-| Support plan | exactly one of Email, Phone or OnSite, by answer |
+| Finish | exactly one of Matte, Gloss or Satin, by answer |
 | Badge | one per seat |
 | Kiosk | two per 25 seats, rounded up |
 | Floor stand | two per kiosk when mounting is Floor; otherwise 0 |
@@ -767,7 +767,7 @@ type BoothKit : LineItem {
     int seats = [1..200];
     int areas = [0..10];
     string mounting = ["Floor", "Counter"];
-    string support = ["Email", "Phone", "OnSite"];
+    string finish = ["Matte", "Gloss", "Satin"];
 
     // Derived values: explicit, smallest domains; set only by constraints
     int kioskQty = [1..16];
@@ -776,7 +776,7 @@ type BoothKit : LineItem {
     int setupHours = [8..48];
     int trainHours = [2..12];
 
-    relation supports : SupportPlan[1..1];
+    relation finishes : Finish[1..1];
     relation badges : Badge[1..200];
     relation kiosks : Kiosk[1..16];
     relation stands : FloorStand[0..32];
@@ -784,11 +784,11 @@ type BoothKit : LineItem {
     relation setup : SetupService[8..48];
     relation training : TrainingService[2..12];
 
-    // Exactly one support plan, chosen by the answer
-    constraint(support != "Email" -> supports[EmailSupport] == 0, "Email support needs the Email answer.");
-    constraint(support != "Phone" -> supports[PhoneSupport] == 0, "Phone support needs the Phone answer.");
-    constraint(support != "OnSite" -> supports[OnSiteSupport] == 0, "OnSite support needs the OnSite answer.");
-    constraint(supports[EmailSupport] + supports[PhoneSupport] + supports[OnSiteSupport] == 1, "Choose exactly one support plan.");
+    // Exactly one finish, chosen by the answer
+    constraint(finish != "Matte" -> finishes[MatteFinish] == 0, "Matte finish needs the Matte answer.");
+    constraint(finish != "Gloss" -> finishes[GlossFinish] == 0, "Gloss finish needs the Gloss answer.");
+    constraint(finish != "Satin" -> finishes[SatinFinish] == 0, "Satin finish needs the Satin answer.");
+    constraint(finishes[MatteFinish] + finishes[GlossFinish] + finishes[SatinFinish] == 1, "Choose exactly one finish.");
 
     // One per seat
     constraint(badges[Badge] == seats, "One badge per seat: expected {}.", seats);
@@ -816,7 +816,7 @@ type BoothKit : LineItem {
 
     // Non-blocking review note, triggered by a derived value
     message(kioskQty > 12,
-            "Review: {} kiosks for this booth. Consider splitting the order by hall.",
+            "Review: {} kiosks for this booth. Consider splitting the order.",
             kioskQty, "Info");
 }
 
@@ -833,13 +833,13 @@ type Signage : LineItem;
 type SetupService : LineItem;
 @(split = false)
 type TrainingService : LineItem;
-type SupportPlan : LineItem;
+type Finish : LineItem;
 @(split = false)
-type EmailSupport : SupportPlan;
+type MatteFinish : Finish;
 @(split = false)
-type PhoneSupport : SupportPlan;
+type GlossFinish : Finish;
 @(split = false)
-type OnSiteSupport : SupportPlan;
+type SatinFinish : Finish;
 ```
 
 Notes on the model:
@@ -862,13 +862,13 @@ Notes on the model:
 
 Expected quantities (hand-computed from the rules above; the whole model has not been run):
 
-| Answers | Badge | Kiosk | Floor stand | Signage | Setup h | Training h | Support | Review note |
+| Answers | Badge | Kiosk | Floor stand | Signage | Setup h | Training h | Finish | Review note |
 |---|---|---|---|---|---|---|---|---|
-| 60 seats, 3 areas, Floor, Email | 60 | 5 (4.8, next whole number) | 10 | 4 | 19 (10 + 3 + 6) | 5 (19 × 25% = 4.75) | Email 1, others 0 | no |
-| 100 seats, 0 areas, Counter, Phone | 100 | 8 (exact multiple) | 0 (Counter) | 1 | 22 (16 + 0 + 6) | 6 (22 × 25% = 5.5) | Phone 1, others 0 | no |
-| 101 seats, 10 areas, Floor, OnSite | 101 | 9 (one past a multiple) | 18 | 11 | 34 (18 + 10 + 6) | 9 (34 × 25% = 8.5) | OnSite 1, others 0 | no |
-| 200 seats, 10 areas, Floor, OnSite | 200 | 16 (exact, the maximum) | 32 | 11 | 48 (32 + 10 + 6) | 12 (48 × 25% = 12, exact) | OnSite 1, others 0 | **yes, Info** (16 kiosks) |
-| 1 seat, 0 areas, Counter, Email | 1 | 1 | 0 (Counter) | 1 | 8 (2 + 0 + 6) | 2 (8 × 25% = 2, exact) | Email 1, others 0 | no |
+| 60 seats, 3 areas, Floor, Matte | 60 | 5 (4.8, next whole number) | 10 | 4 | 19 (10 + 3 + 6) | 5 (19 × 25% = 4.75) | Matte 1, others 0 | no |
+| 100 seats, 0 areas, Counter, Gloss | 100 | 8 (exact multiple) | 0 (Counter) | 1 | 22 (16 + 0 + 6) | 6 (22 × 25% = 5.5) | Gloss 1, others 0 | no |
+| 101 seats, 10 areas, Floor, Satin | 101 | 9 (one past a multiple) | 18 | 11 | 34 (18 + 10 + 6) | 9 (34 × 25% = 8.5) | Satin 1, others 0 | no |
+| 200 seats, 10 areas, Floor, Satin | 200 | 16 (exact, the maximum) | 32 | 11 | 48 (32 + 10 + 6) | 12 (48 × 25% = 12, exact) | Satin 1, others 0 | **yes, Info** (16 kiosks) |
+| 1 seat, 0 areas, Counter, Matte | 1 | 1 | 0 (Counter) | 1 | 8 (2 + 0 + 6) | 2 (8 × 25% = 2, exact) | Matte 1, others 0 | no |
 
 Rejections to assert by message. Where a state breaks more than one rule, accept any of
 those rules' messages and no other:
@@ -876,7 +876,7 @@ those rules' messages and no other:
 | Submit | Expect one of |
 |---|---|
 | 40 seats, Floor, stand line set to 2 by hand | `Floor stands: expected 8.`, `Floor stands: two per kiosk when mounting is Floor.` |
-| Email answer, Email and Phone support both on the bundle | `Choose exactly one support plan.`, `Phone support needs the Phone answer.` |
+| Matte answer, Matte and Gloss finishes both on the bundle | `Choose exactly one finish.`, `Gloss finish needs the Gloss answer.` |
 | 10 seats, badge line set to 9 by hand | `One badge per seat: expected 10.` |
 
 The "by hand" rows are rejected only because every component type is `@(split = false)`;
@@ -884,7 +884,7 @@ without it the edit would split the line instead
 ([One line per component](#one-line-per-component-split--false)). Read each message as in
 [Reading a result](#reading-a-result).
 
-If the `supports` relation's `[1..1]` bound rejects two support plans first (an
+If the `finishes` relation's `[1..1]` bound rejects two finishes first (an
 [open item](#open-items)), the message assertion catches it. Then either drop the bound to
 `[0..1]` or add the bound's message to the accepted set.
 
@@ -986,7 +986,7 @@ Each needs a live 264 org:
    later `configure` returned `solverStatus: "success"` (M29), and which rejections do
    that. (Elsewhere the message was in `configure`'s `messages` at type `error`, with
    `errors: []`.)
-8. Whether the `supports` relation's `[1..1]` bound rejects two support plans first, with a
+8. Whether the `finishes` relation's `[1..1]` bound rejects two finishes first, with a
    different message or none. (One state that broke two rules reported one message, M33;
    a hand-set quantity split the line or, with `@(split = false)`, was rejected, M22 and
    M23.)
@@ -1008,14 +1008,15 @@ Each needs a live 264 org:
     Order-type amendments, renewals and cancellations weren't run for node status.
 13. How to model a mixed per-seat mount split, which
     [Exactly one of a choice group](#exactly-one-of-a-choice-group) can't express.
-    Candidates, neither in the dev guide: an answer per mount type (a seat count each,
+    Two candidates, neither in the dev guide: an answer per mount type (a seat count each,
     constrained to sum to `seats`, each driving its mount type's cardinality), or per-seat child
     instances that each carry a mount type. Trade-offs:
     - *Top-level route* (run): the options as top-level lines, sized outside the configurator
       and checked on a virtual container
       ([Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)).
       The configurator no longer owns the sizing, top-level assets have to be carried on root
-      amendments, and a quote without the bundle is left unchecked.
+      amendments, and a quote without the bundle is left unchecked [Measured: 2026-11-12, 264,
+      scratch, one org].
     - *Answer-per-option route* (not run): keeps the sizing rules in the model, so the
       configurator owns them. Whether the sum constraint and the per-option cardinalities hold
       together is untested.
