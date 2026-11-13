@@ -131,8 +131,37 @@ introduce a blanket extra approval for ordinary configuration updates.
 - **PONR:** a bundle reaching Point of No Return restricts its changes; inspect
   scope. The submission action documents an override, but it is never an automatic
   workaround for an invalid change.
+- **PONR flag placement:** the flag set on a step definition was copied onto the step at
+  plan creation, on a Pending dependent step as well as an In Progress one, so it is not
+  set when the step starts or completes [Measured: 2026-11-13, 264, scratch, one org].
+  Two amendments placed through the plain amend route, one with the flag set, were both
+  accepted, so that route does not show enforcement. Which order items a PONR covers
+  (the whole bundle or that line) and whether the supplemental route enforces it were not
+  run; test them there before promising either.
 - **Order-wide scenarios:** Help documents different post-submission modification
   limits from product/classification scenarios; do not assume every change applies.
+
+## Measured Runtime Behaviour
+
+Each item is one scratch org, 264, 2026-11-13 [Measured: 2026-11-13, 264, scratch, one org].
+
+- **Future-dated steps (setting on).** A step delayed from the previous step's execution
+  by two minutes waited, then started. A step waiting on a scheduled date still waited for
+  its dependencies. A step with an offset from the source line's start date did not wait,
+  even with a future service date and an order dated a month out; the cause is not
+  known, and Help doesn't settle it. Don't promise a start-date offset without a live
+  check.
+- **Amendment decomposition.** An amendment created a new plan holding the full step set,
+  not a delta: unchanged lines decomposed with cancel and add, and a changed quantity was
+  a full replace. A fulfillment asset's quantity after the amendment did not match the line
+  quantity in one case, and an account-scoped asset showed another quantity; both are
+  unexplained.
+- **Fallout and jeopardy rules** match on step type, with an optional integration
+  definition, flow definition and error code. A step's jeopardy threshold was null on
+  manual steps, and a failed callout step (credential missing) showed zero retries
+  although a retry rule exists; both unexplained. A rule existing doesn't show it applied: verify on a live
+  step. The decision-table freshness link for these rules was not tested.
+- **Not run:** a dependency across order items.
 
 ## Update Acceptance Scenarios
 

@@ -29,6 +29,17 @@ selected sales/asset context and node bindings, optional in-flight amendments,
 future-dated steps, fallout and SLA. Do not enable optional features unrelated
 to the request. Read the corresponding Help article before changing a setting.
 
+Settings checklist (copy, mark each on, off or n/a for the target):
+
+- [ ] Dynamic Revenue Orchestrator on [Help: ind.dro_turn_on_dynamic_revenue_orchestrator]
+- [ ] Fulfillment user set; holds Assetize Order and Submit Transaction User or DRO Admin User [Help: ind.dro_add_a_fulfillment_user]
+- [ ] In-Flight Amendments, only if amend or cancel of active plans is in scope [Help: ind.dro_enable_in_flight_amendments]
+- [ ] Future-Dated Steps, only if a step has an execution schedule [Help: ind.dro_turn_on_future_dated_steps]
+- [ ] Fallout and SLA features, only if fallout, retries or jeopardy are in scope [Help: ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements]
+- [ ] Time-awareness, only after the migration it names and for backdated or future-dated changes [Help: ind.dro_time_aware_fulfillment_enable]
+- [ ] Rule library named `DRORuleLibrary` for the default usage type [Help: ind.dro_orchestrate_a_business_process]
+- [ ] Selected sales or asset context and node bindings: the snapshot names no setting for these, so read them in the target (not a Help-grounded item)
+
 Discover product/classification matches, technical-product activation, attributes,
 active flows/providers, credential access, users/queues, scenarios and workspace
 membership. Query existing requests/plans when updating configuration. An empty

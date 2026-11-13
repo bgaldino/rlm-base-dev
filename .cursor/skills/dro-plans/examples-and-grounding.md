@@ -66,26 +66,52 @@ follow the evidence report below for each target.
 
 ### Live QuantumBit Bundle Smoke
 
-A separate API 68.0 smoke test verified this decomposition pattern against a
-target org. An isolated Add scenario on the commercial service bundle was composed
+[Measured: smoke, API 68.0, one org, run date not recorded (the file's first
+commit is 2026-10-15), release and org type not recorded] A separate smoke test
+verified this decomposition pattern against a target org. An isolated Add scenario on the commercial service bundle was composed
 alongside the existing scenarios on its two technical destinations. The transaction
 harness expanded the configurable bundle into commercial `OrderItem` components;
 after activation, DRO generated two technical `FulfillmentOrderLineItem` records.
 Their `OrderItemId` values were null, while `FulfillmentLineSourceRel` linked each
-back to the source bundle line. This confirms why commercial bundle expansion and
-DRO technical decomposition must be inspected separately.
+back to the source bundle line. Inspect commercial bundle expansion and DRO technical
+decomposition separately, because only the commercial lines carried an order item.
 
 The composed plan contained eight steps, including the two new bundle-level
 milestones and the existing project and finance work. Runtime dependency records
 linked each configured dependent step to its intended predecessor. DRO reported
 decomposition and composition complete, and the harness completed its activation,
-billing-schedule, and asset checkpoints. The plan remained InProgress because
-the two added milestones auto-completed but existing manual and billing steps
-remained open. This verifies configuration, composition, and order activation in
+billing-schedule, and asset checkpoints while the plan stayed InProgress. The two
+added milestones auto-completed, and existing manual and billing steps remained
+open. This verifies configuration, composition, and order activation in
 that target; it does not verify end-to-end fulfillment, repeat-load idempotency,
 or portability to another org. The temporary dataset was loaded directly through
 SFDMU after simulation because no CCI alias was available; CCI-only preprocessing
 such as dynamic assignee replacement was not exercised.
+
+Open contradiction: the captured Help article for the order orchestration template
+says users complete manual tasks and milestones in the plan, whereas the smoke saw
+milestones complete without a user. The smoke is the only measurement and one org;
+do not model a human acceptance as a Milestone on this evidence. Confirm on a live
+target, and treat a person's sign-off as a manual task unless a run shows otherwise
+[inferred]. Activation, billing schedules and assets completing before the plan
+finished means the installed base and billing start at activation, not at a step.
+
+#### Recheck
+
+[Measured: 2026-11-13, 264, scratch, one org] A repeat on a fresh scratch org, run
+through order creation and activation by API:
+
+- Assets and billing schedules were created at activation, before any step ran. A
+  Milestone step with no unmet dependency completed within about a second with nobody
+  acting; a Milestone behind an incomplete predecessor stayed Pending. Manual steps
+  waited for a user and the plan stayed InProgress. That matches the smoke and still
+  contradicts Help's wording.
+- Technical fulfillment lines had a null `OrderItemId`, each linked to its source line
+  by `FulfillmentLineSourceRel`.
+- A Callout step whose named credential was missing went FatallyFailed and blocked every
+  dependent step; the plan stayed InProgress. Check credentials before a smoke.
+- Activating the order failed until it had a bill-to contact and a shipping address;
+  order creation from a quote filled the billing address but not the contact.
 
 ## Checks When Using the Examples
 
@@ -126,6 +152,16 @@ the active release from `.claude/skill-manifest.yml` (`salesforce_release_active
 | Freeze/unfreeze | [Freeze action](../../../docs/salesforce/264/dev-guide/articles/actions_obj_freeze_sales_transaction.htm.md), [unfreeze action](../../../docs/salesforce/264/dev-guide/articles/actions_obj_unfreeze_sales_transaction.htm.md) |
 | Compensation, PONR and Frozen requirements | [In-flight considerations](../../../docs/salesforce/264/help/articles/ind.dro_considerations_for_changing_in_flight_orders.htm.md), [step settings](../../../docs/salesforce/264/help/articles/ind.dro_configure_inflight_plan_settings.htm.md) |
 | Runtime monitoring, completion and retry | [Plan actions](../../../docs/salesforce/264/help/articles/ind.dro_fulfillment_plan_actions_and_information.htm.md) |
+| Future-dated step execution | [Steps for future execution](../../../docs/salesforce/264/help/articles/ind.dro_configure_steps_for_future_execution.htm.md), [turn on future-dated steps](../../../docs/salesforce/264/help/articles/ind.dro_turn_on_future_dated_steps.htm.md) |
+| Point-of-no-return state propagation | [PONR state propagation](../../../docs/salesforce/264/help/articles/ind.dro_point_of_no_return_state_propagation.htm.md) |
+| Jeopardy and SLA | [Jeopardy rules](../../../docs/salesforce/264/help/articles/ind.dro_configure_fulfillment_step_jeopardy_rules.htm.md), [SLA jeopardy administration](../../../docs/salesforce/264/help/articles/ind.dro_sla_jeopardy_administration.htm.md) |
+| Retries and fallout | [Step retries](../../../docs/salesforce/264/help/articles/ind.dro_configure_fulfillment_step_retries.htm.md), [fallout rules](../../../docs/salesforce/264/help/articles/ind.dro_configure_fallout_rules.htm.md), [fallout design](../../../docs/salesforce/264/help/articles/ind.dro_fallout_design_and_management.htm.md) |
+| Scenario actions and in-flight order changes | [Configure scenarios](../../../docs/salesforce/264/help/articles/ind.dro_configure_scenarios_for_a_fulfillment_step_definition_group.htm.md), [how in-flight changes decompose](../../../docs/salesforce/264/help/articles/ind.dro_how_in_flight_order_changes_decompose.htm.md) |
+| Time-awareness | [Turn on time-awareness](../../../docs/salesforce/264/help/articles/ind.dro_time_aware_fulfillment_enable.htm.md) |
+| Backdated changes | [Backdated changes](../../../docs/salesforce/264/help/articles/ind.dro_considerations_for_backdated_changes_in_dynamic_revenue_orchestrator.htm.md) |
+| Limits | [DRO limits](../../../docs/salesforce/264/help/articles/ind.dro_dynamic_revenue_orchestrator_limits.htm.md) |
+| Orchestration template | [Order orchestration template](../../../docs/salesforce/264/help/articles/ind.dro_hi_tech_order_orchestration_template.htm.md) (says users complete milestones; see the open contradiction above) |
+| Fulfillment step types | Capture gap: the snapshot only links the step-types article (from [Define a step](../../../docs/salesforce/264/help/articles/ind.dro_define_a_fulfillment_step.htm.md)); use the target's picklist |
 
 ## Evidence Report
 
