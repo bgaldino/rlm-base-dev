@@ -99,8 +99,8 @@ configuration answers, the unchanged answers through two answer changes in a row
 minimum and maximum, every option the source allows that its worked examples don't
 use, and a check for anything the source marks internal-only (for example a round
 that must never be presented). Billing cases cover every order the plan creates (the
-new sale, each amendment, cancellation and renewal), not only the first. The one measured
-invoice route invoiced through today, sending only schedules due by then (`rlm-business-apis` →
+new sale, each amendment, cancellation and renewal), not only the first. The measured
+invoice routes invoiced through today, sending only schedules due by then (`rlm-business-apis` →
 `backdated-asset-lifecycle.md`, Billing); invoicing to a future date isn't covered. So on a
 future-dated replay, check billing at schedule level, and say which invoice values wait
 for the replay-dates decision ([SKILL.md](SKILL.md), dated replay). For a

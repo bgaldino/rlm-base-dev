@@ -157,8 +157,9 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     also checks the procedure's declared tags on the Order lens: a declared tag with a
     Quote-lens row and no Order-lens row failed an Order-output action, and a field-less
     Order-lens row cleared it (a tag with no row on either lens passed; one org, cause not
-    traced). A field-less row leaves the value empty on Order output, so map a real
-    `OrderItem` field for a tag whose value the procedure reads (`pricing-procedures` →
+    traced). A field-less row leaves the value empty on Order output, so for a tag whose
+    value the procedure reads, map a real field on the Order-lens object (`Order` for a
+    header tag, `OrderItem` for a line tag) (`pricing-procedures` →
     `operations-and-troubleshooting.md`; `context-service` → `authoring-and-lifecycle.md`).
 13. **Assert a refusal where its message appears, and on each path decide whether it
     appears at all.** Place returned success for a configuration it then logged as an
