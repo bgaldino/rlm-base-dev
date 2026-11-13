@@ -148,11 +148,12 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
 - Whether a roll-up summary or Percent condition passes the Smart Approvals type check
   [inferred: the flow resolves it to Number or Currency; not verified].
 - Whether `ApprovalDelegation` appears once delegation is turned on.
-- `ActionInput__CanUseSmartApproval`; the docs don't name the input. With it `false` on
+- Whether `ActionInput__CanUseSmartApproval` is the Use Smart Approval setting; the docs don't
+  name the input. With it `false` on
   every step, a resubmission after a rejection at the second step (the first approved)
   opened a new first-step work item, `Assigned`, `IsEligibleForSmartApproval` false
   [Measured: 2026-11-12, 264], as expected if it is the Use Smart Approval setting. With it
-  `true` (the shipped flow), resubmissions auto-approved the steps whose range still held
+  `true` (as the shipped steps set it), resubmissions auto-approved the steps whose range still held
   [Measured: 2026-11-12, 264, scratch]; the Approval Settings page was not read.
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.

@@ -207,9 +207,13 @@ where each level is computed:
   [Help: `ind.approvals_smart_or_rule_based_approvals`]; eligibility rules are in
   [limitations.md](limitations.md). All four shipped steps pass
   `ActionInput__CanUseSmartApproval = true` [Repo: `unpackaged/post_approvals/flows/RLM_Quote_Smart_Approval.flow-meta.xml`].
-    - With level conditions (`Level >= N`), a value that moved within its band still meets
-      them, so that step is skipped. The Help example skips two approvers whose ranges were
-      still met and routes only to the third [Help: `ind.approvals_smart_approvals`]. A
+    - With level conditions (`Level >= N`), a step is skipped only when the new level is equal
+      to or lower than the approved one; a higher level that still meets a `>` or `>=`
+      condition goes to review [Measured: 2026-11-12, 264, scratch; Number conditions]. That
+      narrows the Help's "conditions still met" (direction rule: [limitations.md](limitations.md)
+      → Smart Approvals). The Help example skips two approvers whose ranges were still met and
+      routes only to the third [Help: `ind.approvals_smart_approvals`; narrowed by the
+      measurement above]. A
       re-review that depends on how much a value changed is Rule-Based Auto-Approvals
       [Help: `ind.approvals_smart_or_rule_based_approvals`].
     - A source that says "a resubmission restarts the chain" wants every approver to review

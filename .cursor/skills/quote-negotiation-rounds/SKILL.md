@@ -147,7 +147,10 @@ ships). Reprice each round before submitting it.
   measured clone and its source were both in progress at once [Measured: 2026-11-10, 264].
 - **Resubmission vs Smart Approvals.** Smart Approvals compares a resubmission with the
   *previous submission* and skips steps whose conditions still hold
-  [Help: `ind.approvals_smart_approvals`]. It is turned on per approval step, Use Smart
+  [Help: `ind.approvals_smart_approvals`]; measured, a step is skipped only when the new value
+  is no further past the limit than the approved one, so a higher level still meeting a `>`
+  condition goes to review (direction rule: `advanced-approvals` → `limitations.md` → Smart
+  Approvals) [Measured: 2026-11-12, 264, scratch]. It is turned on per approval step, Use Smart
   Approval [Help: `ind.approvals_turn_on_smart_approvals`]; the repo's four steps set
   `CanUseSmartApproval` [Repo: `unpackaged/post_approvals/flows/RLM_Quote_Smart_Approval.flow-meta.xml`].
   Its eligibility rules (earlier submission Rejected or Recalled, reached at least 2 steps,

@@ -210,7 +210,9 @@ items:
   InvalidDraft) latest version overwrites it in place and one over an Active or Obsolete
   latest version creates a new one; a versioned name uses a separate path (not traced to a
   rule); a change set always creates a new version; a deploy requesting
-  Active over a non-Active latest version counts as changed [Platform behaviour, traced]. Deploying an
+  Active over a non-Active latest version counts as changed [Platform behaviour, traced]. A
+  status-only change to Draft over an Active flow did not count as a change in the measured run
+  (cause not traced) [Measured: 2026-11-12, 264, scratch]. Deploying an
   approval flow as Active in a production org needs the org setting that lets flows deploy
   as active (the repo's Apex test skip messages call it Deploy-as-active); a non-production org allows it regardless. Without it,
   deploy as Draft and activate separately [Platform behaviour, traced; production gating is

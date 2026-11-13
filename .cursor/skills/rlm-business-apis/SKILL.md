@@ -64,10 +64,10 @@ Key endpoints (see the reference doc for exact request shapes):
 
 **Place PATCH request shape.** A graph with no `Quote` record is refused ("No quote found in the
 record list"), so include the Quote record (a PATCH on it) alongside the line PATCHes. Sending
-`executeConfigurationRules` directly inside `configurationPref` (rather than under
-`configurationOptions`, where the repo's rules-on requests carry it) was rejected by the request
-parser (a JSON parser error, nothing written); those PATCHes ran with `configurationMethod`
-only, so this says nothing about rules-on requests that use the other nesting
+`executeConfigurationRules` in `configurationPref`, as these requests did (the requests were not
+kept; the documented place is under `configurationOptions`), was rejected by the request parser
+(a JSON parser error, nothing written); those PATCHes ran with `configurationMethod` only, so
+this says nothing about rules-on requests that use the other nesting
 [Measured: 2026-11-12, 264, scratch].
 
 **Line discounts in a Place PATCH.** Measured on 264 scratch orgs (2026-11-12) whose pricing
@@ -101,7 +101,7 @@ procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pr
   `SubscriptionTerm` null, the unit filled from the selling model, and the term count taken from
   the dates [Measured: 2026-11-12, 264, scratch]. A dates-only PATCH on an existing line (one
   measurement) left `SubscriptionTerm` at its old value (stale), while the pricing term count
-  followed the new dates and the total repriced from them.
+  followed the new dates and the total repriced from them [Measured: 2026-11-12, 264, scratch].
 - **Milestone Plan on bundle components.** Place with `configurationMethod: Force` and
   configuration rules on left `BillingFrequency` blank on component service lines (`billing-setup` → M11). A second Place PATCH
   with `configurationMethod: Skip` setting `BillingFrequency` Milestone Plan and the milestone
