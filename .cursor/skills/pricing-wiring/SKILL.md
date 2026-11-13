@@ -295,7 +295,8 @@ pricing then prices from the table as last refreshed, as if that row did not exi
 source row prices at its old value until the refresh. A lookup with no matching row returns no
 match: the step sets no price or adjustment from that table, and values from earlier steps are
 kept, not zeroed; no error is raised in the traced path [Platform behaviour, traced: procedure
-lookup path only; with output resolution on, Help says the line stops instead]. Most
+lookup path only; for a List Price or Price Tracking step with output resolution on, Help says
+the line stops instead]. Most
 pricing sources in this repo are loaded once at org build and never touched again, so in
 practice the tables stay correct. The ones that bite are the sources normal selling
 writes to *after* the build.
@@ -461,7 +462,8 @@ Where the step does pass `CurrencyIsoCode` (the shipped recipe tables take it as
 Equals input) and the table has no row for that currency, the lookup returns no match: the step
 sets no price or adjustment from that table, earlier values are kept, no error is raised in the
 traced path, and there is no conversion from the corporate currency [Platform behaviour, traced:
-procedure lookup path only; with output resolution on, Help says the line stops instead].
+procedure lookup path only; for a List Price or Price Tracking step with output resolution on,
+Help says the line stops instead].
 
 **Fix:** add `CurrencyIsoCode` as an input on **every** lookup step that resolves a
 currency-denominated value — list price, adjustment schedule, and adjustment tier
