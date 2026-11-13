@@ -34,7 +34,7 @@ results, 2026-11-11).
    placement.** Follow the change from quote → reprice → order → reprice → activation →
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
-    - **Never reprice a renewal quote after its order is activated; don't on an amendment or ramped quote either until it is measured.** Measured once on a
+    - **Never reprice a renewal quote after its order is activated, and don't reprice an amendment or ramped quote then either until that is measured.** Measured once on a
       renewal quote: a full reprice (every line, pricing `Force`, configuration `Skip`) after
       the order was activated set the renewal lines' totals and the quote total to 0
       [Measured: 2026-11-12, 264, scratch org] — each lot became a cancel/add pair netting 0, and the
@@ -242,8 +242,8 @@ results, 2026-11-11).
       Defined top-level cancellation (`initiateCancellation`) and the invoice-level values
       are separate measurements ([verification.md](verification.md) → Open).
     - A reduction of a standalone Evergreen asset (`quantityChange` -10, illustrative) credited
-      one period per lot, last in, first out, and was ordered and activated: a new state
-      period at the reduced quantity and one monthly credit schedule per lot
+      one period, in one last-in-first-out detail row and one monthly credit schedule per lot, and was
+      ordered and activated, with a new state period at the reduced quantity
       [Measured: 2026-11-12, 264, scratch, one org; standalone asset, not a bundle
       component]. Help says an evergreen reduction takes units last in, first out
       from the current quantity, and a swap acts as an add plus a negative amendment [Help:
@@ -253,7 +253,7 @@ results, 2026-11-11).
       `QuoteAction` Amend edit, gave a new state period at the reduced quantity and one credit
       schedule for the 2 [Measured: 2026-11-12, 264, scratch, one org]; read the state period, because
       `Asset.CurrentQuantity` still showed the old quantity after activation (unexplained); per-lot credits on a
-      component and the Force path to an order weren't completed. Evergreen swap credits are **Open** ([verification.md](verification.md) → Open).
+      component weren't tested (one lot), and the Force path to an order wasn't completed. Evergreen swap credits are **Open** ([verification.md](verification.md) → Open).
     - A source's term-total value for an evergreen line (a total credit over the remaining
       term) doesn't compare with the quote directly: the quote counts the line for its
       pricing term count, not the term ([change-policy-mapping.md](change-policy-mapping.md)
@@ -310,10 +310,13 @@ results, 2026-11-11).
       measured]. On a three-line bundle amendment quote (root and two components, all No Change),
       `Skip` with quantity 1 on the Evergreen component was refused the same way, and `Force` with
       quantity 1 on the Term Annual component turned that line and both siblings (root included) to
-      Amend, while `Force` on the Evergreen component (a separate quote, a -2 edit) turned only that line and the root, and its order was then refused by an unrelated bundle-validation log; `Skip` plus the
+      Amend, while `Force` on the Evergreen component (a separate quote, a -2 edit) turned only that line and the root, and its order was refused by a bundle-validation Warning log that the Force solve wrote, because the test bundle lacked a required group's child (a test-setup gap); `Skip` plus the
       `QuoteAction` Amend PATCH on the Term Annual component turned only that line [Measured:
       2026-11-12, 264, scratch, one org; why Force flipped siblings differently by component
-      is unknown]. A Force edit can therefore change lines you didn't touch. The message is a save-time quantity check that fires only while
+      is unknown]. A Force edit can therefore change lines you didn't touch. `Skip` doesn't run
+      configuration rules (the Skip run wrote no configurator log), so a constraint the edit breaks
+      isn't reported and CML-sized children aren't re-derived: use it for line-only edits and check
+      rules separately. The message is a save-time quantity check that fires only while
       the action type is No Change and reads no configuration method; how `Force` changes the
       action type is not traced [Platform behaviour, traced in part]. On a new-business line
       `Force` and `Skip` both accepted non-zero edits and refused 0 (see constraint-models →
@@ -385,7 +388,8 @@ raises.
 **"Cancel the support add-on but keep the device."** If the add-on is a bundle component,
 cancelling it alone is refused, but an amendment of the bundle that sets the add-on's line
 to −n removes it. That was measured on a Term Defined add-on, with a 0 state period and a
-credit (Quick Rule 3); an evergreen add-on's credit is **Open**. Decide in the plan
+credit (Quick Rule 3); an evergreen add-on's removal to 0 is **Open**, and a one-lot partial
+reduction is measured (Quick Rule 6). Decide in the plan
 whether that is enough or the add-on must be its own line.
 
 **"Move some units of a component to another plan."** If support is a bundle component, an

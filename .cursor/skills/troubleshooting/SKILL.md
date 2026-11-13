@@ -862,7 +862,7 @@ because the build sets it.
 
 **Fix:** set the status (and make any other change) before syncing, sync last, then order
 [inferred from the traced rule; this order was not run]. If it refuses, retry about 15 s later, or
-sync again; the retry with no second sync created the order [Measured: 2026-11-12, 264, scratch;
+sync again; the retry with no second sync created the order [Measured: 2026-11-12, 264, scratch; one quote;
 the sync-again step follows from the traced rule]. See
 `quote-negotiation-rounds` → Final round to order.
 

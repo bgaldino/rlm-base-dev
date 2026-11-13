@@ -293,7 +293,7 @@ Not measured; settle on a live org before relying on them:
   `enableTransactionCloning`, and whether it behaves like the Connect API.
 - Whether `options.recordTypeId` sets the clone's record type.
 - Whether an object state definition can govern `Quote.Status`.
-- What a clone does to ramp segments, header discounts and `QuoteLinePriceAdjustment`
+- What a clone does to static or nested bundles, ramp segments, header discounts and `QuoteLinePriceAdjustment`
   rows.
 
 ## Sub-files
