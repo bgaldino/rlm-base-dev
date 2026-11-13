@@ -454,13 +454,15 @@ Check in order:
 A lookup step that does **not** pass `CurrencyIsoCode` does not match on currency. If the
 table has rows for the product in more than one currency, a single-output lookup fails with a
 duplicate-value error; with output resolution on, a List Price or Price Tracking step picks one
-row by priority, and it can be another currency's [Platform behaviour, traced: procedure lookup
-path only]. A Price Adjustment Matrix with Stack or Sequence resolution applies every matched
-row, so each currency's adjustment applies [Core, via `price-adjustment-matrix.md`]. A Volume
-Discount lookup has no output resolution, so several currency rows give the duplicate-value
-error [Core]; a Tier Discount lookup returns the overlapping bands and logs
+row by its resolution strategy (a Min/Max price formula, then the priority tiebreakers), and it
+can be another currency's [Platform behaviour, traced: procedure lookup path only]. A Price
+Adjustment Matrix with Stack or Sequence resolution applies every matched row [Core, via
+`price-adjustment-matrix.md`]; if its Use As List column stays unique with per-currency rows,
+every currency's row may apply [inferred, not traced], which usually gives a visibly wrong
+price. A Volume Discount lookup has no output resolution, so several currency rows give the
+duplicate-value error [Core]; a Tier Discount lookup returns the overlapping bands and logs
 `OVERLAPPING_ADJUSTMENT_TIERS` [Core; table shape inferred]. If the only row is in another
-currency, the line prices from it [inferred]. In the priority-pick, matrix and lone-row cases the
+currency, the line prices from it [inferred]. In the resolution-pick and lone-row cases the
 symptom is a *plausible* price, not an error.
 
 Where the step does pass `CurrencyIsoCode` (the shipped recipe tables take it as a required
