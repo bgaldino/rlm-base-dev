@@ -855,7 +855,7 @@ write came between the sync and the order. A retry on that quote about 15 s late
 sync, created the order; the traced rule doesn't explain that. The other quote was ordered later,
 after another sync. Which other saves moved the quote was not identified.
 
-This repo's build turns the setting on [Repo: `post_utils`]. It read true after the build
+This repo's build turns the setting on [Repo: `unpackaged/post_utils/settings/RevenueManagement.settings-meta.xml`]. It read true after the build
 [Measured: 2026-11-12, 264, scratch]; the fresh-org default is not measured, because the build
 changes it.
 

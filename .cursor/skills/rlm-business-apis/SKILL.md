@@ -64,10 +64,10 @@ Key endpoints (see the reference doc for exact request shapes):
 
 **Place PATCH request shape.** A graph with no `Quote` record is refused ("No quote found in the
 record list"), so include the Quote record (a PATCH on it) alongside the line PATCHes. Sending
-`executeConfigurationRules` in `configurationPref`, as these requests did (the requests were not
-kept; the documented place is under `configurationOptions`), was rejected by the request parser
-(a JSON parser error, nothing written); those PATCHes ran with `configurationMethod` only, so
-this says nothing about rules-on requests that use the other nesting
+`executeConfigurationRules` inside `configurationPref` was rejected by the request parser
+(a JSON parser error, nothing written); the requests were not kept, so the exact nesting is not
+recorded (the documented place is under `configurationOptions`). Those PATCHes then ran with
+`configurationMethod` only, so this says nothing about rules-on requests nested as documented
 [Measured: 2026-11-12, 264, scratch].
 
 **Line discounts in a Place PATCH.** Measured on 264 scratch orgs (2026-11-12) whose pricing
