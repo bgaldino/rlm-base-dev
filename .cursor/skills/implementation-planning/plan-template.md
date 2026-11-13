@@ -100,9 +100,10 @@ minimum and maximum, every option the source allows that its worked examples don
 use, and a check for anything the source marks internal-only (for example a round
 that must never be presented). Billing cases cover every order the plan creates (the
 new sale, each amendment, cancellation and renewal), not only the first. The one measured
-invoice route bills schedules due by the run date (`rlm-business-apis` →
-`backdated-asset-lifecycle.md`, Billing), so a future-dated replay checks billing at
-schedule level; plan invoice values on a backdated replay. For a
+invoice route invoiced only schedules due by today (`rlm-business-apis` →
+`backdated-asset-lifecycle.md`, Billing; a future target date wasn't tried), so on a
+future-dated replay, check billing at schedule level, and say which invoice values wait
+for the replay-dates decision ([SKILL.md](SKILL.md), dated replay). For a
 milestone-billed service, state what a quantity an amendment adds is billed by, and
 record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
 
