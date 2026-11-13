@@ -143,15 +143,16 @@ introduce a blanket extra approval for ordinary configuration updates.
   root and sibling included; a PONR on a standalone line denied only that line, and a control
   order with no PONR froze with every line allowed [Measured: 2026-11-13, 264, scratch, one
   org]. The supplemental submission was refused for assets and billing schedules, not for the
-  PONR, so whether the route enforces the PONR is still untested; a plan with a step In Progress
-  stays Freezing, not Frozen.
+  PONR, so whether the route enforces the PONR is still untested. With the force-freeze-during-
+  execution setting not set, a plan with a step In Progress stayed Freezing, not Frozen
+  [Measured: 2026-11-13, 264, scratch, one org].
 - **Order-wide scenarios:** Help documents different post-submission modification
   limits from product/classification scenarios; do not assume every change applies.
 
 ## Measured Runtime Behaviour
 
 Each item is one scratch org, 264, 2026-11-13 [Measured: 2026-11-13, 264, scratch, one org],
-except the fallout and jeopardy match fields (from describe) and the not-run item.
+except the fallout and jeopardy match fields (from describe) and statements marked as Help's.
 
 - **Future-dated steps (setting on).** A step delayed from the previous step's execution
   by two minutes waited, then started. A step waiting on a scheduled date still waited for
@@ -179,8 +180,9 @@ except the fallout and jeopardy match fields (from describe) and the not-run ite
   Cancel [Measured: 2026-11-13, 264, scratch, one org]. Design Add steps to tolerate a zero
   quantity [inferred from one run].
 - **Dependency across order items.** A plan-scope step waited for every instance across the
-  order items, not one line; a dependency with line scope paired steps of the same line only
-  [Measured: 2026-11-13, 264, scratch, one org]. The cross-plan scope was not tested. The
+  order items, not one line [Measured: 2026-11-13, 264, scratch, one org]. Help says a
+  dependency between line-scope steps pairs steps of the same line only; that pairing was not
+  measured, and neither was the cross-plan scope. The
   measured run completed manual steps by setting their state directly; the engine accepted it,
   but that is not a documented route, so don't use it as a recipe for a live order.
 
