@@ -723,8 +723,8 @@ FIELD_INTEGRITY_EXCEPTION) with the line unchanged
 No Change amendment line `Skip` refused a non-zero quantity (INVALID_INPUT, "Specify 0 in
 Quantity..."), while `Force`
 accepted it and turned the action type to Amend (at quantity 0 too)
-`[Measured: 2026-11-12, 264, scratch; one standalone asset, System pricing]`; details in
-`asset-lifecycle-changes` Quick Rule 7. Read the saved line back after either method.
+`[Measured: 2026-11-12, 264, scratch; one standalone asset, single-line quotes, System pricing]`;
+details in `asset-lifecycle-changes` Quick Rule 7. Read every saved line back after either method.
 
 `success: true` and `isSuccess: true` prove nothing about the rules. Once, the rule's
 message was only in the error log and a later `configure` returned

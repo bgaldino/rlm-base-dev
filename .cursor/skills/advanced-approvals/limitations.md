@@ -75,7 +75,7 @@ How it decides [Platform behaviour, traced]:
   both). A condition passes only when the earlier approved range contains the new one and its
   evaluation succeeded; for Text, Picklist and Multi-select picklist both bounds must match,
   ignoring case. The step's criteria logic combines the results [Platform behaviour,
-  traced]. The left side is the evaluated value, so the new range must sit inside the
+  traced]. The results match the left side being the evaluated value, so the new range must sit inside the
   earlier approved one [Measured: 2026-11-12, 264, scratch]. With "value > threshold", a
   resubmission auto-approves when the new value is lower than or equal to the approved value
   and goes to review when it is higher; with "value < limit", it auto-approves when the new

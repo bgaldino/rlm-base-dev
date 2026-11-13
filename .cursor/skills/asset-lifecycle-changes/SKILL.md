@@ -291,12 +291,13 @@ results, 2026-11-11).
       line (what such a line does at order and activation was not measured; the quotes were
       not ordered). `Skip` with a `QuoteAction` PATCH setting `Type` Amend in the same request
       accepted the edit with the same end state [Measured: 2026-11-12, 264, scratch; one
-      standalone Term Defined asset, System pricing, configuration rules at default; bundle
-      components not re-run]. The message is a save-time quantity check that fires only while
+      standalone Term Defined asset, System pricing, configuration rules at default; single-line
+      amendment quotes, so whether Force also changes No Change lines not in the PATCH was not
+      measured; bundle components not re-run]. The message is a save-time quantity check that fires only while
       the action type is No Change and reads no configuration method; how `Force` changes the
       action type is not traced [Platform behaviour, traced in part]. On a new-business line
       `Force` and `Skip` both accepted non-zero edits and refused 0 (see constraint-models →
-      quantities-from-attributes.md). Read the saved line and its `QuoteAction.Type` back.
+      quantities-from-attributes.md). Read every line's `QuoteAction.Type` back, not only the one you edited.
     - **A rule that counts a virtual container's lines needs those lines on the amendment.**
       Where the top-level lines were absent from a root-only amendment, the container's count
       rule fired (its message implied no matching lines) and logged an Error-severity entry,
