@@ -228,7 +228,11 @@ accomplished milestones are invoiced [Help:
 fulfillment steps to billing milestones [inferred from Help's silence], so a source milestone tied
 to a delivery step needs a decided way to be marked: a billing user, or automation such as a
 fulfillment AutoTask flow that sets the field [inferred, not measured]. Without one the
-item stays waiting and is not invoiced [inferred from Help].
+item stays waiting and is not invoiced [inferred from Help]. A DRO Milestone step completed by
+itself with nobody acting [Measured: 2026-11-13, 264, scratch, one org], and Help names no
+action it takes [inferred from Help's silence], so don't count on a Milestone step to mark a
+billing milestone; each event item needs its own marking point after the step it names
+[inferred]. DRO step behavior: [dro-plans](../dro-plans/examples-and-grounding.md).
 
 **When a source names no milestones,** Revenue Cloud still needs, for each milestone:
 - a name;

@@ -345,6 +345,12 @@ results, 2026-11-11).
       those lines went unchecked [inferred, consistent with the no-bundle result in constraint-models]. A split rule that
       must hold on that path would need a quote-level validation that reads the assets (a
       custom build) [inferred].
+    - **A root renewal carrying the held lines raised no rule message.** A renewal request for
+      the root together with the container-held top-level evergreen support assets (they came
+      back as "No Change" lines at quantity 0 with the assets untouched, Quick Rule 5) was
+      ordered and activated with 0 messages and no error log [Measured: 2026-11-12, 264,
+      scratch, one org]. A renewal of the root without the held lines wasn't run; by the
+      root-only amendment result above, include them in the renewal request [inferred].
 8. **Ramped bundles have their own limits:** amending an API-built group-ramped bundle
    with a one-time or evergreen child failed in the measured shapes
    [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].

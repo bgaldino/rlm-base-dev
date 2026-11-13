@@ -1029,7 +1029,10 @@ Each needs a live 264 org:
       and activated with rules on, 0 messages and no error log. The container's check against
       the root's answer didn't apply there, so the quote went unchecked [inferred, consistent with M42's no-bundle quote]; a
       split rule on that path would need a quote-level validation that reads the assets (a custom
-      build) [inferred]. See `asset-lifecycle-changes` Quick Rule 7.
+      build) [inferred]. A renewal of the root that carried the held top-level lines ("No
+      Change" at quantity 0) was ordered with 0 messages and no error log; one without them
+      wasn't run [Measured: 2026-11-12, 264, scratch, one org]. See `asset-lifecycle-changes`
+      Quick Rule 7.
     - *Answer-per-option route* (not run): keeps the sizing rules in the model, so the
       configurator owns them. Whether the sum constraint and the per-option cardinalities hold
       together is untested.
