@@ -202,7 +202,7 @@ PCM attribute imported into CML takes the attribute's developer name as its vari
 | Per N, rounded up | `constraint(kioskQty * 25 >= 2 * seats && (kioskQty - 1) * 25 < 2 * seats, "<message>");` | See [Rounding up](#rounding-up) |
 | Zero unless a choice is made | `constraint(mounting != "Floor" -> standQty == 0, "<message>");` | `[Dev guide: cml_logical_constraints]` |
 | One per answer unit, only if the rep adds it | `relation banners : BannerKit[0..200];` with `constraint(banners[BannerKit] > 0 -> banners[BannerKit] == seats, "<message>");` | `[Dev guide: cml_annotation_example_sequence]` (Examples 4 and 5). See the note below the table |
-| Equal to another component's quantity | `constraint(stands[FloorStand] == kiosks[Kiosk], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead, as the worked example does for stands and kiosks (see [Chained derivations](#chained-derivations)) |
+| Equal to another component's quantity | `constraint(stands[FloorStand] == kiosks[Kiosk], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, derive both from one variable instead of equating component quantities, as the worked example does (`standQty` from `kioskQty`; see [Chained derivations](#chained-derivations)) |
 | A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
 
 The "only if the rep adds it" row takes the dev guide's form
@@ -343,7 +343,7 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
 | Tool | Behaviour | Source |
 |---|---|---|
 | Relation cardinality `[1..1]` over a base type with subtypes | Bounds the relation; a subtype is then picked with `rel[Subtype] == 1` | `[Dev guide: cml_relationships]` (*skipTypeGeneration* example) |
-| A sum of subtype cardinalities | `constraint(finishes[MatteFinish] + finishes[GlossFinish] + finishes[SatinFinish] == 1, "<message>");`, which carries a message a test can assert | `[Dev guide: cml_core_concept_examples]` (adds two cardinalities) |
+| A sum of subtype cardinalities | `constraint(finishes[MatteFinish] + finishes[GlossFinish] + finishes[SatinFinish] == 1, "<message>");`, which carries a message a test can assert | `[Dev guide: cml_core_concept_examples]` (the dev guide's example adds two cardinalities) |
 | Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Limits **unique instances** chosen from the group. The chosen component can still have a high quantity. The solver counts lines: a line of quantity N counts 1 for a `split = false` type and N for `split = true` | `[Dev guide: cml_group_type]` `[Platform behaviour, traced]` |
 
 Tie the choice to an answer with one implication per subtype, as in the dev guide's
@@ -1022,7 +1022,9 @@ Each needs a live 264 org:
       together is untested.
     CML has no documented signal for a new sale. A flow can read the quote's `OriginalActionType`,
     which was blank on a new-sale quote and set on an amendment or renewal
-    [Measured: 2026-11-12, 264, scratch, one org].
+    [Measured: 2026-11-12, 264, scratch, one org]. It is also blank on swap, upgrade and downgrade
+    quotes, so blank alone does not identify a new sale
+    ([matrix-modeling.md](../advanced-approvals/matrix-modeling.md)).
 14. How to require exactly one option, each sized per seat, when the rep picks the option by
     adding it ([Exactly one option when each option is sized per seat](#exactly-one-option-when-each-option-is-sized-per-seat)).
     Unsettled: whether `count(<condition>)` counts lines or quantity. Traced: a Group Type

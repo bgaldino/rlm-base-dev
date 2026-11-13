@@ -60,10 +60,9 @@ the contract value after it.
   [Repo: `unpackaged/post_approvals/flows/RLM_Quote_Approval_Data.flow-meta.xml`,
   `RLM_Quote_Smart_Approval.flow-meta.xml`]. Amendment quotes were submitted through an orchestration
   adapted from the shipped one (one chain, ladder on the approval level, Smart Approval off)
-  with a source-specific data flow and the submissions were recorded [Measured:
-  2026-11-12, 264, scratch, one org]; a margin computed on a credit-heavy change alone (negative
-  revenue against negative cost) fell under the floor and raised the level on that org, so decide
-  whether the margin dimension should read the change or the contract.
+  with a source-specific data flow and the submissions were recorded; a margin computed on a
+  credit-heavy change alone (negative revenue against negative cost) fell under the floor and
+  raised the level [Measured: 2026-11-12, 264, scratch, one org], so decide whether the margin dimension should read the change or the contract.
 
 ## 2. Compute each level as a Number
 
