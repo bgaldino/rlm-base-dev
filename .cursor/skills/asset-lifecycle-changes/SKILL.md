@@ -34,7 +34,7 @@ results, 2026-11-11).
    placement.** Follow the change from quote → reprice → order → reprice → activation →
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
-    - **Never reprice a lifecycle quote after its order is activated.** Measured once on a
+    - **Never reprice a renewal quote after its order is activated; don't on an amendment either until it is measured.** Measured once on a
       renewal quote: a full reprice (every line, pricing `Force`, configuration `Skip`) after
       the order was activated set the renewal lines' totals and the quote total to 0
       [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read
@@ -211,8 +211,13 @@ results, 2026-11-11).
     - In that renewal an evergreen component was a "No Change" line at quantity 0 with its
       per-period unit price, and its asset and open state period were untouched. A Term
       Defined component reduced to 0 earlier renewed at quantity 0, and its asset got a 0
-      state period for the renewal term. A standalone evergreen asset's renewal wasn't
-      measured.
+      state period for the renewal term. Standalone evergreen assets passed to a renewal
+      request beside a Term Defined root came back as "No Change" lines at quantity 0, and
+      their assets were untouched (no lifecycle end date, no new state period)
+      [Measured: 2026-11-12, 264, scratch, one org]. To uplift them, send a price amendment (`quantityChange` 0, new `UnitPrice`)
+      dated on the renewal start, after the renewal is activated; it was accepted on those
+      standalone assets, with a new state period and a "Change / Upsells" action
+      [Measured: 2026-11-12, 264, scratch, one org].
 6. **On the quote, credits follow the selling model.** For one-time and evergreen lines
    the effective date didn't matter. At every date tested (+1, +30, +180, +300 and +400
    days):
@@ -227,20 +232,23 @@ results, 2026-11-11).
       is the number of periods, with the first and last partial period counted as its days
       (inclusive, actual calendar days under the actual-days time period type) over the
       days in that full period, so a leap year changes the denominator (275/365 in a normal
-      year, 275/366 in a leap year). A 30-day-month type counts 30 days a month, and turning
+      year, 275/366 in a leap year). A 30-day-month type counts 30 days a month (not run: whether it reproduces a
+      months-remaining source value on a mid-period start is unmeasured, and a selling
+      model's proration options take the policy only at create), and turning
       partial periods off counts whole periods only. Read for the annual frequency with the
       actual-days type; that the first period runs to the calendar year end is inferred from
       the measured numbers, and other frequencies weren't read [Platform behaviour, traced
       in part]. A Term
       Defined top-level cancellation (`initiateCancellation`) and the invoice-level values
       are separate measurements ([verification.md](verification.md) → Open).
-    - Evergreen reductions were priced on quotes (one period, in last-in-first-out rows) but
-      none was ordered, so the cancellation above is the only evergreen credit measured
-      through activation. Help says an evergreen reduction takes units last in, first out
+    - A reduction of a standalone Evergreen asset (`quantityChange` -10, illustrative) credited
+      one period per lot, last in, first out, and was ordered and activated: a new state
+      period at the reduced quantity and one monthly credit schedule per lot
+      [Measured: 2026-11-12, 264, scratch, one org; standalone asset, not a bundle
+      component]. Help says an evergreen reduction takes units last in, first out
       from the current quantity, and a swap acts as an add plus a negative amendment [Help:
-      `ind.qocal_fdo_examples_of_amendment_types_and_results`], but not what either credits.
-      Evergreen reduction and swap credits are **Open** ([verification.md](verification.md)
-      → Open).
+      `ind.qocal_fdo_examples_of_amendment_types_and_results`], but not what a swap credits.
+      Evergreen swap credits are **Open** ([verification.md](verification.md) → Open).
     - A source's term-total value for an evergreen line (a total credit over the remaining
       term) doesn't compare with the quote directly: the quote counts the line for its
       pricing term count, not the term ([change-policy-mapping.md](change-policy-mapping.md)

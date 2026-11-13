@@ -158,7 +158,11 @@ horizon.
   original start, which can leave 0 months to the horizon. A custom months-remaining value was 0 for a price change dated at the renewal start, after the original commitment's end `[Measured: 2026-11-12, 264, scratch; one org]`; the line's own change value matched the expected value, and billing showed a monthly credit and a monthly charge schedule per changed line. What a renewed asset's lifecycle
   start is was not traced. Fix `[inferred]`: if the asset's lifecycle start is the original start, stamp the start of the current term instead.
 - **Not stamped:** a new-sale quote and a renewal quote. The formula counts from their own
-  `StartDate`.
+  `StartDate`. On a renewal priced per lot, line-level full-term fields stayed blank: the lines'
+  net unit price was null, the prices sat on per-lot detail rows, a procedure step ran per lot but its
+  output had nowhere to land, and a quote roll-up read 0 `[Measured: 2026-11-12, 264, scratch; one
+  org, renewal quote, not ordered]`. Compute renewal full-term values outside the procedure and gate
+  them on a renewal quote; a before-save route was built but not verified.
 - **Ramps.** An Evergreen line in a dated quote line group counts that segment's months, so
   segments that span the horizon count it between them `[Measured]`. This also covers an
   Evergreen line added to every segment unramped: it carries no ramp identifier and gets no

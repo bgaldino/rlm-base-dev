@@ -166,7 +166,12 @@ ships). Reprice each round before submitting it.
 
 ## Final round to order
 
-1. Sync the final round: Start Sync on the quote [Help:
+Order of operations: write the status (Accepted, if your process sets it) and any other quote
+edit first, sync last, then create the order. A quote write after the sync can make Create Order
+refuse it as "currently syncing" (step 1). On that refusal, sync again and retry; one retry
+about 15 s later also worked without a second sync (one quote) [Measured: 2026-11-12, 264, scratch].
+
+1. Sync the final round (after any status write): Start Sync on the quote [Help:
    `ind.qocal_considerations_syncing_quotes_and_opportunities_in_revenue_cloud`]. Sync runs
    quote to opportunity only, flattens bundles and drops attributes (same article). With
    Asynchronous Opportunity Sync on, flows call `syncQuoteOpportunity`
@@ -196,7 +201,7 @@ ships). Reprice each round before submitting it.
    `syncQuoteOpportunity` action's access check is that same setting. This repo's `post_utils`
    settings bundle turns it on (`enableAsynchronousQuoteOpportunitySync`); on an org built
    another way, read that setting.
-2. Set it to Accepted, then Create Order [Help: `ind.qocal_create_orders_from_a_quote`], or
+2. Create Order [Help: `ind.qocal_create_orders_from_a_quote`], or
    `createOrdersFromQuote` with `quoteId` [Dev guide: `actions_obj_create_orders_from_quote`].
    `createOrderFromQuote` is deprecated from API 65.0 [Dev guide: `actions_obj_create_order_from_quote`].
    The order `createOrdersFromQuote` created was Draft with `EffectiveDate` = the day it ran,
@@ -285,7 +290,7 @@ Not measured; settle on a live org before relying on them:
   `enableTransactionCloning`, and whether it behaves like the Connect API.
 - Whether `options.recordTypeId` sets the clone's record type.
 - Whether an object state definition can govern `Quote.Status`.
-- What a clone does to bundles, ramp segments, header discounts and `QuoteLinePriceAdjustment`
+- What a clone does to ramp segments, header discounts and `QuoteLinePriceAdjustment`
   rows.
 
 ## Sub-files

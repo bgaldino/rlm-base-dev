@@ -327,7 +327,12 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
   attribute could price from it, and editing the root's answer re-derived the children.
   With no parent in the model to read, nothing was copied: under a bundle root that isn't
   a type in the model, the children kept their attribute default; a child placed alone got
-  no attribute record. Both solved with no message `[Measured: M28]`.
+  no attribute record. Both solved with no message `[Measured: M28]`. A top-level line that a
+  virtual `Quote` container relation holds (with `sourceContextNode`, see
+  [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container))
+  did receive the bundle root's answer through `parent()`, while a line no container relation
+  holds got none; a quote with no bundle kept the default `[Measured: M42]`. Check it at the
+  catalog gate.
 
 ---
 
@@ -935,6 +940,7 @@ nothing else in this file was run. In rows M1 to M10 the inputs, and in all rows
 | M39 | Node status through sell → activate → amend → activate → amend: the rule and trigger runs on the shipped bundle model; the re-sent answers, line-only amendment and backfill runs on the built model; context rule `AssetActionSource` ⇐ `SalesTransactionItem` added to `AssetToSalesTransactionMapping`; then a before-insert trigger on `AssetActionSource` | Node status holds `cfgStatus` per answer, not values. Without the rule: every asset action source blank; an amendment changing one answer reset every unchanged answer, sent or not, to its CML default (`cfgStatus` Default). With the rule: rows from order items filled; rows from order item details (the answer change's cancel-and-reprice pair) blank, so the next amendment reset again. With the trigger as well: both filled, answers held across two amendments. A line-only amendment was unaffected without either. A backfill of blank rows from the order item's value also kept the answers | 2026-11-11 |
 | M40 | A choice answer switching several relations between a sizing rule and zero (`mode == A -> rel == n`, `mode == B -> rel == 0`), the stored answer A: one B rule for every relation with its own message; then a B rule per relation carrying that relation's message, arguments from ints set per mode; then arguments from ints the other answers fix | One B rule: configurations breaking two unrelated sizing rules were reported with its message. Per relation: the broken rule named, but its arguments printed the rejected line's own quantity or a raw `{}`. Answer-fixed arguments: the rule's normal text; on a quote with the B answer, a line placed by hand was refused with that text, stating the A quantity | 2026-11-11 |
 | M41 | A virtual `Quote` container (relations with `sourceContextNode`) in a configurator group ramp, a bundle root and a top-level line in each segment: bundle relation `[0..1]` and `@(split = false)` on the top-level line types; then the bundle relation `[0..10]`, wider line relations, no `split = false` on those types, the check comparing totals across segments | First: "You can't add more than one of the same '<product>' product to the '<type>' product class"; the configurator couldn't save. Then, in three segments added with *Current and Subsequent Segments*: segments 1 and 2 configured and saved, segment 3 changed through propagation; no error log | 2026-11-11 |
+| M42 | `parent(<attribute>)` in the types of top-level lines held by a virtual `Quote` container relation (with `sourceContextNode`), a bundle root carrying the answer; the same lines on a quote with no bundle | Held lines took the root's answer (several values tried, each reached the held lines); a quote with no bundle kept the attribute default. One org, illustrative attribute | 2026-11-11 |
 
 ---
 

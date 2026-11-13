@@ -44,7 +44,7 @@ For each change, record the state after every step:
    gives an order dated today, and a past start gives an order dated at the earliest start.
    For a dated replay set the line start dates (in the past to backdate) before creating
    the order [Measured: 2026-11-12, 264, a 2027-01-01 start gave an order dated the run
-   date] [Platform behaviour, traced]. Lines with no start date are ignored. This is the standard advanced quote-to-order path only; industry processors and time-zone conversion weren't checked (`quote-negotiation-rounds` has the order-creation detail). Whether each
+   date] [Platform behaviour, traced]. Writing the order's own `EffectiveDate` to a future date on the Draft order before activation was accepted, and the order activated with schedules starting on each line's start date [Measured: 2026-11-12, 264, scratch, one org]; whether billing differs without that write wasn't tested. Lines with no start date are ignored. This is the standard advanced quote-to-order path only; industry processors and time-zone conversion weren't checked (`quote-negotiation-rounds` has the order-creation detail). Whether each
    order of a split gets its own minimum, and where the order item's service date comes
    from on amendment lines, wasn't established: read each created order back [Platform
    behaviour, traced in part].
@@ -140,13 +140,14 @@ the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
   line, or a swap of the component asset. A price amendment on a component's line, a plan
   held as a root answer, and a partial move under a one-plan group are measured (above;
   [change-policy-mapping.md](change-policy-mapping.md)).
-- **Evergreen reductions and swaps:** what an amendment with `quantityChange` < 0, or a
-  swap's outgoing side, credits on an evergreen line. Reductions priced on quotes that weren't
-  ordered; the only evergreen credit measured through activation is a cancellation's (above).
-- **Renewing a standalone evergreen asset.** Help rules out uplift and end-date changes for
-  evergreen assets but doesn't say what the renewal quote does to the line
-  ([change-policy-mapping.md](change-policy-mapping.md)). In a bundle renewal the evergreen
-  component was a "No Change" line at quantity 0 (above).
+- **Evergreen swaps:** what a swap's outgoing side credits on an evergreen line. A
+  standalone Evergreen reduction (`quantityChange` < 0) credited one period per lot, last in,
+  first out, through activation [Measured: 2026-11-12, 264, scratch, one org]; as a bundle
+  component it was priced on quotes only.
+- **Renewing a standalone evergreen asset:** measured on one org, no longer open. The
+  assets came back as "No Change" lines at quantity 0 and were untouched; a price amendment
+  dated on the renewal start, after activation, uplifted them [Measured: 2026-11-12, 264,
+  scratch, one org] ([change-policy-mapping.md](change-policy-mapping.md)).
 - **An earlier-dated change against a future-dated one:** the amend and cancel articles
   say it's refused, while *Future-Dated Changes* and its examples allow it
   ([change-policy-mapping.md](change-policy-mapping.md) → Replay the source's changes in

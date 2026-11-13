@@ -127,6 +127,11 @@ where each level is computed:
   pricing context like the shipped approval fields
   [Repo: `datasets/context_plans/Approvals`], and tested in the guard's filter. This is a
   modeling recommendation, not platform behavior.
+- A marker that worked `[Measured: 2026-11-12, 264, scratch; one org]`: a mapped custom line
+  field written with the line discount by whatever applies the round (an API applier, here). Both
+  survived a deep clone, and the guard counted lines whose discount differed from the marker (or
+  a target margin) below the floor: individually priced lines were flagged, round-discounted
+  lines were not. A custom header field reset on a clone, so don't hold the marker there.
 - Nothing documented sets such a marker. Bulk edit applies one value to the same field on
   every selected line, and the STLE does the same on groups
   [Help: `ind.qocal_view_and_edit_quotes`, `ind.qocal_customize_transaction_line_editor`];
@@ -137,7 +142,7 @@ where each level is computed:
   Whatever applies the round's discount (a second bulk edit on the marker's column, or an
   API call or flow that writes the discount) would have to set the marker too, and
   something would have to clear it when a rep later overrides a marked line. None of this
-  is measured ([limitations.md](limitations.md)).
+  is measured beyond the API-applier case above ([limitations.md](limitations.md)).
 - A round-wide header discount stays out of the level: `DiscountDistributionService` spreads
   it to lines after the level is set (above). A discount on a group row is unsettled. Help
   applies one to all the lines of a group [Help: `ind.qocal_basic_example_ramp_deals_for_groups`]
