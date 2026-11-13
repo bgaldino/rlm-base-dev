@@ -291,7 +291,9 @@ Future feature packs should mirror this split.
 ## Runtime-created pricing rows
 
 A decision table goes stale the moment its source object gains or changes a row, and
-pricing then silently prices as if that row did not exist — no error, no warning. Most
+pricing then prices from the table as last refreshed, as if that row did not exist. A lookup
+with no matching row returns no match, so the line gets no price or no adjustment from that
+table, with no error [Platform behaviour, traced: procedure lookup path only]. Most
 pricing sources in this repo are loaded once at org build and never touched again, so in
 practice the tables stay correct. The ones that bite are the sources normal selling
 writes to *after* the build.
@@ -337,7 +339,7 @@ error handling to a flow that calls `refreshDecisionTable`:
 | Shape | What you get | Where it shows |
 |---|---|---|
 | Invalid or inactive `DecisionTableApiName` | **A Flow fault** (*"The decision table API Name is invalid…"*), not a `Failed` status | Nowhere on `DecisionTable` — an unresolvable name identifies no table record to stamp. Only the flow's own fault handling sees it. |
-| Accepted refresh that then fails | `status = Queued`, async job result | `RefreshStatus` (observed cycling `Initiated` → `Completed`) and `RefreshFailureReason` |
+| Accepted refresh that then fails | `status = Queued`, async job result | `RefreshStatus` (seen going `Initiated` then `Completed` on one org; not traced) and `RefreshFailureReason` |
 
 Consequences:
 
@@ -446,9 +448,14 @@ Check in order:
 
 ### Wrong-currency price returned (multicurrency orgs)
 
-A lookup step that does **not** pass `CurrencyIsoCode` matches the first row for the
-product regardless of currency — so every currency silently prices at whichever row
-the table returns first. The symptom is a *plausible* price, not an error.
+A lookup step that does **not** pass `CurrencyIsoCode` has no currency to match on, so rows
+for different currencies are not told apart and a currency can price from another currency's
+row [inferred; which row wins was not traced]. The symptom is a *plausible* price, not an
+error. Where the step does pass `CurrencyIsoCode` (the shipped recipe tables take it as a
+required Equals input) and the table has no row for that currency, the lookup returns no match:
+no price or no adjustment from that table, no error, and no conversion from the corporate
+currency [Platform behaviour, traced: procedure lookup path only]. More than one match in a
+single-output lookup raises a duplicate-value error.
 
 **Fix:** add `CurrencyIsoCode` as an input on **every** lookup step that resolves a
 currency-denominated value — list price, adjustment schedule, and adjustment tier
