@@ -2,7 +2,7 @@
 
 > Sub-file of `.cursor/skills/pricing-setup/SKILL.md`, indexed in [README.md](README.md).
 > Release 264. No Help example; this is custom wiring on a clone of the pricing procedure.
-> Sources are tagged `[Repo: <path>]`, `[inferred]` and `[Measured]` (measured 2026-11-11 on a
+> Sources are tagged `[Repo: <path>]`, `[inferred]` and `[Measured]` (measured 2026-11-11, except where a tag carries its own date, on a
 > fresh 264 `ent-sb0` scratch org). The example uses neutral round numbers.
 
 **Goal:** a quote shows a full-term value, a full-term cost and a full-term margin (a
@@ -104,7 +104,7 @@ Field names below are examples; use your own.
 | # | Layer | What |
 |---|---|---|
 | 1 | Quote field | Date `Commitment_Start__c` |
-| 2 | Flow | Record-triggered on `QuoteLineItem`, after save, on **create and update**: when `QuoteAction.Type` is Amend and `QuoteAction.SourceAsset.LifecycleStartDate` is set, stamp the quote's `Commitment_Start__c` with the earliest such start, as the GMT date: `DATEVALUE(LEFT(TEXT(<datetime>), 10))`. `QuoteAction` isn't triggerable, and the amend API sets `QuoteActionId` after it inserts the line, so a create-only trigger misses it. Plain `DATEVALUE` on the midnight-GMT start returned the previous day in a US user's time zone `[Measured]` |
+| 2 | Flow | Record-triggered on `QuoteLineItem`, after save, on **create and update**: when `QuoteAction.Type` is Amend and `QuoteAction.SourceAsset.LifecycleStartDate` is set, stamp the quote's `Commitment_Start__c` with the earliest such start, as the GMT date: `DATEVALUE(LEFT(TEXT(<datetime>), 10))`. `QuoteAction` isn't triggerable. The amend API sets `QuoteActionId` when it inserts the line; on an amend sent with `quantityChange` 0 the action's `Type` read No Change after the amend (before any edit) and read Amend after a Place PATCH that changed the line's quantity `[Measured: 2026-11-12, 264, scratch; one org]`, so a create-only trigger that tests `Type` = Amend would miss those lines `[inferred]`. Plain `DATEVALUE` on the midnight-GMT start returned the previous day in a US user's time zone `[Measured]` |
 | 3 | Line formula | Number `Months_Counted__c` (below) |
 | 4 | Context | Map `Months_Counted__c` as a `SalesTransactionItem` attribute, INPUT, with a tag. A formula field mapped INPUT hydrates into pricing `[Measured]` |
 | 5 | Procedure | Group b multiplies by `<months>` (that tag) where it's set, else by `<horizon>` (formulas below), and drops its `ItemRampIdentifier` criterion; group c is removed, since the field counts a segment's months |
@@ -155,7 +155,7 @@ horizon.
 - **A price change dated on a renewal start.** The stamp reads the source asset's lifecycle start, which
   `[Platform behaviour, traced]` is the only route from an amendment line to a contract start (the line's own start is
   the amendment date). On a change dated on a renewal's start, the formula then counts the months from the
-  original start, which can leave 0 months to the horizon. A custom months-remaining value was 0 for a price change dated at the renewal start, after the original commitment's end `[Measured: 2026-11-12, 264, scratch; one org]`; the line's own change value and billing schedules were as expected. What a renewed asset's lifecycle
+  original start, which can leave 0 months to the horizon. A custom months-remaining value was 0 for a price change dated at the renewal start, after the original commitment's end `[Measured: 2026-11-12, 264, scratch; one org]`; the line's own change value matched the expected value, and billing showed a monthly credit and a monthly charge schedule per changed line. What a renewed asset's lifecycle
   start is was not traced. Fix `[inferred]`: if the asset's lifecycle start is the original start, stamp the start of the current term instead.
 - **Not stamped:** a new-sale quote and a renewal quote. The formula counts from their own
   `StartDate`.

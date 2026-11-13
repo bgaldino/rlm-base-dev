@@ -25,8 +25,8 @@ root line).
 
 Items tagged `[Measured: 2026-11-12 ...]` in this file and in SKILL.md come from a third scratch org
 (release 264, API v68.0) built from this repo with another catalog loaded: a bundle quote placed
-with Force and rules on, its one-time service lines then PATCHed with configuration Skip, ordered
-and activated, and two later amendments of that contract ordered and activated.
+with configuration method Force and configuration rules on, its one-time service lines then PATCHed with configuration Skip, ordered
+and activated, and later amendments of that contract ordered and activated (two of them adding milestone-billed service quantity).
 
 ## Results
 

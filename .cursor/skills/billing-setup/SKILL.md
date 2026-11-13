@@ -49,7 +49,7 @@ read the row's scope before generalising it.
 4. **One-time lines take no frequency, or Milestone Plan (API value `MilestonePlan`).**
    Monthly on a one-time line was refused, Milestone Plan with a milestone treatment was
    accepted, and Milestone Plan on a Term Defined line was refused [Measured: M4–M6]. Bill services in milestones on a one-time selling model.
-   On bundle components placed with configuration Force and rules on, Place stored the
+   On bundle components placed with configuration method Force and configuration rules on, Place stored the
    frequency blank and kept the treatment, with success; read the frequency back [Measured: M11].
    The save check explains the refusals, not the drop: Milestone Plan is legal only on One-Time
    lines, and a treatment with a blank frequency is accepted. Why Place blanked the frequency on a
