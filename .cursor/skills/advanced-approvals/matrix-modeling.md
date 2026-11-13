@@ -5,21 +5,22 @@ Read this when turning an approval policy into Advanced Approvals. Parent:
 
 ## 1. Write the matrix down as levels
 
-List each dimension and its thresholds as levels 0–N, where 0 means no approval:
+List each dimension and its thresholds as levels 0–N, where 0 means no approval (the thresholds
+below are illustrative, not a recommended policy):
 
 | Dimension | Level 1 | Level 2 | Level 3 | Measured on |
 |---|---|---|---|---|
-| Discount (any line or product line) | > 10% | > 20% | > 30% | each line, or each product-line total |
-| Blended margin | < 70% | < 65% | < 60% | the quote |
-| Net value | — | — | > $5M | the quote |
-| Other triggers | non-standard billing frequency | term < 12 months; custom payment terms; any line below floor margin | any line below cost | line or quote |
+| Discount (any line or product line) | > 12% | > 22% | > 32% | each line, or each product-line total |
+| Blended margin | < 55% | < 50% | < 45% | the quote |
+| Net value | — | > $2M | > $8M | the quote |
+| Other triggers | a manually overridden line price | term > 48 months; any line below its margin floor | any line sold below cost | line or quote |
 
 Two policy rules decide the shape:
 - **"The highest level triggered applies":** compute one level per dimension, then take
   the maximum.
 - **"Each level also needs every level below":** the levels form a serial chain.
 
-Every percentage also needs a base. "Discount > 20%" can be measured off list price, or off
+Every percentage also needs a base. "Discount > 22%" can be measured off list price, or off
 a standard price that already includes contract, bundle or volume pricing; the same line can
 land on different levels under each. That is a modeling decision the source must state; if
 it doesn't, ask and record the answer. §2 shows what the shipped level measures.
@@ -239,8 +240,8 @@ where each level is computed:
 
 ## 5. Worked example (fictional)
 
-The policy: discount levels as in §1, margin below 65% needs a Director, and net value
-over $5M needs the VP. One approver ladder.
+The policy: discount levels as in §1, margin below 50% needs a Director, and net value
+over $8M needs the VP. One approver ladder.
 
 Prerequisite: margin and net value are dimensions beyond Discount and Finance, and the
 design doc requires threshold policy to be externalized before adding one
@@ -253,7 +254,7 @@ exception. The steps below keep thresholds hard-coded (edited to the §1 bands) 
 2. `RLM_Quote_Approval_Data` reads the quote and returns:
     - `DiscountApprovalLevel`, from the roll-up;
     - `MarginApprovalLevel`, from the quote's margin;
-    - `ValueApprovalLevel`, 3 when net value is over 5,000,000;
+    - `ValueApprovalLevel`, 3 when net value is over 8,000,000;
     - `ApprovalLevel`, the maximum of the three.
 
    Declare each new output on the `QueryApprovalData` background step

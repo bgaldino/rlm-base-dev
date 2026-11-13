@@ -14,8 +14,8 @@ description: >-
 
 # Advanced Approvals — Modeling, Building and Verifying Approvals
 
-Use this skill to turn a sign-off policy ("over 20% needs a Director; below 65% margin
-needs a Director; over $5M needs the VP") into Revenue Cloud Advanced Approvals. It also
+Use this skill to turn a sign-off policy ("over 22% needs a Director; below 50% margin
+needs a Director; over $8M needs the VP") into Revenue Cloud Advanced Approvals. It also
 covers running and checking a submission, and extending the approval workflow this repo
 already ships. Claims are tagged: `[Help: <article>]` and `[Dev guide: <article>]` from
 `docs/salesforce/264/`, `[Repo: <path>]`, and `[Measured: <date>, 264]` for a live run on a
@@ -160,8 +160,8 @@ Measured end to end on a QuantumBit build [Measured: 2026-11-10, 264]:
 
 ## Examples
 
-**Add a margin dimension to the shipped approval.** The policy: blended margin below 70%
-needs a Manager, below 65% a Director, below 60% the VP.
+**Add a margin dimension to the shipped approval.** The policy: blended margin below 55%
+needs a Manager, below 50% a Director, below 45% the VP.
 - First: margin is a third dimension beyond Discount and Finance, and the design doc makes
   externalizing threshold policy a prerequisite for that
   [Repo: `docs/features/composable-quote-approvals.md`]. Do it first, or agree and record the

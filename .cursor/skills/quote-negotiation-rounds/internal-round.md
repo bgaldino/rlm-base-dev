@@ -1,6 +1,6 @@
 # An Internal What-If Round
 
-Read this when one round (a floor, a walk-away price, a what-if) must never be presented to
+Read this when one round (a walk-away price, a what-if) must never be presented to
 the customer, synced to the opportunity forecast, or turned into an order. Parent:
 [quote-negotiation-rounds](SKILL.md).
 
@@ -19,7 +19,7 @@ test. Each says which.
 
 ## Recommended combination
 
-1. **Mark** the round with a flag field and the parent skill's name convention ("<Opportunity> — R3 Floor (internal)").
+1. **Mark** the round with a flag field and the parent skill's name convention ("<Opportunity> — R3 Walk-away (internal)").
 2. **Block** with validation rules on the flag: on Quote, Status Presented or Accepted, and the
    flag set while `IsSyncing` is true; on Opportunity, a `SyncedQuote` whose flag is set; on
    Order, a `Quote` whose flag is set. Each held in the run measured above: the status writes,

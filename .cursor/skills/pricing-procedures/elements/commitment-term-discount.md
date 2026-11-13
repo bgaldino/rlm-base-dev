@@ -25,8 +25,8 @@ discounted net is rounded to the cent, then the 4% is applied, then the result i
 Shorter terms and Evergreen lines are unchanged. One Time lines were not in the first run; a later
 run priced them without error with criterion 11 in place (see [Open questions](#open-questions)).
 
-Worked example (the golden test): list 18,000, 5% and 3% discounts → net 16,587.00 → × 0.96 →
-**15,923.52**. A 24-month term stays at **16,587.00**.
+Worked example: list 1,000, 10% and 5% discounts → net 855.00 → × 0.96 →
+**820.80**. A 24-month term stays at **855.00**. (Illustrative amounts; the proportions are what was measured.)
 
 ## When to use it
 
@@ -184,8 +184,8 @@ phases 9 and 10].
   (`Calculateproratedpricefortermdefinedlines`) reads `NetUnitPrice` and multiplies it by quantity
   and `PricingTermCount` into `ItemNetTotalPrice` [Repo: `RLM_DefaultPricingProcedure`; the Help
   example binds `ListPrice` instead, `ind.pricing_add_the_subscription_price_proration_element.htm`].
-  So the formula only has to write `NetUnitPrice`: the line total follows (15,923.52 × 3 =
-  47,770.56) [Measured: 2026-11-10, 264]. In a procedure whose Subscription Price reads `ListPrice`,
+  So the formula only has to write `NetUnitPrice`: the line total follows (820.80 × 3 =
+  2,462.40) [Measured: 2026-11-10, 264]. In a procedure whose Subscription Price reads `ListPrice`,
   it does not.
 - Far ahead of DDS and the aggregates, so the tail rule does not apply
   ([`formula-based-pricing.md`](formula-based-pricing.md) → Placement).
@@ -271,22 +271,22 @@ No `addVariables` and no `externalDependencies`: every reference is a standard t
 A disposable clone of `RLM_DefaultPricingProcedure` with the overlay above, priced through
 `runSalesforceHeadlessPricing` with the procedure named (see
 [`../runtime-and-observability.md`](../runtime-and-observability.md) → API-based verification).
-Products: a QuantumBit Term Annual product (price book list 12,000 USD) on lines 1, 2, 4 and 5, and
-an Evergreen product (list 420 USD) on line 3. Lines 1 to 4 pass
-`UnitPrice` 18,000 and `Discount` 7.85, which the shipped procedure uses as the input unit price and
-the percentage discount. 18,000 × (1 − 0.0785) = 16,587.00, the same pre-term net as 5% then 3%
-(18,000 × 0.95 × 0.97). Start 2026-11-10, quantity 1 [Measured: 2026-11-10, 264].
+Products: a QuantumBit Term Annual product (illustrative price book list 6,500 USD) on lines 1, 2, 4 and 5, and
+an Evergreen product (illustrative list 310 USD) on line 3. Lines 1 to 4 pass
+`UnitPrice` 1,000 and `Discount` 14.5, which the shipped procedure uses as the input unit price and
+the percentage discount. 1,000 × (1 − 0.145) = 855.00, the same pre-term net as 10% then 5%
+(1,000 × 0.90 × 0.95). Start 2026-11-10, quantity 1 [Measured: 2026-11-10, 264].
 
 | Line | Selling model | Term | Clone `NetUnitPrice` | Clone `NetTotalPrice` | Default procedure `NetUnitPrice` |
 |---|---|---|---|---|---|
-| 1 | Term Defined, Annual | 36 Months, end 2029-11-09 | **15,923.52** | 47,770.56 (× 3 terms) | 16,587.00 |
-| 2 | Term Defined, Annual | 24 Months, end 2028-11-09 | **16,587.00** | 33,174.00 (× 2) | 16,587.00 |
-| 3 | Evergreen, Annual | 36 Months, no end date | **16,587.00** | 16,587.00 (× 1) | 16,587.00 |
-| 4 | Term Defined, Annual | 3 Annual, end 2029-11-09 | **15,923.52** | 47,770.56 (× 3) | 16,587.00 |
+| 1 | Term Defined, Annual | 36 Months, end 2029-11-09 | **820.80** | 2,462.40 (× 3 terms) | 855.00 |
+| 2 | Term Defined, Annual | 24 Months, end 2028-11-09 | **855.00** | 1,710.00 (× 2) | 855.00 |
+| 3 | Evergreen, Annual | 36 Months, no end date | **855.00** | 855.00 (× 1) | 855.00 |
+| 4 | Term Defined, Annual | 3 Annual, end 2029-11-09 | **820.80** | 2,462.40 (× 3) | 855.00 |
 | 5 | Term Defined, Annual | 36 Months, `UnitPrice` 10.005, no discount | **9.61** | 28.83 (× 3) | 10.005 |
 
-Lines 1 and 2 reproduce the golden test exactly. Line 3 shows the filter keys on the selling model
-type, not the term. Before the overlay the clone returned 16,587.00 on lines 1 to 4, as the default
+Lines 1 and 2 reproduce the worked example exactly. Line 3 shows the filter keys on the selling model
+type, not the term. Before the overlay the clone returned 855.00 on lines 1 to 4, as the default
 does, so the difference comes from the new group alone.
 
 ## Line inputs on real quotes
@@ -305,7 +305,7 @@ group ramp built in the quote UI)
 For a line that goes through the proration engine, the pricing term count is the number of periods in the selling model's term unit: the line's
 `SubscriptionTerm` is read in that unit (36 on an Annual model is 36 annual periods, whatever unit
 the line carries), and a line with no term has its count derived from its start and end dates
-[Platform behaviour, traced]. An Evergreen or One Time line with a configured default term count takes that count directly, bypassing the engine; a One Time line with no default is not prorated [Platform behaviour, traced]. A dates-only line is therefore priced over its dates, but Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace shows Place filling a missing term context tag with the selling model's pricing term when the line's selling model option is Term Defined, but not that fill reaching the saved line. In the measured requests (price book entry only, no `ProductSellingModelId` in the request; the saved line's selling model was Term Defined) the saved unit was `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line (System pricing, configuration method Force, rules on) priced from its dates (term count 3) and did not get the term-keyed discount step that the measured org's customised pricing procedure adds (not a shipped step) when a header switch is on (it was on), both standalone (net 17,100, vs 16,416 when the line was sent with `SubscriptionTerm` 3 and unit `Annual` instead of an end date) and as a bundle component (16,587 vs 15,923.52 on the same change) [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. Send the term explicitly.
+[Platform behaviour, traced]. An Evergreen or One Time line with a configured default term count takes that count directly, bypassing the engine; a One Time line with no default is not prorated [Platform behaviour, traced]. A dates-only line is therefore priced over its dates, but Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace shows Place filling a missing term context tag with the selling model's pricing term when the line's selling model option is Term Defined, but not that fill reaching the saved line. In the measured requests (price book entry only, no `ProductSellingModelId` in the request; the saved line's selling model was Term Defined) the saved unit was `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line (System pricing, configuration method Force, rules on) priced from its dates (term count 3) and did not get the term-keyed discount step that the measured org's customised pricing procedure adds (not a shipped step) when a header switch is on (it was on), both standalone and as a bundle component (in each case the dates-only total came out about 4 % higher than when the line was sent with `SubscriptionTerm` 3 and unit `Annual` instead of an end date, because the 4 % step was missing) [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. Send the term explicitly.
 
 So send every Term Defined line's term in its selling model's unit (3 `Annual` for 36 months on an
 annual model). The `Months` criteria (5 and 6) were seen matching only in headless runs.
@@ -393,5 +393,5 @@ expressed the rule.
   open: whether a renewal should earn the 4% at all, and if so how to avoid taking it twice when
   the starting price already includes an earlier 4%. That is a business rule to settle with the
   source; no design for it was built or measured. The headless response did
-  carry a waterfall entry for the formula step (input `NetUnitPrice` 16,587 on line 1); how it
+  carry a waterfall entry for the formula step (input `NetUnitPrice` 855 on line 1); how it
   shows in the quote's waterfall UI was not checked.
