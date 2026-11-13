@@ -108,6 +108,7 @@ files can use it.
 | Building the approval matrix | No | `advanced-approvals` |
 | Bid rounds as quote versions | No | `quote-negotiation-rounds` |
 | Billing frequency, treatments, milestones, payment terms | No | `billing-setup` |
+| Order fulfilment: the work, steps and dependencies an order creates | No | `dro-plans` |
 | Amend, swap, cancel and renew rules and their numbers | No | `asset-lifecycle-changes` |
 | Configuring the line editor the rep uses | No | `transaction-line-editor` |
 | Answering one product question ("does Revenue Cloud support X?") | No | `revenue-cloud-docs`, then a live check if pre-GA |
@@ -144,7 +145,7 @@ the request already answers, and say what you assumed instead.
 |---|---|
 | What is the build for (demo, customer proof, benchmark, product extension)? | Sets "done": reproducing worked examples, a walkthrough, or a shipped feature |
 | Where does it live (private pack first, public repo behind a flag, or both)? | Sets data handling and the promotion phase |
-| What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, billing, policies not yet in force |
+| What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, billing, order fulfilment, policies not yet in force |
 | Is the source read once, or kept in sync? | Read once means one extraction with a parity check; kept in sync adds a generator to maintain |
 | What runtime surface? | The standard Transaction Line Editor and configurator, or custom UI |
 | How are quantities derived, and may a rep override them? | Rule-owned sizing or editable defaults (`constraint-models` → `quantities-from-attributes.md`), and the amendment path. A source can say both in different places |
@@ -208,7 +209,7 @@ first: a measurement covers only the shape and route it measured.
 - One set per area, in the template's section 4, split where useful: sizing or
   configuration, rules (each with its message, template section 3), standard pricing, programs and edges
   (every band boundary), currency, policies, cost and margin, negotiation, approvals,
-  lifecycle changes, billing, plus the template's Reprice and Attributes sets.
+  lifecycle changes, billing, fulfilment, plus the template's Reprice and Attributes sets.
 - Each expected value cites where it comes from in the source. A value the source
   doesn't show but its rules determine (a band edge, a second example of a formula) is
   allowed: mark it **derived** and cite the rule's cells.
@@ -218,7 +219,7 @@ first: a measurement covers only the shape and route it measured.
   decision ID, with the alternative's value beside it, and names the gate that needs the
   owner's answer. The build proceeds on the recommendation. When the owner answers, the
   converter regenerates the goldens; nobody edits them by hand.
-- Run the golden checks in [prediction-checks.md](prediction-checks.md) (9–15): derived
+- Run the golden checks in [prediction-checks.md](prediction-checks.md) (9–16): derived
   quantities at each answer's maximum, proration by day, rounding only where the source
   rounds, line inputs, where a refusal's message appears, answers carried across
   changes, and fresh decision tables.

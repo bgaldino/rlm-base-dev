@@ -153,7 +153,7 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     lines of a UI-built group ramp carried a term of 1 (same file, Line inputs on real
     quotes; for the fix and its limit, `concept-map.md`, Discount for a longer commitment).
     If any gate runs an action with Order output or reprices an order, the pricing gate
-    also checks the procedure's declared tags on the Order lens: a declared tag with a
+    also checks every tag the procedure declares on the Order lens, stock tags included: a declared tag with a
     Quote-lens row and no Order-lens row failed an Order-output action, and a field-less
     Order-lens row cleared it (a tag with no row on either lens passed; one org, cause not
     traced). A field-less row leaves the value empty on Order output, so for a tag whose
@@ -185,3 +185,9 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     fresh tables before pricing). Every gate that prices after a catalog or pricing load
     reruns `check_decision_table_freshness` until none of the tables it reads is Stale
     (`decision-tables` Quick Rule 1).
+16. **Count an orchestrated fulfilment before predicting it.** For a representative order
+    and each lifecycle order, write every dependency as an edge between two step
+    instances (with their scopes, items and source lines), and count the expected
+    fulfilment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). An
+    edge across source lines or items, or to a step some orders don't have, is outside
+    the documented patterns (concept map, Order fulfilment): **Live**.

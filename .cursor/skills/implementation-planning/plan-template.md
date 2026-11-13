@@ -59,6 +59,7 @@ changes). Note who has to answer it: the source's owner or the build's owner.
     - negotiation and approvals
     - lifecycle changes
     - billing
+    - order fulfilment
     - runtime surface
     - extraction
 - Each subsection keeps the source's own numbers and its order of application.
@@ -126,7 +127,7 @@ The usual phases:
 | P3 Catalog, then configuration | Data plans derived from the base build's own plans; CML; the route prerequisites of every P2a spike that touches them; the first loader (SKILL.md step 7) |
 | P4 Pricing and cost | Price books, adjustments, procedure changes, cost wiring. The gate prices only after the decision tables it reads are fresh (`decision-tables` Quick Rule 1) |
 | P5 Negotiation, approvals, runtime surface | Quote rounds, approvals, Transaction Line Editor configuration |
-| P6 Lifecycle and billing | Order, activate, amend, swap, cancel, renew; billing frequency, treatments and payment terms on the order |
+| P6 Lifecycle, billing and fulfilment | Order, activate, amend, swap, cancel, renew; billing frequency, treatments and payment terms on the order; fulfilment, with its composition (lines, steps, dependencies) gated apart from its execution |
 | P7 Pack and fresh-org load | Every gate in one run on a new org, with the loader extended since P3; reload changes nothing |
 | P8 Walkthrough and sign-off | Independent verifier, then the user |
 | P9 Promotion | Public repo through a pull request, if chosen; its own approval |
@@ -179,6 +180,7 @@ Then list **extensions to existing skills** separately.
 - [ ] Every skill, sub-file and snapshot article named exists.
 - [ ] Every script the plan cites lives in the pack or the repo, not in a scratch or
   temporary folder.
+- [ ] Every rule row names its fallback, or says why none is needed.
 - [ ] Every rule that rejects or warns has its message in the plan.
 - [ ] Goldens on platform-enforced behaviour assert where the platform enforces it.
 - [ ] Every spike that chooses a route lists each route's prerequisites

@@ -9,8 +9,9 @@ live org. Parent: [implementation-planning](SKILL.md).
 - a skill holds a dated, measured fact or a shipped reference (XML, dataset, overlay)
   for the exact feature, in the shape and route the plan builds (UI- or API-built,
   component or top-level line, the same mix of selling models);
-- the release's snapshot (Help or developer guide) documents the feature and nothing
-  measured in the repo contradicts it. List the inputs and position the plan assumes,
+- the release's snapshot (Help or developer guide) documents the mechanism the rule
+  needs, in the rule's shape, and nothing measured in the repo contradicts it. A feature
+  the snapshot documents only in another shape is trigger (a) for that rule. List the inputs and position the plan assumes,
   so the build gate checks each ([prediction-checks.md](prediction-checks.md) check 2).
 
 A measurement of another shape is **Repo (inferred)**, or **Live** when a later phase
