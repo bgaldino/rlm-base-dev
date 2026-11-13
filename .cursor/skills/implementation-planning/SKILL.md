@@ -73,7 +73,9 @@ files can use it.
   formula's cached values only to check the extraction. When a stated rule breaks a
   worked example's stated outcome, look for a reading that keeps both (a narrower
   scope, or a data choice such as a line the rule never touches) and recommend it;
-  give the literal reading as the alternative and list the examples it breaks.
+  give the literal reading as the alternative and list the examples it breaks. If no
+  reading keeps both, prefer a resolution the source states itself (a note on the
+  example), and give each option's values.
 - **DO NOT** put customer, brand or third-party commercial data in the public repo.
   Decide where the plan and data live (Quick Rule 1). A private plan may name real
   data; this skill and anything public may not.

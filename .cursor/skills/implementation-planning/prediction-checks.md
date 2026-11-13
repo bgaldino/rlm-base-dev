@@ -21,14 +21,18 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
    answer. A prior plan cited "one-time children in segment 1 only" as measured. The
    skill had measured it on an API-built ramp and on an optional child; a UI-built ramp
    of the plan's bundle put every child in every segment (`ramped-quotes` →
-   `bundle-children-lifecycle.md`).
+   `bundle-children-lifecycle.md`). The same holds for a recorded limitation: it is
+   trigger (b) only on the build route and lifecycle step it was measured on. A failure
+   measured when amending an API-built ramp says nothing about building a ramp in the UI.
 2. **Name the inputs a documented element is assumed to take.** An element the snapshot
    documents, at a position or with an input the docs don't show, is **Snapshot** when
    nothing contradicts it. List the parameters and context fields the plan assumes, so
    its build gate checks each one. A prior build found a parameter that a skill listed
    as optional, and the build used, refused at creation (`pricing-procedures` →
    `elements/rounding-values.md`, Configuration).
-3. **A spike's must-hit is the source's value, not a guess at the platform's.** Where a
+3. **A spike's must-hit is the source's value, not a guess at the platform's.** Express it
+   in the platform's measure through a stated mapping (such as day-based proration), or
+   through a decision that makes the build match the source. Where a
    skill marks a behaviour open, don't list candidate platform outcomes as must-hits: a
    prior spike listed two and the platform produced a third. State the source value, what
    to record about the native result, and the fallback that reaches the source value if
@@ -61,7 +65,10 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       quantities), a quote without the bundle goes unchecked, and where a container rule
       counts those lines, a root-only amendment without them logged an Error, which
       blocks ordering; amending those assets at quantity change 0 alongside the root
-      cleared it (`asset-lifecycle-changes` Quick Rule 7, one org). Open item 13 in
+      cleared it (`asset-lifecycle-changes` Quick Rule 7, one org). List the pricing
+      steps keyed on the bundle that the moved lines lose, and say how a change to the
+      moved lines alone gets checked (for example the root added at quantity change 0,
+      as above). Open item 13 in
       `constraint-models` → `quantities-from-attributes.md` lists two in-bundle
       candidates, neither run: choose one only with a spike that also covers the
       answers surviving an answer change (`asset-lifecycle-changes` Quick Rule 2), and
@@ -129,15 +136,23 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     `proration-and-selling-models.md`, Measured: a partial year prorates by days;
     `asset-lifecycle-changes` Quick Rule 6). A mid-period change's golden carries both
     values through the mapping, or a decision makes the build match the source.
-11. **Round after every step that multiplies, not once.** A compound ramp uplift isn't
-    rounded to the cent (`pricing-procedures` → `elements/price-revision-compound-uplift.md`;
-    `ramped-quotes` Quick Rule 10),
-    so a plan that rounds before the uplift needs a second rounding after it.
+11. **Round where the source rounds, and after the compound uplift.** A compound ramp
+    uplift isn't rounded to the cent (`pricing-procedures` →
+    `elements/price-revision-compound-uplift.md`; `ramped-quotes` Quick Rule 10), so a
+    plan that rounds before the uplift needs a second rounding after it. For any other
+    step, check the source's arithmetic before adding a rounding: one the source doesn't
+    do moves the goldens.
 12. **State the line inputs a pricing step filters on,** as the placing script sends
     them. A commitment-term step read `SubscriptionTerm`, and a line placed with start
     and end dates alone had none, so it got no discount; a header-only Place change
     didn't reprice (`pricing-procedures` → `elements/commitment-term-discount.md`, Line
-    inputs on real quotes).
+    inputs on real quotes). State them for every way the plan creates lines: segment
+    lines of a UI-built group ramp carried a term of 1 (same file, criterion 14).
+    If any gate prices an order (an order reprice, or an action with Order output), the
+    pricing gate also checks the procedure's declared tags on the Order lens: a declared
+    tag with a Quote-lens row and no Order-lens row failed order pricing, and a field-less
+    Order-lens row cleared it (a tag with no row on either lens passed) (`pricing-procedures` → `operations-and-troubleshooting.md`;
+    `context-service` → `authoring-and-lifecycle.md`).
 13. **Assert a refusal where its message appears, and on each path decide whether it
     appears at all.** Place returned success for a configuration it then logged as an
     error; the message can appear only in `RevenueTransactionErrorLog` or a later

@@ -99,7 +99,10 @@ configuration answers, the unchanged answers through two answer changes in a row
 minimum and maximum, every option the source allows that its worked examples don't
 use, and a check for anything the source marks internal-only (for example a round
 that must never be presented). Billing cases cover every order the plan creates (the
-new sale, each amendment, cancellation and renewal), not only the first. For a
+new sale, each amendment, cancellation and renewal), not only the first. The one measured
+invoice route bills schedules due by the run date (`rlm-business-apis` →
+`backdated-asset-lifecycle.md`, Billing), so a future-dated replay checks billing at
+schedule level; plan invoice values on a backdated replay. For a
 milestone-billed service, state what a quantity an amendment adds is billed by, and
 record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
 
@@ -179,8 +182,9 @@ Then list **extensions to existing skills** separately.
 - [ ] Goldens on platform-enforced behaviour assert where the platform enforces it.
 - [ ] Every spike that chooses a route lists each route's prerequisites
   ([SKILL.md](SKILL.md) step 6), and the dependency line shows the phase that waits for it.
-- [ ] Every spike's must-hit is the source's value, with the fallback if native misses
-  it; none lists guessed platform outcomes ([prediction-checks.md](prediction-checks.md)
+- [ ] Every spike's must-hit is the source's value in the platform's measure (through a
+  stated mapping or decision), with the fallback if native misses it; none lists guessed
+  platform outcomes ([prediction-checks.md](prediction-checks.md)
   check 3).
 - [ ] Every structure was run against every lifecycle change in the source, and every
   recommendation names its mechanism (prediction-checks.md checks 5 and 6).
