@@ -454,8 +454,8 @@ Check in order:
 A lookup step that does **not** pass `CurrencyIsoCode` does not match on currency. If the
 table has rows for the product in more than one currency, a single-output lookup fails with a
 duplicate-value error; with output resolution on, a List Price or Price Tracking step picks one
-row by its resolution strategy (a Min/Max price formula, then the priority tiebreakers), and it
-can be another currency's [Platform behaviour, traced: procedure lookup path only]. A Price
+row from the candidates by priority [Platform behaviour, traced: procedure lookup path only],
+and that row can be another currency's [inferred: the lookup returns every currency's row]. A Price
 Adjustment Matrix with Stack or Sequence resolution applies every matched row [Core, via
 `price-adjustment-matrix.md`]; if its Use As List column stays unique with per-currency rows,
 every currency's row may apply [inferred, not traced], which usually gives a visibly wrong
