@@ -1008,9 +1008,9 @@ Each needs a live 264 org:
     Order-type amendments, renewals and cancellations weren't run for node status.
 13. How to model a mixed per-seat mount split, which
     [Exactly one of a choice group](#exactly-one-of-a-choice-group) can't express.
-    Two candidates, neither in the dev guide: an answer per mount type (a seat count each,
-    constrained to sum to `seats`, each driving its mount type's cardinality), or per-seat child
-    instances that each carry a mount type. Trade-offs:
+    Three routes, none in the dev guide: the options as top-level lines, an answer per mount type
+    (a seat count each, constrained to sum to `seats`, each driving its mount type's cardinality),
+    or per-seat child instances that each carry a mount type. Trade-offs:
     - *Top-level route* (run): the options as top-level lines, sized outside the configurator
       and checked on a virtual container
       ([Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)).
@@ -1020,6 +1020,8 @@ Each needs a live 264 org:
     - *Answer-per-option route* (not run): keeps the sizing rules in the model, so the
       configurator owns them. Whether the sum constraint and the per-option cardinalities hold
       together is untested.
+    - *Per-seat child instances* (not run): untested, so neither the sizing rules nor the
+      configurator behavior are known.
     CML has no documented signal for a new sale. A flow can read the quote's `OriginalActionType`,
     which was blank on a new-sale quote and set on an amendment or renewal
     [Measured: 2026-11-12, 264, scratch, one org]. It is also blank on swap, upgrade and downgrade
