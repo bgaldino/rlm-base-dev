@@ -66,8 +66,8 @@ follow the evidence report below for each target.
 
 ### Live QuantumBit Bundle Smoke
 
-[Measured: smoke, API 68.0, one org, run date not recorded (the file's first
-commit is 2026-10-15), release and org type not recorded] A separate smoke test
+[Measured: undated smoke, API 68.0, one org] The run date, release and org type were not
+recorded; this file was first committed on 2026-10-15. A separate smoke test
 verified this decomposition pattern against a target org. An isolated Add scenario on the commercial service bundle was composed
 alongside the existing scenarios on its two technical destinations. The transaction
 harness expanded the configurable bundle into commercial `OrderItem` components;
@@ -93,8 +93,9 @@ says users complete manual tasks and milestones in the plan, whereas two measure
 each on one org (the smoke and the recheck below), saw milestones complete without a user;
 do not model a human acceptance as a Milestone on this evidence. Confirm on a live
 target, and treat a person's sign-off as a manual task unless a run shows otherwise
-[inferred]. In both runs activation created the assets and billing schedules before the
-plan finished, so plan the installed base and billing from activation, not from a step
+[inferred]. In the recheck, activation created the assets and billing schedules before any
+step ran, and the smoke's activation, billing and asset checks passed while its plan stayed
+open, so plan the installed base and billing from activation, not from a step
 [inferred].
 
 #### Recheck

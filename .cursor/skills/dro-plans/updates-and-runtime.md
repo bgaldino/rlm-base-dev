@@ -145,7 +145,8 @@ introduce a blanket extra approval for ordinary configuration updates.
 
 ## Measured Runtime Behaviour
 
-Each item is one scratch org, 264, 2026-11-13 [Measured: 2026-11-13, 264, scratch, one org].
+Each item is one scratch org, 264, 2026-11-13 [Measured: 2026-11-13, 264, scratch, one org],
+except the fallout and jeopardy match fields (from describe) and the not-run item.
 
 - **Future-dated steps (setting on).** A step delayed from the previous step's execution
   by two minutes waited, then started. A step waiting on a scheduled date still waited for
@@ -159,8 +160,8 @@ Each item is one scratch org, 264, 2026-11-13 [Measured: 2026-11-13, 264, scratc
   quantity in one case, and an account-scoped asset showed another quantity; both are
   unexplained.
 - **Fallout and jeopardy rules** match on step type, with an optional integration
-  definition, flow definition and error code (read from the rule objects' describe, not
-  from a run). A step's jeopardy threshold was null on
+  definition, flow definition and error code; this is from the rule objects' describe,
+  not a run. Measured on the org's steps: a step's jeopardy threshold was null on
   manual steps, and a failed callout step (credential missing) showed zero retries
   although a retry rule exists; both unexplained. A rule existing doesn't show it applied: verify on a live
   step. A decision-table lookup returned nothing, so the freshness link for these rules
