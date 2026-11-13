@@ -125,8 +125,9 @@ Order-lens attribute row with no source field cleared it: a Place reprice with F
 Order-output amend then succeeded (System pricing, renew and cancel with Order output were not rerun after the fix), and removing the row brought the tag-query failure back. The generic
 message hides this because most failures in the procedure's context-tag query are replaced by it
 [Platform behaviour, traced]. Check: query the declared tags on the Order lens (halve the set to find the
-offender) and add a field-less attribute row for each tag that has a Quote-lens row but no Order-lens row.
-Other declared tags with no row on either lens passed on that org, so don't add rows for every declared tag.
+offender) and add a field-less attribute row for each tag that has a Quote-lens row but no Order-lens row
+[inferred from the one tag found]. One other declared tag with no row on either lens passed on
+that org, so don't add rows for every declared tag.
 Don't treat a Skip success as proof the order priced.
 
 Gotchas, all measured:

@@ -20,7 +20,7 @@ For each change, record the state after every step:
    the measured runs. On a No Change line, `Skip` refused a non-zero quantity ("Specify 0 in
    Quantity...") and `Force` accepted it, turning the line's `QuoteAction.Type` to Amend, even
    at quantity 0 [Measured: 2026-11-12, 264, scratch; one standalone asset, single-line quotes,
-   System pricing]. On a bundle amendment quote `Force` on one component also turned the sibling lines to Amend [Measured: 2026-11-12, 264, scratch, one org]; read every line's `QuoteAction.Type` back (SKILL.md Quick Rule 7). Then read:
+   System pricing]. On a bundle amendment quote `Force` on one component also turned other lines to Amend (the root each time, the other component in one of two runs) [Measured: 2026-11-12, 264, scratch, one org]; `Skip` plus a `QuoteAction` Amend edit turned only the edited line; read every line's `QuoteAction.Type` back (SKILL.md Quick Rule 7). Then read:
     - each line's `Quantity`, `UnitPrice` and `TotalPrice`. On an amendment quote
       `Quantity` is the delta, and `StartQuantity` and `EndQuantity` the totals before and
       after. A line's source asset is on `QuoteAction.SourceAssetId`; `QuoteLineItem` has

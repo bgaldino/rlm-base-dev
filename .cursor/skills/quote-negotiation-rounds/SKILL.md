@@ -60,7 +60,7 @@ path or consequence was not established (the text says what is missing).
    [Measured: 2026-11-10, 264]. Sync with `syncQuoteOpportunity`, not that field write. With
    Asynchronous Opportunity Sync on (the measured case; it applies only to quotes with the
    Revenue Cloud pricing type) the write only marks the quote as
-   syncing, and no completion step was found in the logic read, so waiting does not help; and `createOrdersFromQuote` refused the quote
+   syncing, and no completion step was found in the logic read, so waiting does not help for the field write; and `createOrdersFromQuote` refused the quote
    ([Final round to order](#final-round-to-order)) [Measured: 2026-11-12, 264;
    Platform behaviour, traced in part]. Help converts
    an accepted quote into an order [Help: `ind.qocal_create_orders_from_a_quote`].
@@ -170,8 +170,8 @@ Order of operations: write the status (Accepted, if your process sets it) and an
 edit first, sync last, then create the order [inferred from the traced rule in step 1; this order
 was not itself run]. A quote write after the sync can make Create Order refuse it as "currently
 syncing" (step 1). On that refusal, retry about 15 s later or sync again; the 15 s retry created
-the order without a second sync in the runs that used it (sync, then Accepted, then Create Order)
-[Measured: 2026-11-12, 264, scratch].
+the order without a second sync on one quote (sync, then Accepted, then Create Order); the traced
+rule doesn't explain that [Measured: 2026-11-12, 264, scratch; one quote].
 
 1. Sync the final round (after any status write): Start Sync on the quote [Help:
    `ind.qocal_considerations_syncing_quotes_and_opportunities_in_revenue_cloud`]. Sync runs
@@ -193,7 +193,8 @@ the order without a second sync in the runs that used it (sync, then Accepted, t
    stays marked `IsSyncing` after a good sync (a code comment says this is intended; not
    otherwise confirmed); completion is "last sync time is not
    earlier than the quote's last modified time", not `IsSyncing` false. So any later edit to the
-   quote, including a system or pricing save, needs another sync before ordering. Which saves
+   quote, including a system or pricing save, needs another sync before ordering by the traced rule
+   (a retry about 15 s later without a re-sync worked once; the rule doesn't explain it). Which saves
    change the quote's last modified time was not established
    [Platform behaviour, traced in part]. The check applies only with Asynchronous Opportunity
    Sync on; without it the field write is expected to run an older inline sync and order

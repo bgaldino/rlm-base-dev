@@ -50,8 +50,8 @@ Built on a Place Sales Transaction quote (`configurationMethod: Force`,
   component group, in a model that declares no group types. Whether a model that declares group
   types needs the level argument was not measured.
 - **Top-level lines.** A top-level line held by a virtual `Quote` container relation received the
-  root's answer through `parent()`; a line no container relation holds got none, and a child under a
-  root outside the model kept its default `[Measured: 2026-11-11, 264, scratch; one org, attribute
+  root's answer through `parent()`; on a quote with no bundle the line kept the attribute default, and a child
+  under a root outside the model kept its default `[Measured: 2026-11-11, 264, scratch; one org, attribute
   illustrative]`. Assert it at the catalog gate; details in
   [`quantities-from-attributes.md`](../../constraint-models/quantities-from-attributes.md) (M42).
 - **Catalog set-up used:** each affected child is based on a classification that carries
