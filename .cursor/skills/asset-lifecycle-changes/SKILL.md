@@ -37,7 +37,7 @@ results, 2026-11-11).
     - **Never reprice a renewal quote after its order is activated; until measured, treat amendment and ramped quotes the same.** Measured once on a
       renewal quote: a full reprice (every line, pricing `Force`, configuration `Skip`) after
       the order was activated set the renewal lines' totals and the quote total to 0
-      [Measured: 2026-11-12, 264, scratch org] — each lot became a cancel/add pair netting 0, and the
+      [Measured: 2026-11-12, 264, scratch, one org] — each lot became a cancel/add pair netting 0, and the
       order and assets were unchanged. Not measured on amendments or ramped quotes; mechanism not traced. Read
       quote values before activation and don't reprice afterwards.
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
@@ -233,7 +233,7 @@ results, 2026-11-11).
       (inclusive, actual calendar days under the actual-days time period type) over the
       days in that full period, so a leap year changes the denominator (275/365 in a normal
       year, 275/366 in a leap year). A 30-day-month type counts 30 days a month. Not run: one scratch org offered no such policy type to create, so whether it reproduces a
-      months-remaining source value on a mid-period start is unmeasured, and a selling
+      months-remaining source value on a mid-period start is unmeasured. A selling
       model's proration options take the policy only at create [read from the field describe, one org]. Turning
       partial periods off counts whole periods only. Read for the annual frequency with the
       actual-days type; that the first period runs to the calendar year end is inferred from
@@ -250,7 +250,7 @@ results, 2026-11-11).
       `ind.qocal_fdo_examples_of_amendment_types_and_results`]; it doesn't say what either
       credits, and the reduction credit above is measured. A reduction of an Evergreen
       bundle component by 2 of 5 (one lot), ordered and activated through Skip plus a
-      `QuoteAction` Amend edit, gave a new state period at the reduced quantity and one credit
+      `QuoteAction` Amend edit (the test bundle lacked a required child, which `Skip` didn't catch), gave a new state period at the reduced quantity and one credit
       schedule for the 2 [Measured: 2026-11-12, 264, scratch, one org]; read the state period, because
       `Asset.CurrentQuantity` still showed the old quantity after activation (unexplained); per-lot credits on a
       component weren't tested (one lot), and the Force path to an order wasn't completed. Evergreen swap credits are **Open** ([verification.md](verification.md) → Open).
@@ -295,7 +295,7 @@ results, 2026-11-11).
       behaviour, traced in part].
     - Edit amendment lines through Place with `configurationMethod: Force`, as the earlier
       measured runs did (on a bundle quote, where Force flips other lines, `Skip` plus a
-      `QuoteAction` Amend edit is the route that stayed scoped to one line; see below). On a No Change amendment line (`quantityChange` 0), `Skip` with a non-zero
+      `QuoteAction` Amend edit is the route that stayed scoped to one line, but it also ordered a bundle that failed validation; see below). On a No Change amendment line (`quantityChange` 0), `Skip` with a non-zero
       quantity was refused (`isSuccess` false, INVALID_INPUT "Specify 0 in Quantity of the
       Quote Line Item record with the action of type No Change") and the line was unchanged;
       `Skip` with 0 succeeded and changed nothing. `Force` accepted the same edit and turned
@@ -310,13 +310,14 @@ results, 2026-11-11).
       measured on those quotes (bundle runs below)]. On a three-line bundle amendment quote (root and two components, all No Change),
       `Skip` with quantity 1 on the Evergreen component was refused the same way, and `Force` with
       quantity 1 on the Term Annual component turned that line and both siblings (root included) to
-      Amend, while `Force` on the Evergreen component (a separate quote, a -2 edit) turned only that line and the root, and its order was refused because the quote carried a bundle-validation Warning log (the test bundle lacked a required group's child, a test-setup gap; that the Force run wrote it is inferred: Force runs the configurator and the log was present. `Skip` plus the
+      Amend, while `Force` on the Evergreen component (a separate quote, a -2 edit) turned only that line and the root, and its order was refused because the quote carried a bundle-validation Warning log (the test bundle lacked a required group's child, a test-setup gap; that the Force run wrote the log is inferred, since Force runs the configurator). `Skip` plus the
       `QuoteAction` Amend PATCH on the Term Annual component turned only that line [Measured:
       2026-11-12, 264, scratch, one org; why Force flipped siblings differently by component
-      is unknown]. A Force edit can therefore change lines you didn't touch. The `Skip` run
-      wrote no configurator log [Measured: 2026-11-12, 264, scratch, one org], so don't rely on
-      `Skip` to report a constraint the edit breaks, and CML-sized children may not be re-derived
-      [inferred]. Use it for line-only edits and check rules separately. The message is a save-time quantity check that fires only while
+      is unknown]. A Force edit can therefore change lines you didn't touch. On that same
+      incomplete bundle, the `Skip` plus `QuoteAction` quote was ordered and activated while the
+      `Force` quote was refused [Measured: 2026-11-12, 264, scratch, one org], so `Skip` let an
+      invalid bundle through to an order [inferred] and CML-sized children may not be re-derived.
+      Use it for line-only edits and check rules and bundle validation separately. The message is a save-time quantity check that fires only while
       the action type is No Change and reads no configuration method; how `Force` changes the
       action type is not traced [Platform behaviour, traced in part]. On a new-business line
       `Force` and `Skip` both accepted non-zero edits and refused 0 (see constraint-models →

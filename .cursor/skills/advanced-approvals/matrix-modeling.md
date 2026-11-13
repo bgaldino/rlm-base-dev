@@ -129,8 +129,8 @@ where each level is computed:
   modeling recommendation, not platform behavior.
 - A marker that worked [Measured: 2026-11-12, 264, scratch; one org]: a mapped custom line
   field written with the line discount by whatever applies the round (an API applier, here). Both
-  survived a deep clone, and the guard counted lines below the margin floor whose discount differed from the marker, or that
-  carried a target margin: individually priced lines were flagged, round-discounted
+  survived a deep clone, and the guard counted lines below the margin floor that either had a discount different from the
+  marker or carried a target margin: individually priced lines were flagged, round-discounted
   lines were not. A custom header field reset on a clone, so don't hold the marker there.
 - Nothing documented sets such a marker. Bulk edit applies one value to the same field on
   every selected line, and the STLE does the same on groups
