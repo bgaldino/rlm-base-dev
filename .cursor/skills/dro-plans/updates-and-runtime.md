@@ -140,10 +140,13 @@ introduce a blanket extra approval for ordinary configuration updates.
   no enforcement, and enforcement itself was not tested.
 - **PONR scope (freeze output).** Freezing the order returned an allowed flag per order item.
   With a PONR step In Progress on one child of a bundle, every line of that bundle was denied,
-  root and sibling included; a PONR on a standalone line denied only that line, and a control
+  root and sibling included; a PONR on a standalone line denied only that line, not a bundle in
+  the same order, and a control
   order with no PONR froze with every line allowed [Measured: 2026-11-13, 264, scratch, one
-  org]. The supplemental submission was refused for assets and billing schedules, not for the
-  PONR, so whether the route enforces the PONR is still untested. With the force-freeze-during-
+  org]. A supplemental quantity change on the activated order was refused because its order
+  products had been converted to assets and had billing schedules, not for the PONR
+  [Measured: 2026-11-13, 264, scratch, one org], so whether the route enforces the PONR is still
+  untested. With the force-freeze-during-
   execution setting not set, a plan with a step In Progress stayed Freezing, not Frozen
   [Measured: 2026-11-13, 264, scratch, one org].
 - **Order-wide scenarios:** Help documents different post-submission modification
@@ -160,8 +163,8 @@ except the fallout and jeopardy match fields (from describe) and statements mark
   even with a future service date and an order dated a month out; on a second run with every
   candidate date in the future, a 10-day offset and a 3-minute offset from that date both
   started at plan creation, and the next-run time carried no offset [Measured: 2026-11-13, 264,
-  scratch, one org]. The decomposed technical lines had null service and end dates, which may
-  explain it [inferred]; Help doesn't settle it. Don't promise a start-date offset; use a
+  scratch, one org]. The decomposed technical lines had null service and end dates
+  [Measured: 2026-11-13, 264, scratch, one org], which may explain it [inferred]; Help doesn't settle it. Don't promise a start-date offset; use a
   previous-step delay, which was measured to work.
 - **Amendment decomposition.** An amendment created a new plan holding the full step set,
   not a delta: unchanged lines decomposed with cancel and add, and a changed quantity was
@@ -179,8 +182,8 @@ except the fallout and jeopardy match fields (from describe) and statements mark
   fulfillment asset was created or changed for it, while the assetizable lines decomposed as
   Cancel [Measured: 2026-11-13, 264, scratch, one org]. Design Add steps to tolerate a zero
   quantity [inferred from one run].
-- **Dependency across order items.** A plan-scope step waited for every instance across the
-  order items, not one line [Measured: 2026-11-13, 264, scratch, one org]. Help says a
+- **Dependency across order items.** A plan-scope step whose dependency was set at line scope
+  waited for every instance across the order items, not one line [Measured: 2026-11-13, 264, scratch, one org]. Help says a
   dependency between line-scope steps pairs steps of the same line only; that pairing was not
   measured, and neither was the cross-plan scope. The
   measured run completed manual steps by setting their state directly; the engine accepted it,
