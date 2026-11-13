@@ -720,7 +720,8 @@ action type is No Change and reads no configuration method
 and `Skip` an edit to 6; an edit to 0 was refused by both ("Quantity must be nonzero",
 FIELD_INTEGRITY_EXCEPTION) with the line unchanged
 `[Measured: 2026-11-12, 264, scratch; System pricing, configuration rules not sent]`. On a
-No Change amendment line `Skip` refused a non-zero quantity with that message, while `Force`
+No Change amendment line `Skip` refused a non-zero quantity (INVALID_INPUT, "Specify 0 in
+Quantity..."), while `Force`
 accepted it and turned the action type to Amend (at quantity 0 too)
 `[Measured: 2026-11-12, 264, scratch; one standalone asset, System pricing]`; details in
 `asset-lifecycle-changes` Quick Rule 7. Read the saved line back after either method.

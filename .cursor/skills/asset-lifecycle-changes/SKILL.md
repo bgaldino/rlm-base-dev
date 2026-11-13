@@ -280,15 +280,16 @@ results, 2026-11-11).
       own reports the first rule that failed or related rules' messages (inferred, not
       traced). Which status Place assigns an amendment add-on line wasn't read [Platform
       behaviour, traced in part].
-    - Edit amendment lines through Place with `configurationMethod: Force`, as the measured
-      runs did. On a No Change amendment line (`quantityChange` 0), `Skip` with a non-zero
+    - Edit amendment lines through Place with `configurationMethod: Force`, as the earlier
+      measured runs did. On a No Change amendment line (`quantityChange` 0), `Skip` with a non-zero
       quantity was refused (`isSuccess` false, INVALID_INPUT "Specify 0 in Quantity of the
       Quote Line Item record with the action of type No Change") and the line was unchanged;
       `Skip` with 0 succeeded and changed nothing. `Force` accepted the same edit and turned
       the line's `QuoteAction.Type` from No Change to Amend (`Quantity` the delta,
       `EndQuantity` = `StartQuantity` + delta). `Force` with quantity 0 also turned it to
       Amend, so a Force PATCH on a No Change line you meant to leave alone makes it an Amend
-      line. `Skip` with a `QuoteAction` PATCH setting `Type` Amend in the same request
+      line (what such a line does at order and activation was not measured; the quotes were
+      not ordered). `Skip` with a `QuoteAction` PATCH setting `Type` Amend in the same request
       accepted the edit with the same end state [Measured: 2026-11-12, 264, scratch; one
       standalone Term Defined asset, System pricing, configuration rules at default; bundle
       components not re-run]. The message is a save-time quantity check that fires only while
