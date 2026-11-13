@@ -1,8 +1,8 @@
 # Sizing a Bundle from Answers — Component Quantities from Attributes
 
 Sub-file of the [constraint-models skill](SKILL.md). Read it when a constraint model has to
-set component quantities from answers on the bundle, for example one sensor per plot,
-hubs per 20 plots rounded up, or service hours computed from other quantities.
+set component quantities from answers on the bundle, for example one badge per seat,
+two kiosks per 25 seats rounded up, or service hours computed from other quantities.
 
 The parent skill covers file layout, wiring, deployment and the headless `configure`
 check. This file covers only the CML that sizes a bundle and how to test it.
@@ -119,7 +119,7 @@ the order `[Measured: M31]`.
 
 `sum(attr)` multiplies each instance's value by its line quantity; `total(attr)` doesn't
 `[Dev guide: cml_relationship_variable_functions]`. When you derive one quantity from
-another component's per-unit attribute (hours per relay, say), choose deliberately.
+another component's per-unit attribute (hours per kiosk, say), choose deliberately.
 Using `sum()` on an attribute that is already a line total multiplies it by the quantity a
 second time.
 
@@ -154,7 +154,7 @@ maximum, so it reuses the line. With `split = true` each unit is its own line
 line `[Platform behaviour, traced]`.
 
 Put the annotation on each leaf type that is a sized component (in the worked example,
-every type but the abstract `Warranty`). Leave it off a type whose lines must carry
+every type but the abstract `Finish`). Leave it off a type whose lines must carry
 different attribute values: `split = false` allows only one instance
 `[Dev guide: cml_annotation_example_split]`. Each root
 solves separately, so in a group ramp a single-line type gets one line per segment
@@ -192,17 +192,17 @@ largest quantity; nothing below the cap shows the problem.
 
 ## Deriving quantities from attribute values
 
-The answers (plots, zones) are attributes on the bundle's root product. A
+The answers (seats, areas) are attributes on the bundle's root product. A
 PCM attribute imported into CML takes the attribute's developer name as its variable name
 `[Dev guide: cml_best_practice_attribute_name]`.
 
 | Pattern | CML | Source |
 |---|---|---|
-| One per answer unit | `constraint(sensors[Sensor] == plots, "One sensor per plot: expected {}.", plots);` | `[Dev guide: cml_logical_constraints]` (message with `{}` arguments) |
-| Per N, rounded up | `constraint(hubQty * 20 >= plots && (hubQty - 1) * 20 < plots, "<message>");` | See [Rounding up](#rounding-up) |
-| Zero unless a choice is made | `constraint(power != "Solar" -> batteryQty == 0, "<message>");` | `[Dev guide: cml_logical_constraints]` |
-| One per answer unit, only if the rep adds it | `relation shade : ShadeKit[0..120];` with `constraint(shade[ShadeKit] > 0 -> shade[ShadeKit] == plots, "<message>");` | `[Dev guide: cml_annotation_example_sequence]` (Examples 4 and 5). See the note below the table |
-| Equal to another component's quantity | `constraint(batteries[BatteryPack] == hubs[Hub], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead (see [Chained derivations](#chained-derivations)) |
+| One per answer unit | `constraint(badges[Badge] == seats, "One badge per seat: expected {}.", seats);` | `[Dev guide: cml_logical_constraints]` (message with `{}` arguments) |
+| Per N, rounded up | `constraint(kioskQty * 25 >= 2 * seats && (kioskQty - 1) * 25 < 2 * seats, "<message>");` | See [Rounding up](#rounding-up) |
+| Zero unless a choice is made | `constraint(mounting != "Floor" -> standQty == 0, "<message>");` | `[Dev guide: cml_logical_constraints]` |
+| One per answer unit, only if the rep adds it | `relation banners : BannerKit[0..200];` with `constraint(banners[BannerKit] > 0 -> banners[BannerKit] == seats, "<message>");` | `[Dev guide: cml_annotation_example_sequence]` (Examples 4 and 5). See the note below the table |
+| Equal to another component's quantity | `constraint(stands[FloorStand] == kiosks[Kiosk], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, derive both from one variable instead of equating component quantities, as the worked example does (`standQty` from `kioskQty`; see [Chained derivations](#chained-derivations)) |
 | A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
 
 The "only if the rep adds it" row takes the dev guide's form
@@ -210,7 +210,7 @@ The "only if the rep adds it" row takes the dev guide's form
 `[Dev guide: cml_annotation_example_sequence]`; the `mouse` example has the same form
 `[Dev guide: cml_best_practice_sequence_configurable]`. Those relations have a lower bound
 of 1; the row's bound of 0 lets the add-on be absent. The implication holds at 0 and at
-`plots`, so the rule alone doesn't require the add-on. What happens when a rep adds it
+`seats`, so the rule alone doesn't require the add-on. What happens when a rep adds it
 depends on `split`; see [One line per component](#one-line-per-component-split--false).
 
 `constraint()` makes the quantity a rule; `setdefault()` makes it a default. The Logical
@@ -250,7 +250,7 @@ Calculations and Aggregations*). For `ceil()` inside a constraint, see [DO NOT](
 
 ## Chained derivations
 
-When one quantity depends on others (audit hours as a share of calibration
+When one quantity depends on others (training hours as a share of setup
 hours), compute in stages:
 
 1. Each base quantity in its own `int` variable with an explicit domain, set by its own
@@ -268,8 +268,8 @@ loop with a read-calculate-write chain ordered by `@(sequence = n)` on constrain
 first `[Dev guide: cml_business_centric_cml_examples]` (*Resolving Circular
 Dependencies*). This file avoids such loops instead (Validation check 4).
 
-Size domains from the answer domains. With `zones = [0..16]` and `hubQty = [1..6]`, `10 * zones + 4 * hubQty`
-runs from 4 to 184, so `[4..184]` is the domain, not `[0..99999]`. A smaller domain gives the
+Size domains from the answer domains. With `areas = [0..10]` and `kioskQty = [1..16]`, `2 * kioskQty + areas + 6`
+runs from 8 to 48, so `[8..48]` is the domain, not `[0..99999]`. A smaller domain gives the
 engine fewer values to test `[Dev guide: cml_cml_best_practices]` (*Variable Domains*).
 
 The dev guide says to calculate inside constraints, not with inline expressions, for
@@ -312,12 +312,12 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
 
   ```
   type Root : LineItem {
-      string climate = ["Dry", "Humid"];
-      relation sensors : Sensor[0..120];
+      string hall = ["North", "South"];
+      relation badges : Badge[0..200];
   }
   @(split = false)
-  type Sensor : LineItem {
-      string climate = parent(climate);
+  type Badge : LineItem {
+      string hall = parent(hall);
   }
   ```
 
@@ -343,26 +343,26 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
 | Tool | Behaviour | Source |
 |---|---|---|
 | Relation cardinality `[1..1]` over a base type with subtypes | Bounds the relation; a subtype is then picked with `rel[Subtype] == 1` | `[Dev guide: cml_relationships]` (*skipTypeGeneration* example) |
-| A sum of subtype cardinalities | `constraint(warranties[StandardWarranty] + warranties[ExtendedWarranty] == 1, "<message>");`, which carries a message a test can assert | `[Dev guide: cml_core_concept_examples]` (adds two cardinalities) |
+| A sum of subtype cardinalities | `constraint(finishes[MatteFinish] + finishes[GlossFinish] + finishes[SatinFinish] == 1, "<message>");`, which carries a message a test can assert | `[Dev guide: cml_core_concept_examples]` (the dev guide's example adds two cardinalities) |
 | Group Type `@(minInstanceQty=1, maxInstanceQty=1)` | Limits **unique instances** chosen from the group. The chosen component can still have a high quantity. The solver counts lines: a line of quantity N counts 1 for a `split = false` type and N for `split = true` | `[Dev guide: cml_group_type]` `[Platform behaviour, traced]` |
 
 Tie the choice to an answer with one implication per subtype, as in the dev guide's
-warranty example, each with its own message:
-`constraint(warranty != "Extended" -> warranties[ExtendedWarranty] == 0, "<message>");`
+warranty example, each with its own message (here with this file's finish example):
+`constraint(finish != "Gloss" -> finishes[GlossFinish] == 0, "<message>");`
 `[Dev guide: cml_logical_constraints]`.
 
-This picks one option for the whole bundle. It can't express a mixed split, with some plots
+This picks one option for the whole bundle. It can't express a mixed split, with some seats
 on one option and the rest on another. The dev guide has no such example; how to model one
 is [open item 13](#open-items).
 
-### Exactly one option when each option is sized per plot
+### Exactly one option when each option is sized per seat
 
 The first two rows of the choice-group table above count quantity, not distinct
 components. `rel[Type]` and `cardinality()` include the quantity of every instance
 `[Dev guide: cml_using_proxy_variables_constraints]`, and a relation's bounds are a
 quantity range `[Dev guide: cml_relationships]`. M14 set a cardinality of 3 as one line of
-quantity 3 `[Measured: M14]`. So with each option at `plots`, the sum `== 1` and a `[1..1]`
-bound can't hold once `plots` is above 1; that failure itself wasn't run.
+quantity 3 `[Measured: M14]`. So with each option at `seats`, the sum `== 1` and a `[1..1]`
+bound can't hold once `seats` is above 1; that failure itself wasn't run.
 
 | Tool | What the dev guide says it counts | Source |
 |---|---|---|
@@ -373,17 +373,17 @@ bound can't hold once `plots` is above 1; that failure itself wasn't run.
 answer, zero the other, and drop the sum:
 
 ```
-relation mounts : Mount[1..120];
-constraint(mounting == "Pole" -> mounts[PoleMount] == plots, "<message>");
-constraint(mounting == "Wall" -> mounts[WallMount] == plots, "<message>");
-constraint(mounting != "Pole" -> mounts[PoleMount] == 0, "<message>");
-constraint(mounting != "Wall" -> mounts[WallMount] == 0, "<message>");
+relation mounts : Mount[1..200];
+constraint(mounting == "Floor" -> mounts[FloorMount] == seats, "<message>");
+constraint(mounting == "Counter" -> mounts[CounterMount] == seats, "<message>");
+constraint(mounting != "Floor" -> mounts[FloorMount] == 0, "<message>");
+constraint(mounting != "Counter" -> mounts[CounterMount] == 0, "<message>");
 ```
 
-`mounting` holds one value, so one mount type carries `plots` and the other 0. The dev guide
+`mounting` holds one value, so one mount type carries `seats` and the other 0. The dev guide
 sets a subtype's cardinality behind an implication
 (`DutyRating == ... -> engine[PrimePowerEngine] == 1`) `[Dev guide: cml_relationships]`;
-here the right side is `plots`, as in the "One per answer unit" row of
+here the right side is `seats`, as in the "One per answer unit" row of
 [Deriving quantities](#deriving-quantities-from-attribute-values). Not run.
 
 **When the rep picks the option by adding it,** with no answer behind it, neither row of the
@@ -475,17 +475,17 @@ Container relations have no `ProductRelatedComponent`, so no `Port` association
 @(virtual = "true")
 type Quote {
     @(sourceContextNode = "SalesTransaction.SalesTransactionItem")
-    relation kit : GreenhouseKit[0..1] {
-        kitPlots = total(plots);
+    relation kit : BoothKit[0..1] {
+        kitSeats = total(seats);
     }
     @(sourceContextNode = "SalesTransaction.SalesTransactionItem")
-    relation extension : ExtensionKit[0..120];
+    relation extension : ExtensionKit[0..200];
 
-    int qPlots = [0..120];
-    constraint(qPlots == kit.kitPlots);
+    int qSeats = [0..200];
+    constraint(qSeats == kit.kitSeats);
 
-    message(qPlots > 0 && extension[ExtensionKit] > qPlots,
-            "At most one extension kit per plot.", "Error");
+    message(qSeats > 0 && extension[ExtensionKit] > qSeats,
+            "At most one extension kit per seat.", "Error");
 }
 ```
 
@@ -519,7 +519,7 @@ type Quote {
   "You can't add more than one of the same '<product>' product to the '<type>' product
   class" and the configurator couldn't save `[Measured: M41]`. Widen the bundle relation to
   the most segments a ramp can have, widen the line relations and the ints that hold
-  their summed totals (`qPlots` in the example) to their total across segments, and leave
+  their summed totals (`qSeats` in the example) to their total across segments, and leave
   `split = false` off the types the container holds. Write each check as a comparison of
   totals across segments `[Measured: M41]`; `total()` and the cardinalities in the example
   above already sum every instance. Read from the solver's cardinality
@@ -551,7 +551,7 @@ type Quote {
   state it: a relation minimum, or a required line.
 - A quote that holds the extension lines but not the bundle (an amendment of the extension
   assets alone, say) has nothing in `kit`, so this check doesn't compare the extension kits
-  with `plots` there.
+  with `seats` there.
 - `validate_cml` warns "Missing port association" for each container relation and
   "Missing type association" for the container type `[Repo: tasks/rlm_cml.py]`
   `[Measured: M37]`. Those warnings are expected.
@@ -634,9 +634,9 @@ inferred and still open (see asset-lifecycle-changes Quick Rule 2).
 A review note for a combination that is allowed but unusual is an `Info` message:
 
 ```
-message(hubQty > 4,
-        "Review: {} hubs for this kit. Consider splitting the order by greenhouse.",
-        hubQty, "Info");
+message(kioskQty > 12,
+        "Review: {} kiosks for this booth. Consider splitting the order.",
+        kioskQty, "Info");
 ```
 
 Syntax: `message(condition, string, arg, …, severity)`
@@ -686,7 +686,7 @@ in front of it (step 1 below).
    in [Reading a result](#reading-a-result).
 5. **Assert every component's quantity**, including the zeros, against a hand-computed
    table (see the worked example), and one line per `@(split = false)` component. Pick answers on
-   each rounding boundary: exact multiples (`plots = 20`) and one past (`plots = 21`). Add
+   each rounding boundary: exact multiples (`seats = 100`) and one past (`seats = 101`). Add
    the answers that produce the largest quantity, to test the 9,999 cap
    ([Raising the 9,999 cap](#raising-the-9999-cap-maxrelationsize)).
 6. **For each rejection, submit the conflicting state and assert that the message of a
@@ -744,105 +744,111 @@ any configurator error-log row, whatever its severity `[Platform behaviour, trac
 
 ## Examples
 
-### Worked example — a fictional "Greenhouse Monitoring Kit" bundle
+### Worked example — a fictional "Pop-up Booth Kit" bundle
 
 **Fictional.** No product, catalog or customer in this repository has these names. Sized
 by two numeric answers on the root product, plus two choices:
 
 | Component | Quantity rule |
 |---|---|
-| Warranty | exactly one: Standard or Extended, by answer |
-| Sensor | one per plot |
-| Hub | one per 20 plots, rounded up |
-| Battery pack | one per hub on solar power; otherwise 0 |
-| Relay | one per zone |
-| Calibration service (hours) | 10 × zones + 4 × hubs |
-| Audit service (hours) | ceil(10% of the calibration hours) |
+| Finish | exactly one of Matte, Gloss or Satin, by answer |
+| Badge | one per seat |
+| Kiosk | two per 25 seats, rounded up |
+| Floor stand | two per kiosk when mounting is Floor; otherwise 0 |
+| Signage | one more than the areas |
+| Setup service (hours) | 2 × kiosks + areas + 6 |
+| Training service (hours) | ceil(25% of the setup hours) |
 
 ```
 type LineItem;
 
-type GreenhouseKit : LineItem {
+type BoothKit : LineItem {
     // Answers: PCM attributes on the root product
-    int plots = [1..120];
-    int zones = [0..16];
-    string power = ["Grid", "Solar"];
-    string warranty = ["Standard", "Extended"];
+    int seats = [1..200];
+    int areas = [0..10];
+    string mounting = ["Floor", "Counter"];
+    string finish = ["Matte", "Gloss", "Satin"];
 
     // Derived values: explicit, smallest domains; set only by constraints
-    int hubQty = [1..6];
-    int batteryQty = [0..6];
-    int calibHours = [4..184];
-    int auditHours = [1..19];
+    int kioskQty = [1..16];
+    int standQty = [0..32];
+    int signQty = [1..11];
+    int setupHours = [8..48];
+    int trainHours = [2..12];
 
-    relation warranties : Warranty[1..1];
-    relation sensors : Sensor[1..120];
-    relation hubs : Hub[1..6];
-    relation batteries : BatteryPack[0..6];
-    relation relays : Relay[0..16];
-    relation calibration : CalibrationService[4..184];
-    relation audit : AuditService[1..19];
+    relation finishes : Finish[1..1];
+    relation badges : Badge[1..200];
+    relation kiosks : Kiosk[1..16];
+    relation stands : FloorStand[0..32];
+    relation signs : Signage[1..11];
+    relation setup : SetupService[8..48];
+    relation training : TrainingService[2..12];
 
-    // Exactly one warranty, chosen by the answer
-    constraint(warranty != "Standard" -> warranties[StandardWarranty] == 0, "Standard warranty needs the Standard answer.");
-    constraint(warranty != "Extended" -> warranties[ExtendedWarranty] == 0, "Extended warranty needs the Extended answer.");
-    constraint(warranties[StandardWarranty] + warranties[ExtendedWarranty] == 1, "Choose exactly one warranty.");
+    // Exactly one finish, chosen by the answer
+    constraint(finish != "Matte" -> finishes[MatteFinish] == 0, "Matte finish needs the Matte answer.");
+    constraint(finish != "Gloss" -> finishes[GlossFinish] == 0, "Gloss finish needs the Gloss answer.");
+    constraint(finish != "Satin" -> finishes[SatinFinish] == 0, "Satin finish needs the Satin answer.");
+    constraint(finishes[MatteFinish] + finishes[GlossFinish] + finishes[SatinFinish] == 1, "Choose exactly one finish.");
 
-    // One per plot
-    constraint(sensors[Sensor] == plots, "One sensor per plot: expected {}.", plots);
+    // One per seat
+    constraint(badges[Badge] == seats, "One badge per seat: expected {}.", seats);
 
-    // Per 20 plots, rounded up with the bracket
-    constraint(hubQty * 20 >= plots && (hubQty - 1) * 20 < plots,
-            "Hubs: one per 20 plots, rounded up, for {} plots.", plots);
-    constraint(hubs[Hub] == hubQty, "Hubs: expected {}.", hubQty);
+    // Two per 25 seats, rounded up with the bracket
+    constraint(kioskQty * 25 >= 2 * seats && (kioskQty - 1) * 25 < 2 * seats,
+            "Kiosks: two per 25 seats, rounded up, for {} seats.", seats);
+    constraint(kiosks[Kiosk] == kioskQty, "Kiosks: expected {}.", kioskQty);
 
-    // Zero unless solar; otherwise one per hub (chained from the derived hub count)
-    constraint(power == "Solar" -> batteryQty == hubQty, "Batteries: one per hub when power is Solar.");
-    constraint(power != "Solar" -> batteryQty == 0, "Batteries: none unless power is Solar.");
-    constraint(batteries[BatteryPack] == batteryQty, "Batteries: expected {}.", batteryQty);
+    // Zero unless floor mounted; otherwise two per kiosk (chained from the derived kiosk count)
+    constraint(mounting == "Floor" -> standQty == 2 * kioskQty, "Floor stands: two per kiosk when mounting is Floor.");
+    constraint(mounting != "Floor" -> standQty == 0, "Floor stands: none unless mounting is Floor.");
+    constraint(stands[FloorStand] == standQty, "Floor stands: expected {}.", standQty);
 
-    constraint(relays[Relay] == zones, "One relay per zone: expected {}.", zones);
+    // An offset from an answer
+    constraint(signQty == areas + 1, "Signage: one more than the areas.");
+    constraint(signs[Signage] == signQty, "Signage: expected {}.", signQty);
 
-    // Chained: base hours from answers and the derived hub count, then audit (10 percent, bracket)
-    constraint(calibHours == 10 * zones + 4 * hubQty, "Calibration hours: 10 per zone plus 4 per hub.");
-    constraint(auditHours * 100 >= 10 * calibHours && (auditHours - 1) * 100 < 10 * calibHours,
-            "Audit hours: 10 percent of calibration hours, rounded up.");
-    constraint(calibration[CalibrationService] == calibHours, "Calibration hours: expected {}.", calibHours);
-    constraint(audit[AuditService] == auditHours, "Audit hours: expected {}.", auditHours);
+    // Chained: setup hours from the derived kiosk count and an answer, then training (25 percent, bracket)
+    constraint(setupHours == 2 * kioskQty + areas + 6, "Setup hours: 2 per kiosk plus the areas plus 6.");
+    constraint(trainHours * 100 >= 25 * setupHours && (trainHours - 1) * 100 < 25 * setupHours,
+            "Training hours: 25 percent of setup hours, rounded up.");
+    constraint(setup[SetupService] == setupHours, "Setup hours: expected {}.", setupHours);
+    constraint(training[TrainingService] == trainHours, "Training hours: expected {}.", trainHours);
 
     // Non-blocking review note, triggered by a derived value
-    message(hubQty > 4,
-            "Review: {} hubs for this kit. Consider splitting the order by greenhouse.",
-            hubQty, "Info");
+    message(kioskQty > 12,
+            "Review: {} kiosks for this booth. Consider splitting the order.",
+            kioskQty, "Info");
 }
 
 // One line per sized component (Quick Rule 8)
 @(split = false)
-type Sensor : LineItem;
+type Badge : LineItem;
 @(split = false)
-type Hub : LineItem;
+type Kiosk : LineItem;
 @(split = false)
-type BatteryPack : LineItem;
+type FloorStand : LineItem;
 @(split = false)
-type Relay : LineItem;
+type Signage : LineItem;
 @(split = false)
-type CalibrationService : LineItem;
+type SetupService : LineItem;
 @(split = false)
-type AuditService : LineItem;
-type Warranty : LineItem;
+type TrainingService : LineItem;
+type Finish : LineItem;
 @(split = false)
-type StandardWarranty : Warranty;
+type MatteFinish : Finish;
 @(split = false)
-type ExtendedWarranty : Warranty;
+type GlossFinish : Finish;
+@(split = false)
+type SatinFinish : Finish;
 ```
 
 Notes on the model:
 
-- No relation can exceed 9,999 (the largest bound is 184), so the model needs no
+- No relation can exceed 9,999 (the largest bound is 200), so the model needs no
   `maxRelationSize` ([Raising the 9,999 cap](#raising-the-9999-cap-maxrelationsize)).
   Widen an answer domain and check again.
-- The relation lower bounds follow the derived domains. `calibration` can't be below 4
-  because `calibHours` can't. Keep the two in step when you change an answer domain.
+- The relation lower bounds follow the derived domains. `setup` can't be below 8
+  because `setupHours` can't. Keep the two in step when you change an answer domain.
 - Each component is a bundle member, so it still needs the four records in the parent
   skill ([The four records a bundle member needs](SKILL.md#the-four-records-a-bundle-member-needs)),
   and the PCM quantity settings under
@@ -856,28 +862,29 @@ Notes on the model:
 
 Expected quantities (hand-computed from the rules above; the whole model has not been run):
 
-| Answers | Sensor | Hub | Battery | Relay | Calib. h | Audit h | Warranty | Review note |
+| Answers | Badge | Kiosk | Floor stand | Signage | Setup h | Training h | Finish | Review note |
 |---|---|---|---|---|---|---|---|---|
-| 45 plots, 6 zones, Solar, Standard | 45 | 3 | 3 (one per hub) | 6 | 72 (60 + 12) | 8 (72 × 10% = 7.2) | Standard 1, Extended 0 | no |
-| 100 plots, 2 zones, Grid, Extended | 100 | 5 (exact multiple) | 0 (Grid) | 2 | 40 (20 + 20) | 4 (40 × 10% = 4, exact) | Extended 1, Standard 0 | **yes, Info** (5 hubs) |
-| 101 plots, 12 zones, Solar, Extended | 101 | 6 (one past a multiple) | 6 | 12 | 144 (120 + 24) | 15 (144 × 10% = 14.4) | Extended 1, Standard 0 | **yes, Info** (6 hubs) |
-| 1 plot, 0 zones, Grid, Standard | 1 | 1 | 0 (Grid) | 0 | 4 (0 + 4) | 1 (4 × 10% = 0.4) | Standard 1, Extended 0 | no |
+| 60 seats, 3 areas, Floor, Matte | 60 | 5 (4.8, next whole number) | 10 | 4 | 19 (10 + 3 + 6) | 5 (19 × 25% = 4.75) | Matte 1, others 0 | no |
+| 100 seats, 0 areas, Counter, Gloss | 100 | 8 (exact multiple) | 0 (Counter) | 1 | 22 (16 + 0 + 6) | 6 (22 × 25% = 5.5) | Gloss 1, others 0 | no |
+| 101 seats, 10 areas, Floor, Satin | 101 | 9 (one past a multiple) | 18 | 11 | 34 (18 + 10 + 6) | 9 (34 × 25% = 8.5) | Satin 1, others 0 | no |
+| 200 seats, 10 areas, Floor, Satin | 200 | 16 (exact, the maximum) | 32 | 11 | 48 (32 + 10 + 6) | 12 (48 × 25% = 12, exact) | Satin 1, others 0 | **yes, Info** (16 kiosks) |
+| 1 seat, 0 areas, Counter, Matte | 1 | 1 | 0 (Counter) | 1 | 8 (2 + 0 + 6) | 2 (8 × 25% = 2, exact) | Matte 1, others 0 | no |
 
 Rejections to assert by message. Where a state breaks more than one rule, accept any of
 those rules' messages and no other:
 
 | Submit | Expect one of |
 |---|---|
-| 45 plots, Solar, battery line set to 2 by hand | `Batteries: expected 3.`, `Batteries: one per hub when power is Solar.` |
-| Standard answer, both warranties on the bundle | `Choose exactly one warranty.`, `Extended warranty needs the Extended answer.` |
-| 10 plots, sensor line set to 9 by hand | `One sensor per plot: expected 10.` |
+| 40 seats, Floor, stand line set to 2 by hand | `Floor stands: expected 8.`, `Floor stands: two per kiosk when mounting is Floor.` |
+| Matte answer, Matte and Gloss finishes both on the bundle | `Choose exactly one finish.`, `Gloss finish needs the Gloss answer.` |
+| 10 seats, badge line set to 9 by hand | `One badge per seat: expected 10.` |
 
 The "by hand" rows are rejected only because every component type is `@(split = false)`;
 without it the edit would split the line instead
 ([One line per component](#one-line-per-component-split--false)). Read each message as in
 [Reading a result](#reading-a-result).
 
-If the `warranties` relation's `[1..1]` bound rejects two warranties first (an
+If the `finishes` relation's `[1..1]` bound rejects two finishes first (an
 [open item](#open-items)), the message assertion catches it. Then either drop the bound to
 `[0..1]` or add the bound's message to the accepted set.
 
@@ -921,11 +928,11 @@ nothing else in this file was run. In rows M1 to M10 the inputs, and in all rows
 | M20 | `configure` after the models in M7 and M12 failed activation | The version stayed inactive; `configure` returned `success: true` with no messages | 2026-11-10 |
 | M21 | A different model, placed with rules off, then `configure` | `success` for a combination the model rejects with rules on | 2026-11-03 |
 | M22 | Sized component types with no `split` annotation: Place with `addDefaultConfiguration: true`; a rep's optional add-on at quantity 1; a sized line edited down | Every case kept the line as placed and added a second line for the rest (1 + (n − 1); m + (n − m)); quantities totalled right, no rule message. Each split group drew a `bundlevalidation` "number of child products … isn't in the specified range" warning | 2026-11-11 |
-| M23 | The same with `@(split = false)` on every component type | One line per component at the rule's quantity; the add-on at 1 raised to `plots`. Edits of the add-on line and of an hours line, each down and up, rejected with the rule's message. The edited quantity stayed on the quote (read back for one downward edit) | 2026-11-11 |
-| M24 | Configurator UI (two orgs). Without the annotation: a default sized child. With it: an existing root line reconfigured (add-on ticked at 1, `plots` changed) and a fresh bundle add from Browse Catalogs | Without: two instances (1 + the rest); in a group ramp, later segments kept a stale split that broke the constraint, with only a group-range warning; non-default children were one instance. With: one line per child at the rule's quantity, the add-on raised to `plots`, each line resized when `plots` changed, defaults kept, no warning | 2026-11-11 |
+| M23 | The same with `@(split = false)` on every component type | One line per component at the rule's quantity; the add-on at 1 raised to `seats`. Edits of the add-on line and of an hours line, each down and up, rejected with the rule's message. The edited quantity stayed on the quote (read back for one downward edit) | 2026-11-11 |
+| M24 | Configurator UI (two orgs). Without the annotation: a default sized child. With it: an existing root line reconfigured (add-on ticked at 1, `seats` changed) and a fresh bundle add from Browse Catalogs | Without: two instances (1 + the rest); in a group ramp, later segments kept a stale split that broke the constraint, with only a group-range warning; non-default children were one instance. With: one line per child at the rule's quantity, the add-on raised to `seats`, each line resized when `seats` changed, defaults kept, no warning | 2026-11-11 |
 | M25 | A relation declared with an upper bound above 9,999, its cardinality set by a constraint from an `int` whose domain reaches the same bound, no `maxRelationSize` | A quantity just below 9,999 solved; one just above was rejected with the sizing rule's message, not a limit message. A CML-only `int` above 9,999 solved | 2026-11-11 |
 | M26 | The M25 case with the PRC `MaxQuantity` above the needed quantity; then with `property maxRelationSize` set to the relation's upper bound | `MaxQuantity`: still rejected. The property: the bound itself solved | 2026-11-11 |
-| M27 | `string climate = parent(climate);` in child types, no level; children in PCM component groups; no group types in the model; only the root's answer sent (two orgs) | Each child's attribute record held the root's value; editing the root's answer re-derived it and repriced; also in the configurator UI | 2026-11-11 |
+| M27 | `string hall = parent(hall);` in child types, no level; children in PCM component groups; no group types in the model; only the root's answer sent (two orgs) | Each child's attribute record held the root's value; editing the root's answer re-derived it and repriced; also in the configurator UI | 2026-11-11 |
 | M28 | The M27 child types under a bundle root that isn't a type in the model; one child placed alone | Under that root: the children kept their attribute default. Alone: no attribute record written. Solver success, no message, both | 2026-11-11 |
 | M29 | Place (rules on, `Force`) of configurations the rules reject | Place `isSuccess: true`, saving what it was sent. `configure`: `success: true`, `solverStatus: "error"`, `errors: []`, the rule's message in `messages` at type `error`; an error log of `Severity` Error with the message in `ConfiguratorErrorMessage`. Bundle-validation warnings in the same run were logged as a separate row of `Severity` Warning. In one case the message was only in the error log, and a later `configure` returned `solverStatus: "success"` | 2026-11-11 |
 | M30 | Place graph answers as `QuoteLineItemAttribute` with `AttributeDefinitionId`, `AttributeValue` and, for picklists, `AttributePicklistValueId`; no `AttributeName` | Bound to the CML variables named by the definitions' developer names; a number stored with a decimal (`"12.0"`) bound to an `int` | 2026-11-11 |
@@ -979,14 +986,14 @@ Each needs a live 264 org:
    later `configure` returned `solverStatus: "success"` (M29), and which rejections do
    that. (Elsewhere the message was in `configure`'s `messages` at type `error`, with
    `errors: []`.)
-8. Whether the `warranties` relation's `[1..1]` bound rejects two warranties first, with a
+8. Whether the `finishes` relation's `[1..1]` bound rejects two finishes first, with a
    different message or none. (One state that broke two rules reported one message, M33;
    a hand-set quantity split the line or, with `@(split = false)`, was rejected, M22 and
    M23.)
 9. Whether a rep can see or edit a derived variable in the configurator, with or without
    `@(configurable = false)`.
-10. Solve time for the worked example's largest answers (120 plots, 16
-    zones).
+10. Solve time for the worked example's largest answers (200 seats, 10
+    areas).
 11. Whether a literal `%` in a message string is passed through or read as a Java format
     specifier. The dev guide documents Java format for these strings
     `[Dev guide: cml_logical_constraints]`; the worked example avoids `%`.
@@ -999,18 +1006,31 @@ Each needs a live 264 org:
     Configurator requests take a `validateAmendRenewCancel` option that runs amend, renew
     and cancel validations `[Dev guide: connect_requests_configuration_options_input]`.
     Order-type amendments, renewals and cancellations weren't run for node status.
-13. How to model a mixed per-plot mount split, which
+13. How to model a mixed per-seat mount split, which
     [Exactly one of a choice group](#exactly-one-of-a-choice-group) can't express.
-    Candidates, neither in the dev guide nor run: an answer per mount type (a plot count each,
-    constrained to sum to `plots`, each driving its mount type's cardinality), or per-plot child
-    instances that each carry a mount type. One route was run: the options as top-level lines
-    sized outside the configurator and checked on a virtual container
-    ([Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)),
-    which leaves a quote without the bundle unchecked.
-14. How to require exactly one option, each sized per plot, when the rep picks the option by
-    adding it ([Exactly one option when each option is sized per plot](#exactly-one-option-when-each-option-is-sized-per-plot)).
+    Three routes, none in the dev guide: the options as top-level lines, an answer per mount type
+    (a seat count each, constrained to sum to `seats`, each driving its mount type's cardinality),
+    or per-seat child instances that each carry a mount type. Trade-offs:
+    - *Top-level route* (run): the options as top-level lines, sized outside the configurator
+      and checked on a virtual container
+      ([Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)).
+      The configurator no longer owns the sizing (by design). Top-level assets had to be carried
+      on root amendments, and a quote without the bundle was left unchecked [Measured: 2026-11-12,
+      264, scratch, one org].
+    - *Answer-per-option route* (not run): keeps the sizing rules in the model, so the
+      configurator owns them. Whether the sum constraint and the per-option cardinalities hold
+      together is untested.
+    - *Per-seat child instances* (not run): untested, so neither the sizing rules nor the
+      configurator behavior are known.
+    CML has no documented signal for a new sale. A flow can read the quote's `OriginalActionType`,
+    which was blank on a new-sale quote and set on an amendment or renewal
+    [Measured: 2026-11-12, 264, scratch, one org]. It is also blank on swap, upgrade and downgrade
+    quotes, so blank alone does not identify a new sale
+    ([matrix-modeling.md](../advanced-approvals/matrix-modeling.md)).
+14. How to require exactly one option, each sized per seat, when the rep picks the option by
+    adding it ([Exactly one option when each option is sized per seat](#exactly-one-option-when-each-option-is-sized-per-seat)).
     Unsettled: whether `count(<condition>)` counts lines or quantity. Traced: a Group Type
-    `maxInstanceQty=1` admits one option line of quantity `plots` when the option type is
+    `maxInstanceQty=1` admits one option line of quantity `seats` when the option type is
     `split = false` (the line counts 1), and not when it is `split = true`
     `[Platform behaviour, traced]`; the group still needs the options in a product component
     group. Bundle validation reports a count mismatch for a group minimum of 1 with
@@ -1018,7 +1038,7 @@ Each needs a live 264 org:
     amend and assetize, are not established; once the mismatch is logged, quote-to-order
     refuses (open item 1; traced, not measured for an empty min-1 group). Also open: whether a PCM minimum reaches the
     model. A candidate in neither source: one exclusion per pair of
-    options, such as `mounts[PoleMount] > 0 -> mounts[WallMount] == 0`. None run.
+    options, such as `mounts[FloorMount] > 0 -> mounts[CounterMount] == 0`. None run.
 15. Whether `@(split = false)` keeps one line per component in later group-ramp segments
     (M24 measured only the unannotated case). Traced: each segment's root solves separately,
     so nothing carries a split decision or a reuse pool between segments, and a

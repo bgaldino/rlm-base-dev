@@ -42,8 +42,10 @@ the contract value after it.
   [Dev guide: `quote_and_order_capture_fields_on_quote`]. Swap, upgrade and downgrade quotes
   leave it blank [Repo: `.cursor/skills/rlm-business-apis/backdated-asset-lifecycle.md`], so
   a threshold keyed on `OriginalActionType = Amend` misses them. A threshold on the value after the
-  change has to be computed in the approval data flow; which records to compute it from is
-  open ([limitations.md](limitations.md)).
+  change has to be computed in the approval data flow. One route worked: the contract value after
+  the change summed from the prior activated orders on the quote's account plus the change, which
+  put an amendment in the expected level on a real submission [Measured: 2026-11-12, 264, scratch,
+  one org]; other sources for it are open ([limitations.md](limitations.md)).
   When it sums prior orders by account, read the account the action wrote. With quotes
   without an opportunity allowed (this repo's scratch org definitions enable it), amendment
   and renewal quotes had `AccountId` null and `QuoteAccountId` set, and an `AccountId`
@@ -56,7 +58,11 @@ the contract value after it.
   level and payment terms. `RLM_Quote_Approval_Data` also returns `OriginalActionType`, but
   the `QueryApprovalData` step doesn't declare it as an output and no condition reads it
   [Repo: `unpackaged/post_approvals/flows/RLM_Quote_Approval_Data.flow-meta.xml`,
-  `RLM_Quote_Smart_Approval.flow-meta.xml`]. No amendment submission is recorded.
+  `RLM_Quote_Smart_Approval.flow-meta.xml`]. Amendment quotes were submitted through an orchestration
+  adapted from the shipped one (one chain, ladder on the approval level, Smart Approval off)
+  with a source-specific data flow and the submissions were recorded; a margin computed on a
+  credit-heavy change alone (negative revenue against negative cost) fell under the floor and
+  raised the level [Measured: 2026-11-12, 264, scratch, one org], so decide whether the margin dimension should read the change or the contract.
 
 ## 2. Compute each level as a Number
 
