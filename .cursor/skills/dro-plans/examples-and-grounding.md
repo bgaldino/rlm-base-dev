@@ -93,8 +93,9 @@ says users complete manual tasks and milestones in the plan, whereas two measure
 each on one org (the smoke and the recheck below), saw milestones complete without a user;
 do not model a human acceptance as a Milestone on this evidence. Confirm on a live
 target, and treat a person's sign-off as a manual task unless a run shows otherwise
-[inferred]. Activation, billing schedules and assets completing before the plan
-finished means the installed base and billing start at activation, not at a step.
+[inferred]. In both runs activation created the assets and billing schedules before the
+plan finished, so plan the installed base and billing from activation, not from a step
+[inferred].
 
 #### Recheck
 

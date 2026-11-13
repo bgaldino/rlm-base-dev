@@ -134,9 +134,10 @@ introduce a blanket extra approval for ordinary configuration updates.
 - **PONR flag placement:** the flag set on a step definition was copied onto the step at
   plan creation, on a Pending dependent step as well as an In Progress one
   [Measured: 2026-11-13, 264, scratch, one org], so it is not set when the step starts or
-  completes.
+  completes [inferred].
   Two amendments placed through the plain amend route, one with the flag set, were both
-  accepted, so that route does not show enforcement. Which order items a PONR covers
+  accepted with no refusal [Measured: 2026-11-13, 264, scratch, one org]; that route showed
+  no enforcement, and enforcement itself was not tested. Which order items a PONR covers
   (the whole bundle or that line) and whether the supplemental route enforces it were not
   run; test them there before promising either.
 - **Order-wide scenarios:** Help documents different post-submission modification
@@ -158,10 +159,12 @@ Each item is one scratch org, 264, 2026-11-13 [Measured: 2026-11-13, 264, scratc
   quantity in one case, and an account-scoped asset showed another quantity; both are
   unexplained.
 - **Fallout and jeopardy rules** match on step type, with an optional integration
-  definition, flow definition and error code. A step's jeopardy threshold was null on
+  definition, flow definition and error code (read from the rule objects' describe, not
+  from a run). A step's jeopardy threshold was null on
   manual steps, and a failed callout step (credential missing) showed zero retries
   although a retry rule exists; both unexplained. A rule existing doesn't show it applied: verify on a live
-  step. The decision-table freshness link for these rules was not tested.
+  step. A decision-table lookup returned nothing, so the freshness link for these rules
+  was not tested.
 - **Not run:** a dependency across order items.
 
 ## Update Acceptance Scenarios
