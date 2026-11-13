@@ -151,7 +151,7 @@ the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
 - **An earlier-dated change against a future-dated one:** work from the traced gate in
   [change-policy-mapping.md](change-policy-mapping.md) (an amend-before-amend capability
   decides; reading it by a dated try on an unramped asset is `[inferred]` from the trace). What stays open is a measured confirmation on an org with
-  the capability on and off; the traced gate is not a measurement. The amend and cancel
+  the capability on and off; the traced gate is not a measurement. A quote-stage check on one org did not reproduce the refusal; see [change-policy-mapping.md](change-policy-mapping.md). The amend and cancel
   articles say it's refused, while *Future-Dated Changes* and its examples allow it
   ([change-policy-mapping.md](change-policy-mapping.md) → Replay the source's changes in
   date order). The repo's group-ramp runs changed assets before a ramp segment's future

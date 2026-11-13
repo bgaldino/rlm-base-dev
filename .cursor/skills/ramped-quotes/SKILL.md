@@ -93,7 +93,10 @@ quote UI (`ui-group-ramp.md`, measured on 264).
     one ramp line with delta pricing on [Measured: 2026-11-12, 264, scratch, another org], each moved the
     net unit price of the other uplifted lines by the segment uplift again, unrounded, on a Compound ramp;
     totals did not change. After the Place PATCH, the line editor's Reprice All restored them
-    [Measured: 2026-11-11, 264, scratch, one org]; after the System PATCH the restore was not run. Run it
+    [Measured: 2026-11-11, 264, scratch, one org]. After a System PATCH on a delta-pricing org, a Force
+    reprice of the whole quote with no line changes restored every net price exactly [Measured: 2026-11-13,
+    264, scratch, one org; quote only, not ordered; a Place call with Force pricing, not the line-editor
+    button]. Run it
     after any ramp edit and read the net prices, not the totals `[inferred]`. The cause is not isolated. A line without a `RampIdentifier`
     took no uplift (a standalone Evergreen product, one org). The uplifted price keeps full
     precision, not cents (one of those orgs; the other already rounded after the uplift); add a

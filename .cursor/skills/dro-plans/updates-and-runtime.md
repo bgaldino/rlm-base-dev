@@ -137,9 +137,14 @@ introduce a blanket extra approval for ordinary configuration updates.
   completes [inferred].
   Two amendments placed through the plain amend route, one with the flag set, were both
   accepted with no refusal [Measured: 2026-11-13, 264, scratch, one org]; that route showed
-  no enforcement, and enforcement itself was not tested. Which order items a PONR covers
-  (the whole bundle or that line) and whether the supplemental route enforces it were not
-  run; test them there before promising either.
+  no enforcement, and enforcement itself was not tested.
+- **PONR scope (freeze output).** Freezing the order returned an allowed flag per order item.
+  With a PONR step In Progress on one child of a bundle, every line of that bundle was denied,
+  root and sibling included; a PONR on a standalone line denied only that line, and a control
+  order with no PONR froze with every line allowed [Measured: 2026-11-13, 264, scratch, one
+  org]. The supplemental submission was refused for assets and billing schedules, not for the
+  PONR, so whether the route enforces the PONR is still untested; a plan with a step In Progress
+  stays Freezing, not Frozen.
 - **Order-wide scenarios:** Help documents different post-submission modification
   limits from product/classification scenarios; do not assume every change applies.
 
@@ -151,9 +156,12 @@ except the fallout and jeopardy match fields (from describe) and the not-run ite
 - **Future-dated steps (setting on).** A step delayed from the previous step's execution
   by two minutes waited, then started. A step waiting on a scheduled date still waited for
   its dependencies. A step with an offset from the source line's start date did not wait,
-  even with a future service date and an order dated a month out; the cause is not
-  known, and Help doesn't settle it. Don't promise a start-date offset without a live
-  check.
+  even with a future service date and an order dated a month out; on a second run with every
+  candidate date in the future, a 10-day offset and a 3-minute offset from that date both
+  started at plan creation, and the next-run time carried no offset [Measured: 2026-11-13, 264,
+  scratch, one org]. The decomposed technical lines had null service and end dates, which may
+  explain it [inferred]; Help doesn't settle it. Don't promise a start-date offset; use a
+  previous-step delay, which was measured to work.
 - **Amendment decomposition.** An amendment created a new plan holding the full step set,
   not a delta: unchanged lines decomposed with cancel and add, and a changed quantity was
   a full replace. One fulfillment asset's quantity after the amendment did not match its
@@ -165,8 +173,16 @@ except the fallout and jeopardy match fields (from describe) and the not-run ite
   although a retry rule exists; both unexplained. A rule existing doesn't show it applied: verify on a live
   step. A decision-table lookup returned nothing, so the freshness link for these rules
   was not tested.
-- **Not run (outside the measured items):** a dependency across order items; test one
-  live before relying on it.
+- **Cancel of a non-assetizable technical line.** Cancelling the bundle decomposed the copy
+  product's line as an Add of quantity 0, not a Cancel, and its Add steps still ran; no
+  fulfillment asset was created or changed for it, while the assetizable lines decomposed as
+  Cancel [Measured: 2026-11-13, 264, scratch, one org]. Design Add steps to tolerate a zero
+  quantity [inferred from one run].
+- **Dependency across order items.** A plan-scope step waited for every instance across the
+  order items, not one line; a dependency with line scope paired steps of the same line only
+  [Measured: 2026-11-13, 264, scratch, one org]. The cross-plan scope was not tested. The
+  measured run completed manual steps by setting their state directly; the engine accepted it,
+  but that is not a documented route, so don't use it as a recipe for a live order.
 
 ## Update Acceptance Scenarios
 

@@ -192,9 +192,10 @@ installed base should set `IsAssetizable` false on every technical product
 fulfillment asset for each assetizable technical line and none for a copy product with
 the flag false, while the commercial asset was created regardless [Measured: 2026-11-13,
 264, scratch, one org]. After a later amendment of the same bundle there was still no
-fulfillment asset for the copy product [Measured: 2026-11-13, 264, scratch, one org]; a
-cancel was not run. Verify the result by checking that no fulfillment asset exists for
-the technical lines after the Add and after any amendment.
+fulfillment asset for the copy product, and a cancel of the bundle gave that line an Add of
+quantity 0 with no asset change [Measured: 2026-11-13, 264, scratch, one org]. Verify the
+result by checking that no fulfillment asset exists for the technical lines after the Add,
+any amendment and any cancel.
 
 In pass 2, restrict the Product2 ReadOnly query to the two SKUs. Add this rule:
 
