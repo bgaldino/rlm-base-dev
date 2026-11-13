@@ -70,8 +70,10 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       blocks ordering; amending those assets at quantity change 0 alongside the root
       cleared it (`asset-lifecycle-changes` Quick Rule 7, one org). List the pricing
       steps keyed on the bundle that the moved lines lose, and say how a change to the
-      moved lines alone gets checked: a quote without the bundle was left unchecked, and
-      adding the root at quantity change 0 to such a change wasn't run. Open item 13 in
+      moved lines alone gets checked: such a change without the root raised no rule
+      message and ordered (`asset-lifecycle-changes` Quick Rule 7, one org), so a rule that must hold there needs a
+      quote-level validation that reads the assets (a custom build); adding the root at
+      quantity change 0 to such a change wasn't run. Open item 13 in
       `constraint-models` → `quantities-from-attributes.md` lists two in-bundle
       candidates, neither run: choose one only with a spike that also covers the
       answers surviving an answer change (`asset-lifecycle-changes` Quick Rule 2), and
@@ -194,10 +196,13 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     instances (with their scopes, items and source lines), and count the expected
     fulfilment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). Decide
     each edge's shape like any rule ([knowledge-sources.md](knowledge-sources.md)).
-    - Count groups and step definitions per item before step instances.
+    - Count groups and step definitions per item before step instances. A definition
+      belongs to one group, so a step several items need with different predecessors is
+      one definition per group (`dro-plans` → `authoring-and-deployment.md`).
     - On each lifecycle order, list the items and steps it creates and each line's
       action: in one run, an amendment built the full step set (`dro-plans` →
-      `updates-and-runtime.md`), so expect an item created once per order to recur unless
-      its scope spans orders `[inferred]`.
+      `updates-and-runtime.md`), and unchanged lines came through as cancel and add. Work
+      a later order must act on needs a scope that spans orders on an assetizable technical
+      product; an Order-scope item recurs on every order (same file, An item across orders).
     - Say what happens to an edge whose predecessor isn't on that order's plan; don't
       assume it is re-pointed.
