@@ -517,7 +517,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>SyncRejectedText</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The quote wasn&apos;t synced.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!Sync_Quote_To_Opportunity.errorCode}: {!Sync_Quote_To_Opportunity.errorMessage}&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The quote wasn&apos;t synced.&lt;/strong&gt; &lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt; and its products are unchanged.&lt;/p&gt;&lt;p&gt;Something on the opportunity or its products, such as a validation rule, blocked the sync. Ask your Salesforce admin, and include the details below. The failure is also logged in the quote&apos;s Revenue Transaction Error Logs list.&lt;/p&gt;&lt;p&gt;Details: {!Sync_Quote_To_Opportunity.errorCode} {!Sync_Quote_To_Opportunity.errorMessage}&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
@@ -533,7 +533,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>SyncErrorText</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;The quote wasn&apos;t synced.&lt;/strong&gt;&lt;/p&gt;&lt;p&gt;{!$Flow.FaultMessage}&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;The quote wasn&apos;t synced.&lt;/strong&gt; &lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt; and its products are unchanged.&lt;/p&gt;&lt;p&gt;If you can&apos;t edit &lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt;, ask its owner to sync the quote. Otherwise, ask your Salesforce admin, and include the details below.&lt;/p&gt;&lt;p&gt;Details: {!$Flow.FaultMessage}&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
