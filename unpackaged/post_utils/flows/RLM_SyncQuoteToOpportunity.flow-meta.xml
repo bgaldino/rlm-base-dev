@@ -69,15 +69,15 @@
         </rules>
     </decisions>
     <decisions>
-        <description>Picks the confirmation for the opportunity&apos;s current synced quote. Only an open opportunity is synced, as RLM_SyncRenewalQuoteOnOrderActivation does.</description>
+        <description>Only an open opportunity is synced, as RLM_SyncRenewalQuoteOnOrderActivation does. An opportunity that already syncs with this quote only needs the lines copied again; one that syncs with no quote or with another quote is first switched to this quote.</description>
         <name>Opportunity_Sync_State</name>
         <label>Opportunity Sync State</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <defaultConnector>
-            <targetReference>Confirm_Start_Sync</targetReference>
+            <targetReference>Set_Synced_Quote</targetReference>
         </defaultConnector>
-        <defaultConnectorLabel>No Synced Quote</defaultConnectorLabel>
+        <defaultConnectorLabel>Not Synced With This Quote</defaultConnectorLabel>
         <rules>
             <name>Opportunity_Not_Readable</name>
             <conditionLogic>and</conditionLogic>
@@ -119,24 +119,9 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>Confirm_Resync</targetReference>
+                <targetReference>Sync_Quote_To_Opportunity</targetReference>
             </connector>
             <label>Synced With This Quote</label>
-        </rules>
-        <rules>
-            <name>Synced_With_Other_Quote</name>
-            <conditionLogic>and</conditionLogic>
-            <conditions>
-                <leftValueReference>Get_Opportunity.SyncedQuoteId</leftValueReference>
-                <operator>IsNull</operator>
-                <rightValue>
-                    <booleanValue>false</booleanValue>
-                </rightValue>
-            </conditions>
-            <connector>
-                <targetReference>Get_Synced_Quote</targetReference>
-            </connector>
-            <label>Synced With Other Quote</label>
         </rules>
     </decisions>
     <decisions>
@@ -191,7 +176,7 @@
             <label>Accepted</label>
         </rules>
     </decisions>
-    <description>Quick action on the quote that syncs its lines to its opportunity&apos;s products, so the opportunity can be forecast from the quote. With Asynchronous Opportunity Sync on, which post_utils turns on for RLM_SyncRenewalQuoteOnOrderActivation, the platform hides the standard Start Sync button, and this action replaces it. An opportunity that syncs with no quote, or with another quote after the user confirms, is set to sync with this quote and given its price book, as the order-activation flow does; then the standard Sync Quote to Opportunity action copies the lines. A fault or rejected sync rolls back the synced-quote change. A synced quote that changes afterwards must be synced again before Create Order accepts it. As with any successful sync, RLM_CloseRenewalOpportunityOnQuoteSync closes the opportunity as Closed Won when the quote&apos;s orders are all activated.</description>
+    <description>Quick action on the quote that syncs its lines to its opportunity&apos;s products, so the opportunity can be forecast from the quote. With Asynchronous Opportunity Sync on, which post_utils turns on for RLM_SyncRenewalQuoteOnOrderActivation, the platform hides the standard Start Sync button, and this action replaces it. It syncs as soon as it opens, with no confirmation, and shows one result screen. An opportunity that syncs with no quote or with another quote is set to sync with this quote and given its price book, as the order-activation flow does; then the standard Sync Quote to Opportunity action copies the lines. A fault or rejected sync rolls back the synced-quote change. A synced quote that changes afterwards must be synced again before Create Order accepts it; order activation can&apos;t do it, because Create Order refuses before any order exists. As with any successful sync, RLM_CloseRenewalOpportunityOnQuoteSync closes the opportunity as Closed Won when the quote&apos;s orders are all activated.</description>
     <environments>Default</environments>
     <interviewLabel>RLM Sync Quote to Opportunity {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Sync Quote to Opportunity</label>
@@ -270,33 +255,6 @@
         <queriedFields>SyncedQuoteId</queriedFields>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
-    <recordLookups>
-        <description>Gets the quote the opportunity syncs with now, for its name on the confirmation.</description>
-        <name>Get_Synced_Quote</name>
-        <label>Get Synced Quote</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
-        <connector>
-            <targetReference>Confirm_Replace_Sync</targetReference>
-        </connector>
-        <faultConnector>
-            <targetReference>Sync_Error</targetReference>
-        </faultConnector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>Get_Opportunity.SyncedQuoteId</elementReference>
-            </value>
-        </filters>
-        <getFirstRecordOnly>true</getFirstRecordOnly>
-        <object>Quote</object>
-        <queriedFields>Id</queriedFields>
-        <queriedFields>Name</queriedFields>
-        <storeOutputAutomatically>true</storeOutputAutomatically>
-    </recordLookups>
     <recordRollbacks>
         <description>Rolls back the synced-quote change when the sync action faults, so the opportunity isn&apos;t left syncing with a quote whose lines were never copied.</description>
         <name>Roll_Back_Failed_Sync</name>
@@ -351,66 +309,6 @@
         </inputAssignments>
         <object>Opportunity</object>
     </recordUpdates>
-    <screens>
-        <name>Confirm_Start_Sync</name>
-        <label>Confirm Start Sync</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <allowBack>false</allowBack>
-        <allowFinish>true</allowFinish>
-        <allowPause>false</allowPause>
-        <connector>
-            <targetReference>Set_Synced_Quote</targetReference>
-        </connector>
-        <fields>
-            <name>ConfirmStartSyncText</name>
-            <fieldText>&lt;p&gt;Sync &lt;strong&gt;{!Get_Quote.Name}&lt;/strong&gt; to &lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt;?&lt;/p&gt;&lt;p&gt;The opportunity will sync with this quote, and its products will be updated from the quote&apos;s lines. Bundles become separate products, and product attributes aren&apos;t copied.&lt;/p&gt;</fieldText>
-            <fieldType>DisplayText</fieldType>
-        </fields>
-        <nextOrFinishButtonLabel>Sync</nextOrFinishButtonLabel>
-        <showFooter>true</showFooter>
-        <showHeader>true</showHeader>
-    </screens>
-    <screens>
-        <name>Confirm_Replace_Sync</name>
-        <label>Confirm Replace Sync</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <allowBack>false</allowBack>
-        <allowFinish>true</allowFinish>
-        <allowPause>false</allowPause>
-        <connector>
-            <targetReference>Set_Synced_Quote</targetReference>
-        </connector>
-        <fields>
-            <name>ConfirmReplaceSyncText</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt; syncs with &lt;strong&gt;{!Get_Synced_Quote.Name}&lt;/strong&gt;. Sync &lt;strong&gt;{!Get_Quote.Name}&lt;/strong&gt; instead?&lt;/p&gt;&lt;p&gt;The opportunity will stop syncing with the other quote, and its products will be updated from this quote&apos;s lines. Bundles become separate products, and product attributes aren&apos;t copied.&lt;/p&gt;</fieldText>
-            <fieldType>DisplayText</fieldType>
-        </fields>
-        <nextOrFinishButtonLabel>Sync This Quote</nextOrFinishButtonLabel>
-        <showFooter>true</showFooter>
-        <showHeader>true</showHeader>
-    </screens>
-    <screens>
-        <name>Confirm_Resync</name>
-        <label>Confirm Resync</label>
-        <locationX>0</locationX>
-        <locationY>0</locationY>
-        <allowBack>false</allowBack>
-        <allowFinish>true</allowFinish>
-        <allowPause>false</allowPause>
-        <connector>
-            <targetReference>Sync_Quote_To_Opportunity</targetReference>
-        </connector>
-        <fields>
-            <name>ConfirmResyncText</name>
-            <fieldText>&lt;p&gt;Sync the current lines of &lt;strong&gt;{!Get_Quote.Name}&lt;/strong&gt; to &lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt;?&lt;/p&gt;&lt;p&gt;The opportunity already syncs with this quote. Syncing again updates its products with the changes made to the quote since the last sync.&lt;/p&gt;</fieldText>
-            <fieldType>DisplayText</fieldType>
-        </fields>
-        <nextOrFinishButtonLabel>Sync</nextOrFinishButtonLabel>
-        <showFooter>true</showFooter>
-        <showHeader>true</showHeader>
-    </screens>
     <screens>
         <name>Lookup_Error</name>
         <label>Lookup Error</label>
@@ -501,7 +399,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>SyncDoneText</name>
-            <fieldText>&lt;p&gt;&lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt; now has the products from &lt;strong&gt;{!Get_Quote.Name}&lt;/strong&gt;.&lt;/p&gt;&lt;p&gt;If you change the quote again, sync it again before you create an order: Create Order refuses a synced quote that has changed since its last sync.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt; now has the products from &lt;strong&gt;{!Get_Quote.Name}&lt;/strong&gt;.&lt;/p&gt;&lt;p&gt;If you change the quote, sync it again before you create an order.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
@@ -517,7 +415,7 @@
         <allowPause>false</allowPause>
         <fields>
             <name>SyncQueuedText</name>
-            <fieldText>&lt;p&gt;The sync of &lt;strong&gt;{!Get_Quote.Name}&lt;/strong&gt; to &lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt; is running in the background.&lt;/p&gt;&lt;p&gt;Its progress shows in the quote&apos;s Async Operation Trackers related list, and a failure is recorded in Revenue Transaction Error Logs. If you change the quote again, sync it again before you create an order.&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;strong&gt;{!Get_Quote.Name}&lt;/strong&gt; is syncing to &lt;strong&gt;{!Get_Opportunity.Name}&lt;/strong&gt; in the background.&lt;/p&gt;&lt;p&gt;If you change the quote, sync it again before you create an order.&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>

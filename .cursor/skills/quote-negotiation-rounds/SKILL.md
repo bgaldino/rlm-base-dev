@@ -183,7 +183,13 @@ ships). Reprice each round before submitting it.
    action copies inline (no tracker id) and stamps the opportunity's last sync time; for a large
    transaction it returns a tracker id and you must wait for the job
    [Platform behaviour, traced]. Create Order refuses the quote while it is marked
-   `IsSyncing` and was changed after that last sync time (or the opportunity has none). The quote
+   `IsSyncing` and was changed after that last sync time (or the opportunity has none). Measured:
+   after a priced Place Sales Transaction edit to a quote the action had synced,
+   `createOrdersFromQuote` refused it ("…currently syncing with its opportunity and has
+   uncommitted changes. Wait for the sync to complete, then try again."), and accepted it after
+   another `syncQuoteOpportunity` call [Measured: 2026-11-13, 264]. Despite the wording, nothing
+   in this repo re-syncs the quote by itself, and an order-activation sync can't help, because
+   no order exists yet. The quote
    stays marked `IsSyncing` after a good sync (a code comment says this is intended; not
    otherwise confirmed); completion is "last sync time is not
    earlier than the quote's last modified time", not `IsSyncing` false. So any later edit to the
