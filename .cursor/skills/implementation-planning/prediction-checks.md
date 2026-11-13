@@ -140,7 +140,11 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     one, so a months-based source value matches only on an anniversary (`pricing-setup` →
     `proration-and-selling-models.md`, Measured: a partial year prorates by days;
     `asset-lifecycle-changes` Quick Rule 6). A mid-period change's golden carries both
-    values through the mapping, or a decision makes the build match the source.
+    values through the mapping, or a decision makes the build match the source. Carry the
+    platform value into every golden derived from those lines too: the change's total,
+    running totals, full-term or contract values, and the approval inputs that read them. A
+    derived golden built from the source's figure is off by the proration difference at
+    every later step, and an approval input read from it can land in a different level.
 11. **Round where the source rounds, and nowhere else.** Check the source's arithmetic
     at each step before adding a rounding: one the source doesn't do moves the goldens. A
     compound ramp uplift isn't rounded to the cent (`pricing-procedures` →
@@ -161,7 +165,10 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     also checks every tag the procedure declares on the Order lens, stock tags included: a declared tag with a
     Quote-lens row and no Order-lens row failed an Order-output action, and a field-less
     Order-lens row cleared it (a tag with no row on either lens passed; one org, cause not
-    traced). A field-less row leaves the value empty on Order output, so for a tag whose
+    traced). For a declared tag with a Quote-lens row that the procedure doesn't read, a
+    field-less Order-lens row is enough `[inferred]` from the one tag measured; don't add
+    rows for every declared tag: one with no row on either lens passed (one org).
+    A field-less row leaves the value empty on Order output, so for a tag whose
     value the procedure reads, map a real field on the Order-lens object (`Order` for a
     header tag, `OrderItem` for a line tag) (`pricing-procedures` →
     `operations-and-troubleshooting.md`; `context-service` → `authoring-and-lifecycle.md`;
@@ -194,7 +201,9 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
 16. **Count an orchestrated fulfilment before predicting it.** For a representative order
     and each lifecycle order, write every dependency as an edge between two step
     instances (with their scopes, items and source lines), and count the expected
-    fulfilment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). Decide
+    fulfilment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). Give
+    each sold structure the source says is fulfilled (each bundle or kit) its own count
+    golden. List each step's scope and each dependency's scope with the edge. Decide
     each edge's shape like any rule ([knowledge-sources.md](knowledge-sources.md)).
     - Count groups and step definitions per item before step instances. A definition
       belongs to one group, so a step several items need with different predecessors is
@@ -205,5 +214,14 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       a later order must act on needs a scope that spans orders, on an assetizable technical
       product, and an Order-scope item recurs on every order `[inferred]` from Help (same
       file, An item across orders, measured on a later new-sale order).
-    - Say what happens to an edge whose predecessor isn't on that order's plan; don't
-      assume it is re-pointed.
+    - Count the lines that come back on later orders: an Account-scope assetizable item got
+      Amend and another got No Change (`dro-plans` → `updates-and-runtime.md`, An item
+      across orders, one org; Help sets Amend where a line differs from its fulfillment
+      asset), so where a scenario on the item chooses that action, expect its group's steps
+      to compose again unless a condition skips them `[inferred]`. Cancelling a bundle's root
+      asset brought its non-assetizable technical line through as an Add of quantity 0 whose
+      Add steps were created and started (same file, Cancel of a non-assetizable technical
+      line, one org).
+    - Say what happens to an edge whose predecessor isn't on that order's plan, on the
+      new sale too where an item is sold only in some configurations; don't assume it is
+      re-pointed.
