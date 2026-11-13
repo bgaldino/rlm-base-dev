@@ -293,9 +293,10 @@ Future feature packs should mirror this split.
 A decision table goes stale the moment its source object gains or changes a row, and
 pricing then prices from the table as last refreshed, as if that row did not exist. A changed
 source row prices at its old value until the refresh. A lookup with no matching row returns no
-match: the step sets no price or adjustment from that table, and values from earlier steps are
-kept, not zeroed; no error is raised in the traced path [Platform behaviour, traced: procedure
-lookup path only; for a List Price or Price Tracking step with output resolution on, Help says
+match: an adjustment or tier step leaves the price from earlier steps unchanged, and a list-price
+step sets no list price (one set by an earlier step is kept, not zeroed [Core, via
+`pricing-procedures/elements/list-price.md`]; a new line has none to keep); no error is raised in
+the traced path [Platform behaviour, traced: procedure lookup path only; for a List Price or Price Tracking step with output resolution on, Help says
 the line stops instead]. Most
 pricing sources in this repo are loaded once at org build and never touched again, so in
 practice the tables stay correct. The ones that bite are the sources normal selling
@@ -468,15 +469,17 @@ currency, the line prices from it [inferred]. In the resolution-pick and lone-ro
 symptom is a *plausible* price, not an error.
 
 Where the step does pass `CurrencyIsoCode` (the shipped recipe tables take it as a required
-Equals input) and the table has no row for that currency, the lookup returns no match: the step
-sets no price or adjustment from that table, earlier values are kept, no error is raised in the
-traced path, and there is no conversion from the corporate currency [Platform behaviour, traced:
+Equals input) and the table has no row for that currency, the lookup returns no match: an
+adjustment or tier step leaves the earlier price unchanged, a list-price step sets no list price
+(a new line then has none), no error is raised in the traced path, and there is no conversion from the corporate currency [Platform behaviour, traced:
 procedure lookup path only; for a List Price or Price Tracking step with output resolution on,
 Help says the line stops instead].
 
 **Fix:** add `CurrencyIsoCode` as an input on **every** lookup step that resolves a
 currency-denominated value — list price, adjustment schedule, and adjustment tier
-lookups alike. Missing it on the tier step alone still breaks tier pricing (a duplicate-value error on Volume, or overlapping bands logged on Tier).
+lookups alike. Missing it on the tier step alone still breaks tier pricing: with rows in several currencies, a
+duplicate-value error on Volume or overlapping bands logged on Tier; with one row in another
+currency, that row's values.
 
 Currency must also *reach* the record for the step to filter on it. Records created
 by quick actions and flows default to the **running user's** currency, not the
