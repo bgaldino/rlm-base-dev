@@ -45,7 +45,7 @@ decision-table rate for the policy's Region on the line's date. The step's `Rate
 3. **Ramps: don't use CPI.** Help doesn't support a CPI policy on ramped products (see below). For a
    ramp uplift, use segment uplifts with Standard or Compound and a Flat policy (measured). A
    ramp uplift with no policy is not measured here; compounding with a Flat policy or no policy is
-   what the platform allows [Platform behaviour, traced], but treat no policy as untested. See
+   what the platform allows [Core], but treat no policy as untested. See
    `ramped-quotes/SKILL.md` and `ramped-quotes/compound-uplift.md` (a SKU with CPI renewal uplift
    can't be used to verify a compound ramp).
 
@@ -64,7 +64,7 @@ decision-table rate for the policy's Region on the line's date. The step's `Rate
 
 The platform doesn't error; it falls back to standard pricing. That is deliberate: the compound
 waterfall does standard pricing when the policy type is `PriceIndex`, so compounding is allowed only
-with a Flat policy or no policy [Platform behaviour, traced].
+with a Flat policy or no policy [Core].
 
 So the CPI ramp row above is the fallback, measured: each segment gets its own year's rate plus its
 uplift, with no compounding. It isn't a supported demo path.
@@ -73,9 +73,9 @@ uplift, with no compounding. It isn't a supported demo path.
 inside the policy's effective window. On an as-is renewal each prior lot has its own detail line,
 the revision is applied separately on each lot's detail line, and the uplift applies to that
 lot's own price, not to a combined price [Platform behaviour, traced]. At activation a new sale
-copies the policy from the order line; later periods inherit it from the previous period, so
-changing the policy on an amendment line doesn't change it on the asset [Platform behaviour,
-traced; not measured].
+copies the policy from the order line; amendments and renewals read it from the current asset
+state period, when that period's policy field is in the context definition, so changing the policy
+on an amendment line doesn't change it on the asset [Platform behaviour, traced; not measured].
 
 On an as-is renewal the price sits on the detail line (`QuoteLineDetail`), and the parent
 `NetUnitPrice` is null. Read the detail lines (see `rlm-business-apis/SKILL.md` → *Where an ARC
