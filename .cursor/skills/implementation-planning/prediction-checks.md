@@ -155,7 +155,7 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     didn't reprice (`pricing-procedures` → `elements/commitment-term-discount.md`, Line
     inputs on real quotes). State them for every way the plan creates lines: segment
     lines of a UI-built group ramp carried a term of 1 (same file, Line inputs on real
-    quotes; fix: criterion 14, ORed with the term criteria).
+    quotes; for the fix and its limit, `concept-map.md`, Discount for a longer commitment).
     If any gate runs an action with Order output or reprices an order, the pricing gate
     also checks the procedure's declared tags on the Order lens: a declared tag with a
     Quote-lens row and no Order-lens row failed an Order-output action, and a field-less
