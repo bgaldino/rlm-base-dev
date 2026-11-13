@@ -100,7 +100,8 @@ procedures were customised, with Place PATCHes on existing `QuoteLineItem`s (`pr
 - A second measurement matches the dates-only create above: a line created with dates only had
   `SubscriptionTerm` null, the unit filled from the selling model, and the term count taken from
   the dates [Measured: 2026-11-12, 264, scratch]. A dates-only PATCH on an existing line (one
-  measurement) left `SubscriptionTerm` at its old value (stale), while the pricing term count
+  measurement; configuration method Skip, System pricing, a Term Defined Annual line created
+  with a term) left `SubscriptionTerm` at its old value (stale), while the pricing term count
   followed the new dates and the total repriced from them [Measured: 2026-11-12, 264, scratch].
 - **Milestone Plan on bundle components.** Place with `configurationMethod: Force` and
   configuration rules on left `BillingFrequency` blank on component service lines (`billing-setup` → M11). A second Place PATCH
