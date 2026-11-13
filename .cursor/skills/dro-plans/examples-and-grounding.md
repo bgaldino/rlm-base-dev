@@ -106,9 +106,11 @@ scenario, run through order creation and activation by API:
 
 - Assets and billing schedules were created at activation, before any step ran. A
   Milestone step with no unmet dependency completed within about a second with nobody
-  acting; a Milestone behind an incomplete predecessor stayed Pending. That blocked
-  Milestone completing once its predecessor completes was not observed; check it before
-  relying on it. Manual steps
+  acting; a Milestone behind an incomplete predecessor stayed Pending. When that
+  predecessor, a manual step, was then set to Completed through a REST update of the step
+  record (an undocumented route; Help has users complete manual steps in the plan), the
+  blocked Milestone completed about a second later, the next Milestone after it completed in
+  turn, and the chain stopped at the next manual step. Manual steps
   waited for a user and the plan stayed InProgress. That matches the smoke and still
   contradicts Help's wording.
 - Technical fulfillment lines had a null `OrderItemId`, each linked to its source line

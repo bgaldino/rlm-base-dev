@@ -1027,9 +1027,9 @@ Each needs a live 264 org:
       message [Measured: 2026-11-12, 264, scratch, one org]: an amendment of the top-level assets alone
       (one plan's line reduced, a new top-level line of the other plan added) priced, ordered
       and activated with rules on, 0 messages and no error log. The container's check against
-      the root's answer didn't apply there, so the quote went unchecked [inferred, consistent with M42's no-bundle quote], so a
-      split rule on that path needs a quote-level validation that reads the assets (a custom
-      build). See `asset-lifecycle-changes` Quick Rule 7.
+      the root's answer didn't apply there, so the quote went unchecked [inferred, consistent with M42's no-bundle quote]; a
+      split rule on that path would need a quote-level validation that reads the assets (a custom
+      build) [inferred]. See `asset-lifecycle-changes` Quick Rule 7.
     - *Answer-per-option route* (not run): keeps the sizing rules in the model, so the
       configurator owns them. Whether the sum constraint and the per-option cardinalities hold
       together is untested.
