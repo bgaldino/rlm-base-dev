@@ -93,9 +93,10 @@ files can use it.
   configuration rules on, and assert each rejection's own message.
 - **DO NOT** assume a source's lifecycle examples can run in the order it lists them.
   Replay them as a dated sequence first. Whether a change dated before an existing
-  later change is refused follows a traced gate, the amend-before-amend capability,
-  that a quote-stage check didn't reproduce (`asset-lifecycle-changes` → `verification.md`,
-  Open), so an example that depends on it is a live check. On a ramped asset it's refused either way
+  later change is refused is open: a traced gate (the amend-before-amend capability)
+  predicts a refusal, but one quote-stage check, on an org whose capability state is
+  unknown and with nothing ordered, didn't reproduce it (`asset-lifecycle-changes` →
+  `verification.md`, Open), so an example that depends on it is a live check. On a ramped asset it's refused either way
   (traced, and measured with a future renewal): that case is a decision.
 
 ## Entry Conditions

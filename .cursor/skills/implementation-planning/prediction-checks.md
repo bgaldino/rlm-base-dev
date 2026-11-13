@@ -71,8 +71,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       cleared it (`asset-lifecycle-changes` Quick Rule 7, one org). List the pricing
       steps keyed on the bundle that the moved lines lose, and say how a change to the
       moved lines alone gets checked: such a change without the root raised no rule
-      message and ordered (`asset-lifecycle-changes` Quick Rule 7, one org), so a rule that must hold there needs a
-      quote-level validation that reads the assets (a custom build); adding the root at
+      message and ordered (`asset-lifecycle-changes` Quick Rule 7, one org), so a rule that must hold there would need a
+      quote-level validation that reads the assets (a custom build) `[inferred]`; adding the root at
       quantity change 0 to such a change wasn't run. Open item 13 in
       `constraint-models` → `quantities-from-attributes.md` lists two in-bundle
       candidates, neither run: choose one only with a spike that also covers the
@@ -201,8 +201,9 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       one definition per group (`dro-plans` → `authoring-and-deployment.md`).
     - On each lifecycle order, list the items and steps it creates and each line's
       action: in one run, an amendment built the full step set (`dro-plans` →
-      `updates-and-runtime.md`), and unchanged lines came through as cancel and add. Work
-      a later order must act on needs a scope that spans orders on an assetizable technical
-      product; an Order-scope item recurs on every order (same file, An item across orders).
+      `updates-and-runtime.md`), and unchanged lines came through as cancel and add. An item
+      a later order must act on needs a scope that spans orders, on an assetizable technical
+      product, and an Order-scope item recurs on every order `[inferred]` from Help (same
+      file, An item across orders, measured on a later new-sale order).
     - Say what happens to an edge whose predecessor isn't on that order's plan; don't
       assume it is re-pointed.
