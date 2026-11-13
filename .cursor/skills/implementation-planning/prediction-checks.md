@@ -6,7 +6,8 @@ prediction a blind plan made and recorded each outcome as it was measured (SKILL
 step 9). Where a prediction was modified or refuted because the planner skipped a step,
 that step is a check below. Check 15 sharpens a guard the plans already had: the build
 measured why a freshness check alone wasn't enough. Check 16 applies `dro-plans`
-guidance, not a measured miss; `dro-plans` holds one composition smoke. The platform facts live in the
+guidance, not a measured miss; `dro-plans` holds a composition smoke, a recheck and measured
+runtime behaviour, each on one org. The platform facts live in the
 domain skills named; this file says when the plan must apply them.
 
 Run each check that applies, and record the result where the plan already holds that
@@ -195,7 +196,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     each edge's shape like any rule ([knowledge-sources.md](knowledge-sources.md)).
     - Count groups and step definitions per item before step instances.
     - On each lifecycle order, list the items and steps it creates and each line's
-      action: an amendment built the full step set (`dro-plans` → `updates-and-runtime.md`),
-      so an item created once per order recurs unless its scope spans orders.
+      action: in one run, an amendment built the full step set (`dro-plans` →
+      `updates-and-runtime.md`), so expect an item created once per order to recur unless
+      its scope spans orders `[inferred]`.
     - Say what happens to an edge whose predecessor isn't on that order's plan; don't
       assume it is re-pointed.
