@@ -93,8 +93,7 @@ the filter must be the first child, one filter per group].
   the result is the same with the unknown taken as true or as false, the filter returns that
   result; if the unknown would change the result, the pricing step fails with a missing-values
   error, and the filter returns false, failing the decision service [Platform behaviour, traced].
-  That error path applies only while resource-value defaulting is off (the pricing process type's
-  default; where the setting lives was not traced); when it is on, an empty value becomes false and never errors. That a comparison
+  That error path applies because resource-value defaulting is off for pricing. There is no org-level switch for it: defaulting is a property of the expression set itself, fixed when the set is created, and a pricing expression set cannot select it, so no setting changes this for pricing [Platform behaviour, traced]. (Where a process type allows defaulting and it is on, an empty value becomes false and never errors.) That a comparison
   on an empty tag yields unknown rather than throwing was inferred from the null branch, not read from
   the operator code. So, under those conditions, the guard works wherever it sits in the logic: a
   false `IsNotNull` makes the unknown criterion irrelevant. A compiled-expression filter path also
@@ -298,7 +297,7 @@ group ramp built in the quote UI)
 
 | Line as sent | Saved line | Result |
 |---|---|---|
-| Start and end dates, no term | `SubscriptionTerm` null, unit `Annual` | Criterion 3 fails: **no discount** |
+| Start and end dates, no term (a Term Defined Annual line, placed with System pricing and configuration method Force, configuration rules on; same result standalone and as a bundle component) | `SubscriptionTerm` null, unit `Annual` | Criterion 3 fails: the term-keyed discount step does not apply (the comparison requests also swapped the end date for term and unit) |
 | `SubscriptionTerm` 36, unit `Months`, Annual selling model | Unit rewritten to `Annual`: 36 years, `PricingTermCount` 36 | Discount applied (through criteria 7 and 8, inferred from the saved unit), total over **36 terms** |
 | `SubscriptionTerm` 3, unit `Annual` | As sent, `PricingTermCount` 3 | Discount applied, total over 3 terms: the correct shape |
 | A segment line of a group ramp built in the quote UI | `SubscriptionTerm` 1, unit `Annual`, a ramp identifier | Criterion 8 fails: no discount unless criterion 14 below |
@@ -306,9 +305,7 @@ group ramp built in the quote UI)
 For a line that goes through the proration engine, the pricing term count is the number of periods in the selling model's term unit: the line's
 `SubscriptionTerm` is read in that unit (36 on an Annual model is 36 annual periods, whatever unit
 the line carries), and a line with no term has its count derived from its start and end dates
-[Platform behaviour, traced]. An Evergreen or One Time line with a configured default term count takes that count directly, bypassing the engine; a One Time line with no default is not prorated [Platform behaviour, traced]. A dates-only line is therefore priced over its dates but is not
-established as term-bearing: criterion 3 reads `SubscriptionTerm`, which stayed null in the
-measurement above, and what Place writes to the term fields from dates was not traced.
+[Platform behaviour, traced]. An Evergreen or One Time line with a configured default term count takes that count directly, bypassing the engine; a One Time line with no default is not prorated [Platform behaviour, traced]. A dates-only line is therefore priced over its dates, but Place does not derive `SubscriptionTerm` from dates [Platform behaviour, traced]. The trace shows Place filling a missing term context tag with the selling model's pricing term when the line's selling model option is Term Defined, but not that fill reaching the saved line. In the measured requests (price book entry only, no `ProductSellingModelId` in the request; the saved line's selling model was Term Defined) the saved unit was `Annual` but `SubscriptionTerm` stayed null: a dates-only Term Defined Annual line (System pricing, configuration method Force, rules on) priced from its dates (term count 3) and did not get the term-keyed discount step that the measured org's customised pricing procedure adds (not a shipped step) when a header switch is on (it was on), both standalone (net 17,100, vs 16,416 when the line was sent with `SubscriptionTerm` 3 and unit `Annual` instead of an end date) and as a bundle component (16,587 vs 15,923.52 on the same change) [Measured: 2026-11-11, 264, scratch]. Why the term was not filled was not established. Send the term explicitly.
 
 So send every Term Defined line's term in its selling model's unit (3 `Annual` for 36 months on an
 annual model). The `Months` criteria (5 and 6) were seen matching only in headless runs.
