@@ -10,8 +10,8 @@ live org. Parent: [implementation-planning](SKILL.md).
   for the exact feature, in the shape and route the plan builds (UI- or API-built,
   component or top-level line, the same mix of selling models);
 - the release's snapshot (Help or developer guide) documents the mechanism the rule
-  needs, in the rule's shape, and nothing measured in the repo contradicts it. A feature
-  the snapshot documents only in another shape is trigger (a) for that rule. List the inputs and position the plan assumes,
+  needs, not only the feature, and nothing measured in the repo contradicts it. An
+  article that limits the mechanism to another shape doesn't decide the rule (check 1). List the inputs and position the plan assumes,
   so the build gate checks each ([prediction-checks.md](prediction-checks.md) check 2).
 
 A measurement of another shape is **Repo (inferred)**, or **Live** when a later phase

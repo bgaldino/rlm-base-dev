@@ -6,7 +6,7 @@ Read this when a plan splits the build across sessions. Parent:
 ## Layout
 
 - **Main session.** Owns the plan, the design model, the golden tests, extraction,
-  integration, lifecycle and billing work (P6), the pack and every gate.
+  integration, lifecycle, billing and fulfilment work (P6), the pack and every gate.
 - **Spike sessions.** Group the live spikes by area, for example pricing and
   lifecycle. Each session runs on its own kept org. Nothing from a spike goes into the
   model or the pack; its results go in `spikes/<area>/`, and the session reports each

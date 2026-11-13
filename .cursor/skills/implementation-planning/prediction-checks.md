@@ -189,5 +189,5 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     and each lifecycle order, write every dependency as an edge between two step
     instances (with their scopes, items and source lines), and count the expected
     fulfilment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). An
-    edge across source lines or items, or to a step some orders don't have, is outside
-    the documented patterns (concept map, Order fulfilment): **Live**.
+    edge no documented dependency scope expresses, or one to a step some orders don't
+    have, is **Live** (concept map, Order fulfilment).
