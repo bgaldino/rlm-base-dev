@@ -59,6 +59,10 @@ as shipped. [inferred]
   measured]). Help still says to deactivate a
   schedule before adding records
   ([`../../pricing-setup/price-adjustment-schedules.md`](../../pricing-setup/price-adjustment-schedules.md)).
+- A Bundle-Based Adjustment on a bundle whose root, parent and child selling models were all Term Defined
+  Annual (root at 0.00) priced the child, and the quote was ordered [Measured: 2026-11-11, 264, scratch, one org;
+  a configurable root with direct components]. On another org's waterfall the bundle-based percentage sat
+  between the attribute-based and volume steps [Measured: 2026-11-11, 264, scratch, one org].
 - Types: Percentage, Amount, Override. [Help] Core also accepts the legacy values
   `AdjustmentPercentage`, `AdjustmentAmount`, `OverrideAmount`, all case-insensitive. [Core]
 - Lookup payload errors: "Unexpected error occurred while looking up {element}"

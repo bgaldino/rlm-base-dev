@@ -52,7 +52,12 @@ Built on a Place Sales Transaction quote (`configurationMethod: Force`,
 - **Top-level lines.** A top-level line held by a virtual `Quote` container relation received the
   root's answer through `parent()`; on a quote with no bundle the line kept the attribute default, and a child
   under a root outside the model kept its default [Measured: 2026-11-11, 264, scratch; one org, attribute
-  illustrative]. Assert it at the catalog gate; details in
+  illustrative]. In a build whose top-level support line sat in that container, regional deals priced to
+  their expected values with the line's attribute set from the root's answer (one standalone line type, regional
+  adjustment on the line's classification) [Measured: 2026-11-11, 264, scratch, one org; the run did not isolate
+  that line's own price from the child lines'], consistent with the held line being priced from the answer; its
+  own price wasn't read.
+  A support-only quote (no bundle) kept the default. Assert it at the catalog gate; details in
   [`quantities-from-attributes.md`](../../constraint-models/quantities-from-attributes.md) (M42).
 - **Catalog set-up used:** each affected child is based on a classification that carries
   the attribute directly, with a Product Attribute Definition marking it price-impacting. So
