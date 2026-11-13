@@ -93,9 +93,9 @@ files can use it.
   configuration rules on, and assert each rejection's own message.
 - **DO NOT** assume a source's lifecycle examples can run in the order it lists them.
   Replay them as a dated sequence first. Whether a change dated before an existing
-  later change is refused follows a traced gate, the amend-before-amend capability
-  (`asset-lifecycle-changes` → `verification.md`, Open); it isn't measured, so an
-  example that depends on it is a live check. On a ramped asset it's refused either way
+  later change is refused follows a traced gate, the amend-before-amend capability,
+  that a quote-stage check didn't reproduce (`asset-lifecycle-changes` → `verification.md`,
+  Open), so an example that depends on it is a live check. On a ramped asset it's refused either way
   (traced, and measured with a future renewal): that case is a decision.
 
 ## Entry Conditions
@@ -253,8 +253,8 @@ first: a measurement covers only the shape and route it measured.
       a band) is a decision too.
     - An example that breaks a sizing rule, or that runs a change dated before an
       existing later one, is a decision. Whether the platform refuses the second case
-      follows a traced, unmeasured gate in `asset-lifecycle-changes`, so plan a live check
-      for it; on a ramped asset it's refused either way, so that case is a decision.
+      follows a traced but unconfirmed gate in `asset-lifecycle-changes`, so plan a live
+      check for it; on a ramped asset it's refused either way, so that case is a decision.
 - Where the source and Revenue Cloud measure different things, write the mapping into
   the test rather than forcing equality. Example: the source counts an until-cancelled
   monthly line over the whole contract term, while the platform counts it for the
