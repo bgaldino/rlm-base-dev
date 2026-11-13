@@ -22,11 +22,7 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
    skill had measured it on an API-built ramp and on an optional child; a UI-built ramp
    of the plan's bundle put every child in every segment (`ramped-quotes` →
    `bundle-children-lifecycle.md`). The same holds for a measured limitation: it is
-   trigger (b) only under the conditions it was measured in. In another shape, record it
-   as **Repo (inferred)** with the plan allowing for it, or **Live** when a later phase
-   depends on the answer. A failure
-   measured when amending an API-built ramp doesn't make building a ramp in the UI a
-   trigger (b) spike.
+   trigger (b) only in the shape it was measured in.
 2. **Name the inputs a documented element is assumed to take.** An element the snapshot
    documents, at a position or with an input the docs don't show, is **Snapshot** when
    nothing contradicts it. List the parameters and context fields the plan assumes, so
