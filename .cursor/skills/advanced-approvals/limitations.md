@@ -174,4 +174,5 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   threshold that must read it (the quote's own totals carry the change); and whether the
   shipped discount level fires on amendment lines, which depends on what their `Discount`
   field carries. A contract value summed from prior activated orders by the quote's account
-  worked on one org ([matrix-modeling.md](matrix-modeling.md)); other sources are untried.
+  worked [Measured: 2026-11-12, 264, scratch, one org] ([matrix-modeling.md](matrix-modeling.md));
+  other sources are untried.

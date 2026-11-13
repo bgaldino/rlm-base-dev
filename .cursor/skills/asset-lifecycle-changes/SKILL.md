@@ -232,7 +232,7 @@ results, 2026-11-11).
       is the number of periods, with the first and last partial period counted as its days
       (inclusive, actual calendar days under the actual-days time period type) over the
       days in that full period, so a leap year changes the denominator (275/365 in a normal
-      year, 275/366 in a leap year). The day counts were measured only on contracts starting 1 January, so the period anchor for another start date is inferred; measure one mid-period change on a different start date before relying on it. A 30-day-month type counts 30 days a month. Not run: no such policy type was offered to create [Measured: 2026-11-12, 264, scratch, one org], so whether it reproduces a
+      year, 275/366 in a leap year). The day counts were measured only on contracts starting 1 January, so the period anchor for another start date is unmeasured; measure one mid-period change on a different start date before relying on it. A 30-day-month type counts 30 days a month. Not run: no such policy type was offered to create [Measured: 2026-11-12, 264, scratch, one org], so whether it reproduces a
       months-remaining source value on a mid-period start is unmeasured. A selling
       model's proration options take the policy only at create [read from the field describe, one org]. Turning
       partial periods off counts whole periods only. Read for the annual frequency with the

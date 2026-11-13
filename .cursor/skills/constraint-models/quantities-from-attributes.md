@@ -202,7 +202,7 @@ PCM attribute imported into CML takes the attribute's developer name as its vari
 | Per N, rounded up | `constraint(kioskQty * 25 >= 2 * seats && (kioskQty - 1) * 25 < 2 * seats, "<message>");` | See [Rounding up](#rounding-up) |
 | Zero unless a choice is made | `constraint(mounting != "Floor" -> standQty == 0, "<message>");` | `[Dev guide: cml_logical_constraints]` |
 | One per answer unit, only if the rep adds it | `relation banners : BannerKit[0..200];` with `constraint(banners[BannerKit] > 0 -> banners[BannerKit] == seats, "<message>");` | `[Dev guide: cml_annotation_example_sequence]` (Examples 4 and 5). See the note below the table |
-| Equal to another component's quantity | `constraint(stands[FloorStand] == kiosks[Kiosk], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead (see [Chained derivations](#chained-derivations)) |
+| Equal to another component's quantity | `constraint(stands[FloorStand] == kiosks[Kiosk], "<message>");` | `[Dev guide: cml_best_practice_access_quantity]`. When both follow one answer, size each from the answer instead, as the worked example does for stands and kiosks (see [Chained derivations](#chained-derivations)) |
 | A default the rep can change | `setdefault(<condition>, rel[Type] == defaultQty, "<message>");` | `[Dev guide: cml_setdefault_rule]` `[Dev guide: cml_cml_best_practices]` |
 
 The "only if the rep adds it" row takes the dev guide's form
@@ -1014,9 +1014,9 @@ Each needs a live 264 org:
     - *Top-level route* (run): the options as top-level lines, sized outside the configurator
       and checked on a virtual container
       ([Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)).
-      The configurator no longer owns the sizing, top-level assets have to be carried on root
-      amendments, and a quote without the bundle is left unchecked [Measured: 2026-11-12, 264,
-      scratch, one org].
+      The configurator no longer owns the sizing (by design). Top-level assets had to be carried
+      on root amendments, and a quote without the bundle was left unchecked [Measured: 2026-11-12,
+      264, scratch, one org].
     - *Answer-per-option route* (not run): keeps the sizing rules in the model, so the
       configurator owns them. Whether the sum constraint and the per-option cardinalities hold
       together is untested.
