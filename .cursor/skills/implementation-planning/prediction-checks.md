@@ -160,7 +160,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     traced). A field-less row leaves the value empty on Order output, so for a tag whose
     value the procedure reads, map a real field on the Order-lens object (`Order` for a
     header tag, `OrderItem` for a line tag) (`pricing-procedures` →
-    `operations-and-troubleshooting.md`; `context-service` → `authoring-and-lifecycle.md`).
+    `operations-and-troubleshooting.md`; `context-service` → `authoring-and-lifecycle.md`;
+    `rlm-business-apis` → `backdated-asset-lifecycle.md`).
 13. **Assert a refusal where its message appears, and on each path decide whether it
     appears at all.** Place returned success for a configuration it then logged as an
     error; the message can appear only in `RevenueTransactionErrorLog` or a later
@@ -189,6 +190,5 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
 16. **Count an orchestrated fulfilment before predicting it.** For a representative order
     and each lifecycle order, write every dependency as an edge between two step
     instances (with their scopes, items and source lines), and count the expected
-    fulfilment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). An
-    edge no documented dependency scope expresses, or one to a step some orders don't
-    have, is **Live** (concept map, Order fulfilment).
+    fulfilment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). Decide
+    each edge's shape like any rule ([knowledge-sources.md](knowledge-sources.md)).
