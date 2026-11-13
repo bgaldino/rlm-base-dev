@@ -198,7 +198,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   `UnitPriceUplift` re-applied the uplift to the other ramp lines. Their `NetUnitPrice` was uplifted
   again on top of the already uplifted net (each segment by its applied % once more), while
   their `TotalPrice` stayed put. **Reprice All** in the line editor restored every line; a `Force`
-  reprice wasn't tried for this case (it was later, after a System PATCH; see above). What the source shows: when delta
+  reprice wasn't tried for this Place-PATCH case; it was tried after a System PATCH (see above). What the source shows: when delta
   skipping doesn't apply, every line runs through every pricing element again, and the uplift step isn't
   idempotent, so an untouched line is uplifted again; when it applies, only the edited lines and their
   dependents re-run [Platform behaviour, traced]. Help adds that a Compound Uplift Price Revision step reprices every line in the ramp group on each run regardless of delta pricing [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; that fits the re-uplift of untouched ramp lines [inferred]. The 2026-11-11 org was built from the repo's scratch

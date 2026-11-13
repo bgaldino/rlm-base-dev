@@ -140,7 +140,7 @@ introduce a blanket extra approval for ordinary configuration updates.
   no enforcement, and enforcement itself was not tested.
 - **PONR scope (freeze output).** Freezing the order returned an allowed flag per order item.
   With a PONR step In Progress on one child of a bundle, every line of that bundle was denied,
-  root and sibling included; a PONR on a standalone line denied only that line, not a bundle in
+  root and sibling included; a PONR step In Progress on a standalone line denied only that line, not a bundle in
   the same order, and a control
   order with no PONR froze with every line allowed [Measured: 2026-11-13, 264, scratch, one
   org]. A supplemental quantity change on the activated order was refused because its order

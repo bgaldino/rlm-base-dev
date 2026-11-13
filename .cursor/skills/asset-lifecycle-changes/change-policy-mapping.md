@@ -84,7 +84,8 @@ Measured outside group ramps, on a Term Defined bundle [Measured: 2026-11-11, 26
   the ramped renewal above did (Quick Rule 5).
 - An amendment dated exactly on a renewal's start date was accepted after that renewal was
   ordered and activated. It was a price amendment on an evergreen component's line.
-  The working rule is this traced gate. No public setting name for the capability was found in
+  The traced gate below is unconfirmed: a quote-stage check did not reproduce it (see after
+  this list). No public setting name for the capability was found in
   the captured Help; reading it by trying a no-change dated before an unramped asset's latest
   renewal start (refused when off) follows from the trace, unmeasured `[inferred]`. Where the amend-before-amend capability is off, the platform refuses an amendment,
   cancellation or no-change dated before the asset's latest renewal start (or while a
