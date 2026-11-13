@@ -106,7 +106,11 @@ scenario, run through order creation and activation by API:
 
 - Assets and billing schedules were created at activation, before any step ran. A
   Milestone step with no unmet dependency completed within about a second with nobody
-  acting; a Milestone behind an incomplete predecessor stayed Pending. Manual steps
+  acting; a Milestone behind an incomplete predecessor stayed Pending. When that
+  predecessor, a manual step, was then set to Completed through a REST update of the step
+  record (an undocumented route; Help has users complete manual steps in the plan), the
+  blocked Milestone completed about a second later, the next Milestone after it completed in
+  turn, and the chain stopped at the next manual step. Manual steps
   waited for a user and the plan stayed InProgress. That matches the smoke and still
   contradicts Help's wording.
 - Technical fulfillment lines had a null `OrderItemId`, each linked to its source line
@@ -147,6 +151,7 @@ the active release from `.claude/skill-manifest.yml` (`salesforce_release_active
 | Decomposition priorities and naming | [Product decomposition](../../../docs/salesforce/264/help/articles/ind.dro_define_how_a_product_decomposes.htm.md) |
 | Technical catalog, activation, assetizability and quantity | [Model technical products](../../../docs/salesforce/264/help/articles/ind.dro_technical_product_in_dro.htm.md), [create a technical product](../../../docs/salesforce/264/help/articles/ind.dro_creating_a_technical_product.htm.md) |
 | Grouping generated fulfillment lines | [Decomposition scope](../../../docs/salesforce/264/help/articles/ind.dro_decomposition_scope.htm.md) |
+| Fulfillment line actions (Add, Amend, No Change, Cancel) | [Fulfillment order line item actions](../../../docs/salesforce/264/help/articles/ind.dro_fulfillment_order_line_item_actions.htm.md) |
 | Linking generated lines to their source | [Fulfillment line source relationship](../../../docs/salesforce/264/dev-guide/articles/sforce_api_objects_fulfillmentlinesourcerel.htm.md) |
 | Enrichment fields and calculation dependencies | [Enrichment object](../../../docs/salesforce/264/dev-guide/articles/sforce_api_objects_productdecompenrichmentrule.htm.md) |
 | Custom scope tags, mappings, datatype and fallback | [Custom scopes](../../../docs/salesforce/264/help/articles/ind.dro_create_custom_scope_config.htm.md) |

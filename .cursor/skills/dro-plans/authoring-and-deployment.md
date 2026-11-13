@@ -118,6 +118,12 @@ lines to fill an empty UI panel.
    scenario, update its discovered ID and preserve its identity. Review other
    source/classification/destination scenarios so the same project work is not
    selected twice. Separate commercial-level work can remain when intentional.
+   A step definition belongs to one group: `StepDefinitionGroupId` is a required single
+   lookup [Measured: 2026-11-13, 264, scratch, one org; describe]. A scenario binds one
+   group to a product, so every step in that group is composed for the item unless a step
+   condition skips it [inferred from the schema]. Give each technical item its own group of
+   steps; a step that several items need with different predecessors needs one definition
+   in each item's group. Count groups and step definitions before step instances.
 5. If two outputs have separate groups, design dependencies between their actual
    instances. Do not copy a per-line dependency and assume it pairs different
    technical outputs. Discover source linkage and apply the documented scope
@@ -129,6 +135,11 @@ request's decomposition status. A broad Order/Account scope can consolidate
 outputs; do not assume an expected per-line count under that scope. Read back
 destination settings after loading. Help's **None** choice means default behavior,
 not a literal `None` API picklist value.
+
+Before activating a test order, fill its bill-to contact and shipping address: activation
+was refused without them, and creating the order from a quote filled the billing address
+but not the contact [Measured: 2026-11-13, 264, scratch, one org]. The
+[recheck](examples-and-grounding.md#recheck) lists what else that run showed.
 
 On an authorized fresh test order, verify generated product IDs, quantities,
 source relationships, steps, and edges—not just counts. `FulfillmentOrderLineItem.OrderItemId`
