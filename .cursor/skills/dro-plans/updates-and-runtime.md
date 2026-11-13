@@ -137,9 +137,10 @@ introduce a blanket extra approval for ordinary configuration updates.
   freeze scope below. So a source rule "no changes once step X is done" means marking the
   step after X, which reaches In Progress only when X is complete [inferred from Help].
   The submission action documents an override, but it is never an automatic
-  workaround for an invalid change. PONR guards in-flight (supplemental) changes; a plain
-  amendment was accepted with the flag set (below), so a source rule that must also stop
-  asset amendments or cancellations needs its own validation [inferred].
+  workaround for an invalid change. Help says an order past PONR can't be cancelled or
+  amended [Help: `ind.dro_point_of_no_return_state_propagation`], but a later amendment of the
+  asset through the plain amend route was accepted with the flag set (below), so a source rule
+  that must also stop asset amendments or cancellations needs its own validation [inferred].
 - **PONR flag placement:** the flag set on a step definition was copied onto the step at
   plan creation, on a Pending dependent step as well as an In Progress one
   [Measured: 2026-11-13, 264, scratch, one org]. The copied flag marks where the state will

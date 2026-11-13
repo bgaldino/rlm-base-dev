@@ -187,14 +187,15 @@ example's choice, not a requirement for every technical catalog. The shipped Qua
 technical products (`datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`) are `IsAssetizable`
 true. Help says to mark a technical product assetizable to manage it as an asset, with an
 assetizable custom scope configuration. On one scratch org, decomposition created a
-fulfillment asset, and no `Asset` row, for each assetizable technical line and none for a
-copy product with the flag false, while the commercial asset was created regardless
+fulfillment asset (not a commercial `Asset` row) for each assetizable technical line and
+none for a copy product with the flag false, while the commercial asset was created regardless
 [Measured: 2026-11-13, 264, scratch, one org]. So the installed base (the commercial
 `Asset`) does not decide a technical product's `IsAssetizable` [inferred from that run].
-Choose the flag by whether a later order must act on the item [inferred]: an assetizable
+Choose the flag by whether a later order must act on the item [inferred]. An assetizable
 item keeps a fulfillment asset that a later order can amend
-([updates-and-runtime.md](updates-and-runtime.md) → An item across orders, measured), and an Order-scope item can't be assetized [Help: `ind.dro_decomposition_scope`]. After a later amendment of the same bundle there was still no
-fulfillment asset for the copy product, and a cancel of the bundle's root asset gave that line an Add of
+([updates-and-runtime.md](updates-and-runtime.md) → An item across orders, measured). An
+Order-scope item can't be assetized [Help: `ind.dro_decomposition_scope`]. After a later amendment of the same bundle there
+was still no fulfillment asset for the copy product, and a cancel of the bundle's root asset gave that line an Add of
 quantity 0 with no asset change [Measured: 2026-11-13, 264, scratch, one org]. Verify the
 result by checking that no fulfillment asset exists for the technical lines after the Add,
 any amendment and any cancel.
