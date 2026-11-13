@@ -199,8 +199,9 @@ these conditions; rerun the amendment and cancel checks there.
   instead (the two-minute delay above waited, then started).
 - **Amendment decomposition.** An amendment created a new plan holding the full step set,
   not a delta, and a changed quantity was a full replace. One fulfillment asset's quantity
-  after the amendment did not match its line's end quantity; unexplained. Help lists a No Change action for lines whose
-  attributes and quantity don't change [Help: `ind.dro_fulfillment_order_line_item_actions`],
+  after the amendment did not match its line's end quantity; unexplained.
+  Help lists a No Change action for lines whose attributes and quantity don't change
+  [Help: `ind.dro_fulfillment_order_line_item_actions`],
   but on a bundle amendment two of the unchanged lines came through as an add of 1 (fulfillment
   asset 0 to 1) and a cancel of -1 (asset 1 to 0), while another line of the same order was No
   Change [Measured: 2026-11-13, 264, scratch, one org]. So excluding No Change from a scenario
@@ -264,8 +265,10 @@ these conditions; rerun the amendment and cancel checks there.
   measured, and neither was the cross-plan scope.
   Whether a dependent step waits when its predecessor's item isn't on the order (an optional
   product left off) is unmeasured; check it on the first order of each shape before
-  relying on it. The measured run completed manual steps by setting their state directly; the engine accepted it,
-  but that is not a documented route, so don't use it as a recipe for a live order.
+  relying on it.
+  The measured run completed manual steps by setting their state directly; the engine
+  accepted it, but that is not a documented route, so don't use it as a recipe for a live
+  order.
 
 ## Update Acceptance Scenarios
 
