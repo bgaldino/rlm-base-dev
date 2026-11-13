@@ -116,7 +116,7 @@ arrive empty. The message hides the underlying cause. Diff the two mappings' cus
 A different case, measured on one 264 scratch org whose pricing procedure and context definition carried project-specific additions [Measured: 2026-11-12, 264, scratch]: Place on an
 **Order** with `pricingPref` System or Force (even a header-only PATCH) failed with the same message,
 while `pricingPref: Skip` succeeded; the order was left `CalculationStatus` PriceCalculationFailed with
-totals unchanged and no error-log record. Binding the quote-only custom attributes on the Order lens did
+totals unchanged and no error-log record. So the failure is not limited to Order-output lifecycle actions: a plain reprice of an existing order hit it on that org, although `createOrdersFromQuote` had priced the same order, so a green order creation doesn't clear the Order lens. Binding the quote-only custom attributes on the Order lens did
 not clear it there, so adding the custom `__c` mappings above is not always enough.
 On that org, bisection found the cause (no mechanism measured) [Measured: 2026-11-12, 264, scratch; one org].
 An Apex query of the procedure's declared context tags on the Order lens failed with "Invalid tag attribute

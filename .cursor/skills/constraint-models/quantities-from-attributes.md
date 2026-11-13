@@ -158,7 +158,7 @@ every type but the abstract `Finish`). Leave it off a type whose lines must carr
 different attribute values: `split = false` allows only one instance
 `[Dev guide: cml_annotation_example_split]`. Each root
 solves separately, so in a group ramp a single-line type gets one line per segment
-(see [open item 15](#open-items)). The types a virtual `Quote` container holds are a different
+`[Measured: M43]`. The types a virtual `Quote` container holds are a different
 case: see [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container).
 
 ---
@@ -331,7 +331,9 @@ arithmetic don't evaluate the same way; compare the inline and in-constraint row
   virtual `Quote` container relation holds (with `sourceContextNode`, see
   [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container))
   did receive the bundle root's answer through `parent()`; a quote with no bundle kept the
-  default `[Measured: M42]`. Check it at the
+  default `[Measured: M42]`. In a build with a regional price-impacting attribute, such a held
+  top-level support line took the root's answer and the regional deals priced to their expected
+  values `[Measured: M44]`, so the line is priced from the answer, not only handed it. Check it at the
   catalog gate.
 
 ---
@@ -384,7 +386,11 @@ constraint(mounting != "Counter" -> mounts[CounterMount] == 0, "<message>");
 sets a subtype's cardinality behind an implication
 (`DutyRating == ... -> engine[PrimePowerEngine] == 1`) `[Dev guide: cml_relationships]`;
 here the right side is `seats`, as in the "One per answer unit" row of
-[Deriving quantities](#deriving-quantities-from-attribute-values). Not run.
+[Deriving quantities](#deriving-quantities-from-attribute-values). The sketch itself was not run, but pairs of this
+shape were (an option answer sizing one option's relation from the answer and the other's to 0, on a
+configurable bundle's component types): the sized option was placed at the answer's quantity, and a line of the other
+option placed against the answer was rejected with the rule's message, found in the configurator error log and not in
+a later `configure` `[Measured: M45]`.
 
 **When the rep picks the option by adding it,** with no answer behind it, neither row of the
 table settles it: `count()`'s unit is unclear, and Group Type needs the options in a product
@@ -895,7 +901,7 @@ If the `finishes` relation's `[1..1]` bound rejects two finishes first (an
 The 2026-11-10 rows come from a temporary probe model on a 264 (API v68.0) scratch org:
 rules added to an active bundle model, imported and cycled, then read back through
 `message(...)` values in a `configure` response after a Place with rules on. Row M21 is an
-earlier headless test of a different model. The 2026-11-11 rows (M22 to M42) come from fresh
+earlier headless test of a different model. The 2026-11-11 rows (M22 to M45) come from fresh
 264 `ent-sb0` scratch orgs: a bundle model built on this file's patterns (more than a dozen
 components sized from root answers, the largest relation above 9,999), probe models, the
 shipped QuantumBit bundle model (part of M39), and the line editor and configurator UI. M37's
@@ -948,6 +954,9 @@ nothing else in this file was run. In rows M1 to M10 the inputs, and in all rows
 | M40 | A choice answer switching several relations between a sizing rule and zero (`mode == A -> rel == n`, `mode == B -> rel == 0`), the stored answer A: one B rule for every relation with its own message; then a B rule per relation carrying that relation's message, arguments from ints set per mode; then arguments from ints the other answers fix | One B rule: configurations breaking two unrelated sizing rules were reported with its message. Per relation: the broken rule named, but its arguments printed the rejected line's own quantity or a raw `{}`. Answer-fixed arguments: the rule's normal text; on a quote with the B answer, a line placed by hand was refused with that text, stating the A quantity | 2026-11-11 |
 | M41 | A virtual `Quote` container (relations with `sourceContextNode`) in a configurator group ramp, a bundle root and a top-level line in each segment: bundle relation `[0..1]` and `@(split = false)` on the top-level line types; then the bundle relation `[0..10]`, wider line relations, no `split = false` on those types, the check comparing totals across segments | First: "You can't add more than one of the same '<product>' product to the '<type>' product class"; the configurator couldn't save. Then, in three segments added with *Current and Subsequent Segments*: segments 1 and 2 configured and saved, segment 3 changed through propagation; no error log | 2026-11-11 |
 | M42 | `parent(<attribute>)` in the types of top-level lines held by a virtual `Quote` container relation (with `sourceContextNode`), a bundle root carrying the answer; the same lines on a quote with no bundle | Held lines took the root's answer (two values tried, each reached the held lines); a quote with no bundle kept the attribute default. One org, illustrative attribute | 2026-11-11 |
+| M43 | Configurator group ramp (Annual, three segments, suite added with *Current and Subsequent Segments*) of a bundle whose sized component types were all `@(split = false)`, defaults kept; segments 1 and 2 configured and saved, one segment's answer changed to switch some components off | Each segment held one line per component at the rule's quantity, no error log; the changed answer reached the later segment. Years that excluded the one-time children held only the root and the software lines. Two orgs; correcting a segment-1 split by hand was not run | 2026-11-11 |
+| M44 | A top-level support line held by a virtual `Quote` container relation, its regional attribute taken from the bundle root's answer through `parent()` and priced by a regional adjustment on its classification; deals in two regions | Regional deals priced to the expected values with the support line on the quote; the notes don't isolate that line's own price from the child lines'. One org, illustrative attribute | 2026-11-11 |
+| M45 | An option answer on a bundle sizing one option's relation from the answer and the others' to 0, on component types; a line of the non-chosen option placed against the answer | Chosen option at the answer's quantity; the other option's line rejected with the rule's message, present in the error log; a later `configure` reported success. One org | 2026-11-11 |
 
 ---
 
@@ -1039,14 +1048,12 @@ Each needs a live 264 org:
     refuses (open item 1; traced, not measured for an empty min-1 group). Also open: whether a PCM minimum reaches the
     model. A candidate in neither source: one exclusion per pair of
     options, such as `mounts[FloorMount] > 0 -> mounts[CounterMount] == 0`. None run.
-15. Whether `@(split = false)` keeps one line per component in later group-ramp segments
-    (M24 measured only the unannotated case). Traced: each segment's root solves separately,
-    so nothing carries a split decision or a reuse pool between segments, and a
-    single-line type gets one line per component in each segment. Whether a cloned segment
-    line is fixed or a candidate, and its quantity, are decided on the Place side, which
-    isn't traced `[Platform behaviour, traced in part]`. A container over all segments is one solve
-    (see [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)).
-
+15. Whether a split a rep or the converter already made in segment 1 is corrected in later group-ramp segments
+    when `@(split = false)` is on the type. With the annotation, later segments held one line per component
+    (M43). Each segment's root solves separately, so nothing carries a split decision or a reuse pool between
+    segments `[Platform behaviour, traced in part]`; whether a cloned segment line is fixed or a candidate, and its
+    quantity, are decided on the Place side, which isn't traced. A container over all segments is one solve
+    (see [Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container); M41).
 ---
 
 ## Validation Checks

@@ -243,6 +243,10 @@ rounding step and a term discount), with this overlay merged last
 
 Know before adopting it:
 
+- With the overlay, a positive add on a component of a bundle also took that component's Bundle-Based
+  Adjustment: the added units priced at the volume band for the new total after the bundle-based percentage
+  [Measured: 2026-11-12, 264, scratch, one org; Term Defined component added on an amendment of an activated
+  bundle, in a procedure with a bundle-based step before volume].
 - Positive adds also pass the manual-discount groups and any custom new-sale group with the same
   exclusion (a term discount, for example), like new units on a new sale.
 - The volume step's `customElement` carries the org's own decision-table `LookUpId` and schedule

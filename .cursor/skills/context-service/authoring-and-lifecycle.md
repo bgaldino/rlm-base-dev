@@ -64,7 +64,10 @@ one nearly every additive plan in this repo targets:
   custom attribute the pricing procedure reads that is mapped only on
   `QuoteEntitiesMapping` fails with the generic UNKNOWN_EXCEPTION "We couldn't
   fetch the data for RLM_SalesTransactionContext context definition" (Quote output
-  still works). A second cause, found by bisection on one org and not traced to a mechanism:
+  still works). The Order lens also matters outside lifecycle actions: a plain reprice of an existing order
+  (Place on the Order with `pricingPref` System or Force, even a header-only PATCH) failed with the same message,
+  while `createOrdersFromQuote` had priced that order and Skip succeeded [Measured: 2026-11-12, 264, scratch, one
+  org; the cause there was not the custom attributes, see below]. A second cause, found by bisection on one org and not traced to a mechanism:
   a tag the procedure declares that has an attribute row on the Quote lens but none on the Order
   lens; a field-less Order-lens row for that tag cleared the error, and a
   declared tag with no row on either lens passed [Measured: 2026-11-12, 264, scratch, one org], so don't add rows for every tag
