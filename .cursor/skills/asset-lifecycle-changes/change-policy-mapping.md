@@ -18,7 +18,7 @@ the sale work. Parent: [asset-lifecycle-changes](SKILL.md).
 
 ## Replay the source's changes in date order
 
-A source's change examples (for example a source's numbered contract changes and its renewal)
+A source's change examples (for example numbered contract changes and a renewal)
 usually act on the same assets, so test them as one dated sequence on one build, not each
 from a fresh asset. These Help rules constrain the order:
 

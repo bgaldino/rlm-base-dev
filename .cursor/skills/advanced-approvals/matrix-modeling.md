@@ -10,17 +10,17 @@ below are illustrative, not a recommended policy):
 
 | Dimension | Level 1 | Level 2 | Level 3 | Measured on |
 |---|---|---|---|---|
-| Discount (any line or product line) | > 12% | > 22% | > 32% | each line, or each product-line total |
+| Discount (any line or product line) | > 8% | > 18% | > 28% | each line, or each product-line total |
 | Blended margin | < 55% | < 50% | < 45% | the quote |
 | Net value | — | > $2M | > $8M | the quote |
-| Other triggers | a manually overridden line price | term > 48 months; any line below its margin floor | any line sold below cost | line or quote |
+| Other triggers | a manually overridden line price; any line below its margin floor | term > 48 months; any line sold below cost | — | line or quote |
 
 Two policy rules decide the shape:
 - **"The highest level triggered applies":** compute one level per dimension, then take
   the maximum.
 - **"Each level also needs every level below":** the levels form a serial chain.
 
-Every percentage also needs a base. "Discount > 22%" can be measured off list price, or off
+Every percentage also needs a base. "Discount > 18%" can be measured off list price, or off
 a standard price that already includes contract, bundle or volume pricing; the same line can
 land on different levels under each. That is a modeling decision the source must state; if
 it doesn't, ask and record the answer. §2 shows what the shipped level measures.
@@ -173,7 +173,7 @@ where each level is computed:
   `PaymentTerms != "Net 30"`, with its own alert and email template
   [Repo: `unpackaged/post_approvals/flows/RLM_Quote_Smart_Approval.flow-meta.xml`,
   `datasets/sfdmu/qb/en-US/qb-approvals/README.md`]. A source that puts custom terms at a
-  ladder level (level 2 in §1) maps terms to a level number in the approval data flow and
+  ladder level maps terms to a level number in the approval data flow and
   folds it into `ApprovalLevel`. The trade-off:
     - One ladder: terms pass every level up to theirs, in order, with one item per approver.
       Alerts link a template to a step [Help: `ind.approvals_email_templates`], so the
@@ -240,8 +240,8 @@ where each level is computed:
 
 ## 5. Worked example (fictional)
 
-The policy: discount levels as in §1, margin below 50% needs a Director, and net value
-over $8M needs the VP. One approver ladder.
+The policy: discount levels as in §1, margin below 50% needs a Director, net value over
+$2M needs a Director, and net value over $8M needs the VP. One approver ladder.
 
 Prerequisite: margin and net value are dimensions beyond Discount and Finance, and the
 design doc requires threshold policy to be externalized before adding one
@@ -254,7 +254,7 @@ exception. The steps below keep thresholds hard-coded (edited to the §1 bands) 
 2. `RLM_Quote_Approval_Data` reads the quote and returns:
     - `DiscountApprovalLevel`, from the roll-up;
     - `MarginApprovalLevel`, from the quote's margin;
-    - `ValueApprovalLevel`, 3 when net value is over 8,000,000;
+    - `ValueApprovalLevel`, 2 when net value is over 2,000,000 and 3 when it is over 8,000,000;
     - `ApprovalLevel`, the maximum of the three.
 
    Declare each new output on the `QueryApprovalData` background step
@@ -266,7 +266,8 @@ exception. The steps below keep thresholds hard-coded (edited to the §1 bands) 
 
    The rejection formula and alerts are per step and don't change.
 4. Test cases:
-    - a 22% discount at 72% margin → Manager, Director;
-    - a 5% discount at 63% margin → Manager, Director;
-    - $6M at 75% margin → Manager, Director, VP;
+    - a 20% discount at 60% margin → Manager, Director;
+    - a 5% discount at 48% margin → Manager, Director;
+    - $9M at 75% margin and a 5% discount → Manager, Director, VP;
+    - $3M at 75% margin and a 5% discount → Manager, Director;
     - nothing triggered → Approved at once.

@@ -15,8 +15,8 @@ description: >-
 
 # Quote Negotiation Rounds — Rounds as Quote Versions
 
-Use this skill when a deal moves through pricing rounds (for example a first offer, a revised
-offer, an internal walk-away round and a final round) and each round needs its own discounts and approval, with
+Use this skill when a deal moves through pricing rounds (for example a first offer, further customer-facing
+rounds, an internal what-if round and a final round) and each round needs its own discounts and approval, with
 one round becoming the order. Each round is a quote on the same opportunity, made by deep
 cloning the previous round. Claims are tagged: `[Help: <article>]` and
 `[Dev guide: <article>]` from `docs/salesforce/264/`, `[Repo: <path>]`, and
@@ -106,15 +106,15 @@ path or consequence was not established (the text says what is missing).
 | Round | How it starts | Customer sees it | Approval | Syncs / orders |
 |---|---|---|---|---|
 | First offer | New quote on the opportunity | Yes | Its own submission | Synced while it is current |
-| Revised offer | Deep clone of the first offer, renamed | Yes | New submission | Sync moves to it |
-| Walk-away (internal) | Deep clone of the revised offer, renamed and marked internal | **No** | Its own submission if policy needs sign-off on the walk-away price | **Never** |
-| Final | Deep clone of the round the customer accepted (usually the revised offer or a revision of it), renamed | Yes | New submission | Synced; set to Accepted; Create Order |
+| Each later customer-facing round (as many as the deal needs) | Deep clone of the previous customer-facing round, renamed | Yes | New submission | Sync moves to it |
+| Internal what-if round (optional) | Deep clone of any round, renamed and marked internal | **No** | Its own submission if policy needs sign-off on that price | **Never** |
+| Final | Deep clone of the round the customer accepted (or an internal round whose numbers match it), renamed | Yes | New submission | Synced; set to Accepted; Create Order |
 
-- **Naming:** "<Opportunity> — R<n> <label>", for example "Example Corp renewal — R3 Walk-away
+- **Naming:** "<Opportunity> — R<n> <label>", for example "Example Corp renewal — R3 What-if
   (internal)". Rounds sort by name and read in list views.
 - **Relating:** all rounds share the opportunity (the clone keeps it). If reports need a
   round number or the source round, add custom fields; the repo ships none.
-- **Final from walk-away?** If the final matches the walk-away numbers, clone the walk-away round and
+- **Final from the internal round?** If the final matches the internal round's numbers, clone the internal round and
   check the clone's internal marker is clear after it settles; a measured clone came back
   unflagged [Measured: 2026-11-12, 264] ([internal-round.md](internal-round.md)).
 
@@ -220,15 +220,15 @@ ships). Reprice each round before submitting it.
 
 ## Examples
 
-### Example 1 — Map a four-round source
+### Example 1 — Map a multi-round source
 
-Source: each deal has a first offer, a revised offer, a walk-away (internal) round and a final round, each with its own
-discount per product line and an approval level.
+Source: each deal has several rounds, each with its own line discounts and an approval level;
+one round is internal only.
 
 1. First offer = a new quote. Load lines and discounts; reprice; submit.
-2. Revised offer = Connect clone of the first offer; rename; change discounts with bulk edit; reprice;
-   recall the first offer's submission if still open; submit.
-3. Walk-away = clone of the revised offer; rename "(internal)"; set the flag; never sync.
+2. Each later customer-facing round = Connect clone of the previous one; rename; change discounts
+   with bulk edit; reprice; recall the previous round's submission if still open; submit.
+3. The internal round = clone of the round it models; rename "(internal)"; set the flag; never sync.
 4. Final = clone of the accepted round; rename; clear any internal flag; submit; sync;
    Accepted; Create Order.
 5. Check: each round's totals match the source's figures for that round.
