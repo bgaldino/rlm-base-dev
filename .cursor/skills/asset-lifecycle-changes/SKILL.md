@@ -283,9 +283,9 @@ results, 2026-11-11).
     - Edit amendment lines through Place with `configurationMethod: Force`, as the measured
       runs did. One earlier observation had `Skip` refusing a quantity edit on a No Change line
       ("Specify 0 in Quantity of the Quote Line Item record with the action of type No Change")
-      [Measured: 2026-11-11, 264]; a later run on a new-business line found `Force` and `Skip`
-      identical (see constraint-models → quantities-from-attributes.md) and did not reproduce
-      the divergence [Measured: 2026-11-12, 264, scratch]. The No Change case was not re-run,
+      [Measured: 2026-11-11, 264]; a later run on a new-business line had `Force` accept an edit to 8 and `Skip` an edit to 6,
+      and both refuse an edit to 0 (see constraint-models → quantities-from-attributes.md);
+      the divergence was not reproduced [Measured: 2026-11-12, 264, scratch]. The No Change case was not re-run,
       so it stays open. The message is a save-time quantity check: a No Change line
       must have quantity 0 (only that check is traced). Nothing in it looks at the
       configuration method. Don't rely on either method to change a No Change line's

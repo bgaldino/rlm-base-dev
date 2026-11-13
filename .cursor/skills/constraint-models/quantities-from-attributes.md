@@ -716,9 +716,9 @@ call writes no error logs, so the rule's message is not logged `[Platform behavi
 
 The save-time quantity check behind "Specify 0 in Quantity" on a No Change line reads no
 configuration method; nothing in it is gated by `Force` or `Skip`
-`[Platform behaviour, traced in part]`. On a new-business line `Force` and `Skip` behaved
-the same: quantity edits to 8 and then 6 were accepted, and an edit to 0 was refused by both
-("Quantity must be nonzero", FIELD_INTEGRITY_EXCEPTION) with the line unchanged
+`[Platform behaviour, traced in part]`. On a new-business line `Force` accepted an edit to 8
+and `Skip` an edit to 6; an edit to 0 was refused by both ("Quantity must be nonzero",
+FIELD_INTEGRITY_EXCEPTION) with the line unchanged
 `[Measured: 2026-11-12, 264, scratch]`. One earlier observation had `Skip` refusing an edit that `Force` accepted on a No Change
 line (`[Measured: 2026-11-11, 264]`); that was not reproduced. The "Specify 0 in Quantity"
 message on a No Change amend line was not re-run, so that case stays open: read the saved

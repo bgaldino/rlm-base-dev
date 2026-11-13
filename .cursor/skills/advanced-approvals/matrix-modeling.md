@@ -217,8 +217,8 @@ where each level is computed:
       rejected or recalled resubmission. With `ActionInput__CanUseSmartApproval` `false` on
       every step, a resubmission after the second step rejected (the first approved) opened
       a new first-step work item, `Assigned`, `IsEligibleForSmartApproval` false
-      [Measured: 2026-11-12, 264]. No run with it `true` is recorded
-      ([limitations.md](limitations.md)).
+      [Measured: 2026-11-12, 264]. With it `true`, the direction rule for which resubmissions
+      auto-approve is in [limitations.md](limitations.md) → Smart Approvals.
     - After a full approval, any later submission is a new request, so the chain restarts
       whatever the setting [Help: `ind.approvals_smart_or_rule_based_approvals`].
 
