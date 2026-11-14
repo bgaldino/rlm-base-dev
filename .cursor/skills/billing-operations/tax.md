@@ -56,8 +56,9 @@ differ [Help: `ind.billing_tax_configuration_engine`].
 Questions to ask the customer, with the Help-grounded consequence:
 
 - **Does tax have to be certified or jurisdiction-exact?** The Revenue Standard Tax Engine
-  is described as for simple calculations, at line level and possibly rounding at line level,
-  and may not suit tax compliance needs [Help: `ind.billing_standard_tax_rate`].
+  is described as designed for simple calculations; it calculates tax at line level, might
+  round at line level, and may not suit tax compliance needs
+  [Help: `ind.billing_standard_tax_rate`].
 - **Exemptions?** Use a tax system that supports certificate management; keep a matching
   key between Billing and the tax system: the Account Id for account-level exemptions
   and the Product2 Product Code for product-level exemptions
@@ -79,7 +80,7 @@ total heap size limit [Help: `ind.billing_tax_configuration_prerequisites`,
 tax. The engine must support tax for credits, or negative invoice lines can't be
 processed and invoice voids fail
 [Help: `ind.billing_tax_engine_and_engine_providers_create`]. The Tax Admin permission set
-creates engines, policies and treatments.
+creates engines, policies and treatments [Help: `ind.billing_tax_policies_and_treatments_create`].
 
 ## Revenue Standard Tax Engine
 

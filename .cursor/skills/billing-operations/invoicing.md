@@ -14,10 +14,11 @@ Read this when choosing how invoices are produced or setting a run's dates. Pare
 
 The standalone API covers original, amended, canceled, renewed, ramped, bundled and
 usage-based transactions, and from Summer '26 takes minimal intent-based requests for
-changes [Help: `ind.billing_schedules_standalone_api`]. Its request names the
-`BillingContext` context definition [Help: `ind.billing_schedules_from_order_items`]; Help
-recommends extending the standard definitions and using the extended copy
-[Help: `ind.billing_standard_context_definitions`].
+changes [Help: `ind.billing_schedules_standalone_api`]. Help
+names `BillingContext` for its request [Help: `ind.billing_schedules_from_order_items`] but
+`StandaloneBillingContext` as the definition it uses [Help:
+`ind.billing_standard_context_definitions`]; which applies is not measured. Help
+recommends extending the standard definitions and using the extended copy.
 
 - A schedule group holds one or more billing schedules for an order product
   [Help: `ind.billing_schedules_and_schedule_groups`]; billing day of month, next billing
@@ -56,7 +57,8 @@ recommends extending the standard definitions and using the extended copy
   with tax status Pending or Estimated get estimated tax
   [Help: `ind.billing_invoice_creation`].
 - **Preview.** Up to two billing periods and up to 200 schedules, for an order, account or
-  schedule group; quotes need a procedure plan and the Invoice Preview API; a PDF needs
+  schedule group; quotes need a procedure plan, then the Preview Invoices button or the
+  Invoice Preview API; a PDF needs
   document generation [Help: `ind.billing_preview_invoice`,
   `ind.billing_invoice_preview_create`].
 

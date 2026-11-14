@@ -17,7 +17,7 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
 
 - Create Payment Schedules and Payment Schedule Items: automatic, for posted invoices.
   Otherwise create them by hand [Help: `ind.billing_payment_schedules_and_payment_schedule_items`].
-- Retry Failed Payments: needs at least one default payment retry rule.
+- Retry Failed Payments: needs a default payment retry rule set.
 - Application of Payments to Posted Invoices: standalone processed payments apply during
   an invoice run.
 - Issue Refunds and Settle Balances: automatic refund when a fully settled invoice is
@@ -109,7 +109,8 @@ Debit Memo Lines tabs set to Default On [Help: `ind.billing_debit_memo_create`].
 
 - **Referenced refund**: triggered by an amendment or cancellation of a fully settled
   invoice; paid to the original payment method; needs the original payment tied to a
-  gateway, and Issue Refunds and Settle Balances and Apply Credits to Posted Invoices on.
+  gateway, with both Issue Refunds and Settle Balances and Apply Credits to Posted
+  Invoices turned on.
 - **Unreferenced refund**: manual, to settle an available credit balance; paid to a saved
   payment method from the request, then the memo, then the billing account or arrangement;
   needs a credit balance, a supported third-party gateway that processes unreferenced
