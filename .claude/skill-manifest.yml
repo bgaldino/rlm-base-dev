@@ -104,7 +104,7 @@ foundations:
         - scripts/apex/validateRatedUsage.apex
         - scripts/apex/clearUsageData.apex
         - tests/test_qb_multicurrency_data.py
-      provenance: live-verified on scratch org 2026-07
+      provenance: live-verified on scratch org 2026-07; usage-setup.md is Help-grounded (264 snapshot) and not live-measured
       caveats:
         - "Runtime commitment behaviour is documented in neither the dev-guide nor help snapshot; rules here came from live verification"
         - "CommitmentQuantity/CommitmentSpend entitlements stay PENDING (platform issue); re-verified on fresh 264 2026-08-14, still unfixed. Commit works on both releases"
@@ -192,6 +192,7 @@ foundations:
       path: .cursor/skills/implementation-planning/SKILL.md
       purpose: "Plan a Revenue Cloud implementation from a customer's commercial source (quoting spreadsheet, price list, web store, policies, PRD): concept mapping, repo-vs-live knowledge sources, golden tests, build order, acceptance chain, phases, sessions, skill gaps, prediction ledger"
       consumed_by_pmos: []
+      provenance: routes to this repo's domain skills and the 264 Help snapshot; its measured claims are the owning skills' measurements, cited there; scripts/ledger.py is covered by tests/test_implementation_planning_ledger.py
       sub_skills:
         - .cursor/skills/implementation-planning/plan-template.md
         - .cursor/skills/implementation-planning/concept-map.md

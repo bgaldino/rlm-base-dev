@@ -9,15 +9,16 @@ live org. Parent: [implementation-planning](SKILL.md).
 - a skill holds a dated, measured fact or a shipped reference (XML, dataset, overlay)
   for the exact feature, in the shape and route the plan builds (UI- or API-built,
   component or top-level line, the same mix of selling models);
-- the release's snapshot (Help or developer guide) documents the mechanism the rule
-  needs, not only the feature, and nothing measured in the repo contradicts it. List the
-  inputs and position the plan assumes, so the build gate checks each ([prediction-checks.md](prediction-checks.md) check 2).
+- the release's snapshot (Help or developer guide) documents the mechanism the rule needs, not only
+  the feature, and nothing measured in the repo contradicts it. List the inputs and position the
+  plan assumes, so the build gate checks each ([prediction-checks.md](prediction-checks.md) check
+  2).
 
 A measurement of another shape is **Repo (inferred)**, or **Live** when a later phase
 depends on it ([prediction-checks.md](prediction-checks.md) check 1).
 
-**Having no skill is not a trigger on its own.** A feature with no skill but with
-snapshot coverage of the mechanism the rule needs is decided by the snapshot. Record it as a skill gap, not as a live
+**Having no skill is not a trigger on its own.** A feature with no skill but with snapshot coverage
+of the mechanism the rule needs is decided by the snapshot. Record it as a skill gap, not as a live
 spike. Model the rule directly; its build gate proves it.
 
 **A custom computation is not a platform behavior.** A value the build computes itself,
@@ -32,10 +33,10 @@ on multi-year lines). Then it is trigger (b). A measured limitation the plan car
 another shape on its own is not such a claim (one the skill itself extends with
 `[inferred]` is); it follows [prediction-checks.md](prediction-checks.md) check 1.
 
-**A skill's `[Open: <check>]` claim is unsettled.** The skill names the check that would
-settle it. A rule that depends on one is **Live**, under the trigger the claim meets: (a) where
-the docs and skills are silent, (b) where a measurement contradicts the docs, (d) where the
-docs disagree. The named check is the spike's smallest case. `rg -n '\[Open:' .cursor/skills` lists every one
+**A skill's `[Open: <check>]` claim is unsettled.** The skill names the check that would settle it.
+A rule that depends on one is **Live**, under the trigger the claim meets: (a) where the docs and
+skills are silent, (b) where a measurement contradicts the docs, (d) where the docs disagree. The
+named check is the spike's smallest case. `rg -n '\[Open:' .cursor/skills` lists every one
 (`skill-authoring` → Source tags and open items).
 
 **A live org decides** when one of these holds:
@@ -78,9 +79,9 @@ cover line-editor "\btransaction line editor\b"
 
 - **Exclude this skill and the skills README.** They mention every area, so they would
   show as coverage everywhere.
-- **Use word boundaries.** "rounding" also matches "grounding" and "surrounding";
-  "clone" matches dozens of files. Record the regex next to each count in the plan; in a table cell, escape each `|` as `\|`
-  (`a\b\|\bb`), or it splits the cell, and unescape it before running the regex again.
+- **Use word boundaries.** "rounding" also matches "grounding" and "surrounding"; "clone" matches
+  dozens of files. Record the regex next to each count in the plan; in a table cell, escape each `|`
+  as `\|` (`a\b\|\bb`), or it splits the cell, and unescape it before running the regex again.
 - **List files, not skills.** A skill that mentions a term once in a table looks the
   same, by skill name, as one with a sub-file about it. The sweep prints each matching
   file; open the ones that look like coverage.
@@ -127,8 +128,8 @@ Every rule decided **Live** becomes a spike, with:
 Don't plan a spike that re-measures a failure a skill already records; cite the skill,
 and spike only the untested route around it.
 
-Every rule decided **Repo**, **Repo (inferred)**, **Snapshot** or **Build (custom)** is proved at its build gate. A **Snapshot**
-area with no skill is also listed in the plan's skill gaps.
+Every rule decided **Repo**, **Repo (inferred)**, **Snapshot** or **Build (custom)** is proved at
+its build gate. A **Snapshot** area with no skill is also listed in the plan's skill gaps.
 
 ## After the build
 

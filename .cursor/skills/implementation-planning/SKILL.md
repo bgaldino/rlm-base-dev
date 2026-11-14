@@ -84,21 +84,21 @@ files can use it.
 - **DO NOT** assert Revenue Cloud behavior from memory. Cite the skill or the
   snapshot article that says it, or mark the rule for live verification. While a
   release is pre-GA, a live org is ground truth (`AGENTS.md`).
-- **DO NOT** plan a header discount to stand in for line or product-line discounts
-  without a live test. On a 264 org with an active procedure plan and
-  `skipOrgSttPricing` on, a header discount was measured applying twice (`transaction-line-editor` → `runtime-behavior.md`).
+- **DO NOT** plan a header discount to stand in for line or product-line discounts without a live
+  test. On a 264 org with an active procedure plan and `skipOrgSttPricing` on, a header discount was
+  measured applying twice (`transaction-line-editor` → `runtime-behavior.md`).
 - **DO NOT** plan CCI or build-harness work in a git worktree; use the main checkout
   or a regular clone, with separate orgs and file ownership
   ([session-orchestration.md](session-orchestration.md) Rule 2).
 - **DO NOT** let a test pass on configuration with rules off. Place quotes with
   configuration rules on, and assert each rejection's own message.
-- **DO NOT** assume a source's lifecycle examples can run in the order it lists them.
-  Replay them as a dated sequence first. Whether a change dated before an existing
-  later change is refused is open: a traced gate (the amend-before-amend capability)
-  predicts a refusal, but one quote-stage check, on an org whose capability state is
-  unknown and with nothing ordered, didn't reproduce it (`asset-lifecycle-changes` →
-  `verification.md`, Open), so an example that depends on it is a live check. On a ramped asset it's refused either way
-  (traced, and measured with a future renewal): that case is a decision.
+- **DO NOT** assume a source's lifecycle examples can run in the order it lists them. Replay them as
+  a dated sequence first. Whether a change dated before an existing later change is refused is open:
+  a traced gate (the amend-before-amend capability) predicts a refusal, but one quote-stage check,
+  on an org whose capability state is unknown and with nothing ordered, didn't reproduce it
+  (`asset-lifecycle-changes` → `verification.md`, Open), so an example that depends on it is a live
+  check. On a ramped asset it's refused either way (traced, and measured with a future renewal):
+  that case is a decision.
 
 ## Entry Conditions
 
@@ -134,9 +134,9 @@ files can use it.
 - [prediction-checks.md](prediction-checks.md): read before writing decisions, the
   rule decision record, spikes and goldens. Checks a prior build's measurements showed
   the planner must run, each pointing at the domain skill that holds the fact.
-- [build-order.md](build-order.md): read when ordering phases. The cross-domain
-  prerequisite graph, each edge cited to its source or tagged `[inferred]`, the refresh triggers between
-  domains, and a cross-check against `prepare_rlm_org`.
+- [build-order.md](build-order.md): read when ordering phases. The cross-domain prerequisite graph,
+  each edge cited to its source or tagged `[inferred]`, the refresh triggers between domains, and a
+  cross-check against `prepare_rlm_org`.
 - [acceptance-chain.md](acceptance-chain.md): read when writing the end-to-end goldens.
   Quote to renewal as one chain, each step with what to verify and the owner section.
 - [session-orchestration.md](session-orchestration.md): read when the user wants the
@@ -219,11 +219,11 @@ first: a measurement covers only the shape and route it measured.
 
 ### 5. Golden tests
 
-- One set per area, in the template's section 4, split where useful: sizing or
-  configuration, rules (each with its message, template section 3), standard pricing, programs and edges
-  (every band boundary), currency, policies, cost and margin, negotiation, approvals,
-  lifecycle changes, billing, usage and rating, fulfillment, contracts and documents, plus
-  the template's Reprice and Attributes sets.
+- One set per area, in the template's section 4, split where useful: sizing or configuration, rules
+  (each with its message, template section 3), standard pricing, programs and edges (every band
+  boundary), currency, policies, cost and margin, negotiation, approvals, lifecycle changes,
+  billing, usage and rating, fulfillment, contracts and documents, plus the template's Reprice and
+  Attributes sets.
 - Lay the end-to-end order out on [acceptance-chain.md](acceptance-chain.md): each chain
   step the source needs cites its rule IDs and golden ids (the build checks, steps 0, 1
   and 15, need none), every rule ID maps to a step, and a step the source or a recorded
@@ -355,8 +355,8 @@ names [plan-template.md](plan-template.md) gives them, and gives each row:
 - an **origin:** in the blind plan unchanged, edited, or added; or given to the planner
   (an intake answer, or a decision a person settled later), which doesn't count toward
   accuracy;
-- an **outcome,** the latest recorded (name the gate in the evidence): `affirmed`, `modified` (held with different values or
-  configuration), `refuted` (failed) or `inconclusive` (not tested).
+- an **outcome,** the latest recorded (name the gate in the evidence): `affirmed`, `modified` (held
+  with different values or configuration), `refuted` (failed) or `inconclusive` (not tested).
 
 For an edited row, the evidence also says whether the blind text would have held.
 Sessions report each outcome with its evidence; the main session records it. Findings

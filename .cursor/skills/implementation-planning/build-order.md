@@ -10,29 +10,30 @@ that relies on it; spike it in P2 only in the case named under the graph (below)
 Where no skill records an edge between items in a stage, treat them as independent
 `[inferred]` the same way.
 
-The plan's phases ([plan-template.md](plan-template.md) section 5) group these stages: P0
-is stage 0, P3 stages 1 and 2 plus the constraint models (P3 builds the context
-definition and tags they read first, or waits for P4's), P4 stages 3 to 5, P5 the
-approvals and stage 7, and P6 the rest of stage 6 and stages 9 and 10. P2 spikes build
-only the stages their must-hits need, on their own org. A test that places a quote before P4
-(a P2a spike, or P3's configuration test: a bundle test places the quote with rules on,
-[PCM load facts](../product-catalog-modeling/catalogs-and-loading.md#pcm-load-facts-264) e)
-first needs price book entries for its products `[inferred]` and the refresh newly loaded
-products need (fact f, measured); the priced transaction (stage 8) is first gated at P4. A P2b chain with a must-hit that counts fulfillment loads its
-fulfillment configuration before its first order (a submitted plan doesn't pick up later configuration,
-`dro-plans`); load the other stage 6 configuration its orders read first too `[inferred]`. Where the source shows tax or usage
-rates on the quote, or its quote lines bill on a cadence other than the pricing term or by
-milestone, build those stage 6 items in P4 with their own prerequisites (tax engine,
-policies and legal entity; usage resources, rate cards and their refreshed rating tables;
-billing policy and treatments), or leave them out of the P4 goldens
-and record the decision. Where a plan puts an item in a different phase, record why in
-the decision log.
+The plan's phases ([plan-template.md](plan-template.md) section 5) group these stages: P0 is stage
+0, P3 stages 1 and 2 plus the constraint models (P3 builds the context definition and tags they read
+first, or waits for P4's), P4 stages 3 to 5, P5 the approvals and stage 7, and P6 the rest of stage
+6 and stages 9 and 10. P2 spikes build only the stages their must-hits need, on their own org. A
+test that places a quote before P4 (a P2a spike, or P3's configuration test: a bundle test places
+the quote with rules on, [PCM load
+facts](../product-catalog-modeling/catalogs-and-loading.md#pcm-load-facts-264) e) first needs price
+book entries for its products `[inferred]` and the refresh newly loaded products need (fact f,
+measured); the priced transaction (stage 8) is first gated at P4. A P2b chain with a must-hit that
+counts fulfillment loads its fulfillment configuration before its first order (a submitted plan
+doesn't pick up later configuration, `dro-plans`); load the other stage 6 configuration its orders
+read first too `[inferred]`. Where the source shows tax or usage rates on the quote, or its quote
+lines bill on a cadence other than the pricing term or by milestone, build those stage 6 items in P4
+with their own prerequisites (tax engine, policies and legal entity; usage resources, rate cards and
+their refreshed rating tables; billing policy and treatments), or leave them out of the P4 goldens
+and record the decision. Where a plan puts an item in a different phase, record why in the decision
+log.
 
 ## Prerequisite graph
 
-Each row's Needs cell lists the main prerequisites the cited sources state; read the owner
-skill for the rest. The stage number groups items and is not a strict order (constraint models need the catalog and the context they read, not prices).
-Items in one stage can run in parallel unless an edge says otherwise `[inferred]`.
+Each row's Needs cell lists the main prerequisites the cited sources state; read the owner skill for
+the rest. The stage number groups items and is not a strict order (constraint models need the
+catalog and the context they read, not prices). Items in one stage can run in parallel unless an
+edge says otherwise `[inferred]`.
 
 | Stage | Build item | Needs | Edge source | Owner |
 |---|---|---|---|---|
@@ -65,13 +66,13 @@ Items in one stage can run in parallel unless an edge says otherwise `[inferred]
 | 10 | Usage recording and rating | A usage-entitled asset; for a commitment, each commitment asset linked to its anchor asset after activation (without the link the commitment is inert) | [The Pipeline](../usage-consumption/SKILL.md#the-pipeline), [usage-consumption Quick Rules](../usage-consumption/SKILL.md#quick-rules) (5) | [usage-consumption](../usage-consumption/SKILL.md) |
 | 10 | Invoice runs, tax, payments and credits | Billing schedules; the tax engine, where tax is in scope; the legal entity | [billing-operations Quick Rules](../billing-operations/SKILL.md#quick-rules) (2: invoices come from schedules; 5: tax engine; 7: legal entity) | [billing-operations](../billing-operations/SKILL.md) |
 
-Edges the skills state only for one domain, and not as part of a cross-domain graph, are
-listed above with their source. Edges the table marks `[inferred]`, and any edge between
-stages 6 and 9 that neither this table nor an owner skill states (for example what billing
-needs from fulfillment), are not established: record them as decisions the same way. An ordering edge no skill or
-Help article states is recorded as Repo (inferred), like a skill's `[inferred]` claim; one
-Help states is Snapshot. Spike it (knowledge-sources.md trigger (a)) only when a phase must
-be built on it before any gate could show it is missing.
+Edges the skills state only for one domain, and not as part of a cross-domain graph, are listed
+above with their source. Edges the table marks `[inferred]`, and any edge between stages 6 and 9
+that neither this table nor an owner skill states (for example what billing needs from fulfillment),
+are not established: record them as decisions the same way. An ordering edge no skill or Help
+article states is recorded as Repo (inferred), like a skill's `[inferred]` claim; one Help states is
+Snapshot. Spike it (knowledge-sources.md trigger (a)) only when a phase must be built on it before
+any gate could show it is missing.
 
 ### Refresh and activation triggers
 
@@ -109,7 +110,7 @@ citations, has nothing here to track.
 | 5 (revenue settings) | `prepare_revenue_settings` | Runs late, after constraints and guided selling |
 | 6 (fulfillment) | `prepare_dro` | After pricing data |
 | 6 (tax) | `prepare_tax` | Before billing; billing reads its legal entity. It also turns estimated tax on, when the `quote_est_tax` and `tax` flags are on and an active tax policy exists |
-| 6 (billing, usage) | `prepare_billing`, `prepare_rating` | The flow runs rating after billing; the rating data plan loads its own usage resource billing policies (`datasets/sfdmu/qb/en-US/qb-rating/README.md`; dependency-ordering.md's Data Dependencies row says otherwise and is stale) |
+| 6 (billing, usage) | `prepare_billing`, `prepare_rating` | The flow runs rating after billing; the rating data plan loads its own usage resource billing policies (`datasets/sfdmu/qb/en-US/qb-rating/README.md`) |
 | 5 (procedure plans) | `prepare_procedureplans` | After expression-set activation and the approvals pricing overlay |
 | 6 (contracts) | `prepare_clm` | |
 | 6 (approvals) | `prepare_approvals` (within `prepare_quantumbit`), then `prepare_approvals_pricing` | Fields, flows, orchestration and alert data deploy before the catalog; the level bands (the approval-flags overlay) come after expression-set activation |

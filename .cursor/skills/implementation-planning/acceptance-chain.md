@@ -1,10 +1,10 @@
 # Acceptance Chain: Quote to Renewal
 
-Read this when writing the end-to-end verification part of a plan, or when judging whether
-a built org meets the requirements. Each step names what to check and the owner section that
-defines how to check it. When reporting, record the evidence tag the owner gives that behavior. The expected values come
-from the customer's requirements, computed by hand or from the source before the run;
-never accept a number because the org returned it.
+Read this when writing the end-to-end verification part of a plan, or when judging whether a built
+org meets the requirements. Each step names what to check and the owner section that defines how to
+check it. When reporting, record the evidence tag the owner gives that behavior. The expected values
+come from the customer's requirements, computed by hand or from the source before the run; never
+accept a number because the org returned it.
 
 ## How to use
 
@@ -42,14 +42,14 @@ never accept a number because the org returned it.
 
 ## Binding steps to rules
 
-Each chain step lists the rule IDs it proves ([SKILL.md](SKILL.md) step 2 numbers them)
-and the golden ids that check them. Mark a step not applicable only when the source or a recorded decision
-excludes the capability, citing which; where the source is silent on a capability, record
-a scope decision first (the build checks always apply). A rule with no step is a gap in the chain. A test case with no
-rule is test data, so drop it or find the rule. The build checks (steps 0, 1 and 15)
-need neither a rule nor a golden id. The Reprice and
-Attributes golden sets ([plan-template.md](plan-template.md) section 4) need no rule ID; they are always
-included and attach to the steps they exercise (pricing, ordering, amending, renewing).
+Each chain step lists the rule IDs it proves ([SKILL.md](SKILL.md) step 2 numbers them) and the
+golden ids that check them. Mark a step not applicable only when the source or a recorded decision
+excludes the capability, citing which; where the source is silent on a capability, record a scope
+decision first (the build checks always apply). A rule with no step is a gap in the chain. A test
+case with no rule is test data, so drop it or find the rule. The build checks (steps 0, 1 and 15)
+need neither a rule nor a golden id. The Reprice and Attributes golden sets
+([plan-template.md](plan-template.md) section 4) need no rule ID; they are always included and
+attach to the steps they exercise (pricing, ordering, amending, renewing).
 
 ## Test data
 

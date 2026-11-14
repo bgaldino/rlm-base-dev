@@ -100,32 +100,30 @@ A golden id is the set name and case number (Pricing-3). Lay the sets out on
 [acceptance-chain.md](acceptance-chain.md): each chain step the source needs cites its golden
 ids.
 
-Always include a **Reprice** set (price again, then order, amend and renew) and an
-**Attributes** set (attributes unchanged through each step; on a bundle sized by
-configuration answers, the unchanged answers through two answer changes in a row). Include each attribute's
-minimum and maximum, every option the source allows that its worked examples don't
-use, and a check for anything the source marks internal-only (for example a round
-that must never be presented). Billing cases cover every order the plan creates (the
-new sale, each amendment, cancellation and renewal), not only the first. The measured
-invoice routes invoiced through today, sending only schedules due by then (`rlm-business-apis` →
-`backdated-asset-lifecycle.md`, Billing); invoicing to a future date isn't measured. So on a
-future-dated replay, check billing at schedule level, and say which invoice values wait
-for the replay-dates decision ([SKILL.md](SKILL.md), dated replay). The smallest spike
-that would settle it is the measured invoice generate call with a future `targetDate`.
-Help describes the target date in two places (`billing-operations` → `invoicing.md`): a
-scheduler picks schedules whose next billing date is on or before it, and on-demand
-generation those before it; for milestones it picks which accomplished milestones invoice,
-and usage schedules whose liable summaries are Ready for Invoicing always invoice. Help
-doesn't say which applies to the generate call (trigger (a)), so the spike's must-hits
-include a schedule whose next billing date equals `targetDate`. For a
-milestone-billed service, state what a quantity an amendment adds is billed by, and
-record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
-Read each amendment, cancellation and renewal quote's values before its order activates,
-and don't reprice it afterward: a full reprice after activation set a renewal's totals to 0
-(`transaction-line-editor` Quick Rule 5: the rule not to reprice after activation is traced in
-part for every lifecycle quote; the zero total was measured once, on an unramped renewal by API
-call; amendments, cancellations, ramped quotes and the button aren't measured, and why it
-returned 0 isn't traced).
+Always include a **Reprice** set (price again, then order, amend and renew) and an **Attributes**
+set (attributes unchanged through each step; on a bundle sized by configuration answers, the
+unchanged answers through two answer changes in a row). Include each attribute's minimum and
+maximum, every option the source allows that its worked examples don't use, and a check for anything
+the source marks internal-only (for example a round that must never be presented). Billing cases
+cover every order the plan creates (the new sale, each amendment, cancellation and renewal), not
+only the first. The measured invoice routes invoiced through today, sending only schedules due by
+then (`rlm-business-apis` → `backdated-asset-lifecycle.md`, Billing); invoicing to a future date
+isn't measured. So on a future-dated replay, check billing at schedule level, and say which invoice
+values wait for the replay-dates decision ([SKILL.md](SKILL.md), dated replay). The smallest spike
+that would settle it is the measured invoice generate call with a future `targetDate`. Help
+describes the target date in two places (`billing-operations` → `invoicing.md`): a scheduler picks
+schedules whose next billing date is on or before it, and on-demand generation those before it; for
+milestones it picks which accomplished milestones invoice, and usage schedules whose liable
+summaries are Ready for Invoicing always invoice. Help doesn't say which applies to the generate
+call (trigger (a)), so the spike's must-hits include a schedule whose next billing date equals
+`targetDate`. For a milestone-billed service, state what a quantity an amendment adds is billed by,
+and record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
+Read each amendment, cancellation and renewal quote's values before its order activates, and don't
+reprice it afterward: a full reprice after activation set a renewal's totals to 0
+(`transaction-line-editor` Quick Rule 5: the rule not to reprice after activation is traced in part
+for every lifecycle quote; the zero total was measured once, on an unramped renewal by API call;
+amendments, cancellations, ramped quotes and the button aren't measured, and why it returned 0 isn't
+traced).
 
 ## 5. Phases, gates, skills
 
@@ -204,10 +202,11 @@ Then list **extensions to existing skills** separately.
   ([concept-map.md](concept-map.md), Order fulfillment), and where a later order must
   act on an item an earlier order created, its scope is a recorded decision
   ([prediction-checks.md](prediction-checks.md) check 16).
-- [ ] Every [acceptance-chain.md](acceptance-chain.md) step the source needs cites its
-  rule IDs and golden ids (except the build checks, steps 0, 1 and 15), every rule ID in the register maps to a chain step, each step the source or a
-  recorded decision excludes is marked not applicable, citing which, every step the source
-  is silent on (other than the build checks, which always apply) has a recorded scope decision, and the phase order follows [build-order.md](build-order.md) or records
+- [ ] Every [acceptance-chain.md](acceptance-chain.md) step the source needs cites its rule IDs and
+  golden ids (except the build checks, steps 0, 1 and 15), every rule ID in the register maps to a
+  chain step, each step the source or a recorded decision excludes is marked not applicable, citing
+  which, every step the source is silent on (other than the build checks, which always apply) has a
+  recorded scope decision, and the phase order follows [build-order.md](build-order.md) or records
   why not.
 - [ ] Every row of the rule decision record names its fallback, or says why none is
   needed; list any row that doesn't.
@@ -215,10 +214,9 @@ Then list **extensions to existing skills** separately.
 - [ ] Goldens on platform-enforced behavior assert where the platform enforces it.
 - [ ] Every spike that chooses a route lists each route's prerequisites
   ([SKILL.md](SKILL.md) step 6), and the dependency line shows the phase that waits for it.
-- [ ] Every spike's must-hit is the source's value (through a stated mapping where the
-  platform measures differently, or a decision), with the fallback if native misses it; none lists guessed
-  platform outcomes ([prediction-checks.md](prediction-checks.md)
-  check 3).
+- [ ] Every spike's must-hit is the source's value (through a stated mapping where the platform
+  measures differently, or a decision), with the fallback if native misses it; none lists guessed
+  platform outcomes ([prediction-checks.md](prediction-checks.md) check 3).
 - [ ] Every structure was run against every lifecycle change in the source, and every
   recommendation names its mechanism (prediction-checks.md checks 5 and 6).
 - [ ] Every native guard names where it is enforced and on which paths

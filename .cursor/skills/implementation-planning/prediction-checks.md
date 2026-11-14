@@ -63,24 +63,22 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       builds group ramps, that container sees every segment's lines at once: a `[0..1]`
       bundle relation together with one-instance types there refused the ramp, so
       cross-line checks compare totals across segments (`ramped-quotes`).
-    - Weigh the top-level route against keeping the split inside the bundle. The
-      top-level route is the one that was run. Its costs: the rules no longer size those
-      lines (the rep or build automation does; the converter only computes their golden
-      quantities), a quote without the bundle goes unchecked, and where a container rule
-      counts those lines, a root-only amendment without them logged an Error, which
-      blocks ordering; amending those assets at quantity change 0 alongside the root
-      cleared it, and a root renewal carrying them as No Change lines at quantity 0
-      ordered with no message (`asset-lifecycle-changes` Quick Rule 7, one org; a renewal
-      without them wasn't run). List the pricing
-      steps keyed on the bundle that the moved lines lose, and say how a change to the
-      moved lines alone gets checked: such a change without the root raised no rule
-      message and ordered (`asset-lifecycle-changes` Quick Rule 7, one org), so a rule that must hold there would need a
-      quote-level validation that reads the assets (a custom build) `[inferred]`; adding the root at
-      quantity change 0 to such a change wasn't run. Open item 13 in
-      `constraint-models` → `quantities-from-attributes.md` lists two in-bundle
-      candidates, neither run: choose one only with a spike that also covers the
-      answers surviving an answer change (`asset-lifecycle-changes` Quick Rule 2), and
-      the top-level route as its fallback.
+    - Weigh the top-level route against keeping the split inside the bundle. The top-level route is
+      the one that was run. Its costs: the rules no longer size those lines (the rep or build
+      automation does; the converter only computes their golden quantities), a quote without the
+      bundle goes unchecked, and where a container rule counts those lines, a root-only amendment
+      without them logged an Error, which blocks ordering; amending those assets at quantity change
+      0 alongside the root cleared it, and a root renewal carrying them as No Change lines at
+      quantity 0 ordered with no message (`asset-lifecycle-changes` Quick Rule 7, one org; a renewal
+      without them wasn't run). List the pricing steps keyed on the bundle that the moved lines
+      lose, and say how a change to the moved lines alone gets checked: such a change without the
+      root raised no rule message and ordered (`asset-lifecycle-changes` Quick Rule 7, one org), so
+      a rule that must hold there would need a quote-level validation that reads the assets (a
+      custom build) `[inferred]`; adding the root at quantity change 0 to such a change wasn't run.
+      Open item 13 in `constraint-models` → `quantities-from-attributes.md` lists two in-bundle
+      candidates, neither run: choose one only with a spike that also covers the answers surviving
+      an answer change (`asset-lifecycle-changes` Quick Rule 2), and the top-level route as its
+      fallback.
     - A group ramp of a configurable bundle is a structure too. Every child, One-Time
       included, repeats in every segment of a UI-built ramp, and unticking a child that a
       rule sizes is silently undone. Before predicting a ramp's contract value, name how
@@ -157,39 +155,36 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     source that rounds each year and compounds from the rounded price can differ by a cent
     from the third segment on (`ramped-quotes` → `compound-uplift.md`, not told apart in
     the measured runs), so carry both values through a mapping or record a decision.
-12. **State the line inputs a pricing step filters on,** as the placing script sends
-    them. A commitment-term step read `SubscriptionTerm`, and a line placed with start
-    and end dates alone had none, so it got no discount; a header-only Place change
-    didn't reprice (`pricing-procedures` → `elements/commitment-term-discount.md`, Line
-    inputs on real quotes). State them for every way the plan creates lines: segment
-    lines of a UI-built group ramp carried a term of 1 (same file, Line inputs on real
-    quotes; for the fix and its limit, `concept-map.md`, Discount for a longer commitment).
-    If any gate runs an action with Order output or reprices an order, the pricing gate
-    also checks every tag the procedure declares on the Order lens, stock tags included: a declared tag with a
-    Quote-lens row and no Order-lens row failed an Order-output action, and a field-less
-    Order-lens row cleared it (a tag with no row on either lens passed; one org, cause not
-    traced). For a declared tag with a Quote-lens row that the procedure doesn't read, a
-    field-less Order-lens row is enough `[inferred]` from the one tag measured; don't add
-    rows for every declared tag: one with no row on either lens passed (one org).
-    A field-less row leaves the value empty on Order output, so for a tag whose
-    value the procedure reads, map a real field on the Order-lens object (`Order` for a
-    header tag, `OrderItem` for a line tag) (`pricing-procedures` →
+12. **State the line inputs a pricing step filters on,** as the placing script sends them. A
+    commitment-term step read `SubscriptionTerm`, and a line placed with start and end dates alone
+    had none, so it got no discount; a header-only Place change didn't reprice (`pricing-procedures`
+    → `elements/commitment-term-discount.md`, Line inputs on real quotes). State them for every way
+    the plan creates lines: segment lines of a UI-built group ramp carried a term of 1 (same file,
+    Line inputs on real quotes; for the fix and its limit, `concept-map.md`, Discount for a longer
+    commitment). If any gate runs an action with Order output or reprices an order, the pricing gate
+    also checks every tag the procedure declares on the Order lens, stock tags included: a declared
+    tag with a Quote-lens row and no Order-lens row failed an Order-output action, and a field-less
+    Order-lens row cleared it (a tag with no row on either lens passed; one org, cause not traced).
+    For a declared tag with a Quote-lens row that the procedure doesn't read, a field-less
+    Order-lens row is enough `[inferred]` from the one tag measured; don't add rows for every
+    declared tag: one with no row on either lens passed (one org). A field-less row leaves the value
+    empty on Order output, so for a tag whose value the procedure reads, map a real field on the
+    Order-lens object (`Order` for a header tag, `OrderItem` for a line tag) (`pricing-procedures` →
     `operations-and-troubleshooting.md`; `context-service` → `authoring-and-lifecycle.md`;
     `rlm-business-apis` → `backdated-asset-lifecycle.md`).
-13. **Assert a refusal where its message appears, and on each path decide whether it
-    appears at all.** Place returned success for a configuration it then logged as an
-    error; the message can appear only in `RevenueTransactionErrorLog` or a later
-    `configure` (`constraint-models` → `quantities-from-attributes.md`, Reading a result).
-    A rule can also remove a line instead of refusing. On an amendment that changes a
-    root answer, an optional add-on whose requirement no longer held was removed with no
-    message (`asset-lifecycle-changes` Quick Rule 7). So for every refusal golden that an
-    amendment or renewal reaches, write down how the change arrives (an answer change or
-    a line edit) and which form of the rule meets it. Predict the message only where a run
-    showed it on that path. Elsewhere assert the line deltas and the stored answers: a rule
-    may remove a line the rep didn't touch, and a conflict was reported through a different
-    rule than the one broken (`constraint-models` → `quantities-from-attributes.md`, Zero
-    for a component a choice excludes). A prior plan predicted a rule's message on an amendment. The answer change removed the
-    add-on silently, and a line edit drew a different rule's message.
+13. **Assert a refusal where its message appears, and on each path decide whether it appears at
+    all.** Place returned success for a configuration it then logged as an error; the message can
+    appear only in `RevenueTransactionErrorLog` or a later `configure` (`constraint-models` →
+    `quantities-from-attributes.md`, Reading a result). A rule can also remove a line instead of
+    refusing. On an amendment that changes a root answer, an optional add-on whose requirement no
+    longer held was removed with no message (`asset-lifecycle-changes` Quick Rule 7). So for every
+    refusal golden that an amendment or renewal reaches, write down how the change arrives (an
+    answer change or a line edit) and which form of the rule meets it. Predict the message only
+    where a run showed it on that path. Elsewhere assert the line deltas and the stored answers: a
+    rule may remove a line the rep didn't touch, and a conflict was reported through a different
+    rule than the one broken (`constraint-models` → `quantities-from-attributes.md`, Zero for a
+    component a choice excludes). A prior plan predicted a rule's message on an amendment. The
+    answer change removed the add-on silently, and a line edit drew a different rule's message.
 14. **On a bundle sized by configuration answers, carry the answers across changes.**
     After each activation, read the root's asset action source rows for node status, and
     run two answer-change amendments in a row with every unchanged answer asserted.
@@ -201,34 +196,31 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     fresh tables before pricing). Every gate that prices after a catalog or pricing load
     reruns `check_decision_table_freshness` until none of the tables it reads is Stale
     (`decision-tables` Quick Rule 1).
-16. **Count an orchestrated fulfillment before predicting it.** For a representative order
-    and each lifecycle order, write every dependency as an edge between two step
-    instances (with their scopes, items and source lines), and count the expected
-    fulfillment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). Count
-    instances from each technical product's decomposition scope and from the lines the
-    configurator places, not from a line's quantity: Order Line Item gives one per line,
-    while Order, Bundle and Account give one per order, per bundle within an order, or per account across
-    its orders, merging the lines that decompose to the product (for Account, every line of
-    the account `[inferred]`, `dro-plans` → `updates-and-runtime.md`), and Custom one per scope
-    identifier (unmeasured in `dro-plans`) (Help `ind.dro_decomposition_scope`). Later orders can still carry lines for an Account-scope item (see the
-    bullets below). Take each instance's quantity from its
-    quantity method: Always One gives each instance quantity 1 (Help
-    `ind.product_catalog_create_simple_products`,
+16. **Count an orchestrated fulfillment before predicting it.** For a representative order and each
+    lifecycle order, write every dependency as an edge between two step instances (with their
+    scopes, items and source lines), and count the expected fulfillment lines, steps and edges
+    (`dro-plans` → `authoring-and-deployment.md`). Count instances from each technical product's
+    decomposition scope and from the lines the configurator places, not from a line's quantity:
+    Order Line Item gives one per line, while Order, Bundle and Account give one per order, per
+    bundle within an order, or per account across its orders, merging the lines that decompose to
+    the product (for Account, every line of the account `[inferred]`, `dro-plans` →
+    `updates-and-runtime.md`), and Custom one per scope identifier (unmeasured in `dro-plans`) (Help
+    `ind.dro_decomposition_scope`). Later orders can still carry lines for an Account-scope item
+    (see the bullets below). Take each instance's quantity from its quantity method: Always One
+    gives each instance quantity 1 (Help `ind.product_catalog_create_simple_products`,
     `ind.dro_assetization_in_dynamic_revenue_orchestrator`; `dro-plans` →
-    `authoring-and-deployment.md` gives it as an Order Line Item example, unmeasured on any
-    scope),
-    and Aggregate sums the source lines' quantities with no unit-of-measure conversion
-    (Help `ind.dro_unit_of_measure_inheritance_and_rounding_values`); quantities on fulfillment
-    lines and assets are rounded to DRO's unit-of-measure scale and rounding rules (same
-    article; the order of summing and rounding is unstated); where source lines in different
-    units feed one Aggregate item, decide where their quantities are converted before
-    submission (same article). No method means
-    Aggregate and no scope means Order Line Item (Help `ind.dro_creating_a_technical_product`,
-    `ind.dro_decomposition_scope`). The count golden has columns for groups, definitions,
-    lines with their quantities (and, on lifecycle orders, their actions), steps with
-    their scopes and edges with their scopes, a row for each order shape,
-    kit and variant the source fulfills, and a predicted row for each lifecycle order. Decide
-    each edge's shape like any rule ([knowledge-sources.md](knowledge-sources.md)).
+    `authoring-and-deployment.md` gives it as an Order Line Item example, unmeasured on any scope),
+    and Aggregate sums the source lines' quantities with no unit-of-measure conversion (Help
+    `ind.dro_unit_of_measure_inheritance_and_rounding_values`); quantities on fulfillment lines and
+    assets are rounded to DRO's unit-of-measure scale and rounding rules (same article; the order of
+    summing and rounding is unstated); where source lines in different units feed one Aggregate
+    item, decide where their quantities are converted before submission (same article). No method
+    means Aggregate and no scope means Order Line Item (Help `ind.dro_creating_a_technical_product`,
+    `ind.dro_decomposition_scope`). The count golden has columns for groups, definitions, lines with
+    their quantities (and, on lifecycle orders, their actions), steps with their scopes and edges
+    with their scopes, a row for each order shape, kit and variant the source fulfills, and a
+    predicted row for each lifecycle order. Decide each edge's shape like any rule
+    ([knowledge-sources.md](knowledge-sources.md)).
     - Count groups and step definitions per item before step instances. A definition
       belongs to one group, so a step several items need with different predecessors is
       one definition per group (`dro-plans` → `authoring-and-deployment.md`).
@@ -237,22 +229,22 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       `updates-and-runtime.md`). On one bundle amendment, some unchanged lines came through
       as an add and a cancel netting to zero while another was No Change, so record each
       line's action, quantity and fulfillment asset quantities on the first amendment.
-    - Where a later order must act on an item an earlier order created, record the item's
-      scope as a decision and check the line actions on the first such order. `dro-plans`
-      → `updates-and-runtime.md` (An item across orders) holds what one later new-sale
-      order showed (one org), the cross-order-scope inference `[inferred]` from Help, and
-      what it leaves unmeasured (an item that must stay one per sold line, custom scopes); spike any the plan relies on.
-    - Count the lines that come back on later orders: an Account-scope assetizable item got
-      Amend and another got No Change (`dro-plans` → `updates-and-runtime.md`, An item
-      across orders, one org; Help sets Amend where a line differs from its fulfillment
-      asset), so where a scenario on the item chooses that action, expect its group's steps
-      to compose again unless a condition skips them `[inferred]`. A non-assetizable
-      Account-scope item got Add with no asset on the same order (same bullet, one org), so
-      expect its Add steps to compose on each later new-sale order that carries a line
-      decomposing to it `[inferred]`; unmeasured for an Account-scope item on other lifecycle orders (the cancel case below
-      didn't record its scope). Canceling a bundle's root
-      asset brought its non-assetizable technical line through as an Add of quantity 0 whose
-      Add steps were created and started (same file, Cancel of a non-assetizable technical
+    - Where a later order must act on an item an earlier order created, record the item's scope as a
+      decision and check the line actions on the first such order. `dro-plans` →
+      `updates-and-runtime.md` (An item across orders) holds what one later new-sale order showed
+      (one org), the cross-order-scope inference `[inferred]` from Help, and what it leaves
+      unmeasured (an item that must stay one per sold line, custom scopes); spike any the plan
+      relies on.
+    - Count the lines that come back on later orders: an Account-scope assetizable item got Amend
+      and another got No Change (`dro-plans` → `updates-and-runtime.md`, An item across orders, one
+      org; Help sets Amend where a line differs from its fulfillment asset), so where a scenario on
+      the item chooses that action, expect its group's steps to compose again unless a condition
+      skips them `[inferred]`. A non-assetizable Account-scope item got Add with no asset on the
+      same order (same bullet, one org), so expect its Add steps to compose on each later new-sale
+      order that carries a line decomposing to it `[inferred]`; unmeasured for an Account-scope item
+      on other lifecycle orders (the cancel case below didn't record its scope). Canceling a
+      bundle's root asset brought its non-assetizable technical line through as an Add of quantity 0
+      whose Add steps were created and started (same file, Cancel of a non-assetizable technical
       line, one org).
     - Say what happens to an edge whose predecessor isn't on that order's plan, on the
       new sale too where an item is sold only in some configurations; don't assume it is

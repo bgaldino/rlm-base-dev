@@ -5,6 +5,7 @@
 Builds a synthetic plan and blind plan in the template's section names, then checks every
 origin, recording, re-init and the scorecard, and that each refusal can happen.
 """
+import importlib.util
 import json
 import subprocess
 import sys
@@ -93,8 +94,8 @@ class LedgerTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.dir = Path(self.tmp.name)
-        (self.dir / "plan.md").write_text(PLAN)
-        (self.dir / "blind.md").write_text(BLIND)
+        (self.dir / "plan.md").write_text(PLAN, encoding="utf-8")
+        (self.dir / "blind.md").write_text(BLIND, encoding="utf-8")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -104,7 +105,7 @@ class LedgerTest(unittest.TestCase):
                               capture_output=True, text=True)
 
     def ledger(self):
-        return json.loads((self.dir / "verification/ledger.json").read_text())["items"]
+        return json.loads((self.dir / "verification/ledger.json").read_text(encoding="utf-8"))["items"]
 
     def init(self, *extra):
         p = self.run_ledger("init", "--plan", "plan.md", "--blind", "blind.md", "--intake", "D1", *extra)
@@ -134,14 +135,14 @@ class LedgerTest(unittest.TestCase):
 
     def test_heading_case_and_mentions(self):
         (self.dir / "plan.md").write_text(PLAN.replace("### 3.10 Rule decision record",
-                                                       "### 3.10 Rule Decision Record"))
+                                                       "### 3.10 Rule Decision Record"), encoding="utf-8")
         self.init()
         self.assertEqual(sorted(self.ledger()), [
             "decision:D1", "decision:D2", "decision:D3", "decision:D4",
             "rule:R-01", "rule:R-02", "rule:R-03", "spike:S-1"])
 
     def test_missing_rule_record_fails(self):
-        (self.dir / "plan.md").write_text(PLAN.replace("### 3.10 Rule decision record", "### 3.10 Rules"))
+        (self.dir / "plan.md").write_text(PLAN.replace("### 3.10 Rule decision record", "### 3.10 Rules"), encoding="utf-8")
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("no rule rows", p.stderr)
@@ -151,7 +152,7 @@ class LedgerTest(unittest.TestCase):
         start = PLAN.index("**P2 Live spikes**")
         end = PLAN.index("**P3 Catalog")
         plan = PLAN[:start] + "**P2 Live spikes** None: no rule is Live.\n\n" + PLAN[end:]
-        (self.dir / "plan.md").write_text(plan.replace("| Not | a spike |", "| Item | Content |"))
+        (self.dir / "plan.md").write_text(plan.replace("| Not | a spike |", "| Item | Content |"), encoding="utf-8")
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertIn("no spike rows", p.stderr)
@@ -166,13 +167,12 @@ class LedgerTest(unittest.TestCase):
                  "**P2b** spikes on the real catalog\n\n"
                  "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
                  "| S-2 Renewal value | R-02 | `a\\b\\|\\bb` | One line | `asset-lifecycle-changes` |\n\n")
-        (self.dir / "plan.md").write_text(PLAN[:start] + waves + PLAN[end:])
+        (self.dir / "plan.md").write_text(PLAN[:start] + waves + PLAN[end:], encoding="utf-8")
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertEqual(p.returncode, 0, p.stderr)
         spikes = {k: v for k, v in self.ledger().items() if k.startswith("spike:")}
         self.assertEqual(len(spikes), 2, sorted(spikes))
-        self.assertTrue(any("a\\b|\\bb" in json.dumps(v) or "a\\\\b|\\\\bb" in json.dumps(v)
-                            for v in spikes.values()), spikes)
+        self.assertEqual(spikes["spike:S-2"]["prediction"]["Must hit"], "`a\\b|\\bb`")
 
     def test_rules_in_several_tables(self):
         (self.dir / "plan.md").write_text(PLAN.replace(
@@ -188,7 +188,7 @@ class LedgerTest(unittest.TestCase):
                             "\n#### Rule decision record: lifecycle\n\n"
                             "| Rule | Decided by | Native feature and fallback | Exact vs source? |\n"
                             "|---|---|---|---|\n| R-02 | Live (c) | Amendment | exact |\n")
-        (self.dir / "plan.md").write_text(plan)
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
         p = self.init()
         self.assertNotIn("appears twice", p.stderr)
         self.assertEqual(sorted(k for k in self.ledger() if k.startswith("rule:")),
@@ -205,6 +205,21 @@ class LedgerTest(unittest.TestCase):
         origin = {k: v["origin"] for k, v in self.ledger().items()}
         self.assertEqual((origin["decision:D1"], origin["decision:D2"], origin["decision:D4"]),
                          ("intake", "intake", "owner"))
+        self.assertEqual(self.run_ledger("init", "--plan", "plan.md", "--intake", "D2-D1").returncode, 1)
+
+    def test_zero_padded_range(self):
+        spec = importlib.util.spec_from_file_location("ledger", SCRIPT)
+        ledger = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ledger)
+        self.assertEqual(ledger.id_set("D08-D10,D2"), {"D08", "D09", "D10", "D2"})
+
+    def test_non_ascii_evidence_round_trips(self):
+        self.init()
+        p = self.run_ledger("record", "R-01", "affirmed", "margin ≥ 20% — goldens pass")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(self.ledger()["rule:R-01"]["evidence"][-1]["evidence"],
+                         "margin ≥ 20% — goldens pass")
+        self.assertFalse((self.dir / "verification/ledger.json.tmp").exists())
 
     def test_record_and_reinit_keep_outcomes_and_frozen_prediction(self):
         self.init()
@@ -229,9 +244,15 @@ class LedgerTest(unittest.TestCase):
         self.assertNotEqual(self.run_ledger("record", "R-99", "affirmed", "x").returncode, 0)
         self.assertNotEqual(self.run_ledger("record", "R-01", "pending", "x").returncode, 0)
         self.assertEqual(self.ledger()["rule:R-01"]["outcome"], "pending")
-        p = subprocess.run([sys.executable, "-I", str(SCRIPT), "report"], cwd=tempfile.gettempdir(),
+        empty = self.dir / "empty"
+        empty.mkdir()
+        p = subprocess.run([sys.executable, "-I", str(SCRIPT), "report"], cwd=empty,
                            capture_output=True, text=True)
         self.assertNotEqual(p.returncode, 0)
+        self.assertIn("run init first", p.stderr)
+        (self.dir / "verification/ledger.json").write_text("{", encoding="utf-8")
+        p = self.run_ledger("report")
+        self.assertIn("not valid JSON", p.stderr)
 
     def test_report(self):
         self.init()
@@ -241,7 +262,7 @@ class LedgerTest(unittest.TestCase):
         self.run_ledger("record", "R-02", "refuted", "90.00", "--path", "fallback", "--skill", "s: c")
         p = self.run_ledger("report")
         self.assertEqual(p.returncode, 0, p.stderr)
-        card = (self.dir / "verification/scorecard.md").read_text()
+        card = (self.dir / "verification/scorecard.md").read_text(encoding="utf-8")
         self.assertIn("| rule | blind | 3 | 1 | 0 | 1 | 0 | 1 |", card)
         self.assertIn("| decision | edited | 1 | 0 | 1 | 0 | 0 | 0 |", card)
         self.assertIn("Excluded (intake or owner): 1.", card)
@@ -259,21 +280,21 @@ class LedgerTest(unittest.TestCase):
         self.run_ledger("record", "D1", "affirmed", "intake, excluded")
         p = self.run_ledger("truth")
         self.assertEqual(p.returncode, 0, p.stderr)
-        tr = json.loads((self.dir / "verification/truth.json").read_text())
+        tr = json.loads((self.dir / "verification/truth.json").read_text(encoding="utf-8"))
         self.assertEqual(sorted(tr), ["rule:R-01", "rule:R-02", "spike:S-1"])
         self.assertEqual(tr["rule:R-02"]["path_taken"], ["fallback"])
 
         judged = {"rule:R-01": {"label": "hit"}, "rule:R-02": {"label": "hedged", "where": "S-9"},
                   "spike:S-1": {"label": "absent", "why": "dropped"}}
-        (self.dir / "j.json").write_text(json.dumps(judged))
+        (self.dir / "j.json").write_text(json.dumps(judged), encoding="utf-8")
         p = self.run_ledger("score", "j.json", "r2")
         self.assertEqual(p.returncode, 0, p.stderr)
-        out = (self.dir / "verification/regen-scores.md").read_text()
+        out = (self.dir / "verification/regen-scores.md").read_text(encoding="utf-8")
         self.assertIn("| measured plan (baseline) | 1 | 1 | 1 | 0 | 2/3 |", out)
         self.assertIn("| r2 | 1 | 1 | 0 | 1 | 2/3 |", out)
         self.assertIn("**spike:S-1** (spike, was inconclusive): absent", out)
         self.run_ledger("score", "j.json", "r2")
-        self.assertEqual((self.dir / "verification/regen-scores.md").read_text().count("## r2"), 1)
+        self.assertEqual((self.dir / "verification/regen-scores.md").read_text(encoding="utf-8").count("## r2"), 1)
 
     def test_score_refuses_incomplete_or_bad_judgments(self):
         self.init()
@@ -281,11 +302,11 @@ class LedgerTest(unittest.TestCase):
         p = self.run_ledger("score", "j.json", "r2")
         self.assertIn("run truth first", p.stderr)
         self.run_ledger("truth")
-        (self.dir / "j.json").write_text(json.dumps({"rule:R-02": {"label": "hit"}}))
+        (self.dir / "j.json").write_text(json.dumps({"rule:R-02": {"label": "hit"}}), encoding="utf-8")
         p = self.run_ledger("score", "j.json", "r2")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("missing ['rule:R-01']", p.stderr)
-        (self.dir / "j.json").write_text(json.dumps({"rule:R-01": {"label": "close"}}))
+        (self.dir / "j.json").write_text(json.dumps({"rule:R-01": {"label": "close"}}), encoding="utf-8")
         p = self.run_ledger("score", "j.json", "r2")
         self.assertIn("bad labels", p.stderr)
         self.assertFalse((self.dir / "verification/regen-scores.md").exists())

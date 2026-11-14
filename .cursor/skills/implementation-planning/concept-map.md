@@ -52,7 +52,7 @@ pointer, not the skill's full open list.
 | Source concept | Try first | Where documented |
 |---|---|---|
 | Standard cost per item | Cost book entries | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md` |
-| Labour rates, loaded cost | Computed during extraction into cost entries | `pricing-setup` → `scenarios/cost-and-margin.md` (modeling costs from a source) |
+| Labor rates, loaded cost | Computed during extraction into cost entries | `pricing-setup` → `scenarios/cost-and-margin.md` (modeling costs from a source) |
 | Line and quote margin | The shipped cost-and-margin wiring, plus a roll-up for the quote total | `pricing-setup` → `scenarios/cost-and-margin.md` |
 | Contract value that counts until-canceled lines over a fixed term | A computed value of its own, gated on every quote structure the plan builds: ramp segments, amendments, renewals (prediction-checks.md check 8); a quote total counts an Evergreen line without an end date for one period, not the source's term (measured in `scenarios/full-term-value.md`). The shipped procedure's `EvergreenPricingTermCountConstant` sets 1, which matches the fresh-org Setup default; check both (`proration-and-selling-models.md` → Default term counts). Don't raise that count to get a full-term figure; it changes every Evergreen price. Read the default counts in Setup at P0 (no API is known; template P0) | `pricing-setup` → `scenarios/full-term-value.md`, `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` |
 | A fee or commission computed from the deal's revenue | A computed value (a field or a formula), not a price adjustment. Check which deals it applies to. Over one product line only, check the field that selects the lines is in the pricing context: the sales transaction context has no product Family | `pricing-setup` → `scenarios/full-term-value.md` |
@@ -91,7 +91,7 @@ pointer, not the skill's full open list.
 | Rounds or versions of a bid | One quote per round, by deep clone; the winning round becomes the order | `quote-negotiation-rounds` |
 | An internal what-if round that must never be presented | A marker on the quote plus a guard on presenting and ordering it. The standard order creation traced doesn't check the quote's status (traced in part; not run against a Draft or Rejected quote), so the ordering guard is a validation or flow the build adds | `quote-negotiation-rounds` (Final round to order) |
 | Discount per product line | Manual line discounts. A line-editor group discount is open: unmeasured inside a bundle, and Propagation ships off. Not a header discount: it was measured applying twice with an active procedure plan and `skipOrgSttPricing` on | `pricing-procedures` → `elements/manual-discount.md`, `elements/price-propagation.md`; `transaction-line-editor` → `runtime-behavior.md` |
-| Approval matrix by discount, margin, size | Advanced Approvals: one level per dimension, the maximum drives a cumulative chain. State what "discount" is measured against (list, or a standard price after programs). Give every quote-level dimension a basis on amendments, not only deal size (prediction-checks.md check 8) | `advanced-approvals` → `matrix-modeling.md` (deal size only) |
+| Approval matrix by discount, margin, size | Advanced Approvals: one level per dimension, the maximum drives a cumulative chain. State what "discount" is measured against (list, or a standard price after programs). Give every quote-level dimension a basis on amendments, not only deal size (prediction-checks.md check 8) | `advanced-approvals` → `matrix-modeling.md` (its amendment base covers deal size only) |
 | Line-level guards (below floor, below cost) | A count of breaking lines as an approval condition, with a marker so a round's bulk discount and an individual override can be told apart; name what sets the marker on each path. A line the round leaves undiscounted by design (resold at cost, priced to a target margin) needs, if the override test compares a line's discount with the round's marker, a marker equal to its own discount or a flag that keeps it out of the test (as `matrix-modeling.md` does for pass-through lines); otherwise it reads as an override `[inferred]` | `advanced-approvals` → `matrix-modeling.md` |
 | "Resubmit from the start" after a rejection | Smart Approval off on that chain's steps, or accepted as a difference | `advanced-approvals` → `matrix-modeling.md`, `limitations.md` |
 
@@ -107,10 +107,11 @@ pointer, not the skill's full open list.
 
 ## Order fulfillment
 
-`dro-plans` holds a settings checklist from Help (`authoring-and-deployment.md`), and a live smoke with a recheck
-(`examples-and-grounding.md`) and measured runtime behavior (`updates-and-runtime.md`), each on one org; for the
-rest, the Help articles named here are the evidence. Decide each rule's source with [knowledge-sources.md](knowledge-sources.md); where Help disagrees
-with itself, that is trigger (d).
+`dro-plans` holds a settings checklist from Help (`authoring-and-deployment.md`), and a live smoke
+with a recheck (`examples-and-grounding.md`) and measured runtime behavior
+(`updates-and-runtime.md`), each on one org; for the rest, the Help articles named here are the
+evidence. Decide each rule's source with [knowledge-sources.md](knowledge-sources.md); where Help
+disagrees with itself, that is trigger (d).
 
 | Source concept | Try first | Where documented |
 |---|---|---|
