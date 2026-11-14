@@ -38,8 +38,8 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    The exception is the tables named in the order-activation flow
    `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info` (the asset and
    binding-object tables and `Commitment_based_Rate_Adjustment`), which that flow queues
-   for refresh on order activation; whether the Automated Process user that runs it passes
-   the admin-only check below is unverified (see `usage-consumption/SKILL.md`). See
+   for refresh on order activation; whether the Automated Process user that runs that flow
+   passes the admin-only check below is unverified (see `usage-consumption/SKILL.md`). See
    `lifecycle-and-refresh.md` → *After editing setup data*.
    **The Refresh Decision Table flow action is admin-only.** Salesforce gates it on Modify All
    Data *and* Customize Application, and no narrower permission (BRE, RunFlow,
