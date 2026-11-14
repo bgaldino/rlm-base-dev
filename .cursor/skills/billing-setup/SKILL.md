@@ -22,6 +22,8 @@ The objects themselves are in `revenue-cloud-data-model` → `domains/billing.md
 tagged `[Help: <article>]`, `[Dev guide: <page>]`, `[Repo: <path>]` and `[Measured: Mn]`.
 Each `Mn` is a row in [measured-264.md](measured-264.md), measured on 264 on 2026-11-10;
 read the row's scope before generalising it.
+What happens after setup (invoice runs, tax, payments, credits, ledger) is in
+[billing-operations](../billing-operations/SKILL.md).
 
 ## Quick Rules
 
