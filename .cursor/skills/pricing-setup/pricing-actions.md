@@ -6,7 +6,7 @@
 > `ind.pricing_configure_pricing_action_button_using_LWC.htm`, `ind.pricing_add_calculate_price_button.htm`,
 > `ind.pricing_calculate_price_of_object.htm`, `ind.pricing_create_constant_resource.htm`; dev guide
 > `meta_pricingactionparameters.htm`, `sforce_api_objects_pricingactionparameters.htm`;
-> `unpackaged/post_quantumbit/pricingActionParameters/`. Not live-verified.
+> `unpackaged/post_quantumbit/pricingActionParameters/`. Mostly not live-verified.
 
 A pricing action is a Calculate Price button on a record page. Each action binds an object to a
 context definition, a context mapping and a pricing procedure, so pricing results are stored on
@@ -131,4 +131,5 @@ its context definition
 ## Open questions
 
 - Whether the Help setup UI offers Sales Agreement and Work Order as the dev guide's `objectName` values do.
-- The Tooling query above has not been run on a live org.
+- The full Tooling query above has not been run on a live org; only `Id`, `DeveloperName` and
+  `ObjectName` were (see Data and automation).

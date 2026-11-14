@@ -171,7 +171,8 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   organization-wide setting also gates it. [Open: read Setup > Approval Settings for an
   organization-wide Smart Approvals control; if there is one, turn it off, resubmit a quote
   rejected at the second step after the first was approved, and see whether the first step
-  still auto-approves]
+  still auto-approves; and in Flow Builder, confirm that a step's Use Smart Approval checkbox
+  writes `ActionInput__CanUseSmartApproval`]
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.
 - `ApprovalWorkItem` standard fields and sObject `update()`: the Help says they can't be
