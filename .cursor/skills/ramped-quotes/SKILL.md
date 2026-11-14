@@ -177,7 +177,8 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   - 8 of 8 builds came out of cloning with the last segment un-uplifted (setting the uplift
     after the clones instead avoided it, 8 of 8);
   - one System reprice repaired 7 of them (the request contents were not recorded, so it
-    isn't known to be header-only; a System request with only the Quote header isn't priced
+    isn't known to be header-only; a graph-style System request with only the Quote header
+    isn't priced, though a request carrying a context id is when lines exist, not measured
     [Platform behaviour, traced]);
   - the 8th stayed stuck through that reprice and two more System reprices;
   - one **`Force`** reprice fixed it (todo 160).

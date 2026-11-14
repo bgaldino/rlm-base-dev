@@ -206,7 +206,8 @@ it, and it applies only when all its conditions hold, see [runtime and
 observability](../pricing-procedures/runtime-and-observability.md#delta-pricing)), Help says to
 click **Reprice All** afterwards. The action itself saves the header values and then runs a full
 (Force) reprice, so Reprice All is needed for a header field edited by other means; a System
-request with only the header doesn't price [Platform behaviour, traced]. The Order variant of the
+graph-style request with only the header doesn't price (section 4: a context-id request does,
+when lines exist; not measured) [Platform behaviour, traced]. The Order variant of the
 action was not traced. The waterfall shows each line's share. Users need Salesforce Pricing Run
 Time User.
 
