@@ -105,7 +105,7 @@ Two more ordering rules for an ad-hoc reload:
 
 Legacy, kept for reference: this Apex DML on `RateCardEntry.Status` failed with
 UNKNOWN_EXCEPTION on Release 262, so the flow activates with `activate_rates`, a REST task
-(`tasks/rlm_activate_rates.py`; see its docstring). Not run since; don't rely on it.
+(`tasks/rlm_activate_rates.py`; see its docstring). No flow runs it; don't rely on it.
 
 Simple activation — queries all `RateCardEntry` records with `Status != 'Active'` and sets them to `Active`:
 
