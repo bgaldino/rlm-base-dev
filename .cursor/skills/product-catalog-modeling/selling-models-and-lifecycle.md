@@ -154,9 +154,15 @@ QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-
 |---|---|---|
 | `UsageModelType` | Anchor (main subscription), Pack (add-on that grants usage), or a commitment type. Help lists one Commit value; the dev guide lists Monetary, Quantity and Token commitments, and `usage-consumption` names the API values. [Help: `ind.product_catalog_create_simple_products.htm`; Dev guide: `usage_management_fields_on_product2.htm`] | `usage-consumption` |
 | `DecompositionScope`, `FulfillmentQtyCalcMethod` | How many fulfillment lines; Always One vs Aggregate. [Help: `ind.product_catalog_create_simple_products.htm`] | `dro-plans` |
-| `AvailabilityDate`, `DiscontinuedDate`, `EndOfLifeDate` | Sale window and support window | see note below |
+| `AvailabilityDate`, `DiscontinuedDate`, `EndOfLifeDate` | Informational dates (not enforced; see note below) | see note below |
 
-**Help disagrees with itself on the end dates.** The simple-product article says a product
-cannot be sold after `DiscontinuedDate` and is unsupported after `EndOfLifeDate`; the
-bundled-product article says the reverse. [Help: `ind.product_catalog_create_simple_products.htm`; `ind.product_catalog_create_bundled_products.htm`]
-Which field the platform enforces for sale is **Open — needs live verification**.
+**Help describes the end dates in opposite ways.** The simple-product article ties
+`DiscontinuedDate` to sale and `EndOfLifeDate` to support; the bundled-product article says
+the reverse.
+[Help: `ind.product_catalog_create_simple_products.htm`;
+`ind.product_catalog_create_bundled_products.htm`]
+Availability, discontinued and end-of-life dates are returned with product data and must be in
+the order availability <= discontinued <= end of life, but no date was found that stops
+browsing, adding to a quote, ordering, amending or renewing. Treat them as informational and
+use `IsActive` or a rule if a product must be blocked [Platform behaviour, traced in part].
+Not run live.

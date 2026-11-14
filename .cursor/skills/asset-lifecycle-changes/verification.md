@@ -30,7 +30,12 @@ For each change, record the state after every step:
     - its `QuoteLineDetail` rows (dated by `EffectiveFrom` and `EffectiveTo`);
     - `QuoteLineItemAttribute` for configured products;
     - the header `Subtotal`, `Discount` and `TotalPrice`.
-3. **Reprice** and read again: nothing should move. Use Reprice All or a Place request
+3. **Reprice before the order is activated** and read again: nothing should move. Pricing of
+   a renewal, amendment or cancellation line reads the source asset's current state, and
+   activating the order changes that state, so a reprice afterwards can return different
+   prices (zero on a measured renewal). After activation start a new lifecycle quote from the
+   updated asset. This holds for every lifecycle type; Force reprices all lines, so it is the
+   widest case [Platform behaviour, traced in part]. Use Reprice All or a Place request
    with Force pricing, or a Place request that includes a line record. A Place request
    that patches only the quote header isn't priced under System pricing: it is priced
    only when it carries at least one quote or order line (or line attribute) record, so a

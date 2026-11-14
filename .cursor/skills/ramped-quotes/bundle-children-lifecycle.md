@@ -201,7 +201,8 @@ before any later change even where earlier-dated amends are otherwise allowed [P
   matching what backdated-change orders need (see
   `.cursor/skills/rlm-business-apis/backdated-asset-lifecycle.md`).
 - An evergreen line needs `PeriodBoundary: Anniversary` (without it the order fails: "Evergreen order products must have an
-  Anniversary period boundary") and a billing treatment.
+  Anniversary period boundary"); a billing treatment applies only when the frequency
+  differs from the term unit ([billing-setup](../billing-setup/SKILL.md), item 3).
 - Use **Quote** output for these recipes. `outputRecordType: Order` failed on the test org with *"We couldn't fetch the data
   for RLM_SalesTransactionContext context definition"* for every action, ramps or not (not diagnosed on that org). Two causes are known since: a stock procedure tag
   with a Quote-lens row and no Order-lens row, and a custom attribute mapped on the Quote lens only (see
@@ -226,10 +227,12 @@ This runbook builds the API (unstamped) shape. Steps 4, 6, 7 and 9 differ on a q
    multi-schedule mode, EditGroup and clone create only the segments. Create the `RampScheduleGroup` parent through
    Place, read back its Id, and parent the segments to it before adding products. Without the parent, order activation
    fails with "Specify a ramp schedule group for ramp segment" (see SKILL.md, the group-ramp build sequence).
-3. **Add the bundle to each segment.** `AddProducts` with the root bundle line, the term child line, the one-time or
-   evergreen child line in each segment group, and a `QuoteLineRelationship` per child (with
-   `AssociatedQuoteLinePricing`). `groupIds` were not needed. For an evergreen child, set `PeriodBoundary: Anniversary`
-   on its line now; without it the order cannot be created. Set a billing treatment too.
+3. **Add the bundle to each segment.** `AddProducts` with the root bundle line, the term child line,
+   the one-time or evergreen child line in each segment group, and a `QuoteLineRelationship` per
+   child (with `AssociatedQuoteLinePricing`). `groupIds` were not needed. For an evergreen child,
+   set `PeriodBoundary: Anniversary` on its line now; without it the order cannot be created. Set a
+   billing treatment when its frequency differs from the term unit
+   ([billing-setup](../billing-setup/SKILL.md), item 3).
 4. **Optional: remove the child from later segments (API-built).** `DeleteProducts` of the one-time child's lines in the segments
    you do not want it in. The root and term child stay stamped.
 5. **Order and activate.** `createOrdersFromQuote` with the quote id. Find the order by its `QuoteId`. Copy the account's

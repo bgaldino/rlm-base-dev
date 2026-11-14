@@ -34,12 +34,15 @@ results, 2026-11-11).
    placement.** Follow the change from quote → reprice → order → reprice → activation →
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
-    - **Never reprice a renewal quote after its order is activated; until measured, treat amendment and ramped quotes the same.** Measured once on a
-      renewal quote: a full reprice (every line, pricing `Force`, configuration `Skip`) after
-      the order was activated set the renewal lines' totals and the quote total to 0
-      [Measured: 2026-11-12, 264, scratch, one org] — each lot became a −lot/+lot pair netting 0, and the
-      order and assets were unchanged. Not measured on amendments or ramped quotes; mechanism not traced. Read
-      quote values before activation and don't reprice afterwards.
+    - **Never reprice a renewal quote after its order is activated; until measured, treat amendment
+      and ramped quotes the same.** Pricing of a renewal, amendment or cancellation line reads the
+      source asset's current state, and activation changes that state, so the rule covers all three
+      [Platform behaviour, traced in part]. Measured once on a renewal quote: a full reprice (every
+      line, pricing `Force`, configuration `Skip`) after the order was activated set the renewal
+      lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch, one org] — each
+      lot became a −lot/+lot pair netting 0, and the order and assets were unchanged. Not measured
+      on amendments or ramped quotes; mechanism not traced. Read quote values before activation and
+      don't reprice afterwards.
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
    with configuration rules on (the UI's inline quantity edit does this), resets the
    line's attributes to the product defaults. Activation keeps them on the asset, and the
@@ -354,6 +357,9 @@ results, 2026-11-11).
 8. **Ramped bundles have their own limits:** amending an API-built group-ramped bundle
    with a one-time or evergreen child failed in the measured shapes
    [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].
+9. **Amending or cancelling assets whose order is still fulfilling hits DRO in-flight
+   rules.** Freeze, Point of No Return and compensation steps decide what can change:
+   [dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md) (PONR bullet).
 
 ## DO NOT
 

@@ -171,8 +171,10 @@ Pricing reads decision-table snapshots, not the source rows. A stale table price
 plausibly with no error. Refresh paths: Pricing Recipes > Sync (one recipe); Salesforce Pricing
 Setup > Sync Pricing Data; a schedule-triggered Flow calling the **Refresh Decision Table**
 action (one action per table, off-peak, add a fault path, pause during bulk loads, hourly
-refresh limit exists; needs Manage Flow, Salesforce Pricing Design Time, Assetize Order for a
-complete sync). Verify with the Last Refreshed timestamp, or `cci task run
+refresh limit exists; building the flow needs Manage Flow, Salesforce Pricing Design Time,
+Assetize Order for a complete sync; the action's own permission gate is in
+[`../decision-tables/SKILL.md`](../decision-tables/SKILL.md), Refreshing is admin-only).
+Verify with the Last Refreshed timestamp, or `cci task run
 check_decision_table_freshness --org <cci_alias>`. Authoring and refresh: [`../decision-tables/SKILL.md`](../decision-tables/SKILL.md).
 
 ## 9. Troubleshooting (cross-element)

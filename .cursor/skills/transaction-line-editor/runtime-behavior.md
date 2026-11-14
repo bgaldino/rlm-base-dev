@@ -200,12 +200,15 @@ Quote header (for orders it covers Order records too)
 [Help: `ind.qocal_header_adjustments_use`, `ind.qocal_header_adjustments_overview`]
 
 **Manage Header Adjustment** > type (**Amount**, **Percentage**, **Amount Override**) > value >
-distribution (**Equal**, or **Proportionate** to each line's list price × quantity). Where Delta Pricing is on
-(Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables it, and it
-applies only when all its conditions hold, see [runtime and
-observability](../pricing-procedures/runtime-and-observability.md#delta-pricing)),
-click **Reprice All** afterwards. The waterfall shows each line's share. Users need
-Salesforce Pricing Run Time User.
+distribution (**Equal**, or **Proportionate** to each line's list price × quantity). Where Delta
+Pricing is on (Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables
+it, and it applies only when all its conditions hold, see [runtime and
+observability](../pricing-procedures/runtime-and-observability.md#delta-pricing)), Help says to
+click **Reprice All** afterwards. The action itself saves the header values and then runs a full
+(Force) reprice, so Reprice All is needed for a header field edited by other means; a System
+request with only the header doesn't price [Platform behaviour, traced]. The Order variant of the
+action was not traced. The waterfall shows each line's share. Users need Salesforce Pricing Run
+Time User.
 
 **The setup is in the pricing procedure, not the editor.** Manage Header Adjustment takes the type,
 value and distribution logic [Help: `ind.qocal_header_adjustments_use`], and Help's setup uses the

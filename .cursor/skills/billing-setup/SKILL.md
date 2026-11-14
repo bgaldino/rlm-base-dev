@@ -46,6 +46,13 @@ read the row's scope before generalising it.
    [Measured: M3]. Help also requires that treatment to have Change Billing Frequency
    (`CanChangeBillingFrequency`) selected [Help: `ind.billing_change_billing_pricing_frequencies`]. The flag
    defaults to false [Dev guide: `sforce_api_objects_billingtreatment`].
+   The complete rule: a treatment on the quote or order line is required only when the
+   line's frequency differs from the pricing term unit of its selling model (Annual on a Months
+   model); a frequency equal to the term unit, or a milestone plan, needs none. When one is
+   required it must be Active and have Change Billing Frequency selected, or the line is
+   refused; the check reads the line's own treatment and does not fall back to the billing
+   policy. The check is skipped when Billing is not enabled in the org [Platform behaviour,
+   traced]. Other docs link here instead of restating it.
 4. **One-time lines take no frequency, or Milestone Plan (API value `MilestonePlan`).**
    Monthly on a one-time line was refused, Milestone Plan with a milestone treatment was
    accepted, and Milestone Plan on a Term Defined line was refused [Measured: M4–M6]. Bill services in milestones on a one-time selling model.

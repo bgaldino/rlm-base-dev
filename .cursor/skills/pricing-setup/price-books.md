@@ -75,4 +75,7 @@ Then confirm the decision table is Fresh ([decision-tables](../decision-tables/S
 ## Open questions
 
 - Standard vs custom book behavior in the Price Management app (Help is vague on "create your own standard price book").
-- Whether the price book validity range is enforced at pricing time or only at quote selection; Help only says it determines validity.
+- Whether the price book validity range is enforced at pricing time or only at quote selection; Help
+  only says it determines validity. The list-price step itself does not test validity dates; it uses
+  whatever single row the lookup returns. Don't promise date-based exclusion at pricing time without
+  checking the lookup [Platform behaviour, traced].

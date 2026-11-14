@@ -139,12 +139,16 @@ Gotchas, all measured:
 - **Swap/upgrade/downgrade incoming line** (`inGroup.records[]`, a `QuoteLineItem` POST): give it
   `Product2Id`, `PricebookEntryId`, `UnitPrice`, `Quantity`, `StartDate` (the effective date) and
   `EndDate` (co-term with the outgoing asset's `LifecycleEndDate`). Without `EndDate`: *"Specify
-  either the end date or add the Subscription Term…"*. `BillingFrequency` also needs a
-  `BillingTreatmentId` (*"Add a Billing Treatment to make sure that you can change the Billing
-  Frequency"*); the outgoing asset's order line has one to reuse.
+  either the end date or add the Subscription Term…"*. A `BillingFrequency` that differs from
+  the selling model's term unit also needs a `BillingTreatmentId` (*"Add a Billing Treatment to
+  make sure that you can change the Billing Frequency"*); the outgoing asset's order line has one
+  to reuse. Rule: [billing-setup](../billing-setup/SKILL.md) item 3.
 - **Transfer** returns two records. Help: activate the source order first, then the target.
 
 ## Activating the order
+
+An asset whose order is still fulfilling falls under DRO in-flight rules (freeze, Point of
+No Return): [dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md).
 
 Set `Status = Activated` on each returned order (create the order from a returned quote first,
 `createOrdersFromQuote`). Backdated-change orders needed all of these first:
@@ -282,7 +286,8 @@ schedule and starts the new cadence from the effective date. Through the API:
    the Quote Action is amend and the Quote Action subtype is FieldAmendment."* In the UI, editing
    the field does this.
 3. Place a `QuoteLineItem` PATCH with the new `BillingFrequency`, then order and activate as
-   usual. The line's billing treatment needs *Change Billing Frequency*.
+   usual. A changed frequency needs a treatment with *Change Billing Frequency*
+   ([billing-setup](../billing-setup/SKILL.md) item 3).
 
 Line amounts round to the currency's precision: a JPY run billed 44,033 per period against a
 period amount of 44,033.42.
