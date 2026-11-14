@@ -242,8 +242,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       every line of the account then feeds one instance `[inferred]` (recount; Help's
       bundle-child scope warning may apply, which `dro-plans` → `authoring-and-deployment.md`
       leaves unmeasured for technical outputs); an Order-scope item can't be assetized. Where
-      the item must also stay one per sold line, no scope was measured (Order Line Item
-      across orders and a per-line custom scope are both unmeasured): make it a spike. On
+      the item must also stay one per sold line, that inference is untested (Account
+      would merge the lines): spike both Order Line Item and a per-line custom scope. On
       the measured amendment and cancellation, lines acted on fulfillment assets an earlier
       order created, with their scopes unrecorded, so those routes neither show nor rule
       out that a cross-order scope is needed.
@@ -253,7 +253,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       asset), so where a scenario on the item chooses that action, expect its group's steps
       to compose again unless a condition skips them `[inferred]`. A non-assetizable
       Account-scope item got Add with no asset on the same order (same bullet, one org), so
-      expect its Add steps to compose on each later order `[inferred]`. Cancelling a bundle's root
+      expect its Add steps to compose on each later new-sale order that carries a line
+      decomposing to it `[inferred]`; unmeasured on other lifecycle orders. Cancelling a bundle's root
       asset brought its non-assetizable technical line through as an Add of quantity 0 whose
       Add steps were created and started (same file, Cancel of a non-assetizable technical
       line, one org).
