@@ -215,8 +215,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     quantity method: Always One gives each instance quantity 1 (Help
     `ind.product_catalog_create_simple_products`,
     `ind.dro_assetization_in_dynamic_revenue_orchestrator`; `dro-plans` →
-    `authoring-and-deployment.md` shows it on Order Line Item scope, and leaves merging
-    scopes unmeasured),
+    `authoring-and-deployment.md` gives it as an Order Line Item example, unmeasured on any
+    scope),
     and Aggregate sums the source lines' quantities with no unit-of-measure conversion
     (Help `ind.dro_unit_of_measure_inheritance_and_rounding_values`); quantities on fulfilment
     lines and assets are rounded to DRO's unit-of-measure scale and rounding rules (same
