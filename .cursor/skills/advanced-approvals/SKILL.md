@@ -53,8 +53,9 @@ scratch org built by this repo.
     - The Help says standard fields on approval objects can't be written through the sObject
       APIs [Help: `ind.approvals_design_build_activation`], but the dev guide lists `update()`
       on `ApprovalWorkItem` for a few fields
-      [Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`]. Use the actions; treat
-      direct writes as unsettled ([limitations.md](limitations.md)).
+      [Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`]. A direct update of the
+      standard fields is refused; custom fields you add can be updated [Platform behaviour,
+      traced, not run live]. Use the actions ([limitations.md](limitations.md)).
 6. **Extend the shipped workflow rather than adding a second one.** Follow the nine-step
    recipe in `docs/features/composable-quote-approvals.md` → Adding A New Approval Dimension;
    it is the one list to keep current. The two steps most often missed:

@@ -96,6 +96,7 @@ foundations:
       sub_skills:
         - .cursor/skills/usage-consumption/building-usage-assets.md
         - .cursor/skills/usage-consumption/verification.md
+        - .cursor/skills/usage-consumption/usage-setup.md
       tooling:
         - scripts/qb_usage.py
         - scripts/build_quote_to_asset.py
@@ -107,6 +108,16 @@ foundations:
       caveats:
         - "Runtime commitment behaviour is documented in neither the dev-guide nor help snapshot; rules here came from live verification"
         - "CommitmentQuantity/CommitmentSpend entitlements stay PENDING (platform issue); re-verified on fresh 264 2026-08-14, still unfixed. Commit works on both releases"
+
+    - id: rate-management
+      path: .cursor/skills/rate-management/SKILL.md
+      purpose: "Rate cards, tier and volume adjustments, negotiated and commitment rates, rating and rating discovery procedures, decision tables, permissions and APIs for usage products (Help-grounded)"
+      consumed_by_pmos: [sales-enablement]
+      sub_skills:
+        - .cursor/skills/rate-management/rating-procedures.md
+      provenance: Help-grounded (264 snapshot); the Active-entry and tier lock is live-verified on this repo's 264 loads (qb-rates README); otherwise not live-measured
+      caveats:
+        - "Real-time data vs decision tables on 264 and negotiated-rate capture at quote time are not measured"
 
     - id: renewal-asset-creation
       path: .cursor/skills/renewal-asset-creation/SKILL.md
@@ -187,6 +198,17 @@ foundations:
         - .cursor/skills/implementation-planning/knowledge-sources.md
         - .cursor/skills/implementation-planning/session-orchestration.md
         - .cursor/skills/implementation-planning/prediction-checks.md
+
+    - id: billing-operations
+      path: .cursor/skills/billing-operations/SKILL.md
+      purpose: "Billing after setup: invoicing, tax, payments, credits, ledger"
+      consumed_by_pmos: []
+      provenance: 264 Help and dev-guide snapshot, read not measured (2026-11-13)
+      sub_skills:
+        - .cursor/skills/billing-operations/invoicing.md
+        - .cursor/skills/billing-operations/tax.md
+        - .cursor/skills/billing-operations/payments-and-credits.md
+        - .cursor/skills/billing-operations/accounting.md
 
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md

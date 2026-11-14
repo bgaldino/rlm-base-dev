@@ -161,35 +161,32 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   `AddProducts` into ramped segments (Quick Rule 9), and a standalone Evergreen line
   ([ui-group-ramp.md](ui-group-ramp.md)).
 - **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. When delta
-  pricing applies (setting on, a System-priced PATCH, and the conditions below), only the edited lines and the
+  pricing applies (rule linked below), only the edited lines and the
   lines that depend on them re-run, so a clone's stale lines can be skipped; Help says Compound Uplift lines in a
   ramp group are repriced on every run regardless of delta pricing
   [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`], so the skip would apply only to
   lines without Compound Uplift [inferred]. A
   segment created by clone can keep its clone-time price indefinitely.
-  Delta pricing is an org setting (Setup > Revenue Settings > Delta Pricing for Quotes and Orders), off unless
-  enabled; its platform declaration marks it beta [Platform behaviour, traced], though neither Help nor the Metadata API reference says so, and
-  its documented default is false [Metadata API: `meta_revenuemanagementsettings`], so an org that doesn't set it
-  has it off. The repo enables it in `config/project-scratch-def.json` and most `orgs/*.json` (not dev-mfg or the
-  TFID shapes), and `prepare_rlm_org` deploys it as true from the pre settings bundle on every build, so every
-  Foundations-built org has it on [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`].
-  Delta skipping applies only when the setting is on and the save is a PATCH edit with System pricing, Dual
-  Persistence mode off, a completed calculation status (Completed with Pricing or with Tax) and no validation errors
-  [Platform behaviour, traced; Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]; further conditions
-  (the transaction's update tracking) also apply, so treat the list as partial (see pricing-procedures
-  → runtime and observability); otherwise every line reprices
-  ([transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md)). Under it a
-  partial PATCH re-runs the edited lines and the lines that depend on them and skips the rest; which relations
-  count as a dependency isn't traced.
+  Delta pricing (on in every Foundations-built org
+  [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]) is defined once in
+  [pricing-procedures](../pricing-procedures/runtime-and-observability.md#delta-pricing);
+  when it doesn't apply, every line reprices
+  ([transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md)).
 
   Measured 2026-10-29/30 on 264 with a probe that set the uplift at placement:
   - 8 of 8 builds came out of cloning with the last segment un-uplifted (setting the uplift
     after the clones instead avoided it, 8 of 8);
-  - one header-only System reprice repaired 7 of them;
+  - one System reprice repaired 7 of them (the request contents were not recorded, so it
+    isn't known to be header-only; a graph-style System request with only the Quote header
+    isn't priced, though a request carrying a context id is when lines exist, not measured
+    [Platform behaviour, traced]);
   - the 8th stayed stuck through that reprice and two more System reprices;
   - one **`Force`** reprice fixed it (todo 160).
 
-  Make the final reprice `Force`. Then check that every ramp line's `PriceWaterfallIdentifier`
+  Make the final reprice `Force`. On a ramped renewal, amendment or cancellation quote, do it
+  before the order is activated, not after (see
+  [asset-lifecycle-changes → verification](../asset-lifecycle-changes/verification.md)).
+  Then check that every ramp line's `PriceWaterfallIdentifier`
   starts with its **own** Id. One that starts with `Quote_QuoteLineItem_<other Id>` hasn't been
   fully priced since its clone. (`build_quote_to_asset.py` asserts this.)
 - **DO NOT** trust the lines you didn't touch after a **partial line PATCH on a Compound ramp.**
@@ -210,11 +207,16 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   `NetUnitPrice` in those segments (measured with a bundle: the PATCHed lines were its Evergreen and
   One-Time children, the re-uplifted ones its Term child). Finish every ramp line edit with Reprice
   All and re-read all segments.
-- **DO NOT** reprice a lifecycle quote after its order is activated. Measured once on a renewal quote: a full reprice (every
-  line, pricing `Force`, configuration `Skip`) after the order was activated set the renewal lines' totals and the
-  quote total to 0 [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read
-  afterwards. Not measured on amendments or ramped quotes; mechanism not traced. Read
-  quote values before activation and don't reprice afterwards.
+- **DO NOT** reprice a lifecycle quote after its order is activated. Lifecycle lines are priced
+  from the source asset's current state, and activation rewrites that state [Platform behaviour,
+  traced in part]; see
+  [asset-lifecycle-changes/verification.md](../asset-lifecycle-changes/verification.md).
+  Measured once on a renewal quote: a full reprice (every line, pricing `Force`, configuration
+  `Skip`) after the order was activated set the renewal lines' totals and the quote total to
+  0 [Measured: 2026-11-12, 264, scratch org]: each lot became a -lot/+lot pair netting 0, and the
+  order and assets were unchanged. Not measured on amendments or cancellations, or on any ramped
+  quote; why the reprice returned 0 is not traced. Read quote values before activation and
+  don't reprice afterwards.
 - **DO NOT** claim a build "works" from an offline dry-run — a mutating ramp run
   must be verified against a **live 264 org**, writing only to a confirmed
   **writable** org.
@@ -293,10 +295,10 @@ requirements are eligible by default (264 Help, *Ramp Deals for Groups Transitio
 multicurrency (`config/project-scratch-def.json`), so omitting it lets the quote take
 the running user's currency and mismatch the PBE/billing-treatment currency (the
 proven builder sets it, `scripts/build_quote_to_asset.py`).
-`BillingTreatmentId` is **required** for a term-defined line with a `BillingFrequency`:
-the Place call fails with no treatment ("Add a Billing Treatment…") *and* if the
-referenced treatment has `CanChangeBillingFrequency=false` ("Update the Billing
-Treatment…"). Resolve one for the account currency (see [Discovering ids](#discovering-ids));
+A term-defined line with a `BillingFrequency` that differs from its selling model's pricing
+term needs a `BillingTreatmentId` (Active, Change Billing Frequency selected); a matching
+frequency needs none ([billing-setup](../billing-setup/SKILL.md), item 3). Where one is needed,
+resolve one for the account currency (see [Discovering ids](#discovering-ids));
 this mirrors `scripts/build_quote_to_asset.py`.
 
 > **Check the response body after every Place call — a returned Quote id is not
@@ -540,9 +542,10 @@ sf data query --target-org <sf_alias> -q \
 # Group-ramp eligibility: no per-product ramp flag is required — any subscription
 # (term-defined) product that meets the requirements is eligible by default (264
 # Help). `Product2.CanRamp` is the LINE-ramp flag, not a group-ramp prerequisite.
-# BillingTreatment for <TREATMENT_ID> — REQUIRED on a term-defined line with a
-# BillingFrequency. Must be Active, match the ACCOUNT currency, and have
-# CanChangeBillingFrequency = true (the Place call rejects a treatment without it).
+# BillingTreatment for <TREATMENT_ID> — needed when the line's BillingFrequency differs from
+# the selling model's term unit (billing-setup item 3). Then it must be Active, match the
+# ACCOUNT currency, and have CanChangeBillingFrequency = true (when a treatment is needed,
+# Place rejects one without it).
 sf data query --target-org <sf_alias> -q \
   "SELECT Id, Name, CanChangeBillingFrequency FROM BillingTreatment \
    WHERE Status = 'Active' AND CurrencyIsoCode = '<ACCOUNT_CURRENCY>' \
@@ -597,7 +600,8 @@ only with a rounding step after the ramp uplift, see `compound-uplift.md`).
 - [ ] The `Yearly` segment 1 sent to EditGroup is **exactly 365 days** and doesn't contain
       29 February (clones end later segments on calendar anniversaries); `Custom` used for
       variable/calendar durations.
-- [ ] `BillingTreatmentId` resolved on each term-defined line (Active, account
+- [ ] `BillingTreatmentId` resolved on each line whose frequency differs from the term
+      unit (Active, account
       currency, `CanChangeBillingFrequency=true`).
 - [ ] No read-only/system fields written on the graph (see [`field-legality.md`](field-legality.md)).
 - [ ] `RampUpliftType='Compound'` on the ramp **group** (the top-level

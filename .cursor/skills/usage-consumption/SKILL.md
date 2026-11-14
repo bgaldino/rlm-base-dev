@@ -64,9 +64,11 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
   reset and an asset rebuild
 - **DO NOT** assume a freshly sold commitment's rate is live on an org built before
   `Commitment_based_Rate_Adjustment` was added to the `CreateAssetOrderEvent` refresh
-  chain (`RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info`). It now
-  refreshes on order activation like every other rate table, but on an older org
-  nothing re-syncs it and consumption rates at the undiscounted anchor rate with no
+  chain (`RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info`). That flow now
+  queues the table's refresh on order activation with the asset and binding-object tables
+  in the chain (whether the flow's Automated Process user passes the refresh permission check is
+  unverified; see decision-tables rule 1), but on an older org
+  nothing re-syncs the table and consumption rates at the undiscounted anchor rate with no
   error. Check `LastSyncDate` is after the `AssetRateAdjustment` rows
 - **DO NOT** read a non-zero `UsageRatableSummary.OverageQuantity` as commitment
   exhaustion — on ordinary rows it mirrors `TierQuantity` and means "beyond the
@@ -93,6 +95,8 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
 | Build an asset that carries usage entitlements | Yes | See [building-usage-assets.md](building-usage-assets.md). |
 | Add or change a commitment / pack / grant product | Yes | Check the PURP shape rule first. |
 | Verify a consumption build, add an invariant | Yes | See [verification.md](verification.md). |
+| Set up usage resources, units, policies, grants (Help-grounded) | Yes | See [usage-setup.md](usage-setup.md). |
+| Choose or configure rate cards, tiers, rating procedures | No | Use [`rate-management`](../rate-management/SKILL.md). |
 | Reset an org or account holding usage data | Yes | Convergent teardown — see below. |
 | Understand a usage object's fields/relationships | Partly | Object reference is `revenue-cloud-data-model/domains/usage.md`. |
 | Generate Quote→Order→**Invoice** demo volume | No | Use `txn-data-harness/SKILL.md`. |
@@ -120,8 +124,10 @@ Each stage is covered below; the two detailed stages have sub-files.
 Usage needs an asset carrying entitlements, and the interesting cases are
 **backdated** so a period has closed. `scripts/build_quote_to_asset.py` produces that
 state reproducibly. Read the sub-file before touching quote creation — it records
-which v67.0 endpoints are gone and why direct `QuoteLineItem` DML fails for
-TermDefined products.
+which v67.0 endpoints are gone and the billing-frequency rule for TermDefined lines
+([billing-setup](../billing-setup/SKILL.md) item 3). Use Place, as the script
+does: direct `QuoteLineItem` DML gives un-priced, inconsistent lines without the derived
+children (`scripts/df_workshop/README.md` → *Why replay, not DML*).
 
 ### 2. Record usage
 
@@ -298,6 +304,8 @@ Before a PR that touches usage data or behaviour:
 
 ## Related Skills
 
+- **Rate Management** — `.cursor/skills/rate-management/SKILL.md` (rate cards, rating procedures)
+- **Usage setup** — [usage-setup.md](usage-setup.md)
 - **Data model** — `.cursor/skills/revenue-cloud-data-model/domains/usage.md`
 - **SFDMU plans** — `.cursor/skills/sfdmu-data-plans/SKILL.md`
 - **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`

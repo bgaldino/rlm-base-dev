@@ -633,7 +633,9 @@ Use this quick checklist whenever pricing changes add or consume new context key
   authoring path, and the verification checklist.
 - **Connect CRUD tasks:** `tasks/rlm_expression_set_connect.py`; pre-flight
   validator `tasks/expression_set_schema.py`; tests `tests/test_expression_set_schema.py`.
-- **External doc link index:** `docs/salesforce/262/dev-guide/expression-set-business-apis-links.md`.
+- **External doc link index:**
+  `docs/salesforce/262/dev-guide/expression-set-business-apis-links.md` (262 capture;
+  not in the 264 snapshot).
 - CCI orchestration skill: `.cursor/skills/cci-orchestration/SKILL.md`
 - Repository integration skill: `.cursor/skills/repo-integration/SKILL.md`
 - SFDMU data plans skill: `.cursor/skills/sfdmu-data-plans/SKILL.md`

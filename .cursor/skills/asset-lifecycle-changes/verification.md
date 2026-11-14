@@ -30,13 +30,24 @@ For each change, record the state after every step:
     - its `QuoteLineDetail` rows (dated by `EffectiveFrom` and `EffectiveTo`);
     - `QuoteLineItemAttribute` for configured products;
     - the header `Subtotal`, `Discount` and `TotalPrice`.
-3. **Reprice** and read again: nothing should move. Use Reprice All or a Place request
-   with Force pricing, or a Place request that includes a line record. A Place request
-   that patches only the quote header isn't priced under System pricing: it is priced
-   only when it carries at least one quote or order line (or line attribute) record, so a
-   header-only PATCH leaves the lines untouched and "nothing moved" proves nothing. A
-   request that carries a context id is priced whenever the transaction has lines (not
-   measured). Force always prices [Platform behaviour, traced].
+3. **Reprice before the order is activated** and read again: nothing should move. Pricing of
+   a renewal, amendment or cancellation line reads the source asset's current state, and
+   activating the order changes that state, so a reprice afterwards can return different
+   prices (line and quote totals of 0 on a measured renewal, each lot a -lot/+lot pair; order
+   and assets unchanged [Measured: 2026-11-12, 264, scratch, one org]). After
+   activation, start a new lifecycle quote from the updated asset. Treat this as holding
+   for renewal, amendment and cancellation lines (measured only on a renewal, not on any
+   ramped quote); a Force reprice touches every line [Platform behaviour, traced], so it
+   shows the effect most `[inferred]`. Use Reprice All or a Place request with Force pricing; a
+   System request with a line record may not reprice every line where Delta Pricing applies
+   ([Delta pricing](../pricing-procedures/runtime-and-observability.md#delta-pricing)).
+   A graph-style Place request that patches only the quote header isn't priced under System
+   pricing: it is priced only when it carries at least one quote or order line (or line
+   attribute) record, so a header-only PATCH leaves the lines untouched and "nothing moved"
+   proves nothing. A request that carries a context id is priced whenever the transaction
+   has lines (not measured; whether Delta Pricing applies to that path, and which lines it then
+   moves, is not traced). Force
+   always passes the request test [Platform behaviour, traced].
 4. **Create the order** (`createOrdersFromQuote`), reprice it, and read `OrderItem`,
    `OrderItemDetail` and `OrderItemAttribute`. Read the order's `EffectiveDate` back: it is
    set to the earlier of the day the order is created and the earliest line start date on

@@ -358,11 +358,33 @@ python scripts/ai/check_sfdmu_layering.py --list   # also print every shared and
 
 Verified by `tests/test_check_sfdmu_layering.py`.
 
+### `check_skill_staleness.py`
+
+Scans `.cursor/skills/**/*.md` for release drift (the `skill_staleness` pr_gate check; selected by
+changes under `.cursor/skills/`, `docs/salesforce/` or `.claude/skill-manifest.yml`). Active release
+is `salesforce_release_active` in `.claude/skill-manifest.yml`. Text is read per block (paragraph,
+list item, table row, heading, or one fenced line), so wrapped labels and pins are read whole.
+Rules: `snapshot-link` (a `docs/salesforce/<N>/...` path for an older N when the active snapshot
+has the same file, same case), `stale-pin` ("Verified on Release <N>" with N older, unless the
+block says it was not re-verified or also pins the active or a newer release, which exempts every
+pin in the block) and `help-id` (a ``[Help: `ind.x`]`` id in no snapshot, or only in an older one
+without that release number in the block; skipped for the older case when the active release has
+no Help snapshot). Newer-release paths and ids are never flagged. `<!-- staleness: allow -->`
+exempts matches touching its line; use it only for a deliberate older-release citation.
+
+```bash
+python scripts/ai/check_skill_staleness.py            # all skills; exit 1 on findings
+python scripts/ai/check_skill_staleness.py FILE...    # these files only
+```
+
+Output is `path:line: rule: message`; exit 0 clean, 1 findings, 2 tool error. Tests:
+`tests/test_check_skill_staleness.py`.
+
 ### `pr_gate.py`
 
 Runs the mechanical checks a change actually needs, and reports the status of **every**
 check — including the ones it skipped, and why. One command instead of remembering which
-of thirty-four validators a given diff should have run.
+of thirty-five validators a given diff should have run.
 
 ```bash
 python scripts/ai/pr_gate.py --base origin/main   # select from the diff vs a base ref
@@ -615,7 +637,7 @@ it the violation, because on a correct file a working rule and a blind one retur
 answer. This file is densely commented precisely because each setting matters, which is what
 made the first version of three separate guards vacuous.
 
-A full `--all` run is 34 checks in about 100 seconds, of which the branch-scope *suite*
+A full `--all` run is 35 checks in about 100 seconds, of which the branch-scope *suite*
 (`tests/test_branch_scope.py`) is about 14. A typical docs-only selection is about 7 seconds, most
 of it the two checks that then ran on every change: `release_refs`, which reads every tracked text
 file (about 3), and `agent_tooling`. Measured 2026-10-11, with twenty-five checks then, on a workstation where every
@@ -625,7 +647,7 @@ one ran, because no optional dependency was missing; a machine blocked on one (`
 The two always-run checks added since: `private_refs` (one `git grep` of the private-tree
 citations) takes under a second, and `dockerignore` about three (measured 2026-11-10).
 
-Verified by `tests/test_pr_gate.py` (839 checks, throwaway repos, no network — hermetic for all but
+Verified by `tests/test_pr_gate.py` (842 checks, throwaway repos, no network — hermetic for all but
 one, the fixture that runs the real gate and so selects the real `skill_manifest` check, which
 resolves sibling repos by absolute path and therefore fails in a detached worktree), which
 drives the verdict rather than the helpers. Every mutation below is confirmed to fail the
@@ -645,7 +667,7 @@ empty stdout, indistinguishable from a clean tree, so it would drop uncommitted 
 the selection and, in the CCI-reference check, report "no drift" and pass — `--untracked-files=all`
 dropped, the setuptools co-requirement dropped or emitted after the package that needs it,
 a directory claim swallowing shell suites again, `pyproject.toml` removed from either
-pytest-driven check's triggers, each of the thirty-four trigger lists narrowed back off an input its
+pytest-driven check's triggers, each of the thirty-five trigger lists narrowed back off an input its
 check reads or a script it runs, and each of the four read-enumeration shapes stopped being recognised (directory
 arguments unexpanded, rooted single segments unseen, chain prefixes unfiltered, a root
 directory counted as a read). The rest of the corpus — the figure given below, counted
