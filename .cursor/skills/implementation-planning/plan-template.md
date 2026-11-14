@@ -197,7 +197,8 @@ Then list **extensions to existing skills** separately.
   act on an item an earlier order created, its scope is a recorded decision
   ([prediction-checks.md](prediction-checks.md) check 16).
 - [ ] Every [acceptance-chain.md](acceptance-chain.md) step the source needs cites its
-  golden ids, and the phase order follows [build-order.md](build-order.md) or records
+  golden ids (except the build checks, steps 0, 1 and 15), each step it rules out is
+  marked not applicable with the reason, and the phase order follows [build-order.md](build-order.md) or records
   why not.
 - [ ] Every row of the rule decision record names its fallback, or says why none is
   needed; list any row that doesn't.

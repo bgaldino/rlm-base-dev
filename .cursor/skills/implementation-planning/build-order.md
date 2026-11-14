@@ -11,12 +11,15 @@ is stage 0, P3 stages 1 and 2 plus the constraint models, P4 stages 3 to 5, P5 t
 approvals and stage 7, and P6 the rest of stage 6 and stages 9 and 10. P2 spikes build
 only the stages their must-hits need, on their own org, so stage 8 is first run by a P2a
 spike and first gated at P4. A P2b chain that a later gate reuses loads the stage 6
-configuration its orders read before its first order. Where a plan puts an item in a different phase, record why in
+configuration its orders read before its first order. Where the source shows tax or usage
+rates on the quote, build those stage 6 items in P4, or leave them out of the P4 goldens
+and record the decision. Where a plan puts an item in a different phase, record why in
 the decision log.
 
 ## Prerequisite graph
 
-Read each row as "needs the rows above it, as listed". Items in one stage can run in
+Each row needs only what its Needs cell lists; the stage number groups items and is not a
+strict order (constraint models need only the catalog). Items in one stage can run in
 parallel unless an edge says otherwise.
 
 | Stage | Build item | Needs | Edge source | Owner |
@@ -36,8 +39,8 @@ parallel unless an edge says otherwise.
 | 6 | Constraint models | Catalog bundles and their members | [constraint-models](../constraint-models/SKILL.md) `[inferred]` | [constraint-models](../constraint-models/SKILL.md) |
 | 6 | Approvals: matrix, flows, pricing flags | Pricing procedure for any level it calculates; notification content | [advanced-approvals](../advanced-approvals/SKILL.md), [What the repo ships](../advanced-approvals/SKILL.md#what-the-repo-ships) | [advanced-approvals](../advanced-approvals/SKILL.md) |
 | 6 | Tax engine, tax policies and treatments, legal entity | Stage 0; catalog (the products a tax policy applies to) | [dependency-ordering.md](../repo-integration/dependency-ordering.md#data-dependencies) (tax loads before billing, which reads its legal entity), [tax.md](../billing-operations/tax.md), [accounting.md](../billing-operations/accounting.md) | [billing-operations](../billing-operations/SKILL.md) |
-| 6 | Estimated tax on quotes and orders, where the source shows tax on quotes | Active tax policies (the repo's flow switches it on only after the tax data loads, citing Help: set the engine and policies up first) | [dependency-ordering.md](../repo-integration/dependency-ordering.md#prepare_rlm_org-step-ordering), `cumulusci.yml` (`deploy_quote_est_tax_settings`) | [billing-operations](../billing-operations/SKILL.md) |
-| 6 | Billing policies, treatments, payment terms | Catalog (products they apply to); the legal entity from the tax row | [Billing policies and treatments](../billing-setup/SKILL.md#billing-policies-and-treatments), [dependency-ordering.md](../repo-integration/dependency-ordering.md#data-dependencies) (billing shares tax's legal entity) | [billing-setup](../billing-setup/SKILL.md) |
+| 6 | Estimated tax on quotes and orders, where the source shows tax on quotes | Active tax policies (the repo's flow switches it on only after the tax data loads, citing Help: set the engine and policies up first) | [dependency-ordering.md](../repo-integration/dependency-ordering.md#prepare_rlm_org-step-ordering), `cumulusci.yml` (`deploy_quote_est_tax_settings`, flag `quote_est_tax`), [Pricing actions](../transaction-line-editor/runtime-behavior.md#4-pricing-actions) (Estimate Taxes needs the Revenue Setting) | [transaction-line-editor](../transaction-line-editor/SKILL.md) |
+| 6 | Billing policies, treatments, payment terms | Catalog (products they apply to); a legal entity where a treatment is selected by it (shared with the tax row where both are built) | [Billing policies and treatments](../billing-setup/SKILL.md#billing-policies-and-treatments), [dependency-ordering.md](../repo-integration/dependency-ordering.md#data-dependencies) (in this repo's data, billing reuses tax's legal entity) | [billing-setup](../billing-setup/SKILL.md) |
 | 6 | Fulfillment configuration | Catalog products it decomposes; context and rule resources it reads | [dro-plans Quick Rules](../dro-plans/SKILL.md#quick-rules) (parents before children), [authoring-and-deployment.md](../dro-plans/authoring-and-deployment.md) | [dro-plans](../dro-plans/SKILL.md) |
 | 6 | Contract setup | Feature access, settings, then types and states, then content | [salesforce-contracts Quick Rules](../salesforce-contracts/SKILL.md#quick-rules) | [salesforce-contracts](../salesforce-contracts/SKILL.md) |
 | 6 | Usage resources, product usage resources, grants, usage policies, commitments | The usage products and their units; billing policies on usage resources | [dependency-ordering.md](../repo-integration/dependency-ordering.md#data-dependencies), [usage-setup.md](../usage-consumption/usage-setup.md#manual-sequence-help-indum_configure_usage_records) (steps 4 to 11) | [usage-consumption](../usage-consumption/SKILL.md) |
@@ -61,7 +64,7 @@ A change in one domain makes lookups in another stale. Plan a refresh after each
 | After changing | Refresh or reactivate | Source |
 |---|---|---|
 | Products, price book entries, rates, contracts feeding a table | The decision tables that read them | [decision-tables](../decision-tables/SKILL.md), [Freshness](../decision-tables/SKILL.md#freshness--what-the-verdicts-mean) |
-| A decision table definition | The procedure that uses it, after the table | [Activation after a decision table change](../pricing-procedures/procedure-anatomy-and-ordering.md#activation-after-a-decision-table-change) |
+| A decision table definition | The procedure that uses it: after the table, make a small change to the procedure, save, then activate (Help) | [Activation after a decision table change](../pricing-procedures/procedure-anatomy-and-ordering.md#activation-after-a-decision-table-change) |
 | Newly loaded catalog content | The decision tables and the catalog search index, then wait for the index build; which of the two Place needed is not shown (traced in part: no search-index dependence was found) | [PCM load facts](../product-catalog-modeling/catalogs-and-loading.md#pcm-load-facts-264) (fact f) |
 | Rating records | Activation in dependency order | [dependency-ordering.md](../repo-integration/dependency-ordering.md#post-load-activation-patterns) |
 | Rate data | The decision tables rating reads; wait until they are no longer stale | [rate-management Quick Rules](../rate-management/SKILL.md#quick-rules) (7) |
@@ -84,8 +87,8 @@ citations, has nothing here to track.
 | 4 (tables) | `prepare_core` (`deploy_pre` deploys the definitions), `prepare_decision_tables` (activates them), then `refresh_all_decision_tables` late | The full refresh runs after all data is loaded |
 | 4 (recipe mappings) | `configure_core_pricing_recipe_table_mappings`, inside `prepare_expression_sets` | |
 | 5 (procedures) | `prepare_expression_sets`, then `activate_and_deploy_expression_sets` | Deploy early; activation after data and rating |
-| 1, 2 (catalog) | `prepare_product_data` | After `deploy_full` and the schedule metadata |
-| 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Schedules are set up before the catalog loads (some schedules stay inactive on purpose); pricing data loads after it |
+| 1, 2 (catalog) | `prepare_product_data` | After `deploy_full` and the schedule activation |
+| 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Existing schedules are activated before the catalog loads (some stay inactive on purpose); the adjustment records load with the pricing data after it |
 | 5 (revenue settings) | `prepare_revenue_settings` | Runs late, after constraints and guided selling |
 | 6 (fulfillment) | `prepare_dro` | After pricing data |
 | 6 (tax) | `prepare_tax` | Before billing; billing reads its legal entity. It also switches estimated tax on, which `prepare_core` left off |

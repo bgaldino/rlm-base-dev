@@ -22,7 +22,7 @@ never accept a number because the org returned it.
 
 | # | Step | Verify | Owner section |
 |---|---|---|---|
-| 0 | Catalog ready | Every sellable product has a selling model option, a price book entry, a category and is active `[inferred]`; each changed bundle passes product-definition validation `[inferred]`; one bundle configures with configuration rules on | [Check before and after](../product-catalog-modeling/catalogs-and-loading.md#check-before-and-after), [PCM load facts](../product-catalog-modeling/catalogs-and-loading.md#pcm-load-facts-264) (fact e), [pricing-setup Validation Checks](../pricing-setup/SKILL.md#validation-checks) |
+| 0 | Catalog ready | Every sellable product has a selling model option, a price book entry, a category (except a product sold only with others, which the platform refuses in a category) and is active `[inferred]`; each changed bundle passes Validate Product Definition; one bundle configures with configuration rules on | [Check before and after](../product-catalog-modeling/catalogs-and-loading.md#check-before-and-after), [product-catalog-modeling Validation Checks](../product-catalog-modeling/SKILL.md#validation-checks), [IsSoldOnlyWithOtherProds](../product-catalog-modeling/selling-models-and-lifecycle.md#issoldonlywithotherprods), [PCM load facts](../product-catalog-modeling/catalogs-and-loading.md#pcm-load-facts-264) (fact e), [pricing-setup Validation Checks](../pricing-setup/SKILL.md#validation-checks) |
 | 1 | Lookups fresh | No decision table is stale after the last data change; refresh ran after loads | [Freshness](../decision-tables/SKILL.md#freshness--what-the-verdicts-mean), [Validation Checks](../decision-tables/SKILL.md#validation-checks) |
 | 2 | Quote places | A quote placed with the intended route carries the intended lines, terms, billing frequencies and attributes | [rlm-business-apis](../rlm-business-apis/SKILL.md#transaction-lifecycle-apis), [Billing frequency](../billing-setup/SKILL.md#billing-frequency) |
 | 3 | Price | Each line price, discount, total and tax (estimated tax, where in scope; it needs active tax policies, [build-order.md](build-order.md)) equals the hand-computed value; read the pricing log or waterfall for any difference. After a change to a header field that pricing reads, reprice with Force or Reprice All before reading: a header-only Place PATCH was not priced | [runtime-and-observability.md](../pricing-procedures/runtime-and-observability.md), [pricing-setup Validation Checks](../pricing-setup/SKILL.md#validation-checks), [transaction-line-editor Quick Rules](../transaction-line-editor/SKILL.md#quick-rules) (5) |
@@ -41,12 +41,13 @@ never accept a number because the org returned it.
 
 ## Binding steps to rules
 
-Each chain step lists the rule IDs it proves ([SKILL.md](SKILL.md) step 2 numbers them).
-Mark a step not applicable only when the source rules the capability out, with the
-reason, or the owner confirms it out of scope. A rule with no step is a gap in the chain.
-A step with no rule is test data, so drop it or find the rule, except the build checks
-(steps 0, 1 and 15) and the sets the plan template always includes (Reprice and
-Attributes, [plan-template.md](plan-template.md) section 4), which stay without one.
+Each chain step lists the rule IDs it proves ([SKILL.md](SKILL.md) step 2 numbers them)
+and the golden ids that check them. Mark a step not applicable only when the source rules
+the capability out, with the reason. A rule with no step is a gap in the chain. A step
+with no rule is test data, so drop it or find the rule; the build checks (steps 0, 1
+and 15) are the exception and need neither a rule nor a golden id. The Reprice and
+Attributes golden sets ([plan-template.md](plan-template.md) section 4) are always
+included and attach to the steps they exercise (pricing, ordering, amending, renewing).
 
 ## Test data
 
