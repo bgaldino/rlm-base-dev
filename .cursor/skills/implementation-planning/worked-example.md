@@ -61,11 +61,11 @@ level, renewal at the same price, one currency, quote and contract documents.
 | D3 | Selling model, monitoring | Term defined, 36 months | R3 | [selling-models-and-lifecycle.md](../product-catalog-modeling/selling-models-and-lifecycle.md#choose-the-selling-model-from-the-pricing-basis) |
 | D4 | Selling model, installation | One-time | A one-time charge; milestone billing sits on one-time lines | [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services) |
 | D5 | Billing frequency, monitoring | Annual, in advance | R4. The owner says a frequency that differs from the pricing term needs a treatment on the line, so compare the model's term unit with the yearly frequency and log the result | [Billing frequency](../billing-setup/SKILL.md#billing-frequency) |
-| D6 | Assetizable | Kit and monitoring yes, installation no | Renewal acts on the subscription; installation is not renewed. Confirm with the customer | [IsAssetizable](../product-catalog-modeling/selling-models-and-lifecycle.md#isassetizable) |
+| D6 | Assetizable | Kit, monitoring and data feed yes, installation no | Renewal acts on the subscription; usage is recorded against a usage-entitled asset ([The Pipeline](../usage-consumption/SKILL.md#the-pipeline)); installation is not renewed. Confirm with the customer | [IsAssetizable](../product-catalog-modeling/selling-models-and-lifecycle.md#isassetizable) |
 | D7 | Discount scope | Line discount, approval above 10 percent of the quote | R6 gives the threshold only; line versus header discount is an assumption to confirm with the customer | [manual-discount.md](../pricing-procedures/elements/manual-discount.md) |
 | D8 | Installation completion to billing trigger | Open: not established by a skill | Verify live; log evidence | [updates-and-runtime.md](../dro-plans/updates-and-runtime.md) |
-| D9 | Ramp | None: flat 3-year term at one price | R7 says same price; no step-ups | [Ramps](../product-catalog-modeling/selling-models-and-lifecycle.md#ramps) |
-| D10 | Fulfillment decomposition scope | Per kit | The customer's answer: one visit per kit | [authoring-and-deployment.md](../dro-plans/authoring-and-deployment.md) |
+| D9 | Ramp | None: flat 3-year term at one price | R7 answer: same price; no step-ups | [Ramps](../product-catalog-modeling/selling-models-and-lifecycle.md#ramps) |
+| D10 | Installation decomposition: scope, quantity behavior, step scope | Order Line Item scope; the settings that give one visit per kit are open | The customer's answer: one visit per kit. The owner says Order Line Item with `AlwaysOne` gives one technical item for a line of quantity 10, so that pair alone does not give it | [Decomposed Line Items](../dro-plans/authoring-and-deployment.md#decomposed-line-items) |
 
 ## Derived counts
 
@@ -75,10 +75,11 @@ State the arithmetic, from the model and the decisions:
   cardinality rule the owner states (see the two kinds of
   [cardinality](../product-catalog-modeling/bundles-and-cardinality.md#two-kinds-of-cardinality)).
   Which of the two the run produces is read from the org, not assumed.
-- Fulfillment instances for the installation: depends on D10 (per order, per kit, per quantity).
-  With per kit, 10 kits give 10 installation tasks; if per order, one task. The decomposition scope
-  is a decision, not a default
-  ([authoring-and-deployment.md](../dro-plans/authoring-and-deployment.md)).
+- Fulfillment instances for the installation: an order of 10 kits carries one installation line
+  of quantity 10. With Order Line Item scope and `AlwaysOne` that is one technical item, not 10;
+  the customer wants 10 visits, so the quantity behavior and step scope that give 10 are part of
+  D10 and the count stays open until a run shows it
+  ([Decomposed Line Items](../dro-plans/authoring-and-deployment.md#decomposed-line-items)).
 - Yearly invoices for one monitoring line: 36 months / 12 = 3. Confirm the schedule count
   in the org.
 
@@ -90,7 +91,7 @@ Place the items on the [graph](build-order.md#prerequisite-graph):
    context attribute feeds pricing).
 2. Stage 1 and 2: catalog (hub, sensor, kit, installation, monitoring, data feed) and
    selling model options.
-3. Stage 3 to 5: price book and entries, tables, procedure with the line discount flag,
+3. Stage 3 to 5: price book and entries, tables, procedure with the Manual Discount element (D7),
    activate.
 4. Stage 6, in parallel: approval matrix and flow; billing policies and treatments;
    fulfillment configuration for the installation; usage resources, policies and
@@ -98,8 +99,8 @@ Place the items on the [graph](build-order.md#prerequisite-graph):
 5. Stage 7: quote and order UI, then the quote and contract document templates.
 6. Stage 8 to 10: test quote, order, fulfillment, assets, invoices, usage, amend, renew.
 
-Open items carried into the plan: D8, usage-product design, tax (no owner), invoice run and
-payments (no owner).
+Open items carried into the plan: D8, D10 settings, usage-product design, tax (no owner),
+invoice run and payments (no owner).
 
 ## Chain binding (excerpt)
 
@@ -107,7 +108,7 @@ payments (no owner).
 |---|---|---|
 | 3 Price | R1, R3, R8 | Hand-computed totals from the customer's price list |
 | 6 Approve | R6 | A quote at 9 percent routes to nobody; at 11 percent to one level |
-| 8 Fulfill | R2 | Installation tasks equal the derived count |
+| 8 Fulfill | R2 | Installation tasks equal one per kit, from the D10 settings |
 | 10 Bill | R4, R2 | 3 yearly invoices; installation billing per D8 evidence |
 | 12 Usage | R5 | Rated amount equals hand computation for one test month |
 | 14 Renew | R7 | Renewal line price equals the original |

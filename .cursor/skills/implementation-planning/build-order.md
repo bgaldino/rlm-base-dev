@@ -21,11 +21,11 @@ parallel unless an edge says otherwise.
 | 3 | Adjustment schedules, revision policies | Catalog, selling models, price books `[inferred]` | [Setup order](../pricing-setup/SKILL.md#setup-order) | [pricing-setup](../pricing-setup/SKILL.md) |
 | 3 | Context definition, mappings, tags | Custom fields | [dependency-ordering.md](../repo-integration/dependency-ordering.md#pre-deploy-numbered-directories), [context-service](../context-service/SKILL.md) | [context-service](../context-service/SKILL.md) |
 | 4 | Decision tables defined, data loaded, refreshed | Price books and source data they read | [Setup order](../pricing-setup/SKILL.md#setup-order), [The timing rule](../decision-tables/SKILL.md#the-timing-rule) | [decision-tables](../decision-tables/SKILL.md) |
-| 4 | Recipe and table mappings | Decision tables, context | [pricing-wiring](../pricing-wiring/SKILL.md#reusable-layering-model) | [pricing-wiring](../pricing-wiring/SKILL.md) |
+| 4 | Recipe and table mappings | Decision tables, context | [Pricing Recipe Table Mappings](../pricing-wiring/SKILL.md#a-pricing-recipe-table-mappings), [Setup order](../pricing-setup/SKILL.md#setup-order) | [pricing-wiring](../pricing-wiring/SKILL.md) |
 | 5 | Pricing procedure: elements, simulate, activate, set in revenue settings | Recipe, tables fresh, context tags | [Setup order](../pricing-setup/SKILL.md#setup-order), [Activation after a decision table change](../pricing-procedures/procedure-anatomy-and-ordering.md#activation-after-a-decision-table-change) | [pricing-procedures](../pricing-procedures/SKILL.md), [expression-sets](../expression-sets/SKILL.md) |
 | 6 | Constraint models | Catalog bundles and their members | [constraint-models](../constraint-models/SKILL.md) `[inferred]` | [constraint-models](../constraint-models/SKILL.md) |
 | 6 | Approvals: matrix, flows, pricing flags | Pricing procedure for any level it calculates; notification content | [advanced-approvals](../advanced-approvals/SKILL.md), [What the repo ships](../advanced-approvals/SKILL.md#what-the-repo-ships) | [advanced-approvals](../advanced-approvals/SKILL.md) |
-| 6 | Billing policies, treatments, payment terms | Catalog (products they apply to) | [Billing policies and treatments](../billing-setup/SKILL.md#billing-policies-and-treatments) | [billing-setup](../billing-setup/SKILL.md) |
+| 6 | Billing policies, treatments, payment terms | Catalog (products they apply to); legal entities from tax setup (no owning skill: open) | [Billing policies and treatments](../billing-setup/SKILL.md#billing-policies-and-treatments), [dependency-ordering.md](../repo-integration/dependency-ordering.md#data-dependencies) (billing shares tax's legal entity) | [billing-setup](../billing-setup/SKILL.md) |
 | 6 | Fulfillment configuration | Catalog products it decomposes; context and rule resources it reads | [dro-plans Quick Rules](../dro-plans/SKILL.md#quick-rules) (parents before children), [authoring-and-deployment.md](../dro-plans/authoring-and-deployment.md) | [dro-plans](../dro-plans/SKILL.md) |
 | 6 | Contract setup | Feature access, settings, then types and states, then content | [salesforce-contracts Quick Rules](../salesforce-contracts/SKILL.md#quick-rules) | [salesforce-contracts](../salesforce-contracts/SKILL.md) |
 | 6 | Usage resources, rating policies, commitments | Catalog, billing policies on usage resources, then rates | [dependency-ordering.md](../repo-integration/dependency-ordering.md#data-dependencies), [usage-consumption](../usage-consumption/SKILL.md) | [usage-consumption](../usage-consumption/SKILL.md) |
@@ -72,21 +72,23 @@ citations, has nothing here to track.
 | 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Schedules activate before the catalog loads; pricing data loads after it |
 | 5 (revenue settings) | `prepare_revenue_settings` | Runs late, after constraints and guided selling |
 | 6 (fulfillment) | `prepare_dro` | After pricing data |
+| 6 (tax) | `prepare_tax` | Before billing; billing reads its legal entity |
 | 6 (billing, usage) | `prepare_billing`, `prepare_rating` | Rating follows billing, as the data dependencies require |
 | 6 (contracts) | `prepare_clm` | |
-| 6 (approvals) | `prepare_approvals_pricing` | After expression-set activation |
+| 6 (approvals) | `prepare_approvals` (within `prepare_quantumbit`), then `prepare_approvals_pricing` | Matrix, flows and data deploy before the catalog; the pricing overlay comes after expression-set activation |
 | 6 (constraints) | `prepare_constraints` | After the catalog |
 | 7 (documents) | `prepare_docgen` | Runs early, right after pricing data and before fulfillment |
 | 7 (UX) | `prepare_ux` | Runs late, after objects and pages exist |
-| Refresh triggers (before stage 8) | `prepare_pricing_discovery`, `rebuild_search_index` | End-of-build refreshes |
+| Refresh triggers (before stage 8) | `refresh_all_decision_tables`, then `rebuild_search_index` | End of build, after all data loads; `prepare_pricing_discovery` runs earlier, after revenue settings |
 
 The flow is ordered for one scripted build, so it also contains repo-specific items (demo
 catalog, personas, in-app learning, agents, community) that no customer graph needs unless
 asked. Where the flow and the graph disagree, the flow reflects a repo constraint (for
 example shared sample data). Order differs too: context definitions deploy with the core
 settings in the flow but sit at stage 3 in the graph, price adjustment schedules activate before
-the catalog loads in the flow but need it in the graph, documents are built early in the flow but
-sit at stage 7, and revenue settings are set late in the flow but sit at stage 5; decide per
+the catalog loads in the flow but follow it in the graph `[inferred]`, approval metadata and data
+deploy before the catalog in the flow but sit at stage 6, documents are built early in the flow
+but sit at stage 7, and revenue settings are set late in the flow but sit at stage 5; decide per
 plan and record why.
 
 To re-verify the cross-check when the flow changes, list its steps (`cci flow info
