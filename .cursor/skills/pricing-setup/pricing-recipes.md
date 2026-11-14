@@ -59,8 +59,9 @@ Element lookups show only tables linked to the **default recipe of the procedure
 - Scheduled flow cautions [Help: `ind.pricing_automate_pricing_data_sync.htm`]: run off-peak;
   deactivate during bulk loads and run a manual sync after; add a fault path or enable flow error
   emails (failures are silent otherwise, e.g. deactivated table or hourly limit); confirm via
-  Decision Tables > Last Refreshed. Permissions for building the flow: Manage Flow, Salesforce
-  Pricing Design Time, and Assetize Order for a complete sync. The action has its own gate:
+  Decision Tables > Last Refreshed. Permissions, with Help's purposes: Manage Flow to create and
+  activate the flow, Salesforce Pricing Design Time to enable data sync, Assetize Order for a
+  complete sync of decision tables. The action has its own gate:
   [decision-tables](../decision-tables/SKILL.md) (the refresh flow action is admin-only).
 
 ## Verify

@@ -120,8 +120,8 @@ gone** (`/commerce/sales-transactions/actions/place`,
 billing-frequency rule for TermDefined lines
 ([billing-setup](../billing-setup/SKILL.md) item 3). Use Place, as the script does:
 direct `QuoteLineItem` DML gives un-priced, inconsistent lines without the derived children
-(`scripts/df_workshop/README.md` → *Why replay, not DML*). Read it before
-adding any quote-creation path to either tool.
+(`scripts/df_workshop/README.md` → *Why replay, not DML*). Read the docstring
+before adding any quote-creation path to either tool.
 
 ## Source Files
 
