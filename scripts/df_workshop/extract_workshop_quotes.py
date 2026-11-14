@@ -10,7 +10,8 @@ are *derived*: the platform generates them when a quote is created and priced
 through the RLM transaction/pricing pipeline. Direct DML of a QuoteLineItem
 produces an un-priced, internally inconsistent line. (A TermDefined line whose billing
 frequency differs from the pricing term needs a treatment allowing it on either route:
-BillingFrequency/BillingTreatment coupling.) So we cannot "copy the rows" -- we must re-create each quote through
+BillingFrequency/BillingTreatment coupling.) So we cannot "copy the rows" -- we must
+re-create each quote through
 ``POST /connect/rev/sales-transaction/actions/place`` (Place Sales Transaction)
 and let the org generate the children.
 
