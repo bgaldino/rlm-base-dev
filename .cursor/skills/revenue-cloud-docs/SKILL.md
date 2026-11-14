@@ -124,26 +124,27 @@ does not have to rediscover it.
 
 ```bash
 # By literal term in body
-grep -rl "Billing Arrangement" docs/salesforce/262/help/articles/
+grep -rl "Billing Arrangement" docs/salesforce/264/help/articles/
 
 # By article title in manifest
 python3 -c "
 import json
-m = json.load(open('docs/salesforce/262/help/manifest.json'))
+m = json.load(open('docs/salesforce/264/help/manifest.json'))
 for a in m['articles']:
     if 'arrangement' in a['title'].lower():
         print(a['article_id'], '-', a['title'])
 "
 
 # By article ID prefix (all milestone-related)
-ls docs/salesforce/262/help/articles/ind.billing_milestone*.htm.md
+ls docs/salesforce/264/help/articles/ind.billing_milestone*.htm.md
 ```
 
 ### Reading an article cleanly (skip frontmatter)
 
 ```bash
 # Skip frontmatter, print body only
-awk '/^---$/{c++; next} c==2{print}' docs/salesforce/262/help/articles/ind.billing_invoice_batch_run.htm.md
+awk '/^---$/{c++; next} c==2{print}' \
+  docs/salesforce/264/help/articles/ind.billing_invoice_batch_run.htm.md
 ```
 
 ### Cross-release diff
@@ -198,7 +199,7 @@ Each functional area in Revenue Cloud has its own root Help article and ID prefi
 | Billing | Billing | `ind.billing.htm` | `ind.billing` |
 | **Cross-domain** | **Agentforce for Revenue Management** | `ind.rev_agent_overview.htm` | `ind.rev_agent` |
 | Approvals | Advanced Approvals | `ind.approvals_advanced_approvals.htm` | `ind.approvals` |
-| Collections | Collections and Recovery | `ind.collections.htm` | `ind.collections` |
+| Collections | Collections and Recovery | `ind.billing_collections.htm` | `ind.billing_collections` |
 
 **Manifest structure.** The shared manifest at `docs/salesforce/{release}/help/manifest.json` carries a top-level `areas` array that accumulates per-area run metadata (root, prefix, snapshot dates, per-area stats). Each article entry in `manifest.articles` is tagged with its `area` for filtering. The `index.md` renders an overall stats table + a per-area coverage summary + per-area captured-articles sections when the manifest covers multiple areas, falling back to the original single-area layout when only one area is captured. Use `manifest.areas` (or `grep area:` on per-article frontmatter) to filter by functional area.
 
@@ -220,10 +221,10 @@ The subagents under **Agentforce for Revenue Management** operate inside specifi
 
 ```bash
 # WRONG — misses ind.qocal_agentforce_quote_mgmt.htm and similar:
-grep -l "Quote Management" docs/salesforce/262/help/articles/ind.rev_agent_*.md
+grep -l "Quote Management" docs/salesforce/264/help/articles/ind.rev_agent_*.md
 
 # RIGHT — catches both topic-reference and how-to articles:
-grep -l "Quote Management" docs/salesforce/262/help/articles/*.md
+grep -l "Quote Management" docs/salesforce/264/help/articles/*.md
 ```
 
 To get full agent coverage you need the `agents` preset (the dedicated area) **plus** every functional area's snapshot. Without the functional-area snapshots, you'll have agent topic descriptions but no how-to / use-case grounding.

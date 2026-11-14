@@ -10,24 +10,26 @@ description: >-
 
 # Revenue Cloud Data Model
 
-Revenue Cloud v68.0 (Winter '27 / Release 264) — **263 objects, 4,252 platform fields, 674 relationships** across 9 domains.
+Revenue Cloud v68.0 (Winter '27 / Release 264) across 9 domains. Current object, field and
+relationship totals are in `docs/erds/erd-data.json` and
+`docs/erds/validation-report.md` (generated; trust them over any count in prose).
 
 The ERD reflects **canonical Revenue Cloud platform schema only**. Custom fields (any `__c` suffix, including project-deployed `RLM_*__c` and managed-package fields) are excluded by validation tooling so the schema stays platform-pure.
 
 **Verified 2026-08-15 against:**
 - Two fresh `prepare_rlm_org` 264 scratch orgs — `rlm-base__264merged` and
   `rlm-base__264fresh` (Winter '27, API v68, `ent` shape). They agreed
-  field-for-field (254 describable objects, 3,913 platform fields each), so no
-  figure here rests on a single org.
+  field-for-field (object and field counts in `scripts/erd/schema_diff/264-schema.json`),
+  so no figure here rests on a single org.
 - The committed 262 snapshot `scripts/erd/schema_diff/262-schema.json` as baseline —
   the same artifact the previous refresh was built from, and the same org shape, so
   the delta is not confounded by shape differences.
 - Core UDD source and the 127-entity orphan classification carried forward from the
   262 pass (`.agents/artifacts/topics/orphan-fields/`); not re-run for 264.
 
-**262 → 264 delta:** **70 fields added, 8 removed**, 0 type changes, 1 polymorphic
-reference-target change, 270 picklist values added and 18 removed, across 62 changed
-objects. All 8 removals are in the usage domain, and **7 of the 8** are one coherent
+**262 → 264 delta:** counts are in the generated
+`scripts/erd/schema_diff/262-vs-264-diff.md`. All 8 field removals are in the usage domain, and
+**7 of the 8** are one coherent
 change rather than attrition — 264 moved the usage policy bindings off the definition
 and runtime objects and onto `ProductUsageResourcePolicy`, the
 **product-and-resource-specific** binding site. The 8th,
@@ -210,11 +212,19 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 
 ## Source Data
 
-- `docs/erds/erd-data.json` — canonical machine-readable schema (263 objects, 4,252 fields, 674 relationships, custom fields excluded)
+- `docs/erds/erd-data.json` — canonical machine-readable schema (custom fields excluded)
 - `docs/erds/contracts-erd-data.json` — separately sourced Contracts CLM viewer extension; see its 264 schema provenance before treating feature-gated visibility as universal
 - `docs/erds/*.mermaid` — per-domain ERD diagrams
 - `docs/erds/revenue-cloud-erd.html` — interactive force-directed graph viewer
-- `docs/erds/validation-report.md` — most recent ERD vs org schema gap analysis; records the **expected** feature-gated baseline (9 objects unfindable in a default RLM scratch profile, **0** objects with field gaps, **58** ERD-side fields absent from a stock org — the feature-gated / cross-cloud set carried forward from the 262 pass). Use this file as the diff target for new validation runs — a clean refresh produces zero NEW gaps vs this baseline, not zero gaps absolute. The 262 baseline was 33 objects and 822 fields. The object figure fell to 0 because `--patch` added every field the org had; the field figure fell to 58 through deliberate removal (orphan-cleanup batches plus the 8 fields 264 retired), because `--patch` only ever adds and cannot reduce it. Trust the generated report over any count quoted in prose.
+- `docs/erds/validation-report.md` — most recent ERD vs org schema gap analysis; records the
+  **expected** feature-gated baseline (objects unfindable in a default RLM scratch profile,
+  objects with field gaps, ERD-side fields absent from a stock org — the feature-gated /
+  cross-cloud set carried forward from the 262 pass). Use this file as the diff target for new
+  validation runs — a clean refresh produces zero NEW gaps vs this baseline, not zero gaps
+  absolute. The gap counts fell from the 262 baseline because `--patch` added every field the
+  org had and orphan-cleanup batches plus the fields 264 retired were removed deliberately;
+  `--patch` only ever adds and cannot reduce the field gap. Trust the generated report over
+  any count quoted in prose.
 - `scripts/erd/schema_diff/{260,262,264}-schema.json` — fresh-org schema snapshots, **one committed per release**; 264 is the current one. Field metadata in these files is a **dict keyed by field name**, not a list — an accessor written for a list returns `None` for every field and any check built on it silently passes
 - ⚠ **The second-org cross-validation is not a committed artifact.** The 264 capture is dual-sourced, but only one snapshot is kept; the second extraction is reproducible rather than stored, so the repo does not carry two 2 MB snapshots per release. To re-confirm, extract the ERD's own object list from a second org of the same release and diff:
 

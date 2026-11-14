@@ -10,7 +10,18 @@ description: >-
 
 # Revenue Cloud Business APIs
 
-API v68.0 (Winter '27 / Release 264). The per-domain reference docs under `docs/api/` cover 155 endpoints across 9 domains — 143 re-extracted (grounded) from the 264 (v68.0) developer guide, plus 12 retained/external (six external Salesforce Commerce Payments Billing endpoints under `/commerce/payments/`, outside the 264 RLM guide; five v59-carryover Context Service endpoints, for which the 264 guide has no Business-API section; and one legacy PCM route — `/connect/pcm/products/{productId}/related-records` — with no 264 snapshot article). Paths are relative to `/services/data/v68.0/` but span several resource families — `/connect/`, `/revenue/`, `/commerce/`, `/industries/`, `/global-promotions-management/`, `/asset-management/` — not a single `/connect/` prefix. 264 is pre-GA, so treat a live 264 org as ground truth over the docs. The downloadable Postman collection JSON under `postman/` is still the prior v66.0 baseline and is being regenerated against a live 264 org. The viewer at `docs/api/index.html` shows all 155 endpoints, including the six v68 additions (Pricing Recipe Clone and Valid Elements, Unlock Transaction, Billing Checkout, Composite Collection Plan, Refund Credit Memo); its data is hand-maintained, so the Markdown references win on any disagreement.
+API v68.0 (Winter '27 / Release 264). The per-domain reference docs under `docs/api/`
+span 9 domains; endpoint counts and which entries are retained or external rather than
+re-extracted from the 264 developer guide are in
+[`docs/api/README.md`](../../../docs/api/README.md).
+Paths are relative to `/services/data/v68.0/` but span several resource families
+(`/connect/`, `/revenue/`, `/commerce/`, `/industries/`, `/global-promotions-management/`,
+`/asset-management/`), not a single `/connect/` prefix.
+Check `.claude/skill-manifest.yml` (`salesforce_release_active`) for the active release; while
+that release is pre-GA, treat a live org as ground truth over the docs.
+The downloadable Postman collection JSON under `postman/` is the prior v66.0 baseline
+(see `docs/api/README.md`). The viewer at `docs/api/index.html` is hand-maintained, so the
+Markdown references win on any disagreement.
 
 ## Quick Rules
 
@@ -162,19 +173,18 @@ Context definitions store session state and configuration across API calls. Used
 ## Reference
 
 The cross-domain API reference lives as per-area markdown under
-[`docs/api/`](../../../docs/api/) — 155 endpoints across 9 domains (PCM,
-Product Discovery, Product Configurator, Pricing, Rate Management, Transaction
-Management, Usage Management, Billing, Context Service). Of these, 143 are
-re-extracted (grounded) from the Release 264 (Winter '27, v68.0) developer guide;
-12 are retained/external (six external Commerce Payments Billing endpoints under
-`/commerce/payments/`; five v59-carryover Context Service endpoints, for which
-the 264 guide has no Business-API section; and one legacy PCM route —
-`/connect/pcm/products/{productId}/related-records` — with no 264 snapshot
-article). 264 is pre-GA, so treat a live 264 org as ground truth over the guide.
+[`docs/api/`](../../../docs/api/) (PCM, Product Discovery, Product Configurator,
+Pricing, Rate Management, Transaction Management, Usage Management, Billing, Context
+Service). Endpoint counts, and the entries retained or external rather than re-extracted
+from the Release 264 developer guide, are listed in
+[`docs/api/README.md`](../../../docs/api/README.md). While the active release (see
+`.claude/skill-manifest.yml`) is pre-GA, treat a live org as ground truth over the guide.
 
 ## Interactive Viewer
 
-Open `docs/api/index.html` in a browser for a searchable, collapsible API reference with dark/light theme toggle. It covers all 155 endpoints; the per-domain Markdown in `docs/api/` is authoritative.
+Open `docs/api/index.html` in a browser for a searchable, collapsible API reference with
+dark/light theme toggle. It covers every documented endpoint; the per-domain Markdown in
+`docs/api/` is authoritative.
 
 ## Postman Collection
 
