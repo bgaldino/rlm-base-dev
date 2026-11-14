@@ -68,7 +68,9 @@ Items in one stage can run in parallel unless an edge says otherwise `[inferred]
 Edges the skills state only for one domain, and not as part of a cross-domain graph, are
 listed above with their source. Edges the table marks `[inferred]`, and any edge between
 stages 6 and 9 that neither this table nor an owner skill states (for example what billing
-needs from fulfillment), are not established: record them as decisions the same way.
+needs from fulfillment), are not established: record them as decisions the same way. An ordering edge no skill
+states counts as Repo (inferred) here; knowledge-sources.md trigger (a) applies only when a
+later phase can't run if the edge is wrong.
 
 ### Refresh and activation triggers
 

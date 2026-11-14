@@ -121,8 +121,10 @@ milestone-billed service, state what a quantity an amendment adds is billed by, 
 record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
 Read each amendment, cancellation and renewal quote's values before its order activates,
 and don't reprice it afterwards: a full reprice after activation set a renewal's totals to 0
-(`transaction-line-editor` Quick Rule 5; measured once, on a renewal, and for amendments and
-cancellations traced in part, not measured).
+(`transaction-line-editor` Quick Rule 5: the rule not to reprice after activation is traced in
+part for every lifecycle quote; the zero total was measured once, on an unramped renewal by API
+call; amendments, cancellations, ramped quotes and the button aren't measured, and why it
+returned 0 isn't traced).
 
 ## 5. Phases, gates, skills
 
@@ -204,7 +206,7 @@ Then list **extensions to existing skills** separately.
 - [ ] Every [acceptance-chain.md](acceptance-chain.md) step the source needs cites its
   rule IDs and golden ids (except the build checks, steps 0, 1 and 15), every rule ID in the register maps to a chain step, each step the source or a
   recorded decision excludes is marked not applicable, citing which, every step the source
-  is silent on has a recorded scope decision, and the phase order follows [build-order.md](build-order.md) or records
+  is silent on (other than the build checks, which always apply) has a recorded scope decision, and the phase order follows [build-order.md](build-order.md) or records
   why not.
 - [ ] Every row of the rule decision record names its fallback, or says why none is
   needed; list any row that doesn't.
