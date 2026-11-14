@@ -214,10 +214,11 @@ it, and it applies only when all its conditions hold, see [runtime and
 observability](../pricing-procedures/runtime-and-observability.md#delta-pricing)), Help says to
 click **Reprice All** afterwards. The action itself saves the header values and then runs a full
 (Force) reprice. After a header field edited by other means, use Reprice All or Force pricing:
-a graph-style System request with only the header doesn't price, and a priced System request
-(a line record, or the context-id path, not measured) may not reprice every line where Delta
-Pricing applies (section 4). A header edit in the record UI was not measured [Platform
-behaviour, traced]. The Order variant of the action was not traced. The
+a graph-style System request with only the header doesn't price [Platform behaviour, traced];
+a System request with a line record may not reprice every line where Delta Pricing applies
+(the header-change case was not measured), and whether Delta Pricing applies to the context-id
+path is not traced (section 4). A header edit in the record UI was not measured. The Order
+variant of the action was not traced. The
 waterfall shows each line's share. Users need Salesforce Pricing Run Time User.
 
 **The setup is in the pricing procedure, not the editor.** Manage Header Adjustment takes the type,
