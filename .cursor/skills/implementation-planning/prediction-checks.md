@@ -213,7 +213,9 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     identifier (unmeasured in `dro-plans`) (Help `ind.dro_decomposition_scope`). A later new-sale
     order that carries a line decomposing to an Account-scope item got a line for it (one
     org; on other lifecycle orders unmeasured; see the bullet on lines that come back). Take each instance's quantity from its
-    quantity method: Always One gives one (`dro-plans` → `authoring-and-deployment.md`),
+    quantity method: Always One gives one per source line on Order Line Item scope (`dro-plans` →
+    `authoring-and-deployment.md`; under a scope that merges lines, or across orders, it is
+    unmeasured, so spike it),
     and Aggregate sums the source lines' quantities with no unit-of-measure conversion
     (Help `ind.dro_unit_of_measure_inheritance_and_rounding_values`), then rounds to the unit
     of measure's scale and rounding rules (same article); where source lines in different
