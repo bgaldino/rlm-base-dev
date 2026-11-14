@@ -59,9 +59,9 @@ Items in one stage can run in parallel unless an edge says otherwise `[inferred]
 | 10 | Invoice runs, tax, payments and credits | Billing schedules; tax engine and legal entity | [billing-operations Quick Rules](../billing-operations/SKILL.md#quick-rules) (2: invoices come from schedules) | [billing-operations](../billing-operations/SKILL.md) |
 
 Edges the skills state only for one domain, and not as part of a cross-domain graph, are
-listed above with their source. Edges the table marks `[inferred]` and any edge between
-stages 6 and 9 that this table leaves implicit (for example what billing needs from
-fulfillment) are not established by a skill: log them as open and verify live.
+listed above with their source. Edges the table marks `[inferred]`, and any edge between
+stages 6 and 9 that neither this table nor an owner skill states (for example what billing
+needs from fulfillment), are not established: log them as open and verify live.
 
 ### Refresh and activation triggers
 
