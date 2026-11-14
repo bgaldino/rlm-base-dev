@@ -18,7 +18,8 @@ changes [Help: `ind.billing_schedules_standalone_api`]. Help
 names `BillingContext` for its request [Help: `ind.billing_schedules_from_order_items`] but
 `StandaloneBillingContext` as the definition it uses [Help:
 `ind.billing_standard_context_definitions`]; which applies is not measured. Help
-recommends extending the standard definitions and using the extended copy.
+recommends extending the standard definitions and using the extended copy
+[Help: `ind.billing_standard_context_definitions`].
 
 - A schedule group holds one or more billing schedules for an order product
   [Help: `ind.billing_schedules_and_schedule_groups`]; billing day of month, next billing
@@ -28,6 +29,9 @@ recommends extending the standard definitions and using the extended copy.
   [Help: `ind.billing_setup_enable`].
 - Turning Billing off stops schedule creation for newly activated orders and fails queued
   asynchronous requests and runs [Help: `ind.billing_considerations`].
+- Billing can't be turned on while Subscription Management is enabled, and the Order Bill
+  To Contact field-level security must be set by hand before the Billing context definition
+  is cloned [Help: `ind.billing_considerations`].
 
 ## Choose how invoices are produced
 

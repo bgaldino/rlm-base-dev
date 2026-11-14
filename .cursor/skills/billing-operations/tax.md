@@ -80,7 +80,8 @@ total heap size limit [Help: `ind.billing_tax_configuration_prerequisites`,
 tax. The engine must support tax for credits, or negative invoice lines can't be
 processed and invoice voids fail
 [Help: `ind.billing_tax_engine_and_engine_providers_create`]. The Tax Admin permission set
-creates engines, policies and treatments [Help: `ind.billing_tax_policies_and_treatments_create`].
+creates engines, policies and treatments [Help: `ind.billing_tax_engine_create`,
+`ind.billing_tax_policies_and_treatments_create`].
 
 ## Revenue Standard Tax Engine
 

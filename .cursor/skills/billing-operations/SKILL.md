@@ -53,9 +53,10 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
    level, payments first or credits first, and the match rules are Billing Settings, and
    they change what a balance means [payments-and-credits.md](payments-and-credits.md).
 7. **Legal entity is the accounting key.** It is required for financial accounting, it
-   selects billing and tax treatments when a policy says Legal Entity, and every
-   journal and accounting period hangs on it [Help: `ind.billing_legal_entity_default`]
-   ([accounting.md](accounting.md)).
+   selects tax treatments when a tax policy says Legal Entity, and every journal and
+   accounting period hangs on it [Help: `ind.billing_legal_entity_default`]
+   ([accounting.md](accounting.md)). Billing treatment selection by legal entity is in
+   [billing-setup](../billing-setup/SKILL.md#billing-policies-and-treatments).
 8. **Read back each stage before the next.** Schedules, then invoices, tax, payments,
    credits, journals; queries per stage are in the sub-files and under Validation Checks.
 
@@ -68,9 +69,9 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
 - **DO NOT** use the Create Standalone Billing Schedules API for a billing schedule group
   linked to an asset; amend, renew and cancel from the order or asset and use the
   order-to-schedule flow or the orders API [Help: `ind.billing_schedules_standalone_api`].
-- **DO NOT** treat the Revenue Standard Tax Engine as a compliance engine: Help calls it
-  designed for simple calculations at line level and might include rounding at line level
-  [Help: `ind.billing_standard_tax_rate`].
+- **DO NOT** treat the Revenue Standard Tax Engine as a compliance engine: Help says it
+  is designed for simple calculations and may not suit tax compliance needs; it calculates,
+  and might round, at line level [Help: `ind.billing_standard_tax_rate`].
 - **DO NOT** write off, void or delete as a shortcut for a wrong amount. Each has its own
   effect on credits, tax and journals ([payments-and-credits.md](payments-and-credits.md)).
 - **DO NOT** state a number, amount, count or elapsed time for any stage as fact; this repo

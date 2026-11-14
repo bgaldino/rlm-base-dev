@@ -102,11 +102,11 @@ This is an inference from reading the Billing article list, not from a product s
 `qb-billing` loads the ledger accounts and assignment rules, plus accounting periods and
 legal entity accounting periods; it reads the legal entities that `qb-tax` creates.
 `deploy_billing_id_settings` sets the org defaults. `qb-accounting` is reference data
-with the same ledger accounts and rules plus an empty journal entry rules file and
-billing batch filter criteria, and no
-CCI task loads it
+with the same ledger accounts and rules plus an empty journal entry rules file and 11
+billing batch filter criteria rows; no CCI task loads it
 [Repo: `datasets/sfdmu/qb/en-US/qb-billing/README.md`,
-`datasets/sfdmu/qb/en-US/qb-tax/README.md`, `docs/references/repository-layout.md`,
+`datasets/sfdmu/qb/en-US/qb-tax/README.md`,
+`datasets/sfdmu/qb/en-US/qb-accounting/README.md`, `docs/references/repository-layout.md`,
 `billing-setup/shipped-billing.md`]. That journals appear correctly on a posted invoice
 for the repo's rules: not measured.
 

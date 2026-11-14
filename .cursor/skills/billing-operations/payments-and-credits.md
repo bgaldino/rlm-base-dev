@@ -17,7 +17,8 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
 
 - Create Payment Schedules and Payment Schedule Items: automatic, for posted invoices.
   Otherwise create them by hand [Help: `ind.billing_payment_schedules_and_payment_schedule_items`].
-- Retry Failed Payments: needs a default payment retry rule set.
+- Retry Failed Payments: needs a default payment retry rule set
+  [Help: `ind.billing_setup_payment_retry_rules`].
 - Application of Payments to Posted Invoices: standalone processed payments apply during
   an invoice run.
 - Issue Refunds and Settle Balances: automatic refund when a fully settled invoice is
