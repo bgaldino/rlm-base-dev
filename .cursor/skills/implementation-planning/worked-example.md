@@ -33,7 +33,7 @@ threshold. Customers renew at the end of the term."
 - Catalog: how many sensors per kit, fixed or chosen? Is the hub sold alone?
   ([bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md))
 - Fulfillment and billing: is installation a manual visit, a partner job or a scheduled
-  task? What marks it complete? Is it billed on completion, at order, or in instalments?
+  task? What marks it complete? Is it billed on completion, at order, or in installments?
   ([authoring-and-deployment.md](../dro-plans/authoring-and-deployment.md),
   [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services))
 - Billing: is the yearly monitoring charge billed at the start or the end of each year?

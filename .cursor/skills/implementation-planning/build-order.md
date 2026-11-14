@@ -64,7 +64,7 @@ Use it to confirm an edge, never as the customer plan. Cited by flow or task nam
 
 | Graph stage | Realized by | Notes |
 |---|---|---|
-| 0, 1 (settings, fields, context definitions) | `prepare_core` | Settings, licenses, context definitions and pre-deploy metadata come first |
+| 0, 1, 3 (settings, fields; context definitions) | `prepare_core` | Settings, licenses, context definitions and pre-deploy metadata come first |
 | 4 (tables) | `prepare_decision_tables`, then `refresh_all_decision_tables` late | Definitions early; the full refresh runs after all data is loaded |
 | 5 (procedures) | `prepare_expression_sets`, then `activate_and_deploy_expression_sets` | Deploy early; activation after data and rating |
 | 1, 2 (catalog) | `prepare_product_data` | After `deploy_full` and the schedule metadata |
@@ -82,9 +82,10 @@ Use it to confirm an edge, never as the customer plan. Cited by flow or task nam
 The flow is ordered for one scripted build, so it also contains repo-specific items (demo
 catalog, personas, in-app learning, agents, community) that no customer graph needs unless
 asked. Where the flow and the graph disagree, the flow reflects a repo constraint (for
-example shared sample data). Order differs too: documents are built early in the flow but sit at
-stage 7 in the graph, and revenue settings are set late in the flow but sit at stage 5;
-decide per plan and record why.
+example shared sample data). Order differs too: context definitions deploy with the core
+settings in the flow but sit at stage 3 in the graph, documents are built early in the flow but
+sit at stage 7, and revenue settings are set late in the flow but sit at stage 5; decide per
+plan and record why.
 
 To re-verify the cross-check when the flow changes, list its steps (`cci flow info
 prepare_rlm_org`) or read the flow in `cumulusci.yml`, and compare names. This file cites
