@@ -12,7 +12,7 @@ The plan's phases ([plan-template.md](plan-template.md) section 5) group these s
 is stage 0, P3 stages 1 and 2 plus the constraint models (P3 builds the context
 definition and tags they read first, or waits for P4's), P4 stages 3 to 5, P5 the
 approvals and stage 7, and P6 the rest of stage 6 and stages 9 and 10. P2 spikes build
-only the stages their must-hits need, on their own org, A quote is first placed by a P2a
+only the stages their must-hits need, on their own org. A quote is first placed by a P2a
 spike or by P3's configuration test (a bundle test places the quote with rules on, PCM fact
 e); the priced transaction (stage 8) is first gated at P4. A P2b chain whose fulfilment its must-hits count loads its
 fulfilment configuration before its first order (a submitted plan doesn't pick up later configuration,
