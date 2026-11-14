@@ -145,9 +145,9 @@ the same idea in `PROVENANCE_LINE_RE`, and applies it to every file it rewrites
 pass is manual. That guard now matches the **same grammar** as the sweep above, and
 `validate_rules()` fails the build if a form drops out of it; the two were written
 independently and had already drifted, so treat them as one thing kept in two places
-and update both together. The vulnerable style is a **document-scoped** header —
-"Verified on Release 262, API v67.0. All patterns below are live-tested" — whose
-version governs paths hundreds of lines away that state no version of their own.
+and update both together. The vulnerable style is a **document-scoped** header whose
+version governs paths hundreds of lines away that state no version of their own, such as
+"Verified on Release 262, API v67.0. All patterns below are live-tested". <!-- staleness: allow -->
 That is the shape that broke, in both places it occurred.
 
 So when triaging a sweep hit, the question is not "does this file mix versions" but

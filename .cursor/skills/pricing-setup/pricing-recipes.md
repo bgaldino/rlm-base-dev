@@ -56,7 +56,13 @@ Element lookups show only tables linked to the **default recipe of the procedure
 - Repo build of recipe-table mappings (tasks, JSON payloads, flow order, idempotency): [`../pricing-wiring/SKILL.md`](../pricing-wiring/SKILL.md) section A and [`datasets/tooling/PricingRecipeTableMappings/README.md`](../../../datasets/tooling/PricingRecipeTableMappings/README.md). Not repeated here.
 - Refresh mechanics, freshness and ordering after data changes: [`../decision-tables/SKILL.md`](../decision-tables/SKILL.md).
 - Three Help refresh paths [Help]: recipe **Sync** action; **Sync Pricing Data** button in Salesforce Pricing Setup; a schedule-triggered Flow calling the **Refresh Decision Table** action (one action per table).
-- Scheduled flow cautions [Help: `ind.pricing_automate_pricing_data_sync.htm`]: run off-peak; deactivate during bulk loads and run a manual sync after; add a fault path or enable flow error emails (failures are silent otherwise, e.g. deactivated table or hourly limit); confirm via Decision Tables > Last Refreshed. Permissions: Manage Flow, Salesforce Pricing Design Time, and Assetize Order for a complete sync.
+- Scheduled flow cautions [Help: `ind.pricing_automate_pricing_data_sync.htm`]: run off-peak;
+  deactivate during bulk loads and run a manual sync after; add a fault path or enable flow error
+  emails (failures are silent otherwise, e.g. deactivated table or hourly limit); confirm via
+  Decision Tables > Last Refreshed. Permissions, with Help's purposes: Manage Flow to create and
+  activate the flow, Salesforce Pricing Design Time to enable data sync, Assetize Order for a
+  complete sync of decision tables. The action has its own gate:
+  [decision-tables](../decision-tables/SKILL.md) (the refresh flow action is admin-only).
 
 ## Verify
 

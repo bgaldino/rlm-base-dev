@@ -528,7 +528,8 @@ After a formula builds an array, map it to the template:
 > Full detail: **[`extract-engine-reference.md`](extract-engine-reference.md)**
 > (formula catalog, filter mechanics, hierarchy semantics, array patterns, Preview API)
 
-Verified on Release 262, API v67.0. Key concepts summarized below;
+Verified on Release 262, API v67.0; not re-verified on the active release.
+Key concepts summarized below;
 read the sub-file when designing or debugging complex Extracts.
 
 ### Critical Rules (quick reference)
