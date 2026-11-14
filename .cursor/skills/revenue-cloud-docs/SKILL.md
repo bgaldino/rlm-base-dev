@@ -152,8 +152,9 @@ awk '/^---$/{c++; next} c==2{print}' \
 When a release ships, snapshot the matching area, then:
 
 ```bash
-diff -u docs/salesforce/262/help/articles/ind.billing.htm.md \
-        docs/salesforce/264/help/articles/ind.billing.htm.md
+OLD=262; NEW=264   # the prior and the newly captured release
+diff -u docs/salesforce/$OLD/help/articles/ind.billing.htm.md \
+        docs/salesforce/$NEW/help/articles/ind.billing.htm.md
 ```
 
 This surfaces every wording change, rename, or new content. Particularly useful for catching product renames (Revenue Cloud → Agentforce Revenue Management was visible in nearly every 260→262 article diff).

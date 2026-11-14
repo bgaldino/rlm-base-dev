@@ -120,8 +120,7 @@ Route by the prefix of a 264 Help article id (`docs/salesforce/264/help/articles
 |------------------------|--------------|
 | `ind.pricing_` | [pricing-setup] (org setup), [pricing-procedures] (elements, runtime) |
 | `ind.product_` | [product-catalog-modeling]; configurator rules: [constraint-models] |
-| `ind.qocal_` | [transaction-line-editor], [quote-negotiation-rounds], |
-| | [asset-lifecycle-changes], [ramped-quotes] as the topic fits; API calls: [rlm-business-apis] |
+| `ind.qocal_` | [transaction-line-editor], [quote-negotiation-rounds], [asset-lifecycle-changes], [ramped-quotes] as the topic fits; API calls: [rlm-business-apis] |
 | `ind.billing_` setup (policies, treatments, milestones, terms) | [billing-setup] |
 | `ind.billing_` runtime (invoicing, tax, payments, memos) | No owner yet; see revenue-cloud-docs |
 | `ind.rm_`, `ind.um_` (rate, usage mgmt) | [usage-consumption] (demos); setup: no owner yet |

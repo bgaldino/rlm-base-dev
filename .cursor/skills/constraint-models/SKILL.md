@@ -375,7 +375,7 @@ Salesforce documents the requirement:
 > "If the table data is deployed when the constraint model is activated, and you add
 > records to the table after constraint model activation, to fetch the new table data at
 > runtime you must deactivate and reactivate the constraint model."
-> — Help, *Import Object Data* (264)
+> — Help, *Import Data from Salesforce Objects to Use in Constraint Models* (264)
 
 > **Not yet investigated:** the builder's **Sync** button, which is distinct from
 > activate/deactivate. Its effect is unknown — do not assume it is a no-op.
