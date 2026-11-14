@@ -34,10 +34,11 @@ results, 2026-11-11).
    placement.** Follow the change from quote → reprice → order → reprice → activation →
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
-    - **Never reprice a renewal quote after its order is activated; until measured, treat amendment
-      and ramped quotes the same.** Pricing of a renewal, amendment or cancellation line reads the
-      source asset's current state, and activation changes that state, so treat the rule as
-      covering all three (measured only on a renewal) [Platform behaviour, traced in part].
+    - **Never reprice a renewal quote after its order is activated; until measured, treat
+      amendment and cancellation quotes (including ramped ones) the same.** Pricing of a
+      renewal, amendment or cancellation line reads the source asset's current state, and
+      activation changes that state, so treat the rule as covering all three (measured only
+      on a renewal) [Platform behaviour, traced in part].
       Measured once on a renewal quote: a full reprice (every line, pricing `Force`,
       configuration `Skip`) after the order was activated set the renewal
       lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch, one org] — each
