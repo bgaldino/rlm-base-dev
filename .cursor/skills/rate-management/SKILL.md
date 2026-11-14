@@ -213,10 +213,12 @@ performance for freshness; real-time does not support "not matches" or "contains
 
 In this repo the lists are `dt_rating_decision_tables` and
 `dt_rating_discovery_decision_tables` in `cumulusci.yml`. Edits to rate card setup data
-(cards, entries, tiers) have no runtime refresh; the asset-level rate tables refresh on
-order activation (see [usage-consumption](../usage-consumption/SKILL.md) DO NOT). At build
+(cards, entries, tiers) have no runtime refresh. Order activation refreshes only the
+tables named in `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info`: the
+asset and binding-object tables and `Commitment_based_Rate_Adjustment` (see
+[usage-consumption](../usage-consumption/SKILL.md) DO NOT). At build
 time the `refresh_all_decision_tables` flow (run by
-`prepare_rlm_org`) refreshes them via `refresh_dt_rating` and
+`prepare_rlm_org`) refreshes the listed tables via `refresh_dt_rating` and
 `refresh_dt_rating_discovery` when the `rating` flag is on (it runs `refresh_dt_asset`
 first, but all eight of that task's tables are also in the rating list);
 `prepare_rating` itself does not. After that, use the

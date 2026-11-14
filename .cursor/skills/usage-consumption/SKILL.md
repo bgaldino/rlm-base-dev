@@ -65,7 +65,8 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
 - **DO NOT** assume a freshly sold commitment's rate is live on an org built before
   `Commitment_based_Rate_Adjustment` was added to the `CreateAssetOrderEvent` refresh
   chain (`RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info`). It now
-  refreshes on order activation like every other rate table, but on an older org
+  refreshes on order activation with the asset and binding-object tables in that
+  chain, but on an older org
   nothing re-syncs it and consumption rates at the undiscounted anchor rate with no
   error. Check `LastSyncDate` is after the `AssetRateAdjustment` rows
 - **DO NOT** read a non-zero `UsageRatableSummary.OverageQuantity` as commitment
