@@ -72,8 +72,8 @@ level, renewal at the same price, one currency, quote and contract documents.
 State the arithmetic, from the model and the decisions:
 
 - Sensors on an order of 10 kits: 10 kits x 4 sensors = 40 sensor lines or quantity 40, per the
-  cardinality rule the owner states (see
-  [bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md#two-kinds-of-cardinality)).
+  cardinality rule the owner states (see the two kinds of
+  [cardinality](../product-catalog-modeling/bundles-and-cardinality.md#two-kinds-of-cardinality)).
   Which of the two the run produces is read from the org, not assumed.
 - Fulfillment instances for the installation: depends on D10 (per order, per kit, per quantity).
   With per kit, 10 kits give 10 installation tasks; if per order, one task. The decomposition scope
