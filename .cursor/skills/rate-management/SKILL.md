@@ -94,8 +94,8 @@ RateCardEntry --> RateAdjustmentByTier (lower/upper bound, adjustment type + val
 
 | Concept | What it is | Source |
 |---------|------------|--------|
-| Rate card | Group of rules that rate usage resources granted with a sold product; type Base or Tier; date range | [Help: `ind.rm_create_a_rate_card`] |
-| Rate card entry | One rate (or tier set) for a resource, product and selling model; status Draft, Active, Inactive; negotiable flag; effective dates | [Help: `ind.rm_rate_card_entries`] |
+| Rate card | Group of rules that rate usage resources granted with a sold product; type Base or Tier; date range. The type picklist also has Attribute, which Help omits and this repo loads (see below) | [Help: `ind.rm_create_a_rate_card`], [Repo: `datasets/sfdmu/qb/en-US/qb-rates/RateCard.csv`] |
+| Rate card entry | One rate (or tier set) for a resource, product and selling model; status Draft, Active, Inactive; negotiable flag; effective dates | [Help: `ind.rm_rate_card_entries`, `ind.rm_create_a_base_rate_card_entry`, `ind.rm_create_a_tier_rate_card_entry`] |
 | Price book rate card | Maps a price book to a rate card, one per card type | [Help: `ind.rm_create_price_book_rate_cards`] |
 | Tier adjustment | Lower and upper bound plus a Percentage, Amount or Override adjustment | [Help: `ind.rm_create_a_tier_rate_card_entry`] |
 | Rate unit | The entry's unit is a currency or a token unit; the product's usage resource setting decides which is used when selling | [Help: `ind.rm_rate_card_entries`] |
@@ -240,8 +240,9 @@ Snapshot; discover with `rg -n -i "rate.?card|rating" cumulusci.yml` and `ls dat
 | Piece | Where |
 |-------|-------|
 | Rate card, entry, tier, price book rate card data | `datasets/sfdmu/qb/en-US/qb-rates`, `datasets/sfdmu/q3/en-US/q3-rates` (`insert_qb_rates_data`, `insert_q3_rates_data`) |
+| Attribute rate card | `qb-rates` also loads an Attribute-type card (`datasets/sfdmu/qb/en-US/qb-rates/README.md`). Help says usage selling and consumption do not support attribute rate cards (Quick Rule 8); do not build on it |
 | Usage resources and PURs, policies and grants | `qb-rating`, `qb-rating-entitlements` (and `q3-` equivalents) |
-| Flow | `prepare_rating`: load, `activate_rating_records`, `activate_rates` (REST; Apex DML path fails on 262) |
+| Flow | `prepare_rating`: load, `activate_rating_records`, `activate_rates` (REST; the Apex DML path failed on Release 262 [Repo: `tasks/rlm_activate_rates.py`]) |
 | Procedures | `RLM_DefaultRatingProcedure`, `Negotiable_Rating_Procedure`, `RLM_DefaultRatingDiscoveryProcedure` (see `expression-sets`) |
 | Revenue Settings | `configure_revenue_settings` sets the usage rating discovery procedure |
 | Extended context | `extend_context_rating_discovery` |
