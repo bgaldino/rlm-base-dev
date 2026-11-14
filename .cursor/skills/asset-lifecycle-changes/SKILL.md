@@ -43,8 +43,8 @@ results, 2026-11-11).
       configuration `Skip`) after the order was activated set the renewal
       lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch, one org] — each
       lot became a −lot/+lot pair netting 0, and the order and assets were unchanged. Not measured
-      on amendments or ramped quotes; why the reprice returned 0 is not traced. Read quote values
-      before activation and don't reprice afterwards.
+      on amendments, cancellations or ramped quotes; why the reprice returned 0 is not traced.
+      Read quote values before activation and don't reprice afterwards.
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
    with configuration rules on (the UI's inline quantity edit does this), resets the
    line's attributes to the product defaults. Activation keeps them on the asset, and the
