@@ -10,17 +10,18 @@ is its companion for people: it is organized by outcome and says what you get ba
 
 ## How to use this guide
 
-1. **Find your outcome** in the sections below, or in one of the [common
-journeys](#common-journeys).
+1. **Find your outcome** in the sections below, or in one of the
+   [common journeys](#common-journeys).
 2. **Name the outcome and its context to your agent.** Say the goal, the release or org
    you target, and whether it may change an org or should only read.
    Example: "Using the billing-operations skill, explain how an invoice run
    differs from an on-demand invoice, and list what I should check afterwards."
-3. **Read the labels on the answer.** Skills mark where a statement comes from:
-   Help (the checked-in Salesforce Help snapshot), Repo (this repository's code and
-   data), `[Measured]` (observed on an org), `[Platform behaviour, traced]`, or
-   `[inferred]` (reasoned, not confirmed). Treat `[inferred]` and "not measured" as
-   questions to settle on your org before you promise them to a customer.
+3. **Read the labels on the answer.** Skills that describe product behavior mark where a
+   statement comes from: Help (the checked-in Salesforce Help snapshot), Repo (this
+   repository's code and data), `[Measured]` (observed on an org),
+   `[Platform behaviour, traced]`, or `[inferred]` (reasoned, not confirmed). Treat
+   `[inferred]` and "not measured" as questions to settle on your org before you promise
+   them to a customer.
 
 You can read and plan without an org. Anything that changes or queries an org needs
 the access the skill names.
@@ -73,7 +74,7 @@ the access the skill names.
 | Produce the customer document | Build or fix a `.docx` template and verify generated output | [Document generation](../../.cursor/skills/document-generation/SKILL.md) |
 | Fix a document data mapping | Author and debug the OmniDataTransform behind a template | [ODT authoring](../../.cursor/skills/odt-authoring/SKILL.md) |
 
-## Fulfil, bill and collect
+## Fulfill, bill and collect
 
 | I want to… | Ask the agent to… | Skill |
 |---|---|---|
@@ -189,10 +190,9 @@ Chain skills in this order. Each step names the decision or proof it produces.
 
 ## When there is no skill yet
 
-Some areas have no owning skill. Start from [Revenue Cloud
-docs](../../.cursor/skills/revenue-cloud-docs/SKILL.md)
-and the Help snapshot, and see the router's
-[Help area map](../../.cursor/skills/README.md#help-area-to-owning-skill) for the current gaps. Ask
-the agent to
-say which claims come from Help and which it infers, and settle the inferred ones on
-an org before you rely on them.
+Some areas have no owning skill. Start from
+[Revenue Cloud docs](../../.cursor/skills/revenue-cloud-docs/SKILL.md) and the Help snapshot,
+and see the router's
+[Help area map](../../.cursor/skills/README.md#help-area-to-owning-skill) for the current
+gaps. Ask the agent to say which claims come from Help and which it infers, and settle the
+inferred ones on an org before you rely on them.

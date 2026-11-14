@@ -4,7 +4,7 @@
 [Outcome guide](outcome-guide.md) · [Skill catalog](../../.cursor/skills/README.md)
 
 Copy a prompt, change the parts in angle brackets, and give it to your coding agent
-with this repository open. Each prompt names the skill so the agent reads the right
+with this repository open. Most prompts name the skill so the agent reads the right
 guide first. Find your outcome in the [outcome guide](outcome-guide.md) if none of
 these fit.
 
@@ -25,8 +25,10 @@ these fit.
 | **Scope** | "Read only. Do not change an org or any file." |
 | **Proof** | "Cite the files you used and mark anything you inferred" |
 
-The proof line matters most. Skills label each claim as Help, Repo, measured on an
-org, or inferred; asking for the labels keeps the answer honest.
+The proof line matters most. Skills that describe product behavior label each claim as
+Help, Repo, measured on an org, or inferred; asking for the labels keeps the answer
+honest. Operational skills (builds, data loading, toolchain) may not label claims; for
+those, ask the agent to say what it ran or read.
 
 ## First prompts: no org needed
 
