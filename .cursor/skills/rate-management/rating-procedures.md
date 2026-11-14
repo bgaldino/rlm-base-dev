@@ -16,16 +16,18 @@ Labels: `[Help: id]` = `docs/salesforce/264/help/articles/ind.<id>.htm.md`.
 | Default Rating Discovery Procedure | Fetch rate cards, entries and adjustments for quoting | [Help: `ind.rm_rating_discovery_procedures`] |
 
 Clone from App Launcher, Expression Set Templates, open a version, Save As a new
-procedure [Help: `ind.rm_clone_the_default_rating_procedure`]. The default discovery
-procedure uses the Usage Ratable Summary object, which Help says is not generally
-available: ask your account executive for access or map your own context definition
+procedure; Help also allows a custom build [Help: `ind.rm_clone_the_default_rating_procedure`].
+Help's discovery-cloning article warns that the default rating procedure uses the Usage
+Ratable Summary object, which isn't generally available: ask your account executive for
+access or map your own context definition
 [Help: `ind.rm_clone_the_default_rating_discovery_procedure`].
 
 ## Prerequisites [Help: `ind.rm_prereqs_to_build_rating_procedures`]
 
 1. Rate Management Design Time permission (context definitions, decision tables, procedures).
 2. Lookup tables: the predefined ones, or custom. Non-negotiable: Rate Card Entries 2 and
-   the Volume, Tier and Attribute adjustment Entries 2 tables. Negotiable adds the Asset,
+   the Volume, Tier and Attribute adjustment Entries 2 tables. Negotiable uses Rate Card
+   Entries 2 and the Volume and Tier Entries 2 tables (no Attribute table), plus the Asset,
    Binding Object, Commitment-based and by-Rate-Card-Entry-ID tables.
 3. Transaction Management on, to see and invoke the asset-based tables.
 4. Context definitions enabled. `RateManagementContext` maps Usage Ratable Summary;
@@ -38,8 +40,8 @@ available: ask your account executive for access or map your own context definit
 |---------|-----|---------------------|
 | Rating Setting | Map common variables to context tags; must be first | Later element tags win over it |
 | Base Rate | Rate from the rate card entry | Rate Card Entries |
-| Volume-Based Rate Discount | Flat discount to all units past a threshold | Rate Adjustment by Volume Entries 2; negotiable: by Rate Card Entry ID |
-| Tier-Based Rate Discount | Range-based discount per band | Tier Entries 2 |
+| Volume-Based Rate Discount | Flat discount to all units past a threshold | Rate Adjustment by Volume Entries 2; negotiable: Volume-based Rate Adjustment by Rate Card Entry ID |
+| Tier-Based Rate Discount | Range-based discount per band | Rate Adjustment by Tier Entries 2; negotiable: Tier-based Rate Adjustment by Rate Card Entry ID |
 | Negotiated Rate Card Entries (+ Binding Object variant) | Rate card entry ID from asset ID or binding object entry | Asset / Binding Object Rate Card Entry |
 | Negotiated Base Rate (+ Binding Object) | Negotiated rate, base rate if none negotiated | Asset Rate 2 / Binding Object Rate 2 |
 | Negotiated Tier-Based Rate Adjustment (+ Binding Object) | Negotiated tier discount or surcharge | Asset Tier-based Rate Adjustment |

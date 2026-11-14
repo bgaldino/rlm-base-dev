@@ -36,8 +36,9 @@ truth over the docs.
    rate [Help: `ind.rm_create_a_rate_card`].
 4. **Entries start Draft; activate them.** Active entries accept only limited edits, so
    finish the entry (and its tiers) while Draft [Help: `ind.rm_create_a_base_rate_card_entry`].
-5. **Rating procedures are cloned, not hand-built.** Clone the Default or the Negotiable
-   template, simulate, then activate [Help: `ind.rm_clone_the_default_rating_procedure`].
+5. **Start a rating procedure from a clone.** Clone the Default or the Negotiable template
+   (Help also allows a custom build), simulate, then activate
+   [Help: `ind.rm_clone_the_default_rating_procedure`].
 6. **Rating Setting is always the first element** of a rating procedure
    [Help: `ind.rm_element_rating_setting`].
 7. **Rating reads decision tables.** After any rate-data change, refresh them; see
@@ -48,9 +49,9 @@ truth over the docs.
 ## DO NOT
 
 - **DO NOT** treat an activated rate as editable. An Active entry takes limited changes
-  (status), and a tier under it is locked on this repo's 264 loads [Help:
-  `ind.rm_create_a_base_rate_card_entry`; repo plan notes in
-  `datasets/sfdmu/qb/en-US/qb-rates/README.md`]. Correct a Draft, or deactivate first.
+  (status) [Help: `ind.rm_create_a_base_rate_card_entry`], and a tier under it is locked on
+  this repo's 264 loads [Repo: `datasets/sfdmu/qb/en-US/qb-rates/README.md`, live-verified].
+  Correct a Draft, or deactivate first.
 - **DO NOT** let tier ranges overlap. Bounds are inclusive and tiers cannot overlap
   [Help: `ind.rm_create_a_tier_rate_card_entry`].
 - **DO NOT** mismatch a currency unit of measure code and the org currency ISO code. The
@@ -198,8 +199,9 @@ default usage rating discovery procedure the rating API needs
 ## Decision tables and refresh
 
 Rating elements call lookup tables (decision tables): Rate Card Entries 2, Rate
-Adjustment by Volume/Tier/Attribute Entries 2 for non-negotiable rates; asset and binding
-object variants plus Commitment-based Rate Adjustment for negotiable rates
+Adjustment by Volume/Tier/Attribute Entries 2 for non-negotiable rates. Negotiable rates
+drop the Attribute table and add the asset, binding object, by-Rate-Card-Entry-ID and
+Commitment-based tables
 [Help: `ind.rm_prereqs_to_build_rating_procedures`]. Discovery uses resolution tables
 [Help: `ind.rm_rating_discovery_procedures`]. Help offers real-time data as an
 alternative to decision tables for six elements (listed in rating-procedures.md), trading
