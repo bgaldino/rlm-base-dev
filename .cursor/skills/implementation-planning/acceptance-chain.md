@@ -48,7 +48,7 @@ excludes the capability, citing which; where the source is silent on a capabilit
 a scope decision first. A rule with no step is a gap in the chain. A test case with no
 rule is test data, so drop it or find the rule. The build checks (steps 0, 1 and 15)
 need neither a rule nor a golden id. The Reprice and
-Attributes golden sets ([plan-template.md](plan-template.md) section 4) are always
+Attributes golden sets ([plan-template.md](plan-template.md) section 4) need no rule ID; they are always
 included and attach to the steps they exercise (pricing, ordering, amending, renewing).
 
 ## Test data

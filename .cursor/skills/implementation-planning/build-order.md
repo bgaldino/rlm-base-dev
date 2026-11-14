@@ -4,15 +4,17 @@ Read this when sequencing build items for a customer plan, or when checking that
 does not build something before what it needs. The graph below is in neutral terms. Each
 edge cites the source that states it; an edge tagged `[inferred]` follows from how the
 objects reference each other and needs confirming in the target org before the plan
-depends on it. Where a stage has no stated edge, build items in it are independent.
+depends on it. Where no skill records an edge between items in a stage, treat them as
+independent `[inferred]` and log that as open.
 
 The plan's phases ([plan-template.md](plan-template.md) section 5) group these stages: P0
 is stage 0, P3 stages 1 and 2 plus the constraint models (P3 builds the context
 definition and tags they read first, or waits for P4's), P4 stages 3 to 5, P5 the
 approvals and stage 7, and P6 the rest of stage 6 and stages 9 and 10. P2 spikes build
 only the stages their must-hits need, on their own org, so stage 8 is first run by a P2a
-spike and first gated at P4. A P2b chain that a later gate reuses loads the stage 6
-configuration its orders read before its first order. Where the source shows tax or usage
+spike and first gated at P4. A P2b chain that a later gate reuses loads its fulfilment
+configuration before its first order (a submitted plan doesn't pick up later configuration,
+`dro-plans`); load the other stage 6 configuration its orders read first too `[inferred]`. Where the source shows tax or usage
 rates on the quote, or its quote lines bill on a cadence other than the pricing term or by
 milestone, build those stage 6 items in P4 with their own prerequisites (tax engine,
 policies and legal entity; usage resources and policies; billing policy and treatments), or leave them out of the P4 goldens
@@ -22,8 +24,8 @@ the decision log.
 ## Prerequisite graph
 
 Each row needs only what its Needs cell lists; the stage number groups items and is not a
-strict order (constraint models need the catalog and the context they read, not prices). Items in one stage can run in
-parallel unless an edge says otherwise.
+strict order (constraint models need the catalog and the context they read, not prices).
+Items in one stage can run in parallel unless an edge says otherwise `[inferred]`.
 
 | Stage | Build item | Needs | Edge source | Owner |
 |---|---|---|---|---|
@@ -123,7 +125,8 @@ prepare_rlm_org`) or read the flow in `cumulusci.yml`, and compare names.
 
 ## Parallelism and gates
 
-- Stages 3 and 6 contain independent items; assign them to separate workers only when each
+- Stages 3 and 6 hold items with no recorded edge between them `[inferred]`; assign them to
+  separate workers only when each
   owner's prerequisites are met.
 - A stage's exit check is the owner's org-verification checks where it has them (an owner
   with none is an open item, logged), not the stage's completion in
