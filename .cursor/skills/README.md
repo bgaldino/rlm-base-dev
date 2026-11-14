@@ -29,6 +29,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 
 | I need to... | Skill | Entry Point |
 |-------------|-------|-------------|
+| Plan a customer build from requirements: intake questions, decision log, cross-domain build order, acceptance chain from quote to renewal | Implementation Planning | [implementation-planning/SKILL.md](implementation-planning/SKILL.md) |
 | Understand RLM objects/relationships | Revenue Cloud Data Model | [revenue-cloud-data-model/SKILL.md](revenue-cloud-data-model/SKILL.md) |
 | Use Revenue Cloud REST APIs | Business APIs | [rlm-business-apis/SKILL.md](rlm-business-apis/SKILL.md) |
 | Ground claims against Salesforce Help | Revenue Cloud Docs | [revenue-cloud-docs/SKILL.md](revenue-cloud-docs/SKILL.md) |
