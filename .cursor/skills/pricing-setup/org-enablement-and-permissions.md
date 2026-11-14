@@ -115,9 +115,10 @@ Full per-set and per-group lists: [revenue-cloud-permissions](../../../docs/refe
 
 The runtime row's Run Decision Matrices and Run Expression Sets grants are Help's. In this repo,
 only the partner community permission set and profile enable either one in their own metadata
-[Repo: `unpackaged/post_prm/`]. The persona permission set groups include Salesforce Pricing Run
-Time User [Repo: `unpackaged/post_personas/`], so whether they carry both depends on that set's
-grants. [Open: read the system permissions of Salesforce Pricing Run Time User in an org]
+[Repo: `unpackaged/post_prm/`]. The sales representative, sales operations and product and
+pricing admin persona groups include Salesforce Pricing Run Time User and other managed sets
+[Repo: `unpackaged/post_personas/`], so whether they carry both depends on all of those sets.
+[Open: read the system permissions each of those persona groups resolves to in an org]
 
 ### Record sharing
 
