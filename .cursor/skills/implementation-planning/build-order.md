@@ -2,8 +2,9 @@
 
 Read this when sequencing build items for a customer plan, or when checking that a plan
 does not build something before what it needs. The graph below is in neutral terms. Each
-edge cites the source that states it; an edge tagged `[inferred]` follows from how the
-objects reference each other and needs confirming in the target org before the plan
+edge cites the source that states it; an edge tagged `[inferred]` is not stated by a source
+(it follows from how the objects reference each other, the repo flow's order, or the
+absence of a recorded edge) and needs confirming in the target org before the plan
 depends on it. Where no skill records an edge between items in a stage, treat them as
 independent `[inferred]` and log that as open.
 
@@ -12,8 +13,8 @@ is stage 0, P3 stages 1 and 2 plus the constraint models (P3 builds the context
 definition and tags they read first, or waits for P4's), P4 stages 3 to 5, P5 the
 approvals and stage 7, and P6 the rest of stage 6 and stages 9 and 10. P2 spikes build
 only the stages their must-hits need, on their own org, so stage 8 is first run by any P2a
-spike that places a quote (otherwise at P4) and first gated at P4. A P2b chain that a later gate reuses loads its fulfilment
-configuration before its first order (a submitted plan doesn't pick up later configuration,
+spike that places a quote (otherwise at P4) and first gated at P4. A P2b chain whose fulfilment its must-hits count loads its
+fulfilment configuration before its first order (a submitted plan doesn't pick up later configuration,
 `dro-plans`); load the other stage 6 configuration its orders read first too `[inferred]`. Where the source shows tax or usage
 rates on the quote, or its quote lines bill on a cadence other than the pricing term or by
 milestone, build those stage 6 items in P4 with their own prerequisites (tax engine,
@@ -117,8 +118,9 @@ sit at stages 4 and 5, the flow activates existing price adjustment schedules be
 catalog loads and loads their adjustment records with the pricing data after it while the
 graph puts schedules after the catalog, approval metadata and data
 deploy before the catalog in the flow but sit at stage 6, documents are built early in the flow
-but sit at stage 7, and revenue settings are set late in the flow but sit at stage 5; decide per
-plan and record why.
+but sit at stage 7, revenue settings are set late in the flow but sit at stage 5, and procedures
+are activated and procedure plans built after the stage 6 data (tax, billing, rating) in the
+flow but sit at stage 5; decide per plan and record why.
 
 To re-verify the cross-check when the flow changes, list its steps (`cci flow info
 prepare_rlm_org`) or read the flow in `cumulusci.yml`, and compare names.
