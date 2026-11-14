@@ -104,7 +104,8 @@ Repo constraints for a commitment product's policy record are in
   [Help: `ind.um_wallet_management`, `ind.um_set_up_menu_access`].
   Whether the dashboard works against this repo's seeded data is not measured.
 - Billing for usage products handles late usage and extra orders
-  [Help: `ind.um_billing_schedules_for_usage_products`]; see `billing-setup`.
+  [Help: `ind.um_billing_schedules_for_usage_products`]; see `billing-operations` →
+  `invoicing.md` for usage billing schedules, and `billing-setup` for treatments.
 
 ## Limits that shape a design [Help: `ind.um_usage_management_limits`]
 
