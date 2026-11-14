@@ -32,6 +32,11 @@ on multi-year lines). Then it is trigger (b). A measured limitation the plan car
 another shape on its own is not such a claim (one the skill itself extends with
 `[inferred]` is); it follows [prediction-checks.md](prediction-checks.md) check 1.
 
+**A skill's `[Open: <check>]` claim is unsettled.** The skill names the check that would
+settle it. A rule that depends on one is **Live**, as under trigger (a), and that check is
+the spike's smallest case. `rg -n '\[Open:' .cursor/skills` lists every one
+(`skill-authoring` → Source tags and open items).
+
 **A live org decides** when one of these holds:
 
 | Trigger | Typical cases |
