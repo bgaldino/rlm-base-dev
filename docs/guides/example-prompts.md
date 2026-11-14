@@ -26,8 +26,8 @@ these fit.
 | **Scope** | "Read only. Do not change an org or any file." |
 | **Proof** | "Cite the files you used and mark anything you inferred" |
 
-The proof line matters most. Skills that describe product behavior tag each claim with
-its source, such as `[Help: <article>]`, `[Repo: <path>]`, `[Measured: <date>]`,
+The proof line matters most. Skills that describe product behavior tag claims with their
+source, such as `[Help: <article>]`, `[Repo: <path>]`, `[Measured: <date or row>]`,
 `[Platform behaviour, traced]` or `[inferred]` (the
 [outcome guide](outcome-guide.md#how-to-use-this-guide) explains each); asking for the
 tags keeps the answer honest. Operational skills (builds, data loading, toolchain) may

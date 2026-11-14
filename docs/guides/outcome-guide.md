@@ -16,10 +16,10 @@ is its companion for people: it is organized by outcome and says what you get ba
    you target, and whether it may change an org or should only read.
    Example: "Using the billing-operations skill, explain how an invoice run
    differs from an on-demand invoice, and list what I should check afterward."
-3. **Read the labels on the answer.** Skills that describe product behavior mark where a
-   statement comes from. Tags name the source, usually with its article, path or date:
+3. **Read the tags on the answer.** Skills that describe product behavior mark where a
+   statement comes from. Tags name the source, usually with its article, path, date or row:
    `[Help: <article>]` (the checked-in Salesforce Help snapshot), `[Repo: <path>]` (this
-   repository's code and data), `[Measured: <date>]` (observed on an org),
+   repository's code and data), `[Measured: <date or row>]` (observed on an org),
    `[Platform behaviour, traced]` (read from platform behavior, not run), or `[inferred]`
    (reasoned, not confirmed). Other sources, such as `[Dev guide: <page>]`, follow the same
    pattern. Treat `[inferred]` and "not measured" as questions to settle on your org
