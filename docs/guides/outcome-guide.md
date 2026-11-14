@@ -17,11 +17,11 @@ is its companion for people: it is organized by outcome and says what you get ba
    Example: "Using the billing-operations skill, explain how an invoice run
    differs from an on-demand invoice, and list what I should check afterward."
 3. **Read the labels on the answer.** Skills that describe product behavior mark where a
-   statement comes from: Help (the checked-in Salesforce Help snapshot), Repo (this
-   repository's code and data), `[Measured]` (observed on an org),
-   `[Platform behaviour, traced]`, or `[inferred]` (reasoned, not confirmed). Treat
-   `[inferred]` and "not measured" as questions to settle on your org before you promise
-   them to a customer.
+   statement comes from: `[Help]` (the checked-in Salesforce Help snapshot), `[Repo]`
+   (this repository's code and data), `[Measured]` (observed on an org),
+   `[Platform behaviour, traced]` (read from platform behavior, not run), or `[inferred]`
+   (reasoned, not confirmed). Treat `[inferred]` and "not measured" as questions to settle
+   on your org before you promise them to a customer.
 
 You can read and plan without an org. Anything that changes or queries an org needs
 the access the skill names.

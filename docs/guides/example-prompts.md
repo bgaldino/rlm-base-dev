@@ -14,8 +14,8 @@ these fit.
    available: skills link to files outside their own folders.
 2. Start with the sections marked *no org needed*. They need no Salesforce org and
    change nothing in one.
-3. Move to *With an org connected* only when you have an org connected and know which
-   one the agent may change. Say so in the prompt.
+3. Move to *With an org connected* and *Prepare a demo or workshop* only when you have
+   an org connected and know which one the agent may change. Say so in the prompt.
 
 ## A good prompt has four parts
 
@@ -27,9 +27,9 @@ these fit.
 | **Proof** | "Cite the files you used and mark anything you inferred" |
 
 The proof line matters most. Skills that describe product behavior label each claim as
-Help, Repo, measured on an org, or inferred; asking for the labels keeps the answer
-honest. Operational skills (builds, data loading, toolchain) may not label claims; for
-those, ask the agent to say what it ran or read.
+`[Help]`, `[Repo]`, `[Measured]`, `[Platform behaviour, traced]` or `[inferred]`; asking
+for the labels keeps the answer honest. Operational skills (builds, data loading,
+toolchain) may not label claims; for those, ask the agent to say what it ran or read.
 
 ## First prompts: no org needed
 
@@ -172,7 +172,7 @@ a known cause, tell me how you reached that conclusion, and propose the fix. Do 
 re-run the build until I agree.
 ```
 
-## Prepare a demo or workshop
+## Prepare a demo or workshop: org needed
 
 ```text
 Use the qb-demo-script skill to generate the demo walkthrough for the release this
