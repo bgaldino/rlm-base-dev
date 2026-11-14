@@ -44,7 +44,8 @@ is ground truth over the docs.
    [Help: `ind.rm_clone_the_default_rating_procedure`].
 6. **Rating Setting is always the first element** of a rating procedure
    [Help: `ind.rm_element_rating_setting`].
-7. **Rating reads decision tables.** After any rate-data change, refresh them; see
+7. **Rating reads decision tables.** After any rate-data change, refresh them and wait
+   until they are no longer Stale (a refresh only queues); see
    [`../decision-tables/SKILL.md`](../decision-tables/SKILL.md) and the refresh section below.
 8. **Avoid attribute-based rate cards for usage.** Help says they are not supported in
    Usage Selling and Consumption Management [Help: `ind.rm_rate_mngmnt_limits`].
@@ -262,8 +263,9 @@ Snapshot; discover with `rg -n -i "rate.?card|rating" cumulusci.yml` and `ls dat
 2. Bands: a Tier card, one entry for the resource and product, tiers with inclusive,
    non-overlapping bounds and a Percentage adjustment. Threshold: Volume adjustment.
 3. Map the price book with a Price Book Rate Card; activate the entry.
-4. Refresh decision tables; simulate the rating procedure with a known quantity and
-   compare with the arithmetic above.
+4. Refresh decision tables and wait until `check_decision_table_freshness` shows no Stale
+   rating table; then simulate the rating procedure with a known quantity and compare with
+   the arithmetic above.
 
 ### Example 2 — "Rated amount ignores the new rate"
 
