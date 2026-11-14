@@ -4195,6 +4195,21 @@ def check_sources(spec):
     return sources
 
 
+def exists_exact(rel):
+    """os.path.exists with case-exact names. On a case-insensitive filesystem (macOS by
+    default) `.GIT/config`, a fixture in test_claude_hooks.py, resolves to the real
+    `.git/config`; CI's filesystem says it does not exist, so must this check."""
+    here = REPO
+    for part in os.path.normpath(rel).split(os.sep):
+        try:
+            if part not in os.listdir(here):
+                return False
+        except (NotADirectoryError, FileNotFoundError):
+            return False
+        here = os.path.join(here, part)
+    return True
+
+
 def as_change(rel):
     """A directory named as an input stands for a change underneath it."""
     return rel + "/probe" if os.path.isdir(os.path.join(REPO, rel)) else rel
@@ -4213,7 +4228,7 @@ for spec in pr_gate.CHECKS:
         # a read written any other way.
         for rel in sorted(named_paths(os.path.join(REPO, src), joins_only=(src == SELF))):
             inspected += 1
-            if rel in declared or not os.path.exists(os.path.join(REPO, rel)):
+            if rel in declared or not exists_exact(rel):
                 continue
             if not pr_gate.selects(spec, [as_change(rel)]):
                 unselected_reads.append(f"{spec['name']} reads {rel} ({src}) but is not "
@@ -5981,7 +5996,7 @@ if FAILED:
 # fourth wave in a row to correct a hand-maintained figure. Pinned, so raising EXPECTED without
 # updating the sentence that quotes it is a failure rather than a reader's problem.
 README_COUNT = re.compile(r"Verified by `tests/test_pr_gate\.py` \((\d+) checks")
-EXPECTED = 839
+EXPECTED = 842
 _readme_text = pathlib.Path(os.path.join(REPO, "scripts/ai/README.md")).read_text()
 cited = README_COUNT.search(_readme_text)
 check("the check count quoted in scripts/ai/README.md matches EXPECTED, so the prose cannot drift "
@@ -5999,7 +6014,7 @@ _NUM_WORDS = {13: "thirteen", 14: "fourteen", 15: "fifteen", 16: "sixteen", 17: 
               23: "twenty-three", 24: "twenty-four", 25: "twenty-five", 26: "twenty-six",
               27: "twenty-seven", 28: "twenty-eight", 29: "twenty-nine", 30: "thirty",
               31: "thirty-one", 32: "thirty-two", 33: "thirty-three",
-              34: "thirty-four"}
+              34: "thirty-four", 35: "thirty-five"}
 _actual = len(pr_gate.CHECKS)
 # A word boundary that also rejects a trailing hyphen, so the pattern for a smaller number word
 # does not match inside a hyphenated compound of a larger one: "two of the twenty" must NOT
