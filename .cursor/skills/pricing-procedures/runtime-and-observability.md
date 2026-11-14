@@ -164,9 +164,7 @@ to use that element.
   recipe's default procedure), then execute elements in order. Each element runs list operation,
   payload update (decision-table lookup), calculate. The waterfall is assembled at the end and
   written back to the context.
-- **Delta pricing** [Core]: an org setting (Setup > Revenue Settings > Delta Pricing for Quotes and Orders), off unless enabled; Help and the Metadata API reference do not state its release status (Setup label not checked). Delta skipping applies only when the setting is on and the save is a PATCH edit with System pricing, Dual Persistence mode off, a completed calculation status (Completed with Pricing or with Tax) and no validation errors [Platform behaviour, traced]; further conditions (the transaction's update tracking) also apply, so treat this list as partial; otherwise (or with the setting off) every line reprices. The repo enables it in `config/project-scratch-def.json` and most `orgs/*.json` (not dev-mfg or the TFID shapes), and `prepare_rlm_org` deploys it as true from the pre settings bundle on every build, including shapes whose definition does not set it, so an org built by `prepare_rlm_org` has it on [Repo]. Its documented default is false [Metadata API: `meta_revenuemanagementsettings`], so an org that does not set it has it off. When it applies, the run mode (set through configuration overrides; the waterfall reports execution mode "Delta Pricing") starts all non-deleted lines skipped, updated lines become roots of the dependency graph, and lines derived from them are found and repriced: a partial PATCH reprices the edited lines plus the lines that depend on them and skips the rest; which relations count as a dependency was not traced [Platform behaviour, traced].
-  A deleted line gets error `LINE_ITEM_DELETED_IN_CONTEXT` and is not priced; Map Product and Rule Fetch also handle deleted lines in discovery, and Asset Discovery runs only when a derived line or contributor was updated or deleted.
-  Applied automatically to updates that have no validation errors and follow a successful pricing run, otherwise a full reprice [Help]. When delta skipping does not apply, every line reruns [Platform behaviour, traced]. Two Place PATCHes with System pricing re-applied the compound uplift to the stored `NetUnitPrice` of the uplifted ramp lines after the first segment (untouched lines in both PATCHes, and in the 2026-11-12 PATCH the patched line as well), unrounded, with `TotalPrice` unchanged. One changed `UnitPriceUplift` on four non-software lines (configuration method Force, rules on) [Measured: 2026-11-11, 264, scratch]. The other patched one line with no field change (configuration Skip), with delta pricing on (read from the org), and changed no line's waterfall id [Measured: 2026-11-12, 264, scratch; one org]. In the second PATCH no line's waterfall id changed; that and the unchanged totals in both do not fit a full procedure rerun, and what moved `NetUnitPrice` on the stored net in these PATCHes is not traced. When Price Revision runs twice over the same lines in one execution (for example a procedure plan plus the default procedure, when Skip Default and Sales Transaction Type Pricing Procedures is off), the uplift applies twice [Platform behaviour, traced]. Reprice All restored correct prices [Measured: 2026-11-11, 264, scratch]. Help: "If the pricing procedure uses delta pricing and you enable Compound Uplift, the Price Revision element reprices every line in the ramp group each time it runs, regardless of the delta pricing setting. This behavior applies only to lines that use Compound Uplift. Delta pricing behaves normally for lines that do not use it." [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm`]. Reprice All runs a full recalculation whatever the delta setting [Help: `ind.qocal_reprice_all_quotes_and_orders.htm`]; it was not re-run after the 2026-11-12 PATCH, so re-read every segment's `NetUnitPrice` against `TotalPrice` afterwards. [Help] `ind.qocal_use_delta_pricing_for_quotes_and_orders.htm`: recalculates modified lines and their dependents; incompatible with Dual Persistence mode.
+- Delta pricing: see [Delta pricing](#delta-pricing).
 - **Parallel execution:** the procedure is split into per-element tasks; independent tasks run on a
   bounded thread pool (per-request and org-wide thread caps are org values). Apex Action and Price
   Propagation elements are not eligible, and one of either makes the whole procedure run
@@ -179,6 +177,38 @@ to use that element.
   element-count check and both runtime-timeout checks are skipped only when an internal
   performance-environment gate is open (not a production path); the procedure-count check is not gated [Core].
 - Version selection rank: [`operations-and-troubleshooting.md`](operations-and-troubleshooting.md) → section 2.
+
+### Delta pricing
+
+Delta pricing is an org setting (Setup > Revenue Settings > Delta Pricing for Quotes and Orders)
+[Core], off unless enabled; its platform declaration marks it beta [Platform behaviour, traced],
+though neither Help nor the Metadata API reference says so (Setup label not checked). Delta pricing
+applies only when all of these hold: the org setting is on and Dual Persistence mode is off; the
+request is a PATCH of a Quote, Order or Cart with System pricing; the header's calculation status is
+Completed with Pricing or Completed with Tax (a Cart: Completed with Pricing only) with no
+validation errors; and the transaction tracks its updates. Force pricing, Reprice All and any other
+request reprice every line [Platform behaviour, traced]. Under delta pricing, unchanged lines are
+skipped unless they depend on a changed line or the step always runs (aggregation, discount
+distribution, compound uplift in Price Revision) [Platform behaviour, traced]. The repo enables it
+in `config/project-scratch-def.json` and most `orgs/*.json` (not dev-mfg or the TFID shapes), and
+`prepare_rlm_org` deploys it as true from the pre settings bundle on every build, including shapes
+whose definition does not set it, so an org built by `prepare_rlm_org` has it on [Repo]. Its
+documented default is false [Metadata API: `meta_revenuemanagementsettings`], so an org that does
+not set it has it off. When it applies, the run mode (set through configuration overrides; the
+waterfall reports execution mode "Delta Pricing") starts all non-deleted lines skipped, updated
+lines become roots of the dependency graph, and lines derived from them are found and repriced: a
+partial PATCH reprices the edited lines plus the lines that depend on them and skips the rest; which
+relations count as a dependency was not traced [Platform behaviour, traced]. A deleted line gets
+error `LINE_ITEM_DELETED_IN_CONTEXT` and is not priced; Map Product and Rule Fetch also handle
+deleted lines in discovery, and Asset Discovery runs only when a derived line or contributor was
+updated or deleted [Platform behaviour, traced]. Help: delta pricing recalculates modified lines and
+their dependents, applies automatically to updates with no validation errors that follow a
+successful pricing run (otherwise a full reprice), and can't be used with Dual Persistence mode
+[Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]. Reprice All runs a full recalculation
+whatever the delta setting [Help: `ind.qocal_reprice_all_quotes_and_orders`]. Compound Uplift lines
+in a ramp group reprice on every run regardless of delta pricing [Help:
+`ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`]; what System PATCHes did to
+compound ramp lines when measured is in [Price Revision](elements/price-revision.md).
 
 ### Pricing limits
 [Help] `ind.pricing_limits.htm` (raise via Support ticket)
