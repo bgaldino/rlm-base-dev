@@ -66,10 +66,10 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
    priced from the source asset's current state, and activation changes it [Platform behaviour,
    traced in part]. Measured once on a renewal quote: a full reprice (every line, pricing `Force`,
    configuration `Skip`; Reprice All sends the same pricing mode) after the order was activated set
-   the renewal lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch org]. The
-   detail rows, order and assets weren't read afterwards. Not measured on amendments
-   or cancellations (ramped or not), or through the button; why the reprice returned 0 is not
-   traced.
+   the renewal lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch org]: each
+   lot became a -lot/+lot pair netting 0, and the order and assets were unchanged. Not measured
+   on amendments or cancellations, on any ramped quote, or through the button; why the reprice
+   returned 0 is not traced.
 6. **Don't demo an inline quantity edit on an amendment of a configured product.** With
    configuration rules on it resets the line's attributes to product defaults, and activation
    keeps them on the asset [Measured: early Nov 2026, 264]. Change the quantity in the configurator.

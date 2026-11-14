@@ -171,14 +171,17 @@ Measured: **a header-only Place PATCH doesn't reprice the lines.** A Place PATCH
 header field, one the pricing procedure reads through the sales transaction context, saved the field
 and left every line's price as it was; a header-only PATCH with no field change didn't reprice either
 (each line's `PriceWaterfallIdentifier` stayed the same). **Reprice All** applied the new header value to the lines
-[Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. The rule behind it: under System pricing a Place
-request is priced only when it includes at least one quote or order line record, or line attribute record
-(a create, update or unchanged-value PATCH counts; a request that only deletes lines is priced only if the transaction still has lines). A request with only the header record
-is not priced, whichever header field changed. Force pricing (Reprice All) passes the request test
-unconditionally [Platform behaviour, traced]. A request that carries a context id is priced whenever the transaction has
-lines, so a header-only change through that path would reprice; which path a given client request takes
-was not determined, and the context-id case was not measured. After changing a header field that pricing
-reads, include a line record in the same request, use Force pricing, or click Reprice All. Pricing can also be
+[Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. The rule behind it: under System
+pricing a graph-style Place request is priced only when it includes at least one quote or order
+line record, or line attribute record (a create, update or unchanged-value PATCH counts; a
+request that only deletes lines is priced only if the transaction still has lines). A
+graph-style request with only the header record is not priced, whichever header field changed.
+Force pricing (Reprice All) passes the request test unconditionally [Platform behaviour, traced].
+A request that carries a context id is priced whenever the transaction has lines, so a
+header-only change through that path would reprice; which path a given client request takes was
+not determined, and the context-id case was not measured. After changing a header field that
+pricing reads, include a line record in the same request, use Force pricing, or click Reprice All.
+Pricing can also be
 skipped by an org-level platform setting that has no documented name [Platform behaviour, traced].
 A line PATCH on the graph-style Place path reprices the transaction, but on a Compound group ramp a partial line edit can re-apply the
 uplift to lines you didn't touch. Delta pricing (on in every Foundations-built org
