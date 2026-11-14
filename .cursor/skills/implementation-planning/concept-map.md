@@ -81,7 +81,7 @@ pointer, not the skill's full open list.
 
 | Source concept | Try first | Where documented |
 |---|---|---|
-| A contract created from the sale, with its terms and clauses | Contract types and lifecycle states, then templates and clauses; the contract is created from an opportunity, quote or order through the contracts context definition's use-case mappings (Help, not measured: open until verified live) | `salesforce-contracts` → `setup-and-diagnostics.md` (Contract creation); `context-service` |
+| A contract created from the sale, with its terms and clauses | Contract types and lifecycle states, then templates and clauses; the contract is created from an opportunity, quote or order through the contracts context definition's use-case mappings (Help: `ind.sf_contracts_configure_context_services_to_create_and_update_contracts`, not measured; decided by the snapshot, proved at its build gate) | `salesforce-contracts` → `setup-and-diagnostics.md` (Contract creation); `context-service` |
 | A quote, order form or contract document | A document template with its data mappers | `document-generation`; `odt-authoring` for the mappers |
 
 ## Negotiation and approvals
