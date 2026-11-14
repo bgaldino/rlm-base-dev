@@ -74,7 +74,8 @@ Use the [object graph](objects-and-relationships.md) to select records. Check:
   and conditions. Verify product-specific versus classification precedence and
   overlapping scenarios against expected composition. For order-wide behavior,
   follow Help's Plan-scope guidance; do not invent a scenario field from a UI label.
-- **Optional features:** delays/custom dates, branch skipping, cross-plan
+- **Optional features:** delays/custom dates
+  ([updates-and-runtime.md](updates-and-runtime.md)), branch skipping, cross-plan
   prerequisites, amend/cancel groups, Point of No Return and reverse compensation.
 
 Custom scope tags must resolve to String attributes in the selected context, with
