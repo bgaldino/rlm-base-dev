@@ -203,9 +203,19 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
 16. **Count an orchestrated fulfilment before predicting it.** For a representative order
     and each lifecycle order, write every dependency as an edge between two step
     instances (with their scopes, items and source lines), and count the expected
-    fulfilment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). Give
-    each sold structure the source says is fulfilled (each bundle or kit) its own count
-    golden. List each step's scope and each dependency's scope with the edge. Decide
+    fulfilment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). Count
+    instances from each technical product's decomposition scope and from the lines the
+    configurator places, not from a line's quantity: Order Line Item gives one per line,
+    while Order, Bundle and Account give one per order, per bundle, or per account across
+    its orders, merging every line that decomposes to the product, and Custom one per scope
+    identifier (unmeasured in `dro-plans`) (Help `ind.dro_decomposition_scope`). A later
+    order that carries a line decomposing to an Account-scope item gets a line for it (one
+    org; see the bullet on lines that come back). Take each instance's quantity from its
+    quantity method: Always One gives one (`dro-plans` → `authoring-and-deployment.md`),
+    and Aggregate sums the source lines' quantities with no unit-of-measure conversion
+    (Help `ind.dro_unit_of_measure_inheritance_and_rounding_values`). The count golden has columns for groups, definitions,
+    lines, steps with their scopes and edges with their scopes, a row for each order shape,
+    kit and variant the source fulfils, and a predicted row for each lifecycle order. Decide
     each edge's shape like any rule ([knowledge-sources.md](knowledge-sources.md)).
     - Count groups and step definitions per item before step instances. A definition
       belongs to one group, so a step several items need with different predecessors is
@@ -214,10 +224,12 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       action: in one run, an amendment built the full step set (`dro-plans` →
       `updates-and-runtime.md`). On one bundle amendment, some unchanged lines came through
       as an add and a cancel netting to zero while another was No Change, so record each
-      line's action, quantity and fulfillment asset quantities on the first amendment. An item
-      a later order must act on needs a scope that spans orders, on an assetizable technical
-      product, and an Order-scope item recurs on every order `[inferred]` from Help (same
-      file, An item across orders, measured on a later new-sale order).
+      line's action, quantity and fulfillment asset quantities on the first amendment.
+    - For each lifecycle rule that acts on an item an earlier order created (change it,
+      cancel it, delay its removal), check that the item's scope spans orders and that it is
+      assetizable: Help says an Order-scope item can't be assetized, and it comes back on
+      every order `[inferred]` from Help (`dro-plans` → `updates-and-runtime.md`, An item
+      across orders, measured on a later new-sale order; a custom scope wasn't measured).
     - Count the lines that come back on later orders: an Account-scope assetizable item got
       Amend and another got No Change (`dro-plans` → `updates-and-runtime.md`, An item
       across orders, one org; Help sets Amend where a line differs from its fulfillment

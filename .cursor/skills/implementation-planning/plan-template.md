@@ -180,6 +180,11 @@ Then list **extensions to existing skills** separately.
 - [ ] Every skill, sub-file and snapshot article named exists.
 - [ ] Every script the plan cites lives in the pack or the repo, not in a scratch or
   temporary folder.
+- [ ] Where the source tabulates fulfilment steps, every column (for example who, step
+  kind, at-risk window, point of no return, start date, scope, count) is mapped or decided
+  ([concept-map.md](concept-map.md), Order fulfilment), and each fulfilment item's scope
+  agrees with every lifecycle rule that acts on it ([prediction-checks.md](prediction-checks.md)
+  check 16).
 - [ ] Every row of the rule decision record names its fallback, or says why none is
   needed; list any row that doesn't.
 - [ ] Every rule that rejects or warns has its message in the plan.
