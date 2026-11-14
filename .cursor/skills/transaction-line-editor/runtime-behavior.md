@@ -180,10 +180,11 @@ Force pricing (Reprice All) passes the request test unconditionally [Platform be
 A request that carries a context id is priced whenever the transaction has lines, so a
 header-only change through that path would reprice; which path a given client request takes was
 not determined, and the context-id case was not measured. After changing a header field that
-pricing reads, use Force pricing or click Reprice All. A line record in the same request makes the
-request priced, but where Delta Pricing applies only that line and the lines that depend on it are
-expected to reprice (not measured; see
-[Delta pricing](../pricing-procedures/runtime-and-observability.md#delta-pricing)). Pricing can
+pricing reads, use Force pricing or click Reprice All. A line record in the same request, or
+the context-id path, makes the request priced, but where Delta Pricing applies not every line
+reprices: which lines move is set by
+[Delta pricing](../pricing-procedures/runtime-and-observability.md#delta-pricing) (see the
+measured ramp case below), and the header-change case was not measured. Pricing can
 also be skipped by an org-level platform setting that has no documented name [Platform
 behaviour, traced].
 A line PATCH on the graph-style Place path reprices the transaction, but on a Compound group ramp a partial line edit can re-apply the
@@ -212,10 +213,10 @@ it, and it applies only when all its conditions hold, see [runtime and
 observability](../pricing-procedures/runtime-and-observability.md#delta-pricing)), Help says to
 click **Reprice All** afterwards. The action itself saves the header values and then runs a full
 (Force) reprice. After a header field edited by other means, use Reprice All or Force pricing:
-a graph-style System request with only the header doesn't price, and with Delta Pricing on,
-a line record reprices only that line and its dependents (not measured). Section 4: a
-context-id request does price, when lines exist; a header edit in the record UI was not
-measured [Platform behaviour, traced]. The Order variant of the action was not traced. The
+a graph-style System request with only the header doesn't price, and a priced System request
+(a line record, or the context-id path, not measured) may not reprice every line where Delta
+Pricing applies (section 4). A header edit in the record UI was not measured [Platform
+behaviour, traced]. The Order variant of the action was not traced. The
 waterfall shows each line's share. Users need Salesforce Pricing Run Time User.
 
 **The setup is in the pricing procedure, not the editor.** Manage Header Adjustment takes the type,
