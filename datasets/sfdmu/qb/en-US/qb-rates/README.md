@@ -14,9 +14,9 @@ This plan is executed as **step 5** of the `prepare_rating` flow (when `rating=t
 |------|--------------------------|----------------------------------------------------|
 | 1    | `insert_qb_rating_data`  | Runs the qb-rating SFDMU plan (prerequisite)       |
 | 2    | `insert_qb_rating_entitlements_data` | Runs the qb-rating-entitlements plan (policies and grants) |
-| 6    | `insert_qb_rates_data`   | **Runs this plan** (two passes)                    |
-| 8    | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
-| 9    | `activate_rates`         | Activates Draft RateCardEntry records (REST)       |
+| 5    | `insert_qb_rates_data`   | **Runs this plan** (two passes)                    |
+| 7    | `activate_rating_records`| Runs `activateRatingRecords.apex`                  |
+| 8    | `activate_rates`         | Activates Draft RateCardEntry records (REST)       |
 
 `delete_qb_rates_data` (`deleteQbRatesData.apex`: deactivates Active entries, then deletes RCE, RABT, PBRC and RateCard) is a manual full teardown; no flow runs it.
 
@@ -194,8 +194,8 @@ that allowlist as a conscious, documented choice.
 | QB-DB            | UR-DATASTORAGE  | USD      | $10.00   |
 | QB-DB            | UR-DATAXFR      | USD      | $0.10    |
 | QB-DB-TOKEN      | QB-TOKEN        | USD      | $0.50    |
-| QB-DB-TOKEN      | UR-CPUTIME      | TOKEN-UOM| 5 tokens |
-| QB-DB-TOKEN      | UR-DATASTORAGE  | TOKEN-UOM| 10 tokens|
+| QB-DB-TOKEN      | UR-CPUTIME-TKN     | TOKEN-UOM| 5 tokens |
+| QB-DB-TOKEN      | UR-DATASTORAGE-TKN | TOKEN-UOM| 10 tokens|
 | QB-TOKENS-PACK   | QB-TOKEN        | USD      | $0.33    |
 | QB-DAT-THPT      | UR-DATAXFR      | USD      | $0.10    |
 
@@ -206,8 +206,9 @@ that allowlist as a conscious, documented choice.
 | QB-DB            | UR-CPUTIME      | USD       | Term Annual   |
 | QB-DB            | UR-DATASTORAGE  | USD       | Term Annual   |
 | QB-CMT-TKN-EACH | QB-TOKEN        | TOKEN-UOM | Term Annual   |
-| QB-CMT-TKN-EACH | UR-CPUTIME      | TOKEN-UOM | Term Annual   |
-| QB-CMT-TKN-EACH | UR-DATASTORAGE  | TOKEN-UOM | Term Annual   |
+| QB-CMT-TKN-EACH | QB-TOKEN        | USD       | Term Annual   |
+| QB-CMT-TKN-EACH | UR-CPUTIME-TKN     | TOKEN-UOM | Term Annual   |
+| QB-CMT-TKN-EACH | UR-DATASTORAGE-TKN | TOKEN-UOM | Term Annual   |
 | QB-CMT-TKN-FLAT | QB-TOKEN        | TOKEN-UOM | Term Annual   |
 | QB-CMT-TKN-FLAT | QB-TOKEN        | USD       | Term Annual   |
 | QB-CMT-TKN-FLAT | UR-CPUTIME-TKN     | TOKEN-UOM | Term Annual   |
@@ -235,27 +236,28 @@ that allowlist as a conscious, documented choice.
 
 | Lower Bound | Upper Bound | Type     | Value    |
 |-------------|-------------|----------|----------|
-| 1           | 100         | Override | $0.004   |
-| 100         | 200         | Override | $0.0045  |
-| 200         | 300         | Override | $0.005   |
-| 300         | 999999999   | Override | $0.006   |
+| 1           | 1000        | Override | $0.004   |
+| 1000        | 3000        | Override | $0.0045  |
+| 3000        | 6000        | Override | $0.005   |
+| 6000        | 999999999   | Override | $0.006   |
 
 ### QB-DB — Data Storage (mixed tiers, USD/TB)
 
 | Lower Bound | Upper Bound | Type       | Value   |
 |-------------|-------------|------------|---------|
-| 1           | 100         | Percentage | 0%      |
-| 100         | 500         | Override   | $12.50  |
-| 500         | 5000        | Override   | $15.00  |
-| 5000        | 999999999   | Override   | $18.00  |
+| 1           | 10          | Percentage | 0%      |
+| 10          | 25          | Override   | $12.50  |
+| 25          | 100         | Override   | $15.00  |
+| 100         | 999999999   | Override   | $18.00  |
 
 ### QB-CMT-TKN-EACH (Percentage tiers per resource)
 
-| Resource        | Adjustment |
-|-----------------|------------|
-| UR-CPUTIME      | 5%         |
-| UR-DATASTORAGE  | 4%         |
-| QB-TOKEN        | 6%         |
+| Resource           | Adjustment |
+|--------------------|------------|
+| UR-CPUTIME-TKN     | 5%         |
+| UR-DATASTORAGE-TKN | 4%         |
+| QB-TOKEN           | 6%         |
+| QB-TOKEN (USD)     | 0%         |
 
 ### QB-CMT-TKN-FLAT (Flat percentage on the token-backed **usage** resources)
 
@@ -274,13 +276,23 @@ The 3 volume tiers apply per usage resource (`UR-CPUTIME-TKN`, `UR-DATASTORAGE-T
 
 | Resource (TOKEN-UOM) | Lower Bound | Upper Bound | Adjustment |
 |----------------------|-------------|-------------|------------|
-| UR-CPUTIME-TKN       | 0           | 1000        | 10%        |
-| UR-CPUTIME-TKN       | 1000        | 5000        | 20%        |
-| UR-CPUTIME-TKN       | 5000        | (unlimited) | 30%        |
-| UR-DATASTORAGE-TKN   | 0           | 1000        | 10%        |
-| UR-DATASTORAGE-TKN   | 1000        | 5000        | 20%        |
-| UR-DATASTORAGE-TKN   | 5000        | (unlimited) | 30%        |
-| QB-TOKEN             | 0           | —           | 0%         |
+| UR-CPUTIME-TKN       | 0           | 10000       | 10%        |
+| UR-CPUTIME-TKN       | 10000       | 25000       | 20%        |
+| UR-CPUTIME-TKN       | 25000       | (unlimited) | 30%        |
+| UR-DATASTORAGE-TKN   | 0           | 10000       | 10%        |
+| UR-DATASTORAGE-TKN   | 10000       | 25000       | 20%        |
+| UR-DATASTORAGE-TKN   | 25000       | (unlimited) | 30%        |
+| QB-TOKEN             | 0           | (unlimited) | 0% (neutral) |
+| QB-TOKEN (USD)       | 0           | (unlimited) | 0% (neutral) |
+
+### QB-CMT-TKN-BND (same tiers as QB-CMT-TKN-FLAT)
+
+| Resource (TOKEN-UOM) | Lower Bound | Upper Bound | Adjustment |
+|----------------------|-------------|-------------|------------|
+| UR-CPUTIME-TKN       | 0           | (unlimited) | 10%        |
+| UR-DATASTORAGE-TKN   | 0           | (unlimited) | 10%        |
+| QB-TOKEN             | 0           | (unlimited) | 0% (neutral) |
+| QB-TOKEN (USD)       | 0           | (unlimited) | 0% (neutral) |
 
 ### Commitment Products (Percentage tiers)
 
@@ -344,7 +356,7 @@ qb-rates/
 ├── Product2.csv               # 10 records (Update UsageModelType only)
 ├── RateCard.csv               # 3 records
 ├── PriceBookRateCard.csv      # 2 records
-├── RateCardEntry.csv          # 126 records (Draft status — 16 per currency x 7 + 14 token-denominated)
+├── RateCardEntry.csv          # 126 records (Draft; 16 per currency x 7 + 14 token)
 ├── RateAdjustmentByTier.csv   # 128 records
 ├── objectset_source/object-set-2/
 │   └── RateCardEntry.csv      # 126 records (pass 2: no Status)
@@ -354,7 +366,7 @@ qb-rates/
 ├── ProductSellingModel.csv    # One-Time, Term Annual
 ├── UnitOfMeasure.csv          # Token, USD, Minutes, TB
 ├── UnitOfMeasureClass.csv     # Token, Currency, Time, Data Volume
-├── UsageResource.csv          # QB-TOKEN, UR-CPUTIME, UR-DATASTORAGE
+├── UsageResource.csv          # 7 usage resources (lookup)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                    # SFDMU-generated source snapshots
