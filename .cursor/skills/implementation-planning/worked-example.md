@@ -56,7 +56,7 @@ level, renewal at the same price, one currency, quote and contract documents.
 
 | Id | Decision | Choice | Why | Options in |
 |---|---|---|---|---|
-| D1 | Sensor: product, attribute or component | Component of the kit | R1 answer: 4 sensors per kit, so the sensor is counted; the owner says an item that must be counted, priced or tracked needs its own record | [Product vs attribute vs component](../product-catalog-modeling/SKILL.md#product-vs-attribute-vs-component) |
+| D1 | Sensor: product, attribute or component | Component of the kit | Assumption to log: the source does not say the sensor is priced, fulfilled, assetized or invoiced on its own, which is the owner's test for a separate product; the 4 per kit is a quantity, which a component or an attribute value could carry | [Product vs attribute vs component](../product-catalog-modeling/SKILL.md#product-vs-attribute-vs-component) |
 | D2 | Kit shape | Static bundle with one sensor component of quantity 4 (R1 answer); sensor quantity scaling Proportional | Fixed content, no choices. Proportional is an assumption to log: it is the default when quantity changes are off at creation | [bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md) |
 | D3 | Selling model, monitoring | Term defined, 36 months | R3 | [selling-models-and-lifecycle.md](../product-catalog-modeling/selling-models-and-lifecycle.md#choose-the-selling-model-from-the-pricing-basis) |
 | D4 | Selling model, installation | One-time | A one-time charge; milestone billing sits on one-time lines | [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services) |
@@ -107,14 +107,18 @@ invoice run and payments (no owner).
 
 Assumptions to confirm (owner: the customer), each with every plan item that depends on it:
 
+- D1 (sensor as a component of the kit): build step 2 (catalog), D2, chain steps 3 (Price),
+  9 (Assets) and 13 (Amend).
 - D2 (one sensor component of quantity 4, Proportional scaling): build step 2 (catalog), the
-  sensor count, chain step 3 (Price).
+  sensor count, chain steps 3 (Price), 13 (Amend) and 14 (Renew), since Proportional keeps
+  the ratio through amend, renew and cancel.
 - D6 (assetizable products): build step 2 (catalog flags), chain steps 9 (Assets), 12
-  (Usage) and 14 (Renew).
+  (Usage), 13 (Amend) and 14 (Renew).
 - D7 (line discount; the quote percent and its computation): build step 3 (procedure),
-  build step 4 (approval matrix, flow and quote percent), chain step 6 (Approve).
-- The installation as one line of quantity 10: the fulfillment count, D10, chain step 8
-  (Fulfill).
+  build step 4 (approval matrix, flow and quote percent), chain steps 3 (Price) and 6
+  (Approve).
+- The installation as one line of quantity 10: the fulfillment count, D8, D10, chain steps 8
+  (Fulfill) and 10 (Bill), since milestone billing builds one plan per order line.
 
 ## Chain binding (excerpt)
 
