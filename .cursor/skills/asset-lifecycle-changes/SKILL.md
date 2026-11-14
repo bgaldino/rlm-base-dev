@@ -35,7 +35,7 @@ results, 2026-11-11).
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
     - **Never reprice a renewal quote after its order is activated; until measured, treat
-      amendment and cancellation quotes (including ramped ones) the same.** Pricing of a
+      amendment and cancellation quotes (ramped or not) the same.** Pricing of a
       renewal, amendment or cancellation line reads the source asset's current state, and
       activation changes that state, so treat the rule as covering all three (measured only
       on a renewal) [Platform behaviour, traced in part].

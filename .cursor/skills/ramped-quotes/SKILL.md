@@ -183,7 +183,8 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   - the 8th stayed stuck through that reprice and two more System reprices;
   - one **`Force`** reprice fixed it (todo 160).
 
-  Make the final reprice `Force` (not after the order is activated; see
+  Make the final reprice `Force`. On a ramped renewal, amendment or cancellation quote, do it
+  before the order is activated, not after (see
   [asset-lifecycle-changes → verification](../asset-lifecycle-changes/verification.md)).
   Then check that every ramp line's `PriceWaterfallIdentifier`
   starts with its **own** Id. One that starts with `Quote_QuoteLineItem_<other Id>` hasn't been
@@ -213,7 +214,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   Measured once on a renewal quote: a full reprice (every line, pricing `Force`, configuration
   `Skip`) after the order was activated set the renewal lines' totals and the quote total to 0
   [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read
-  afterwards. Not measured on amendments, cancellations or ramped quotes; why the reprice
+  afterwards. Not measured on amendments or cancellations, ramped or not; why the reprice
   returned 0 is not traced. Read quote values before activation and don't reprice afterwards.
 - **DO NOT** claim a build "works" from an offline dry-run — a mutating ramp run
   must be verified against a **live 264 org**, writing only to a confirmed

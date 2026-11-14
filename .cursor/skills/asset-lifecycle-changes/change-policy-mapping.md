@@ -120,7 +120,8 @@ are **Open** ([verification.md](verification.md) → Open).
 
 A co-termed add joins three rules; each stays with its owner:
 
-- Dates: the contract co-termination bullet above (end dates follow the contract).
+- Dates: an amendment keeps the subscription end date (table row 1); on a contract with
+  cotermination, the bullet above applies (end dates follow the contract).
 - Proration: the added line's partial period is priced by the proration policy
   ([proration-and-selling-models.md](../pricing-setup/proration-and-selling-models.md),
   mid-term amendment or co-termed add note).

@@ -41,8 +41,9 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    `DecisionTableExecUserAccess`) grants it [Platform behaviour, traced]. The Connect API
    refresh resource is checked separately and is open to users with Business Rules Engine
    advanced designer or admin access [Platform behaviour, traced]. Which user a scheduled
-   flow runs as for the action's check is not established; confirm with a scheduled run. For
-   anyone else, the Manager shows freshness but disables Refresh.
+   flow runs as for the action's check is not established; confirm with a scheduled run. For a
+   user outside both sets, expect the Manager to show freshness but disable Refresh; which
+   check it applies is not traced.
 2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
    Add `-o param1 strict` to fail a build on any stale table, or `-o param1 json` for the
    dependency map as JSON (Examples). On a Trialforce-spun org,

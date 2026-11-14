@@ -39,11 +39,11 @@ For each change, record the state after every step:
    reprice touches every line, so it shows the effect most [Platform behaviour, traced in
    part]. Use Reprice All or a Place request with Force pricing, or a Place request that
    includes a line record.
-   A Place request that patches only the quote header isn't priced under System pricing: it is
-   priced only when it carries at least one quote or order line (or line attribute) record, so a
-   header-only PATCH leaves the lines untouched and "nothing moved" proves nothing. A
-   request that carries a context id is priced whenever the transaction has lines (not
-   measured). Force always prices [Platform behaviour, traced].
+   A graph-style Place request that patches only the quote header isn't priced under System
+   pricing: it is priced only when it carries at least one quote or order line (or line
+   attribute) record, so a header-only PATCH leaves the lines untouched and "nothing moved"
+   proves nothing. A request that carries a context id is priced whenever the transaction
+   has lines (not measured). Force always prices [Platform behaviour, traced].
 4. **Create the order** (`createOrdersFromQuote`), reprice it, and read `OrderItem`,
    `OrderItemDetail` and `OrderItemAttribute`. Read the order's `EffectiveDate` back: it is
    set to the earlier of the day the order is created and the earliest line start date on
