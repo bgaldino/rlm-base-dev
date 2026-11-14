@@ -108,7 +108,7 @@ that must never be presented). Billing cases cover every order the plan creates 
 new sale, each amendment, cancellation and renewal), not only the first. The measured
 invoice routes invoiced through today, sending only schedules due by then (`rlm-business-apis` →
 `backdated-asset-lifecycle.md`, Billing); invoicing to a future date isn't measured; the smallest spike is
-that measured call with a future `targetDate` `[inferred]` (Help's target-date rule:
+the measured invoice generate call with a future `targetDate` `[inferred]` (Help's target-date rule:
 `billing-operations` → `invoicing.md`; billing period count doesn't apply to milestone or
 usage schedules). So on a
 future-dated replay, check billing at schedule level, and say which invoice values wait
