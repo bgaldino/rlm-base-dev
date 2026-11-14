@@ -177,6 +177,17 @@ foundations:
         - .cursor/skills/billing-setup/shipped-billing.md
         - .cursor/skills/billing-setup/measured-264.md
 
+    - id: billing-operations
+      path: .cursor/skills/billing-operations/SKILL.md
+      purpose: "Billing after setup: invoicing, tax, payments, credits, ledger"
+      consumed_by_pmos: []
+      provenance: 264 Help and dev-guide snapshot, read not measured (2026-11-13)
+      sub_skills:
+        - .cursor/skills/billing-operations/invoicing.md
+        - .cursor/skills/billing-operations/tax.md
+        - .cursor/skills/billing-operations/payments-and-credits.md
+        - .cursor/skills/billing-operations/accounting.md
+
     - id: ramped-quotes
       path: .cursor/skills/ramped-quotes/SKILL.md
       purpose: "Build/verify multi-year GROUP ramp quotes (place→EditGroup→clone) and per-segment (compound) price uplift"
