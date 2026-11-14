@@ -216,9 +216,9 @@ In this repo the lists are `dt_rating_decision_tables` and
 order activation (see [usage-consumption](../usage-consumption/SKILL.md) DO NOT). At build
 time the `refresh_all_decision_tables` flow (run by
 `prepare_rlm_org`) refreshes them via `refresh_dt_rating` and
-`refresh_dt_rating_discovery` (the rating list already holds the asset rate tables; the
-flow also runs `refresh_dt_asset` over the asset-only list); `prepare_rating` itself does
-not. After that, use the
+`refresh_dt_rating_discovery` when the `rating` flag is on (it runs `refresh_dt_asset`
+first, but all eight of that task's tables are also in the rating list);
+`prepare_rating` itself does not. After that, use the
 Decision Table Manager's stale-only refresh, and
 `cci task run check_decision_table_freshness --org <cci_alias>` to confirm. See
 [`../decision-tables/SKILL.md`](../decision-tables/SKILL.md) (`RateCardEntry` feeds
