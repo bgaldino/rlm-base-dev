@@ -120,11 +120,10 @@ Each stage is covered below; the two detailed stages have sub-files.
 Usage needs an asset carrying entitlements, and the interesting cases are
 **backdated** so a period has closed. `scripts/build_quote_to_asset.py` produces that
 state reproducibly. Read the sub-file before touching quote creation — it records
-which v67.0 endpoints are gone and why the script uses Place rather than direct
-`QuoteLineItem` DML (DML leaves derived and priced lines inconsistent, see
-`scripts/df_workshop/README.md` → *Why replay, not DML*). Either route needs a treatment
-when a TermDefined line's billing frequency differs from the pricing term
-([billing-setup](../billing-setup/SKILL.md) item 3).
+which v67.0 endpoints are gone and the billing-frequency rule for TermDefined lines
+([billing-setup](../billing-setup/SKILL.md) item 3). The script uses Place because direct
+`QuoteLineItem` DML creates un-priced lines without the platform-generated children
+(`scripts/df_workshop/README.md` → *Why replay, not DML*).
 
 ### 2. Record usage
 

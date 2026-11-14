@@ -148,8 +148,9 @@ Gotchas, all measured:
 ## Activating the order
 
 In-flight fulfillment may limit changes to an asset whose order is still fulfilling, but a
-plain asset amendment was accepted with the Point of No Return flag set
-[Measured: 2026-11-13, 264, scratch, one org]; see
+plain asset amendment was accepted with the Point of No Return flag copied to the step
+[Measured: 2026-11-13, 264, scratch, one org]; enforcement was not tested, so a "no change
+after step X" rule needs its own validation `[inferred]`; see
 [dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md) (PONR bullet).
 
 Set `Status = Activated` on each returned order (create the order from a returned quote first,

@@ -358,8 +358,9 @@ results, 2026-11-11).
    [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].
 9. **Amending or cancelling assets whose order is still fulfilling may be limited by
    in-flight fulfillment.** A plain asset amendment was accepted with the Point of No Return
-   flag set, so a "no change after step X" rule needs its own validation
-   [Measured: 2026-11-13, 264, scratch, one org]; see
+   flag copied to the step [Measured: 2026-11-13, 264, scratch, one org]; whether the state
+   was in effect, and so enforcement, was not tested. A "no change after step X" rule needs
+   its own validation `[inferred]`; see
    [dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md) (PONR bullet).
 
 ## DO NOT
