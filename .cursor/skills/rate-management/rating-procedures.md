@@ -37,7 +37,7 @@ access or map your own context definition
 ## Element catalog [Help: `ind.rm_rating_elements`]
 
 Lookup tables come from the per-element articles and
-[Help: `ind.rm_prereqs_to_build_rating_procedures`]; a cell those do not name is labelled.
+[Help: `ind.rm_prereqs_to_build_rating_procedures`]; a cell those do not name is labeled.
 
 | Element | Use | Lookup table / note |
 |---------|-----|---------------------|
