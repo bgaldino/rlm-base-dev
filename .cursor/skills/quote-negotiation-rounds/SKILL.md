@@ -228,9 +228,10 @@ rule doesn't explain that [Measured: 2026-11-12, 264, scratch; one quote].
    Help says the start date defaults to the current date and that a future-dated contract
    errors, while the measured future start gave today with no error. To backdate an order, set
    past line start dates before creating it; read the date back before activating.
-   The create-order validations traced do not compare `Quote.Status` (not run against a Draft
-   or Rejected quote); this differs from the Help wording about converting an accepted quote
-   [Platform behaviour, traced in part]. The refusals traced are other preconditions (sync
+   The standard create-order validations traced do not check `Quote.Status` (not run against
+   a Draft or Rejected quote); this differs from the Help wording about converting an accepted
+   quote [Platform behaviour, traced in part; split-order and industry paths not read]. The
+   refusals traced are other preconditions (sync
    state above, pending revenue async operations, a failed validation result, a calculation
    status in progress or failed, unmet required-to-enter lines, an invalid configuration, the
    maximum orders per quote, bundle/ramp/usage/group integrity checks, the large-transaction
@@ -298,7 +299,13 @@ Not measured; settle on a live org before relying on them:
   active definition was not read; a mapping there is the first thing to check).
 - Whether a mapped but non-editable, formula or output-only field survives a clone, and how a
   large (async) transaction clone carries fields ([deep-clone.md](deep-clone.md) → What carries over).
-- Whether Create Order refuses a Draft or Rejected quote (not run live).
+- The standard create-order validations traced do not check the quote Status, so a Draft or
+  Rejected quote is expected to be orderable if it passes the other traced preconditions
+  (*Final round to order*, step 2; for example, with Asynchronous Opportunity Sync on, not
+  marked `IsSyncing` with edits after its last sync or no sync time recorded; priced; valid
+  configuration), unless a flow, validation rule or approval you wired stops it. Guard with
+  your own validation rule or Flow [Platform behaviour, traced in part; split-order and
+  industry paths not read]. Not run live.
 - Whether the `deepCloneSalesTransaction` invocable needs anything beyond
   `enableTransactionCloning`, and whether it behaves like the Connect API.
 - Whether `options.recordTypeId` sets the clone's record type.

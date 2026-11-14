@@ -31,7 +31,9 @@ exercise guide for any other release (see **Discovery**).
 2. **Quotes are replayed, never DML'd.** Re-create each quote through Place Sales
    Transaction (`POST /connect/rev/sales-transaction/actions/place`) so the
    platform generates and prices line items, attributes, and ramp segments.
-   Direct `QuoteLineItem` DML is rejected/inconsistent for TermDefined products.
+   Direct `QuoteLineItem` DML gives un-priced, inconsistent lines; a TermDefined line whose
+   billing frequency differs from the pricing term needs a treatment on either route
+   ([billing-setup](../billing-setup/SKILL.md) item 3).
 3. **Build ramps the platform way.** Place the primary (Year-1) segment, then
    **Create Ramp Deal**
    (`POST /connect/revenue-management/sales-transaction-contexts/{lineId}/actions/ramp-deal-create`,

@@ -34,12 +34,18 @@ results, 2026-11-11).
    placement.** Follow the change from quote → reprice → order → reprice → activation →
    asset state periods → asset actions. A value that is right on the quote can still
    drift later ([verification.md](verification.md)).
-    - **Never reprice a renewal quote after its order is activated; until measured, treat amendment and ramped quotes the same.** Measured once on a
-      renewal quote: a full reprice (every line, pricing `Force`, configuration `Skip`) after
-      the order was activated set the renewal lines' totals and the quote total to 0
-      [Measured: 2026-11-12, 264, scratch, one org] — each lot became a −lot/+lot pair netting 0, and the
-      order and assets were unchanged. Not measured on amendments or ramped quotes; mechanism not traced. Read
-      quote values before activation and don't reprice afterwards.
+    - **Never reprice a renewal quote after its order is activated; until measured, treat
+      amendment and cancellation quotes (ramped or not) the same.** Pricing of a
+      renewal, amendment or cancellation line reads the source asset's current state, and
+      activation changes that state, so treat the rule as covering all three (measured only
+      on a renewal) [Platform behaviour, traced in part].
+      Measured once on a renewal quote: a full reprice (every line, pricing `Force`,
+      configuration `Skip`) after the order was activated set the renewal
+      lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch, one org] — each
+      lot became a −lot/+lot pair netting 0, and the order and assets were unchanged. Not measured
+      on amendments or cancellations, or on any ramped quote; why the reprice returned 0 is not
+      traced.
+      Read quote values before activation and don't reprice afterwards.
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
    with configuration rules on (the UI's inline quantity edit does this), resets the
    line's attributes to the product defaults. Activation keeps them on the asset, and the
@@ -59,12 +65,11 @@ results, 2026-11-11).
       `unpackaged/post_constraints/triggers/RLM_QuoteItemTrigger.trigger`]. The node status
       records which answers the user set, not their values; with none on the root line, a
       solve that changes an answer treats every answer the request doesn't change as a
-      default. An answer edit keeps the other answers only when
-      those rows carry it. Activation fills them only when the context definition has an
-      order-to-asset rule (`AssetActionSource` ⇐ `SalesTransactionItem` in
-      `AssetToSalesTransactionMapping`), and never fills rows made from order product
-      detail rows: the cancel-and-reprice pair an answer-change amendment writes on the
-      root [Measured: 2026-11-11, 264, scratch org].
+      default. An answer edit keeps the other answers only when those rows carry it.
+      Activation fills them only when the context definition has an order-to-asset rule
+      (`AssetActionSource` ⇐ `SalesTransactionItem` in `AssetToSalesTransactionMapping`), and
+      never fills rows made from order product detail rows: the cancel-and-reprice pair an
+      answer-change amendment writes on the root [Measured: 2026-11-11, 264, scratch org].
     - **Why detail rows stay blank.** Activation writes one asset action source row per
       order line, or one per order line detail when the line has details; a detail-sourced
       row takes its quantity and prices from the detail, and its `ReferenceEntityItemId` is
@@ -354,6 +359,13 @@ results, 2026-11-11).
 8. **Ramped bundles have their own limits:** amending an API-built group-ramped bundle
    with a one-time or evergreen child failed in the measured shapes
    [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].
+9. **Amending or cancelling assets whose order is still fulfilling may be limited by
+   in-flight fulfillment.** A plain asset amendment was accepted with the Point of No Return
+   flag copied to the step [Measured: 2026-11-13, 264, scratch, one org]; whether the state
+   was in effect, and so enforcement, was not tested. A "no change after step X" rule needs
+   its own validation `[inferred]`; see
+   [dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md) (PONR and PONR flag
+   placement bullets).
 
 ## DO NOT
 

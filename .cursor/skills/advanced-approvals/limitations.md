@@ -156,12 +156,24 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   `true` (as the shipped steps set it), resubmissions auto-approved a step that was approved in the earlier submission and whose
   range still held, and the step rejected there went to review again
   [Measured: 2026-11-12, 264, scratch]; the Approval Settings page was not read.
+  Traced: Smart Approval is switched on per approval step by its Use Smart Approval input
+  (stored on the work item as Eligible for Smart Approval). The trace also confirms the
+  Decision and evaluation-flow rules above (other traced rules: *How it decides*): Smart
+  Approval does not apply when the flow has a Decision path leading to an approval step
+  without entry conditions, or an evaluation-flow entry or exit determination [Platform
+  behaviour, traced; Help: `ind.approvals_smart_approval_limitations`]. Help's "Turn On
+  Smart Approvals" step is not mapped to this input: not established whether an
+  organization-wide setting also gates it.
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.
-- Whether `ApprovalWorkItem` standard fields accept a sObject `update()`: the Help says no
-  [Help: `ind.approvals_design_build_activation`]; the dev guide lists `update()` and marks
-  `ApprovalChainName` and the Smart Approval fields updatable
-  [Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`].
+- `ApprovalWorkItem` standard fields and sObject `update()`: the Help says they can't be
+  updated [Help: `ind.approvals_design_build_activation`]; the dev guide lists `update()` and
+  marks `ApprovalChainName` and the Smart Approval fields updatable
+  [Dev guide: `adv_approvals_capture_fields_on_approvalworkitem`]. A user or Apex update of
+  the standard fields (status, assignee, reviewer, comments, chain name, Smart Approval fields
+  and the rest) is refused with an insufficient-access or read-only error; custom fields you
+  add to the object can be updated. Approve, reject and reassign through the approval actions
+  instead [Platform behaviour, traced]. Not run live.
 - How to tell a round's bulk line discount from an individual line override. No documented
   field or flag records which edit set a line's discount, and the repo ships none. A mapped line
   field written with the discount by an API applier survived a deep clone, and a header custom

@@ -171,15 +171,23 @@ Measured: **a header-only Place PATCH doesn't reprice the lines.** A Place PATCH
 header field, one the pricing procedure reads through the sales transaction context, saved the field
 and left every line's price as it was; a header-only PATCH with no field change didn't reprice either
 (each line's `PriceWaterfallIdentifier` stayed the same). **Reprice All** applied the new header value to the lines
-[Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. The rule behind it: under System pricing a Place
-request is priced only when it includes at least one quote or order line record, or line attribute record
-(a create, update or unchanged-value PATCH counts; a request that only deletes lines is priced only if the transaction still has lines). A request with only the header record
-is not priced, whichever header field changed. Force pricing (Reprice All) passes the request test
-unconditionally [Platform behaviour, traced]. A request that carries a context id is priced whenever the transaction has
-lines, so a header-only change through that path would reprice; which path a given client request takes
-was not determined, and the context-id case was not measured. After changing a header field that pricing
-reads, include a line record in the same request, use Force pricing, or click Reprice All. Pricing can also be
-skipped by an org-level platform setting that has no documented name [Platform behaviour, traced].
+[Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. The rule behind it: under System
+pricing a graph-style Place request is priced only when it includes at least one quote or order
+line record, or line attribute record (a create, update or unchanged-value PATCH counts; a
+request that only deletes lines is priced only if the transaction still has lines). A
+graph-style request with only the header record is not priced, whichever header field changed.
+Force pricing (Reprice All) passes the request test unconditionally [Platform behaviour, traced].
+A request that carries a context id is priced whenever the transaction has lines, so a
+header-only change through that path would reprice; which path a given client request takes was
+not determined, and the context-id case was not measured. After changing a header field that
+pricing reads, use Force pricing or click Reprice All. A line record in the same request makes
+the request priced, but where Delta Pricing applies it may not reprice every line
+([Delta pricing](../pricing-procedures/runtime-and-observability.md#delta-pricing); its
+always-run steps, such as compound uplift, still move untouched lines, as in the measured ramp
+case below); the header-change case was not measured. Whether Delta Pricing applies to a
+context-id request, and which lines it then moves, is not traced. Pricing can
+also be skipped by an org-level platform setting that has no documented name [Platform
+behaviour, traced].
 A line PATCH on the graph-style Place path reprices the transaction, but on a Compound group ramp a partial line edit can re-apply the
 uplift to lines you didn't touch. Delta pricing (on in every Foundations-built org
 [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]) is defined once in
@@ -200,12 +208,19 @@ Quote header (for orders it covers Order records too)
 [Help: `ind.qocal_header_adjustments_use`, `ind.qocal_header_adjustments_overview`]
 
 **Manage Header Adjustment** > type (**Amount**, **Percentage**, **Amount Override**) > value >
-distribution (**Equal**, or **Proportionate** to each line's list price × quantity). Where Delta Pricing is on
-(Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables it, and it
-applies only when all its conditions hold, see [runtime and
-observability](../pricing-procedures/runtime-and-observability.md#delta-pricing)),
-click **Reprice All** afterwards. The waterfall shows each line's share. Users need
-Salesforce Pricing Run Time User.
+distribution (**Equal**, or **Proportionate** to each line's list price × quantity). Where Delta
+Pricing is on (Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables
+it, and it applies only when all its conditions hold, see [runtime and
+observability](../pricing-procedures/runtime-and-observability.md#delta-pricing)), Help says to
+click **Reprice All** afterwards. The quote action itself saves the header values and then runs
+a full (Force) reprice [Platform behaviour, traced]. After a header field is edited by other
+means, use Reprice All or Force pricing: a graph-style System request with only the header
+doesn't price [Platform behaviour, traced];
+a System request with a line record may not reprice every line where Delta Pricing applies
+(the header-change case was not measured), and whether Delta Pricing applies to the context-id
+path is not traced (section 4). A header edit in the record UI was not measured. The Order
+variant of the action was not traced. The
+waterfall shows each line's share. Users need Salesforce Pricing Run Time User.
 
 **The setup is in the pricing procedure, not the editor.** Manage Header Adjustment takes the type,
 value and distribution logic [Help: `ind.qocal_header_adjustments_use`], and Help's setup uses the

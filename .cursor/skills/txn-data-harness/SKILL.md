@@ -116,9 +116,12 @@ not produce. `scripts/build_quote_to_asset.py` builds that chain reproducibly
 Its module docstring is the live-verified reference for **which v67.0 endpoints are
 gone** (`/commerce/sales-transactions/actions/place`,
 `/commerce/quotes/actions/create-order`,
-`/connect/revenue-management/orders/actions/activate` all return NOT_FOUND) and why
-direct `QuoteLineItem` DML is not viable for a TermDefined product. Read it before
-adding any quote-creation path to either tool.
+`/connect/revenue-management/orders/actions/activate` all return NOT_FOUND) and the
+billing-frequency rule for TermDefined lines
+([billing-setup](../billing-setup/SKILL.md) item 3). Use Place, as the script does:
+direct `QuoteLineItem` DML gives un-priced, inconsistent lines without the derived children
+(`scripts/df_workshop/README.md` → *Why replay, not DML*). Read the docstring
+before adding any quote-creation path to either tool.
 
 ## Source Files
 
