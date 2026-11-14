@@ -115,7 +115,7 @@ foundations:
       consumed_by_pmos: [sales-enablement]
       sub_skills:
         - .cursor/skills/rate-management/rating-procedures.md
-      provenance: Help-grounded (264 snapshot); not live-measured
+      provenance: Help-grounded (264 snapshot); the Active-entry and tier lock is live-verified (qb-rates README); otherwise not live-measured
       caveats:
         - "Real-time data vs decision tables on 264 and negotiated-rate capture at quote time are not measured"
 

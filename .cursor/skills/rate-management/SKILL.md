@@ -244,10 +244,10 @@ Snapshot; discover with `rg -n -i "rate.?card|rating" cumulusci.yml` and `ls dat
 | Rate card, entry, tier, price book rate card data | `datasets/sfdmu/qb/en-US/qb-rates`, `datasets/sfdmu/q3/en-US/q3-rates` (`insert_qb_rates_data`, `insert_q3_rates_data`) |
 | Attribute rate card | `qb-rates` also loads an Attribute-type card with no price book rate card [Repo: `datasets/sfdmu/qb/en-US/qb-rates/RateCard.csv`, `PriceBookRateCard.csv`]. Help says Usage Selling and Consumption Management does not support attribute-based rate cards (Quick Rule 8); do not build on it |
 | Usage resources and PURs, policies and grants | `qb-rating`, `qb-rating-entitlements` (and `q3-` equivalents) |
-| Flow | `prepare_rating`: load, `activate_rating_records`, `activate_rates` (REST; the Apex DML path failed on Release 262 [Repo: `tasks/rlm_activate_rates.py`]) |
+| Flow | `prepare_rating`: load, `activate_rating_records`, `activate_rates` (REST; the Apex DML path failed on Release 262 [Repo: `tasks/rlm_activate_rates.py`]). Every step needs `rating`; the rates load and both activations also need `rates`; loads need `refresh` off, with `qb`, or `q3` without `qb` [Repo: `cumulusci.yml` → `prepare_rating`] |
 | Procedures | `RLM_DefaultRatingProcedure`, `Negotiable_Rating_Procedure`, `RLM_DefaultRatingDiscoveryProcedure` (see `expression-sets`) |
 | Revenue Settings | `configure_revenue_settings` sets the usage rating discovery procedure |
-| Extended context | `extend_context_rating_discovery` |
+| Extended context | `extend_context_rate_management` and `extend_context_rating_discovery`, both only when `rating` is on |
 
 ## Examples
 
