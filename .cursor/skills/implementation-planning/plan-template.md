@@ -203,7 +203,8 @@ Then list **extensions to existing skills** separately.
   ([prediction-checks.md](prediction-checks.md) check 16).
 - [ ] Every [acceptance-chain.md](acceptance-chain.md) step the source needs cites its
   golden ids (except the build checks, steps 0, 1 and 15), each step the source or a
-  recorded decision excludes is marked not applicable, citing which, and the phase order follows [build-order.md](build-order.md) or records
+  recorded decision excludes is marked not applicable, citing which, every step the source
+  is silent on has a recorded scope decision, and the phase order follows [build-order.md](build-order.md) or records
   why not.
 - [ ] Every row of the rule decision record names its fallback, or says why none is
   needed; list any row that doesn't.
