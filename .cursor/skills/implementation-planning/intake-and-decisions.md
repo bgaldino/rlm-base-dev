@@ -49,7 +49,7 @@ explained. Add rows the source forces.
 | Product vs attribute vs component | [Product vs attribute vs component](../product-catalog-modeling/SKILL.md#product-vs-attribute-vs-component) | Price book entries, selling models, assets, fulfillment lines, categories |
 | Simple vs bundle type (immutable once created) | [Quick Rules](../product-catalog-modeling/SKILL.md#quick-rules) | Rebuild cost if wrong |
 | Static vs configurable bundle; group shape and cardinality | [bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md) | Configurator, constraint rules, line count per bundle |
-| Constraint model needed, or cardinality and classification suffice | [constraint-models](../constraint-models/SKILL.md#entry-conditions) | Authoring and deployment work |
+| Constraint model needed, or cardinality and classification suffice | [constraint-models](../constraint-models/SKILL.md) `[inferred]` | Authoring and deployment work |
 | Selling model per charge | [selling-models-and-lifecycle.md](../product-catalog-modeling/selling-models-and-lifecycle.md#choose-the-selling-model-from-the-pricing-basis) | Price book entries, billing frequency, renewals, credits |
 | Assetizable or not | [IsAssetizable](../product-catalog-modeling/selling-models-and-lifecycle.md#isassetizable) | Whether amend, renew and cancel can act on the sale |
 | Sold only with another product | [IsSoldOnlyWithOtherProds](../product-catalog-modeling/selling-models-and-lifecycle.md#issoldonlywithotherprods) | Category placement, quoting |

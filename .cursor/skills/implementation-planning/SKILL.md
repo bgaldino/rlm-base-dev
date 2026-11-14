@@ -79,7 +79,7 @@ read repository files can use it.
 | "How do I prove the whole thing works" | [acceptance-chain.md](acceptance-chain.md) |
 | One domain only (a catalog, a pricing rule, a DRO plan) | The domain skill; use [Domain routing](#domain-routing) |
 | Add this repo's feature, data plan or metadata | [repo-integration](../repo-integration/SKILL.md) |
-| Prepare a QuantumBit demo or workshop org | [qb-demo-script](../qb-demo-script/SKILL.md), [df-workshop-setup](../df-workshop-setup/SKILL.md) |
+| Prepare a demo or workshop org from this repo's demo script | [qb-demo-script](../qb-demo-script/SKILL.md), [df-workshop-setup](../df-workshop-setup/SKILL.md) |
 | Debug a failing build step | [troubleshooting](../troubleshooting/SKILL.md) |
 
 ## Workflow
@@ -146,7 +146,7 @@ Run before presenting. State pass or fail for each; a fail is fixed or listed as
 | 4 | Every measured-only or open behavior is flagged | Search the plan for each domain-skill claim it relies on; carry the skill's tag; open items become verification steps |
 | 5 | Every count is derived | Instances per decomposition scope, lines per bundle, periods per term: write the arithmetic next to the number |
 | 6 | Every build item has a prerequisite on the graph | No item floats; no cycle |
-| 7 | Every stage has an exit check | Taken from the owner's Validation Checks |
+| 7 | Every stage has an exit check | The owner's org-verification checks where it has them; an owner with none is an open item |
 | 8 | Silent categories are listed | Each intake category is covered, asked, or marked not applicable with the customer's confirmation |
 | 9 | Ownerless areas are named | The no-owner list above, with an open item each |
 | 10 | The acceptance chain covers every requirement | Each chain step cites requirement ids; a requirement no step proves is a gap |

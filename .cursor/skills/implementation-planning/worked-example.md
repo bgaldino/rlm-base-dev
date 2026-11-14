@@ -75,9 +75,9 @@ State the arithmetic, from the model and the decisions:
   cardinality rule the owner states (see
   [bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md#two-kinds-of-cardinality)).
   Which of the two the run produces is read from the org, not assumed.
-- Fulfillment instances for the installation: depends on D10 (per order, per kit, per
-  quantity). With per kit, 10 kits give 10 installation tasks; if per order,
-  1. The decomposition scope is a decision, not a default
+- Fulfillment instances for the installation: depends on D10 (per order, per kit, per quantity).
+  With per kit, 10 kits give 10 installation tasks; if per order, one task. The decomposition scope
+  is a decision, not a default
   ([authoring-and-deployment.md](../dro-plans/authoring-and-deployment.md)).
 - Yearly invoices for one monitoring line: 36 months / 12 = 3. Confirm the schedule count
   in the org.
