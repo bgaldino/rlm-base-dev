@@ -246,8 +246,8 @@ Tag a claim about product behavior with its source, adding a parameter where it 
 common tags are `[Help: <article>]`, `[Dev guide: <page>]`, `[Repo: <path>]`,
 `[Measured: <date>, <release>, <org shape>]`, `[Platform behaviour, traced]` and `[inferred]`;
 other source names follow the same pattern.
-When a live check ran but did not settle a claim, state what it did show with a `[Measured: …]`
-tag, then add `[Open: <the check that would settle it>]`. List every open item with
+When a claim is not settled, add `[Open: <the check that would settle it>]`. If a live check
+ran, first state what it showed with a `[Measured: …]` tag. List every open item with
 `rg -n '\[Open:' .cursor/skills`.
 
 ---
