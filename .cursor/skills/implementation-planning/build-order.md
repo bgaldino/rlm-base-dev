@@ -23,8 +23,8 @@ the decision log.
 
 ## Prerequisite graph
 
-Each row needs only what its Needs cell lists; the stage number groups items and is not a
-strict order (constraint models need the catalog and the context they read, not prices).
+Each row's Needs cell lists the main prerequisites the cited sources state; read the owner
+skill for the rest. The stage number groups items and is not a strict order (constraint models need the catalog and the context they read, not prices).
 Items in one stage can run in parallel unless an edge says otherwise `[inferred]`.
 
 | Stage | Build item | Needs | Edge source | Owner |
@@ -51,9 +51,9 @@ Items in one stage can run in parallel unless an edge says otherwise `[inferred]
 | 6 | Contract setup | Feature access, settings, then types and states, then content | [salesforce-contracts Quick Rules](../salesforce-contracts/SKILL.md#quick-rules) | [salesforce-contracts](../salesforce-contracts/SKILL.md) |
 | 6 | Usage resources, product usage resources, grants, usage policies, commitments | The usage products and their units | [usage-setup.md](../usage-consumption/usage-setup.md#manual-sequence-help-indum_configure_usage_records) (steps 4 to 10; step 11 links sold assets, stage 10) | [usage-consumption](../usage-consumption/SKILL.md) |
 | 6 | Rate cards, entries, price book rate cards, rating procedure | Usage resources; the products and selling models the entries name; price book; then the decision tables rating reads, refreshed | [rate-management Quick Rules](../rate-management/SKILL.md#quick-rules) (1, 2, 5, 7) | [rate-management](../rate-management/SKILL.md) |
-| 7 | Quote and order UI, line editor, documents | Catalog; templates after their data mappers | [transaction-line-editor](../transaction-line-editor/SKILL.md), [document-generation](../document-generation/SKILL.md) | same |
+| 7 | Quote and order UI, line editor, documents | Catalog; each custom line-editor column in the sales transaction context; templates after their data mappers | [transaction-line-editor](../transaction-line-editor/SKILL.md), [document-generation](../document-generation/SKILL.md) | same |
 | 8 | First transaction: quote, price, place | Stages 3 to 6 as the deal requires | [rlm-business-apis](../rlm-business-apis/SKILL.md#transaction-lifecycle-apis) | [rlm-business-apis](../rlm-business-apis/SKILL.md) |
-| 9 | Order activation, fulfillment, billing schedules, assets | Placed order; fulfillment and billing configuration; the order's bill-to contact and addresses | [acceptance-chain.md](acceptance-chain.md), [billing-operations Quick Rules](../billing-operations/SKILL.md#quick-rules) (1: schedules at activation) | [dro-plans](../dro-plans/SKILL.md), [billing-setup](../billing-setup/SKILL.md), [billing-operations](../billing-operations/SKILL.md) |
+| 9 | Order activation, fulfillment, billing schedules, assets | Placed order; fulfillment and billing configuration, including the billing context definition and mapping; the order's bill-to contact and addresses | [acceptance-chain.md](acceptance-chain.md), [billing-operations Quick Rules](../billing-operations/SKILL.md#quick-rules) (1: schedules at activation) | [dro-plans](../dro-plans/SKILL.md), [billing-setup](../billing-setup/SKILL.md), [billing-operations](../billing-operations/SKILL.md) |
 | 10 | Lifecycle changes: amend, swap, cancel, renew | An asset exists | [asset-lifecycle-changes](../asset-lifecycle-changes/SKILL.md), [renewal-asset-creation](../renewal-asset-creation/SKILL.md) | same |
 | 10 | Usage recording and rating | A usage-entitled asset; for a commitment, each commitment asset linked to its anchor asset after activation (without the link the commitment is inert) | [The Pipeline](../usage-consumption/SKILL.md#the-pipeline), [usage-consumption Quick Rules](../usage-consumption/SKILL.md#quick-rules) (5) | [usage-consumption](../usage-consumption/SKILL.md) |
 | 10 | Invoice runs, tax, payments and credits | Billing schedules; tax engine and legal entity | [billing-operations Quick Rules](../billing-operations/SKILL.md#quick-rules) (2: invoices come from schedules) | [billing-operations](../billing-operations/SKILL.md) |
@@ -125,8 +125,8 @@ prepare_rlm_org`) or read the flow in `cumulusci.yml`, and compare names.
 
 ## Parallelism and gates
 
-- Stages 3 and 6 hold items with no recorded edge between them `[inferred]`; assign them to
-  separate workers only when each
+- Stages 3 and 6 include items with no recorded edge between them `[inferred]` (others have
+  one, in their Needs cells); assign them to separate workers only when each
   owner's prerequisites are met.
 - A stage's exit check is the owner's org-verification checks where it has them (an owner
   with none is an open item, logged), not the stage's completion in
