@@ -12,14 +12,16 @@ The plan's phases ([plan-template.md](plan-template.md) section 5) group these s
 is stage 0, P3 stages 1 and 2 plus the constraint models (P3 builds the context
 definition and tags they read first, or waits for P4's), P4 stages 3 to 5, P5 the
 approvals and stage 7, and P6 the rest of stage 6 and stages 9 and 10. P2 spikes build
-only the stages their must-hits need, on their own org. A quote is first placed by a P2a
-spike or by P3's configuration test (a bundle test places the quote with rules on, PCM fact
-e); the priced transaction (stage 8) is first gated at P4. A P2b chain whose fulfilment its must-hits count loads its
+only the stages their must-hits need, on their own org. A test that places a quote before P4
+(a P2a spike, or P3's configuration test: a bundle test places the quote with rules on, PCM
+fact e) first needs price book entries for its products and the refresh newly loaded
+products need (fact f) `[inferred]`; the priced transaction (stage 8) is first gated at P4. A P2b chain whose fulfilment its must-hits count loads its
 fulfilment configuration before its first order (a submitted plan doesn't pick up later configuration,
 `dro-plans`); load the other stage 6 configuration its orders read first too `[inferred]`. Where the source shows tax or usage
 rates on the quote, or its quote lines bill on a cadence other than the pricing term or by
 milestone, build those stage 6 items in P4 with their own prerequisites (tax engine,
-policies and legal entity; usage resources and policies; billing policy and treatments), or leave them out of the P4 goldens
+policies and legal entity; usage resources, rate cards and their refreshed rating tables;
+billing policy and treatments), or leave them out of the P4 goldens
 and record the decision. Where a plan puts an item in a different phase, record why in
 the decision log.
 
@@ -92,7 +94,7 @@ citations, has nothing here to track.
 
 | Graph stage | Realized by | Notes |
 |---|---|---|
-| 0, 1, 3 (settings, fields; context definitions) | `prepare_core` | Settings, licenses, context definitions and pre-deploy metadata come first; domain context extensions (`apply_context_*`) run later, inside their domain's sub-flow |
+| 0, 1, 3 (settings, fields; context definitions) | `prepare_core` | Settings, licenses, context definitions and their domain extensions, and pre-deploy metadata come first; a few context overlays (docgen, billing order, constraints, approvals, PRM) run later, in their domain's sub-flow |
 | 4 (tables) | `prepare_core` (`deploy_pre` deploys the definitions), `prepare_decision_tables` (activates them), then `refresh_all_decision_tables` late | The full refresh runs after all data is loaded |
 | 4 (recipe mappings) | `configure_core_pricing_recipe_table_mappings`, inside `prepare_expression_sets` | |
 | 5 (procedures) | `prepare_expression_sets`, then `activate_and_deploy_expression_sets` | Deploy early; activation after data and rating |
@@ -115,8 +117,8 @@ catalog, personas, in-app learning, agents, community) that no customer graph ne
 asked. Where the flow and the graph disagree, the flow likely reflects a repo constraint
 (for example shared sample data) `[inferred]`. Order differs too:
 
-- Context definitions deploy with the core settings in the flow but sit at stage 3; the
-  domain context extensions run inside each domain's sub-flow, after the catalog.
+- Context definitions and most of their extensions deploy with the core settings in the
+  flow but sit at stage 3.
 - Decision table definitions deploy and activate, and procedures deploy, before the catalog
   and price books in the flow but sit at stages 4 and 5.
 - The flow activates existing price adjustment schedules before the catalog loads and loads
