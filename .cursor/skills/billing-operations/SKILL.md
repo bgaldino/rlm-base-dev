@@ -69,7 +69,7 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
   linked to an asset; amend, renew and cancel from the order or asset and use the
   order-to-schedule flow or the orders API [Help: `ind.billing_schedules_standalone_api`].
 - **DO NOT** treat the Revenue Standard Tax Engine as a compliance engine: Help calls it
-  designed for simple calculations, line-level, with line-level rounding
+  designed for simple calculations at line level and might include rounding at line level
   [Help: `ind.billing_standard_tax_rate`].
 - **DO NOT** write off, void or delete as a shortcut for a wrong amount. Each has its own
   effect on credits, tax and journals ([payments-and-credits.md](payments-and-credits.md)).
@@ -116,8 +116,9 @@ A snapshot; the files are the source [Repo]:
 - Billing flow and settings: `unpackaged/post_billing/` and `prepare_billing` in
   `cumulusci.yml`; detail in billing-setup → `shipped-billing.md`.
 - Tax: `datasets/sfdmu/qb/en-US/qb-tax/README.md` (policy, treatment, engine, provider).
-- Accounting: `datasets/sfdmu/qb/en-US/qb-accounting/README.md` (legal entities, ledger
-  accounts, assignment and journal entry rules).
+- Accounting: `datasets/sfdmu/qb/en-US/qb-billing/README.md` (ledger accounts, assignment
+  rules, accounting periods) and `qb-tax/README.md` (legal entities); `qb-accounting` is
+  reference data that no CCI task loads.
 - Sequence policies: `tasks/rlm_billing.py` (`CreateSequencePolicies`), gapless numbering.
 - Invoice email template: `create_default_invoice_email_template` in `cumulusci.yml`.
 - Billing UI (aging, split invoices, journals): `scripts/build_billing_ui_module.py`,

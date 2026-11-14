@@ -24,7 +24,8 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
   amended or canceled.
 - Conversion of Negative Invoice Lines to Credit Memo Lines, and application of the
   converted memos to the invoice.
-- Apply Credits to Posted Invoices: automatic application of available credit balances.
+- Apply Credits to Posted Invoices: automatic application of available credit balances,
+  with the default flow used to apply the credit memo to invoices.
 - Credit, Payment and Refund Application Level: **Line Level** (default) or **Header
   Level**. Decide this early: it changes where balances live and how header tax works
   ([tax.md](tax.md)).
@@ -45,13 +46,14 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
 - **Consolidation.** Posted invoices of one account can share one payment schedule and
   item, which cuts gateway calls and fees [Help: `ind.billing_payments_consolidate_invoices`].
 - **Retries.** A retry rule set holds the default behavior, rules override by error
-  category, gateway and raw error code; intervals are Fixed or varied, with a maximum number
-  of attempts [Help: `ind.billing_retry_failed_payments`,
+  category, gateway and raw error code; intervals are Fixed or Staggered; a fixed interval has a
+  maximum number of attempts [Help: `ind.billing_retry_failed_payments`,
   `ind.billing_setup_payment_retry_rules`].
 - **Reconciliation.** Document AI extracts payment advice and matches it against bank
   proofs, with its own Data 360 setup [Help: `ind.billing_payment_reconciliation`].
-- Pay links and the self-service portal exist [Help: `ind.billing_self_service_portal`];
-  not read in detail.
+- Pay Now links let a customer pay as a guest and save the method
+  [Help: `ind.billing_generate_pay_now_payment_links_for_business_accounts`]. The
+  self-service portal exists [Help: `ind.billing_self_service_portal`]; not read in detail.
 
 ## Application rules
 
@@ -88,8 +90,9 @@ Credit amounts are 0 up to the line balance; tax is
 automatic from the credit amount, a typed credit tax amount, or none
 [Help: `ind.billing_create_and_apply_credit_memos`]. Voiding a posted credit memo creates
 a posted debit memo to offset it for the ledger and carries tax detail
-[Help: `ind.billing_credit_memos_void_recover`]. APIs and flow actions cover create, post,
-apply, unapply (header and line level) and refund
+[Help: `ind.billing_credit_memos_void_recover`]. APIs and flow actions cover create standalone,
+create and apply, apply and unapply (header and line level) and convert negative invoice
+lines to a posted credit memo
 [Help: `ind.billing_credit_memos_apis_and_actions`]. What an amendment's credit amounts
 are: `asset-lifecycle-changes` and `rlm-business-apis` → `backdated-asset-lifecycle.md`.
 
@@ -99,17 +102,18 @@ A debit memo adds a charge: undercharge correction, cancellation or suspension f
 payment fee. Created in Draft, with a reason code you add to the Reason Code picklist first;
 a posted debit memo can become a draft invoice through the Invoice Ingestion API
 [Help: `ind.billing_debit_memo_explain`, `ind.billing_debit_memo_create`,
-`ind.billing_invoice_creation`]. Orgs created before Winter '26 need the Debit Memos tabs
-set to Default On.
+`ind.billing_invoice_creation`]. Orgs created before Winter '26 need the Debit Memos and
+Debit Memo Lines tabs set to Default On [Help: `ind.billing_debit_memo_create`].
 
 ## Refunds
 
 - **Referenced refund**: triggered by an amendment or cancellation of a fully settled
   invoice; paid to the original payment method; needs the original payment tied to a
-  gateway and Issue Refunds and Settle Balances on.
+  gateway, and Issue Refunds and Settle Balances and Apply Credits to Posted Invoices on.
 - **Unreferenced refund**: manual, to settle an available credit balance; paid to a saved
-  payment method from the request, then the memo, then the billing account; needs a credit
-  balance and a supported third-party gateway.
+  payment method from the request, then the memo, then the billing account or arrangement;
+  needs a credit balance, a supported third-party gateway that processes unreferenced
+  refunds, and a saved card payment method on the credit memo or billing account.
 
 [Help: `ind.billing_refunds_overview`, `ind.billing_refund_orchestration`,
 `ind.billing_unreferenced_refunds`, `ind.billing_issue_unreferenced_refund`]. Header-level
@@ -124,8 +128,8 @@ balances held [inferred from Help].
   payments can be applied or unapplied. Use the Write-Off API or a flow action
   [Help: `ind.billing_write_off_invoices_impact`,
   `ind.billing_write_off_invoices_invoke_action`].
-- **Disputes**: Dispute Management is installed from service process templates, with its
-  own license [Help: `ind.billing_dispute_management_enable`].
+- **Disputes**: Dispute Management is installed from service process templates and
+  needs the Revenue Cloud Billing license [Help: `ind.billing_dispute_management_enable`].
 - **Collections**: a collection plan per account with an item per overdue invoice; dunning
   orchestration runs Dynamic Revenue Orchestrator templates (reminder, due notice,
   suspension notice, escalation), payment promises can create up to three payment

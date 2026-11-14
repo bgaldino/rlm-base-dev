@@ -36,8 +36,11 @@ is per entity ([billing-setup](../billing-setup/SKILL.md) → treatments, [tax.m
   Open at creation. Transactions are assigned to the entity's period
   [Help: `ind.billing_accounting_periods_explain`,
   `ind.billing_legal_entity_accounting_periods_create`].
-- Permission sets: Accounts Receivables Admin to create; Data Pipelines Base User also
-  to close or reopen.
+- Permission sets: Accounts Receivables Admin to create; Accounts Receivables Admin and
+  Data Pipelines Base User to close or reopen
+  [Help: `ind.billing_legal_entity_accounting_periods_create`,
+  `ind.billing_legal_entity_accounting_periods_close`,
+  `ind.billing_legal_entity_accounting_period_reopen`].
 
 ### Close and reopen
 
@@ -45,9 +48,10 @@ Before closing: enable Data Pipelines, turn on Create Transaction Journals for
 Transactions and for Foreign Exchange Gains or Losses (with their ledger accounts), select
 the default Data Processing Engine definition for closing, and for multiple currencies
 set dated exchange rates (run data sync after deleting one)
-[Help: `ind.billing_legal_entity_accounting_periods_close`]. Closing runs three Data
-Processing Engine definitions in sequence; closing copies closing balances as the next
-period's opening balances [Help: `ind.billing_legal_entity_accounting_period_closure_importance`].
+[Help: `ind.billing_legal_entity_accounting_periods_close`]. Closing runs up to three Data
+Processing Engine definitions, depending on the org's licenses; closing copies closing
+balances as the next period's opening balances
+[Help: `ind.billing_legal_entity_accounting_period_closure_importance`].
 Reopen to reconcile; it also removes unrealized foreign exchange journals where that
 license applies [Help: `ind.billing_legal_entity_accounting_period_reopen`]. General
 ledger accounts created before Winter '26 have no Type; set it by hand or opening and
@@ -68,7 +72,9 @@ closing balances cannot be computed [Help: `ind.billing_general_ledger_accounts_
    `ind.billing_general_ledger_results`]:
    - an invoice, credit memo or their lines and taxes change to Posted, Voided or Canceled;
    - a credit memo is applied to an invoice;
-   - a payment becomes Processed, and when payment lines for invoices are created.
+   - a payment or refund becomes Processed, and when payment lines for invoices or refund
+     line payments are created;
+   - debit memo lines are created.
 
 Journals are meant to be integrated with the customer's accounting system for financial
 statements [Help: `ind.billing_general_ledger_results`]. Ask whether Salesforce is the
@@ -93,10 +99,13 @@ This is an inference from reading the Billing article list, not from a product s
 
 ## What the repo ships
 
-`qb-accounting` loads ledger accounts and assignment rules for the qb plan's legal
-entities; its journal entry rules file is empty. `qb-billing` loads the legal entities the
-treatments use, and `deploy_billing_id_settings` sets the org defaults
-[Repo: `datasets/sfdmu/qb/en-US/qb-accounting/README.md`,
+`qb-billing` loads the ledger accounts and assignment rules, plus accounting periods and
+legal entity accounting periods; it reads the legal entities that `qb-tax` creates.
+`deploy_billing_id_settings` sets the org defaults. `qb-accounting` is reference data
+with the same ledger accounts and rules plus an empty journal entry rules file, and no
+CCI task loads it
+[Repo: `datasets/sfdmu/qb/en-US/qb-billing/README.md`,
+`datasets/sfdmu/qb/en-US/qb-tax/README.md`, `docs/references/repository-layout.md`,
 `billing-setup/shipped-billing.md`]. That journals appear correctly on a posted invoice
 for the repo's rules: not measured.
 

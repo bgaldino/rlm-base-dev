@@ -14,12 +14,15 @@ Read this when choosing how invoices are produced or setting a run's dates. Pare
 
 The standalone API covers original, amended, canceled, renewed, ramped, bundled and
 usage-based transactions, and from Summer '26 takes minimal intent-based requests for
-changes [Help: `ind.billing_schedules_standalone_api`]. Its context definition is
-`BillingContext` or one extended from it [Help: `ind.billing_schedules_from_order_items`].
+changes [Help: `ind.billing_schedules_standalone_api`]. Its request names the
+`BillingContext` context definition [Help: `ind.billing_schedules_from_order_items`]; Help
+recommends extending the standard definitions and using the extended copy
+[Help: `ind.billing_standard_context_definitions`].
 
-- A schedule group holds the schedules for one order product or asset; billing day of
-  month, next billing date override, addresses, tax treatment and payment term on the group
-  can be changed later [Help: `ind.billing_schedule_group_update`].
+- A schedule group holds one or more billing schedules for an order product
+  [Help: `ind.billing_schedules_and_schedule_groups`]; billing day of month, next billing
+  date override, addresses, tax treatment and payment term on the group can be changed
+  later [Help: `ind.billing_schedule_group_update`].
 - Billing needs the order's bill-to contact and addresses at activation
   [Help: `ind.billing_setup_enable`].
 - Turning Billing off stops schedule creation for newly activated orders and fails queued
@@ -27,14 +30,17 @@ changes [Help: `ind.billing_schedules_standalone_api`]. Its context definition i
 
 ## Choose how invoices are produced
 
-- Invoice batch run: regular cycle for many accounts (a scheduler; parallel; runs on the
-  Data Processing Engine).
-- Generate Invoices on an account or order: a person bills one customer now (quick action).
+- Invoice batch run: regular cycle for many accounts (a scheduler; parallel; processed by
+  the Batch Management Service [Help: `ind.billing_invoice_batch_run`]; the limits article
+  also applies Data Processing Engine limits [Help: `ind.billing_limits`]).
+- Generate Invoices on an account or order: a person bills one customer now (quick action)
+  [Help: `ind.billing_invoice_generation_for_accounts_orders`].
 - Invoice Creation API or flow action: another system triggers invoicing for an account,
-  order or list of schedules.
+  order or list of schedules [Help: `ind.billing_invoices_apis_and_actions`].
 - Invoice Ingestion API: invoices exist outside Billing, or come from a debit memo; it
-  creates the invoice, lines and tax lines.
-- Preview Invoices: show a customer the next invoice; never creates an invoice.
+  creates the invoice, lines and tax lines [Help: `ind.billing_invoice_creation`].
+- Preview Invoices: show a customer the next invoice; never creates an invoice
+  [Help: `ind.billing_preview_invoice`].
 
 - **Batch run.** A scheduler (App Launcher: Billing Batch Schedulers, New Invoice
   Scheduler) can run once, daily, weekly or monthly, immediately with Start run now, and
@@ -96,9 +102,10 @@ objects and make them asynchronous; recovery of stranded invoices is in the same
 
 - **Invoice group type** on each schedule: Default (one invoice per billing account,
   bill-to contact, currency, payment term, tax engine, legal entity and saved payment
-  method), Billing Schedule (its own invoice), or Custom with a key (contract number,
-  purchase order, your value, case-insensitive). The default group is applied first, then
-  the key [Help: `ind.billing_schedule_invoice_grouping`].
+  method), Billing Schedule (its own invoice), or Custom with a key (such as contract
+  number, purchase order number, account, legal entity or your own value;
+  case-insensitive). The default group is applied first, then the key
+  [Help: `ind.billing_schedule_invoice_grouping`].
 - **Billing arrangements** bill one transaction to several accounts by percentage; each
   arrangement line makes a separate invoice. Review the Split Invoices tab before posting,
   voiding or deleting [Help: `ind.billing_billing_arrangements`,

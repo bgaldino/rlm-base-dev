@@ -33,7 +33,8 @@ under Billing Defaults [Help: `ind.billing_setup_default_records`].
   [Help: `ind.billing_invoice_creation`] [Dev guide: `connect_resources_calculate_estimated_tax`].
 - Posted invoices call the engine for actual tax; the result lands on Invoice Line Tax
   records (amount, code, rate, name, document and transaction numbers, effective date,
-  exempt amount) and rolls up to the line and invoice total tax.
+  exempt amount) and rolls up to the line and invoice total tax
+  [Help: `ind.billing_tax_calculation_results`].
 - Voiding a posted invoice calls the engine to void or adjust tax; the related credit memo
   is Voided or Posted depending on the engine's response by line type
   [Help: `ind.billing_void_taxes`].
@@ -55,10 +56,11 @@ differ [Help: `ind.billing_tax_configuration_engine`].
 Questions to ask the customer, with the Help-grounded consequence:
 
 - **Does tax have to be certified or jurisdiction-exact?** The Revenue Standard Tax Engine
-  is described as for simple calculations, at line level with line-level rounding, and
-  not necessarily suitable for compliance needs [Help: `ind.billing_standard_tax_rate`].
+  is described as for simple calculations, at line level and possibly rounding at line level,
+  and may not suit tax compliance needs [Help: `ind.billing_standard_tax_rate`].
 - **Exemptions?** Use a tax system that supports certificate management; keep a matching
-  key between Billing and the tax system, the Account Id for account-level exemptions
+  key between Billing and the tax system: the Account Id for account-level exemptions
+  and the Product2 Product Code for product-level exemptions
   [Help: `ind.billing_tax_calculation_results`]. Tax identification details can be stored on
   the Billing Account and passed to the engine [Help: `ind.billing_tax_identification_configure`].
 - **Different ship-to for one product?** Change the schedule group's billing and shipping
@@ -74,7 +76,10 @@ supports up to 2,000 invoice lines on one invoice, so test the adapter against t
 total heap size limit [Help: `ind.billing_tax_configuration_prerequisites`,
 `ind.billing_limits`]. Then create a tax engine provider and a tax engine
 [Help: `ind.billing_tax_engine_and_engine_providers_create`]; only Active engines calculate
-tax. The Tax Admin permission set creates engines, policies and treatments.
+tax. The engine must support tax for credits, or negative invoice lines can't be
+processed and invoice voids fail
+[Help: `ind.billing_tax_engine_and_engine_providers_create`]. The Tax Admin permission set
+creates engines, policies and treatments.
 
 ## Revenue Standard Tax Engine
 
