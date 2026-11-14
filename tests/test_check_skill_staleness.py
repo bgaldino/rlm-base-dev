@@ -138,6 +138,13 @@ class Staleness(unittest.TestCase):
         self.assertEqual(self.rules("<!-- staleness: allow --> intro\nverified on 262"),
                          ["stale-pin"])
 
+    def test_block_edges(self):
+        self.assertEqual(self.rules("Verified on 262, see\n#2: not re-verified"), [])
+        self.assertEqual(self.rules("Verified on 262\n## Not re-verified"), ["stale-pin"])
+        self.assertEqual(self.rules("it was unverified on 262"), [])
+        self.assertEqual(self.rules("~~~\n```\nverified on 262 here\n~~~"), ["stale-pin"])
+        self.assertEqual(self.rules("````\n```\n````\nVerified on\n262"), ["stale-pin"])
+
     def test_allow_marker(self):
         self.assertEqual(self.rules("Verified on 262 <!-- staleness: allow -->"), [])
         self.assertEqual(self.rules("[Help: `ind.nope`] <!-- staleness: allow -->"), [])

@@ -365,12 +365,12 @@ changes under `.cursor/skills/`, `docs/salesforce/` or `.claude/skill-manifest.y
 is `salesforce_release_active` in `.claude/skill-manifest.yml`. Text is read per block (paragraph,
 list item, table row, heading, or one fenced line), so wrapped labels and pins are read whole.
 Rules: `snapshot-link` (a `docs/salesforce/<N>/...` path for an older N when the active snapshot
-has the same file, same case), `stale-pin` ("Verified on Release <N>" with N older, unless the block
-says it was not re-verified or also pins the active or a newer release) and `help-id` (a
-``[Help: `ind.x`]`` id in no snapshot, or only in an older one without that release number in the
-block; skipped for the older case when the active release has no Help snapshot). Newer-release
-paths and ids are never flagged. `<!-- staleness: allow -->` exempts matches touching its line; use it
-only for a deliberate older-release citation.
+has the same file, same case), `stale-pin` ("Verified on Release <N>" with N older, unless the
+block says it was not re-verified or also pins the active or a newer release, which exempts every
+pin in the block) and `help-id` (a ``[Help: `ind.x`]`` id in no snapshot, or only in an older one
+without that release number in the block; skipped for the older case when the active release has
+no Help snapshot). Newer-release paths and ids are never flagged. `<!-- staleness: allow -->`
+exempts matches touching its line; use it only for a deliberate older-release citation.
 
 ```bash
 python scripts/ai/check_skill_staleness.py            # all skills; exit 1 on findings

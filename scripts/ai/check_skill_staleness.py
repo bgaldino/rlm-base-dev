@@ -13,7 +13,8 @@ distinct message on a line. Three rules:
   allowed (the content was dropped or never carried forward); a newer N is never flagged.
 * `stale-pin`: "Verified on Release <N>" / "verified on <N>" with N older than the active
   release, unless the same block says it was not re-verified (`not re-verified`, `not yet
-  re-verified`, `not been re-verified`) or also pins the active release or a newer one.
+  re-verified`, `not been re-verified`) or also pins the active release or a newer one; either
+  exempts every pin in that block.
 * `help-id`: an id in an evidence label `[Help: \\`ind.xxx\\`, ...]` (ids may be comma- or
   semicolon-separated; `.htm`, `.md` and `.htm.md` suffixes are optional) that exists in no
   `docs/salesforce/*/help/articles/` snapshot, or that is missing from the active snapshot
@@ -47,12 +48,12 @@ SNAPSHOTS = Path("docs/salesforce")
 
 ACTIVE_KEY = re.compile(r"^salesforce_release_active:\s*[\"']?(\d+)[\"']?", re.MULTILINE)
 SNAP_PATH = re.compile(r"docs/salesforce/(\d+)/([^\s)`'\"\]>#,;|:]+)")
-PIN = re.compile(r"verified\s+on\s+(?:release\s+)?(\d{3})\b", re.IGNORECASE)
+PIN = re.compile(r"\bverified\s+on\s+(?:release\s+)?(\d{3})\b", re.IGNORECASE)
 NOT_REVERIFIED = re.compile(r"\bnot\s+(?:yet\s+)?(?:been\s+)?re-?verified", re.IGNORECASE)
 HELP_LABEL = re.compile(r"\[Help:([^\]]*)\]")
 HELP_ID = re.compile(r"`(ind\.[\w.-]+?)(?:\.htm)?(?:\.md)?`")
-FENCE = re.compile(r"^\s*(```|~~~)")
-OWN_BLOCK = re.compile(r"^\s*(\||#)")
+FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
+OWN_BLOCK = re.compile(r"^\s*(\||#{1,6}(\s|$))")
 LIST_ITEM = re.compile(r"^\s*([-*+]|\d+[.)])\s")
 
 
@@ -88,17 +89,25 @@ def exists_exact(root: Path, rel: str) -> bool:
     return True
 
 
+def closes(marker: str, opener: str, line: str) -> bool:
+    """A fence closes on the same character, at least as long, with nothing after it."""
+    return (marker[0] == opener[0] and len(marker) >= len(opener)
+            and not line.strip()[len(marker):])
+
+
 def blocks(lines: list):
     """Yield (first line number, lines) for each block; see the module docstring."""
-    block, start, in_fence = [], 0, False
+    block, start, fence_open = [], 0, ""
     for number, line in enumerate(lines, 1):
         fence = FENCE.match(line)
-        own = in_fence or fence or OWN_BLOCK.match(line)
+        own = fence_open or fence or OWN_BLOCK.match(line)
         if block and (own or not line.strip() or LIST_ITEM.match(line)):
             yield start, block
             block = []
-        if fence:
-            in_fence = not in_fence
+        if fence and not fence_open:
+            fence_open = fence.group(1)
+        elif fence and closes(fence.group(1), fence_open, line):
+            fence_open = ""
         if own:
             yield number, [line]
         elif line.strip():
