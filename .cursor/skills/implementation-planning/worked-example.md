@@ -57,7 +57,7 @@ level, renewal at the same price, one currency, quote and contract documents.
 | Id | Decision | Choice | Why | Options in |
 |---|---|---|---|---|
 | D1 | Sensor: product, attribute or component | Component of the kit | R1: each sensor needs its own record if it must be counted, priced or tracked | [Product vs attribute vs component](../product-catalog-modeling/SKILL.md#product-vs-attribute-vs-component) |
-| D2 | Kit shape | Static bundle with 4 sensors (R1 answer) | Fixed content, no choices | [bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md) |
+| D2 | Kit shape | Static bundle with 4 sensors (R1 answer); sensor quantity scaling Proportional | Fixed content, no choices. Proportional is an assumption to log: it is the default when quantity changes are off at creation | [bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md) |
 | D3 | Selling model, monitoring | Term defined, 36 months | R3 | [selling-models-and-lifecycle.md](../product-catalog-modeling/selling-models-and-lifecycle.md#choose-the-selling-model-from-the-pricing-basis) |
 | D4 | Selling model, installation | One-time | A one-time charge; milestone billing sits on one-time lines | [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services) |
 | D5 | Billing frequency, monitoring | Annual, in advance | R4. The owner says a frequency that differs from the pricing term needs a treatment on the line, so compare the model's term unit with the yearly frequency and log the result | [Billing frequency](../billing-setup/SKILL.md#billing-frequency) |
@@ -71,11 +71,10 @@ level, renewal at the same price, one currency, quote and contract documents.
 
 State the arithmetic, from the model and the decisions:
 
-- Sensors on an order of 10 kits: 10 kits x 4 sensors = 40 sensor lines or quantity 40, per the
-  Proportional quantity method, where child quantity is parent quantity times child quantity
-  (see *Quantity scaling and lifecycle* in
-  [bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md)).
-  Which of the two the run produces is read from the org, not assumed.
+- Sensors on an order of 10 kits: one sensor component line of quantity 40 (10 x 4), per D2's
+  Proportional method, where child quantity is parent quantity times child quantity (see
+  [scaling](../product-catalog-modeling/bundles-and-cardinality.md#quantity-scaling-and-lifecycle)).
+  Confirm it in the org.
 - Fulfillment instances for the installation: suppose an order of 10 kits carries one
   installation line of quantity 10 (an assumption to log; installation could instead be one
   line per kit or a kit component). With Order Line Item scope and `AlwaysOne` that is one
