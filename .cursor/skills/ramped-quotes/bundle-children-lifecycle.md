@@ -201,8 +201,8 @@ before any later change even where earlier-dated amends are otherwise allowed [P
   matching what backdated-change orders need (see
   `.cursor/skills/rlm-business-apis/backdated-asset-lifecycle.md`).
 - An evergreen line needs `PeriodBoundary: Anniversary` (without it the order fails: "Evergreen order products must have an
-  Anniversary period boundary"); a billing treatment applies only when the frequency
-  differs from the term unit ([billing-setup](../billing-setup/SKILL.md), item 3).
+  Anniversary period boundary"); a billing treatment is needed on the line only when its
+  frequency differs from the term unit ([billing-setup](../billing-setup/SKILL.md), item 3).
 - Use **Quote** output for these recipes. `outputRecordType: Order` failed on the test org with *"We couldn't fetch the data
   for RLM_SalesTransactionContext context definition"* for every action, ramps or not (not diagnosed on that org). Two causes are known since: a stock procedure tag
   with a Quote-lens row and no Order-lens row, and a custom attribute mapped on the Quote lens only (see
