@@ -7,8 +7,9 @@ step 9). Where a prediction was modified or refuted because the planner skipped 
 that step is a check below. Check 15 sharpens a guard the plans already had: the build
 measured why a freshness check alone wasn't enough. Check 16 applies `dro-plans`
 guidance, not a measured miss; `dro-plans` holds a composition smoke, a recheck and measured
-runtime behaviour, each on one org. The platform facts live in the
-domain skills named; this file says when the plan must apply them.
+runtime behaviour, each on one org, and check 16 also cites Help directly for
+decomposition scope and quantity. The platform facts live in the domain skills and Help
+articles named; this file says when the plan must apply them.
 
 Run each check that applies, and record the result where the plan already holds that
 prediction: a decision, a rule decision record row, a spike's must-hit or a golden.
@@ -208,12 +209,17 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     configurator places, not from a line's quantity: Order Line Item gives one per line,
     while Order, Bundle and Account give one per order, per bundle, or per account across
     its orders, merging every line that decomposes to the product, and Custom one per scope
-    identifier (unmeasured in `dro-plans`) (Help `ind.dro_decomposition_scope`). A later
-    order that carries a line decomposing to an Account-scope item gets a line for it (one
-    org; see the bullet on lines that come back). Take each instance's quantity from its
+    identifier (unmeasured in `dro-plans`) (Help `ind.dro_decomposition_scope`). A later new-sale
+    order that carries a line decomposing to an Account-scope item got a line for it (one
+    org; on other lifecycle orders unmeasured; see the bullet on lines that come back). Take each instance's quantity from its
     quantity method: Always One gives one (`dro-plans` → `authoring-and-deployment.md`),
     and Aggregate sums the source lines' quantities with no unit-of-measure conversion
-    (Help `ind.dro_unit_of_measure_inheritance_and_rounding_values`). The count golden has columns for groups, definitions,
+    (Help `ind.dro_unit_of_measure_inheritance_and_rounding_values`), then rounds to the unit
+    of measure's scale and rounding rules (same article); where source lines in different
+    units feed one Aggregate item, decide where their quantities are converted before
+    submission (same article). No method means
+    Aggregate and no scope means Order Line Item (Help `ind.dro_creating_a_technical_product`,
+    `ind.dro_decomposition_scope`). The count golden has columns for groups, definitions,
     lines, steps with their scopes and edges with their scopes, a row for each order shape,
     kit and variant the source fulfils, and a predicted row for each lifecycle order. Decide
     each edge's shape like any rule ([knowledge-sources.md](knowledge-sources.md)).
@@ -225,11 +231,15 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       `updates-and-runtime.md`). On one bundle amendment, some unchanged lines came through
       as an add and a cancel netting to zero while another was No Change, so record each
       line's action, quantity and fulfillment asset quantities on the first amendment.
-    - For each lifecycle rule that acts on an item an earlier order created (change it,
-      cancel it, delay its removal), check that the item's scope spans orders and that it is
-      assetizable: Help says an Order-scope item can't be assetized, and it comes back on
-      every order `[inferred]` from Help (`dro-plans` → `updates-and-runtime.md`, An item
-      across orders, measured on a later new-sale order; a custom scope wasn't measured).
+    - Where a later new-sale order must act on an item an earlier order created, record
+      its scope as a decision: it needs a scope that spans orders on an assetizable
+      technical product `[inferred]` from Help (`dro-plans` → `updates-and-runtime.md`, An
+      item across orders). Account is the only standard scope Help gives across orders and
+      merges the account's lines into one instance (recount; mind Help's bundle-child scope
+      warning); an Order-scope item can't be assetized; a custom scope wasn't measured. On
+      the measured amendment and cancellation, lines acted on fulfillment assets an earlier
+      order created, with their scopes unrecorded, so those routes neither show nor rule
+      out that a cross-order scope is needed.
     - Count the lines that come back on later orders: an Account-scope assetizable item got
       Amend and another got No Change (`dro-plans` → `updates-and-runtime.md`, An item
       across orders, one org; Help sets Amend where a line differs from its fulfillment
