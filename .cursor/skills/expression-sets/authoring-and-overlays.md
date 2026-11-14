@@ -65,8 +65,8 @@ failed PATCH, the tool left the version **deactivated** (see SKILL.md → *Mutat
 [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. The cause was not isolated: the
 tool's simulated merge reported no errors, and the same overlays merged locally imported cleanly.
 
-What worked, on every run whose overlays were valid, in two fresh 264 `ent-sb0` scratch orgs
-[Measured: 2026-11-11]:
+What worked, on every run whose overlays were valid, in two fresh 264 `ent-sb0` scratch
+orgs [Measured: 2026-11-11]:
 
 1. Export the procedure import-ready (`export_expression_set.py --for-import --out <file>`).
    To build a new procedure rather than replace the exported one (the shipped procedure stays

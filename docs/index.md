@@ -7,6 +7,8 @@
 | Goal | Guide |
 |---|---|
 | Use a coding agent with this repository | [Skills quick start](../README.md#start-with-a-skill) |
+| Copy a starter prompt for your agent | [Example prompts](guides/example-prompts.md) |
+| Find the skill for an outcome, and the order to chain them | [Outcome guide](guides/outcome-guide.md) |
 | Enable native skill discovery or use the catalog fallback | [Agent skill discovery](guides/agent-skill-discovery.md) |
 | Install tools and connect an org | [Local installation](guides/local-installation.md) |
 | Use the container or a devcontainer | [Docker environment](../docker/README.md) |

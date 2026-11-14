@@ -139,7 +139,10 @@ Measured on a fresh 264 build (pack 290), 40 tables:
   Data and Customize Application (SKILL.md rule 1). Account reset run by a non-admin queues
   none: it goes through the same bulk flow measured refusing the salesrep on 264 (not yet run as a
   reset). Contract activation by a non-admin is unverified (pack 293), as is
-  the Automated Process user that runs the Platform Event flow.
+  the Automated Process user that runs the Platform Event flow. [Open: activate a contract as a
+  non-admin, activate an order as any user (the Platform Event flow runs as the Automated
+  Process user), and run Account reset as a non-admin, then check whether the tables each
+  flow names queue a refresh]
 - **9** more are covered only by Sync Pricing Data (Setup → Salesforce Pricing Setup). It
   refreshes all 11 DefaultPricing and 2 PricingDiscovery tables, so some of its 13 overlap the 17.
 - **14** are refreshed by nothing after the build:

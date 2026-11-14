@@ -43,15 +43,22 @@ outside their own folders.
 |---|---|
 | Understand Revenue Cloud objects and relationships | [Data model](.cursor/skills/revenue-cloud-data-model/SKILL.md) |
 | Build integrations and work with Revenue Cloud APIs | [Business APIs](.cursor/skills/rlm-business-apis/SKILL.md) |
-| Configure pricing recipes and procedures | [Pricing wiring](.cursor/skills/pricing-wiring/SKILL.md) · [Expression sets](.cursor/skills/expression-sets/SKILL.md) |
-| Author product configuration rules | [Constraint models](.cursor/skills/constraint-models/SKILL.md) |
+| Turn commercial offerings into a product catalog | [Product catalog modeling](.cursor/skills/product-catalog-modeling/SKILL.md) · [Constraint models](.cursor/skills/constraint-models/SKILL.md) |
+| Set up pricing and control how a price is calculated | [Pricing setup](.cursor/skills/pricing-setup/SKILL.md) · [Pricing procedures](.cursor/skills/pricing-procedures/SKILL.md) · [Pricing wiring](.cursor/skills/pricing-wiring/SKILL.md) |
+| Edit procedures or fix a stale lookup | [Expression sets](.cursor/skills/expression-sets/SKILL.md) · [Decision tables](.cursor/skills/decision-tables/SKILL.md) |
 | Extend context definitions and mappings | [Context Service](.cursor/skills/context-service/SKILL.md) |
-| Build and verify usage-based consumption scenarios | [Usage and consumption](.cursor/skills/usage-consumption/SKILL.md) |
+| Configure quotes, ramps, approvals and negotiation rounds | [Line editor](.cursor/skills/transaction-line-editor/SKILL.md) · [Ramped quotes](.cursor/skills/ramped-quotes/SKILL.md) · [Advanced approvals](.cursor/skills/advanced-approvals/SKILL.md) · [Negotiation rounds](.cursor/skills/quote-negotiation-rounds/SKILL.md) |
+| Decide how lines are billed, then run and verify billing | [Billing setup](.cursor/skills/billing-setup/SKILL.md) · [Billing operations](.cursor/skills/billing-operations/SKILL.md) |
+| Set up usage and rates, then build and verify a consumption scenario | [Usage setup](.cursor/skills/usage-consumption/usage-setup.md) · [Rate management](.cursor/skills/rate-management/SKILL.md) · [Usage and consumption](.cursor/skills/usage-consumption/SKILL.md) |
+| Follow an asset through amend, cancel and renew | [Asset lifecycle changes](.cursor/skills/asset-lifecycle-changes/SKILL.md) · [Renewal assets](.cursor/skills/renewal-asset-creation/SKILL.md) |
 | Create document templates and data mappings | [Document generation](.cursor/skills/document-generation/SKILL.md) |
+| Generate transaction data for a demo or test | [Transaction data harness](.cursor/skills/txn-data-harness/SKILL.md) |
 | Diagnose a build or deployment problem | [Troubleshooting](.cursor/skills/troubleshooting/SKILL.md) |
 
-For more workflows, including decision tables, ramped quotes, renewal assets, and
-data loading, see the **[complete skill catalog](.cursor/skills/README.md)**.
+New here? Copy a starter from the **[example prompts](docs/guides/example-prompts.md)**.
+For more outcomes, including the order to chain skills in, see the
+**[outcome guide](docs/guides/outcome-guide.md)**. The agent's own router is the
+**[complete skill catalog](.cursor/skills/README.md)**.
 
 ## What this repository provides
 
@@ -105,6 +112,8 @@ for the step-by-step macOS setup referenced by the contributing guide.
 | Find… | Reference |
 |---|---|
 | All guides and feature documentation | [Documentation index](docs/index.md) |
+| What you can do, by outcome, and which skill to use | [Outcome guide](docs/guides/outcome-guide.md) |
+| Starter prompts for your coding agent | [Example prompts](docs/guides/example-prompts.md) |
 | Task names and options | [Generated task reference](.cursor/skills/cci-orchestration/tasks-reference.md) |
 | Flow steps and conditions | [Generated flow reference](.cursor/skills/cci-orchestration/flows-reference.md) |
 | Feature flags and defaults | [Generated flag reference](.cursor/skills/cci-orchestration/feature-flags.md) |
