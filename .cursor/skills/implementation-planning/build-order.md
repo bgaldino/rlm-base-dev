@@ -19,7 +19,7 @@ parallel unless an edge says otherwise.
 | 2 | Selling models and options per product | Catalog | [Quick Rules](../product-catalog-modeling/SKILL.md#quick-rules) (option per model) | [selling-models-and-lifecycle.md](../product-catalog-modeling/selling-models-and-lifecycle.md) |
 | 3 | Price books and entries; cost books if used | Products, selling models (entries carry the model) | [Setup order](../pricing-setup/SKILL.md#setup-order), [price-books.md](../pricing-setup/price-books.md) | [pricing-setup](../pricing-setup/SKILL.md) |
 | 3 | Adjustment schedules, revision policies | Catalog, selling models, price books `[inferred]` | [Setup order](../pricing-setup/SKILL.md#setup-order) | [pricing-setup](../pricing-setup/SKILL.md) |
-| 3 | Context definition, mappings, tags | Custom fields | [Setup order](../pricing-setup/SKILL.md#setup-order), [context-service](../context-service/SKILL.md) | [context-service](../context-service/SKILL.md) |
+| 3 | Context definition, mappings, tags | Custom fields | [dependency-ordering.md](../repo-integration/dependency-ordering.md#pre-deploy-numbered-directories), [context-service](../context-service/SKILL.md) | [context-service](../context-service/SKILL.md) |
 | 4 | Decision tables defined, data loaded, refreshed | Price books and source data they read | [Setup order](../pricing-setup/SKILL.md#setup-order), [The timing rule](../decision-tables/SKILL.md#the-timing-rule) | [decision-tables](../decision-tables/SKILL.md) |
 | 4 | Recipe and table mappings | Decision tables, context | [pricing-wiring](../pricing-wiring/SKILL.md#reusable-layering-model) | [pricing-wiring](../pricing-wiring/SKILL.md) |
 | 5 | Pricing procedure: elements, simulate, activate, set in revenue settings | Recipe, tables fresh, context tags | [Setup order](../pricing-setup/SKILL.md#setup-order), [Activation after a decision table change](../pricing-procedures/procedure-anatomy-and-ordering.md#activation-after-a-decision-table-change) | [pricing-procedures](../pricing-procedures/SKILL.md), [expression-sets](../expression-sets/SKILL.md) |
@@ -59,8 +59,9 @@ Refresh a table when its source criteria become true, not when the source row is
 The repo realizes a subset of the graph as the `prepare_rlm_org` flow in `cumulusci.yml`,
 documented in
 [dependency-ordering.md](../repo-integration/dependency-ordering.md#prepare_rlm_org-step-ordering).
-Use it to confirm an edge, never as the customer plan. Cited by flow or task name, not number;
-`tests/test_doc_build_steps.py` tracks numeric step citations, so none are used here.
+Use it to confirm an edge, never as the customer plan. Steps are cited by flow or task
+name, never by number, so `tests/test_doc_build_steps.py`, which tracks numeric step
+citations, has nothing here to track.
 
 | Graph stage | Realized by | Notes |
 |---|---|---|
@@ -68,7 +69,7 @@ Use it to confirm an edge, never as the customer plan. Cited by flow or task nam
 | 4 (tables) | `prepare_decision_tables`, then `refresh_all_decision_tables` late | Definitions early; the full refresh runs after all data is loaded |
 | 5 (procedures) | `prepare_expression_sets`, then `activate_and_deploy_expression_sets` | Deploy early; activation after data and rating |
 | 1, 2 (catalog) | `prepare_product_data` | After `deploy_full` and the schedule metadata |
-| 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Pricing data loads after the catalog |
+| 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Schedules activate before the catalog loads; pricing data loads after it |
 | 5 (revenue settings) | `prepare_revenue_settings` | Runs late, after constraints and guided selling |
 | 6 (fulfillment) | `prepare_dro` | After pricing data |
 | 6 (billing, usage) | `prepare_billing`, `prepare_rating` | Rating follows billing, as the data dependencies require |
@@ -77,19 +78,19 @@ Use it to confirm an edge, never as the customer plan. Cited by flow or task nam
 | 6 (constraints) | `prepare_constraints` | After the catalog |
 | 7 (documents) | `prepare_docgen` | Runs early, right after pricing data and before fulfillment |
 | 7 (UX) | `prepare_ux` | Runs late, after objects and pages exist |
-| 9 (readiness) | `prepare_pricing_discovery`, `rebuild_search_index` | End-of-build refreshes |
+| Refresh triggers (before stage 8) | `prepare_pricing_discovery`, `rebuild_search_index` | End-of-build refreshes |
 
 The flow is ordered for one scripted build, so it also contains repo-specific items (demo
 catalog, personas, in-app learning, agents, community) that no customer graph needs unless
 asked. Where the flow and the graph disagree, the flow reflects a repo constraint (for
 example shared sample data). Order differs too: context definitions deploy with the core
-settings in the flow but sit at stage 3 in the graph, documents are built early in the flow but
+settings in the flow but sit at stage 3 in the graph, price adjustment schedules activate before
+the catalog loads in the flow but need it in the graph, documents are built early in the flow but
 sit at stage 7, and revenue settings are set late in the flow but sit at stage 5; decide per
 plan and record why.
 
 To re-verify the cross-check when the flow changes, list its steps (`cci flow info
-prepare_rlm_org`) or read the flow in `cumulusci.yml`, and compare names. This file cites
-no step numbers, so `tests/test_doc_build_steps.py` has nothing here to track.
+prepare_rlm_org`) or read the flow in `cumulusci.yml`, and compare names.
 
 ## Parallelism and gates
 

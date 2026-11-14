@@ -40,8 +40,8 @@ threshold. Customers renew at the end of the term."
   ([Billing policies and treatments](../billing-setup/SKILL.md#billing-policies-and-treatments))
 - Usage: unit, who supplies the records, how often rated, what happens to unused
   commitment, tier breaks, overage rate. No skill gives a usage-product design guide: open.
-- Approvals: threshold per line or per quote, discount percent or amount, one level or
-  more? ([matrix-modeling.md](../advanced-approvals/matrix-modeling.md))
+- Approvals: threshold per line or per quote, discount on lines or on the header, percent or
+  amount, one level or more? ([matrix-modeling.md](../advanced-approvals/matrix-modeling.md))
 - Renewal: same price, uplift, or re-quote? Early renewal allowed?
   ([change-policy-mapping.md](../asset-lifecycle-changes/change-policy-mapping.md))
 - Pricing, documents, volumes: price basis, currencies, which documents, accounts and
@@ -62,7 +62,7 @@ level, renewal at the same price, one currency, quote and contract documents.
 | D4 | Selling model, installation | One-time | A one-time charge; milestone billing sits on one-time lines | [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services) |
 | D5 | Billing frequency, monitoring | Annual, in advance | R4. The owner says a frequency that differs from the pricing term needs a treatment on the line, so compare the model's term unit with the yearly frequency and log the result | [Billing frequency](../billing-setup/SKILL.md#billing-frequency) |
 | D6 | Assetizable | Kit and monitoring yes, installation no | Renewal acts on the subscription; installation is not renewed. Confirm with the customer | [IsAssetizable](../product-catalog-modeling/selling-models-and-lifecycle.md#isassetizable) |
-| D7 | Discount scope | Line discount, approval above 10 percent of the quote | R6 answer | [manual-discount.md](../pricing-procedures/elements/manual-discount.md) |
+| D7 | Discount scope | Line discount, approval above 10 percent of the quote | R6 gives the threshold only; line versus header discount is an assumption to confirm with the customer | [manual-discount.md](../pricing-procedures/elements/manual-discount.md) |
 | D8 | Installation completion to billing trigger | Open: not established by a skill | Verify live; log evidence | [updates-and-runtime.md](../dro-plans/updates-and-runtime.md) |
 | D9 | Ramp | None: flat 3-year term at one price | R7 says same price; no step-ups | [Ramps](../product-catalog-modeling/selling-models-and-lifecycle.md#ramps) |
 | D10 | Fulfillment decomposition scope | Per kit | The customer's answer: one visit per kit | [authoring-and-deployment.md](../dro-plans/authoring-and-deployment.md) |
@@ -94,8 +94,9 @@ Place the items on the [graph](build-order.md#prerequisite-graph):
    activate.
 4. Stage 6, in parallel: approval matrix and flow; billing policies and treatments;
    fulfillment configuration for the installation; usage resources, policies and
-   commitment; contract and document templates.
-5. Stage 8 to 10: test quote, order, fulfillment, assets, invoices, usage, amend, renew.
+   commitment; contract setup.
+5. Stage 7: quote and order UI, then the quote and contract document templates.
+6. Stage 8 to 10: test quote, order, fulfillment, assets, invoices, usage, amend, renew.
 
 Open items carried into the plan: D8, usage-product design, tax (no owner), invoice run and
 payments (no owner).
