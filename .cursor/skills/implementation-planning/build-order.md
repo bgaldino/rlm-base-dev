@@ -11,8 +11,8 @@ The plan's phases ([plan-template.md](plan-template.md) section 5) group these s
 is stage 0, P3 stages 1 and 2 plus the constraint models (P3 builds the context
 definition and tags they read first, or waits for P4's), P4 stages 3 to 5, P5 the
 approvals and stage 7, and P6 the rest of stage 6 and stages 9 and 10. P2 spikes build
-only the stages their must-hits need, on their own org, so stage 8 is first run by a P2a
-spike and first gated at P4. A P2b chain that a later gate reuses loads its fulfilment
+only the stages their must-hits need, on their own org, so stage 8 is first run by any P2a
+spike that places a quote (otherwise at P4) and first gated at P4. A P2b chain that a later gate reuses loads its fulfilment
 configuration before its first order (a submitted plan doesn't pick up later configuration,
 `dro-plans`); load the other stage 6 configuration its orders read first too `[inferred]`. Where the source shows tax or usage
 rates on the quote, or its quote lines bill on a cadence other than the pricing term or by
@@ -72,7 +72,7 @@ A change in one domain makes lookups in another stale. Plan a refresh after each
 | Products, price book entries, rates, contracts feeding a table | The decision tables that read them | [decision-tables](../decision-tables/SKILL.md), [Freshness](../decision-tables/SKILL.md#freshness--what-the-verdicts-mean) |
 | A decision table definition | The procedure that uses it: after the table, make a small change to the procedure, save, then activate (Help) | [Activation after a decision table change](../pricing-procedures/procedure-anatomy-and-ordering.md#activation-after-a-decision-table-change) |
 | Newly loaded catalog content | The decision tables and the catalog search index, then wait for the index build; which of the two Place needed is not shown (traced in part: no search-index dependence was found) | [PCM load facts](../product-catalog-modeling/catalogs-and-loading.md#pcm-load-facts-264) (fact f) |
-| Rating records | Activation in dependency order | [dependency-ordering.md](../repo-integration/dependency-ordering.md#post-load-activation-patterns) |
+| Loading rating records (product usage resources, grants) | Activate them in dependency order | [dependency-ordering.md](../repo-integration/dependency-ordering.md#post-load-activation-patterns) |
 | Rate data | The decision tables rating reads; wait until they are no longer stale | [rate-management Quick Rules](../rate-management/SKILL.md#quick-rules) (7) |
 
 Refresh a table when its source criteria become true, not when the source row is written

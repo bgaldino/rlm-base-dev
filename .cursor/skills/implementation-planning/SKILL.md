@@ -115,6 +115,7 @@ files can use it.
 | Billing frequency, treatments, milestones, payment terms | No | `billing-setup` |
 | Invoice runs, tax, payments, credits, ledger | No | `billing-operations` |
 | Usage products: resources, policies, grants, rate cards, rating | No | `usage-consumption` → `usage-setup.md`, `rate-management` |
+| Contracts and generated documents | No | `salesforce-contracts`; `document-generation`, `odt-authoring` |
 | Order fulfilment: the work, steps and dependencies an order creates | No | `dro-plans` |
 | Amend, swap, cancel and renew rules and their numbers | No | `asset-lifecycle-changes` |
 | Configuring the line editor the rep uses | No | `transaction-line-editor` |

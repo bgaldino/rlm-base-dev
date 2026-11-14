@@ -77,6 +77,13 @@ pointer, not the skill's full open list.
 | An allowance, rollover, overage or commitment | Usage policies and grants: refresh, rollover, overage, commitment policy, drawdown order; the grant binding can't change after activation | `usage-consumption` → `usage-setup.md` (Policy decisions; Help, not measured); `usage-consumption` Quick Rules 5 and 6 and DO NOT for commitments (repo findings, not Help) |
 | A lifecycle change on a usage product | Check it against the changes Usage Selling doesn't support (swaps, backdated changes, rollbacks, among others) before mapping it | `usage-consumption` → `usage-setup.md` (Limits); Help, not measured |
 
+## Contracts and documents
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| A contract created from the sale, with its terms and clauses | Contract types and lifecycle states, then templates and clauses | `salesforce-contracts` |
+| A quote, order form or contract document | A document template with its data mappers | `document-generation`; `odt-authoring` for the mappers |
+
 ## Negotiation and approvals
 
 | Source concept | Try first | Where documented |
