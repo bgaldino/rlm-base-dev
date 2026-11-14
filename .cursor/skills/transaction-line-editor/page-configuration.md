@@ -6,8 +6,8 @@
 
 ## 1. Where the editor lives on the page
 
-Admin path: Setup > Lightning App Builder > the Quote (or Order) Record Page > Edit. Help's steps
-[Help: `ind.qocal_customize_transaction_line_editor`]:
+Admin path: Setup > Lightning App Builder > the Quote (or Order) Record Page > Edit. Help's
+steps [Help: `ind.qocal_customize_transaction_line_editor`]:
 
 1. Add a tab (label **Lines**) to the Tabs component and drag the line editor into it. Put it on
    the **default** tab so it loads with the page rather than when the rep switches tabs.

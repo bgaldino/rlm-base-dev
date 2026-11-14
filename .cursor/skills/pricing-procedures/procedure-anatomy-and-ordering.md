@@ -118,8 +118,8 @@ relative to DDS: every step ordered **after** the DDS step must be
 other) step after DDS is rejected. The check only runs when the procedure has a DDS
 [Core]; the shipped PRM and Recalc procedures have none and end with an Assignment
 after their aggregates [Repo]. Everything below assumes a procedure with DDS, like the
-default. The error message is **misleading**: it names DDS, not your formula step
-[Live, repo owner]:
+default. The error message is **misleading**: it names DDS, not your formula
+step [Live, repo owner]:
 
 ```
 INVALID_INPUT: You can add the Discount Distribution Service element only

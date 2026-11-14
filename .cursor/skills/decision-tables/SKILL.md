@@ -39,16 +39,24 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info` (the asset and
    binding-object tables and `Commitment_based_Rate_Adjustment`), which that flow queues
    for refresh on order activation; whether the Automated Process user that runs that flow
-   passes the admin-only check below is unverified (see `usage-consumption/SKILL.md`). See
+   passes the admin-only check below is unverified (see `usage-consumption/SKILL.md`).
+   [Open: activate an order and check whether those tables queue a refresh] See
    `lifecycle-and-refresh.md` → *After editing setup data*.
    **The Refresh Decision Table flow action is admin-only.** Salesforce gates it on Modify All
    Data *and* Customize Application, and no narrower permission (BRE, RunFlow,
    `DecisionTableExecUserAccess`) grants it [Platform behaviour, traced]. The Connect API
    refresh resource is checked separately and is open to users with Business Rules Engine
-   advanced designer or admin access [Platform behaviour, traced]. Which user a scheduled
-   flow runs as for the action's check is not established; confirm with a scheduled run. For a
-   user outside both sets, expect the Manager to show freshness but disable Refresh; which
-   check it applies is not traced.
+   advanced designer or admin access [Platform behaviour, traced]. A live check of both paths
+   as a non-admin designer could not get a headless session for that user [Measured:
+   2026-11-13, 264, scratch, one org]. [Open: sign in through the UI as a non-admin holding
+   Rule Engine Designer (confirm it carries Business Rules Engine advanced designer access),
+   Salesforce Pricing Design Time User and `RLM_DecisionTableManager`, then refresh through the
+   flow action and through the Connect API resource] Which user a scheduled flow runs as for
+   the action's check is not established. [Open: run the action from a scheduled flow and
+   read which user queued the refresh] For a user who passes neither check, expect the Manager
+   to show freshness but disable Refresh; which check it applies is not traced. [Open: as a
+   user who passes only one of the two checks, open the Manager and see whether Refresh is
+   enabled]
 2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
    Add `-o param1 strict` to fail a build on any stale table, or `-o param1 json` for the
    dependency map as JSON (Examples). On a Trialforce-spun org,

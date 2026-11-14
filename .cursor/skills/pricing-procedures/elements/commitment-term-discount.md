@@ -301,8 +301,8 @@ does, so the difference comes from the new group alone.
 ## Line inputs on real quotes
 
 The run above passed the term inline. On real quotes (Place Sales Transaction; the last row is a
-group ramp built in the quote UI)
-[Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org; term illustrative, measured with a different term]:
+group ramp built in the quote UI) [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org;
+term illustrative, measured with a different term]:
 
 | Line as sent | Saved line | Result |
 |---|---|---|

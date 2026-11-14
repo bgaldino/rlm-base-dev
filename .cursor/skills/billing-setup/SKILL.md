@@ -192,8 +192,8 @@ A **billing policy** is assigned to products (`Product2.BillingPolicyId`) and gr
 which holds the Billing Type (Advance, Arrears, None)
 [Help: `ind.billing_policies_and_treatments_create`].
 
-How an order product gets its treatment, when it doesn't have one already
-[Help: `ind.billing_treatment_resolution`]:
+How an order product gets its treatment, when it doesn't have one
+already [Help: `ind.billing_treatment_resolution`]:
 
 | Policy's Billing Treatment Selection | Treatment assigned |
 |---|---|

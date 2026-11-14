@@ -240,6 +240,16 @@ order where practical:
 Use imperative wording. Prefer concise tables and short examples over long
 narrative. Keep detailed reference material in linked sub-files.
 
+### Source tags and open items
+
+Tag a claim about product behavior with its source, adding a parameter where it helps. The
+common tags are `[Help: <article>]`, `[Dev guide: <page>]`, `[Repo: <path>]`,
+`[Measured: <date>, <release>, <org shape>]`, `[Platform behaviour, traced]` and `[inferred]`;
+other source names follow the same pattern.
+When a claim is not settled, add `[Open: <the check that would settle it>]`. If a live check
+ran, first state what it showed with a `[Measured: …]` tag. List every open item with
+`rg -n '\[Open:' .cursor/skills`.
+
 ---
 
 ## Progressive Disclosure: When to Split Sub-Files

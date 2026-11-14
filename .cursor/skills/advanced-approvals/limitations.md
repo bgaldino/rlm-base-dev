@@ -142,7 +142,12 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   walkthrough requires Approval Admin. Measured runs used an admin holding Approval Admin
   (through its profile and `RLM_CLM`), which the personas table allows to review any work item, so they don't
   settle what an ordinary reviewer needs.
-- Which Approval Settings a fresh scratch org has on, and whether Metadata API can set them.
+- Which Approval Settings a fresh scratch org has on, and whether Metadata API can set them. In
+  the one org checked, the Metadata API exposed no Approval or Smart Approval setting: no
+  Settings type carried one, and the only approval metadata type was the classic approval
+  process [Measured: 2026-11-13, 264, scratch, one org]. [Open: read Setup > Approval Settings on
+  a newly created scratch org, before any build step runs, and list its metadata types for an
+  approval setting]
 - Whether a Resource-type approver works at runtime, and whether there is a
   manager-hierarchy approver.
 - Whether a roll-up summary or Percent condition passes the Smart Approvals type check
@@ -163,7 +168,11 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   without entry conditions, or an evaluation-flow entry or exit determination [Platform
   behaviour, traced; Help: `ind.approvals_smart_approval_limitations`]. Help's "Turn On
   Smart Approvals" step is not mapped to this input: not established whether an
-  organization-wide setting also gates it.
+  organization-wide setting also gates it. [Open: read Setup > Approval Settings for an
+  organization-wide Smart Approvals control; if there is one, turn it off, resubmit a quote
+  rejected at the second step after the first was approved, and see whether the first step
+  still auto-approves; and in Flow Builder, confirm that a step's Use Smart Approval checkbox
+  writes `ActionInput__CanUseSmartApproval`]
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.
 - `ApprovalWorkItem` standard fields and sObject `update()`: the Help says they can't be

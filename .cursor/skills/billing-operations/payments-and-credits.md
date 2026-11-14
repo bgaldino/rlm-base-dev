@@ -58,8 +58,8 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
 
 ## Application rules
 
-How a payment or credit memo settles an invoice, when more than one invoice is open
-[Help: `ind.billing_setup_credit_memos_payments_application_rules`]:
+How a payment or credit memo settles an invoice, when more than one invoice is
+open [Help: `ind.billing_setup_credit_memos_payments_application_rules`]:
 
 - **Order**: Payments First (default) or credits first.
 - **Rules**, in the sequence you select: Match ID (the invoice referenced on the credit
