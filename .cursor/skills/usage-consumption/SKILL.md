@@ -66,7 +66,7 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
   `Commitment_based_Rate_Adjustment` was added to the `CreateAssetOrderEvent` refresh
   chain (`RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info`). That flow now
   queues the table's refresh on order activation with the asset and binding-object tables
-  in the chain (whether its Automated Process user passes the refresh permission check is
+  in the chain (whether the flow's Automated Process user passes the refresh permission check is
   unverified; see decision-tables rule 1), but on an older org
   nothing re-syncs the table and consumption rates at the undiscounted anchor rate with no
   error. Check `LastSyncDate` is after the `AssetRateAdjustment` rows

@@ -122,7 +122,7 @@ Repo constraints for a commitment product's policy record are in
 ## Validate
 
 Run the Usage Product Validator from the product record page (add the component and set
-a usage model type first). It checks only effective, active records and warns when
+a usage model type first). The validator checks only effective, active records and warns when
 consecutive product usage resources or consecutive rate card entries, or the product usage
 resource and its first or last rate card entry, are more than 12 hours apart (the end check
 only if the product usage resource has an end date)

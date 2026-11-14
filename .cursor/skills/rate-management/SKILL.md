@@ -13,10 +13,10 @@ description: >-
 
 # Rate Management — Rates, Adjustments and Rating Procedures
 
-Rate Management defines what a usage resource costs and how that rate is adjusted. It is one of five
-Usage Management capabilities (usage modeling, rate management, usage selling, consumption
-management, wallets) [Help: `ind.um_usage_management`]. This skill covers the design and setup
-decisions. Usage modeling is in
+Rate Management defines what a usage resource costs and how that rate is adjusted. Rate
+Management is one of five Usage Management capabilities (usage modeling, rate management,
+usage selling, consumption management, wallets) [Help: `ind.um_usage_management`]. This
+skill covers the design and setup decisions. Usage modeling is in
 [`../usage-consumption/usage-setup.md`](../usage-consumption/usage-setup.md); building, rating and
 verifying a metered demo is [`../usage-consumption/SKILL.md`](../usage-consumption/SKILL.md).
 
@@ -62,7 +62,8 @@ is ground truth over the docs.
   Help warns a mismatch hides rate cards during selling with no error
   [Help: `ind.um_create_units_of_measure`].
 - **DO NOT** skip the Negotiated Rate Card Entries element before a negotiated tier or volume
-  element: its output feeds the next one [Help: `ind.rm_add_negotiated_tierbased_rate_adjustment`].
+  element: the Negotiated Rate Card Entries output feeds that adjustment
+  [Help: `ind.rm_add_negotiated_tierbased_rate_adjustment`].
 - **DO NOT** use CSV-based decision tables or decision matrices for rating; Help says
   Rate Management does not support them [Help: `ind.rm_rate_mngmnt_limits`].
 - **DO NOT** assume a fresh decision table after a rate change. Refresh and wait; a stale
@@ -147,8 +148,9 @@ last 40 gives 5.00 + 22.50 + 16.00 = 43.50. Volume: a 25% discount on 150 units 
 Base rate vs negotiated rate card: Help's Negotiable procedure uses asset-level lookup
 tables to check whether a rate was negotiated, and falls back to the base rate when not
 [Help: `ind.rm_element_negotiated_base_rate`]. Choose Negotiable only when per-asset or
-per-binding-target rates are a requirement; it needs more lookup tables and Transaction
-Management [Help: `ind.rm_prereqs_to_build_rating_procedures`]. How the negotiated rate
+per-binding-target rates are a requirement; the Negotiable procedure needs more lookup
+tables and Transaction Management
+[Help: `ind.rm_prereqs_to_build_rating_procedures`]. How the negotiated rate
 is captured at quote time is not measured here.
 
 Commitment rate behavior after the commitment is used (bounded object rate vs lowest
@@ -182,7 +184,7 @@ Building rating procedures also needs context definition and decision table acce
 cloning a discovery procedure needs Pricing Discovery as well
 [Help: `ind.rm_prereqs_to_build_rating_procedures`,
 `ind.rm_clone_the_default_rating_discovery_procedure`]. Rate Management is not supported
-on mobile and its objects can't create records in Data Cloud
+on mobile, and Rate Management objects can't create records in Data Cloud
 [Help: `ind.rm_rate_mngmnt_limits`]. Repo permission sets:
 `docs/references/revenue-cloud-permissions.md`.
 
@@ -206,11 +208,11 @@ Rating elements call lookup tables (decision tables): Rate Card Entries 2, Rate
 Adjustment by Volume/Tier/Attribute Entries 2 for non-negotiable rates. Negotiable rates
 drop the Attribute table and add the asset, binding object, by-Rate-Card-Entry-ID and
 Commitment-based tables
-[Help: `ind.rm_prereqs_to_build_rating_procedures`]. Discovery uses resolution tables
-[Help: `ind.rm_rating_discovery_procedures`]. Help offers real-time data as an
-alternative to decision tables for six elements (listed in rating-procedures.md), trading
-performance for freshness; real-time does not support "not matches" or "contains"
-[Help: `ind.rm_implementation_considerations`].
+[Help: `ind.rm_prereqs_to_build_rating_procedures`]. Discovery uses its own lookup tables,
+mostly resolution tables [Help: `ind.rm_rating_discovery_procedures`]. Help offers
+real-time data as an alternative to decision tables for six elements (listed in
+rating-procedures.md), trading performance for freshness; real-time does not support
+"not matches" or "contains" [Help: `ind.rm_implementation_considerations`].
 
 In this repo the lists are `dt_rating_decision_tables` and
 `dt_rating_discovery_decision_tables` in `cumulusci.yml`. Edits to rate card setup data
@@ -222,8 +224,8 @@ user that runs that flow passes the refresh permission check is unverified
 ([decision-tables](../decision-tables/SKILL.md) rule 1). At build
 time the `refresh_all_decision_tables` flow (run by
 `prepare_rlm_org`) refreshes the listed tables via `refresh_dt_rating` and
-`refresh_dt_rating_discovery` when the `rating` flag is on (it runs `refresh_dt_asset`
-first, but all eight of that task's tables are also in the rating list);
+`refresh_dt_rating_discovery` when the `rating` flag is on (the flow runs
+`refresh_dt_asset` first, but all eight of that task's tables are also in the rating list);
 `prepare_rating` itself does not. After that, use the
 Decision Table Manager's stale-only refresh, and
 `cci task run check_decision_table_freshness --org <cci_alias>` to confirm. See

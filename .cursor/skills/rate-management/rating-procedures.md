@@ -31,7 +31,7 @@ access or map your own context definition
    Binding Object, Commitment-based and by-Rate-Card-Entry-ID tables.
 3. Transaction Management on, to see and invoke the asset-based tables.
 4. Context definitions enabled. `RateManagementContext` maps Usage Ratable Summary;
-   extend or clone it rather than editing the standard one.
+   extend or clone the context rather than editing the standard one.
 5. A constant resource for variables with no context tag.
 
 ## Element catalog [Help: `ind.rm_rating_elements`]
@@ -68,7 +68,8 @@ discount to all units, tier defines a discount per range
 
 1. Rating Setting first.
 2. For negotiated tier or volume: Negotiated Rate Card Entries earlier than the
-   adjustment element; its Rate Card Entry ID output is the adjustment's input
+   adjustment element; the Negotiated Rate Card Entries Rate Card Entry ID output is the
+   adjustment's input
    [Help: `ind.rm_add_negotiated_tierbased_rate_adjustment`,
    `ind.rm_add_negotiated_volumebased_rate_adjustment_`].
 3. Per element: pick the lookup table, map variables to context tags, set a rank, tick
@@ -87,8 +88,8 @@ Rate Cards (Pricebook Rate Card Entries table), Get Rate Card Entries, Get Tier-
 Adjustments. Input is a Binding Object ID or a Price Book ID
 [Help: `ind.rm_rating_discovery_procedure_elements`]. If a simulation supplies the output of
 an element, that element is skipped when fetching, so test with an input that exercises
-each step [Help: `ind.rm_rating_discovery_procedure_elements`]. The procedure's resolution
-lookup tables are listed in [Help: `ind.rm_rating_discovery_procedures`].
+each step [Help: `ind.rm_rating_discovery_procedure_elements`]. The procedure's lookup
+tables are listed in [Help: `ind.rm_rating_discovery_procedures`].
 
 ## Real-time data
 
@@ -103,6 +104,7 @@ matches" or "contains" [Help: `ind.rm_implementation_considerations`]. Which thi
 ## Waterfall
 
 Enable the rating waterfall for per-step reasons. Without persistence the steps are gone
-once the transaction is final; with it, every transaction stores detailed logs at a
-storage cost [Help: `ind.rm_enable_rating_waterfall_persistence`]. Read it through the API in
+once the transaction is final; with persistence, every transaction stores detailed logs at
+a storage cost [Help: `ind.rm_enable_rating_waterfall_persistence`]. Read the persisted
+waterfall through the API in
 [SKILL.md](SKILL.md) (APIs).
