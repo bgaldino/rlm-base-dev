@@ -232,7 +232,11 @@ item stays waiting and is not invoiced [inferred from Help]. A DRO Milestone ste
 itself with nobody acting [Measured: 2026-11-13, 264, scratch, one org], and Help names no
 action it takes [inferred from Help's silence], so don't count on a Milestone step to mark a
 billing milestone; each event item needs its own marking point after the step it names
-[inferred]. DRO step behavior: [dro-plans](../dro-plans/examples-and-grounding.md).
+[inferred]. DRO step behavior: [dro-plans](../dro-plans/examples-and-grounding.md). Where an
+amendment makes a new milestone plan (dro-plans measured a full new plan on amendment), a marking
+flow scoped to the original order may not reach its event items; select plan items by asset or
+contract, or have the amendment's own fulfillment mark them [inferred]. Decide who marks an event
+already past when the amendment activates [inferred, unmeasured].
 
 **When a source names no milestones,** Revenue Cloud still needs, for each milestone:
 - a name;
