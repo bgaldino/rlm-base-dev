@@ -12,9 +12,10 @@ these fit.
 
 1. Open this repository in your agent's workspace. Keep the whole repository
    available: skills link to files outside their own folders.
-2. Start with the **read-only** prompts. They need no Salesforce org and change nothing.
-3. Move to the **org prompts** only when you have an org connected and know which one
-   the agent may change. Say so in the prompt.
+2. Start with the sections marked *no org needed*. They need no Salesforce org and
+   change nothing in one.
+3. Move to *With an org connected* only when you have an org connected and know which
+   one the agent may change. Say so in the prompt.
 
 ## A good prompt has four parts
 
@@ -64,7 +65,7 @@ a net price on a quote line: which elements run, in what order, and where a disc
 is applied. Mark anything you inferred rather than read.
 ```
 
-## Plan a design
+## Plan a design: no org needed
 
 **Model a product catalog**
 
