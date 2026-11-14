@@ -73,7 +73,7 @@ pointer, not the skill's full open list.
 | Source concept | Try first | Where documented |
 |---|---|---|
 | A metered charge (per call, per GB) | A usage resource and unit, then a rate card entry per resource, product and selling model on a Base rate card, and a price book rate card pointing at it. A usage product can't be a bundle parent or child, so it is its own line | `rate-management` (Quick Rules 1 to 3); `usage-consumption` → `usage-setup.md` (Limits); Help, not measured |
-| Rates that fall as usage grows | Tier rate card: banded discounts, or a volume discount once a threshold is met | `rate-management` (Decision guide); Help, not measured |
+| Rates that fall as usage grows | Tier rate card: banded discounts, or a volume discount once a threshold is met | `rate-management` (Decision guide: Help for what each option does, the choice `[inferred]`); not measured |
 | An allowance, rollover, overage or commitment | Usage policies and grants: refresh, rollover, overage, commitment policy, drawdown order; the grant binding can't change after activation | `usage-consumption` → `usage-setup.md` (Policy decisions; Help, not measured); `usage-consumption` Quick Rule 6 and DO NOT for commitments (repo findings, not Help); Quick Rule 5, the commitment link (`usage-setup.md` step 11, Help) |
 | A lifecycle change on a usage product | Check it against the changes Usage Selling doesn't support (swaps, backdated changes, rollbacks, among others) before mapping it | `usage-consumption` → `usage-setup.md` (Limits; Help, not measured); backdated amend, cancel and renew were refused, measured (`rlm-business-apis` → `backdated-asset-lifecycle.md`) |
 

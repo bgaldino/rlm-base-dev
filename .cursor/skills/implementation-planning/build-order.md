@@ -92,7 +92,7 @@ citations, has nothing here to track.
 
 | Graph stage | Realized by | Notes |
 |---|---|---|
-| 0, 1, 3 (settings, fields; context definitions) | `prepare_core` | Settings, licenses, context definitions and pre-deploy metadata come first |
+| 0, 1, 3 (settings, fields; context definitions) | `prepare_core` | Settings, licenses, context definitions and pre-deploy metadata come first; domain context extensions (`apply_context_*`) run later, inside their domain's sub-flow |
 | 4 (tables) | `prepare_core` (`deploy_pre` deploys the definitions), `prepare_decision_tables` (activates them), then `refresh_all_decision_tables` late | The full refresh runs after all data is loaded |
 | 4 (recipe mappings) | `configure_core_pricing_recipe_table_mappings`, inside `prepare_expression_sets` | |
 | 5 (procedures) | `prepare_expression_sets`, then `activate_and_deploy_expression_sets` | Deploy early; activation after data and rating |
@@ -115,7 +115,8 @@ catalog, personas, in-app learning, agents, community) that no customer graph ne
 asked. Where the flow and the graph disagree, the flow likely reflects a repo constraint
 (for example shared sample data) `[inferred]`. Order differs too:
 
-- Context definitions deploy with the core settings in the flow but sit at stage 3.
+- Context definitions deploy with the core settings in the flow but sit at stage 3; the
+  domain context extensions run inside each domain's sub-flow, after the catalog.
 - Decision table definitions deploy and activate, and procedures deploy, before the catalog
   and price books in the flow but sit at stages 4 and 5.
 - The flow activates existing price adjustment schedules before the catalog loads and loads
