@@ -170,7 +170,7 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   Delta pricing (on in every Foundations-built org
   [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]) is defined once in
   [pricing-procedures](../pricing-procedures/runtime-and-observability.md#delta-pricing);
-  otherwise every line reprices
+  when it doesn't apply, every line reprices
   ([transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md)).
 
   Measured 2026-10-29/30 on 264 with a probe that set the uplift at placement:

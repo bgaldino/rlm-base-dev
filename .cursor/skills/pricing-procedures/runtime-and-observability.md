@@ -183,9 +183,11 @@ to use that element.
 Delta pricing is an org setting (Setup > Revenue Settings > Delta Pricing for Quotes and Orders)
 [Core], off unless enabled; its platform declaration marks it beta [Platform behaviour, traced],
 though neither Help nor the Metadata API reference says so (Setup label not checked). Delta
-pricing applies only when the org setting is on and the request is a System-priced update of a
-Quote, Order or Cart whose status shows a completed pricing run with no validation errors; Force
-pricing and Reprice All always reprice every line [Platform behaviour, traced]. Under delta
+pricing applies only when all of these hold: the org setting is on and Dual Persistence mode is
+off; the request is a PATCH of a Quote, Order or Cart with System pricing; the header's calculation
+status is Completed with Pricing or Completed with Tax (a Cart: Completed with Pricing only) with no
+validation errors; and the transaction tracks its updates. Force pricing, Reprice All and any other
+request reprice every line [Platform behaviour, traced]. Under delta
 pricing, unchanged lines are skipped unless they depend on a changed line or the step always runs
 (aggregation, discount distribution, compound uplift in Price Revision) [Platform behaviour,
 traced]. The repo enables it in `config/project-scratch-def.json` and most `orgs/*.json` (not
