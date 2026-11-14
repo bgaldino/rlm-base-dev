@@ -95,8 +95,9 @@ changes). Note who has to answer it: the source's owner or the build's owner.
 A case an open decision affects carries the recommended value, tagged with the decision
 ID, and the alternative's value beside it (SKILL.md step 5).
 
-Lay the sets out on [acceptance-chain.md](acceptance-chain.md): each chain step the source
-needs cites its golden ids.
+A golden id is the set name and case number (Pricing-3). Lay the sets out on
+[acceptance-chain.md](acceptance-chain.md): each chain step the source needs cites its golden
+ids.
 
 Always include a **Reprice** set (price again, then order, amend and renew) and an
 **Attributes** set (attributes unchanged through each step; on a bundle sized by
@@ -106,9 +107,10 @@ use, and a check for anything the source marks internal-only (for example a roun
 that must never be presented). Billing cases cover every order the plan creates (the
 new sale, each amendment, cancellation and renewal), not only the first. The measured
 invoice routes invoiced through today, sending only schedules due by then (`rlm-business-apis` →
-`backdated-asset-lifecycle.md`, Billing); invoicing to a future date isn't measured, and the
-scheduler's target date and billing period count (`billing-operations` → `invoicing.md`, from
-Help) are the route to spike `[inferred]`. So on a
+`backdated-asset-lifecycle.md`, Billing); invoicing to a future date isn't measured; the smallest spike is
+that measured call with a future `targetDate` `[inferred]` (Help's target-date rule:
+`billing-operations` → `invoicing.md`; billing period count doesn't apply to milestone or
+usage schedules). So on a
 future-dated replay, check billing at schedule level, and say which invoice values wait
 for the replay-dates decision ([SKILL.md](SKILL.md), dated replay). For a
 milestone-billed service, state what a quantity an amendment adds is billed by, and
