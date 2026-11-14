@@ -13,8 +13,9 @@ approvals and stage 7, and P6 the rest of stage 6 and stages 9 and 10. P2 spikes
 only the stages their must-hits need, on their own org, so stage 8 is first run by a P2a
 spike and first gated at P4. A P2b chain that a later gate reuses loads the stage 6
 configuration its orders read before its first order. Where the source shows tax or usage
-rates on the quote, build those stage 6 items in P4 with their own prerequisites (tax
-engine, policies and legal entity; usage resources and policies), or leave them out of the P4 goldens
+rates on the quote, or its quote lines bill on a cadence other than the pricing term or by
+milestone, build those stage 6 items in P4 with their own prerequisites (tax engine,
+policies and legal entity; usage resources and policies; billing policy and treatments), or leave them out of the P4 goldens
 and record the decision. Where a plan puts an item in a different phase, record why in
 the decision log.
 
@@ -98,7 +99,7 @@ citations, has nothing here to track.
 | 6 (billing, usage) | `prepare_billing`, `prepare_rating` | The flow runs rating after billing; the rating data plan loads its own usage resource billing policies (`datasets/sfdmu/qb/en-US/qb-rating/README.md`) |
 | 5 (procedure plans) | `prepare_procedureplans` | After expression-set activation and the approvals pricing overlay |
 | 6 (contracts) | `prepare_clm` | |
-| 6 (approvals) | `prepare_approvals` (within `prepare_quantumbit`), then `prepare_approvals_pricing` | Matrix, flows and data deploy before the catalog; the pricing overlay comes after expression-set activation |
+| 6 (approvals) | `prepare_approvals` (within `prepare_quantumbit`), then `prepare_approvals_pricing` | Fields, flows, orchestration and alert data deploy before the catalog; the level bands (the approval-flags overlay) come after expression-set activation |
 | 6 (constraints) | `prepare_constraints` | After the catalog |
 | 7 (documents) | `prepare_docgen` | Runs early, right after pricing data and before fulfillment |
 | 7 (UX) | `prepare_ux` | Runs late, after objects and pages exist |

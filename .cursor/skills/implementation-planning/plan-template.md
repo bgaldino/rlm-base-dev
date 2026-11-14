@@ -108,12 +108,13 @@ use, and a check for anything the source marks internal-only (for example a roun
 that must never be presented). Billing cases cover every order the plan creates (the
 new sale, each amendment, cancellation and renewal), not only the first. The measured
 invoice routes invoiced through today, sending only schedules due by then (`rlm-business-apis` →
-`backdated-asset-lifecycle.md`, Billing); invoicing to a future date isn't measured; the smallest spike is
-the measured invoice generate call with a future `targetDate` `[inferred]` (Help, `billing-operations` → `invoicing.md`: a target date picks schedules whose next
-billing date is on or before it; for milestones it picks which accomplished milestones
-invoice, and usage schedules ready for invoicing always invoice). So on a
+`backdated-asset-lifecycle.md`, Billing); invoicing to a future date isn't measured. So on a
 future-dated replay, check billing at schedule level, and say which invoice values wait
-for the replay-dates decision ([SKILL.md](SKILL.md), dated replay). For a
+for the replay-dates decision ([SKILL.md](SKILL.md), dated replay). The smallest spike
+that would settle it is the measured invoice generate call with a future `targetDate`
+`[inferred]` (Help, `billing-operations` → `invoicing.md`: a target date picks schedules
+whose next billing date is on or before it; for milestones it picks which accomplished
+milestones invoice, and usage schedules ready for invoicing always invoice). For a
 milestone-billed service, state what a quantity an amendment adds is billed by, and
 record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
 Read each amendment, cancellation and renewal quote's values before its order activates,
