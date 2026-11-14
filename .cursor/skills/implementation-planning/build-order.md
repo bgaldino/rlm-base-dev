@@ -8,7 +8,8 @@ depends on it. Where a stage has no stated edge, build items in it are independe
 
 The plan's phases ([plan-template.md](plan-template.md) section 5) group these stages: P0
 is stage 0, P3 stages 1 and 2 plus the constraint models, P4 stages 3 to 5, P5 the
-approvals and stage 7, and P6 the rest of stage 6 and stages 8 to 10. Where a plan puts an item in a different phase, record why in
+approvals and stage 7, and P6 the rest of stage 6 and stages 9 and 10. Stage 8, the
+first transaction, is first run at the P4 gate, which prices a quote, and P5 and P6 reuse it. Where a plan puts an item in a different phase, record why in
 the decision log.
 
 ## Prerequisite graph
@@ -31,7 +32,8 @@ parallel unless an edge says otherwise.
 | 5 | Pricing procedure: elements, simulate, activate, set in revenue settings | Recipe, tables fresh, context tags | [Setup order](../pricing-setup/SKILL.md#setup-order), [Activation after a decision table change](../pricing-procedures/procedure-anatomy-and-ordering.md#activation-after-a-decision-table-change) | [pricing-procedures](../pricing-procedures/SKILL.md), [expression-sets](../expression-sets/SKILL.md) |
 | 6 | Constraint models | Catalog bundles and their members | [constraint-models](../constraint-models/SKILL.md) `[inferred]` | [constraint-models](../constraint-models/SKILL.md) |
 | 6 | Approvals: matrix, flows, pricing flags | Pricing procedure for any level it calculates; notification content | [advanced-approvals](../advanced-approvals/SKILL.md), [What the repo ships](../advanced-approvals/SKILL.md#what-the-repo-ships) | [advanced-approvals](../advanced-approvals/SKILL.md) |
-| 6 | Billing policies, treatments, payment terms | Catalog (products they apply to); legal entities (shared with tax setup: [accounting.md](../billing-operations/accounting.md)) | [Billing policies and treatments](../billing-setup/SKILL.md#billing-policies-and-treatments), [dependency-ordering.md](../repo-integration/dependency-ordering.md#data-dependencies) (billing shares tax's legal entity) | [billing-setup](../billing-setup/SKILL.md) |
+| 6 | Tax engine, tax policies and treatments, legal entity | Stage 0; catalog (the products a tax policy applies to) | [dependency-ordering.md](../repo-integration/dependency-ordering.md#data-dependencies) (tax loads before billing, which reads its legal entity), [tax.md](../billing-operations/tax.md), [accounting.md](../billing-operations/accounting.md) | [billing-operations](../billing-operations/SKILL.md) |
+| 6 | Billing policies, treatments, payment terms | Catalog (products they apply to); the legal entity from the tax row | [Billing policies and treatments](../billing-setup/SKILL.md#billing-policies-and-treatments), [dependency-ordering.md](../repo-integration/dependency-ordering.md#data-dependencies) (billing shares tax's legal entity) | [billing-setup](../billing-setup/SKILL.md) |
 | 6 | Fulfillment configuration | Catalog products it decomposes; context and rule resources it reads | [dro-plans Quick Rules](../dro-plans/SKILL.md#quick-rules) (parents before children), [authoring-and-deployment.md](../dro-plans/authoring-and-deployment.md) | [dro-plans](../dro-plans/SKILL.md) |
 | 6 | Contract setup | Feature access, settings, then types and states, then content | [salesforce-contracts Quick Rules](../salesforce-contracts/SKILL.md#quick-rules) | [salesforce-contracts](../salesforce-contracts/SKILL.md) |
 | 6 | Usage resources, units, usage policies, grants and commitments | Catalog, billing policies on usage resources | [dependency-ordering.md](../repo-integration/dependency-ordering.md#data-dependencies), [usage-setup.md](../usage-consumption/usage-setup.md#manual-sequence-help-indum_configure_usage_records) | [usage-consumption](../usage-consumption/SKILL.md) |
@@ -75,7 +77,8 @@ citations, has nothing here to track.
 | Graph stage | Realized by | Notes |
 |---|---|---|
 | 0, 1, 3 (settings, fields; context definitions) | `prepare_core` | Settings, licenses, context definitions and pre-deploy metadata come first |
-| 4 (tables) | `prepare_decision_tables`, then `refresh_all_decision_tables` late | Definitions early; the full refresh runs after all data is loaded |
+| 4 (tables) | `prepare_core` (`deploy_pre` deploys the definitions), `prepare_decision_tables` (activates them), then `refresh_all_decision_tables` late | The full refresh runs after all data is loaded |
+| 4 (recipe mappings) | `configure_core_pricing_recipe_table_mappings`, inside `prepare_expression_sets` | |
 | 5 (procedures) | `prepare_expression_sets`, then `activate_and_deploy_expression_sets` | Deploy early; activation after data and rating |
 | 1, 2 (catalog) | `prepare_product_data` | After `deploy_full` and the schedule metadata |
 | 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Schedules are set up before the catalog loads (some schedules stay inactive on purpose); pricing data loads after it |

@@ -2,13 +2,13 @@
 
 Read this when writing the end-to-end verification part of a plan, or when judging whether
 a built org meets the requirements. Each step names what to check, the owner section that
-defines how, and the evidence tag the owner gives its behavior. The expected values come
+defines how; record the evidence tag the owner gives that behavior when reporting. The expected values come
 from the customer's requirements, computed by hand or from the source before the run;
 never accept a number because the org returned it.
 
 ## How to use
 
-1. For each step, write the expected result per requirement id before running anything.
+1. For each step, write the expected result per rule ID before running anything.
    In a plan, those expected results are its golden tests
    ([plan-template.md](plan-template.md) section 4): cite the golden ids per step.
 2. Run the owner's verification, not a paraphrase of it.
@@ -27,23 +27,26 @@ never accept a number because the org returned it.
 | 2 | Quote places | A quote placed with the intended route carries the intended lines, terms, billing frequencies and attributes | [rlm-business-apis](../rlm-business-apis/SKILL.md#transaction-lifecycle-apis), [Billing frequency](../billing-setup/SKILL.md#billing-frequency) |
 | 3 | Price | Each line price, discount, total and tax equals the hand-computed value; read the pricing log or waterfall for any difference. After a change to a header field that pricing reads, reprice with Force or Reprice All before reading: a header-only Place PATCH was not priced | [runtime-and-observability.md](../pricing-procedures/runtime-and-observability.md), [pricing-setup Validation Checks](../pricing-setup/SKILL.md#validation-checks), [transaction-line-editor Quick Rules](../transaction-line-editor/SKILL.md#quick-rules) (5) |
 | 4 | Multi-year and ramp | Each period's price and the uplift equal the expected schedule; read back the ramp schedule. After any ramp line edit, Reprice All, then read every segment: a partial PATCH re-applied a compound uplift to lines it didn't touch | [Validation Checks](../ramped-quotes/SKILL.md#validation-checks), [compound-uplift.md](../ramped-quotes/compound-uplift.md), [ramped-quotes DO NOT](../ramped-quotes/SKILL.md#do-not) |
-| 5 | Rounds | Each round holds its own discounts; the internal round never reaches an order; the intended round becomes the order. The standard order creation traced doesn't check the quote's status, so the internal round's guard is a validation or flow the build adds; verify that it refuses | [Validation Checks](../quote-negotiation-rounds/SKILL.md#validation-checks), [Final round to order](../quote-negotiation-rounds/SKILL.md#final-round-to-order) |
+| 5 | Rounds | Each round holds its own discounts; the internal round never reaches an order; the intended round becomes the order. The standard order creation traced doesn't check the quote's status (traced in part; not run against a Draft or Rejected quote), so the internal round's guard is a validation or flow the build adds; verify that it refuses | [Validation Checks](../quote-negotiation-rounds/SKILL.md#validation-checks), [Final round to order](../quote-negotiation-rounds/SKILL.md#final-round-to-order) |
 | 6 | Approve | A quote crossing each threshold routes to the intended approvers in the intended order; a quote below it does not; recall and resubmit behave as required | [matrix-modeling.md](../advanced-approvals/matrix-modeling.md) (routing by level; recall and resubmit rules), [Validation Checks](../advanced-approvals/SKILL.md#validation-checks) (headless test paths: single and multi-dimension, rejection, recall and resubmit, cancel; plus deploy idempotency); that the intended approvers act in the intended order needs a live run `[inferred]` |
 | 7 | Order | The order carries the winning round's lines and amounts, and activates | [rlm-business-apis](../rlm-business-apis/SKILL.md#transaction-lifecycle-apis) |
 | 8 | Fulfill | Submission yields the expected plan: step list per order product matches the design table and the derived counts ([prediction-checks.md](prediction-checks.md) check 16); read configuration and runtime separately | [Verify Configuration and Runtime Separately](../dro-plans/authoring-and-deployment.md#5-verify-configuration-and-runtime-separately), [updates-and-runtime.md](../dro-plans/updates-and-runtime.md) |
-| 9 | Assets | The sale leaves the expected assets, and none for products marked not assetizable; asset terms, quantities and attributes match the order | [IsAssetizable](../product-catalog-modeling/selling-models-and-lifecycle.md#isassetizable), [verification.md](../asset-lifecycle-changes/verification.md) |
-| 10 | Bill | Activation leaves billing schedules with the promised frequency, treatment and payment term; an invoice run to a target date gives the first invoice with the expected period, amount and due date (estimated tax on a draft, actual tax once posted); milestone items fire as designed (who marks them: Marking an event milestone done in the billing-setup link; the trigger from fulfillment is open until verified) | [Validation Checks](../billing-setup/SKILL.md#validation-checks), [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services), [billing-operations Quick Rules](../billing-operations/SKILL.md#quick-rules) (1 to 3), [billing-operations Validation Checks](../billing-operations/SKILL.md#validation-checks) |
+| 9 | Assets | The sale leaves the expected assets, and none for standalone products marked not assetizable (a non-assetizable child of an assetizable root still becomes an asset, traced in part); asset terms, quantities and attributes match the order | [IsAssetizable](../product-catalog-modeling/selling-models-and-lifecycle.md#isassetizable), [verification.md](../asset-lifecycle-changes/verification.md) |
+| 10 | Bill | Activation leaves billing schedules with the promised frequency, treatment and payment term; an invoice run to a target date gives the first invoice with the expected period, amount and due date (estimated tax on a draft, actual tax once posted); milestone items fire as designed (who marks them: see Marking an event milestone done under the Milestone billing link; the trigger from fulfillment is open until verified) | [Validation Checks](../billing-setup/SKILL.md#validation-checks), [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services), [billing-operations Quick Rules](../billing-operations/SKILL.md#quick-rules) (1 to 3), [billing-operations Validation Checks](../billing-operations/SKILL.md#validation-checks) |
 | 11 | Contract and documents | The contract exists at the intended point with the intended terms; each document generates with correct values | [setup-and-diagnostics.md](../salesforce-contracts/setup-and-diagnostics.md) (verify template and generated documents), [document-generation Before generation](../document-generation/SKILL.md#before-generation) (active mappers and template references), then generate to verify values |
 | 12 | Usage and rating | Usage booked to a completed period rates to the expected amounts, including commitment drawdown and overage; rated summaries are non-zero where expected; the rate cards and rating procedure read back as designed | [Live verification](../usage-consumption/verification.md#live-verification), [Reading a suspicious result](../usage-consumption/verification.md#reading-a-suspicious-result), [rate-management Validation Checks](../rate-management/SKILL.md#validation-checks) |
 | 13 | Amend | Each allowed change type (quantity add or remove, swap, cancel) shows the expected prices, attributes, credits and invoice values past the first placement, through activation to the asset. Read each lifecycle quote's values before its order activates, and don't reprice it afterwards: a full reprice after activation set a renewal's totals to 0 | [verification.md](../asset-lifecycle-changes/verification.md), [Validation Checks](../asset-lifecycle-changes/SKILL.md#validation-checks), [transaction-line-editor Quick Rules](../transaction-line-editor/SKILL.md#quick-rules) (5) |
 | 14 | Renew | The renewal quote prices per policy, including any uplift and ramp; values read before activation hold after it (read them before, as in step 13) | [change-policy-mapping.md](../asset-lifecycle-changes/change-policy-mapping.md), [renewal-asset-creation](../renewal-asset-creation/SKILL.md) |
 | 15 | Idempotency and rerun | Re-running any load or task creates no duplicates | [sfdmu-data-plans](../sfdmu-data-plans/SKILL.md), [AGENTS.md checklists](../../../AGENTS.md) |
 
-## Binding steps to requirements
+## Binding steps to rules
 
-Each chain step lists the requirement ids it proves. Mark a step not applicable only when
-the customer confirmed the capability is out of scope. A requirement with no step is a gap
-in the chain; a step with no requirement is test data, so drop it or find the requirement.
+Each chain step lists the rule IDs it proves ([SKILL.md](SKILL.md) step 2 numbers them).
+Mark a step not applicable only when the source rules the capability out, with the
+reason, or the owner confirms it out of scope. A rule with no step is a gap in the chain.
+A step with no rule is test data, so drop it or find the rule, except the build checks
+(steps 0, 1 and 15) and the sets the plan template always includes (Reprice and
+Attributes, [plan-template.md](plan-template.md) section 4), which stay without one.
 
 ## Test data
 
@@ -55,6 +58,6 @@ promising automation. Renewal tests need assets of the right age; see
 
 ## Report format
 
-Per step: requirement ids, expected, actual, pass or fail, evidence tag from the owner, org
+Per step: rule IDs and golden ids, expected, actual, pass or fail, evidence tag from the owner, org
 and release, date. List open items (behavior no skill establishes) separately with the
 live check that would close each. Say plainly what was not run.
