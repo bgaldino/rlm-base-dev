@@ -34,11 +34,11 @@ For each change, record the state after every step:
    a renewal, amendment or cancellation line reads the source asset's current state, and
    activating the order changes that state, so a reprice afterwards can return different
    prices (zero on a measured renewal [Measured: 2026-11-12, 264, scratch, one org]). After
-   activation start a new lifecycle quote from the updated asset. This holds for every
-   lifecycle type; a Force reprice touches every line, so it shows the effect most
-   [Platform behaviour, traced in part]. Use Reprice All or a Place request
-   with Force pricing, or a Place request that includes a line record. A Place request
-   that patches only the quote header isn't priced under System pricing: it is priced
+   activation start a new lifecycle quote from the updated asset. Treat this as holding
+   for every lifecycle type (measured only on a renewal); a Force reprice touches every
+   line, so it shows the effect most [Platform behaviour, traced in part]. Use Reprice All
+   or a Place request with Force pricing, or a Place request that includes a line record.
+   A Place request that patches only the quote header isn't priced under System pricing: it is priced
    only when it carries at least one quote or order line (or line attribute) record, so a
    header-only PATCH leaves the lines untouched and "nothing moved" proves nothing. A
    request that carries a context id is priced whenever the transaction has lines (not

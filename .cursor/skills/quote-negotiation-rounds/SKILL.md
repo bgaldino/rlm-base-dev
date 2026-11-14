@@ -228,9 +228,10 @@ rule doesn't explain that [Measured: 2026-11-12, 264, scratch; one quote].
    Help says the start date defaults to the current date and that a future-dated contract
    errors, while the measured future start gave today with no error. To backdate an order, set
    past line start dates before creating it; read the date back before activating.
-   Create Order does not check `Quote.Status` (not run against a Draft or Rejected quote);
-   this differs from the Help wording about converting an accepted quote
-   [Platform behaviour, traced]. The refusals traced are other preconditions (sync
+   The standard create-order validations traced do not check `Quote.Status` (not run against
+   a Draft or Rejected quote); this differs from the Help wording about converting an accepted
+   quote [Platform behaviour, traced in part; split-order and industry paths not read]. The
+   refusals traced are other preconditions (sync
    state above, pending revenue async operations, a failed validation result, a calculation
    status in progress or failed, unmet required-to-enter lines, an invalid configuration, the
    maximum orders per quote, bundle/ramp/usage/group integrity checks, the large-transaction
@@ -298,10 +299,12 @@ Not measured; settle on a live org before relying on them:
   active definition was not read; a mapping there is the first thing to check).
 - Whether a mapped but non-editable, formula or output-only field survives a clone, and how a
   large (async) transaction clone carries fields ([deep-clone.md](deep-clone.md) → What carries over).
-- Create Order does not check the quote Status, so a Draft or Rejected quote can be ordered if
-  it passes the other checks (with Asynchronous Opportunity Sync on, not marked `IsSyncing` with
-  edits after its last sync, see *Final round to order*; priced; valid configuration). Guard
-  with your own validation rule or Flow [Platform behaviour, traced]. Not run live.
+- The standard create-order validations traced do not check the quote Status, so a Draft or
+  Rejected quote can be ordered if it passes the other checks (with Asynchronous Opportunity
+  Sync on, not marked `IsSyncing` with edits after its last sync or no sync time recorded,
+  see *Final round to order*; priced; valid configuration). Guard with your own validation
+  rule or Flow [Platform behaviour, traced in part; split-order and industry paths not read].
+  Not run live.
 - Whether the `deepCloneSalesTransaction` invocable needs anything beyond
   `enableTransactionCloning`, and whether it behaves like the Connect API.
 - Whether `options.recordTypeId` sets the clone's record type.
