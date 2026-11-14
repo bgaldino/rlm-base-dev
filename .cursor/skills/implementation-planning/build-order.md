@@ -104,7 +104,7 @@ citations, has nothing here to track.
 | 5 (revenue settings) | `prepare_revenue_settings` | Runs late, after constraints and guided selling |
 | 6 (fulfillment) | `prepare_dro` | After pricing data |
 | 6 (tax) | `prepare_tax` | Before billing; billing reads its legal entity. It also turns estimated tax on, when the `quote_est_tax` and `tax` flags are on and an active tax policy exists |
-| 6 (billing, usage) | `prepare_billing`, `prepare_rating` | The flow runs rating after billing; the rating data plan loads its own usage resource billing policies (`datasets/sfdmu/qb/en-US/qb-rating/README.md`) |
+| 6 (billing, usage) | `prepare_billing`, `prepare_rating` | The flow runs rating after billing; the rating data plan loads its own usage resource billing policies (`datasets/sfdmu/qb/en-US/qb-rating/README.md`; dependency-ordering.md's Data Dependencies row says otherwise and is stale) |
 | 5 (procedure plans) | `prepare_procedureplans` | After expression-set activation and the approvals pricing overlay |
 | 6 (contracts) | `prepare_clm` | |
 | 6 (approvals) | `prepare_approvals` (within `prepare_quantumbit`), then `prepare_approvals_pricing` | Fields, flows, orchestration and alert data deploy before the catalog; the level bands (the approval-flags overlay) come after expression-set activation |
