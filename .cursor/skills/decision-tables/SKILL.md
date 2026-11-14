@@ -33,9 +33,13 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    **The refresh flow returns before the tables are fresh, so wait before pricing**: rerun
    `check_decision_table_freshness` until the tables your pricing reads are no longer Stale
    (see *Refreshing*).
-   Rating, qualification and tax tables have no runtime refresh at all: after editing that
+   Rating setup, qualification and tax tables have no runtime refresh: after editing that
    setup data, use the Manager's **Refresh stale only**, or its **Reads object** filter.
-   See `lifecycle-and-refresh.md` → *After editing setup data*.
+   The exception is the tables named in the order-activation flow
+   `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info` (the asset and
+   binding-object tables and `Commitment_based_Rate_Adjustment`), which refresh on
+   order activation (see `usage-consumption/SKILL.md`). See `lifecycle-and-refresh.md` →
+   *After editing setup data*.
    **Refreshing is admin-only.** Salesforce gates the Refresh Decision Table action on Modify
    All Data *and* Customize Application, and no narrower permission (BRE, RunFlow,
    `DecisionTableExecUserAccess`) grants it. For anyone else, the Manager shows freshness

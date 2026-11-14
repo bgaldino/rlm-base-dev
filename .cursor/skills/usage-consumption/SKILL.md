@@ -65,7 +65,8 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
 - **DO NOT** assume a freshly sold commitment's rate is live on an org built before
   `Commitment_based_Rate_Adjustment` was added to the `CreateAssetOrderEvent` refresh
   chain (`RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info`). It now
-  refreshes on order activation like every other rate table, but on an older org
+  refreshes on order activation with the asset and binding-object tables in that
+  chain, but on an older org
   nothing re-syncs it and consumption rates at the undiscounted anchor rate with no
   error. Check `LastSyncDate` is after the `AssetRateAdjustment` rows
 - **DO NOT** read a non-zero `UsageRatableSummary.OverageQuantity` as commitment
@@ -93,6 +94,8 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
 | Build an asset that carries usage entitlements | Yes | See [building-usage-assets.md](building-usage-assets.md). |
 | Add or change a commitment / pack / grant product | Yes | Check the PURP shape rule first. |
 | Verify a consumption build, add an invariant | Yes | See [verification.md](verification.md). |
+| Set up usage resources, units, policies, grants (Help-grounded) | Yes | See [usage-setup.md](usage-setup.md). |
+| Choose or configure rate cards, tiers, rating procedures | No | Use [`rate-management`](../rate-management/SKILL.md). |
 | Reset an org or account holding usage data | Yes | Convergent teardown — see below. |
 | Understand a usage object's fields/relationships | Partly | Object reference is `revenue-cloud-data-model/domains/usage.md`. |
 | Generate Quote→Order→**Invoice** demo volume | No | Use `txn-data-harness/SKILL.md`. |
@@ -298,6 +301,8 @@ Before a PR that touches usage data or behaviour:
 
 ## Related Skills
 
+- **Rate Management** — `.cursor/skills/rate-management/SKILL.md` (rate cards, rating procedures)
+- **Usage setup** — [usage-setup.md](usage-setup.md)
 - **Data model** — `.cursor/skills/revenue-cloud-data-model/domains/usage.md`
 - **SFDMU plans** — `.cursor/skills/sfdmu-data-plans/SKILL.md`
 - **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`

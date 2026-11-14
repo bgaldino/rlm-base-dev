@@ -281,7 +281,10 @@ top-level skill, by area:
 
 - **Knowledge and APIs:** `revenue-cloud-data-model`, `rlm-business-apis`, `revenue-cloud-docs`, `salesforce-contracts`
 - **Configuration and pricing:** `product-catalog-modeling`, `constraint-models`, `pricing-setup`, `pricing-procedures`, `pricing-wiring`, `expression-sets`, `decision-tables`, `context-service`
-- **Transactions, usage and documents:** `advanced-approvals`, `transaction-line-editor`, `quote-negotiation-rounds`, `ramped-quotes`, `asset-lifecycle-changes`, `billing-setup`, `renewal-asset-creation`, `usage-consumption`, `txn-data-harness`, `dro-plans`, `document-generation`, `odt-authoring`
+- **Transactions, usage and documents:** `advanced-approvals`, `transaction-line-editor`,
+  `quote-negotiation-rounds`, `ramped-quotes`, `asset-lifecycle-changes`, `billing-setup`,
+  `renewal-asset-creation`, `usage-consumption`, `rate-management`, `txn-data-harness`, `dro-plans`,
+  `document-generation`, `odt-authoring`
 - **Builds, data and environment:** `cci-orchestration` (Python tasks: `cci-orchestration/custom-task-authoring.md`), `sfdmu-data-plans`, `repo-integration` (UX drift: `repo-integration/ux-assembly-retrieve.md`), `build-harness`, `pde-org-build`, `toolchain` (containerized: `docker/README.md`), `mcp-integration`, `schema-validation`, `robot-testing`, `troubleshooting`, `apex-security-hardening`
 - **Demos and enablement:** `qb-demo-script`, `release-enablement`, `df-workshop-setup`, `inapp-framework`
 - **Repository maintenance:** `audit-review`, `doc-consistency`, `skill-authoring`
