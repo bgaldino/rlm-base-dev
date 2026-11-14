@@ -102,7 +102,7 @@ citations, has nothing here to track.
 | 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Existing schedules are activated before the catalog loads (some stay inactive on purpose); the adjustment records load with the pricing data after it |
 | 5 (revenue settings) | `prepare_revenue_settings` | Runs late, after constraints and guided selling |
 | 6 (fulfillment) | `prepare_dro` | After pricing data |
-| 6 (tax) | `prepare_tax` | Before billing; billing reads its legal entity. It also switches estimated tax on when the `quote_est_tax` and `tax` flags are on and an active tax policy exists; `prepare_core` never switches it on |
+| 6 (tax) | `prepare_tax` | Before billing; billing reads its legal entity. It also turns estimated tax on when the `quote_est_tax` and `tax` flags are on and an active tax policy exists; on a fresh org `prepare_core` leaves it off, since no active policy exists yet |
 | 6 (billing, usage) | `prepare_billing`, `prepare_rating` | The flow runs rating after billing; the rating data plan loads its own usage resource billing policies (`datasets/sfdmu/qb/en-US/qb-rating/README.md`) |
 | 5 (procedure plans) | `prepare_procedureplans` | After expression-set activation and the approvals pricing overlay |
 | 6 (contracts) | `prepare_clm` | |
@@ -119,7 +119,8 @@ asked. Where the flow and the graph disagree, the flow likely reflects a repo co
 
 - Context definitions and most of their extensions deploy with the core settings in the
   flow but sit at stage 3.
-- Decision table definitions deploy and activate, and procedures deploy, before the catalog
+- Decision table definitions deploy and activate, recipe mappings are configured, and
+  procedures deploy, before the catalog
   and price books in the flow but sit at stages 4 and 5.
 - The flow activates existing price adjustment schedules before the catalog loads and loads
   their adjustment records with the pricing data after it; the graph puts schedules after
