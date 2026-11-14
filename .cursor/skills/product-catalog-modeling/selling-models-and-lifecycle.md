@@ -154,7 +154,7 @@ QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-
 |---|---|---|
 | `UsageModelType` | Anchor (main subscription), Pack (add-on that grants usage), or a commitment type. Help lists one Commit value; the dev guide lists Monetary, Quantity and Token commitments, and `usage-consumption` names the API values. [Help: `ind.product_catalog_create_simple_products.htm`; Dev guide: `usage_management_fields_on_product2.htm`] | `usage-consumption` |
 | `DecompositionScope`, `FulfillmentQtyCalcMethod` | How many fulfillment lines; Always One vs Aggregate. [Help: `ind.product_catalog_create_simple_products.htm`] | `dro-plans` |
-| `AvailabilityDate`, `DiscontinuedDate`, `EndOfLifeDate` | Informational dates (not enforced; see note below) | see note below |
+| `AvailabilityDate`, `DiscontinuedDate`, `EndOfLifeDate` | No enforcement found (see note below) | see note below |
 
 **Help describes the end dates in opposite ways.** The simple-product article ties
 `DiscontinuedDate` to sale and `EndOfLifeDate` to support; the bundled-product article says

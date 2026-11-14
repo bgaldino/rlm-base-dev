@@ -205,11 +205,15 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   `NetUnitPrice` in those segments (measured with a bundle: the PATCHed lines were its Evergreen and
   One-Time children, the re-uplifted ones its Term child). Finish every ramp line edit with Reprice
   All and re-read all segments.
-- **DO NOT** reprice a lifecycle quote after its order is activated. Measured once on a renewal quote: a full reprice (every
-  line, pricing `Force`, configuration `Skip`) after the order was activated set the renewal lines' totals and the
-  quote total to 0 [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read
-  afterwards. Not measured on amendments or ramped quotes; mechanism not traced. Read
-  quote values before activation and don't reprice afterwards.
+- **DO NOT** reprice a lifecycle quote after its order is activated. Lifecycle lines are priced
+  from the source asset's current state, and activation rewrites that state [Platform behaviour,
+  traced in part]; see
+  [asset-lifecycle-changes/verification.md](../asset-lifecycle-changes/verification.md).
+  Measured once on a renewal quote: a full reprice (every line, pricing `Force`, configuration
+  `Skip`) after the order was activated set the renewal lines' totals and the quote total to 0
+  [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read
+  afterwards. Not measured on amendments or ramped quotes; why the reprice returned 0 is not
+  traced. Read quote values before activation and don't reprice afterwards.
 - **DO NOT** claim a build "works" from an offline dry-run — a mutating ramp run
   must be verified against a **live 264 org**, writing only to a confirmed
   **writable** org.
@@ -537,8 +541,8 @@ sf data query --target-org <sf_alias> -q \
 # Help). `Product2.CanRamp` is the LINE-ramp flag, not a group-ramp prerequisite.
 # BillingTreatment for <TREATMENT_ID> — needed when the line's BillingFrequency differs from
 # the selling model's term unit (billing-setup item 3). Then it must be Active, match the
-# ACCOUNT currency, and have
-# CanChangeBillingFrequency = true (the Place call rejects a treatment without it).
+# ACCOUNT currency, and have CanChangeBillingFrequency = true (when a treatment is needed,
+# Place rejects one without it).
 sf data query --target-org <sf_alias> -q \
   "SELECT Id, Name, CanChangeBillingFrequency FROM BillingTreatment \
    WHERE Status = 'Active' AND CurrencyIsoCode = '<ACCOUNT_CURRENCY>' \

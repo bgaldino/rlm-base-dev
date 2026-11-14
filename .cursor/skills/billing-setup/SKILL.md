@@ -36,9 +36,11 @@ read the row's scope before generalising it.
    from the selling model [Measured: M1]. The configurator's pricing step fills
    the frequency only for a Months (Monthly) or Annual (Annual) term unit; other units get
    no automatic value, so set it explicitly [Platform behaviour, traced]. Place with Skip gave no
-   fill (M1) [Measured: 2026-11-10, 264, scratch]. Whether Skip skips that step is not traced. A frequency that matches the pricing term (Monthly on a
-   Months model, Annual on an Annual model) needed no billing treatment on the line, in an
-   org where every treatment had Change Billing Frequency selected [Measured: M2]. With the
+   fill (M1) [Measured: 2026-11-10, 264, scratch]. Whether Skip skips that step is not
+   traced. A frequency that matches the pricing term (Monthly on a Months model, Annual on an
+   Annual model) needed no billing treatment on the line, in an org where every treatment had
+   Change Billing Frequency selected [Measured: M2]; item 3 gives the traced rule for when a
+   treatment is required. With the
    flag off on the product's treatments, the repo's data-plan README reports the line can't be
    created at all [Repo: `datasets/sfdmu/qb/en-US/qb-billing/README.md`].
 3. **A frequency that differs from the pricing term needs a billing treatment on the line.**
@@ -52,7 +54,8 @@ read the row's scope before generalising it.
    required it must be Active and have Change Billing Frequency selected, or the line is
    refused; the check reads the line's own treatment and does not fall back to the billing
    policy. The check is skipped when Billing is not enabled in the org [Platform behaviour,
-   traced]. Other docs link here instead of restating it.
+   traced]. Item 2's caveat (a matching frequency needed no treatment) is the equal-frequency half
+   of this rule. Other docs link here instead of restating it.
 4. **One-time lines take no frequency, or Milestone Plan (API value `MilestonePlan`).**
    Monthly on a one-time line was refused, Milestone Plan with a milestone treatment was
    accepted, and Milestone Plan on a Term Defined line was refused [Measured: M4–M6]. Bill services in milestones on a one-time selling model.
