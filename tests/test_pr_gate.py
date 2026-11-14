@@ -4195,6 +4195,21 @@ def check_sources(spec):
     return sources
 
 
+def exists_exact(rel):
+    """os.path.exists with case-exact names. On a case-insensitive filesystem (macOS by
+    default) `.GIT/config`, a fixture in test_claude_hooks.py, resolves to the real
+    `.git/config`; CI's filesystem says it does not exist, so must this check."""
+    here = REPO
+    for part in os.path.normpath(rel).split(os.sep):
+        try:
+            if part not in os.listdir(here):
+                return False
+        except (NotADirectoryError, FileNotFoundError):
+            return False
+        here = os.path.join(here, part)
+    return True
+
+
 def as_change(rel):
     """A directory named as an input stands for a change underneath it."""
     return rel + "/probe" if os.path.isdir(os.path.join(REPO, rel)) else rel
@@ -4213,7 +4228,7 @@ for spec in pr_gate.CHECKS:
         # a read written any other way.
         for rel in sorted(named_paths(os.path.join(REPO, src), joins_only=(src == SELF))):
             inspected += 1
-            if rel in declared or not os.path.exists(os.path.join(REPO, rel)):
+            if rel in declared or not exists_exact(rel):
                 continue
             if not pr_gate.selects(spec, [as_change(rel)]):
                 unselected_reads.append(f"{spec['name']} reads {rel} ({src}) but is not "
