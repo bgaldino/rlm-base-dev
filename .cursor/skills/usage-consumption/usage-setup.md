@@ -40,11 +40,11 @@ Labels: `[Help: id]` = `docs/salesforce/264/help/articles/ind.<id>.htm.md`;
 Guided workflow limits [Help: `ind.um_guided_workflow_considerations`]: no commitment
 products; edits only while records are Draft; up to 20 product usage resources per run
 and 5 grants per resource; up to 3 required custom fields; a product usage resource takes
-no custom fields. It reuses a policy with the same configuration instead of creating one,
-and creates defaults named Aggregate Usage Monthly by Sum, Renew Grants Monthly, Rollover
-Grants without Expiry, Overage Chargeable, Lowest Commitment Fulfilled Rate and Rate
-Usage Monthly. Rate records, price books, selling-model changes and global rate cards
-shared by all products are outside it.
+no custom fields. The workflow reuses a policy with the same configuration instead of
+creating one, and creates defaults named Aggregate Usage Monthly by Sum, Renew Grants
+Monthly, Rollover Grants without Expiry, Overage Chargeable, Lowest Commitment Fulfilled
+Rate and Rate Usage Monthly. Rate records, price books, selling-model changes and global
+rate cards shared by all products are outside the workflow.
 
 ## Manual sequence [Help: `ind.um_configure_usage_records`]
 

@@ -87,8 +87,8 @@ Rate Cards (Pricebook Rate Card Entries table), Get Rate Card Entries, Get Tier-
 Adjustments. Input is a Binding Object ID or a Price Book ID
 [Help: `ind.rm_rating_discovery_procedure_elements`]. If a simulation supplies the output of
 an element, that element is skipped when fetching, so test with an input that exercises
-each step [Help: `ind.rm_rating_discovery_procedure_elements`]. Its resolution lookup tables
-are listed in [Help: `ind.rm_rating_discovery_procedures`].
+each step [Help: `ind.rm_rating_discovery_procedure_elements`]. The procedure's resolution
+lookup tables are listed in [Help: `ind.rm_rating_discovery_procedures`].
 
 ## Real-time data
 
