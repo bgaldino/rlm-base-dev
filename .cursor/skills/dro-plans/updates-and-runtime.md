@@ -232,19 +232,17 @@ these conditions; rerun the amendment and cancel checks there.
   one per order, which can't be assetized [Help: `ind.dro_decomposition_scope`]. So work
   that must act on an item an earlier order created needs a scope that spans orders, on an
   assetizable technical product; a custom scope wasn't measured, and an Order-scope item
-  recurs on every order [inferred from Help]. An Account-scope assetizable item can therefore
-  appear on every later order that carries a line decomposing to it, with Amend or No Change,
-  and its group's steps compose again unless their conditions skip those actions [inferred
-  from the measured actions]; "no new instance" doesn't mean "no line". When a step is
-  skipped by its condition and Skip Branch is on, Help skips the branch that depends solely
-  on it [Help: `ind.dro_define_conditions_for_a_fulfillment_step_to_run`]; decide that per
-  edge.
-  Account scope keeps one instance per account across its orders, so every line of the account
-  that decomposes to the item shares it, on this order and later ones [Help:
-  `ind.dro_decomposition_scope`]. An item that is one per sold line and must be changed by later
-  orders has no measured native scope; a custom scope keyed per source line or asset was not
-  measured either. Record the choice as a decision and count it [inferred].
-  Check the line actions on the first later order.
+  recurs on every order [inferred from Help]. Account scope merges every line of the account that
+  decomposes to the item into that one instance, so an item that must stay one per sold line and
+  be changed by later orders has no measured scope: Order Line Item scope keeps one per line but
+  whether a later order acts on each was not measured, and neither was a custom scope keyed per
+  source line or asset. Record the choice as a decision and count it [inferred]. An Account-scope
+  assetizable item can therefore appear on every later order that carries a line decomposing to
+  it, with Amend or No Change, and its group's steps compose again unless their conditions skip
+  those actions [inferred from the measured actions]; "no new instance" doesn't mean "no
+  line". When a step is skipped by its condition and Skip Branch is on, Help skips the branch
+  that depends solely on it [Help: `ind.dro_define_conditions_for_a_fulfillment_step_to_run`];
+  decide that per edge. Check the line actions on the first later order.
 - **Fallout and jeopardy rules** match on step type, with an optional integration
   definition, flow definition and error code; this is from the rule objects' describe,
   not a run. Measured on the org's steps: a step's jeopardy threshold was null on
@@ -260,16 +258,15 @@ these conditions; rerun the amendment and cancel checks there.
   manual task in the measured org [Measured: 2026-11-13, 264, scratch, one org; describe and
   query]; whether a jeopardy rule then matches a manual task through it was not run. Help
   names no rule for Milestone steps. A separate window or queue per step needs its own
-  flow or integration definition per step [inferred]. The estimated duration and threshold are
-  fields of the jeopardy rule, not of the step; the threshold counts back from the duration
-  [Help: `ind.dro_configure_fulfillment_step_jeopardy_rules`]. A rule with a blank flow
+  flow or integration definition per step [inferred]. You set the estimated duration and
+  threshold on the jeopardy rule, and the threshold counts back from the duration [Help:
+  `ind.dro_configure_fulfillment_step_jeopardy_rules`]. A rule with a blank flow
   definition applies to every manual and auto task, so two manual steps with different windows
   need a flow definition on at least one of them, or share a window [inferred]. Which rule
   applies when a blank-flow rule and a per-flow rule both match was not read. Help describes a
-  jeopardy status and
-  notification, names no setting for who is notified, and has no reassignment of a late
-  step [inferred from Help's silence]. After editing a fallout or jeopardy rule, refresh its
-  decision table [Help: `ind.dro_configure_fallout_rules`,
+  jeopardy status and notification, names no setting for who is notified, and has no
+  reassignment of a late step [inferred from Help's silence]. After editing a fallout or
+  jeopardy rule, refresh its decision table [Help: `ind.dro_configure_fallout_rules`,
   `ind.dro_configure_fulfillment_step_jeopardy_rules`]; the steps are in
   [authoring-and-deployment.md](authoring-and-deployment.md).
 - **Cancel of a non-assetizable technical line.** Cancelling the bundle's root asset decomposed the copy
