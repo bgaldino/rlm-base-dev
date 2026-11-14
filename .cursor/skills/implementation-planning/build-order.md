@@ -4,9 +4,11 @@ Read this when sequencing build items for a customer plan, or when checking that
 does not build something before what it needs. The graph below is in neutral terms. Each
 edge cites the source that states it; an edge tagged `[inferred]` is not stated by a source
 (it follows from how the objects reference each other, the repo flow's order, or the
-absence of a recorded edge) and needs confirming in the target org before the plan
-depends on it. Where no skill records an edge between items in a stage, treat them as
-independent `[inferred]` and log that as open.
+absence of a recorded edge). It is a hypothesis: record it as a decision (Repo (inferred),
+[knowledge-sources.md](knowledge-sources.md)) and confirm it at the gate of the first phase
+that relies on it; spike it in P2 only when a knowledge-sources.md live trigger applies.
+Where no skill records an edge between items in a stage, treat them as independent
+`[inferred]` the same way.
 
 The plan's phases ([plan-template.md](plan-template.md) section 5) group these stages: P0
 is stage 0, P3 stages 1 and 2 plus the constraint models (P3 builds the context
@@ -66,7 +68,7 @@ Items in one stage can run in parallel unless an edge says otherwise `[inferred]
 Edges the skills state only for one domain, and not as part of a cross-domain graph, are
 listed above with their source. Edges the table marks `[inferred]`, and any edge between
 stages 6 and 9 that neither this table nor an owner skill states (for example what billing
-needs from fulfillment), are not established: log them as open and verify live.
+needs from fulfillment), are not established: record them as decisions the same way.
 
 ### Refresh and activation triggers
 
