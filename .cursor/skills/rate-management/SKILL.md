@@ -135,7 +135,7 @@ rule is `[inferred from Help]` unless noted.
 | Is the rate tied to a commitment? | Commitment product plus Commitment Rate Adjustment | No commitment element |
 | Are rates quoted in tokens? | Two entries: usage to token, token to currency | Currency entry only |
 | Do rates differ by region or another custom condition? | Rate Adjustment Matrix element on its custom rate adjustment matrix [Help: `ind.rm_element_rate_adjustment_matrix`]; region is an example condition, and this is not the CSV decision matrix the DO NOT list rules out | Standard elements |
-| Must you explain a rate months later? | Enable waterfall persistence | Leave it off; Help recommends off to avoid storage build-up [Help: `ind.rm_enable_rating_waterfall_persistence`] |
+| Must you explain a rate months later? | Enable waterfall persistence | Leave it off; Help advises off for high-volume orgs that don't need step-level history, to avoid storage build-up [Help: `ind.rm_enable_rating_waterfall_persistence`] |
 
 Tier arithmetic per Help [Help: `ind.rm_element_tier_based_rate_discount`]: at a unit
 rate of 0.50, no discount for the first 10 units, 10% for the next 50 and 20% for the
