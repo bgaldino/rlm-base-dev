@@ -20,14 +20,14 @@ depends on it ([prediction-checks.md](prediction-checks.md) check 1).
 snapshot coverage of the mechanism the rule needs is decided by the snapshot. Record it as a skill gap, not as a live
 spike. Model the rule directly; its build gate proves it.
 
-**A custom computation is not a platform behaviour.** A value the build computes itself,
+**A custom computation is not a platform behavior.** A value the build computes itself,
 such as a fee, a derived total or a field formula, has nothing on the platform to
 observe. Record it as **Build (custom)**: its build gate decides it. Record it as a skill
 gap too if no skill shows the pattern.
 
 **A skill's `[inferred]` claim is a hypothesis,** not a measured fact. Record it as
 **Repo (inferred)**, decided at its build gate, unless it predicts that shipped
-behaviour is wrong for the rule (for example a shipped formula that overstates margin
+behavior is wrong for the rule (for example a shipped formula that overstates margin
 on multi-year lines). Then it is trigger (b). A measured limitation the plan carries to
 another shape on its own is not such a claim (one the skill itself extends with
 `[inferred]` is); it follows [prediction-checks.md](prediction-checks.md) check 1.
@@ -42,8 +42,8 @@ docs disagree. The named check is the spike's smallest case. `rg -n '\[Open:' .c
 
 | Trigger | Typical cases |
 |---|---|
-| (a) The snapshot and the skills are both silent on a platform behaviour the rule depends on | A behaviour no article or skill describes |
-| (b) The repo measured, or a skill infers from shipped code, behaviour that contradicts the docs or is a defect or limitation the docs don't describe | A header discount applying twice with an active procedure plan and `skipOrgSttPricing` on; a quantity edit on an amendment line resetting its attributes; a cancellation credit that doesn't prorate; an API-built group-ramped bundle with a one-time or evergreen child that failed to amend (`asset-lifecycle-changes` Quick Rule 8). A measured case triggers (b) only under the conditions it was measured in ([prediction-checks.md](prediction-checks.md) check 1) |
+| (a) The snapshot and the skills are both silent on a platform behavior the rule depends on | A behavior no article or skill describes |
+| (b) The repo measured, or a skill infers from shipped code, behavior that contradicts the docs or is a defect or limitation the docs don't describe | A header discount applying twice with an active procedure plan and `skipOrgSttPricing` on; a quantity edit on an amendment line resetting its attributes; a cancellation credit that doesn't prorate; an API-built group-ramped bundle with a one-time or evergreen child that failed to amend (`asset-lifecycle-changes` Quick Rule 8). A measured case triggers (b) only under the conditions it was measured in ([prediction-checks.md](prediction-checks.md) check 1) |
 | (c) The rule is about values across the lifecycle that no skill has measured for the build's selling models and shape | Amend, cancel and renew values: Help describes setup, not values |
 | (d) The docs disagree, describe a preview with limitations, or lost information in capture | A considerations page for a preview feature; a support table whose values were icons and came through the snapshot blank |
 
@@ -115,7 +115,7 @@ amendment). Spikes come from the per-rule record.
 Every rule decided **Live** becomes a spike, with:
 - the value it must hit, in the platform's own measure (for example the amount an
   Evergreen line shows for the Pricing Setup default term count: one period at `1`),
-  with the source's value reached through the mapping. Where the behaviour is open, the
+  with the source's value reached through the mapping. Where the behavior is open, the
   must-hit is still the source's value, not a list of guessed platform outcomes,
 - the fallback that reaches the source value if the native result misses it
   ([prediction-checks.md](prediction-checks.md) check 3),

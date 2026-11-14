@@ -31,7 +31,7 @@ blind measurement survives plan revisions; --rebuild re-reads the rows.
 
 Scoring a later blind regeneration: its IDs won't match this plan's, so a fresh judge
 reads the regenerated plan with truth.json and labels every measured item:
-  hit     the plan predicts the measured result (route, value or behaviour)
+  hit     the plan predicts the measured result (route, value or behavior)
   hedged  the plan doesn't assert it, but routes it to a live measurement that would find it
   miss    the plan asserts what the build refuted or changed
   absent  the plan doesn't address it

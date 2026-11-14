@@ -7,7 +7,7 @@ step 9). Where a prediction was modified or refuted because the planner skipped 
 that step is a check below. Check 15 sharpens a guard the plans already had: the build
 measured why a freshness check alone wasn't enough. Check 16 applies `dro-plans`
 guidance, not a measured miss; `dro-plans` holds a composition smoke, a recheck and measured
-runtime behaviour, each on one org, and check 16 also cites Help directly for
+runtime behavior, each on one org, and check 16 also cites Help directly for
 decomposition scope and quantity. The platform facts live in the domain skills and Help
 articles named; this file says when the plan must apply them.
 
@@ -37,7 +37,7 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
    platform measures differently, carry the source value through a stated mapping (such
    as day-based proration), or record the decision that makes the build match the
    source. Where a
-   skill marks a behaviour open, don't list candidate platform outcomes as must-hits: a
+   skill marks a behavior open, don't list candidate platform outcomes as must-hits: a
    prior spike listed two and the platform produced a third. State the source value, what
    to record about the native result, and the fallback that reaches the source value if
    native misses it (often **Build (custom)**, such as a procedure overlay).
@@ -55,7 +55,7 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       of a bundle's units to another plan: the split puts two components in a group whose
       maximum is one (`product-catalog-modeling` → `bundles-and-cardinality.md`, Two kinds
       of cardinality), and a configuration rule written for the new sale refuses it too.
-    - A component can't be cancelled or renewed alone (`asset-lifecycle-changes` Quick
+    - A component can't be canceled or renewed alone (`asset-lifecycle-changes` Quick
       Rule 3).
     - Where any change needs it, the item is its own top-level line. Cross-line checks
       then sit on a virtual `Quote` container (`constraint-models` →
@@ -110,7 +110,7 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
    that counts terms or dates (contract value, cost over the term) runs on plain quotes,
    ramp segments, amendments and renewals; list each as a golden case, with the count
    each one uses:
-    - In a ramp segment (a dated line group), an until-cancelled line counts that
+    - In a ramp segment (a dated line group), an until-canceled line counts that
       segment's months, not the whole term. This applies to cost as well as value.
     - On an amendment, it counts the months left from the contract's start. That start
       isn't on the quote: name the mechanism that puts it there (a flow stamping it from
@@ -201,10 +201,10 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     fresh tables before pricing). Every gate that prices after a catalog or pricing load
     reruns `check_decision_table_freshness` until none of the tables it reads is Stale
     (`decision-tables` Quick Rule 1).
-16. **Count an orchestrated fulfilment before predicting it.** For a representative order
+16. **Count an orchestrated fulfillment before predicting it.** For a representative order
     and each lifecycle order, write every dependency as an edge between two step
     instances (with their scopes, items and source lines), and count the expected
-    fulfilment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). Count
+    fulfillment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). Count
     instances from each technical product's decomposition scope and from the lines the
     configurator places, not from a line's quantity: Order Line Item gives one per line,
     while Order, Bundle and Account give one per order, per bundle within an order, or per account across
@@ -218,7 +218,7 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     `authoring-and-deployment.md` gives it as an Order Line Item example, unmeasured on any
     scope),
     and Aggregate sums the source lines' quantities with no unit-of-measure conversion
-    (Help `ind.dro_unit_of_measure_inheritance_and_rounding_values`); quantities on fulfilment
+    (Help `ind.dro_unit_of_measure_inheritance_and_rounding_values`); quantities on fulfillment
     lines and assets are rounded to DRO's unit-of-measure scale and rounding rules (same
     article; the order of summing and rounding is unstated); where source lines in different
     units feed one Aggregate item, decide where their quantities are converted before
@@ -227,7 +227,7 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     `ind.dro_decomposition_scope`). The count golden has columns for groups, definitions,
     lines with their quantities (and, on lifecycle orders, their actions), steps with
     their scopes and edges with their scopes, a row for each order shape,
-    kit and variant the source fulfils, and a predicted row for each lifecycle order. Decide
+    kit and variant the source fulfills, and a predicted row for each lifecycle order. Decide
     each edge's shape like any rule ([knowledge-sources.md](knowledge-sources.md)).
     - Count groups and step definitions per item before step instances. A definition
       belongs to one group, so a step several items need with different predecessors is
@@ -250,7 +250,7 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       Account-scope item got Add with no asset on the same order (same bullet, one org), so
       expect its Add steps to compose on each later new-sale order that carries a line
       decomposing to it `[inferred]`; unmeasured for an Account-scope item on other lifecycle orders (the cancel case below
-      didn't record its scope). Cancelling a bundle's root
+      didn't record its scope). Canceling a bundle's root
       asset brought its non-assetizable technical line through as an Add of quantity 0 whose
       Add steps were created and started (same file, Cancel of a non-assetizable technical
       line, one org).

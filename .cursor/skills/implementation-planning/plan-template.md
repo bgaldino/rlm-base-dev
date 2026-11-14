@@ -60,7 +60,7 @@ changes). Note who has to answer it: the source's owner or the build's owner.
     - lifecycle changes
     - billing
     - usage and rating
-    - order fulfilment
+    - order fulfillment
     - contracts and documents
     - runtime surface
     - extraction
@@ -121,7 +121,7 @@ include a schedule whose next billing date equals `targetDate`. For a
 milestone-billed service, state what a quantity an amendment adds is billed by, and
 record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
 Read each amendment, cancellation and renewal quote's values before its order activates,
-and don't reprice it afterwards: a full reprice after activation set a renewal's totals to 0
+and don't reprice it afterward: a full reprice after activation set a renewal's totals to 0
 (`transaction-line-editor` Quick Rule 5: the rule not to reprice after activation is traced in
 part for every lifecycle quote; the zero total was measured once, on an unramped renewal by API
 call; amendments, cancellations, ramped quotes and the button aren't measured, and why it
@@ -140,13 +140,13 @@ The usual phases, ordered by the prerequisite graph in [build-order.md](build-or
 
 | Phase | Typical content |
 |---|---|
-| P0 Environment | Integration org through the build harness, on a named scenario or shape, with a lifetime that covers the build (shipped scenarios use `days: 1`; see `build-harness` → Keep an org for a multi-day build); feature and enablement checks; tooling. A checklist of the org settings the plan relies on. Some have no known API (a 264 build found them in no settings metadata or sObject or Tooling describe): the Salesforce Pricing Setup default term counts (Evergreen, One Time) are read in Setup → Salesforce Pricing Setup → Proration Settings (a fresh 264 `ent-sb0` org showed Evergreen 1, One Time 0), or the plan adds a step that sets them. Copy each domain skill's settings checklist the plan relies on (for fulfilment, `dro-plans` → `authoring-and-deployment.md`), each marked on, off or n/a |
+| P0 Environment | Integration org through the build harness, on a named scenario or shape, with a lifetime that covers the build (shipped scenarios use `days: 1`; see `build-harness` → Keep an org for a multi-day build); feature and enablement checks; tooling. A checklist of the org settings the plan relies on. Some have no known API (a 264 build found them in no settings metadata or sObject or Tooling describe): the Salesforce Pricing Setup default term counts (Evergreen, One Time) are read in Setup → Salesforce Pricing Setup → Proration Settings (a fresh 264 `ent-sb0` org showed Evergreen 1, One Time 0), or the plan adds a step that sets them. Copy each domain skill's settings checklist the plan relies on (for fulfillment, `dro-plans` → `authoring-and-deployment.md`), each marked on, off or n/a |
 | P1 Extraction | Source → design model and golden values; the converter's acceptance tests (section 3, Extraction); an independent re-check: a fresh agent, without the converter, recomputes a sample of golden values weighted to derived ones (exercised in a prior build); user reviews the design |
 | P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table with columns spike ID, rules, must hit, smallest case, read first. Usually two waves, exercised in a prior build, in one table with the wave in a column, or under sub-labels **P2a** and **P2b** that both sit inside the P2 section, before the P3 label (the ledger reads no spike table after it): **P2a**, spikes a probe product can answer (pricing routes, surface), beside or before P3; **P2b**, spikes whose must-hits need the real catalog, model and prices (amend, cancel, renew), run on an org the loader fills after the pricing gate's standard-price goldens pass |
 | P3 Catalog, then configuration | Data plans derived from the base build's own plans, with units of measure before any usage product (`usage-setup.md` steps 1 to 3); CML, with the context definition and tags its rules read, or waiting for P4's; its configuration test places a quote and so first needs price book entries `[inferred]` and the refresh newly loaded products need ([build-order.md](build-order.md)), or waits for P4; the route prerequisites of every P2a spike that touches them; the first loader (SKILL.md step 7) |
 | P4 Pricing and cost | Price books, adjustments, the context definition, mappings and tags, procedure changes, cost wiring; the stage 6 items the source shows on the quote (estimated tax, usage rates) or that its lines' billing cadence needs (treatments for a cadence other than the pricing term, or for milestones), with their prerequisites, per [build-order.md](build-order.md), or a decision that leaves them out of the P4 goldens. The gate prices only after the decision tables it reads are fresh (`decision-tables` Quick Rule 1) |
 | P5 Negotiation, approvals, runtime surface | Quote rounds, approvals, Transaction Line Editor configuration; quote and order documents where the source produces them (`document-generation`); contract documents are built with contract setup in P6 |
-| P6 Lifecycle, billing and fulfilment | Order, activate, amend, swap, cancel, renew; billing frequency, treatments and payment terms on the order; where the source shows invoices, tax or payments, the invoice runs and their read-backs, and the tax engine, tax policies and treatments, and legal entity P4 didn't build (`billing-operations` → `tax.md`, `accounting.md`); where it meters anything, the usage setup and rating P4 didn't build (`usage-consumption` → `usage-setup.md` steps 4 to 10, and step 11 after activation; `rate-management`); where it creates contracts, contract setup (`salesforce-contracts`); fulfilment, with its composition (lines, steps, dependencies) gated apart from its execution. Load and read back the fulfilment configuration before the first order of any chain whose fulfilment a gate counts: a submitted plan doesn't pick up later configuration, and a lifecycle order's fulfilment actions depend on what its earlier orders created (`dro-plans` → `authoring-and-deployment.md`). Read the order-activation prerequisites the domain skills record before the first order (`dro-plans` → `examples-and-grounding.md`, Recheck; for lifecycle orders, `rlm-business-apis` → `backdated-asset-lifecycle.md` and `asset-lifecycle-changes` → `verification.md`). Name how each gate and spike completes manual steps: in the plan, as Help documents, or the undocumented update of the step record, measured on one org and only for a test org, never a live order (`dro-plans` → `examples-and-grounding.md`, Recheck; `updates-and-runtime.md`, Dependency across order items); record that route as a decision, since `dro-plans` (Supported Runtime Actions) lists only the plan UI |
+| P6 Lifecycle, billing and fulfillment | Order, activate, amend, swap, cancel, renew; billing frequency, treatments and payment terms on the order; where the source shows invoices, tax or payments, the invoice runs and their read-backs, and the tax engine, tax policies and treatments, and legal entity P4 didn't build (`billing-operations` → `tax.md`, `accounting.md`); where it meters anything, the usage setup and rating P4 didn't build (`usage-consumption` → `usage-setup.md` steps 4 to 10, and step 11 after activation; `rate-management`); where it creates contracts, contract setup (`salesforce-contracts`); fulfillment, with its composition (lines, steps, dependencies) gated apart from its execution. Load and read back the fulfillment configuration before the first order of any chain whose fulfillment a gate counts: a submitted plan doesn't pick up later configuration, and a lifecycle order's fulfillment actions depend on what its earlier orders created (`dro-plans` → `authoring-and-deployment.md`). Read the order-activation prerequisites the domain skills record before the first order (`dro-plans` → `examples-and-grounding.md`, Recheck; for lifecycle orders, `rlm-business-apis` → `backdated-asset-lifecycle.md` and `asset-lifecycle-changes` → `verification.md`). Name how each gate and spike completes manual steps: in the plan, as Help documents, or the undocumented update of the step record, measured on one org and only for a test org, never a live order (`dro-plans` → `examples-and-grounding.md`, Recheck; `updates-and-runtime.md`, Dependency across order items); record that route as a decision, since `dro-plans` (Supported Runtime Actions) lists only the plan UI |
 | P7 Pack and fresh-org load | Every gate in one run on a new org, with the loader extended since P3; reload changes nothing |
 | P8 Walkthrough and sign-off | Independent verifier, then the user |
 | P9 Promotion | Public repo through a pull request, if chosen; its own approval |
@@ -167,7 +167,7 @@ sections above are revised to as-built, each change citing its ledger ID, while
 
 ## 8. Risks
 
-Include known platform behaviours that touch this build, with their workaround and
+Include known platform behaviors that touch this build, with their workaround and
 the condition for revisiting them.
 
 ## 9. Skills used, by phase
@@ -188,7 +188,7 @@ Then list **extensions to existing skills** separately.
 - [ ] Every worked example was run through every rule (cross-rule parity), and each
   violation is a decision.
 - [ ] Lifecycle examples run in date order with rules on, or the order is a decision.
-- [ ] Each register row states one testable behaviour; a row that holds two is split
+- [ ] Each register row states one testable behavior; a row that holds two is split
   before mapping, so neither drops out.
 - [ ] Rule IDs and counts agree across the register, the decision record and the
   golden tests.
@@ -199,9 +199,9 @@ Then list **extensions to existing skills** separately.
 - [ ] Every skill, sub-file and snapshot article named exists.
 - [ ] Every script the plan cites lives in the pack or the repo, not in a scratch or
   temporary folder.
-- [ ] Where the source tabulates fulfilment steps, every column (for example who, step
+- [ ] Where the source tabulates fulfillment steps, every column (for example who, step
   kind, at-risk window, point of no return, start date, scope, count) is mapped or decided
-  ([concept-map.md](concept-map.md), Order fulfilment), and where a later order must
+  ([concept-map.md](concept-map.md), Order fulfillment), and where a later order must
   act on an item an earlier order created, its scope is a recorded decision
   ([prediction-checks.md](prediction-checks.md) check 16).
 - [ ] Every [acceptance-chain.md](acceptance-chain.md) step the source needs cites its
@@ -212,7 +212,7 @@ Then list **extensions to existing skills** separately.
 - [ ] Every row of the rule decision record names its fallback, or says why none is
   needed; list any row that doesn't.
 - [ ] Every rule that rejects or warns has its message in the plan.
-- [ ] Goldens on platform-enforced behaviour assert where the platform enforces it.
+- [ ] Goldens on platform-enforced behavior assert where the platform enforces it.
 - [ ] Every spike that chooses a route lists each route's prerequisites
   ([SKILL.md](SKILL.md) step 6), and the dependency line shows the phase that waits for it.
 - [ ] Every spike's must-hit is the source's value (through a stated mapping where the

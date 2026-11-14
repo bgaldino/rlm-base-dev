@@ -6,7 +6,7 @@ Read this when a plan splits the build across sessions. Parent:
 ## Layout
 
 - **Main session.** Owns the plan, the design model, the golden tests, extraction,
-  integration, the P6 work (lifecycle, billing, usage, contracts and fulfilment; stage 6
+  integration, the P6 work (lifecycle, billing, usage, contracts and fulfillment; stage 6
   items a plan builds in P4 belong to the pricing session unless the plan names another owner), the pack and every gate.
 - **Spike sessions.** Group the live spikes by area, for example pricing and
   lifecycle. Each session runs on its own kept org. Nothing from a spike goes into the

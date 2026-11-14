@@ -18,8 +18,8 @@ only the stages their must-hits need, on their own org. A test that places a quo
 (a P2a spike, or P3's configuration test: a bundle test places the quote with rules on,
 [PCM load facts](../product-catalog-modeling/catalogs-and-loading.md#pcm-load-facts-264) e)
 first needs price book entries for its products `[inferred]` and the refresh newly loaded
-products need (fact f, measured); the priced transaction (stage 8) is first gated at P4. A P2b chain with a must-hit that counts fulfilment loads its
-fulfilment configuration before its first order (a submitted plan doesn't pick up later configuration,
+products need (fact f, measured); the priced transaction (stage 8) is first gated at P4. A P2b chain with a must-hit that counts fulfillment loads its
+fulfillment configuration before its first order (a submitted plan doesn't pick up later configuration,
 `dro-plans`); load the other stage 6 configuration its orders read first too `[inferred]`. Where the source shows tax or usage
 rates on the quote, or its quote lines bill on a cadence other than the pricing term or by
 milestone, build those stage 6 items in P4 with their own prerequisites (tax engine,

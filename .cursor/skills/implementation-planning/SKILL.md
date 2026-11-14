@@ -81,7 +81,7 @@ files can use it.
 - **DO NOT** put customer, brand or third-party commercial data in the public repo.
   Decide where the plan and data live (Quick Rule 1). A private plan may name real
   data; this skill and anything public may not.
-- **DO NOT** assert Revenue Cloud behaviour from memory. Cite the skill or the
+- **DO NOT** assert Revenue Cloud behavior from memory. Cite the skill or the
   snapshot article that says it, or mark the rule for live verification. While a
   release is pre-GA, a live org is ground truth (`AGENTS.md`).
 - **DO NOT** plan a header discount to stand in for line or product-line discounts
@@ -116,7 +116,7 @@ files can use it.
 | Invoice runs, tax, payments, credits, ledger | No | `billing-operations` |
 | Usage products: resources, policies, grants, rate cards, rating | No | `usage-consumption` → `usage-setup.md`, `rate-management` |
 | Contracts and generated documents | No | `salesforce-contracts`; `document-generation`, `odt-authoring` |
-| Order fulfilment: the work, steps and dependencies an order creates | No | `dro-plans` |
+| Order fulfillment: the work, steps and dependencies an order creates | No | `dro-plans` |
 | Amend, swap, cancel and renew rules and their numbers | No | `asset-lifecycle-changes` |
 | Configuring the line editor the rep uses | No | `transaction-line-editor` |
 | Answering one product question ("does Revenue Cloud support X?") | No | `revenue-cloud-docs`, then a live check if pre-GA |
@@ -158,7 +158,7 @@ the request already answers, and say what you assumed instead.
 |---|---|
 | What is the build for (demo, customer proof, benchmark, product extension)? | Sets "done": reproducing worked examples, a walkthrough, or a shipped feature |
 | Where does it live (private pack first, public repo behind a flag, or both)? | Sets data handling and the promotion phase |
-| What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, billing, usage and rating, order fulfilment, contracts and documents, policies not yet in force |
+| What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, billing, usage and rating, order fulfillment, contracts and documents, policies not yet in force |
 | Is the source read once, or kept in sync? | Read once means one extraction with a parity check; kept in sync adds a generator to maintain |
 | What runtime surface? | The standard Transaction Line Editor and configurator, or custom UI |
 | How are quantities derived, and may a rep override them? | Rule-owned sizing or editable defaults (`constraint-models` → `quantities-from-attributes.md`), and the amendment path. A source can say both in different places |
@@ -174,7 +174,7 @@ the request already answers, and say what you assumed instead.
     - hidden state: hidden sheets, rows and columns, cell comments, conditional
       formatting, and external links;
     - cell fills and fonts that a legend defines (input, calculated, needs attention).
-      A legend is often plain fill colour, which a values-and-formulas read misses; it
+      A legend is often plain fill color, which a values-and-formulas read misses; it
       tells an input cell from a calculated one.
 
   Read rules by named range rather than cell address where the workbook defines one.
@@ -185,7 +185,7 @@ the request already answers, and say what you assumed instead.
   and section.
 - Record the source's identity in the plan: file name, revision, date and a checksum,
   or capture dates.
-- **Number the rules.** A rule is one behaviour the source states and that can be
+- **Number the rules.** A rule is one behavior the source states and that can be
   tested on its own: a sizing rule, a discount program, a policy, an approval trigger,
   a change type. Use the source's own IDs where it has them; otherwise give each one
   an ID. The register goes in the plan's section 3.0
@@ -222,7 +222,7 @@ first: a measurement covers only the shape and route it measured.
 - One set per area, in the template's section 4, split where useful: sizing or
   configuration, rules (each with its message, template section 3), standard pricing, programs and edges
   (every band boundary), currency, policies, cost and margin, negotiation, approvals,
-  lifecycle changes, billing, usage and rating, fulfilment, contracts and documents, plus
+  lifecycle changes, billing, usage and rating, fulfillment, contracts and documents, plus
   the template's Reprice and Attributes sets.
 - Lay the end-to-end order out on [acceptance-chain.md](acceptance-chain.md): each chain
   step the source needs cites its rule IDs and golden ids (the build checks, steps 0, 1
@@ -241,8 +241,8 @@ first: a measurement covers only the shape and route it measured.
 - Run the golden checks in [prediction-checks.md](prediction-checks.md) (9–16): derived
   quantities at each answer's maximum, proration by day, rounding only where the source
   rounds, line inputs, where a refusal's message appears, answers carried across
-  changes, fresh decision tables, and a counted fulfilment.
-- **Assert platform-enforced behaviour where the platform enforces it.** Where the
+  changes, fresh decision tables, and a counted fulfillment.
+- **Assert platform-enforced behavior where the platform enforces it.** Where the
   platform accepts a change and enforces the rule later (at order, activation or
   amendment), the golden asserts at that later step.
 - **Cross-rule parity.** Run each worked example through every rule in the register,
@@ -272,7 +272,7 @@ first: a measurement covers only the shape and route it measured.
       follows a traced but unconfirmed gate in `asset-lifecycle-changes`, so plan a live
       check for it; on a ramped asset it's refused either way, so that case is a decision.
 - Where the source and Revenue Cloud measure different things, write the mapping into
-  the test rather than forcing equality. Example: the source counts an until-cancelled
+  the test rather than forcing equality. Example: the source counts an until-canceled
   monthly line over the whole contract term, while the platform counts it for the
   Pricing Setup default term count.
 
@@ -407,7 +407,7 @@ options, a tab of discount tiers, and a calculator tab that prices a sample orde
 service plans and trade-in credits.
 - **Mapping:** one configurable root per model plus a root per preset; options as
   attributes with attribute-based price; service plans as bundle components with
-  their own selling models, unless a plan must be renewed or cancelled. A component
+  their own selling models, unless a plan must be renewed or canceled. A component
   alone is refused (`asset-lifecycle-changes` Quick Rule 3), and a one-time root
   renewed to quantity 0 (Quick Rule 5), so a renewable plan under a one-time device
   root is its own line. Option exclusions and dependencies as CML.
