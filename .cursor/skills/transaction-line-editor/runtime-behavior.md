@@ -180,11 +180,12 @@ Force pricing (Reprice All) passes the request test unconditionally [Platform be
 A request that carries a context id is priced whenever the transaction has lines, so a
 header-only change through that path would reprice; which path a given client request takes was
 not determined, and the context-id case was not measured. After changing a header field that
-pricing reads, use Force pricing or click Reprice All. A line record in the same request, or
-the context-id path, makes the request priced, but where Delta Pricing applies not every line
-reprices: which lines move is set by
-[Delta pricing](../pricing-procedures/runtime-and-observability.md#delta-pricing) (see the
-measured ramp case below), and the header-change case was not measured. Pricing can
+pricing reads, use Force pricing or click Reprice All. A line record in the same request makes
+the request priced, but where Delta Pricing applies it may not reprice every line
+([Delta pricing](../pricing-procedures/runtime-and-observability.md#delta-pricing); its
+always-run steps, such as compound uplift, still move untouched lines, as in the measured ramp
+case below); the header-change case was not measured. Whether Delta Pricing applies to a
+context-id request, and which lines it then moves, is not traced. Pricing can
 also be skipped by an org-level platform setting that has no documented name [Platform
 behaviour, traced].
 A line PATCH on the graph-style Place path reprices the transaction, but on a Compound group ramp a partial line edit can re-apply the
