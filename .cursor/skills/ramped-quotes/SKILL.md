@@ -212,8 +212,8 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   traced in part]; see
   [asset-lifecycle-changes/verification.md](../asset-lifecycle-changes/verification.md).
   Measured once on a renewal quote: a full reprice (every line, pricing `Force`, configuration
-  `Skip`) after the order was activated set the renewal lines' totals and the quote total to 0
-  [Measured: 2026-11-12, 264, scratch org]: each lot became a -lot/+lot pair netting 0, and the
+  `Skip`) after the order was activated set the renewal lines' totals and the quote total to
+  0 [Measured: 2026-11-12, 264, scratch org]: each lot became a -lot/+lot pair netting 0, and the
   order and assets were unchanged. Not measured on amendments or cancellations, or on any ramped
   quote; why the reprice returned 0 is not traced. Read quote values before activation and
   don't reprice afterwards.
