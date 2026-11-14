@@ -207,7 +207,7 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     fulfilment lines, steps and edges (`dro-plans` → `authoring-and-deployment.md`). Count
     instances from each technical product's decomposition scope and from the lines the
     configurator places, not from a line's quantity: Order Line Item gives one per line,
-    while Order, Bundle and Account give one per order, per bundle, or per account across
+    while Order, Bundle and Account give one per order, per bundle within an order, or per account across
     its orders, merging the lines that decompose to the product (for Account, every line of
     the account `[inferred]`, `dro-plans` → `updates-and-runtime.md`), and Custom one per scope
     identifier (unmeasured in `dro-plans`) (Help `ind.dro_decomposition_scope`). Later orders can still carry lines for an Account-scope item (see the
@@ -241,8 +241,7 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       scope as a decision and check the line actions on the first such order. `dro-plans`
       → `updates-and-runtime.md` (An item across orders) holds what one later new-sale
       order showed (one org), the cross-order-scope inference `[inferred]` from Help, and
-      what it leaves unmeasured (an item that must stay one per sold line, custom scopes,
-      the scopes behind the measured amendment and cancellation); spike any the plan relies on.
+      what it leaves unmeasured (an item that must stay one per sold line, custom scopes); spike any the plan relies on.
     - Count the lines that come back on later orders: an Account-scope assetizable item got
       Amend and another got No Change (`dro-plans` → `updates-and-runtime.md`, An item
       across orders, one org; Help sets Amend where a line differs from its fulfillment
@@ -250,7 +249,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       to compose again unless a condition skips them `[inferred]`. A non-assetizable
       Account-scope item got Add with no asset on the same order (same bullet, one org), so
       expect its Add steps to compose on each later new-sale order that carries a line
-      decomposing to it `[inferred]`; unmeasured on other lifecycle orders. Cancelling a bundle's root
+      decomposing to it `[inferred]`; unmeasured for an Account-scope item on other lifecycle orders (the cancel case below
+      didn't record its scope). Cancelling a bundle's root
       asset brought its non-assetizable technical line through as an Add of quantity 0 whose
       Add steps were created and started (same file, Cancel of a non-assetizable technical
       line, one org).
