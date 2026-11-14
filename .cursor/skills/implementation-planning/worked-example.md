@@ -57,12 +57,12 @@ level, renewal at the same price, one currency, quote and contract documents.
 | Id | Decision | Choice | Why | Options in |
 |---|---|---|---|---|
 | D1 | Sensor: product, attribute or component | Component of the kit | R1: each sensor needs its own record if it must be counted, priced or tracked | [Product vs attribute vs component](../product-catalog-modeling/SKILL.md#product-vs-attribute-vs-component) |
-| D2 | Kit shape | Static bundle with 4 sensors (R1 answer); sensor quantity scaling Proportional | Fixed content, no choices. Proportional is an assumption to log: it is the default when quantity changes are off at creation | [bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md) |
+| D2 | Kit shape | Static bundle with one sensor component of quantity 4 (R1 answer); sensor quantity scaling Proportional | Fixed content, no choices. Proportional is an assumption to log: it is the default when quantity changes are off at creation | [bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md) |
 | D3 | Selling model, monitoring | Term defined, 36 months | R3 | [selling-models-and-lifecycle.md](../product-catalog-modeling/selling-models-and-lifecycle.md#choose-the-selling-model-from-the-pricing-basis) |
 | D4 | Selling model, installation | One-time | A one-time charge; milestone billing sits on one-time lines | [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services) |
 | D5 | Billing frequency, monitoring | Annual, in advance | R4. The owner says a frequency that differs from the pricing term needs a treatment on the line, so compare the model's term unit with the yearly frequency and log the result | [Billing frequency](../billing-setup/SKILL.md#billing-frequency) |
 | D6 | Assetizable | Kit, monitoring and data feed yes, installation no | Renewal acts on the subscription; usage is recorded against a usage-entitled asset ([The Pipeline](../usage-consumption/SKILL.md#the-pipeline)); installation is not renewed. Confirm with the customer | [IsAssetizable](../product-catalog-modeling/selling-models-and-lifecycle.md#isassetizable) |
-| D7 | Discount scope | Line discount, approval above 10 percent of the quote | R6 gives the threshold only; line versus header discount is an assumption to confirm with the customer | [manual-discount.md](../pricing-procedures/elements/manual-discount.md) |
+| D7 | Discount scope | Line discount; approval when the quote's discount percent, measured off list and computed from the line discounts, is above 10 | R6 gives the threshold only; line versus header discount, the percent's base and how it is computed are assumptions to confirm with the customer ([matrix-modeling.md](../advanced-approvals/matrix-modeling.md): a base for every percent, and how a level is computed) | [manual-discount.md](../pricing-procedures/elements/manual-discount.md) |
 | D8 | Installation completion to billing trigger | Open: not established by a skill | Verify live; log evidence | [updates-and-runtime.md](../dro-plans/updates-and-runtime.md) |
 | D9 | Ramp | None: flat 3-year term at one price | R7 answer: same price; no step-ups | [Ramps](../product-catalog-modeling/selling-models-and-lifecycle.md#ramps) |
 | D10 | Installation decomposition: scope, quantity behavior, step scope | Order Line Item scope; the settings that give one visit per kit are open | The customer's answer: one visit per kit. The owner says Order Line Item with `AlwaysOne` gives one technical item for a line of quantity 10, so that pair alone does not give it | [Decomposed Line Items](../dro-plans/authoring-and-deployment.md#decomposed-line-items) |
@@ -103,12 +103,18 @@ Place the items on the [graph](build-order.md#prerequisite-graph):
 Open items carried into the plan: D8, D10 settings, usage-product design, tax (no owner),
 invoice run and payments (no owner).
 
+Assumptions to confirm (owner: the customer), each marking the plan items that depend on it:
+D2 (one sensor component of quantity 4, Proportional scaling; the sensor count), D6
+(assetizable products; renewal and usage), D7 (line discount, the quote percent's base and
+computation; the approval chain step), and the installation as one line of quantity 10 (the
+fulfillment count).
+
 ## Chain binding (excerpt)
 
 | Chain step | Proves | Expected value source |
 |---|---|---|
 | 3 Price | R1, R3, R8 | Hand-computed totals from the customer's price list |
-| 6 Approve | R6 | A quote at 9 percent routes to nobody; at 11 percent to one level |
+| 6 Approve | R6 | A quote at 9 percent routes to nobody; at 11 percent to one level, with the percent as D7 defines it |
 | 8 Fulfill | R2 | Installation tasks equal one per kit, from the D10 settings |
 | 10 Bill | R4, R2 | 3 yearly invoices; installation billing per D8 evidence |
 | 12 Usage | R5 | Rated amount equals hand computation for one test month |
