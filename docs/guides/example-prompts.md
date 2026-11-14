@@ -26,10 +26,12 @@ these fit.
 | **Scope** | "Read only. Do not change an org or any file." |
 | **Proof** | "Cite the files you used and mark anything you inferred" |
 
-The proof line matters most. Skills that describe product behavior label each claim as
-`[Help]`, `[Repo]`, `[Measured]`, `[Platform behaviour, traced]` or `[inferred]`; asking
-for the labels keeps the answer honest. Operational skills (builds, data loading,
-toolchain) may not label claims; for those, ask the agent to say what it ran or read.
+The proof line matters most. Skills that describe product behavior tag each claim with
+its source, such as `[Help: <article>]`, `[Repo: <path>]`, `[Measured: <date>]`,
+`[Platform behaviour, traced]` or `[inferred]` (the
+[outcome guide](outcome-guide.md#how-to-use-this-guide) explains each); asking for the
+tags keeps the answer honest. Operational skills (builds, data loading, toolchain) may
+not tag claims; for those, ask the agent to say what it ran or read.
 
 ## First prompts: no org needed
 
