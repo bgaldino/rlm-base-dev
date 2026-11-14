@@ -21,12 +21,12 @@ The org's own utilities are used wherever they can be reached headlessly:
    multicurrency).
 2. **Quote + line** — ``POST /connect/rev/sales-transaction/actions/place``
    (Place Sales Transaction) with an object graph. Direct ``QuoteLineItem`` DML
-   is *not* viable here for a TermDefined product: the platform requires
+   is *not* used for a TermDefined product: the platform requires
    ``BillingFrequency``, and a frequency that differs from the pricing term (this
    script's default Monthly on an annual entry) is refused unless the line's
-   BillingTreatment has ``CanChangeBillingFrequency = true``. A matching
-   frequency needs no treatment (billing-setup skill, item 3). The transaction
-   API is the supported path.
+   BillingTreatment has ``CanChangeBillingFrequency = true``, on either route
+   (billing-setup skill, item 3). The transaction API is used because it creates
+   and prices the line and its derived children in one call.
 3. **Order** — the standard ``createOrdersFromQuote`` invocable, which is
    exactly what the Create Order quick action runs via
    ``RLM_CreateOrdersFromQuote``.
@@ -407,16 +407,16 @@ def place_quote(org, ids, account, start, end, quantity, period_boundary,
                 billing_frequency, bind_extra=False, group=False):
     """Create the Quote + line via Place Sales Transaction.
 
-    Direct QuoteLineItem DML is NOT viable here for a TermDefined product: the
-    platform demands BillingFrequency ("When the SellingModelType is Evergreen or
+    Direct QuoteLineItem DML is not used for a TermDefined product: the platform
+    demands BillingFrequency ("When the SellingModelType is Evergreen or
     Term-Defined, BillingFrequency can't be null") and refuses a frequency that
     differs from the pricing term (the default Monthly on an annual entry) unless
-    the line's BillingTreatment has CanChangeBillingFrequency = true. That
-    flag was false on every QB treatment originally, which is what made the
-    transaction API the only workable path; this branch sets it true on all 15 QB
-    treatments so the frequency CAN be supplied, and this function sends
-    BillingFrequency explicitly in the payload. The transaction API remains the
-    supported path for adding a line to a quote.
+    the line's BillingTreatment has CanChangeBillingFrequency = true, on either
+    route. That flag was false on every QB treatment originally, so no
+    differing-frequency line could be created by any route; this branch sets it
+    true on all 15 QB treatments so the frequency CAN be supplied, and this
+    function sends BillingFrequency explicitly in the payload. The transaction API
+    is used because it creates and prices the line and its derived children.
 
     ``group``: put the lines in one ``QuoteLineGroup``, with ``end`` as the group's
     first period, for ``ramp_group`` to turn into a group ramp.

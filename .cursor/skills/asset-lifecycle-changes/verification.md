@@ -35,17 +35,18 @@ For each change, record the state after every step:
    activating the order changes that state, so a reprice afterwards can return different
    prices (line and quote totals of 0 on a measured renewal, each lot a -lot/+lot pair; order
    and assets unchanged [Measured: 2026-11-12, 264, scratch, one org]). After
-   activation start a new lifecycle quote from the updated asset. Treat this as holding
+   activation, start a new lifecycle quote from the updated asset. Treat this as holding
    for renewal, amendment and cancellation lines (measured only on a renewal, not on any
-   ramped quote); a Force reprice touches every line, so it shows the effect most [Platform
-   behaviour, traced in part]. Use Reprice All or a Place request with Force pricing; a
+   ramped quote); a Force reprice touches every line [Platform behaviour, traced], so it
+   shows the effect most `[inferred]`. Use Reprice All or a Place request with Force pricing; a
    System request with a line record may not reprice every line where Delta Pricing applies
    ([Delta pricing](../pricing-procedures/runtime-and-observability.md#delta-pricing)).
    A graph-style Place request that patches only the quote header isn't priced under System
    pricing: it is priced only when it carries at least one quote or order line (or line
    attribute) record, so a header-only PATCH leaves the lines untouched and "nothing moved"
    proves nothing. A request that carries a context id is priced whenever the transaction
-   has lines (not measured; which lines reprice under Delta Pricing is not traced). Force
+   has lines (not measured; whether Delta Pricing applies to that path, and which lines it then
+   moves, is not traced). Force
    always passes the request test [Platform behaviour, traced].
 4. **Create the order** (`createOrdersFromQuote`), reprice it, and read `OrderItem`,
    `OrderItemDetail` and `OrderItemAttribute`. Read the order's `EffectiveDate` back: it is

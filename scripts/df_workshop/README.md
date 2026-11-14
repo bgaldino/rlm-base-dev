@@ -101,10 +101,10 @@ clone, and reprices against it.
 
 QuoteLineItem / QuoteLineItemAttribute / QuoteLineDetail / ramp segments are
 **derived** — the platform generates them when a quote is created and priced.
-Direct `QuoteLineItem` DML is rejected for a TermDefined line whose billing
-frequency differs from the pricing term, unless a treatment allows it
-(BillingFrequency ⇄ BillingTreatment coupling), and produces un-priced,
-inconsistent lines even where accepted. So the quotes must be **re-created
+Direct `QuoteLineItem` DML produces un-priced, inconsistent lines. (A TermDefined
+line whose billing frequency differs from the pricing term needs a treatment that
+allows it on either route: BillingFrequency ⇄ BillingTreatment coupling.) So the
+quotes must be **re-created
 through `POST /connect/rev/sales-transaction/actions/place`** (Place Sales
 Transaction) and priced (`pricingPref: system`), letting the org generate the
 children. This mirrors `scripts/build_quote_to_asset.py`.

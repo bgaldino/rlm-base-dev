@@ -151,7 +151,8 @@ In-flight fulfillment may limit changes to an asset whose order is still fulfill
 plain asset amendment was accepted with the Point of No Return flag copied to the step
 [Measured: 2026-11-13, 264, scratch, one org]; enforcement was not tested, so a "no change
 after step X" rule needs its own validation `[inferred]`; see
-[dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md) (PONR bullet).
+[dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md) (PONR and PONR flag
+placement bullets).
 
 Set `Status = Activated` on each returned order (create the order from a returned quote first,
 `createOrdersFromQuote`). Backdated-change orders needed all of these first:
@@ -289,8 +290,8 @@ schedule and starts the new cadence from the effective date. Through the API:
    the Quote Action is amend and the Quote Action subtype is FieldAmendment."* In the UI, editing
    the field does this.
 3. Place a `QuoteLineItem` PATCH with the new `BillingFrequency`, then order and activate as
-   usual. A changed frequency needs a treatment with *Change Billing Frequency*
-   ([billing-setup](../billing-setup/SKILL.md) item 3).
+   usual. A new frequency that differs from the selling model's term unit needs a treatment with
+   *Change Billing Frequency* ([billing-setup](../billing-setup/SKILL.md) item 3).
 
 Line amounts round to the currency's precision: a JPY run billed 44,033 per period against a
 period amount of 44,033.42.

@@ -364,7 +364,8 @@ results, 2026-11-11).
    flag copied to the step [Measured: 2026-11-13, 264, scratch, one org]; whether the state
    was in effect, and so enforcement, was not tested. A "no change after step X" rule needs
    its own validation `[inferred]`; see
-   [dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md) (PONR bullet).
+   [dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md) (PONR and PONR flag
+   placement bullets).
 
 ## DO NOT
 
