@@ -217,8 +217,9 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     `authoring-and-deployment.md`; under a scope that merges lines, or across orders, it is
     unmeasured, so spike it),
     and Aggregate sums the source lines' quantities with no unit-of-measure conversion
-    (Help `ind.dro_unit_of_measure_inheritance_and_rounding_values`), then rounds to the unit
-    of measure's scale and rounding rules (same article); where source lines in different
+    (Help `ind.dro_unit_of_measure_inheritance_and_rounding_values`); quantities on fulfilment
+    lines and assets are rounded to DRO's unit-of-measure scale and rounding rules (same
+    article; the order of summing and rounding is unstated); where source lines in different
     units feed one Aggregate item, decide where their quantities are converted before
     submission (same article). No method means
     Aggregate and no scope means Order Line Item (Help `ind.dro_creating_a_technical_product`,
@@ -250,7 +251,9 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       Amend and another got No Change (`dro-plans` → `updates-and-runtime.md`, An item
       across orders, one org; Help sets Amend where a line differs from its fulfillment
       asset), so where a scenario on the item chooses that action, expect its group's steps
-      to compose again unless a condition skips them `[inferred]`. Cancelling a bundle's root
+      to compose again unless a condition skips them `[inferred]`. A non-assetizable
+      Account-scope item got Add with no asset on the same order (same bullet, one org), so
+      expect its Add steps to compose on each later order `[inferred]`. Cancelling a bundle's root
       asset brought its non-assetizable technical line through as an Add of quantity 0 whose
       Add steps were created and started (same file, Cancel of a non-assetizable technical
       line, one org).

@@ -60,7 +60,7 @@ files can use it.
     refuted a prior plan's prediction, or sharpens a guard that build showed too weak:
     a measurement read past its shape, a structure chosen for the new sale only, a
     recommendation with no mechanism, a native guard on the wrong path. Check 16 applies
-    domain-skill guidance, not a measured miss.
+    domain-skill and Help guidance, not a measured miss.
 
 ## DO NOT
 
