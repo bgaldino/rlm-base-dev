@@ -65,7 +65,7 @@ explained. Add rows the source forces.
 | Billing frequency vs selling-model term | [Billing frequency](../billing-setup/SKILL.md#billing-frequency) | Billing treatment needs, line placement |
 | In advance or in arrears; treatments | [Billing policies and treatments](../billing-setup/SKILL.md#billing-policies-and-treatments) | Schedules, invoices |
 | One-time charge billed periodically, or in milestones | [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services) | Selling model, treatment |
-| Milestone trigger from fulfillment | Not established in the skills: open; verify live and log the evidence | Billing schedule dates |
+| Milestone trigger from fulfillment | Who or what marks an event milestone: [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services) (Marking an event milestone done); the link from fulfillment is open, verify live and log the evidence | Billing schedule dates |
 | Payment terms and where they live | [Payment terms](../billing-setup/SKILL.md#payment-terms) | Approvals, invoices |
 | Amendment policy: co-term, credit, re-band | [change-policy-mapping.md](../asset-lifecycle-changes/change-policy-mapping.md) | Asset actions, invoice values |
 | Renewal: uplift, term, quote generation | [asset-lifecycle-changes](../asset-lifecycle-changes/SKILL.md), [renewal-asset-creation](../renewal-asset-creation/SKILL.md) | Pricing, ramps |
