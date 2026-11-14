@@ -180,9 +180,12 @@ Force pricing (Reprice All) passes the request test unconditionally [Platform be
 A request that carries a context id is priced whenever the transaction has lines, so a
 header-only change through that path would reprice; which path a given client request takes was
 not determined, and the context-id case was not measured. After changing a header field that
-pricing reads, include a line record in the same request, use Force pricing, or click Reprice All.
-Pricing can also be
-skipped by an org-level platform setting that has no documented name [Platform behaviour, traced].
+pricing reads, use Force pricing or click Reprice All. A line record in the same request makes the
+request priced, but where Delta Pricing applies only that line and the lines that depend on it are
+expected to reprice (not measured; see
+[Delta pricing](../pricing-procedures/runtime-and-observability.md#delta-pricing)). Pricing can
+also be skipped by an org-level platform setting that has no documented name [Platform
+behaviour, traced].
 A line PATCH on the graph-style Place path reprices the transaction, but on a Compound group ramp a partial line edit can re-apply the
 uplift to lines you didn't touch. Delta pricing (on in every Foundations-built org
 [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]) is defined once in
@@ -208,12 +211,12 @@ Pricing is on (Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every 
 it, and it applies only when all its conditions hold, see [runtime and
 observability](../pricing-procedures/runtime-and-observability.md#delta-pricing)), Help says to
 click **Reprice All** afterwards. The action itself saves the header values and then runs a full
-(Force) reprice. After a header field edited by other means, use Reprice All, Force pricing or a
-line record in the request: a graph-style System request with only the header doesn't price
-(section 4: a context-id request does, when lines exist; a header edit in the record UI was
-not measured) [Platform behaviour, traced]. The Order variant of the
-action was not traced. The waterfall shows each line's share. Users need Salesforce Pricing Run
-Time User.
+(Force) reprice. After a header field edited by other means, use Reprice All or Force pricing:
+a graph-style System request with only the header doesn't price, and with Delta Pricing on,
+a line record reprices only that line and its dependents (not measured). Section 4: a
+context-id request does price, when lines exist; a header edit in the record UI was not
+measured [Platform behaviour, traced]. The Order variant of the action was not traced. The
+waterfall shows each line's share. Users need Salesforce Pricing Run Time User.
 
 **The setup is in the pricing procedure, not the editor.** Manage Header Adjustment takes the type,
 value and distribution logic [Help: `ind.qocal_header_adjustments_use`], and Help's setup uses the
