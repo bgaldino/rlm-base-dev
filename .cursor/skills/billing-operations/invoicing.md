@@ -63,13 +63,14 @@ Three controls on a scheduler [Help: `ind.billing_understand_target_date_and_bil
 - **Target date**: selects schedules whose next billing date is on or before it. With none,
   every schedule matching the filters is invoiced. Recurring runs can base it on the run
   date plus offset or on a calendar day of a month.
-- **Billing period count**: 1 to 12 periods per schedule. Use it with a target date when
-  schedules have different next billing dates, to avoid billing extra periods. It does not
-  apply to milestone or usage schedules.
+- **Billing period count**: 1 to 12 periods billed per schedule, as an alternative to a
+  target date (or combined with one). Each schedule bills that many periods even when next
+  billing dates or period lengths differ, which avoids extra periods. It does not apply to
+  milestone or usage schedules.
 
-Decision: a fixed target date is simplest and over-bills schedules with earlier next
-billing dates; a period count caps that. Ask which the customer's contracts need
-[inferred from Help].
+Decision: a fixed target date is simplest but bills schedules with earlier next billing
+dates for extra periods; a period count bills the same number of periods per schedule
+instead. Ask which the customer's contracts need [inferred from Help].
 
 Milestone and usage schedules differ. For milestones the target date picks which
 accomplished milestones invoice (the run date when none is set); usage schedules with
@@ -132,11 +133,16 @@ objects and make them asynchronous; recovery of stranded invoices is in the same
 
 ## Correcting an invoice
 
-Void a posted invoice from the record; tax is voided or adjusted at the engine and the
-related credit memo status follows the engine response ([tax.md](tax.md)). Delete is
-for Draft or Canceled invoices with Billing Operations User; other statuses need a cloned
-Billing Admin set with the Delete Invoice and Invoice Lines permission, and Help warns of
-data integrity issues [Help: `ind.billing_invoices_void`, `ind.billing_invoice_delete`].
+Void a posted invoice from the record; it creates a credit memo that mirrors the invoice,
+tax is voided or adjusted at the engine and the credit memo status follows the engine
+response ([tax.md](tax.md)) [Help: `ind.billing_invoices_void`]. Limits: void in reverse
+chronological order, starting with the most recent invoice; an invoice partly or fully
+settled by credit memos, payments or write-offs can't be voided, so correct a settled
+invoice with a credit memo or write-off ([payments-and-credits.md](payments-and-credits.md))
+[Help: `ind.billing_invoices_void`]. Delete is for Draft or Canceled invoices with Billing
+Operations User; other statuses need a cloned Billing Admin set with the Delete Invoice and
+Invoice Lines permission, and Help warns of data integrity issues
+[Help: `ind.billing_invoice_delete`].
 Gapless numbering for invoices and credit memos is a sequence policy
 [Help: `ind.billing_sequential_numbering_for_invoices_configure`]; the repo creates them in
 `tasks/rlm_billing.py`.

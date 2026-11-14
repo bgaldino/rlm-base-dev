@@ -119,7 +119,7 @@ repo builds is a test setup, not a real tax provider
 ## Read-backs
 
 ```sql
-SELECT Name, Status, TaxEngineName FROM TaxEngine
+SELECT TaxEngineName, Status FROM TaxEngine
 SELECT Name, Status, DefaultTaxTreatmentId FROM TaxPolicy
 SELECT Name, TaxPolicyId, TaxEngineId FROM TaxTreatment
 SELECT InvoiceLineId, TaxAmount, TaxCode FROM InvoiceLineTax

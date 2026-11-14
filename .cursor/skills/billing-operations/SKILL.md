@@ -40,7 +40,9 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
    in Draft; estimated tax is calculated on drafts and actual tax on posted invoices
    [Help: `ind.billing_automate_invoice_run_schedules`, `ind.billing_tax_calculation_results`].
    Deleting a posted invoice is not the correction path; void it, which creates a credit
-   memo [Help: `ind.billing_invoices_void`, `ind.billing_invoice_delete`].
+   memo. Voids run in reverse chronological order, most recent first, and an invoice
+   partly or fully settled by credit memos, payments or write-offs can't be voided; use a
+   credit memo or write-off for those [Help: `ind.billing_invoices_void`].
 4. **Convert synchronous automation before the first run.** Record-triggered flows and Apex
    triggers on billing objects can stop a run or strand invoices in Draft In Progress,
    Posting In Progress or Error [Help: `ind.billing_invoice_run_sync_process`].
@@ -130,9 +132,10 @@ Find what an org has before designing (`<sf-alias>` is the SF CLI alias):
 
 ```bash
 sf data query -o <sf-alias> -q "SELECT Id, Name, Status FROM LegalEntity"
-sf data query -o <sf-alias> -q "SELECT Name, Status, TaxEngineName FROM TaxEngine"
+sf data query -o <sf-alias> -q "SELECT TaxEngineName, Status FROM TaxEngine"
 sf data query -o <sf-alias> -q "SELECT Name, Status FROM TaxPolicy"
-sf data query -o <sf-alias> -q "SELECT Name, Status FROM BillingBatchScheduler"
+sf data query -o <sf-alias> -q \
+  "SELECT BillingSchedulerName, Status, JobType FROM BillingBatchScheduler"
 sf data query -o <sf-alias> -q \
   "SELECT ApiName, IsActive FROM FlowDefinitionView WHERE Label LIKE '%Billing Schedule%'"
 ```
