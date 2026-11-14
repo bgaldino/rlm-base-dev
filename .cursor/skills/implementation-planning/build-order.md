@@ -19,7 +19,7 @@ parallel unless an edge says otherwise.
 | 2 | Selling models and options per product | Catalog | [Quick Rules](../product-catalog-modeling/SKILL.md#quick-rules) (option per model) | [selling-models-and-lifecycle.md](../product-catalog-modeling/selling-models-and-lifecycle.md) |
 | 3 | Price books and entries; cost books if used | Products, selling models (entries carry the model) | [Setup order](../pricing-setup/SKILL.md#setup-order), [price-books.md](../pricing-setup/price-books.md) | [pricing-setup](../pricing-setup/SKILL.md) |
 | 3 | Adjustment schedules | Selling models and products in a price book | [Setup order](../pricing-setup/SKILL.md#setup-order), [price-adjustment-schedules.md](../pricing-setup/price-adjustment-schedules.md#set-it-up) (Help prerequisites) | [pricing-setup](../pricing-setup/SKILL.md) |
-| 3 | Revision policies | Region picklist values, before the policies and index rates | [price-revision-policies.md](../pricing-setup/price-revision-policies.md#set-it-up) (Help set-up order); price book needs not stated | [pricing-setup](../pricing-setup/SKILL.md) |
+| 3 | Revision policies and index rates | Region picklist values on Index Rate (Help: add them first) | [price-revision-policies.md](../pricing-setup/price-revision-policies.md#set-it-up) (Help set-up order); Help states no price book need | [pricing-setup](../pricing-setup/SKILL.md) |
 | 3 | Context definition, mappings, tags | Custom fields | [dependency-ordering.md](../repo-integration/dependency-ordering.md#pre-deploy-numbered-directories), [context-service](../context-service/SKILL.md) | [context-service](../context-service/SKILL.md) |
 | 4 | Decision tables defined, data loaded, refreshed | Price books and source data they read | [Setup order](../pricing-setup/SKILL.md#setup-order), [The timing rule](../decision-tables/SKILL.md#the-timing-rule) | [decision-tables](../decision-tables/SKILL.md) |
 | 4 | Recipe and table mappings | Decision tables | [Pricing Recipe Table Mappings](../pricing-wiring/SKILL.md#a-pricing-recipe-table-mappings), [Setup order](../pricing-setup/SKILL.md#setup-order) | [pricing-wiring](../pricing-wiring/SKILL.md) |
@@ -70,7 +70,7 @@ citations, has nothing here to track.
 | 4 (tables) | `prepare_decision_tables`, then `refresh_all_decision_tables` late | Definitions early; the full refresh runs after all data is loaded |
 | 5 (procedures) | `prepare_expression_sets`, then `activate_and_deploy_expression_sets` | Deploy early; activation after data and rating |
 | 1, 2 (catalog) | `prepare_product_data` | After `deploy_full` and the schedule metadata |
-| 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Schedules are set up before the catalog loads (the tier schedule stays inactive on purpose); pricing data loads after it |
+| 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Schedules are set up before the catalog loads (some schedules stay inactive on purpose); pricing data loads after it |
 | 5 (revenue settings) | `prepare_revenue_settings` | Runs late, after constraints and guided selling |
 | 6 (fulfillment) | `prepare_dro` | After pricing data |
 | 6 (tax) | `prepare_tax` | Before billing; billing reads its legal entity |

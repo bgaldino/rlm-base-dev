@@ -72,8 +72,9 @@ level, renewal at the same price, one currency, quote and contract documents.
 State the arithmetic, from the model and the decisions:
 
 - Sensors on an order of 10 kits: 10 kits x 4 sensors = 40 sensor lines or quantity 40, per the
-  cardinality rule the owner states (see the two kinds of
-  [cardinality](../product-catalog-modeling/bundles-and-cardinality.md#two-kinds-of-cardinality)).
+  Proportional quantity method, where child quantity is parent quantity times child quantity
+  (see *Quantity scaling and lifecycle* in
+  [bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md)).
   Which of the two the run produces is read from the org, not assumed.
 - Fulfillment instances for the installation: suppose an order of 10 kits carries one
   installation line of quantity 10 (an assumption to log; installation could instead be one
