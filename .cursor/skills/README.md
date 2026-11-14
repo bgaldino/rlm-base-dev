@@ -60,7 +60,8 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | Run and verify **billing after setup**: schedules, invoice runs and previews, tax engines and treatments, payments, refunds, credit and debit memos, legal entities, accounting periods and the ledger | Billing Operations | [billing-operations/SKILL.md](billing-operations/SKILL.md) |
 | Build / verify a multi-year group **ramp** quote + per-segment (compound) uplift | Ramped Quotes | [ramped-quotes/SKILL.md](ramped-quotes/SKILL.md) |
 | Create renewal-ready assets across the 4 expiry windows + layer lifecycle event history | Renewal Asset Creation | [renewal-asset-creation/SKILL.md](renewal-asset-creation/SKILL.md) |
-| Build, rate, and verify metered consumption demos | Usage & Consumption | [usage-consumption/SKILL.md](usage-consumption/SKILL.md) |
+| Build, rate, and verify metered consumption demos; set up usage resources and policies | Usage & Consumption | [usage-consumption/SKILL.md](usage-consumption/SKILL.md) |
+| Set up rate cards, tiers, rating and rating discovery procedures for usage products | Rate Management | [rate-management/SKILL.md](rate-management/SKILL.md) |
 | Generate, inspect, continue, or verify transaction demo data | Transaction Data Harness | [txn-data-harness/SKILL.md](txn-data-harness/SKILL.md) |
 | Author, debug, and validate OmniDataTransform (ODT) mappers | ODT Authoring | [odt-authoring/SKILL.md](odt-authoring/SKILL.md) |
 | Create/modify `.docx` templates + DocumentTemplate lifecycle | Document Generation | [document-generation/SKILL.md](document-generation/SKILL.md) |
