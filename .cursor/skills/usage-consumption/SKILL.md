@@ -93,6 +93,8 @@ End-user runbook: `docs/guides/usage-consumption-runbook.md`.
 | Build an asset that carries usage entitlements | Yes | See [building-usage-assets.md](building-usage-assets.md). |
 | Add or change a commitment / pack / grant product | Yes | Check the PURP shape rule first. |
 | Verify a consumption build, add an invariant | Yes | See [verification.md](verification.md). |
+| Set up usage resources, units, policies, grants (Help-grounded) | Yes | See [usage-setup.md](usage-setup.md). |
+| Choose or configure rate cards, tiers, rating procedures | No | Use [`rate-management`](../rate-management/SKILL.md). |
 | Reset an org or account holding usage data | Yes | Convergent teardown — see below. |
 | Understand a usage object's fields/relationships | Partly | Object reference is `revenue-cloud-data-model/domains/usage.md`. |
 | Generate Quote→Order→**Invoice** demo volume | No | Use `txn-data-harness/SKILL.md`. |
@@ -298,6 +300,8 @@ Before a PR that touches usage data or behaviour:
 
 ## Related Skills
 
+- **Rate Management** — `.cursor/skills/rate-management/SKILL.md` (rate cards, rating procedures)
+- **Usage setup** — [usage-setup.md](usage-setup.md)
 - **Data model** — `.cursor/skills/revenue-cloud-data-model/domains/usage.md`
 - **SFDMU plans** — `.cursor/skills/sfdmu-data-plans/SKILL.md`
 - **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`
