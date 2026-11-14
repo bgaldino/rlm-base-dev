@@ -18,7 +18,8 @@ parallel unless an edge says otherwise.
 | 1 | Catalog: products, attributes, classifications, bundles, categories | Stage 0 | [product-catalog-modeling](../product-catalog-modeling/SKILL.md) | [product-catalog-modeling](../product-catalog-modeling/SKILL.md) |
 | 2 | Selling models and options per product | Catalog | [Quick Rules](../product-catalog-modeling/SKILL.md#quick-rules) (option per model) | [selling-models-and-lifecycle.md](../product-catalog-modeling/selling-models-and-lifecycle.md) |
 | 3 | Price books and entries; cost books if used | Products, selling models (entries carry the model) | [Setup order](../pricing-setup/SKILL.md#setup-order), [price-books.md](../pricing-setup/price-books.md) | [pricing-setup](../pricing-setup/SKILL.md) |
-| 3 | Adjustment schedules, revision policies | Selling models and products in a price book | [Setup order](../pricing-setup/SKILL.md#setup-order), [price-adjustment-schedules.md](../pricing-setup/price-adjustment-schedules.md#set-it-up) (Help prerequisites) | [pricing-setup](../pricing-setup/SKILL.md) |
+| 3 | Adjustment schedules | Selling models and products in a price book | [Setup order](../pricing-setup/SKILL.md#setup-order), [price-adjustment-schedules.md](../pricing-setup/price-adjustment-schedules.md#set-it-up) (Help prerequisites) | [pricing-setup](../pricing-setup/SKILL.md) |
+| 3 | Revision policies | Region picklist values, before the policies and index rates | [price-revision-policies.md](../pricing-setup/price-revision-policies.md#set-it-up) (Help set-up order); price book needs not stated | [pricing-setup](../pricing-setup/SKILL.md) |
 | 3 | Context definition, mappings, tags | Custom fields | [dependency-ordering.md](../repo-integration/dependency-ordering.md#pre-deploy-numbered-directories), [context-service](../context-service/SKILL.md) | [context-service](../context-service/SKILL.md) |
 | 4 | Decision tables defined, data loaded, refreshed | Price books and source data they read | [Setup order](../pricing-setup/SKILL.md#setup-order), [The timing rule](../decision-tables/SKILL.md#the-timing-rule) | [decision-tables](../decision-tables/SKILL.md) |
 | 4 | Recipe and table mappings | Decision tables | [Pricing Recipe Table Mappings](../pricing-wiring/SKILL.md#a-pricing-recipe-table-mappings), [Setup order](../pricing-setup/SKILL.md#setup-order) | [pricing-wiring](../pricing-wiring/SKILL.md) |
@@ -69,7 +70,7 @@ citations, has nothing here to track.
 | 4 (tables) | `prepare_decision_tables`, then `refresh_all_decision_tables` late | Definitions early; the full refresh runs after all data is loaded |
 | 5 (procedures) | `prepare_expression_sets`, then `activate_and_deploy_expression_sets` | Deploy early; activation after data and rating |
 | 1, 2 (catalog) | `prepare_product_data` | After `deploy_full` and the schedule metadata |
-| 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Schedules activate before the catalog loads; pricing data loads after it |
+| 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Schedules are set up before the catalog loads (the tier schedule stays inactive on purpose); pricing data loads after it |
 | 5 (revenue settings) | `prepare_revenue_settings` | Runs late, after constraints and guided selling |
 | 6 (fulfillment) | `prepare_dro` | After pricing data |
 | 6 (tax) | `prepare_tax` | Before billing; billing reads its legal entity |
@@ -85,7 +86,7 @@ The flow is ordered for one scripted build, so it also contains repo-specific it
 catalog, personas, in-app learning, agents, community) that no customer graph needs unless
 asked. Where the flow and the graph disagree, the flow reflects a repo constraint (for
 example shared sample data). Order differs too: context definitions deploy with the core
-settings in the flow but sit at stage 3 in the graph, price adjustment schedules activate before
+settings in the flow but sit at stage 3 in the graph, price adjustment schedules are set up before
 the catalog loads in the flow but follow it in the graph, approval metadata and data
 deploy before the catalog in the flow but sit at stage 6, documents are built early in the flow
 but sit at stage 7, and revenue settings are set late in the flow but sit at stage 5; decide per
