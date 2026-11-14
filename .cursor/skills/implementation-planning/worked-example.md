@@ -31,7 +31,8 @@ threshold. Customers renew at the end of the term."
 ## Questions to send (grouped by owner)
 
 - Catalog: how many sensors per kit, fixed or chosen? Is the hub sold alone? Is a sensor
-  priced, fulfilled, assetized or invoiced on its own?
+  fulfilled, assetized, renewed or invoiced on its own, or does it have its own price or
+  selling model?
   ([bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md))
 - Fulfillment and billing: is installation a manual visit, a partner job or a scheduled
   task? What marks it complete? Is it billed on completion, at order, or in installments?
@@ -57,7 +58,7 @@ level, renewal at the same price, one currency, quote and contract documents.
 
 | Id | Decision | Choice | Why | Options in |
 |---|---|---|---|---|
-| D1 | Sensor: product, attribute or component | Component of the kit, assuming a sensor is priced, fulfilled, assetized or invoiced on its own; if not, the test gives an attribute on the kit | Assumption to log: R1 gives the count, 4 per kit, but not whether a sensor stands alone, which is the owner's test (separately fulfilled, assetized, renewed or invoiced, or its own price or selling model) | [Product vs attribute vs component](../product-catalog-modeling/SKILL.md#product-vs-attribute-vs-component) |
+| D1 | Sensor: product, attribute or component | Component of the kit, assuming a sensor is fulfilled, assetized, renewed or invoiced on its own, or has its own price or selling model; if not, the test gives an attribute on the kit | Assumption to log: R1 gives the count, 4 per kit, but not whether a sensor stands alone, which is the owner's test (separately fulfilled, assetized, renewed or invoiced, or its own price or selling model) | [Product vs attribute vs component](../product-catalog-modeling/SKILL.md#product-vs-attribute-vs-component) |
 | D2 | Kit shape | Static bundle with one sensor component of quantity 4 (R1 answer); sensor quantity scaling Proportional | Fixed content, no choices. Proportional is an assumption to log: it is the default when quantity changes are off at creation | [bundles-and-cardinality.md](../product-catalog-modeling/bundles-and-cardinality.md) |
 | D3 | Selling model, monitoring | Term defined, 36 months | R3 | [selling-models-and-lifecycle.md](../product-catalog-modeling/selling-models-and-lifecycle.md#choose-the-selling-model-from-the-pricing-basis) |
 | D4 | Selling model, installation | One-time | A one-time charge; milestone billing sits on one-time lines | [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services) |
@@ -67,7 +68,7 @@ level, renewal at the same price, one currency, quote and contract documents.
 | D8 | Who or what marks the installation's event milestone accomplished: a billing user or a fulfillment automation | Open: Help names no link from fulfillment steps to billing milestones | Decide with the customer, then verify live and log evidence | [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services) (Marking an event milestone done), [updates-and-runtime.md](../dro-plans/updates-and-runtime.md) |
 | D9 | Ramp | None: flat 3-year term at one price | R7 answer: same price; no step-ups | [Ramps](../product-catalog-modeling/selling-models-and-lifecycle.md#ramps) |
 | D10 | Installation decomposition: scope, quantity behavior, step scope | Order Line Item scope; the settings that give one visit per kit are open | The customer's answer: one visit per kit. The owner says Order Line Item with `AlwaysOne` gives one technical item for a line of quantity 10, so that pair alone does not give it | [Decomposed Line Items](../dro-plans/authoring-and-deployment.md#decomposed-line-items) |
-| D11 | Installation billing milestone | One event-based milestone at 100 percent, billed when the installation is marked complete | Assumption to log: R2 answer: billed on completion; the milestone's name, type and share are not stated | [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services) (when a source names no milestones) |
+| D11 | Installation billing milestone | One event-based milestone at 100 percent, billed when the installation is marked complete | Assumption to log. R2 answer: billed on completion; the milestone's name, type and share are not stated | [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services) (when a source names no milestones) |
 
 ## Derived counts
 
