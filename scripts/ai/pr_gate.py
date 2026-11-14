@@ -390,6 +390,16 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="skill_staleness",
+        cmd=["python", "scripts/ai/check_skill_staleness.py"],
+        # Stale release pins, links into an older docs/salesforce/<n>/ snapshot that the active
+        # one also carries, and Help ids missing from the snapshots. It reads the skills against
+        # the snapshots and the manifest's active release, so any of the three selects it.
+        triggers=["scripts/ai/check_skill_staleness.py", ".cursor/skills/",
+                  "docs/salesforce/", ".claude/skill-manifest.yml"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="permission_set_dependencies",
         cmd=["python", "scripts/ai/check_permission_set_dependencies.py"],
         # Account read depends on Contact read because of the person accounts in the TSO orgs;
@@ -922,6 +932,7 @@ STDLIB_SUITES = [
     "tests/test_check_permission_set_dependencies.py",
     "tests/test_check_private_refs.py",
     "tests/test_check_release_refs.py",
+    "tests/test_check_skill_staleness.py",
     "tests/test_audit_data_plans.py",
     "tests/test_check_sfdmu_layering.py",
     "tests/test_sfdmu_product_view.py",
