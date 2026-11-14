@@ -160,8 +160,9 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   (stored on the work item as Eligible for Smart Approval). The submission must also be
   eligible: Smart Approval does not apply when the flow has a Decision path leading to an
   approval step without entry conditions, or an evaluation-flow entry or exit determination
-  [Platform behaviour, traced]. No separate organization-wide Smart Approval switch was found
-  to gate the step input [Platform behaviour, traced].
+  [Platform behaviour, traced]; Help gives the Decision and evaluation-flow conditions
+  [Help: `ind.approvals_smart_approvals`]. Help's "Turn On Smart Approvals" step is not mapped
+  to this input: not established whether an organization-wide setting also gates it.
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.
 - `ApprovalWorkItem` standard fields and sObject `update()`: the Help says they can't be

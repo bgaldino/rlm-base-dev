@@ -117,8 +117,10 @@ Its module docstring is the live-verified reference for **which v67.0 endpoints 
 gone** (`/commerce/sales-transactions/actions/place`,
 `/commerce/quotes/actions/create-order`,
 `/connect/revenue-management/orders/actions/activate` all return NOT_FOUND) and why
-it uses Place rather than direct `QuoteLineItem` DML (when a TermDefined line needs a
-billing treatment: [billing-setup](../billing-setup/SKILL.md) item 3). Read it before
+it uses Place rather than direct `QuoteLineItem` DML (DML leaves derived and priced lines
+inconsistent, see `scripts/df_workshop/README.md` → *Why replay, not DML*). Either route
+needs a treatment when a TermDefined line's frequency differs from the term
+([billing-setup](../billing-setup/SKILL.md) item 3). Read it before
 adding any quote-creation path to either tool.
 
 ## Source Files

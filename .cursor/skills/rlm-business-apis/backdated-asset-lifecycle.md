@@ -147,8 +147,10 @@ Gotchas, all measured:
 
 ## Activating the order
 
-An asset whose order is still fulfilling falls under DRO in-flight rules (freeze, Point of
-No Return): [dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md).
+In-flight fulfillment may limit changes to an asset whose order is still fulfilling, but a
+plain asset amendment was accepted with the Point of No Return flag set
+[Measured: 2026-11-13, 264, scratch, one org]; see
+[dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md) (PONR bullet).
 
 Set `Status = Activated` on each returned order (create the order from a returned quote first,
 `createOrdersFromQuote`). Backdated-change orders needed all of these first:

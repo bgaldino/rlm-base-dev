@@ -149,7 +149,7 @@ Ask, in order, and stop at the first yes:
 
 1. **Is it fulfilled, assetized, renewed or invoiced separately?** → its own product. A
    bundle **component** if it is sold inside something; a standalone product if not.
-   Service components billed by milestone: [billing-setup](../billing-setup/SKILL.md), M11.
+   Service components billed by milestone: [billing-setup](../billing-setup/measured-264.md), M11.
 2. **Does it have its own price that is not a function of the parent's attributes, or its
    own selling model?** → its own product (a component if bought inside a bundle). PBEs
    are keyed by product and selling model. [Repo: `pricing-setup/price-books.md`; `scripts/ai/query_erd.py describe PricebookEntry`]
@@ -319,8 +319,10 @@ Every item marked **Open — needs live verification** in this skill and its sub
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#isassetizable).
 - **Do the product dates stop a sale?** Availability, discontinued and end-of-life dates are
   returned with product data and must be in that order, but no date was found that stops browsing,
-  adding to a quote, ordering, amending or renewing; Help describes Discontinued and End Of Life in
-  opposite ways across articles [Platform behaviour, traced in part]. Not run live. See
+  adding to a quote, ordering, amending or renewing [Platform behaviour, traced in part]; Help
+  describes Discontinued and End Of Life in opposite ways across articles [Help:
+  `ind.product_catalog_create_simple_products`,
+  `ind.product_catalog_create_bundled_products`]. Not run live. See
   [other lifecycle fields](selling-models-and-lifecycle.md#other-lifecycle-fields-on-product2).
 - **How a mixed-model bundle co-terminates and renews.** Co-termination for any shape;
   renewal beyond the one-time rule and the one measured shape (a locked configurable bundle

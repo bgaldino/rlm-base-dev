@@ -356,8 +356,10 @@ results, 2026-11-11).
 8. **Ramped bundles have their own limits:** amending an API-built group-ramped bundle
    with a one-time or evergreen child failed in the measured shapes
    [Repo: `ramped-quotes/bundle-children-lifecycle.md` → Amend and cancel limitation].
-9. **Amending or cancelling assets whose order is still fulfilling hits DRO in-flight
-   rules.** Freeze, Point of No Return and compensation steps decide what can change:
+9. **Amending or cancelling assets whose order is still fulfilling may be limited by
+   in-flight fulfillment.** A plain asset amendment was accepted with the Point of No Return
+   flag set, so a "no change after step X" rule needs its own validation
+   [Measured: 2026-11-13, 264, scratch, one org]; see
    [dro-plans → updates-and-runtime.md](../dro-plans/updates-and-runtime.md) (PONR bullet).
 
 ## DO NOT
