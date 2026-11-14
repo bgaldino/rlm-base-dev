@@ -4,7 +4,7 @@
 [Skill catalog](../../.cursor/skills/README.md)
 
 Start from the result you want, not from a skill name. Each section below lists
-outcomes, what to ask your coding agent for, and the skill that covers it. The
+outcomes, what to ask your coding agent for, and the skill that covers each. The
 [skill catalog](../../.cursor/skills/README.md) is the agent's router, organized by task. This guide
 is its companion for people: it is organized by outcome and says what you get back.
 
@@ -15,7 +15,7 @@ is its companion for people: it is organized by outcome and says what you get ba
 2. **Name the outcome and its context to your agent.** Say the goal, the release or org
    you target, and whether it may change an org or should only read.
    Example: "Using the billing-operations skill, explain how an invoice run
-   differs from an on-demand invoice, and list what I should check afterwards."
+   differs from an on-demand invoice, and list what I should check afterward."
 3. **Read the labels on the answer.** Skills that describe product behavior mark where a
    statement comes from: Help (the checked-in Salesforce Help snapshot), Repo (this
    repository's code and data), `[Measured]` (observed on an org),
@@ -103,14 +103,14 @@ the invoice. For a step-by-step walk-through, see the
 
 | I want to… | Ask the agent to… | Skill |
 |---|---|---|
-| Know what happens when an asset is amended, swapped, cancelled or renewed | Follow a change through reprice, order, activation and the asset | [Asset lifecycle changes](../../.cursor/skills/asset-lifecycle-changes/SKILL.md) |
+| Know what happens when an asset is amended, swapped, canceled or renewed | Follow a change through reprice, order, activation and the asset | [Asset lifecycle changes](../../.cursor/skills/asset-lifecycle-changes/SKILL.md) |
 | Create renewal-ready test assets | Build assets across the renewal windows with lifecycle history | [Renewal asset creation](../../.cursor/skills/renewal-asset-creation/SKILL.md) |
 
 ## Generate data, demos and training
 
 | I want to… | Ask the agent to… | Skill |
 |---|---|---|
-| Produce volume transaction data | Plan, mint, inspect and clean up quotes, orders and invoices | [Transaction data harness](../../.cursor/skills/txn-data-harness/SKILL.md) |
+| Produce volume transaction data | Plan, mint and inspect quotes, orders and invoices, and clean up what the skill can remove | [Transaction data harness](../../.cursor/skills/txn-data-harness/SKILL.md) |
 | Prepare a demo walkthrough | Generate the per-release demo script | [QB demo script](../../.cursor/skills/qb-demo-script/SKILL.md) |
 | Make a clone ready for a hands-on workshop | Capture seeded quotes and configuration, replay and verify | [DF workshop setup](../../.cursor/skills/df-workshop-setup/SKILL.md) |
 | Write or refresh enablement exercises | Author exercises grounded in the release documentation | [Release enablement](../../.cursor/skills/release-enablement/SKILL.md) |
@@ -191,8 +191,7 @@ Chain skills in this order. Each step names the decision or proof it produces.
 ## When there is no skill yet
 
 Some areas have no owning skill. Start from
-[Revenue Cloud docs](../../.cursor/skills/revenue-cloud-docs/SKILL.md) and the Help snapshot,
-and see the router's
-[Help area map](../../.cursor/skills/README.md#help-area-to-owning-skill) for the current
-gaps. Ask the agent to say which claims come from Help and which it infers, and settle the
-inferred ones on an org before you rely on them.
+[Revenue Cloud docs](../../.cursor/skills/revenue-cloud-docs/SKILL.md) and the Help snapshot.
+The router's [Help area map](../../.cursor/skills/README.md#help-area-to-owning-skill)
+lists the current gaps. Ask the agent to say which claims come from Help and which it
+infers, and settle the inferred ones on an org before you rely on them.
