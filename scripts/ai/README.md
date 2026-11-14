@@ -364,9 +364,10 @@ Scans `.cursor/skills/**/*.md` for release drift (the `skill_staleness` pr_gate 
 changes under `.cursor/skills/`, `docs/salesforce/` or `.claude/skill-manifest.yml`). Active release
 is `salesforce_release_active` in `.claude/skill-manifest.yml`. Rules: `snapshot-link` (a
 `docs/salesforce/<N>/...` path for an older N when the active snapshot has the same file),
-`stale-pin` ("Verified on Release <N>" with N older, unless the line says `not re-verified`) and
-`help-id` (a `[Help: `ind.x`]` id in no snapshot, or only in an older one without that release
-number on the line). `<!-- staleness: allow -->` exempts one line; use it only for a deliberate
+`stale-pin` ("Verified on Release <N>" with N older, unless the line says `not re-verified` or
+also pins the active or a newer release) and `help-id` (a `[Help: `ind.x`]` id in no snapshot, or
+only in an older one without that release number on the line). Newer-release paths and ids are
+never flagged. `<!-- staleness: allow -->` exempts one line; use it only for a deliberate
 older-release citation.
 
 ```bash
@@ -374,7 +375,8 @@ python scripts/ai/check_skill_staleness.py            # all skills; exit 1 on fi
 python scripts/ai/check_skill_staleness.py FILE...    # these files only
 ```
 
-Output is `path:line: rule: message`. Tests: `tests/test_check_skill_staleness.py`.
+Output is `path:line: rule: message`; exit 0 clean, 1 findings, 2 tool error. Tests:
+`tests/test_check_skill_staleness.py`.
 
 ### `pr_gate.py`
 

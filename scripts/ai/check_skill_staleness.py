@@ -5,15 +5,17 @@ The active release is `salesforce_release_active` in `.claude/skill-manifest.yml
 snapshots live under `docs/salesforce/<N>/`. Three rules, one finding per line and rule:
 
 * `snapshot-link`: a path `docs/salesforce/<N>/<rel>` where N is older than the active release
-  and the same `<rel>` exists under the active release (a `:line` suffix is not part of the path). Repoint it. A path that exists only in the
-  older snapshot is allowed (the content was dropped or never carried forward).
+  and the same `<rel>` exists under the active release (a `:line` suffix is not part of the
+  path). Repoint it. A path that exists only in the older snapshot is allowed (the content was
+  dropped or never carried forward); a newer N is never flagged.
 * `stale-pin`: "Verified on Release <N>" / "verified on <N>" with N older than the active
   release, unless the same line says `not re-verified` (also `not yet re-verified`) or also
   pins the active release or a newer one.
 * `help-id`: an id in an evidence label `[Help: \\`ind.xxx\\`, ...]` (ids may be comma- or
   semicolon-separated; a trailing `.htm` is optional) that exists in no
   `docs/salesforce/*/help/articles/` snapshot, or that is missing from the active snapshot
-  but present in an older one and the line does not name that older release number.
+  but present in an older one and the line does not name that older release number. An id
+  found only in snapshots newer than the active release is not flagged.
 
 Intentional cases carry the full marker `<!-- staleness: allow -->` on the same line; it
 exempts that line only.
