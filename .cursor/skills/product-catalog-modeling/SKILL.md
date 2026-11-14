@@ -149,6 +149,7 @@ Ask, in order, and stop at the first yes:
 
 1. **Is it fulfilled, assetized, renewed or invoiced separately?** → its own product. A
    bundle **component** if it is sold inside something; a standalone product if not.
+   Service components billed by milestone: [billing-setup](../billing-setup/measured-264.md), M11.
 2. **Does it have its own price that is not a function of the parent's attributes, or its
    own selling model?** → its own product (a component if bought inside a bundle). PBEs
    are keyed by product and selling model. [Repo: `pricing-setup/price-books.md`; `scripts/ai/query_erd.py describe PricebookEntry`]
@@ -306,10 +307,23 @@ Every item marked **Open — needs live verification** in this skill and its sub
   category, and what amend, renew or cancel do when its companion is removed. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#issoldonlywithotherprods).
 - **Is `ProductCategory.Code` unique per org or per catalog?** The snapshot does not say.
-  Fact (d) only proves that a plan keyed on `Code` alone conflates levels. **Open — needs live verification.**
-- **A non-assetizable child under an assetizable root.** Traced from order-to-asset handling, bundle assembly not traced [Platform behaviour, traced in part]: the root wins and the child gets lifecycle actions ([`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#isassetizable)); only the consequence for children kept non-tracked is not traced further.
-- **Which end date stops a sale.** Help contradicts itself on `DiscontinuedDate` vs
-  `EndOfLifeDate`. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#other-lifecycle-fields-on-product2).
+  Fact (d) only proves that a plan keyed on `Code` alone conflates levels. No code-level
+  uniqueness check was found in the platform save logic; whether a database-level constraint
+  exists was not established [Platform behaviour, traced in part]. Keep codes unique across
+  levels and catalogs when a plan matches on `Code`.
+- **A non-assetizable child under an assetizable root.** On order activation the root's
+  assetizable flag decides: a non-assetizable component under an assetizable bundle root
+  still becomes an asset with lifecycle actions; bundle assembly was not traced
+  [Platform behaviour, traced in part]. To keep a component out of the asset base, sell it as a
+  separate line, not a bundle child [inferred]. See
+  [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#isassetizable).
+- **Do the product dates stop a sale?** Availability, discontinued and end-of-life dates are
+  returned with product data and must be in that order, but no date was found that stops browsing,
+  adding to a quote, ordering, amending or renewing [Platform behaviour, traced in part]; Help
+  describes Discontinued and End Of Life in opposite ways across articles [Help:
+  `ind.product_catalog_create_simple_products`,
+  `ind.product_catalog_create_bundled_products`]. Not run live. See
+  [other lifecycle fields](selling-models-and-lifecycle.md#other-lifecycle-fields-on-product2).
 - **How a mixed-model bundle co-terminates and renews.** Co-termination for any shape;
   renewal beyond the one-time rule and the one measured shape (a locked configurable bundle
   with a Term Defined root). See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).

@@ -116,6 +116,18 @@ Measured confirmation of the traced gate with the capability on and off, whether
 window holds outside group-ramped bundles, and its upper bound for assets with no end date,
 are **Open** ([verification.md](verification.md) → Open).
 
+### Co-termed add
+
+A co-termed add joins three rules; each stays with its owner:
+
+- Dates: an amendment keeps the subscription end date (table row 1); on a contract with
+  cotermination, the bullet above applies (end dates follow the contract).
+- Proration: the added line's partial period is priced by the proration policy
+  ([proration-and-selling-models.md](../pricing-setup/proration-and-selling-models.md),
+  mid-term amendment or co-termed add note).
+- Invoicing: [billing-setup](../billing-setup/SKILL.md#amendments-cancellations-and-invoices)
+  (Amendments, cancellations and invoices).
+
 ## Questions to settle in the plan
 
 - Which lines are bundle components, and must any be changeable on their own?

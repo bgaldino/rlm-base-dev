@@ -53,15 +53,23 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 4. **Put only editable currency or percent fields in the Adjustment Type column.** A read-only or
    calculated field causes pricing errors; Start Date or End Date can reset ramped line dates
    [Help: `ind.qocal_adjustment_type_column`].
-5. **Reprice after anything that changed lines outside the editor.** API, Process Builder,
-   trigger and manual field updates invalidate the pricing status and need Reprice All [Help: `ind.qocal_limitations_for_using_quote_and_order_capture`].
-   A header-only Place PATCH, even of a field pricing reads, left the line prices unchanged until
-   Reprice All [Measured: 2026-11-11, fresh 264 `ent-sb0` scratch org]. Under System pricing, a graph-style Place request is priced
-   only if it includes a line (or line attribute) record; a request carrying a context id is priced whenever
-   lines exist (not measured). Reprice All uses Force pricing [Platform behaviour, traced].
-   Reprice All re-runs pricing only; Refresh Prices also re-runs configuration and taxes
-   [Help: `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_view_and_edit_quotes`].
-   Don't reprice a lifecycle quote after its order is activated. Measured once on a renewal quote: a full reprice (every line, pricing `Force`, configuration `Skip`; Reprice All sends the same pricing mode) after the order was activated set the renewal lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch org]. The detail rows, order and assets weren't read afterwards. Not measured on amendments or ramped quotes, or through the button; mechanism not traced.
+5. **Reprice after anything that changed lines outside the editor.** API, Process Builder, trigger
+   and manual field updates invalidate the pricing status and need Reprice All [Help:
+   `ind.qocal_limitations_for_using_quote_and_order_capture`]. A header-only Place PATCH, even of a
+   field pricing reads, left the line prices unchanged until Reprice All [Measured: 2026-11-11,
+   fresh 264 `ent-sb0` scratch org]. Under System pricing, a graph-style Place request is priced
+   only if it includes a line (or line attribute) record; a request carrying a context id is priced
+   whenever lines exist (not measured). Reprice All uses Force pricing [Platform behaviour, traced].
+   Reprice All re-runs pricing only; Refresh Prices also re-runs configuration and taxes [Help:
+   `ind.qocal_reprice_all_quotes_and_orders`, `ind.qocal_view_and_edit_quotes`]. Don't reprice a
+   lifecycle quote after its order is activated: renewal, amendment and cancellation lines are
+   priced from the source asset's current state, and activation changes it [Platform behaviour,
+   traced in part]. Measured once on a renewal quote: a full reprice (every line, pricing `Force`,
+   configuration `Skip`; Reprice All sends the same pricing mode) after the order was activated set
+   the renewal lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch org]: each
+   lot became a -lot/+lot pair netting 0, and the order and assets were unchanged. Not measured
+   on amendments or cancellations, on any ramped quote, or through the button; why the reprice
+   returned 0 is not traced.
 6. **Don't demo an inline quantity edit on an amendment of a configured product.** With
    configuration rules on it resets the line's attributes to product defaults, and activation
    keeps them on the asset [Measured: early Nov 2026, 264]. Change the quantity in the configurator.
