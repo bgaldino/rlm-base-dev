@@ -313,10 +313,10 @@ Every item marked **Open — needs live verification** in this skill and its sub
   levels and catalogs when a plan matches on `Code`.
 - **A non-assetizable child under an assetizable root.** On order activation the root's
   assetizable flag decides: a non-assetizable component under an assetizable bundle root
-  still becomes an asset with lifecycle actions
-  ([`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#isassetizable)).
-  To keep a component out of the asset base, sell it as a separate line, not a bundle child
-  [Platform behaviour, traced].
+  still becomes an asset with lifecycle actions; bundle assembly was not traced
+  [Platform behaviour, traced in part]. To keep a component out of the asset base, sell it as a
+  separate line, not a bundle child [inferred]. See
+  [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#isassetizable).
 - **Do the product dates stop a sale?** Availability, discontinued and end-of-life dates are
   returned with product data and must be in that order, but no date was found that stops browsing,
   adding to a quote, ordering, amending or renewing; Help describes Discontinued and End Of Life in

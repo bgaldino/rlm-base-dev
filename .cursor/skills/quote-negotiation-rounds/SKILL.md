@@ -228,9 +228,9 @@ rule doesn't explain that [Measured: 2026-11-12, 264, scratch; one quote].
    Help says the start date defaults to the current date and that a future-dated contract
    errors, while the measured future start gave today with no error. To backdate an order, set
    past line start dates before creating it; read the date back before activating.
-   The create-order validations traced do not compare `Quote.Status` (not run against a Draft
-   or Rejected quote); this differs from the Help wording about converting an accepted quote
-   [Platform behaviour, traced in part]. The refusals traced are other preconditions (sync
+   Create Order does not check `Quote.Status` (not run against a Draft or Rejected quote);
+   this differs from the Help wording about converting an accepted quote
+   [Platform behaviour, traced]. The refusals traced are other preconditions (sync
    state above, pending revenue async operations, a failed validation result, a calculation
    status in progress or failed, unmet required-to-enter lines, an invalid configuration, the
    maximum orders per quote, bundle/ramp/usage/group integrity checks, the large-transaction

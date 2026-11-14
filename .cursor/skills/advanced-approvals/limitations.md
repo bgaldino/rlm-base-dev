@@ -157,9 +157,10 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   range still held, and the step rejected there went to review again
   [Measured: 2026-11-12, 264, scratch]; the Approval Settings page was not read.
   Traced: Smart Approval is switched on per approval step by its Use Smart Approval input
-  (stored on the work item as Eligible for Smart Approval). It also requires the submission to
-  be eligible: the flow has no Decision path leading to an approval step without entry
-  conditions, and no evaluation-flow entry or exit determination [Platform behaviour, traced].
+  (stored on the work item as Eligible for Smart Approval). The submission must also be
+  eligible: Smart Approval does not apply when the flow has a Decision path leading to an
+  approval step without entry conditions, or an evaluation-flow entry or exit determination
+  [Platform behaviour, traced].
   No separate organization-wide Smart Approval switch was found to gate the step input.
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.
@@ -170,7 +171,7 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   the standard fields (status, assignee, reviewer, comments, chain name, Smart Approval fields
   and the rest) is refused with an insufficient-access or read-only error; custom fields you
   add to the object can be updated. Approve, reject and reassign through the approval actions
-  instead [Platform behaviour, traced].
+  instead [Platform behaviour, traced]. Not run live.
 - How to tell a round's bulk line discount from an individual line override. No documented
   field or flag records which edit set a line's discount, and the repo ships none. A mapped line
   field written with the discount by an API applier survived a deep clone, and a header custom
