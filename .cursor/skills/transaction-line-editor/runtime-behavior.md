@@ -212,9 +212,9 @@ distribution (**Equal**, or **Proportionate** to each line's list price × quant
 Pricing is on (Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`; every repo build enables
 it, and it applies only when all its conditions hold, see [runtime and
 observability](../pricing-procedures/runtime-and-observability.md#delta-pricing)), Help says to
-click **Reprice All** afterwards. The action itself saves the header values and then runs a full
-(Force) reprice [Platform behaviour, traced]. After a header field edited by other means, use
-Reprice All or Force pricing:
+click **Reprice All** afterwards. The quote action itself saves the header values and then runs
+a full (Force) reprice [Platform behaviour, traced]. After a header field edited by other means,
+use Reprice All or Force pricing:
 a graph-style System request with only the header doesn't price [Platform behaviour, traced];
 a System request with a line record may not reprice every line where Delta Pricing applies
 (the header-change case was not measured), and whether Delta Pricing applies to the context-id
