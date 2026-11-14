@@ -156,8 +156,8 @@ introduce a blanket extra approval for ordinary configuration updates.
   [inferred]. Put the flag on a step of the same technical item as X, after X; a flag on a step
   of another item locks that item's commercial lines instead [inferred from Help's propagation].
   Where the items come from components of one bundle, a flagged step In Progress denied every
-  line of the bundle in the freeze output [Measured: 2026-11-13, 264, scratch, one org], so
-  per-item granularity in the source is not reproducible there.
+  line of the bundle in the freeze output [Measured: 2026-11-13, 264, scratch, one org], so a
+  lock on one item of that bundle alone was not reproducible; other bundles weren't tested.
 - **PONR flag placement:** the flag set on a step definition was copied onto the step at
   plan creation, on a Pending dependent step as well as an In Progress one
   [Measured: 2026-11-13, 264, scratch, one org]. The copied flag marks where the state will
@@ -232,17 +232,18 @@ these conditions; rerun the amendment and cancel checks there.
   one per order, which can't be assetized [Help: `ind.dro_decomposition_scope`]. So work
   that must act on an item an earlier order created needs a scope that spans orders, on an
   assetizable technical product; a custom scope wasn't measured, and an Order-scope item
-  recurs on every order [inferred from Help]. Account scope merges every line of the account that
-  decomposes to the item into that one instance, so an item that must stay one per sold line and
-  be changed by later orders has no measured scope: Order Line Item scope keeps one per line but
-  whether a later order acts on each was not measured, and neither was a custom scope keyed per
-  source line or asset. Record the choice as a decision and count it [inferred]. An Account-scope
-  assetizable item can therefore appear on every later order that carries a line decomposing to
-  it, with Amend or No Change, and its group's steps compose again unless their conditions skip
-  those actions [inferred from the measured actions]; "no new instance" doesn't mean "no
-  line". When a step is skipped by its condition and Skip Branch is on, Help skips the branch
-  that depends solely on it [Help: `ind.dro_define_conditions_for_a_fulfillment_step_to_run`];
-  decide that per edge. Check the line actions on the first later order.
+  recurs on every order [inferred from Help]. With one Account-scope instance, every line of
+  the account that decomposes to the item feeds it [inferred], so an item that must stay one per
+  sold line and be changed by later orders has no measured scope: Order Line Item scope keeps
+  one per line but whether a later order acts on each was not measured, and neither was a
+  custom scope keyed per source line or asset. Record the choice as a decision and count it
+  [inferred]. An Account-scope assetizable item can therefore appear on every later order that
+  carries a line decomposing to it, with Amend or No Change, and its group's steps compose
+  again unless their conditions skip those actions [inferred from the measured actions]; "no
+  new instance" doesn't mean "no line". When a step is skipped by its condition and Skip
+  Branch is on, Help skips the branch that depends solely on it
+  [Help: `ind.dro_define_conditions_for_a_fulfillment_step_to_run`]; decide that per edge.
+  Check the line actions on the first later order.
 - **Fallout and jeopardy rules** match on step type, with an optional integration
   definition, flow definition and error code; this is from the rule objects' describe,
   not a run. Measured on the org's steps: a step's jeopardy threshold was null on
@@ -262,8 +263,8 @@ these conditions; rerun the amendment and cancel checks there.
   threshold on the jeopardy rule, and the threshold counts back from the duration [Help:
   `ind.dro_configure_fulfillment_step_jeopardy_rules`]. A rule with a blank flow
   definition applies to every manual and auto task, so two manual steps with different windows
-  need a flow definition on at least one of them, or share a window [inferred]. Which rule
-  applies when a blank-flow rule and a per-flow rule both match was not read. Help describes a
+  need a flow definition each, or share a window [inferred]. Which rule applies when a
+  blank-flow rule and a per-flow rule both match was not read. Help describes a
   jeopardy status and notification, names no setting for who is notified, and has no
   reassignment of a late step [inferred from Help's silence]. After editing a fallout or
   jeopardy rule, refresh its decision table [Help: `ind.dro_configure_fallout_rules`,

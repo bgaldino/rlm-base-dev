@@ -235,7 +235,7 @@ billing milestone; each event item needs its own marking point after the step it
 [inferred]. DRO step behavior: [dro-plans](../dro-plans/examples-and-grounding.md). Where an
 amendment makes a new milestone plan (dro-plans measured a full new plan on amendment), a marking
 flow scoped to the original order may not reach its event items; select plan items by asset or
-contract, or have the amendment's own fulfilment mark them [inferred]. Decide who marks an event
+contract, or have the amendment's own fulfillment mark them [inferred]. Decide who marks an event
 already past when the amendment activates [inferred, unmeasured].
 
 **When a source names no milestones,** Revenue Cloud still needs, for each milestone:
