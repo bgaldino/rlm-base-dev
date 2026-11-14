@@ -7,6 +7,7 @@ origin, recording, re-init and the scorecard, and that each refusal can happen.
 """
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -140,6 +141,35 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual((items["decision:D3"]["origin"], items["decision:D4"]["origin"]), ("edited", "added"))
         self.assertIn("At the end", items["decision:D3"]["blind_prediction"])
 
+    def test_blind_path_is_relative_and_survives_a_moved_folder(self):
+        self.init()
+        meta = json.loads((self.dir / "verification/ledger.json").read_text(encoding="utf-8"))["meta"]
+        self.assertEqual(meta["blind"], str(Path("..") / "blind.md"))
+        moved = self.dir / "moved"
+        moved.mkdir()
+        for name in ("plan.md", "blind.md", "verification"):
+            src = self.dir / name
+            (shutil.copytree if src.is_dir() else shutil.copy)(src, moved / name)
+        p = subprocess.run([sys.executable, "-I", str(SCRIPT), "init", "--plan", "plan.md"], cwd=moved,
+                           capture_output=True, text=True)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        (self.dir / "blind.md").unlink()
+        p = self.run_ledger("init", "--plan", "plan.md")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("pass --blind", p.stderr)
+
+    def test_rebuild_drops_only_unrecorded_rows_gone_from_the_plan(self):
+        self.init()
+        self.run_ledger("record", "D3", "affirmed", "x")
+        (self.dir / "plan.md").write_text(PLAN.replace("| D2 | Which band edge? | Inclusive |\n", "")
+                                          .replace("| D3 | Round where? | Per line |\n", ""), encoding="utf-8")
+        self.run_ledger("init", "--plan", "plan.md")
+        self.assertIn("decision:D2", self.ledger())
+        p = self.run_ledger("init", "--plan", "plan.md", "--rebuild")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertNotIn("decision:D2", self.ledger())
+        self.assertEqual(self.ledger()["decision:D3"]["outcome"], "affirmed")
+
     def test_unknown_intake_id_warns_and_missing_plan_fails(self):
         p = self.init("--intake", "R-01")
         self.assertIn("not decision rows", p.stderr)
@@ -258,6 +288,14 @@ class LedgerTest(unittest.TestCase):
         self.init()
         self.assertNotEqual(self.run_ledger("record", "R-99", "affirmed", "x").returncode, 0)
         self.assertNotEqual(self.run_ledger("record", "R-01", "pending", "x").returncode, 0)
+        path = self.dir / "verification/ledger.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["items"]["spike:D2"] = dict(data["items"]["decision:D2"], kind="spike")
+        path.write_text(json.dumps(data), encoding="utf-8")
+        p = self.run_ledger("record", "D2", "affirmed", "x")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("ambiguous", p.stderr)
+        self.assertEqual(self.run_ledger("record", "decision:D2", "affirmed", "x").returncode, 0)
         self.assertEqual(self.ledger()["rule:R-01"]["outcome"], "pending")
         empty = self.dir / "empty"
         empty.mkdir()
@@ -308,8 +346,13 @@ class LedgerTest(unittest.TestCase):
         self.assertIn("| measured plan (baseline) | 1 | 1 | 1 | 0 | 2/3 |", out)
         self.assertIn("| r2 | 1 | 1 | 0 | 1 | 2/3 |", out)
         self.assertIn("**spike:S-1** (spike, was inconclusive): absent", out)
-        self.run_ledger("score", "j.json", "r2")
-        self.assertEqual((self.dir / "verification/regen-scores.md").read_text(encoding="utf-8").count("## r2"), 1)
+        judged["rule:R-01"]["label"] = "miss"
+        (self.dir / "j.json").write_text(json.dumps(judged), encoding="utf-8")
+        p = self.run_ledger("score", "j.json", "r2")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        out = (self.dir / "verification/regen-scores.md").read_text(encoding="utf-8")
+        self.assertEqual(out.count("## r2"), 1)
+        self.assertIn("| r2 | 0 | 1 | 1 | 1 | 1/3 |", out)
 
     def test_score_refuses_incomplete_or_bad_judgments(self):
         self.init()
@@ -321,6 +364,13 @@ class LedgerTest(unittest.TestCase):
         p = self.run_ledger("score", "j.json", "r2")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("missing ['rule:R-01']", p.stderr)
+        (self.dir / "j.json").write_text(json.dumps({"rule:R-01": {"label": "hit"}, "rule:R-09": {"label": "hit"}}),
+                                         encoding="utf-8")
+        p = self.run_ledger("score", "j.json", "r2")
+        self.assertIn("extra ['rule:R-09']", p.stderr)
+        (self.dir / "j.json").write_text(json.dumps([{"label": "hit"}]), encoding="utf-8")
+        p = self.run_ledger("score", "j.json", "r2")
+        self.assertIn("expected a JSON object", p.stderr)
         (self.dir / "j.json").write_text(json.dumps({"rule:R-01": {"label": "close"}}), encoding="utf-8")
         p = self.run_ledger("score", "j.json", "r2")
         self.assertIn("bad labels", p.stderr)

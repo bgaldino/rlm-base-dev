@@ -22,14 +22,16 @@ no rule or decision rows.
 
 Origin: blind (unchanged from the blind plan), edited (its blind text kept), added,
 intake or owner (given to the planner; not counted for accuracy). With no blind plan,
-everything else is blind. --blind, --intake and --owner are remembered; a new --intake
-or --owner list replaces the old one.
+everything else is blind. --blind, --intake and --owner are remembered (the blind plan by
+its path relative to the ledger's folder); a new --intake or --owner list replaces the old one.
 
 Outcome: affirmed, modified (held with different values or configuration), refuted
 (failed), inconclusive (not tested). New items are pending.
 
 Re-running init adds new rows and keeps outcomes and each row's first text, so the
-blind measurement survives plan revisions; --rebuild re-reads the rows.
+blind measurement survives plan revisions; --rebuild re-reads the rows. A row no longer in
+the plan is kept if anything was recorded on it; --rebuild drops it if it is still pending
+with no evidence.
 
 Scoring a later blind regeneration: its IDs won't match this plan's, so a fresh judge
 reads the regenerated plan with truth.json and labels every measured item:
@@ -217,9 +219,20 @@ def init(args):
     meta = old.get("meta", {})
     intake = id_set(args.intake) if args.intake is not None else set(meta.get("intake", []))
     owner = id_set(args.owner) if args.owner is not None else set(meta.get("owner", []))
-    blind_path = str(Path(args.blind).resolve()) if args.blind else meta.get("blind")
+    ledger_dir = ledger_path.resolve().parent
+    if args.blind:
+        blind_file = Path(args.blind).resolve()
+        try:
+            blind_path = os.path.relpath(blind_file, ledger_dir)
+        except ValueError:  # another drive on Windows
+            blind_path = str(blind_file)
+    else:
+        blind_path = meta.get("blind")
+        blind_file = ledger_dir / blind_path if blind_path else None
+        if blind_file and not blind_file.exists():
+            sys.exit(f"remembered blind plan {blind_file} not found; pass --blind")
     plan = items(read_text(args.plan), args.plan)
-    blind = items(read_text(blind_path), blind_path) if blind_path else None
+    blind = items(read_text(blind_file), str(blind_file)) if blind_file else None
     unknown = sorted((intake | owner) - set(plan["decision"]))
     if unknown:
         print(f"warning: not decision rows in the plan, so ignored: {', '.join(unknown)}", file=sys.stderr)
@@ -266,6 +279,10 @@ def init(args):
                 ledger["items"][key] = entry(kind, iid, raw, prediction(header, row), prev)
     for key, prev in old["items"].items():
         if key not in seen:
+            if args.rebuild and prev["outcome"] == "pending" and not prev["evidence"]:
+                print(f"warning: {key} is no longer in the plan and has nothing recorded; dropped",
+                      file=sys.stderr)
+                continue
             print(f"warning: {key} is no longer in the plan; kept as recorded", file=sys.stderr)
             ledger["items"][key] = entry(prev["kind"], prev["id"], prev["line"], prev["prediction"], prev)
     save(ledger_path, ledger)
