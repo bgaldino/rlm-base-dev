@@ -95,6 +95,49 @@ class Staleness(unittest.TestCase):
         self.assertEqual(self.rules("[Help: `ind.only_old`]"), [])
         self.assertEqual(self.rules("[Help: `ind.nope`]"), ["help-id"])
 
+    def test_wrapped_text_is_read_as_one_block(self):
+        self.assertEqual(self.rules("[Help: `ind.both`,\n`ind.nope`]"), ["help-id"])
+        self.assertEqual(self.rules("Verified on Release\n262."), ["stale-pin"])
+        self.assertEqual(self.rules("Verified on 262; it has\nnot been re-verified on 264."), [])
+        self.assertEqual(self.rules("- Verified on 262.\n- Not re-verified on 264."),
+                         ["stale-pin"])
+        self.assertEqual(self.rules("| Verified on 262 |\n| not re-verified |"), ["stale-pin"])
+        self.assertEqual(self.rules("Verified on 262.\n\nNot re-verified."), ["stale-pin"])
+
+    def test_finding_reports_its_own_line(self):
+        f = self.root / "x.md"
+        touch(f, "Intro line\nthen verified on 262 here.\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            css.main([str(f)], self.root)
+        self.assertIn("x.md:2: stale-pin:", out.getvalue())
+
+    def test_reverification_wordings_and_newer_pin(self):
+        self.assertEqual(self.rules("Verified on 262; not re-verified on 264."), [])
+        self.assertEqual(self.rules("Verified on 262; has not been re-verified."), [])
+        self.assertEqual(self.rules("Verified on 262; verified on 266."), [])
+
+    def test_help_id_suffixes(self):
+        self.assertEqual(self.rules("[Help: `ind.both.md`]"), [])
+        self.assertEqual(self.rules("[Help: `ind.both.htm.md`]"), [])
+
+    def test_placeholder_paths_are_skipped(self):
+        for rel in ("<rel>.md", "{x}/a.md", "$REL/a.md"):
+            self.assertEqual(self.rules(f"`docs/salesforce/262/{rel}`"), [], rel)
+
+    def test_case_must_match_the_active_snapshot(self):
+        self.assertEqual(self.rules("`docs/salesforce/262/dev-guide/A.md`"), [])
+
+    def test_id_in_older_and_newer_but_not_active(self):
+        touch(self.root / css.SNAPSHOTS / "266/help/articles/ind.only_old.htm.md")
+        self.assertEqual(self.rules("[Help: `ind.only_old`]"), ["help-id"])
+        self.assertEqual(self.rules("262 and 266 [Help: `ind.only_old`]"), [])
+
+    def test_allow_marker_on_a_spanned_line(self):
+        self.assertEqual(self.rules("Verified on\n262 <!-- staleness: allow -->"), [])
+        self.assertEqual(self.rules("<!-- staleness: allow --> intro\nverified on 262"),
+                         ["stale-pin"])
+
     def test_allow_marker(self):
         self.assertEqual(self.rules("Verified on 262 <!-- staleness: allow -->"), [])
         self.assertEqual(self.rules("[Help: `ind.nope`] <!-- staleness: allow -->"), [])
