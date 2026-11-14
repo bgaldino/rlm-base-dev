@@ -351,6 +351,15 @@ foundations:
         - "Endpoints target 264 / v68.0; behavior was live-verified on 262 / v67.0 and is NOT yet re-verified on 264"
         - "A decision-table-backed lookup must be refreshed when its source CRITERIA become true, not when the triggering row is written — see decision-tables"
 
+    - id: implementation-planning
+      path: .cursor/skills/implementation-planning/SKILL.md
+      purpose: "Turn a customer's written requirements into a staged cross-domain build plan: intake questions per category, decision log, prerequisite graph cross-checked against the repo flow, plan self-review checks, and a quote-to-renewal acceptance chain; routes to the domain skills rather than restating them"
+      consumed_by_pmos: []
+      provenance: hand-authored from the domain skills and repo-integration dependency ordering
+      caveats:
+        - "Sequencing and routing only; domain rules and evidence tags live in the linked domain skills"
+        - "Edges tagged inferred in build-order.md are not established by a skill"
+
     - id: build-harness
       path: .cursor/skills/build-harness/SKILL.md
       purpose: "Local build harness for prepare_rlm_org: profiling and test runs, .harness/runs artifacts, checkpoint resume, and the CCI Build Manager TUI including its scratch-org creation path"
