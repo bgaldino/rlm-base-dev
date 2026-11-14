@@ -126,8 +126,9 @@ objects and make them asynchronous; recovery of stranded invoices is in the same
   [Help: `ind.billing_suspend_and_resume_overview`,
   `ind.billing_understand_billing_suspensions_and_target_date`].
 - **Catch-up bill run** advances next billing date, billed and pending amounts for
-  transactions a legacy system already billed. Once frequency, target date required, no
-  invoices, tax, memos, payments or documents are created [Help: `ind.billing_catch_up_bill_runs`].
+  transactions a legacy system already billed. It runs with the Once frequency and needs a
+  target date; it creates no invoices, tax, memos, payments or documents
+  [Help: `ind.billing_catch_up_bill_runs`].
 
 ## Invoice documents and delivery
 

@@ -47,11 +47,14 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
    triggers on billing objects can stop a run or strand invoices in Draft In Progress,
    Posting In Progress or Error [Help: `ind.billing_invoice_run_sync_process`].
 5. **Tax is a per-product choice of engine.** A tax policy on the product, its treatment, and
-   the treatment's tax engine decide how a line is taxed; engines can be mixed. Pick the
-   engine with [tax.md](tax.md).
+   the treatment's tax engine decide how a line is taxed; engines can be mixed
+   [Help: `ind.billing_tax_policies_and_treatments_create`,
+   `ind.billing_tax_configuration_engine`]. Pick the engine with [tax.md](tax.md).
 6. **Cash and credits settle by an application level and a rule order.** Header or line
    level, payments first or credits first, and the match rules are Billing Settings, and
-   they change what a balance means [payments-and-credits.md](payments-and-credits.md).
+   they change what a balance means [Help: `ind.billing_setup_payments_configure`,
+   `ind.billing_setup_credit_memos_payments_application_rules`]
+   ([payments-and-credits.md](payments-and-credits.md)).
 7. **Legal entity is the accounting key.** It is required for financial accounting, it
    selects tax treatments when a tax policy says Legal Entity, and every journal and
    accounting period hangs on it [Help: `ind.billing_legal_entity_default`]

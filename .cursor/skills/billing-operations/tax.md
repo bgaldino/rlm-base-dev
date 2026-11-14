@@ -16,7 +16,7 @@ estimated vs actual tax. Parent: [SKILL.md](SKILL.md). A read of Help; not measu
      anywhere the calculation fails.
 3. A treatment marked **Is Taxable** names a **tax engine**; the tax code on the treatment
    (or its treatment items, when Use Tax Treatment Items is selected) goes to the engine.
-   A missing code sends a null value.
+   A missing code sends a null value [Help: `ind.billing_tax_policies_and_treatments_create`].
 4. Generating an invoice triggers the Calculate Tax API with that engine
    [Help: `ind.billing_tax_calculation_results`].
 
@@ -51,7 +51,7 @@ How long, how many calls, or what a failed engine does to a run: not measured.
   [Help: `ind.billing_tax_lines_import`].
 
 Engines can be mixed: a treatment names its engine, so legal entities or products can
-differ [Help: `ind.billing_tax_configuration_engine`].
+differ [Help: `ind.billing_tax_configuration_engine`, `ind.billing_standard_tax_rate`].
 
 Questions to ask the customer, with the Help-grounded consequence:
 
