@@ -18,6 +18,10 @@ priced and persisted. Used for Advanced Detail Line Pricing.
 - Mapping variables at line level and sub-line (detail) level in pricing and discovery procedures. [Help]
 - Do not use for general-purpose calculation or just to persist values: it degrades pricing performance. [Help limits]
 - Do not combine with delta pricing in the same use case. [Help limits]
+- Foundations-built orgs turn delta pricing on, so a procedure using this element runs with it on
+  unless the org changes the setting; what the element does under delta pricing was not
+  established, so compare against a Force reprice before relying on it [inferred]. Conditions:
+  [runtime and observability](../runtime-and-observability.md#delta-pricing).
 
 ## Configuration
 

@@ -161,26 +161,17 @@ quote UI (`ui-group-ramp.md`, measured on 264).
   `AddProducts` into ramped segments (Quick Rule 9), and a standalone Evergreen line
   ([ui-group-ramp.md](ui-group-ramp.md)).
 - **DO NOT** trust a `pricingPref: "System"` reprice to fix a **cloned** group-ramp segment. When delta
-  pricing applies (setting on, a System-priced PATCH, and the conditions below), only the edited lines and the
+  pricing applies (rule linked below), only the edited lines and the
   lines that depend on them re-run, so a clone's stale lines can be skipped; Help says Compound Uplift lines in a
   ramp group are repriced on every run regardless of delta pricing
   [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure`], so the skip would apply only to
   lines without Compound Uplift [inferred]. A
   segment created by clone can keep its clone-time price indefinitely.
-  Delta pricing is an org setting (Setup > Revenue Settings > Delta Pricing for Quotes and Orders), off unless
-  enabled; its platform declaration marks it beta [Platform behaviour, traced], though neither Help nor the Metadata API reference says so, and
-  its documented default is false [Metadata API: `meta_revenuemanagementsettings`], so an org that doesn't set it
-  has it off. The repo enables it in `config/project-scratch-def.json` and most `orgs/*.json` (not dev-mfg or the
-  TFID shapes), and `prepare_rlm_org` deploys it as true from the pre settings bundle on every build, so every
-  Foundations-built org has it on [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`].
-  Delta skipping applies only when the setting is on and the save is a PATCH edit with System pricing, Dual
-  Persistence mode off, a completed calculation status (Completed with Pricing or with Tax) and no validation errors
-  [Platform behaviour, traced; Help: `ind.qocal_use_delta_pricing_for_quotes_and_orders`]; further conditions
-  (the transaction's update tracking) also apply, so treat the list as partial (see pricing-procedures
-  → runtime and observability); otherwise every line reprices
-  ([transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md)). Under it a
-  partial PATCH re-runs the edited lines and the lines that depend on them and skips the rest; which relations
-  count as a dependency isn't traced.
+  Delta pricing (on in every Foundations-built org
+  [Repo: `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`]) is defined once in
+  [pricing-procedures](../pricing-procedures/runtime-and-observability.md#delta-pricing);
+  otherwise every line reprices
+  ([transaction-line-editor → runtime behavior](../transaction-line-editor/runtime-behavior.md)).
 
   Measured 2026-10-29/30 on 264 with a probe that set the uplift at placement:
   - 8 of 8 builds came out of cloning with the last segment un-uplifted (setting the uplift

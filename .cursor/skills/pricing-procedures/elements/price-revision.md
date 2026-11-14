@@ -55,7 +55,23 @@ dynamic input parameters. The Builder offers lookup, hide-waterfall and compound
 - Repo places the renewal step under a ListGroup filtered to subscription lines without derived
   pricing, and the ramp step under a separate ListGroup for ramped amendments. [Repo]
 - Help: "If the pricing procedure uses delta pricing and you enable Compound Uplift, the Price Revision element reprices every line in the ramp group each time it runs, regardless of the delta pricing setting. This behavior applies only to lines that use Compound Uplift. Delta pricing behaves normally for lines that do not use it." [Help: `ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm`]
-- Delta skipping applies when the setting is on and the save is a PATCH edit with System pricing, Dual Persistence mode off, a completed calculation status (Completed with Pricing or with Tax) and no validation errors [Platform behaviour, traced]; further conditions (the transaction's update tracking) also apply, so treat this list as partial (see [`../runtime-and-observability.md`](../runtime-and-observability.md)). If any of those does not hold, every line reruns [Platform behaviour, traced]. Two Place PATCHes with System pricing re-applied the compound uplift to the stored `NetUnitPrice` of the uplifted ramp lines after the first segment (untouched lines in both PATCHes, and in the 2026-11-12 PATCH the patched line as well), unrounded, with `TotalPrice` unchanged. One changed `UnitPriceUplift` on four non-software lines (configuration method Force, rules on) [Measured: 2026-11-11, 264, scratch]. The other patched one line with no field change (configuration Skip), with delta pricing on (read from the org), and changed no line's waterfall id [Measured: 2026-11-12, 264, scratch; one org]. In the second PATCH no line's waterfall id changed; that and the unchanged totals in both do not fit a full procedure rerun, and what moved `NetUnitPrice` on the stored net in these PATCHes is not traced. When Price Revision runs twice over the same lines in one execution (for example a procedure plan plus the default procedure, when Skip Default and Sales Transaction Type Pricing Procedures is off), the uplift applies twice [Platform behaviour, traced]. Reprice All restored correct prices [Measured: 2026-11-11, 264, scratch]. Reprice All runs a full recalculation whatever the delta setting [Help: `ind.qocal_reprice_all_quotes_and_orders.htm`]; it was not re-run after the 2026-11-12 PATCH, so re-read every segment's `NetUnitPrice` against `TotalPrice` afterwards.
+- Delta pricing applies only under the conditions in [runtime and
+  observability](../runtime-and-observability.md#delta-pricing); when it doesn't,
+  every line reruns [Platform behaviour, traced]. Two Place PATCHes with System pricing re-applied
+  the compound uplift to the stored `NetUnitPrice` of the uplifted ramp lines after the first
+  segment (untouched lines in both PATCHes, and in the 2026-11-12 PATCH the patched line as well),
+  unrounded, with `TotalPrice` unchanged. One changed `UnitPriceUplift` on four non-software lines
+  (configuration method Force, rules on) [Measured: 2026-11-11, 264, scratch]. The other patched one
+  line with no field change (configuration Skip), with delta pricing on (read from the org), and
+  changed no line's waterfall id [Measured: 2026-11-12, 264, scratch; one org]. In the second PATCH
+  no line's waterfall id changed; that and the unchanged totals in both do not fit a full procedure
+  rerun, and what moved `NetUnitPrice` on the stored net in these PATCHes is not traced. When Price
+  Revision runs twice over the same lines in one execution (for example a procedure plan plus the
+  default procedure, when Skip Default and Sales Transaction Type Pricing Procedures is off), the
+  uplift applies twice [Platform behaviour, traced]. Reprice All restored correct prices [Measured:
+  2026-11-11, 264, scratch]. Reprice All runs a full recalculation whatever the delta setting [Help:
+  `ind.qocal_reprice_all_quotes_and_orders.htm`]; it was not re-run after the 2026-11-12 PATCH, so
+  re-read every segment's `NetUnitPrice` against `TotalPrice` afterwards.
 
 ## Rules and limits
 - Policy types: **Flat** (manual uplift value, no decision table) and **Price Index** (rate from
