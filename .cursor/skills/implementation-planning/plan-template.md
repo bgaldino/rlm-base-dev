@@ -115,9 +115,9 @@ that would settle it is the measured invoice generate call with a future `target
 Help describes the target date in two places (`billing-operations` → `invoicing.md`): a
 scheduler picks schedules whose next billing date is on or before it, and on-demand
 generation those before it; for milestones it picks which accomplished milestones invoice,
-and usage schedules whose liable summaries are Ready for Invoicing always invoice. Which
-applies to the generate call is `[inferred]`, so the spike's must-hits include a schedule
-whose next billing date equals `targetDate`. For a
+and usage schedules whose liable summaries are Ready for Invoicing always invoice. Help
+doesn't say which applies to the generate call (trigger (a)), so the spike's must-hits
+include a schedule whose next billing date equals `targetDate`. For a
 milestone-billed service, state what a quantity an amendment adds is billed by, and
 record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
 Read each amendment, cancellation and renewal quote's values before its order activates,

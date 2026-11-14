@@ -33,8 +33,9 @@ another shape on its own is not such a claim (one the skill itself extends with
 `[inferred]` is); it follows [prediction-checks.md](prediction-checks.md) check 1.
 
 **A skill's `[Open: <check>]` claim is unsettled.** The skill names the check that would
-settle it. A rule that depends on one is **Live**, as under trigger (a), and that check is
-the spike's smallest case. `rg -n '\[Open:' .cursor/skills` lists every one
+settle it. A rule that depends on one is **Live**, under the trigger the claim meets: (a) where
+the docs and skills are silent, (b) where a measurement contradicts the docs, (d) where the
+docs disagree. The named check is the spike's smallest case. `rg -n '\[Open:' .cursor/skills` lists every one
 (`skill-authoring` → Source tags and open items).
 
 **A live org decides** when one of these holds:

@@ -287,7 +287,7 @@ Write these in the template's order:
   lifecycle change, name each recommendation's mechanism, and name where each native
   guard is enforced.
 - **Phases:** each with a gate and its skills, ordered by the prerequisite graph in
-  [build-order.md](build-order.md). Record each `[inferred]` or open edge the order relies
+  [build-order.md](build-order.md). Record each `[inferred]` or unstated edge the order relies
   on as a decision.
 - **Route prerequisites:** a spike that chooses between routes lists what each route
   needs from the catalog and the model. The catalog phase waits for that spike or

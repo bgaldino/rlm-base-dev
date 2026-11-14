@@ -6,7 +6,7 @@ edge cites the source that states it; an edge tagged `[inferred]` is not stated 
 (it follows from how the objects reference each other, the repo flow's order, or the
 absence of a recorded edge). It is a hypothesis: record it as a decision (Repo (inferred),
 [knowledge-sources.md](knowledge-sources.md)) and confirm it at the gate of the first phase
-that relies on it; spike it in P2 only when a knowledge-sources.md live trigger applies.
+that relies on it; spike it in P2 only in the case named under the graph (below).
 Where no skill records an edge between items in a stage, treat them as independent
 `[inferred]` the same way.
 
