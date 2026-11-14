@@ -36,12 +36,15 @@ access or map your own context definition
 
 ## Element catalog [Help: `ind.rm_rating_elements`]
 
+Lookup tables come from the per-element articles and
+[Help: `ind.rm_prereqs_to_build_rating_procedures`]; a cell those do not name is labelled.
+
 | Element | Use | Lookup table / note |
 |---------|-----|---------------------|
 | Rating Setting | Map common variables to context tags; must be first | Later element tags win over it |
 | Base Rate | Rate from the rate card entry | Rate Card Entries |
 | Volume-Based Rate Discount | Flat discount to all units past a threshold | Rate Adjustment by Volume Entries 2; negotiable: Volume-based Rate Adjustment by Rate Card Entry ID |
-| Tier-Based Rate Discount | Range-based discount per band | Rate Adjustment by Tier Entries 2; negotiable: Tier-based Rate Adjustment by Rate Card Entry ID |
+| Tier-Based Rate Discount | Range-based discount per band | Rate Adjustment by Tier Entries 2; negotiable: Tier-based Rate Adjustment by Rate Card Entry ID `[inferred from the prerequisites list; the element article names no table]` |
 | Negotiated Rate Card Entries (+ Binding Object variant) | Rate card entry ID from asset ID or binding object entry | Asset / Binding Object Rate Card Entry |
 | Negotiated Base Rate (+ Binding Object) | Negotiated rate, base rate if none negotiated | Asset Rate 2 / Binding Object Rate 2 |
 | Negotiated Tier-Based Rate Adjustment (+ Binding Object) | Negotiated tier discount or surcharge | Asset Tier-based Rate Adjustment |

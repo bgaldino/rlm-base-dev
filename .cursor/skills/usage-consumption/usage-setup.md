@@ -121,9 +121,10 @@ Repo constraints for a commitment product's policy record are in
 ## Validate
 
 Run the Usage Product Validator from the product record page (add the component and set
-a usage model type first). It checks only effective, active records and warns when the
-product usage resource and its rate card entries leave gaps over 12 hours at start or
-end dates, or when consecutive records overlap or gap
+a usage model type first). It checks only effective, active records and warns when
+consecutive product usage resources or consecutive rate card entries, or the product usage
+resource and its first or last rate card entry, are more than 12 hours apart (the end check
+only if the product usage resource has an end date)
 [Help: `ind.um_run_validator`, `ind.um_considerations_for_validator`]. If you change the
 usage model type after creating the related records, recheck them by hand first. Then
 verify rating and consumption with [verification.md](verification.md).

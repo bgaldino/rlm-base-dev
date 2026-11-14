@@ -21,9 +21,10 @@ decisions. Usage modeling is in
 verifying a metered demo is [`../usage-consumption/SKILL.md`](../usage-consumption/SKILL.md).
 
 Labels: `[Help: id]` is a 264 Help article under `docs/salesforce/264/help/articles/`
-(`ind.<id>.htm.md`); `[inferred]` is reasoning, not a measurement. Nothing here was
-measured in a live org by this skill; "not measured" marks it. A live 264 org is ground
-truth over the docs.
+(`ind.<id>.htm.md`); `[Repo: path]` is a repo plan note, and `live-verified` means the repo
+measured it in a live org; `[inferred]` (or `[inferred from Help]`) is reasoning, not a
+measurement. Other claims were not measured in a live org by this skill. A live 264 org
+is ground truth over the docs.
 
 ## Quick Rules
 
@@ -35,7 +36,8 @@ truth over the docs.
 3. **Use Base for a flat per-unit rate; use Tier for range-based adjustments** on that
    rate [Help: `ind.rm_create_a_rate_card`].
 4. **Entries start Draft; activate them.** Active entries accept only limited edits, so
-   finish the entry (and its tiers) while Draft [Help: `ind.rm_create_a_base_rate_card_entry`].
+   finish the entry while Draft [Help: `ind.rm_create_a_base_rate_card_entry`]; its tiers lock
+   once it is Active [Repo: `datasets/sfdmu/qb/en-US/qb-rates/README.md`, live-verified].
 5. **Start a rating procedure from a clone.** Clone the Default or the Negotiable template
    (Help also allows a custom build), simulate, then activate
    [Help: `ind.rm_clone_the_default_rating_procedure`].
@@ -132,7 +134,7 @@ rule is `[inferred from Help]` unless noted.
 | Does each customer get their own rates? | Mark entries negotiable; use the Negotiable Rating Procedure | Non-negotiable, Default procedure |
 | Is the rate tied to a commitment? | Commitment product plus Commitment Rate Adjustment | No commitment element |
 | Are rates quoted in tokens? | Two entries: usage to token, token to currency | Currency entry only |
-| Do rates differ by region or another custom condition? | Rate Adjustment Matrix element on a custom matrix `[inferred]` | Standard elements |
+| Do rates differ by region or another custom condition? | Rate Adjustment Matrix element on its custom rate adjustment matrix [Help: `ind.rm_element_rate_adjustment_matrix`]; region is an example condition, and this is not the CSV decision matrix the DO NOT list rules out | Standard elements |
 | Must you explain a rate months later? | Enable waterfall persistence | Leave it off (the storage saving is `[inferred]`) |
 
 Tier arithmetic per Help [Help: `ind.rm_element_tier_based_rate_discount`]: at a unit
@@ -209,8 +211,10 @@ performance for freshness; real-time does not support "not matches" or "contains
 [Help: `ind.rm_implementation_considerations`].
 
 In this repo the lists are `dt_rating_decision_tables` and
-`dt_rating_discovery_decision_tables` in `cumulusci.yml`. Rating tables have no runtime
-refresh path of their own. At build time the `refresh_all_decision_tables` flow (run by
+`dt_rating_discovery_decision_tables` in `cumulusci.yml`. Edits to rate card setup data
+(cards, entries, tiers) have no runtime refresh; the asset-level rate tables refresh on
+order activation (see [usage-consumption](../usage-consumption/SKILL.md) DO NOT). At build
+time the `refresh_all_decision_tables` flow (run by
 `prepare_rlm_org`) refreshes them via `refresh_dt_rating` and
 `refresh_dt_rating_discovery`; `prepare_rating` itself does not. After that, use the
 Decision Table Manager's stale-only refresh, and

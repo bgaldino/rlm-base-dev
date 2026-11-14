@@ -25,7 +25,7 @@ The neighbouring skills own the mechanics this one builds on:
 | Org setup the elements read: enablement, permissions, price/cost books, adjustment schedules, recipes, selling models, revision policies, pricing actions | [`../pricing-setup/SKILL.md`](../pricing-setup/SKILL.md) |
 | The decision tables that elements look up: definition, refresh, staleness | [`../decision-tables/SKILL.md`](../decision-tables/SKILL.md) |
 | Context definitions, tags, mappings, persistence | [`../context-service/SKILL.md`](../context-service/SKILL.md) |
-| Rating procedures (usage): the `RatingProcedure` / `RatingDiscoveryProcedure` step graph is expression-sets territory; building, rating and verifying metered demos is usage-consumption, and rate cards and rating setup is rate-management | [`../expression-sets/SKILL.md`](../expression-sets/SKILL.md), [`../usage-consumption/SKILL.md`](../usage-consumption/SKILL.md), [`../rate-management/SKILL.md`](../rate-management/SKILL.md) |
+| Rating procedures (usage): the `RatingProcedure` / `RatingDiscoveryProcedure` step graph is expression-sets territory; building, rating and verifying metered demos is usage-consumption, and rate cards and rating setup belong to rate-management | [`../expression-sets/SKILL.md`](../expression-sets/SKILL.md), [`../usage-consumption/SKILL.md`](../usage-consumption/SKILL.md), [`../rate-management/SKILL.md`](../rate-management/SKILL.md) |
 | Constraint (CML) procedures | [`../constraint-models/SKILL.md`](../constraint-models/SKILL.md) |
 
 > **Pinned to Release 264 / API v68.0.** Each element file tags its claims with a
