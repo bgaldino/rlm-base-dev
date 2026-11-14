@@ -43,8 +43,8 @@ and 5 grants per resource; up to 3 required custom fields; a product usage resou
 no custom fields. It reuses a policy with the same configuration instead of creating one,
 and creates defaults named Aggregate Usage Monthly by Sum, Renew Grants Monthly, Rollover
 Grants without Expiry, Overage Chargeable, Lowest Commitment Fulfilled Rate and Rate
-Usage Monthly. Configuring rate records, price books or selling models changes, and
-global rate cards shared by all products, are outside it.
+Usage Monthly. Rate records, price books, selling-model changes and global rate cards
+shared by all products are outside it.
 
 ## Manual sequence [Help: `ind.um_configure_usage_records`]
 
@@ -91,7 +91,7 @@ order is activated and assetized, so a wrong target means redesigning the produc
 alone; Target shares grants across accounts, contracts, products or a custom object.
 
 Repo constraints for a commitment product's policy record are in
-[SKILL.md](SKILL.md) (Quick Rules 6 and DO NOT list); they are repo findings, not Help.
+[SKILL.md](SKILL.md) (Quick Rule 6 and the DO NOT list); they are repo findings, not Help.
 
 ## Grants, commitments and wallets
 
