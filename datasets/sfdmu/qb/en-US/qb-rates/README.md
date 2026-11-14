@@ -121,7 +121,7 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 
 | Name            | Type      | Effective From | Description                          |
 |-----------------|-----------|----------------|--------------------------------------|
-| Attribute Rate  | Attribute | 2024-12-01     | Attribute-based rate card             |
+| Attribute Rate  | Attribute | 2023-01-01     | Attribute-based rate card             |
 | Base Rate Card  | Base      | 2023-01-01     | Flat per-unit base rates              |
 | Tier Rate Card  | Tier      | 2023-01-01     | Volume tier-based rate adjustments    |
 

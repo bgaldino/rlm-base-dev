@@ -64,8 +64,8 @@ is ground truth over the docs.
 - **DO NOT** use CSV-based decision tables or decision matrices for rating; Help says
   Rate Management does not support them [Help: `ind.rm_rate_mngmnt_limits`].
 - **DO NOT** assume a fresh decision table after a rate change. Refresh and wait; a stale
-  table prices with the old rate and does not error [inferred from Help; see
-  `../decision-tables/SKILL.md`].
+  table prices with the old rate and does not error
+  [Repo: `datasets/sfdmu/qb/en-US/qb-rates/README.md`; see `../decision-tables/SKILL.md`].
 - **DO NOT** reload rate plans into an org with live usage assets without reading
   [`../usage-consumption/SKILL.md`](../usage-consumption/SKILL.md) DO NOT list.
 
@@ -94,7 +94,7 @@ RateCardEntry --> RateAdjustmentByTier (lower/upper bound, adjustment type + val
 
 | Concept | What it is | Source |
 |---------|------------|--------|
-| Rate card | Group of rules that rate usage resources granted with a sold product; type Base or Tier; date range. The type picklist also has Attribute, which Help omits and this repo loads (see below) | [Help: `ind.rm_create_a_rate_card`], [Repo: `datasets/sfdmu/qb/en-US/qb-rates/RateCard.csv`] |
+| Rate card | Group of rules that rate usage resources granted with a sold product; type Base or Tier; date range. Help's create article lists only Base and Tier; its limits article says attribute-based cards are not supported in Usage Selling and Consumption Management; this repo loads one (see below) | [Help: `ind.rm_create_a_rate_card`, `ind.rm_rate_mngmnt_limits`], [Repo: `datasets/sfdmu/qb/en-US/qb-rates/RateCard.csv`] |
 | Rate card entry | One rate (or tier set) for a resource, product and selling model; status Draft, Active, Inactive; negotiable flag; effective dates | [Help: `ind.rm_rate_card_entries`, `ind.rm_create_a_base_rate_card_entry`, `ind.rm_create_a_tier_rate_card_entry`] |
 | Price book rate card | Maps a price book to a rate card, one per card type | [Help: `ind.rm_create_price_book_rate_cards`] |
 | Tier adjustment | Lower and upper bound plus a Percentage, Amount or Override adjustment | [Help: `ind.rm_create_a_tier_rate_card_entry`] |
@@ -135,7 +135,7 @@ rule is `[inferred from Help]` unless noted.
 | Is the rate tied to a commitment? | Commitment product plus Commitment Rate Adjustment | No commitment element |
 | Are rates quoted in tokens? | Two entries: usage to token, token to currency | Currency entry only |
 | Do rates differ by region or another custom condition? | Rate Adjustment Matrix element on its custom rate adjustment matrix [Help: `ind.rm_element_rate_adjustment_matrix`]; region is an example condition, and this is not the CSV decision matrix the DO NOT list rules out | Standard elements |
-| Must you explain a rate months later? | Enable waterfall persistence | Leave it off (the storage saving is `[inferred]`) |
+| Must you explain a rate months later? | Enable waterfall persistence | Leave it off; Help recommends off to avoid storage build-up [Help: `ind.rm_enable_rating_waterfall_persistence`] |
 
 Tier arithmetic per Help [Help: `ind.rm_element_tier_based_rate_discount`]: at a unit
 rate of 0.50, no discount for the first 10 units, 10% for the next 50 and 20% for the
@@ -240,7 +240,7 @@ Snapshot; discover with `rg -n -i "rate.?card|rating" cumulusci.yml` and `ls dat
 | Piece | Where |
 |-------|-------|
 | Rate card, entry, tier, price book rate card data | `datasets/sfdmu/qb/en-US/qb-rates`, `datasets/sfdmu/q3/en-US/q3-rates` (`insert_qb_rates_data`, `insert_q3_rates_data`) |
-| Attribute rate card | `qb-rates` also loads an Attribute-type card (`datasets/sfdmu/qb/en-US/qb-rates/README.md`). Help says usage selling and consumption do not support attribute rate cards (Quick Rule 8); do not build on it |
+| Attribute rate card | `qb-rates` also loads an Attribute-type card with no price book rate card [Repo: `datasets/sfdmu/qb/en-US/qb-rates/RateCard.csv`, `PriceBookRateCard.csv`]. Help says Usage Selling and Consumption Management does not support attribute-based rate cards (Quick Rule 8); do not build on it |
 | Usage resources and PURs, policies and grants | `qb-rating`, `qb-rating-entitlements` (and `q3-` equivalents) |
 | Flow | `prepare_rating`: load, `activate_rating_records`, `activate_rates` (REST; the Apex DML path failed on Release 262 [Repo: `tasks/rlm_activate_rates.py`]) |
 | Procedures | `RLM_DefaultRatingProcedure`, `Negotiable_Rating_Procedure`, `RLM_DefaultRatingDiscoveryProcedure` (see `expression-sets`) |

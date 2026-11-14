@@ -70,20 +70,20 @@ Records start Draft; Active records take limited edits [Help: `ind.um_create_usa
 
 | Policy | Options per Help | Source |
 |--------|------------------|--------|
-| Usage aggregation | Accumulation method Sum (all events) or Peak (maximum entry) over a period | `ind.um_create_usage_aggregation_policy` |
-| Rating frequency | Daily or Monthly; optional delay and delay unit | `ind.um_create_rating_frequency_policy` |
-| Overage | Whether overage is chargeable | `ind.um_create_usage_overage_policy` |
-| Grant refresh | Refresh allowed; frequency and unit (3 Month = quarterly) | `ind.um_create_usage_grant_refresh_policy` |
-| Grant rollover | Rollover allowed; optional expiry after a number of rollovers | `ind.um_create_usage_grant_rollover_policy` |
-| Commitment | Bounded Object Rate (overage at the bound asset rate) or Lowest Commitment Rate (overage at the committed rate) | `ind.um_create_usage_commitment_policy` |
-| Grant drawdown order | Expiring First (default), Granted First, Granted Last | `ind.um_define_a_product_usage_grant` |
+| Usage aggregation | Accumulation method Sum (all events) or Peak (maximum entry) over a period | [Help: `ind.um_create_usage_aggregation_policy`] |
+| Rating frequency | Daily or Monthly; optional delay and delay unit | [Help: `ind.um_create_rating_frequency_policy`] |
+| Overage | Whether overage is chargeable | [Help: `ind.um_create_usage_overage_policy`] |
+| Grant refresh | Refresh allowed; frequency and unit (3 Month = quarterly) | [Help: `ind.um_create_usage_grant_refresh_policy`] |
+| Grant rollover | Rollover allowed; optional expiry after a number of rollovers | [Help: `ind.um_create_usage_grant_rollover_policy`] |
+| Commitment | Bounded Object Rate (overage at the bound asset rate) or Lowest Commitment Rate (overage at the committed rate) | [Help: `ind.um_create_usage_commitment_policy`] |
+| Grant drawdown order | Expiring First (default), Granted First, Granted Last | [Help: `ind.um_define_a_product_usage_grant`] |
 
 What to ask the customer: when does the allowance reset (refresh), does unused allowance
 carry over (rollover), is overage billed, is the discount kept past the commitment
 (commitment policy), should the bill count total or peak consumption (aggregation), how
 often should rating run. Rule for commitment policy: Help says Bounded Object Rate suits
 a discounted commitment with a separately defined overage rate; Lowest Commitment Rate
-suits one unified rate.
+suits one unified rate [Help: `ind.um_create_usage_commitment_policy`].
 
 Grant binding is the high-stakes choice: the binding target cannot change after the
 order is activated and assetized, so a wrong target means redesigning the product
