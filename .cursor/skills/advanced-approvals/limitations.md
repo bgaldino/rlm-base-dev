@@ -146,7 +146,8 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   the one org checked, the Metadata API exposed no Approval or Smart Approval setting: no
   Settings type carried one, and the only approval metadata type was the classic approval
   process [Measured: 2026-11-13, 264, scratch, one org]. [Open: read Setup > Approval Settings on
-  a newly created scratch org, before any build step runs]
+  a newly created scratch org, before any build step runs, and list its metadata types for an
+  approval setting]
 - Whether a Resource-type approver works at runtime, and whether there is a
   manager-hierarchy approver.
 - Whether a roll-up summary or Percent condition passes the Smart Approvals type check

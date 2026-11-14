@@ -113,10 +113,11 @@ names as UI labels; API names below are from this repo's shipped metadata. [Help
 
 Full per-set and per-group lists: [revenue-cloud-permissions](../../../docs/references/revenue-cloud-permissions.md).
 
-The runtime row's Run Decision Matrices and Run Expression Sets grants are Help's. No permission
-set or profile in this repo grants either one except the partner community permission set and
-profile [Repo: `unpackaged/post_prm/`]. [Open: read the system permissions of Salesforce
-Pricing Run Time User in an org]
+The runtime row's Run Decision Matrices and Run Expression Sets grants are Help's. In this repo,
+only the partner community permission set and profile enable either one in their own metadata
+[Repo: `unpackaged/post_prm/`]. The persona permission set groups include Salesforce Pricing Run
+Time User [Repo: `unpackaged/post_personas/`], so whether they carry both depends on that set's
+grants. [Open: read the system permissions of Salesforce Pricing Run Time User in an org]
 
 ### Record sharing
 
