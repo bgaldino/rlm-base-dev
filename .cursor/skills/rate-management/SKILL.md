@@ -131,8 +131,8 @@ rule is `[inferred from Help]` unless noted.
 | Does each customer get their own rates? | Mark entries negotiable; use the Negotiable Rating Procedure | Non-negotiable, Default procedure |
 | Is the rate tied to a commitment? | Commitment product plus Commitment Rate Adjustment | No commitment element |
 | Are rates quoted in tokens? | Two entries: usage to token, token to currency | Currency entry only |
-| Do rates differ by region or another custom condition? | Rate Adjustment Matrix element on a custom matrix | Standard elements |
-| Must you explain a rate months later? | Enable waterfall persistence | Leave it off to save storage |
+| Do rates differ by region or another custom condition? | Rate Adjustment Matrix element on a custom matrix `[inferred]` | Standard elements |
+| Must you explain a rate months later? | Enable waterfall persistence | Leave it off (the storage saving is `[inferred]`) |
 
 Tier arithmetic per Help [Help: `ind.rm_element_tier_based_rate_discount`]: at a unit
 rate of 0.50, no discount for the first 10 units, 10% for the next 50 and 20% for the
@@ -149,7 +149,7 @@ is captured at quote time is not measured here.
 Commitment rate behavior after the commitment is used (bounded object rate vs lowest
 commitment rate) is a usage commitment policy choice, covered in
 [`usage-setup.md`](../usage-consumption/usage-setup.md) and
-[`usage-consumption`](../usage-consumption/SKILL.md) (How Drawdown Works).
+[`usage-consumption`](../usage-consumption/SKILL.md) (How Drawdown Actually Works).
 
 ## Setup
 
@@ -170,7 +170,7 @@ Permissions [Help: `ind.rm_rate_management_psls`, `ind.rm_key_roles_in_rate_mana
 
 | Permission set license | Gives | Personas |
 |------------------------|-------|----------|
-| Rate Management Design Time | CRUD on design-time objects, rating procedure builder | Admin, Design Time User |
+| Rate Management Design Time | CRUD on design-time objects | Admin, Design Time User |
 | Rate Management Run Time | Read runtime data, call the APIs | Manager, Run Time User |
 
 Building rating procedures also needs context definition and decision table access, and
@@ -208,7 +208,10 @@ real-time does not support "not matches" or "contains"
 
 In this repo the lists are `dt_rating_decision_tables` and
 `dt_rating_discovery_decision_tables` in `cumulusci.yml`. Rating tables have no runtime
-refresh path of their own: use the Decision Table Manager's stale-only refresh, and
+refresh path of their own. At build time the `refresh_all_decision_tables` flow (run by
+`prepare_rlm_org`) refreshes them via `refresh_dt_rating` and
+`refresh_dt_rating_discovery`; `prepare_rating` itself does not. After that, use the
+Decision Table Manager's stale-only refresh, and
 `cci task run check_decision_table_freshness --org <cci_alias>` to confirm. See
 [`../decision-tables/SKILL.md`](../decision-tables/SKILL.md) (`RateCardEntry` feeds
 several tables; refresh after adding a rate).

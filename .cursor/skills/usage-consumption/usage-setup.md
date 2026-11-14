@@ -109,8 +109,11 @@ Repo constraints for a commitment product's policy record are in
 ## Limits that shape a design [Help: `ind.um_usage_management_limits`]
 
 - A usage product cannot be a bundle parent or a bundle child; sell it as its own line.
-- Unsupported for usage selling include evergreen or one-time anchors, upgrades,
-  downgrades, swaps, backdated changes, pause and resume, and transfers.
+- Usage Selling does not support: evergreen or one-time anchor products, start-date and
+  end-date amendments, account and asset transfers, upgrades, downgrades and swaps,
+  backdated amendments, renewals and cancellations, amendment rollbacks, revival of
+  canceled assets, and pausing and resuming assets. Early renewals and renewals of
+  expired assets are supported for Usage Selling but not for Consumption Management.
 - Consumption Management does not process monetary or quantity commitment products and
   needs Usage Selling.
 
