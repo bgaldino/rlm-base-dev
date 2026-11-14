@@ -293,8 +293,11 @@ SELECT Id, Status FROM ApprovalSubmission WHERE RelatedRecordId = '<NEW>'
 
 Not measured; settle on a live org before relying on them:
 
-- Whether Asynchronous Opportunity Sync is on by default in a fresh 264 org (live check: read
-  the setting on a fresh org).
+- Whether Asynchronous Opportunity Sync is on by default in a fresh 264 org. After this repo's
+  build it read on [Measured: 2026-11-13, 264, scratch, one org], which the `post_utils` settings
+  bundle explains, so it says nothing about the default. [Open: read
+  `enableAsynchronousQuoteOpportunitySync` on a newly created scratch org, before any build step
+  deploys settings]
 - Why one custom header field copied although no context plan in this repo maps it (the org's
   active definition was not read; a mapping there is the first thing to check).
 - Whether a mapped but non-editable, formula or output-only field survives a clone, and how a

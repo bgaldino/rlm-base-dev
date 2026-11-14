@@ -294,8 +294,8 @@ false and produced the `Type is not visible` diagnosis above.
 `enableScaleAttributes` is declared in `config/project-scratch-def.json`, 14 files under
 `orgs/`, and `unpackaged/pre/1_settings/RevenueManagement.settings-meta.xml`. Deploying
 that last file to a 264 org fails with the same parse error, so **build step 1 is exposed
-too** — `cleanup_settings_for_dev` does not strip this field. A 262-built org such as
-`laulima26` is unaffected and does not carry the field in its retrieved settings at all,
+too** — `cleanup_settings_for_dev` does not strip this field. A 262-built org is
+unaffected and does not carry the field in its retrieved settings at all,
 consistent with 264 having dropped it. This is a 264-cutover item, not an MCP one; it is
 recorded here because it is what the MCP Apex failure turned out to be.
 

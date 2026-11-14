@@ -45,7 +45,8 @@ Prerequisites ("get ready") [Help `ind.pricing_get_ready_to_create_pricing_actio
 
 Help is inconsistent on supported objects: the layout steps list five objects, the run article also
 lists Sales Agreement and Work Order. The dev guide's `objectName` values include all seven. Check
-the layout in the org. [Help, Dev guide]
+the layout in the org. [Help, Dev guide] [Open: create a pricing action parameter in Setup and see
+whether Sales Agreement and Work Order are offered]
 
 ## Fields and rules
 
@@ -99,8 +100,11 @@ Used in [lowest price](scenarios/lowest-price-across-price-books.md) and
 
 Parameters are records; bulk paths in [import-export-and-bulk-data.md](import-export-and-bulk-data.md).
 Query them with `sf data query --use-tooling-api -q "SELECT DeveloperName, ObjectName,
-PricingProcedure, EffectiveFrom, EffectiveTo FROM PricingActionParameters"` (fields per core;
-not yet run live). An active parameter blocks deactivating its context definition
+PricingProcedure, EffectiveFrom, EffectiveTo FROM PricingActionParameters"` (fields per core).
+The Tooling API accepted `SELECT Id, DeveloperName, ObjectName FROM PricingActionParameters` and
+returned no rows on a freshly built org [Measured: 2026-11-13, 264, scratch, one org]. [Open: run
+the full query on an org that has a parameter record] An active parameter blocks deactivating
+its context definition
 ([`../context-service/authoring-and-lifecycle.md`](../context-service/authoring-and-lifecycle.md)). [Repo]
 
 ## Verify

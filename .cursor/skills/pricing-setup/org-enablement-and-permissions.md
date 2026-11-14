@@ -113,6 +113,11 @@ names as UI labels; API names below are from this repo's shipped metadata. [Help
 
 Full per-set and per-group lists: [revenue-cloud-permissions](../../../docs/references/revenue-cloud-permissions.md).
 
+The runtime row's Run Decision Matrices and Run Expression Sets grants are Help's. This repo's
+main permission set (`RLM_QuantumBit`) grants neither; only the partner community permission set
+and profile grant them explicitly [Repo: `unpackaged/post_prm/`]. [Open: read the system
+permissions of Salesforce Pricing Run Time User in an org]
+
 ### Record sharing
 
 Setup > Security > Sharing Settings > Edit. [Help] `ind.pricing_record_sharing_pricing.htm`
