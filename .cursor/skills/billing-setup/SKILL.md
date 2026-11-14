@@ -40,9 +40,11 @@ read the row's scope before generalising it.
    traced. A frequency that matches the pricing term (Monthly on a Months model, Annual on an
    Annual model) needed no billing treatment on the line, in an org where every treatment had
    Change Billing Frequency selected [Measured: M2]; item 3 gives the traced rule for when a
-   treatment is required. With the
-   flag off on the product's treatments, the repo's data-plan README reports the line can't be
-   created at all [Repo: `datasets/sfdmu/qb/en-US/qb-billing/README.md`].
+   treatment is required. The repo's data-plan README reports that with the flag off on the
+   product's treatments the line can't be created at all [Repo:
+   `datasets/sfdmu/qb/en-US/qb-billing/README.md`]; the traced rule limits that to a
+   frequency that differs from the pricing term. A matching frequency with the flag off was
+   not measured.
 3. **A frequency that differs from the pricing term needs a billing treatment on the line.**
    Changing a Term Defined Annual line to Monthly was refused until the line had one
    [Measured: M3]. Help also requires that treatment to have Change Billing Frequency

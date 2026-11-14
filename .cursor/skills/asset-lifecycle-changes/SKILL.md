@@ -42,8 +42,7 @@ results, 2026-11-11).
       lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch, one org] — each
       lot became a −lot/+lot pair netting 0, and the order and assets were unchanged. Not measured
       on amendments or ramped quotes; why the reprice returned 0 is not traced. Read quote values
-      before activation and
-      don't reprice afterwards.
+      before activation and don't reprice afterwards.
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
    with configuration rules on (the UI's inline quantity edit does this), resets the
    line's attributes to the product defaults. Activation keeps them on the asset, and the
@@ -63,12 +62,11 @@ results, 2026-11-11).
       `unpackaged/post_constraints/triggers/RLM_QuoteItemTrigger.trigger`]. The node status
       records which answers the user set, not their values; with none on the root line, a
       solve that changes an answer treats every answer the request doesn't change as a
-      default. An answer edit keeps the other answers only when
-      those rows carry it. Activation fills them only when the context definition has an
-      order-to-asset rule (`AssetActionSource` ⇐ `SalesTransactionItem` in
-      `AssetToSalesTransactionMapping`), and never fills rows made from order product
-      detail rows: the cancel-and-reprice pair an answer-change amendment writes on the
-      root [Measured: 2026-11-11, 264, scratch org].
+      default. An answer edit keeps the other answers only when those rows carry it.
+      Activation fills them only when the context definition has an order-to-asset rule
+      (`AssetActionSource` ⇐ `SalesTransactionItem` in `AssetToSalesTransactionMapping`), and
+      never fills rows made from order product detail rows: the cancel-and-reprice pair an
+      answer-change amendment writes on the root [Measured: 2026-11-11, 264, scratch org].
     - **Why detail rows stay blank.** Activation writes one asset action source row per
       order line, or one per order line detail when the line has details; a detail-sourced
       row takes its quantity and prices from the detail, and its `ReferenceEntityItemId` is

@@ -22,7 +22,7 @@ Exits 0 when every account reaches an asset with usage buckets, 1 otherwise.
 | Step | Mechanism | Why not something else |
 |------|-----------|------------------------|
 | Opportunity | Direct insert mirroring `RLM_QuickQuote` field-for-field | That flow is a **screen** flow, so Apex cannot invoke it — but every automation it relies on is record-triggered, so the same insert fires the same behaviour (including account-currency defaulting) |
-| Quote + line | `POST /connect/rev/sales-transaction/actions/place` (Place Sales Transaction) with an object graph | Direct `QuoteLineItem` DML is **not viable** for a TermDefined product: the platform requires `BillingFrequency`, and a frequency that differs from the term unit is refused unless the line's BillingTreatment is Active with `CanChangeBillingFrequency = true` ([billing-setup](../billing-setup/SKILL.md) item 3) |
+| Quote + line | `POST /connect/rev/sales-transaction/actions/place` (Place Sales Transaction) with an object graph | Direct `QuoteLineItem` DML for a TermDefined product must set `BillingFrequency` itself (the platform requires it), and a frequency that differs from the term unit is refused unless the line's BillingTreatment is Active with `CanChangeBillingFrequency = true` ([billing-setup](../billing-setup/SKILL.md) item 3); Place covers both cases in one call. DML with a matching frequency was not tested here |
 | Order | `createOrdersFromQuote` invocable | Same call the Create Order quick action runs via `RLM_CreateOrdersFromQuote` |
 | Activation | Draft → Activated status transition | v67.0 exposes **no** Connect resource for order activation |
 

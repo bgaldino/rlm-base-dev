@@ -172,8 +172,8 @@ plausibly with no error. Refresh paths: Pricing Recipes > Sync (one recipe); Sal
 Setup > Sync Pricing Data; a schedule-triggered Flow calling the **Refresh Decision Table**
 action (one action per table, off-peak, add a fault path, pause during bulk loads, hourly
 refresh limit exists; building the flow needs Manage Flow, Salesforce Pricing Design Time,
-Assetize Order for a complete sync; the action's own permission gate is in
-[`../decision-tables/SKILL.md`](../decision-tables/SKILL.md), Refreshing is admin-only).
+Assetize Order for a complete sync; the action itself is admin-only, see
+[decision-tables](../decision-tables/SKILL.md)).
 Verify with the Last Refreshed timestamp, or `cci task run
 check_decision_table_freshness --org <cci_alias>`. Authoring and refresh: [`../decision-tables/SKILL.md`](../decision-tables/SKILL.md).
 

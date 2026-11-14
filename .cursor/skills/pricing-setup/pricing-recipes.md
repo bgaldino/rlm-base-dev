@@ -61,7 +61,7 @@ Element lookups show only tables linked to the **default recipe of the procedure
   emails (failures are silent otherwise, e.g. deactivated table or hourly limit); confirm via
   Decision Tables > Last Refreshed. Permissions for building the flow: Manage Flow, Salesforce
   Pricing Design Time, and Assetize Order for a complete sync. The action has its own gate:
-  [`../decision-tables/SKILL.md`](../decision-tables/SKILL.md) (Refreshing is admin-only).
+  [decision-tables](../decision-tables/SKILL.md) (the refresh flow action is admin-only).
 
 ## Verify
 

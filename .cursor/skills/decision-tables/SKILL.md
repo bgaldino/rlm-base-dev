@@ -36,8 +36,8 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    Rating, qualification and tax tables have no runtime refresh at all: after editing that
    setup data, use the Manager's **Refresh stale only**, or its **Reads object** filter.
    See `lifecycle-and-refresh.md` → *After editing setup data*.
-   **Refreshing is admin-only.** Salesforce gates the Refresh Decision Table flow action on
-   Modify All Data *and* Customize Application, and no narrower permission (BRE, RunFlow,
+   **The Refresh Decision Table flow action is admin-only.** Salesforce gates it on Modify All
+   Data *and* Customize Application, and no narrower permission (BRE, RunFlow,
    `DecisionTableExecUserAccess`) grants it. The Connect API refresh resource is checked
    separately and is open to users with Business Rules Engine advanced designer or admin
    access [Platform behaviour, traced]. Which user a scheduled flow runs as for the action's
