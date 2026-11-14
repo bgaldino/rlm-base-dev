@@ -36,8 +36,9 @@ is ground truth over the docs.
 3. **Use Base for a flat per-unit rate; use Tier for range-based adjustments** on that
    rate [Help: `ind.rm_create_a_rate_card`].
 4. **Entries start Draft; activate them.** Active entries accept only limited edits, so
-   finish the entry while Draft [Help: `ind.rm_create_a_base_rate_card_entry`]; its tiers lock
-   once it is Active [Repo: `datasets/sfdmu/qb/en-US/qb-rates/README.md`, live-verified].
+   finish the entry while Draft [Help: `ind.rm_create_a_base_rate_card_entry`]; its tiers were
+   locked once it was Active on this repo's 264 loads
+   [Repo: `datasets/sfdmu/qb/en-US/qb-rates/README.md`, live-verified].
 5. **Start a rating procedure from a clone.** Clone the Default or the Negotiable template
    (Help also allows a custom build), simulate, then activate
    [Help: `ind.rm_clone_the_default_rating_procedure`].
