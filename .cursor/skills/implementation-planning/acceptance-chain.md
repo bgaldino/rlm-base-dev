@@ -36,7 +36,7 @@ never accept a number because the org returned it.
 | 10 | Bill | Activation leaves billing schedules with the promised frequency, treatment and payment term; an invoice run to a target date gives the first invoice with the expected period, amount and due date (estimated tax on a draft, actual tax once posted); milestone items fire as designed (who marks them: see Marking an event milestone done under the Milestone billing link; the trigger from fulfillment is open until verified) | [Validation Checks](../billing-setup/SKILL.md#validation-checks), [Milestone billing for services](../billing-setup/SKILL.md#milestone-billing-for-services), [billing-operations Quick Rules](../billing-operations/SKILL.md#quick-rules) (1 to 3), [billing-operations Validation Checks](../billing-operations/SKILL.md#validation-checks) |
 | 11 | Contract and documents | The contract exists at the intended point with the intended terms; each document generates with correct values | [setup-and-diagnostics.md](../salesforce-contracts/setup-and-diagnostics.md) (verify template and generated documents), [document-generation Before generation](../document-generation/SKILL.md#before-generation) (active mappers and template references), then generate to verify values |
 | 12 | Usage and rating | Usage booked to a completed period rates to the expected amounts, including commitment drawdown and overage; rated summaries are non-zero where expected; the rate cards and rating procedure read back as designed | [Live verification](../usage-consumption/verification.md#live-verification), [Reading a suspicious result](../usage-consumption/verification.md#reading-a-suspicious-result), [rate-management Validation Checks](../rate-management/SKILL.md#validation-checks) |
-| 13 | Amend | Each allowed change type (quantity add or remove, swap, cancel) shows the expected prices, attributes, credits and invoice values past the first placement, through activation to the asset. Read each lifecycle quote's values before its order activates, and don't reprice it afterwards: a full reprice after activation set a renewal's totals to 0 | [verification.md](../asset-lifecycle-changes/verification.md), [Validation Checks](../asset-lifecycle-changes/SKILL.md#validation-checks), [transaction-line-editor Quick Rules](../transaction-line-editor/SKILL.md#quick-rules) (5) |
+| 13 | Amend | Each allowed change type (quantity add or remove, swap, cancel) shows the expected prices, attributes, credits and invoice values past the first placement, through activation to the asset. Read each lifecycle quote's values before its order activates, and don't reprice it afterwards: a full reprice after activation set a renewal's totals to 0 (measured once, on a renewal; for amendments and cancellations traced in part, not measured) | [verification.md](../asset-lifecycle-changes/verification.md), [Validation Checks](../asset-lifecycle-changes/SKILL.md#validation-checks), [transaction-line-editor Quick Rules](../transaction-line-editor/SKILL.md#quick-rules) (5) |
 | 14 | Renew | The renewal quote prices per policy, including any uplift and ramp; values read before activation hold after it (read them before, as in step 13) | [change-policy-mapping.md](../asset-lifecycle-changes/change-policy-mapping.md), [renewal-asset-creation](../renewal-asset-creation/SKILL.md) |
 | 15 | Idempotency and rerun | Re-running any load or task creates no duplicates | [sfdmu-data-plans](../sfdmu-data-plans/SKILL.md), [AGENTS.md checklists](../../../AGENTS.md) |
 
@@ -44,9 +44,10 @@ never accept a number because the org returned it.
 
 Each chain step lists the rule IDs it proves ([SKILL.md](SKILL.md) step 2 numbers them)
 and the golden ids that check them. Mark a step not applicable only when the source or a recorded decision
-excludes the capability, citing which. A rule with no step is a gap in the chain. A step
-with no rule is test data, so drop it or find the rule; the build checks (steps 0, 1
-and 15) are the exception and need neither a rule nor a golden id. The Reprice and
+excludes the capability, citing which; where the source is silent on a capability, record
+a scope decision first. A rule with no step is a gap in the chain. A test case with no
+rule is test data, so drop it or find the rule. The build checks (steps 0, 1 and 15)
+need neither a rule nor a golden id. The Reprice and
 Attributes golden sets ([plan-template.md](plan-template.md) section 4) are always
 included and attach to the steps they exercise (pricing, ordering, amending, renewing).
 

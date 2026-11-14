@@ -61,6 +61,7 @@ changes). Note who has to answer it: the source's owner or the build's owner.
     - billing
     - usage and rating
     - order fulfilment
+    - contracts and documents
     - runtime surface
     - extraction
 - Each subsection keeps the source's own numbers and its order of application.
@@ -117,7 +118,8 @@ milestone-billed service, state what a quantity an amendment adds is billed by, 
 record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
 Read each amendment, cancellation and renewal quote's values before its order activates,
 and don't reprice it afterwards: a full reprice after activation set a renewal's totals to 0
-(`transaction-line-editor` Quick Rule 5).
+(`transaction-line-editor` Quick Rule 5; measured once, on a renewal, and for amendments and
+cancellations traced in part, not measured).
 
 ## 5. Phases, gates, skills
 

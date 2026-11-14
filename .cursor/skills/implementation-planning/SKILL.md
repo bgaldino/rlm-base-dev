@@ -156,7 +156,7 @@ the request already answers, and say what you assumed instead.
 |---|---|
 | What is the build for (demo, customer proof, benchmark, product extension)? | Sets "done": reproducing worked examples, a walkthrough, or a shipped feature |
 | Where does it live (private pack first, public repo behind a flag, or both)? | Sets data handling and the promotion phase |
-| What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, billing, usage and rating, order fulfilment, policies not yet in force |
+| What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, billing, usage and rating, order fulfilment, contracts and documents, policies not yet in force |
 | Is the source read once, or kept in sync? | Read once means one extraction with a parity check; kept in sync adds a generator to maintain |
 | What runtime surface? | The standard Transaction Line Editor and configurator, or custom UI |
 | How are quantities derived, and may a rep override them? | Rule-owned sizing or editable defaults (`constraint-models` → `quantities-from-attributes.md`), and the amendment path. A source can say both in different places |
@@ -220,8 +220,8 @@ first: a measurement covers only the shape and route it measured.
 - One set per area, in the template's section 4, split where useful: sizing or
   configuration, rules (each with its message, template section 3), standard pricing, programs and edges
   (every band boundary), currency, policies, cost and margin, negotiation, approvals,
-  lifecycle changes, billing, usage and rating, fulfilment, plus the template's Reprice and
-  Attributes sets.
+  lifecycle changes, billing, usage and rating, fulfilment, contracts and documents, plus
+  the template's Reprice and Attributes sets.
 - Lay the end-to-end order out on [acceptance-chain.md](acceptance-chain.md): each chain
   step the source needs cites its golden ids (the build checks, steps 0, 1 and 15, need
   none), and a step the source or a recorded decision excludes is marked not applicable,
