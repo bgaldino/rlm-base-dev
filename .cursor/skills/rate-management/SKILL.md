@@ -224,7 +224,7 @@ several tables; refresh after adding a rate).
 | Get rating waterfall | `GET /connect/core-pricing/waterfall/{lineItemId}/{executionId}?usageType=Rating` | Persisted waterfall; needs persistence enabled |
 
 Reference:
-[`../../../docs/api/rate-management-apis-reference.md`](../../../docs/api/rate-management-apis-reference.md);
+[`docs/api/rate-management-apis-reference.md`](../../../docs/api/rate-management-apis-reference.md);
 family index: [`../rlm-business-apis/SKILL.md`](../rlm-business-apis/SKILL.md).
 
 ## What this repo ships
