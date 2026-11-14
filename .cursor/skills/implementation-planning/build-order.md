@@ -48,7 +48,7 @@ A change in one domain makes lookups in another stale. Plan a refresh after each
 |---|---|---|
 | Products, price book entries, rates, contracts feeding a table | The decision tables that read them | [decision-tables](../decision-tables/SKILL.md), [Freshness](../decision-tables/SKILL.md#freshness--what-the-verdicts-mean) |
 | A decision table definition | The procedure that uses it, after the table | [Activation after a decision table change](../pricing-procedures/procedure-anatomy-and-ordering.md#activation-after-a-decision-table-change) |
-| Catalog content | The catalog search index | [PCM load facts](../product-catalog-modeling/catalogs-and-loading.md#pcm-load-facts-264) (fact f) |
+| Newly loaded catalog content | The decision tables and the catalog search index, then wait for the index build; which of the two Place needed is not shown | [PCM load facts](../product-catalog-modeling/catalogs-and-loading.md#pcm-load-facts-264) (fact f) |
 | Rating records | Activation in dependency order | [dependency-ordering.md](../repo-integration/dependency-ordering.md#post-load-activation-patterns) |
 
 Refresh a table when its source criteria become true, not when the source row is written
