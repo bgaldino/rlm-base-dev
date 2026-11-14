@@ -4,17 +4,19 @@
 The active release is `salesforce_release_active` in `.claude/skill-manifest.yml`. Per-release
 snapshots live under `docs/salesforce/<N>/`. Three rules, one finding per line and rule:
 
-* `snapshot-link`: a path `docs/salesforce/<N>/<rel>` where N is not the active release and the
-  same `<rel>` exists under the active release. Repoint it. A path that exists only in the
+* `snapshot-link`: a path `docs/salesforce/<N>/<rel>` where N is older than the active release
+  and the same `<rel>` exists under the active release (a `:line` suffix is not part of the path). Repoint it. A path that exists only in the
   older snapshot is allowed (the content was dropped or never carried forward).
 * `stale-pin`: "Verified on Release <N>" / "verified on <N>" with N older than the active
-  release, unless the same line says `not re-verified` (also `not yet re-verified`).
+  release, unless the same line says `not re-verified` (also `not yet re-verified`) or also
+  pins the active release or a newer one.
 * `help-id`: an id in an evidence label `[Help: \\`ind.xxx\\`, ...]` (ids may be comma- or
   semicolon-separated; a trailing `.htm` is optional) that exists in no
   `docs/salesforce/*/help/articles/` snapshot, or that is missing from the active snapshot
   but present in an older one and the line does not name that older release number.
 
-Intentional cases carry `<!-- staleness: allow -->` on the same line; it exempts that line only.
+Intentional cases carry the full marker `<!-- staleness: allow -->` on the same line; it
+exempts that line only.
 Use it for a deliberate older-release citation, never to silence a real stale pin.
 
 Usage:
@@ -31,13 +33,13 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1].parent
-ALLOW = "staleness: allow"
+ALLOW = "<!-- staleness: allow -->"
 MANIFEST = Path(".claude/skill-manifest.yml")
 SKILLS = Path(".cursor/skills")
 SNAPSHOTS = Path("docs/salesforce")
 
 ACTIVE_KEY = re.compile(r"^salesforce_release_active:\s*[\"']?(\d+)[\"']?", re.MULTILINE)
-SNAP_PATH = re.compile(r"docs/salesforce/(\d+)/([^\s)`'\"\]>#,;|]+)")
+SNAP_PATH = re.compile(r"docs/salesforce/(\d+)/([^\s)`'\"\]>#,;|:]+)")
 PIN = re.compile(r"verified\s+on\s+(?:release\s+)?(\d{3})\b", re.IGNORECASE)
 NOT_REVERIFIED = re.compile(r"\bnot\s+(?:yet\s+)?re-?verified", re.IGNORECASE)
 HELP_LABEL = re.compile(r"\[Help:([^\]]*)\]")
@@ -77,13 +79,14 @@ def findings(text: str, root: Path, active: str, index: dict):
 def _line_findings(line: str, root: Path, active: str, index: dict):
     for match in SNAP_PATH.finditer(line):
         release, rel = match.group(1), match.group(2).rstrip(".")
-        if release == active or any(c in rel for c in "<*{$"):
+        if int(release) >= int(active) or any(c in rel for c in "<*{$"):
             continue
         if (root / SNAPSHOTS / active / rel).exists():
             yield "snapshot-link", (
                 f"docs/salesforce/{release}/{rel} exists under {active}; repoint it")
     for match in PIN.finditer(line):
-        if int(match.group(1)) < int(active) and not NOT_REVERIFIED.search(line):
+        if int(match.group(1)) < int(active) and not NOT_REVERIFIED.search(line) \
+                and not any(int(m.group(1)) >= int(active) for m in PIN.finditer(line)):
             yield "stale-pin", (
                 f"pinned to release {match.group(1)}, active is {active}; re-verify "
                 f"or say it was not re-verified")
@@ -93,6 +96,8 @@ def _line_findings(line: str, root: Path, active: str, index: dict):
             if not homes:
                 yield "help-id", f"`{ident}` is in no help snapshot"
             elif active in index and active not in homes:
+                if all(int(r) > int(active) for r in homes):
+                    continue
                 if not any(re.search(rf"\b{r}\b", line) for r in homes):
                     yield "help-id", (
                         f"`{ident}` is missing from the {active} snapshot "

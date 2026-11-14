@@ -62,6 +62,39 @@ class Staleness(unittest.TestCase):
         self.assertEqual(self.rules("262 only [Help: `ind.only_old`]"), [])
         self.assertEqual(self.rules("[Help: `ind.both`; Repo: `scripts/x.py run`]"), [])
 
+    def test_newer_release_is_not_repointed(self):
+        touch(self.root / css.SNAPSHOTS / "266/dev-guide/a.md")
+        touch(self.root / css.SNAPSHOTS / "266/help/articles/ind.preview.htm.md")
+        self.assertEqual(self.rules("`docs/salesforce/266/dev-guide/a.md`"), [])
+        self.assertEqual(self.rules("[Help: `ind.preview`]"), [])
+
+    def test_line_suffix_is_not_part_of_the_path(self):
+        self.assertEqual(self.rules("`docs/salesforce/262/dev-guide/a.md:40`"), ["snapshot-link"])
+        self.assertEqual(self.rules("`docs/salesforce/262/dev-guide/old.md:40`"), [])
+
+    def test_pin_and_reverification_on_one_line(self):
+        self.assertEqual(self.rules("Verified on Release 262; re-verified on 264."), [])
+        self.assertEqual(self.rules("Verified on 260 and verified on 262."),
+                         ["stale-pin", "stale-pin"])
+
+    def test_allow_needs_the_full_marker(self):
+        self.assertEqual(self.rules("Verified on 262 and the rule name staleness: allow"),
+                         ["stale-pin"])
+
+    def test_file_arguments(self):
+        f = self.root / "x.md"
+        touch(f, "Verified on Release 262\n")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(css.main([str(f)], self.root), 1)
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(css.main([str(self.root / "missing.md")], self.root), 2)
+
+    def test_missing_active_help_corpus_skips_help_ids(self):
+        import shutil
+        shutil.rmtree(self.root / css.SNAPSHOTS / "264/help")
+        self.assertEqual(self.rules("[Help: `ind.only_old`]"), [])
+        self.assertEqual(self.rules("[Help: `ind.nope`]"), ["help-id"])
+
     def test_allow_marker(self):
         self.assertEqual(self.rules("Verified on 262 <!-- staleness: allow -->"), [])
         self.assertEqual(self.rules("[Help: `ind.nope`] <!-- staleness: allow -->"), [])
