@@ -43,9 +43,10 @@ Dependencies decide what runs in parallel. A typical chain:
 extraction → (probe spikes ∥ catalog) → (configuration ∥ pricing) → (lifecycle spikes ∥ negotiation) → lifecycle → pack
 ```
 
-The configuration gate places a quote, so it waits for the pricing session's price book
-entries `[inferred]`, the refresh, and, unless the configuration session builds them itself,
-the context definition and tags its rules read ([build-order.md](build-order.md)). The lifecycle spikes start when pricing's standard-price goldens pass, not when the
+The configuration gate places a quote, so, unless the configuration session builds them
+itself, it waits for the pricing session's price book entries `[inferred]` and context
+definition and tags, then runs the decision-table refresh and search-index rebuild newly
+loaded products need ([build-order.md](build-order.md)). The lifecycle spikes start when pricing's standard-price goldens pass, not when the
 whole pricing phase ends. The catalog runs beside the probe spikes only when none of them chooses a route the
 catalog or model carries; otherwise it waits for that spike, or builds every route.
 

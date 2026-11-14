@@ -112,11 +112,12 @@ invoice routes invoiced through today, sending only schedules due by then (`rlm-
 future-dated replay, check billing at schedule level, and say which invoice values wait
 for the replay-dates decision ([SKILL.md](SKILL.md), dated replay). The smallest spike
 that would settle it is the measured invoice generate call with a future `targetDate`.
-Help describes the target date for invoice schedulers (`billing-operations` →
-`invoicing.md`: it picks schedules whose next billing date is on or before it; for
-milestones it picks which accomplished milestones invoice; usage schedules whose liable
-summaries are Ready for Invoicing always invoice); that the generate call behaves the same
-is `[inferred]`. For a
+Help describes the target date in two places (`billing-operations` → `invoicing.md`): a
+scheduler picks schedules whose next billing date is on or before it, and on-demand
+generation those before it; for milestones it picks which accomplished milestones invoice,
+and usage schedules whose liable summaries are Ready for Invoicing always invoice. Which
+applies to the generate call is `[inferred]`, so the spike's must-hits include a schedule
+whose next billing date equals `targetDate`. For a
 milestone-billed service, state what a quantity an amendment adds is billed by, and
 record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
 Read each amendment, cancellation and renewal quote's values before its order activates,
