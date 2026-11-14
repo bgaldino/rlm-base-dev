@@ -272,8 +272,10 @@ first: a measurement covers only the shape and route it measured.
       check for it; on a ramped asset it's refused either way, so that case is a decision.
 - Where the source and Revenue Cloud measure different things, write the mapping into
   the test rather than forcing equality. Example: the source counts an until-canceled
-  monthly line over the whole contract term, while the platform counts it for the
-  Pricing Setup default term count.
+  monthly line over the whole contract term, while the platform counts it for one
+  pricing term (the shipped procedure's `EvergreenPricingTermCountConstant`, 1, and the
+  Pricing Setup default; check both, per `pricing-setup` →
+  [Default term counts](../pricing-setup/proration-and-selling-models.md#default-term-counts)).
 
 ### 6. Decisions, phases, sessions, skills
 

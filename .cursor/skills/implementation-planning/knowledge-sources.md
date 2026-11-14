@@ -89,7 +89,7 @@ cover line-editor "\btransaction line editor\b"
   feature through its building blocks rather than its business name. For example,
   "set a component quantity from an answer" is documented as cardinality constraints
   and `ceil()` in the CML articles, not under "sizing". Grep the developer guide's
-  article titles for the area (`ls $R/dev-guide/articles | grep -i <area>`) before
+  article titles for the area (`ls $R/dev-guide*/articles | grep -i <area>`) before
   calling it silent.
 - **Read before deciding.** A count says where to look, not what is true:
     - Zero hits in both the snapshot and the skills, after the mechanism search, is
@@ -115,7 +115,9 @@ amendment). Spikes come from the per-rule record.
 
 Every rule decided **Live** becomes a spike, with:
 - the value it must hit, in the platform's own measure (for example the amount an
-  Evergreen line shows for the Pricing Setup default term count: one period at `1`),
+  Evergreen line shows for one pricing term: the procedure's
+  `EvergreenPricingTermCountConstant`, 1, and the Pricing Setup default; check both, per
+  [Default term counts](../pricing-setup/proration-and-selling-models.md#default-term-counts)),
   with the source's value reached through the mapping. Where the behavior is open, the
   must-hit is still the source's value, not a list of guessed platform outcomes,
 - the fallback that reaches the source value if the native result misses it
