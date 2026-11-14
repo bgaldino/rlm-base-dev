@@ -6,7 +6,8 @@ description: >-
   policies, a PRD or an RFP) before anything is built. Covers intake questions, inventorying the source, mapping each
   concept to Revenue Cloud, deciding for each rule whether a repo skill, the
   release's Help and developer-guide snapshot, or a live org settles it, golden tests
-  from the source's own worked examples, decisions, phases and gates, the skills
+  from the source's own worked examples, an end-to-end acceptance chain, decisions,
+  a cross-domain build order, phases and gates, the skills
   each phase reads, parallel build sessions, skill gaps, and a ledger that measures
   the plan's predictions against what the build finds. Use the domain skills
   (pricing-setup, pricing-procedures, constraint-models, sfdmu-data-plans, and so
@@ -133,7 +134,7 @@ files can use it.
   rule decision record, spikes and goldens. Checks a prior build's measurements showed
   the planner must run, each pointing at the domain skill that holds the fact.
 - [build-order.md](build-order.md): read when ordering phases. The cross-domain
-  prerequisite graph, each edge cited to its owning skill, the refresh triggers between
+  prerequisite graph, each edge cited to its source or tagged `[inferred]`, the refresh triggers between
   domains, and a cross-check against `prepare_rlm_org`.
 - [acceptance-chain.md](acceptance-chain.md): read when writing the end-to-end goldens.
   Quote to renewal as one chain, each step with what to verify and the owner section.
