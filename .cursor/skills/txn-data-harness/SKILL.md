@@ -117,7 +117,8 @@ Its module docstring is the live-verified reference for **which v67.0 endpoints 
 gone** (`/commerce/sales-transactions/actions/place`,
 `/commerce/quotes/actions/create-order`,
 `/connect/revenue-management/orders/actions/activate` all return NOT_FOUND) and why
-direct `QuoteLineItem` DML is not viable for a TermDefined product. Read it before
+it uses Place rather than direct `QuoteLineItem` DML (when a TermDefined line needs a
+billing treatment: [billing-setup](../billing-setup/SKILL.md) item 3). Read it before
 adding any quote-creation path to either tool.
 
 ## Source Files

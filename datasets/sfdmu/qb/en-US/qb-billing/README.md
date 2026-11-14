@@ -142,15 +142,19 @@ Update the Billing Treatment "<name>" to make sure that you can change the
 Billing Frequency of its related Quote Line Item, and try again.
 ```
 
-With the flag `false` these two rules deadlock: the frequency cannot be left
-null and cannot be set, so **no line can be created for a TermDefined product**
-by any route — direct DML *or* the Place Sales Transaction API. Nothing supplies
-a default: neither `BillingPolicy` nor `BillingTreatmentItem` carries a billing
-frequency to fall back on.
+With the flag `false` these two rules deadlock for a frequency that differs from
+the pricing term (Monthly on an annual entry, as `scripts/build_quote_to_asset.py`
+sends by default): the frequency cannot be left null and cannot be set, so **no
+such line can be created for a TermDefined product** by any route — direct DML
+*or* the Place Sales Transaction API. Nothing supplies a default: neither
+`BillingPolicy` nor `BillingTreatmentItem` carries a billing frequency to fall
+back on.
 
-The line also needs an explicit `BillingTreatmentId`; the reference **and** the
+That line also needs an explicit `BillingTreatmentId`; the reference **and** the
 flag are both required. Omitting the reference produces the *"Add a Billing
-Treatment…"* variant of the same error.
+Treatment…"* variant of the same error. A frequency that matches the pricing term
+was later accepted with no treatment on the line; see the billing-setup skill,
+item 3.
 
 This is why every treatment ships with the flag enabled. It is exercised by
 `scripts/build_quote_to_asset.py`, which builds a backdated quote → order →

@@ -8,8 +8,9 @@ The workshop's value records are three Quotes and their line items
 QuoteLineItemAttribute, QuoteLineDetail, price adjustments, ramp segments --
 are *derived*: the platform generates them when a quote is created and priced
 through the RLM transaction/pricing pipeline. Direct DML of a QuoteLineItem is
-rejected for TermDefined products (BillingFrequency/BillingTreatment coupling),
-and even where it is accepted it produces an un-priced, internally inconsistent
+rejected for TermDefined products whose billing frequency differs from the pricing
+term, unless the line has a treatment allowing it (BillingFrequency/BillingTreatment
+coupling), and even where it is accepted it produces an un-priced, internally inconsistent
 line. So we cannot "copy the rows" -- we must re-create each quote through
 ``POST /connect/rev/sales-transaction/actions/place`` (Place Sales Transaction)
 and let the org generate the children.
