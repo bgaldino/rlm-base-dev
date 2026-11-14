@@ -33,7 +33,9 @@ Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreati
    and the Initial-Sale action/state period. Direct `Asset` DML skips that path, and direct
    `QuoteLineItem` DML with a billing frequency that differs from the pricing term needs an
    Active treatment with Change Billing Frequency
-   ([billing-setup](../billing-setup/SKILL.md) item 3).
+   ([billing-setup](../billing-setup/SKILL.md) item 3), and in any case gives un-priced lines
+   without the derived children; use Place (`scripts/df_workshop/README.md` → *Why replay, not
+   DML*).
 2. **Expiry-bucket spread comes from `build_renewal_buckets.py`.** It computes the
    4 windows from *today*, back-solves `start = end − term + 1 day` (inclusive term),
    and shells out to the

@@ -36,9 +36,10 @@ results, 2026-11-11).
    drift later ([verification.md](verification.md)).
     - **Never reprice a renewal quote after its order is activated; until measured, treat amendment
       and ramped quotes the same.** Pricing of a renewal, amendment or cancellation line reads the
-      source asset's current state, and activation changes that state, so the rule covers all three
-      [Platform behaviour, traced in part]. Measured once on a renewal quote: a full reprice (every
-      line, pricing `Force`, configuration `Skip`) after the order was activated set the renewal
+      source asset's current state, and activation changes that state, so treat the rule as
+      covering all three (measured only on a renewal) [Platform behaviour, traced in part].
+      Measured once on a renewal quote: a full reprice (every line, pricing `Force`,
+      configuration `Skip`) after the order was activated set the renewal
       lines' totals and the quote total to 0 [Measured: 2026-11-12, 264, scratch, one org] — each
       lot became a −lot/+lot pair netting 0, and the order and assets were unchanged. Not measured
       on amendments or ramped quotes; why the reprice returned 0 is not traced. Read quote values

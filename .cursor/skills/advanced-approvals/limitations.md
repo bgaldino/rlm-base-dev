@@ -157,11 +157,10 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   range still held, and the step rejected there went to review again
   [Measured: 2026-11-12, 264, scratch]; the Approval Settings page was not read.
   Traced: Smart Approval is switched on per approval step by its Use Smart Approval input
-  (stored on the work item as Eligible for Smart Approval). The submission must also be
-  eligible: Smart Approval does not apply when the flow has a Decision path leading to an
-  approval step without entry conditions, or an evaluation-flow entry or exit determination
-  [Platform behaviour, traced]; Help gives the Decision case and the evaluation-flow entry
-  condition [Help: `ind.approvals_smart_approvals`]; the exit case is traced only. Help's
+  (stored on the work item as Eligible for Smart Approval). Of the eligibility rules above, the
+  trace confirms two: Smart Approval does not apply when the flow has a Decision path leading to
+  an approval step without entry conditions, or an evaluation-flow entry or exit determination
+  [Platform behaviour, traced; Help: `ind.approvals_smart_approval_limitations`]. Help's
   "Turn On Smart Approvals" step is not mapped to this input: not established whether an
   organization-wide setting also gates it.
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`

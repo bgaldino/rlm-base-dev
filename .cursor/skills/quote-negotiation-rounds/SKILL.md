@@ -300,9 +300,10 @@ Not measured; settle on a live org before relying on them:
 - Whether a mapped but non-editable, formula or output-only field survives a clone, and how a
   large (async) transaction clone carries fields ([deep-clone.md](deep-clone.md) → What carries over).
 - The standard create-order validations traced do not check the quote Status, so a Draft or
-  Rejected quote can be ordered if it passes the other checks (with Asynchronous Opportunity
-  Sync on, not marked `IsSyncing` with edits after its last sync or no sync time recorded,
-  see *Final round to order*; priced; valid configuration). Guard with your own validation
+  Rejected quote can be ordered if it passes the other preconditions listed under *Final round
+  to order*, step 2 (for example, with Asynchronous Opportunity Sync on, not marked
+  `IsSyncing` with edits after its last sync or no sync time recorded; priced; valid
+  configuration). Guard with your own validation
   rule or Flow [Platform behaviour, traced in part; split-order and industry paths not read].
   Not run live.
 - Whether the `deepCloneSalesTransaction` invocable needs anything beyond
