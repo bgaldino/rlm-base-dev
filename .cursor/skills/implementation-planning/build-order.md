@@ -30,7 +30,7 @@ Items in one stage can run in parallel unless an edge says otherwise `[inferred]
 
 | Stage | Build item | Needs | Edge source | Owner |
 |---|---|---|---|---|
-| 0 | Target, release, features, permissions | Nothing | [Setup order](../pricing-setup/SKILL.md#setup-order) (enablement first), [org-enablement-and-permissions.md](../pricing-setup/org-enablement-and-permissions.md) | [pricing-setup](../pricing-setup/SKILL.md) |
+| 0 | Target, release, features, permissions, for pricing and each in-scope domain (billing, usage, contracts) | Nothing | [Setup order](../pricing-setup/SKILL.md#setup-order) (enablement first), [org-enablement-and-permissions.md](../pricing-setup/org-enablement-and-permissions.md) | [pricing-setup](../pricing-setup/SKILL.md), plus each domain's enablement section (for example [usage-setup.md](../usage-consumption/usage-setup.md#enablement-and-permissions)) |
 | 1 | Custom fields the later layers map | Stage 0 | [dependency-ordering.md](../repo-integration/dependency-ordering.md#pre-deploy-numbered-directories): a context mapping needs its field | [repo-integration](../repo-integration/SKILL.md) |
 | 1 | Unit of measure classes and units, where the source meters anything | Stage 0 | [usage-setup.md](../usage-consumption/usage-setup.md#manual-sequence-help-indum_configure_usage_records) (steps 1 and 2 come before the usage product, step 3) | [usage-consumption](../usage-consumption/SKILL.md) |
 | 1 | Catalog: products, attributes, classifications, bundles, categories | Stage 0; units of measure, for usage products | [product-catalog-modeling](../product-catalog-modeling/SKILL.md) | [product-catalog-modeling](../product-catalog-modeling/SKILL.md) |
@@ -111,16 +111,21 @@ citations, has nothing here to track.
 The flow is ordered for one scripted build, so it also contains repo-specific items (demo
 catalog, personas, in-app learning, agents, community) that no customer graph needs unless
 asked. Where the flow and the graph disagree, the flow likely reflects a repo constraint
-(for example shared sample data) `[inferred]`. Order differs too: context definitions deploy
-with the core settings in the flow but sit at stage 3 in the graph, decision table definitions
-deploy and activate and procedures deploy before the catalog and price books in the flow but
-sit at stages 4 and 5, the flow activates existing price adjustment schedules before the
-catalog loads and loads their adjustment records with the pricing data after it while the
-graph puts schedules after the catalog, approval metadata and data
-deploy before the catalog in the flow but sit at stage 6, documents are built early in the flow
-but sit at stage 7, revenue settings are set late in the flow but sit at stage 5, and procedures
-are activated and procedure plans built after the stage 6 data (tax, billing, rating) in the
-flow but sit at stage 5. Decide per plan and record why.
+(for example shared sample data) `[inferred]`. Order differs too:
+
+- Context definitions deploy with the core settings in the flow but sit at stage 3.
+- Decision table definitions deploy and activate, and procedures deploy, before the catalog
+  and price books in the flow but sit at stages 4 and 5.
+- The flow activates existing price adjustment schedules before the catalog loads and loads
+  their adjustment records with the pricing data after it; the graph puts schedules after
+  the catalog.
+- Approval metadata and data deploy before the catalog in the flow but sit at stage 6.
+- Documents are built early in the flow but sit at stage 7.
+- Revenue settings are set late in the flow but sit at stage 5.
+- Procedures are activated and procedure plans built after the stage 6 data (tax, billing,
+  rating) in the flow but sit at stage 5.
+
+Decide per plan and record why.
 
 To re-verify the cross-check when the flow changes, list its steps (`cci flow info
 prepare_rlm_org`) or read the flow in `cumulusci.yml`, and compare names.
