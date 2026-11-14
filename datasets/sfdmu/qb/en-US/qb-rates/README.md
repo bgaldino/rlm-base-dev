@@ -103,6 +103,10 @@ Two more ordering rules for an ad-hoc reload:
 
 **File:** `scripts/apex/activateRateCardEntries.apex`
 
+Legacy, kept as a manual fallback. The flow activates with `activate_rates`, a REST task
+(`tasks/rlm_activate_rates.py`) that replaced this script after Apex DML on
+`RateCardEntry.Status` failed on Release 262 (see the task's docstring).
+
 Simple activation — queries all `RateCardEntry` records with `Status != 'Active'` and sets them to `Active`:
 
 ```apex
@@ -263,7 +267,7 @@ that allowlist as a conscious, documented choice.
 
 Same placement rule as QB-CMT-TKN-TIER below — the discount sits on the `Category=Usage` resources (where consumption is rated), and the `Category=Token` aggregate stays neutral. FLAT differs from TIER only in shape: **one** unbounded tier per resource instead of volume bands.
 
-| Resource (TOKEN-UOM) | Lower Bound | Upper Bound | Adjustment |
+| Resource (TOKEN-UOM unless noted) | Lower Bound | Upper Bound | Adjustment |
 |----------------------|-------------|-------------|------------|
 | UR-CPUTIME-TKN       | 0           | (unlimited) | 10%        |
 | UR-DATASTORAGE-TKN   | 0           | (unlimited) | 10%        |
@@ -274,7 +278,7 @@ Same placement rule as QB-CMT-TKN-TIER below — the discount sits on the `Categ
 
 The 3 volume tiers apply per usage resource (`UR-CPUTIME-TKN`, `UR-DATASTORAGE-TKN`), **not** the token resource — the platform allows only **one** RateAdjustmentByTier per `Category=Token` resource (`QB-TOKEN`), so `QB-TOKEN` carries a single 0% tier and the tiering lives on the Usage-category resources (which is where the token-commit model applies per-resource discounts).
 
-| Resource (TOKEN-UOM) | Lower Bound | Upper Bound | Adjustment |
+| Resource (TOKEN-UOM unless noted) | Lower Bound | Upper Bound | Adjustment |
 |----------------------|-------------|-------------|------------|
 | UR-CPUTIME-TKN       | 0           | 10000       | 10%        |
 | UR-CPUTIME-TKN       | 10000       | 25000       | 20%        |
@@ -287,7 +291,7 @@ The 3 volume tiers apply per usage resource (`UR-CPUTIME-TKN`, `UR-DATASTORAGE-T
 
 ### QB-CMT-TKN-BND (same tiers as QB-CMT-TKN-FLAT)
 
-| Resource (TOKEN-UOM) | Lower Bound | Upper Bound | Adjustment |
+| Resource (TOKEN-UOM unless noted) | Lower Bound | Upper Bound | Adjustment |
 |----------------------|-------------|-------------|------------|
 | UR-CPUTIME-TKN       | 0           | (unlimited) | 10%        |
 | UR-DATASTORAGE-TKN   | 0           | (unlimited) | 10%        |
@@ -377,7 +381,8 @@ qb-rates/
 
 This plan depends on the following having been loaded first:
 
-- **qb-pcm** — Product2 records, UnitOfMeasure, UnitOfMeasureClass, ProductSellingModel, Pricebook2
+- **qb-pcm** — Product2 records, UnitOfMeasure, UnitOfMeasureClass, ProductSellingModel
+- **qb-pricing** — Pricebook2 (the Standard Price Book)
 - **qb-rating** — UsageResource (with categories and token references), ProductUsageResource (PUR associations required for rate card entry context)
 
 ## Idempotency
