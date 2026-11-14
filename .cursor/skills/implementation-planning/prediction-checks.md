@@ -68,7 +68,9 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       quantities), a quote without the bundle goes unchecked, and where a container rule
       counts those lines, a root-only amendment without them logged an Error, which
       blocks ordering; amending those assets at quantity change 0 alongside the root
-      cleared it (`asset-lifecycle-changes` Quick Rule 7, one org). List the pricing
+      cleared it, and a root renewal carrying them as No Change lines at quantity 0
+      ordered with no message (`asset-lifecycle-changes` Quick Rule 7, one org; a renewal
+      without them wasn't run). List the pricing
       steps keyed on the bundle that the moved lines lose, and say how a change to the
       moved lines alone gets checked: such a change without the root raised no rule
       message and ordered (`asset-lifecycle-changes` Quick Rule 7, one org), so a rule that must hold there would need a
@@ -210,7 +212,9 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       one definition per group (`dro-plans` → `authoring-and-deployment.md`).
     - On each lifecycle order, list the items and steps it creates and each line's
       action: in one run, an amendment built the full step set (`dro-plans` →
-      `updates-and-runtime.md`), and unchanged lines came through as cancel and add. An item
+      `updates-and-runtime.md`). On one bundle amendment, some unchanged lines came through
+      as an add and a cancel netting to zero while another was No Change, so record each
+      line's action, quantity and fulfillment asset quantities on the first amendment. An item
       a later order must act on needs a scope that spans orders, on an assetizable technical
       product, and an Order-scope item recurs on every order `[inferred]` from Help (same
       file, An item across orders, measured on a later new-sale order).
