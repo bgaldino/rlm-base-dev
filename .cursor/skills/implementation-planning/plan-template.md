@@ -182,8 +182,8 @@ Then list **extensions to existing skills** separately.
   temporary folder.
 - [ ] Where the source tabulates fulfilment steps, every column (for example who, step
   kind, at-risk window, point of no return, start date, scope, count) is mapped or decided
-  ([concept-map.md](concept-map.md), Order fulfilment), and where a later new-sale
-  order must act on an item an earlier order created, its scope is a recorded decision
+  ([concept-map.md](concept-map.md), Order fulfilment), and where a later order must
+  act on an item an earlier order created, its scope is a recorded decision
   ([prediction-checks.md](prediction-checks.md) check 16).
 - [ ] Every row of the rule decision record names its fallback, or says why none is
   needed; list any row that doesn't.

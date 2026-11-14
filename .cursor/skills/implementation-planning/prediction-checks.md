@@ -210,9 +210,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     while Order, Bundle and Account give one per order, per bundle, or per account across
     its orders, merging the lines that decompose to the product (for Account, every line of
     the account `[inferred]`, `dro-plans` → `updates-and-runtime.md`), and Custom one per scope
-    identifier (unmeasured in `dro-plans`) (Help `ind.dro_decomposition_scope`). A later new-sale
-    order that carries a line decomposing to an Account-scope item got a line for it (one
-    org; on other lifecycle orders unmeasured; see the bullet on lines that come back). Take each instance's quantity from its
+    identifier (unmeasured in `dro-plans`) (Help `ind.dro_decomposition_scope`). Later orders can still carry lines for an Account-scope item (see the
+    bullets below). Take each instance's quantity from its
     quantity method: Always One gives each instance quantity 1 (Help
     `ind.product_catalog_create_simple_products`,
     `ind.dro_assetization_in_dynamic_revenue_orchestrator`; `dro-plans` →
@@ -238,20 +237,12 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       `updates-and-runtime.md`). On one bundle amendment, some unchanged lines came through
       as an add and a cancel netting to zero while another was No Change, so record each
       line's action, quantity and fulfillment asset quantities on the first amendment.
-    - Where a later new-sale order must act on an item an earlier order created, record
-      its scope as a decision: it needs a scope that spans orders on an assetizable
-      technical product `[inferred]` from Help (`dro-plans` → `updates-and-runtime.md`, An
-      item across orders). Account is the only standard scope Help gives across orders, and
-      every line of the account then feeds one instance `[inferred]` (recount; Help's
-      bundle-child scope warning may apply, which `dro-plans` → `authoring-and-deployment.md`
-      leaves unmeasured for technical outputs); an Order-scope item can't be assetized. Where
-      the item must also stay one per sold line, the cross-order-scope inference is
-      untested (Account would merge the lines): spike both Order Line Item and a custom
-      scope keyed on a value the later order's line shares with the original, such as the
-      asset (same file). On
-      the measured amendment and cancellation, lines acted on fulfillment assets an earlier
-      order created, with their scopes unrecorded, so those routes neither show nor rule
-      out that a cross-order scope is needed.
+    - Where a later order must act on an item an earlier order created, record the item's
+      scope as a decision and check the line actions on the first such order. `dro-plans`
+      → `updates-and-runtime.md` (An item across orders) holds what one later new-sale
+      order showed (one org), the cross-order-scope inference `[inferred]` from Help, and
+      what it leaves unmeasured (an item that must stay one per sold line, custom scopes,
+      the scopes behind the measured amendment and cancellation); spike any the plan relies on.
     - Count the lines that come back on later orders: an Account-scope assetizable item got
       Amend and another got No Change (`dro-plans` → `updates-and-runtime.md`, An item
       across orders, one org; Help sets Amend where a line differs from its fulfillment
