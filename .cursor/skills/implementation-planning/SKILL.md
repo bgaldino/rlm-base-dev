@@ -3,15 +3,14 @@ name: implementation-planning
 description: >-
   Plan a Revenue Cloud implementation from a customer's commercial source (a
   quoting or costing spreadsheet, a price list export, a public web store, written
-  policies, a PRD or an RFP) before anything is built. Covers intake questions, inventorying the source, mapping each
-  concept to Revenue Cloud, deciding for each rule whether a repo skill, the
-  release's Help and developer-guide snapshot, or a live org settles it, golden tests
-  from the source's own worked examples, an end-to-end acceptance chain, decisions,
-  a cross-domain build order, phases and gates, the skills
-  each phase reads, parallel build sessions, skill gaps, and a ledger that measures
-  the plan's predictions against what the build finds. Use the domain skills
-  (pricing-setup, pricing-procedures, constraint-models, sfdmu-data-plans, and so
-  on) to build what the plan describes.
+  policies, a PRD or an RFP) before anything is built. Covers intake questions, inventorying the
+  source, mapping each concept to Revenue Cloud, deciding for each rule whether a repo skill, the
+  release's Help and developer-guide snapshot, or a live org settles it, golden tests from the
+  source's own worked examples, an end-to-end acceptance chain, decisions, a cross-domain build
+  order, phases and gates, the skills each phase reads, parallel build sessions, skill gaps, and a
+  ledger that measures the plan's predictions against what the build finds. Use the domain skills
+  (pricing-setup, pricing-procedures, constraint-models, sfdmu-data-plans, and so on) to build what
+  the plan describes.
 ---
 
 # Implementation Planning — From a Commercial Source to a Revenue Cloud Build Plan
@@ -342,8 +341,9 @@ of the planner), review in three steps:
 ### 9. Measure the build against the plan
 
 Keep a verification ledger with [`scripts/ledger.py`](scripts/ledger.py); its `--help`
-has the commands. Run it from the plan's folder; for a private plan that folder is in
-the pack's repo, since the ledger copies the plan's rows.
+has the commands. Run it from the plan's folder, by its full path in the Foundations clone
+(`.cursor/skills/implementation-planning/scripts/ledger.py`); for a private plan that folder
+is in the pack's repo, since the ledger copies the plan's rows.
 - **Freeze the plan at approval.** Copy it to `plan-as-approved.md` and commit the copy;
   `init --plan` reads that copy, as do the converter's plan-anchor tests. `plan.md` then
   tracks the build: revise it to as-built, with each change citing the ledger ID or

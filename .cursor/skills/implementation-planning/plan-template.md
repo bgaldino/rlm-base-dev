@@ -129,7 +129,8 @@ traced).
 
 Dependencies on one line, for example `P1 → P2 → P3a → (P3b ∥ P4) → P5 → P6 → P7 → P8 → P9`.
 Each phase opens with an unbulleted bold label naming it (P2's reads
-**P2 Live spikes**; the ledger finds the spike table by it), then bullets:
+**P2 Live spikes**; the ledger finds the spike table by it), then bullets. A bold line that
+isn't a bullet ends the ledger's reading of that phase, so a spike table after it is lost:
 - the work items,
 - **Skills:** the skills and sub-files to read first,
 - the **Gate:** what must pass, and on which org.

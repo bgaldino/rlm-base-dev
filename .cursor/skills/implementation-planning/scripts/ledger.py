@@ -2,9 +2,11 @@
 """Verification ledger: how a build affirms or refutes its plan's predictions.
 
 Part of the implementation-planning skill (SKILL.md step 9). Standard library only.
-Run from the folder that holds the plan:
+Run from the folder that holds the plan, by the script's full path in the Foundations clone
+(.cursor/skills/implementation-planning/scripts/ledger.py). The ledger defaults to
+verification/ledger.json under that folder; --ledger PATH (before the command) moves it:
 
-    python3 ledger.py init --plan plan-as-approved.md [--blind <blind plan>] [--intake D1-D6] [--owner D7,D8]
+    python3 ledger.py [--ledger PATH] init --plan plan-as-approved.md [--blind <blind plan>] [--intake D1-D6] [--owner D7,D8] [--rebuild]
     python3 ledger.py record <ID> <outcome> "<evidence>" [--path "<what was built>"] [--skill "<file: claim>"]
     python3 ledger.py report     # writes scorecard.md next to the ledger
     python3 ledger.py truth      # writes truth.json: every measured item, predicted vs measured
@@ -57,6 +59,13 @@ MARKERS = {
 LABELS = ("Repo (inferred)", "Build (custom)", "Repo", "Snapshot", "Live")
 
 
+def read_text(path):
+    try:
+        return Path(path).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        sys.exit(f"{path}: cannot read ({e})")
+
+
 def heading_level(line):
     m = re.match(r"(#{1,6}) ", line)
     return len(m.group(1)) if m else 0
@@ -70,11 +79,11 @@ def section_lines(lines, marker):
     (the next phase), while bulleted bold lines ("- **Gate:**") stay inside it, and so do
     a phase label's own sub-labels ("**P2a" and "**P2b" under "**P2 ...").
     Overlapping sections are read once."""
-    want = marker.lower()
+    named = re.compile(rf"(^|[\s*#]){re.escape(marker)}\b", re.I)
     keep = set()
     for start, line in enumerate(lines):
         level = heading_level(line)
-        if want not in line.lower() or not (level or line.startswith("**")):
+        if not named.search(line) or not (level or line.startswith("**")):
             continue
         phase = re.match(r"\*\*(P\d+)(?![\w])", line)
         for i in range(start + 1, len(lines)):
@@ -171,10 +180,6 @@ def id_set(spec):
     return out
 
 
-def norm(line):
-    return re.sub(r"\s+", " ", line).strip()
-
-
 def prediction(header, row):
     if len(header) == len(row):
         return dict(zip(header[1:], row[1:]))
@@ -183,7 +188,7 @@ def prediction(header, row):
 
 def read_json(path):
     try:
-        return json.loads(Path(path).read_text(encoding="utf-8"))
+        return json.loads(read_text(path))
     except ValueError as e:
         sys.exit(f"{path}: not valid JSON ({e}); restore it from a backup or version control")
 
@@ -212,9 +217,12 @@ def init(args):
     meta = old.get("meta", {})
     intake = id_set(args.intake) if args.intake is not None else set(meta.get("intake", []))
     owner = id_set(args.owner) if args.owner is not None else set(meta.get("owner", []))
-    blind_path = args.blind or meta.get("blind")
-    plan = items(Path(args.plan).read_text(encoding="utf-8"), args.plan)
-    blind = items(Path(blind_path).read_text(encoding="utf-8"), blind_path) if blind_path else None
+    blind_path = str(Path(args.blind).resolve()) if args.blind else meta.get("blind")
+    plan = items(read_text(args.plan), args.plan)
+    blind = items(read_text(blind_path), blind_path) if blind_path else None
+    unknown = sorted((intake | owner) - set(plan["decision"]))
+    if unknown:
+        print(f"warning: not decision rows in the plan, so ignored: {', '.join(unknown)}", file=sys.stderr)
 
     ledger = {"meta": {"plan": args.plan, "blind": blind_path,
                        "intake": sorted(intake), "owner": sorted(owner)},
@@ -228,7 +236,7 @@ def init(args):
             return "blind"
         if iid not in blind[kind]:
             return "added"
-        return "blind" if norm(blind[kind][iid][2]) == norm(line) else "edited"
+        return "blind" if cells(blind[kind][iid][2]) == cells(line) else "edited"
 
     def entry(kind, iid, line, pred, prev):
         origin = origin_of(kind, iid, line)
@@ -250,7 +258,7 @@ def init(args):
             seen.add(key)
             prev = old["items"].get(key)
             if prev and not args.rebuild:
-                if norm(prev["line"]) != norm(raw):
+                if cells(prev["line"]) != cells(raw):
                     print(f"warning: {key} changed in the plan since it was first read; kept as "
                           "first read (--rebuild re-reads it)", file=sys.stderr)
                 ledger["items"][key] = entry(kind, iid, prev["line"], prev["prediction"], prev)
@@ -297,7 +305,7 @@ def label(item):
     by = next((v for k, v in item["prediction"].items() if "decided by" in k.lower()), "")
     by = re.sub(r"[*`]", "", by)
     found = []
-    for m in re.finditer("|".join(re.escape(x) for x in LABELS), by):
+    for m in re.finditer(r"(?<!\w)(?:" + "|".join(re.escape(x) for x in LABELS) + r")(?!\w)", by):
         if m.group(0) not in found:
             found.append(m.group(0))
     return " + ".join(found) or "(none)"
@@ -335,11 +343,13 @@ def report(args):
                          + " | ".join(str(outs.count(x)) for x in OUTCOMES[1:] + ("pending",)) + " |")
 
     lines += ["", "## Refuted or modified", ""]
+    refuted = []
     for key, v in ledger["items"].items():
         if v["outcome"] in ("refuted", "modified") and v["evidence"]:
             last = v["evidence"][-1]
-            lines.append(f"- **{key}** ({v['origin']}): {v['outcome']}. {last.get('evidence', '')}"
-                         + (f" Path: {last['path_taken']}." if "path_taken" in last else ""))
+            refuted.append(f"- **{key}** ({v['origin']}): {v['outcome']}. {last.get('evidence', '')}"
+                           + (f" Path: {last['path_taken']}." if "path_taken" in last else ""))
+    lines += refuted or ["None."]
 
     claims = [(key, e) for key, v in ledger["items"].items() for e in v["evidence"] if "skill_claim" in e]
     lines += ["", "## Skill claims to settle", ""]
@@ -377,6 +387,8 @@ def score(args):
         sys.exit(f"no truth file at {truth_path}; run truth first")
     tr = read_json(truth_path)
     judged = read_json(args.judgments)
+    if not isinstance(judged, dict):
+        sys.exit(f"{args.judgments}: expected a JSON object of {{truth key: {{label, where, why}}}}")
     missing, extra = sorted(set(tr) - set(judged)), sorted(set(judged) - set(tr))
     if missing or extra:
         sys.exit(f"judgments must cover exactly the measured items; missing {missing}, extra {extra}")

@@ -133,6 +133,21 @@ class LedgerTest(unittest.TestCase):
         self.run_ledger("init", "--plan", "plan.md", "--owner", "")
         self.assertEqual(self.ledger()["decision:D2"]["origin"], "blind")
 
+    def test_blind_plan_is_remembered_across_inits(self):
+        self.init()
+        self.run_ledger("init", "--plan", "plan.md", "--owner", "D2")
+        items = self.ledger()
+        self.assertEqual((items["decision:D3"]["origin"], items["decision:D4"]["origin"]), ("edited", "added"))
+        self.assertIn("At the end", items["decision:D3"]["blind_prediction"])
+
+    def test_unknown_intake_id_warns_and_missing_plan_fails(self):
+        p = self.init("--intake", "R-01")
+        self.assertIn("not decision rows", p.stderr)
+        self.assertIn("R-01", p.stderr)
+        p = self.run_ledger("init", "--plan", "missing.md")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("cannot read", p.stderr)
+
     def test_heading_case_and_mentions(self):
         (self.dir / "plan.md").write_text(PLAN.replace("### 3.10 Rule decision record",
                                                        "### 3.10 Rule Decision Record"), encoding="utf-8")
@@ -178,7 +193,7 @@ class LedgerTest(unittest.TestCase):
         (self.dir / "plan.md").write_text(PLAN.replace(
             "| R-02 | Live (c) | Amendment | exact |\n",
             "\nPricing rules:\n\n| Rule | Decided by | Native feature and fallback | Exact vs source? |\n"
-            "|---|---|---|---|\n| R-02 | Live (c) | Amendment | exact |\n"))
+            "|---|---|---|---|\n| R-02 | Live (c) | Amendment | exact |\n"), encoding="utf-8")
         self.init()
         self.assertEqual(sorted(k for k in self.ledger() if k.startswith("rule:")),
                          ["rule:R-01", "rule:R-02", "rule:R-03"])
@@ -227,7 +242,7 @@ class LedgerTest(unittest.TestCase):
                             "--skill", "asset-lifecycle-changes: claim")
         self.assertEqual(p.returncode, 0, p.stderr)
         (self.dir / "plan.md").write_text(PLAN.replace("| R-02 | Live (c) | Amendment |",
-                                                       "| R-02 | Live (c) | Rewritten |"))
+                                                       "| R-02 | Live (c) | Rewritten |"), encoding="utf-8")
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertIn("rule:R-02 changed in the plan", p.stderr)
         item = self.ledger()["rule:R-02"]
@@ -270,7 +285,7 @@ class LedgerTest(unittest.TestCase):
         self.assertIn("| Repo (inferred) + Live | 1 |", card)
         self.assertIn("**rule:R-02** (blind): refuted. 90.00 Path: fallback.", card)
         self.assertIn("**rule:R-02** (refuted): s: c", card)
-        self.assertNotIn("X-01", json.dumps(self.ledger()))
+        self.assertEqual([k for k in self.ledger() if k.startswith("spike:")], ["spike:S-1"])
 
     def test_truth_and_score(self):
         self.init()
