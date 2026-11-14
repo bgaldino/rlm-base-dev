@@ -471,11 +471,15 @@ For skill-authoring changes, run the applicable checks:
 ```bash
 python scripts/ai/skill_manifest.py --check
 python scripts/ai/skill_manifest.py --list-skills foundations
+python scripts/ai/check_skill_staleness.py
 python scripts/validate_sfdmu_v5_datasets.py
 ```
 
 Also review:
 
+- `check_skill_staleness.py` findings: repoint stale `docs/salesforce/<N>/` links, re-verify or
+  mark older pins `not re-verified`, fix Help ids; `<!-- staleness: allow -->` (one line) only
+  for a deliberate older-release citation.
 - `git diff --stat` for unintended generated or runtime files.
 - `AGENTS.md` Skill Index list and Script Reference table, plus `wc -c AGENTS.md`
   against the 25,000-byte repository ceiling; check a fresh client session for
