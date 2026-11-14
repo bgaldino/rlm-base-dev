@@ -123,7 +123,7 @@ Route by the prefix of a 264 Help article id (`docs/salesforce/264/help/articles
 | `ind.product_` | [product-catalog-modeling]; configurator rules: [constraint-models] |
 | `ind.qocal_` | [transaction-line-editor], [quote-negotiation-rounds], [asset-lifecycle-changes], [ramped-quotes] as the topic fits; API calls: [rlm-business-apis] |
 | `ind.billing_` setup (policies, treatments, milestones, terms) | [billing-setup] |
-| `ind.billing_` runtime (invoicing, tax, payments, memos) | No owner yet; see revenue-cloud-docs |
+| `ind.billing_` runtime (invoicing, tax, payments, memos) | [billing-operations] |
 | `ind.rm_`, `ind.um_` (rate, usage mgmt) | [usage-consumption] (demos); setup: no owner yet |
 | `ind.dro_` | [dro-plans] |
 | `ind.approvals_` | [advanced-approvals] |
@@ -153,6 +153,7 @@ Cross-cutting topics:
 [ramped-quotes]: ramped-quotes/SKILL.md
 [rlm-business-apis]: rlm-business-apis/SKILL.md
 [billing-setup]: billing-setup/SKILL.md
+[billing-operations]: billing-operations/SKILL.md
 [usage-consumption]: usage-consumption/SKILL.md
 [dro-plans]: dro-plans/SKILL.md
 [advanced-approvals]: advanced-approvals/SKILL.md
