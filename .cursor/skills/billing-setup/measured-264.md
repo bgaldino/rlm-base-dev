@@ -45,12 +45,12 @@ and activated, and later amendments of that contract ordered and activated (two 
 | M10 | Org state after a full build | Active: `RLM_Order_to_Billing_Schedule_Flow`. Inactive: the standard `o2bsflows` (*Order To Billing Schedule Flow*). Three active policies, 15 active treatments (all with Change Billing Frequency), two active payment terms, no billing milestone plans |
 | M11 | One-time service lines as components of a bundle, each with `MilestonePlan` and *Milestone Billing Treatment* in `BillingTreatmentId`, placed with `configurationMethod: Force` and configuration rules on (second org, see Scope) | Place returned success, but `BillingFrequency` was stored blank on those lines; `BillingTreatmentId` was kept. Read the frequency back after placing; a success response doesn't mean it was kept. The save check refuses Milestone Plan on non-One-Time lines and accepts a treatment with a blank frequency, so it neither explains nor rules out a silent drop; cause not established [Platform behaviour, traced in part]. A later Skip PATCH was run on a third org, see Scope and SKILL Quick Rule 4 |
 
-M2 and M3 together narrow a statement in the qb-billing README, which says a Term Defined
-line needs an explicit `BillingTreatmentId` with Change Billing Frequency
+M2 and M3 are the measured basis for the qb-billing README limiting its treatment
+requirement to a frequency that differs from the pricing term
 [Repo: `datasets/sfdmu/qb/en-US/qb-billing/README.md`]. In M2 a line whose frequency
 matched its pricing term was accepted without one; the treatment was needed only to differ
 (M3). Only these two frequency-to-model pairs were run, and every treatment in the org had
-Change Billing Frequency selected (M10), so M2 says nothing about the README's flag-off case.
+Change Billing Frequency selected (M10), so M2 says nothing about a flag-off case.
 
 ## Test
 

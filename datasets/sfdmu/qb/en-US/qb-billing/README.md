@@ -134,8 +134,8 @@ is `TermDefined` or `Evergreen`:
 When the SellingModelType is Evergreen or Term-Defined, BillingFrequency can't be null
 ```
 
-…but the platform only lets you set it when the line's `BillingTreatment` has
-`CanChangeBillingFrequency = true`:
+…but a frequency that differs from the pricing term can be set only when the line's
+`BillingTreatment` has `CanChangeBillingFrequency = true`:
 
 ```
 Update the Billing Treatment "<name>" to make sure that you can change the
@@ -153,8 +153,8 @@ back on.
 That line also needs an explicit `BillingTreatmentId`; the reference **and** the
 flag are both required. Omitting the reference produces the *"Add a Billing
 Treatment…"* variant of the same error. A frequency that matches the pricing term
-was later accepted with no treatment on the line; see the billing-setup skill,
-item 3.
+was later accepted with no treatment on the line (measured with the flag on; the
+traced rule in the billing-setup skill, item 3, needs no treatment either way).
 
 This is why every treatment ships with the flag enabled. It is exercised by
 `scripts/build_quote_to_asset.py`, which builds a backdated quote → order →

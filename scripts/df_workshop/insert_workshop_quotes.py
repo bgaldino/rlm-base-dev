@@ -10,7 +10,8 @@ Consumes ``datasets/df_workshop/workshop_quotes.json`` (produced by
   3. Re-create each quote through Place Sales Transaction
      (``POST /connect/rev/sales-transaction/actions/place``) so the platform
      generates + prices the line items, attributes and ramp segments. Direct
-     QuoteLineItem DML is not viable (see extract_workshop_quotes.py).
+     QuoteLineItem DML is not viable: un-priced lines, and a TermDefined line with a
+     differing frequency needs a treatment (see extract_workshop_quotes.py).
   4. (--apply-config) Apply the bucket-B setup toggles: assign the Agentforce
      Coworker Admin perm set to the running user, and flag an active DISTI pricing
      procedure. Fails loudly if a toggle cannot be established (perm set absent, or

@@ -101,8 +101,9 @@ clone, and reprices against it.
 
 QuoteLineItem / QuoteLineItemAttribute / QuoteLineDetail / ramp segments are
 **derived** — the platform generates them when a quote is created and priced.
-Direct `QuoteLineItem` DML is rejected for TermDefined products
-(BillingFrequency ⇄ BillingTreatment coupling) and produces un-priced,
+Direct `QuoteLineItem` DML is rejected for a TermDefined line whose billing
+frequency differs from the pricing term, unless a treatment allows it
+(BillingFrequency ⇄ BillingTreatment coupling), and produces un-priced,
 inconsistent lines even where accepted. So the quotes must be **re-created
 through `POST /connect/rev/sales-transaction/actions/place`** (Place Sales
 Transaction) and priced (`pricingPref: system`), letting the org generate the
