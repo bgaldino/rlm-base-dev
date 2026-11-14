@@ -291,7 +291,7 @@ SELECT Id, Status FROM ApprovalSubmission WHERE RelatedRecordId = '<NEW>'
 
 ## Open questions
 
-Not measured; settle on a live org before relying on them:
+Not settled yet; check them on a live org before relying on them:
 
 - Whether Asynchronous Opportunity Sync is on by default in a fresh 264 org. After this repo's
   build it read on [Measured: 2026-11-13, 264, scratch, one org], which the `post_utils` settings
