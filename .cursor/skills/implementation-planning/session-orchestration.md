@@ -6,7 +6,8 @@ Read this when a plan splits the build across sessions. Parent:
 ## Layout
 
 - **Main session.** Owns the plan, the design model, the golden tests, extraction,
-  integration, the P6 work (lifecycle, billing, usage, contracts and fulfilment), the pack and every gate.
+  integration, the P6 work (lifecycle, billing, usage, contracts and fulfilment; stage 6
+  items a plan builds in P4 belong to the pricing session unless the plan names another owner), the pack and every gate.
 - **Spike sessions.** Group the live spikes by area, for example pricing and
   lifecycle. Each session runs on its own kept org. Nothing from a spike goes into the
   model or the pack; its results go in `spikes/<area>/`, and the session reports each
@@ -42,8 +43,8 @@ Dependencies decide what runs in parallel. A typical chain:
 extraction → (probe spikes ∥ catalog) → (configuration ∥ pricing) → (lifecycle spikes ∥ negotiation) → lifecycle → pack
 ```
 
-The configuration gate places a quote, so it loads the pricing session's price book
-entries, or minimal ones of its own, and runs the refresh first ([build-order.md](build-order.md)). The lifecycle spikes start when pricing's standard-price goldens pass, not when the
+The configuration gate places a quote, so it waits for the pricing session's price book
+entries `[inferred]` and the refresh ([build-order.md](build-order.md)). The lifecycle spikes start when pricing's standard-price goldens pass, not when the
 whole pricing phase ends. The catalog runs beside the probe spikes only when none of them chooses a route the
 catalog or model carries; otherwise it waits for that spike, or builds every route.
 

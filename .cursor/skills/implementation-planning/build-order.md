@@ -16,7 +16,7 @@ only the stages their must-hits need, on their own org. A test that places a quo
 (a P2a spike, or P3's configuration test: a bundle test places the quote with rules on,
 [PCM load facts](../product-catalog-modeling/catalogs-and-loading.md#pcm-load-facts-264) e)
 first needs price book entries for its products `[inferred]` and the refresh newly loaded
-products need (fact f, measured); the priced transaction (stage 8) is first gated at P4. A P2b chain whose fulfilment its must-hits count loads its
+products need (fact f, measured); the priced transaction (stage 8) is first gated at P4. A P2b chain with a must-hit that counts fulfilment loads its
 fulfilment configuration before its first order (a submitted plan doesn't pick up later configuration,
 `dro-plans`); load the other stage 6 configuration its orders read first too `[inferred]`. Where the source shows tax or usage
 rates on the quote, or its quote lines bill on a cadence other than the pricing term or by
@@ -103,7 +103,7 @@ citations, has nothing here to track.
 | 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Existing schedules are activated before the catalog loads (some stay inactive on purpose); the adjustment records load with the pricing data after it |
 | 5 (revenue settings) | `prepare_revenue_settings` | Runs late, after constraints and guided selling |
 | 6 (fulfillment) | `prepare_dro` | After pricing data |
-| 6 (tax) | `prepare_tax` | Before billing; billing reads its legal entity. It also turns estimated tax on when the `quote_est_tax` and `tax` flags are on and an active tax policy exists; on a fresh org `prepare_core` leaves it off, since no active policy exists yet |
+| 6 (tax) | `prepare_tax` | Before billing; billing reads its legal entity. It also turns estimated tax on, when the `quote_est_tax` and `tax` flags are on and an active tax policy exists |
 | 6 (billing, usage) | `prepare_billing`, `prepare_rating` | The flow runs rating after billing; the rating data plan loads its own usage resource billing policies (`datasets/sfdmu/qb/en-US/qb-rating/README.md`) |
 | 5 (procedure plans) | `prepare_procedureplans` | After expression-set activation and the approvals pricing overlay |
 | 6 (contracts) | `prepare_clm` | |
