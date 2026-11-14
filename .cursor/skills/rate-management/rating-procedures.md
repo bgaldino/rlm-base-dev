@@ -87,12 +87,13 @@ are listed in [Help: `ind.rm_rating_discovery_procedures`].
 
 ## Real-time data
 
-Since Summer '25 an admin may choose real-time data over decision tables for some
-elements (Get Binding Object Rate Adjustment and Rate Card Entries, and the Negotiated
-elements, Commitment Rate Adjustment). Real-time is accurate but slower; tables are faster
-but need refresh when rates change. Real-time does not support "not matches" or
-"contains" [Help: `ind.rm_implementation_considerations`]. Which this repo uses on 264 is
-not measured; check the org.
+Since Summer '25 an admin may choose real-time data over decision tables for six elements:
+Get Binding Object Rate Adjustment and Get Binding Object Rate Card Entries (rating
+discovery); Negotiated Rate Card Entries, Negotiated Base Rate, Negotiated Volume-Based Rate
+Adjustment and Commitment Rate Adjustment (negotiable rating). Real-time is accurate but
+slower; tables are faster but need refresh when rates change. Real-time does not support "not
+matches" or "contains" [Help: `ind.rm_implementation_considerations`]. Which this repo uses on
+264 is not measured; check the org.
 
 ## Waterfall
 

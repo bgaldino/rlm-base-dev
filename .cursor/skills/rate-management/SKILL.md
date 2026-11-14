@@ -202,8 +202,8 @@ Adjustment by Volume/Tier/Attribute Entries 2 for non-negotiable rates; asset an
 object variants plus Commitment-based Rate Adjustment for negotiable rates
 [Help: `ind.rm_prereqs_to_build_rating_procedures`]. Discovery uses resolution tables
 [Help: `ind.rm_rating_discovery_procedures`]. Help offers real-time data as an
-alternative to decision tables for some elements, trading performance for freshness;
-real-time does not support "not matches" or "contains"
+alternative to decision tables for six elements (listed in rating-procedures.md), trading
+performance for freshness; real-time does not support "not matches" or "contains"
 [Help: `ind.rm_implementation_considerations`].
 
 In this repo the lists are `dt_rating_decision_tables` and
