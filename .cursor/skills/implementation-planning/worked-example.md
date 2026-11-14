@@ -75,10 +75,11 @@ State the arithmetic, from the model and the decisions:
   cardinality rule the owner states (see the two kinds of
   [cardinality](../product-catalog-modeling/bundles-and-cardinality.md#two-kinds-of-cardinality)).
   Which of the two the run produces is read from the org, not assumed.
-- Fulfillment instances for the installation: an order of 10 kits carries one installation line
-  of quantity 10. With Order Line Item scope and `AlwaysOne` that is one technical item, not 10;
-  the customer wants 10 visits, so the quantity behavior and step scope that give 10 are part of
-  D10 and the count stays open until a run shows it
+- Fulfillment instances for the installation: suppose an order of 10 kits carries one
+  installation line of quantity 10 (an assumption to log; installation could instead be one
+  line per kit or a kit component). With Order Line Item scope and `AlwaysOne` that is one
+  technical item, not 10; the customer wants 10 visits, so the quantity behavior and step
+  scope that give 10 are part of D10 and the count stays open until a run shows it
   ([Decomposed Line Items](../dro-plans/authoring-and-deployment.md#decomposed-line-items)).
 - Yearly invoices for one monitoring line: 36 months / 12 = 3. Confirm the schedule count
   in the org.
