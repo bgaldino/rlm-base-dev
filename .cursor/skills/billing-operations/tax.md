@@ -5,7 +5,8 @@ estimated vs actual tax. Parent: [SKILL.md](SKILL.md). A read of Help; not measu
 
 ## How an invoice line gets taxed
 
-1. The product's **tax policy** passes to the order product and on to the billing schedule.
+1. The product's **tax policy** passes to the order product and on to the billing schedule
+   [Help: `ind.billing_tax_policies_and_treatments_create`].
 2. The policy's **treatment selection** picks the treatment [Help:
    `ind.billing_tax_policies_and_treatments_create`]:
    - Default: the policy's default treatment, else the org's default tax treatment.
@@ -119,9 +120,10 @@ Status Posted, import it, check it points at the right lines, edit if needed, th
 
 `qb-tax` loads legal entities, a tax engine and provider, tax policies and treatments, and
 assigns the policy to products. Its engine reads a mock-tax named credential, so what the
-repo builds is a test setup, not a real tax provider
-[Repo: `datasets/sfdmu/qb/en-US/qb-tax/README.md`, `TaxEngine.csv`]. The build uses the
-`prepare_tax` flow. Tax results from it against a real engine: not measured.
+repo builds is a test setup, not a real tax provider [Repo:
+`datasets/sfdmu/qb/en-US/qb-tax/README.md`, `TaxEngine.csv`]. The build uses the
+`prepare_tax` flow [Repo: `cumulusci.yml` → `prepare_tax`]. Tax results from it against a
+real engine: not measured.
 
 ## Read-backs
 

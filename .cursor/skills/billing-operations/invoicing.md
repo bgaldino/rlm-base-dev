@@ -5,8 +5,9 @@ Read this when choosing how invoices are produced or setting a run's dates. Pare
 
 ## Where billing schedules come from
 
-- Order to Billing Schedule flow: orders in this org; the repo's route
-  [Help: `ind.billing_schedules_from_orders`].
+- Order to Billing Schedule flow: orders in this org
+  [Help: `ind.billing_schedules_from_orders`]; the repo's route
+  [Repo: `cumulusci.yml` → `prepare_billing`].
 - Create Billing Schedules for Orders API: the same, called from code
   [Help: `ind.billing_schedules_from_transactions_create`].
 - Create Standalone Billing Schedules API: external transactions or any object
@@ -96,9 +97,9 @@ Stages of a run: select schedules and assign grouping keys; process keys in para
 (finished invoices are usable before the run ends); calculate tax (estimated on draft,
 actual on posted); update schedules and groups for the next cycle; write the run summary
 [Help: `ind.billing_invoice_batch_run`]. Run status is Completed or Failed; add the status
-subtype field to the layout to see the stage. Posting later: Invoice Draft to Posted
-Status API, the Post Draft Invoice action, or the batch version for a credit application
-[Help: `ind.billing_invoices_apis_and_actions`].
+subtype field to the layout to see the stage [Help: `ind.billing_invoice_batch_run`].
+Posting later: Invoice Draft to Posted Status API, the Post Draft Invoice action, or the
+batch version for a credit application [Help: `ind.billing_invoices_apis_and_actions`].
 
 Before the first run, find active record-triggered flows and Apex triggers on billing
 objects and make them asynchronous; recovery of stranded invoices is in the same article
@@ -158,8 +159,8 @@ Operations User; other statuses need a cloned Billing Admin set with the Delete 
 Invoice Lines permission, and Help warns of data integrity issues
 [Help: `ind.billing_invoice_delete`].
 Gapless numbering for invoices and credit memos is a sequence policy
-[Help: `ind.billing_sequential_numbering_for_invoices_configure`]; the repo creates them in
-`tasks/rlm_billing.py`.
+[Help: `ind.billing_sequential_numbering_for_invoices_configure`]; the repo creates them
+[Repo: `tasks/rlm_billing.py`].
 
 ## Read-backs
 

@@ -29,7 +29,7 @@ From Setup, Billing Settings [Help: `ind.billing_setup_payments_configure`,
   with the default flow used to apply the credit memo to invoices.
 - Credit, Payment and Refund Application Level: **Line Level** (default) or **Header
   Level**. Decide this early: it changes where balances live and how header tax works
-  ([tax.md](tax.md)).
+  ([tax.md](tax.md)) [inferred from Help: `ind.billing_setup_header_tax_enable`].
 - Rule-Based Credit and Payment Application, with an order and rules (below).
 - Level 2 and Level 3 data support, Share Payment Accounts.
 
@@ -67,8 +67,8 @@ How a payment or credit memo settles an invoice, when more than one invoice is o
   Invoices, Prioritize Highest Balance Invoices. Beyond 2,000 invoices only the first rule
   applies. If both Rule-Based Credit and Payment Application and Apply Credits to Posted
   Invoices are on, the rule-based feature wins.
-- Match ID ignores a referenced invoice that is Draft, has zero balance, or differs in legal
-  entity, account or currency, and falls to the next rule
+- Match ID ignores a payment's referenced invoice that is Draft, has zero balance, or
+  differs in legal entity, account or currency, and falls to the next rule
   [Help: `ind.billing_rules_based_credits_payments_application`].
 
 Decision: choose Match ID when customers pay with a reference, Match Balance or oldest
@@ -120,8 +120,9 @@ Debit Memo Lines tabs set to Default On [Help: `ind.billing_debit_memo_create`].
 [Help: `ind.billing_refunds_overview`, `ind.billing_refund_orchestration`,
 `ind.billing_unreferenced_refunds`, `ind.billing_issue_unreferenced_refund`]. Header-level
 application refunds against the memo; line-level spreads across lines with an open balance,
-largest first. Ask whether the customer wants refunds to cash automatically or credit
-balances held [inferred from Help].
+largest first [Help: `ind.billing_unreferenced_refunds`,
+`ind.billing_issue_unreferenced_refund`]. Ask whether the customer wants refunds to cash
+automatically or credit balances held [inferred from Help].
 
 ## Write-off, disputes, collections
 

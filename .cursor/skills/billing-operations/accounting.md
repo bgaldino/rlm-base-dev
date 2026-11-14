@@ -123,5 +123,6 @@ SELECT Id, LegalEntityAccountingPeriodId FROM GeneralLdgrAcctPrdSummary
 
 Check: every legal entity used by a treatment has an Open period covering the invoice date;
 each transaction type per entity has an assignment rule; a posted invoice produces a
-balanced pair of journals; a closed period rejects new postings or shows its closing balances
+balanced pair of journals; a closed period's closing balances become the next period's
+opening balances [Help: `ind.billing_legal_entity_accounting_period_closure_importance`]
 (behavior of postings into a closed period: not measured).

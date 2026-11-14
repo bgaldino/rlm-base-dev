@@ -32,17 +32,19 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
    in billing-setup. Orders need a bill-to contact, billing address and shipping address, or
    activation fails [Help: `ind.billing_setup_enable`].
 2. **Invoices come from schedules, not orders.** A run picks schedules whose next billing
-   date is on or before the target date and that are ready for invoicing; the invoice date
-   is stamped on the invoice and drives tax
+   date is on or before the target date and that match the scheduler's filter criteria; the
+   invoice date is stamped on the invoice and drives tax
    [Help: `ind.billing_understand_target_date_and_billing_period_count`]. Choose scheduled
    batch run, on-demand, or preview by [invoicing.md](invoicing.md).
 3. **Draft vs posted is a switch on the run.** Without Post invoices a run leaves invoices
-   in Draft; estimated tax is calculated on drafts and actual tax on posted invoices
-   [Help: `ind.billing_automate_invoice_run_schedules`, `ind.billing_tax_calculation_results`].
-   Deleting a posted invoice is not the correction path; void it, which creates a credit
-   memo. Voids run in reverse chronological order, most recent first, and an invoice
-   partly or fully settled by credit memos, payments or write-offs can't be voided; use a
-   credit memo or write-off for those [Help: `ind.billing_invoices_void`].
+   in Draft; estimated tax is calculated on drafts and actual tax on posted invoices [Help:
+   `ind.billing_automate_invoice_run_schedules`, `ind.billing_tax_calculation_results`].
+   Help warns that deleting a posted invoice (possible only with a cloned Billing Admin
+   permission set) risks data integrity; void it instead, which creates a credit memo [Help:
+   `ind.billing_invoice_delete`, `ind.billing_invoices_void`]. Voids run in reverse
+   chronological order, most recent first, and an invoice partly or fully settled by credit
+   memos, payments or write-offs can't be voided; use a credit memo or write-off for those
+   [Help: `ind.billing_invoices_void`].
 4. **Convert synchronous automation before the first run.** Record-triggered flows and Apex
    triggers on billing objects can stop a run or strand invoices in Draft In Progress,
    Posting In Progress or Error [Help: `ind.billing_invoice_run_sync_process`].
@@ -125,8 +127,9 @@ A snapshot; the files are the source [Repo]:
   reference data that no CCI task loads.
 - Sequence policies: `tasks/rlm_billing.py` (`CreateSequencePolicies`), gapless numbering.
 - Invoice email template: `create_default_invoice_email_template` in `cumulusci.yml`.
-- Billing UI (aging, split invoices, journals): `scripts/build_billing_ui_module.py`,
-  `deploy_post_billing_ui`. Payments metadata: `deploy_post_payments`.
+- Billing UI (aging, split invoices, journals): `unpackaged/post_billing_ui/`, deployed by
+  `deploy_post_billing_ui` (its generator script is a one-shot bootstrap; do not re-run it).
+  Payments metadata: `deploy_post_payments`.
 - Backdated billing check: `scripts/backdated_arc/verify_backdated_billing.py`.
 
 Whether any of these has been run end to end for a given stage here: not measured.
