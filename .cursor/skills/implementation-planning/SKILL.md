@@ -224,7 +224,8 @@ first: a measurement covers only the shape and route it measured.
   Attributes sets.
 - Lay the end-to-end order out on [acceptance-chain.md](acceptance-chain.md): each chain
   step the source needs cites its golden ids (the build checks, steps 0, 1 and 15, need
-  none), and a step the source rules out is marked not applicable with the reason.
+  none), and a step the source or a recorded decision excludes is marked not applicable,
+  citing which.
 - Each expected value cites where it comes from in the source. A value the source
   doesn't show but its rules determine (a band edge, a second example of a formula) is
   allowed: mark it **derived** and cite the rule's cells.

@@ -108,9 +108,9 @@ that must never be presented). Billing cases cover every order the plan creates 
 new sale, each amendment, cancellation and renewal), not only the first. The measured
 invoice routes invoiced through today, sending only schedules due by then (`rlm-business-apis` →
 `backdated-asset-lifecycle.md`, Billing); invoicing to a future date isn't measured; the smallest spike is
-the measured invoice generate call with a future `targetDate` `[inferred]` (Help's target-date rule:
-`billing-operations` → `invoicing.md`; billing period count doesn't apply to milestone or
-usage schedules). So on a
+the measured invoice generate call with a future `targetDate` `[inferred]` (Help, `billing-operations` → `invoicing.md`: a target date picks schedules whose next
+billing date is on or before it; for milestones it picks which accomplished milestones
+invoice, and usage schedules ready for invoicing always invoice). So on a
 future-dated replay, check billing at schedule level, and say which invoice values wait
 for the replay-dates decision ([SKILL.md](SKILL.md), dated replay). For a
 milestone-billed service, state what a quantity an amendment adds is billed by, and
@@ -197,8 +197,8 @@ Then list **extensions to existing skills** separately.
   act on an item an earlier order created, its scope is a recorded decision
   ([prediction-checks.md](prediction-checks.md) check 16).
 - [ ] Every [acceptance-chain.md](acceptance-chain.md) step the source needs cites its
-  golden ids (except the build checks, steps 0, 1 and 15), each step it rules out is
-  marked not applicable with the reason, and the phase order follows [build-order.md](build-order.md) or records
+  golden ids (except the build checks, steps 0, 1 and 15), each step the source or a
+  recorded decision excludes is marked not applicable, citing which, and the phase order follows [build-order.md](build-order.md) or records
   why not.
 - [ ] Every row of the rule decision record names its fallback, or says why none is
   needed; list any row that doesn't.

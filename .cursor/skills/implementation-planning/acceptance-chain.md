@@ -8,7 +8,8 @@ never accept a number because the org returned it.
 
 ## How to use
 
-1. For each step, write the expected result per rule ID before running anything.
+1. For each step, write the expected result per rule ID before running anything (the
+   build checks, steps 0, 1 and 15, have no rule ID; write their expected state).
    In a plan, those expected results are its golden tests
    ([plan-template.md](plan-template.md) section 4): cite the golden ids per step.
 2. Run the owner's verification, not a paraphrase of it.
@@ -42,8 +43,8 @@ never accept a number because the org returned it.
 ## Binding steps to rules
 
 Each chain step lists the rule IDs it proves ([SKILL.md](SKILL.md) step 2 numbers them)
-and the golden ids that check them. Mark a step not applicable only when the source rules
-the capability out, with the reason. A rule with no step is a gap in the chain. A step
+and the golden ids that check them. Mark a step not applicable only when the source or a recorded decision
+excludes the capability, citing which. A rule with no step is a gap in the chain. A step
 with no rule is test data, so drop it or find the rule; the build checks (steps 0, 1
 and 15) are the exception and need neither a rule nor a golden id. The Reprice and
 Attributes golden sets ([plan-template.md](plan-template.md) section 4) are always
