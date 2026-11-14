@@ -103,9 +103,9 @@ Two more ordering rules for an ad-hoc reload:
 
 **File:** `scripts/apex/activateRateCardEntries.apex`
 
-Legacy, kept as a manual fallback. The flow activates with `activate_rates`, a REST task
-(`tasks/rlm_activate_rates.py`) that replaced this script after Apex DML on
-`RateCardEntry.Status` failed on Release 262 (see the task's docstring).
+Legacy, kept for reference: this Apex DML on `RateCardEntry.Status` failed with
+UNKNOWN_EXCEPTION on Release 262, so the flow activates with `activate_rates`, a REST task
+(`tasks/rlm_activate_rates.py`; see its docstring). Not run since; don't rely on it.
 
 Simple activation — queries all `RateCardEntry` records with `Status != 'Active'` and sets them to `Active`:
 
@@ -381,9 +381,12 @@ qb-rates/
 
 This plan depends on the following having been loaded first:
 
-- **qb-pcm** — Product2 records, UnitOfMeasure, UnitOfMeasureClass, ProductSellingModel
+- **qb-pcm** — Product2 records, UnitOfMeasure (base units, Tokens and USD),
+  UnitOfMeasureClass, ProductSellingModel
 - **qb-pricing** — Pricebook2 (the Standard Price Book)
-- **qb-rating** — UsageResource (with categories and token references), ProductUsageResource (PUR associations required for rate card entry context)
+- **qb-rating** — the non-USD currency UnitOfMeasure records (GBP, EUR, AUD, CAD, CHF,
+  JPY), UsageResource (with categories and token references), ProductUsageResource (PUR
+  associations required for rate card entry context)
 
 ## Idempotency
 
@@ -477,7 +480,7 @@ Only 4 fields are updateable: `AdjustmentType`, `AdjustmentValue`, `LowerBound`,
 | Lookup Target        | Source       | Status     |
 |----------------------|--------------|------------|
 | Product2             | qb-pcm       | Update only|
-| UnitOfMeasure        | qb-pcm       | Lookup CSV |
+| UnitOfMeasure        | qb-pcm; qb-rating (non-USD currencies) | Lookup CSV |
 | UnitOfMeasureClass   | qb-pcm       | Lookup CSV |
 | ProductSellingModel  | qb-pcm       | Lookup CSV |
 | UsageResource        | qb-rating    | Lookup CSV |
