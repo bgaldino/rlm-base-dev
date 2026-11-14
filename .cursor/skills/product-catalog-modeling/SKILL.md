@@ -321,7 +321,7 @@ Every item marked **Open — needs live verification** in this skill and its sub
   returned with product data and must be in that order, but no date was found that stops browsing,
   adding to a quote, ordering, amending or renewing; Help describes Discontinued and End Of Life in
   opposite ways across articles [Platform behaviour, traced in part]. Not run live. See
-  [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#other-lifecycle-fields-on-product2).
+  [other lifecycle fields](selling-models-and-lifecycle.md#other-lifecycle-fields-on-product2).
 - **How a mixed-model bundle co-terminates and renews.** Co-termination for any shape;
   renewal beyond the one-time rule and the one measured shape (a locked configurable bundle
   with a Term Defined root). See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
