@@ -208,7 +208,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     instances from each technical product's decomposition scope and from the lines the
     configurator places, not from a line's quantity: Order Line Item gives one per line,
     while Order, Bundle and Account give one per order, per bundle, or per account across
-    its orders, merging every line that decomposes to the product, and Custom one per scope
+    its orders, merging the lines that decompose to the product (for Account, every line of
+    the account `[inferred]`, `dro-plans` → `updates-and-runtime.md`), and Custom one per scope
     identifier (unmeasured in `dro-plans`) (Help `ind.dro_decomposition_scope`). A later new-sale
     order that carries a line decomposing to an Account-scope item got a line for it (one
     org; on other lifecycle orders unmeasured; see the bullet on lines that come back). Take each instance's quantity from its
@@ -234,9 +235,12 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     - Where a later new-sale order must act on an item an earlier order created, record
       its scope as a decision: it needs a scope that spans orders on an assetizable
       technical product `[inferred]` from Help (`dro-plans` → `updates-and-runtime.md`, An
-      item across orders). Account is the only standard scope Help gives across orders and
-      merges the account's lines into one instance (recount; mind Help's bundle-child scope
-      warning); an Order-scope item can't be assetized; a custom scope wasn't measured. On
+      item across orders). Account is the only standard scope Help gives across orders, and
+      every line of the account then feeds one instance `[inferred]` (recount; Help's
+      bundle-child scope warning may apply, which `dro-plans` → `authoring-and-deployment.md`
+      leaves unmeasured for technical outputs); an Order-scope item can't be assetized. Where
+      the item must also stay one per sold line, no scope was measured (Order Line Item
+      across orders and a per-line custom scope are both unmeasured): make it a spike. On
       the measured amendment and cancellation, lines acted on fulfillment assets an earlier
       order created, with their scopes unrecorded, so those routes neither show nor rule
       out that a cross-order scope is needed.
