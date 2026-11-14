@@ -50,9 +50,10 @@ read the row's scope before generalising it.
    defaults to false [Dev guide: `sforce_api_objects_billingtreatment`].
    The complete rule: a treatment on the quote or order line is required only when the
    line's frequency differs from the pricing term unit of its selling model (Annual on a Months
-   model); a frequency equal to the term unit, or a milestone plan, needs none. When one is
-   required it must be Active and have Change Billing Frequency selected, or the line is
-   refused; the check reads the line's own treatment and does not fall back to the billing
+   model); a frequency equal to the term unit, or a milestone plan, needs none for this check
+   (milestone billing still needs a milestone treatment, item 4). When one is required it
+   must be Active and have Change Billing Frequency selected, or the line is refused; the
+   check reads the line's own treatment and does not fall back to the billing
    policy. The check is skipped when Billing is not enabled in the org [Platform behaviour,
    traced]. Item 2's caveat (a matching frequency needed no treatment) is the equal-frequency half
    of this rule. Other docs link here instead of restating it.

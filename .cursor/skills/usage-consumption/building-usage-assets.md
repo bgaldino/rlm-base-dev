@@ -42,11 +42,12 @@ Older Postman collections still list these; they return `NOT_FOUND`:
 | `Evergreen` | **required** | **rejected** |
 | `OneTime` | must be null / `MilestonePlan` | **rejected** |
 
+A single product may expose several selling models — `QB-DAT-THPT` has Evergreen, Term
+Monthly, and Term Annual — so `--selling-model` picks which `PricebookEntry` to use.
+Choosing the wrong one produces a validation error that names the *field*, not the model,
+which sends you looking in the wrong place.
+
 Frequency rules and measured rows: [billing-setup](../billing-setup/SKILL.md).
-A single product may expose several — `QB-DAT-THPT` has Evergreen, Term Monthly, and
-Term Annual — so `--selling-model` picks which `PricebookEntry` to use. Choosing the
-wrong one produces a validation error that names the *field*, not the model, which
-sends you looking in the wrong place.
 
 ⚠ **Type is not unique.** `Term Monthly` and `Term Annual` are both `TermDefined`, so
 pass the model **name** to disambiguate. A type matching more than one entry is
