@@ -204,23 +204,23 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     Order Line Item gives one per line, while Order, Bundle and Account give one per order, per
     bundle within an order, or per account across its orders, merging the lines that decompose to
     the product (for Account, every line of the account `[inferred]`, `dro-plans` →
-    `updates-and-runtime.md`), and Custom one per scope identifier (unmeasured in `dro-plans`) (Help
-    `ind.dro_decomposition_scope`). Later orders can still carry lines for an Account-scope item
-    (see the bullets below). Take each instance's quantity from its quantity method: Always One
-    gives each instance quantity 1 (Help `ind.product_catalog_create_simple_products`,
-    `ind.dro_assetization_in_dynamic_revenue_orchestrator`; `dro-plans` →
+    `updates-and-runtime.md`), and Custom one per scope identifier (unmeasured in `dro-plans`)
+    [Help: `ind.dro_decomposition_scope`]. Later orders can still carry lines for an Account-scope
+    item (see the bullets below). Take each instance's quantity from its quantity method: Always One
+    gives each instance quantity 1 [Help: `ind.product_catalog_create_simple_products`,
+    `ind.dro_assetization_in_dynamic_revenue_orchestrator`] (`dro-plans` →
     `authoring-and-deployment.md` gives it as an Order Line Item example, unmeasured on any scope),
-    and Aggregate sums the source lines' quantities with no unit-of-measure conversion (Help
-    `ind.dro_unit_of_measure_inheritance_and_rounding_values`); quantities on fulfillment lines and
+    and Aggregate sums the source lines' quantities with no unit-of-measure conversion [Help:
+    `ind.dro_unit_of_measure_inheritance_and_rounding_values`]; quantities on fulfillment lines and
     assets are rounded to DRO's unit-of-measure scale and rounding rules (same article; the order of
     summing and rounding is unstated); where source lines in different units feed one Aggregate
     item, decide where their quantities are converted before submission (same article). No method
-    means Aggregate and no scope means Order Line Item (Help `ind.dro_creating_a_technical_product`,
-    `ind.dro_decomposition_scope`). The count golden has columns for groups, definitions, lines with
-    their quantities (and, on lifecycle orders, their actions), steps with their scopes and edges
-    with their scopes, a row for each order shape, kit and variant the source fulfills, and a
-    predicted row for each lifecycle order. Decide each edge's shape like any rule
-    ([knowledge-sources.md](knowledge-sources.md)).
+    means Aggregate and no scope means Order Line Item [Help:
+    `ind.dro_creating_a_technical_product`, `ind.dro_decomposition_scope`]. The count golden has
+    columns for groups, definitions, lines with their quantities (and, on lifecycle orders, their
+    actions), steps with their scopes and edges with their scopes, a row for each order shape, kit
+    and variant the source fulfills, and a predicted row for each lifecycle order. Decide each
+    edge's shape like any rule ([knowledge-sources.md](knowledge-sources.md)).
     - Count groups and step definitions per item before step instances. A definition
       belongs to one group, so a step several items need with different predecessors is
       one definition per group (`dro-plans` → `authoring-and-deployment.md`).

@@ -401,6 +401,7 @@ options, a tab of discount tiers, and a calculator tab that prices a sample orde
     - A rule that a skill's measured defect, or a measured contradiction of the docs,
       touches in the shape it was measured in is **Live (b)**; in another shape it follows
       [prediction-checks.md](prediction-checks.md) check 1. The area row only summarizes its rules.
+
   Don't carry a decision over from another plan or release; sweep again.
 - **Golden tests:** the calculator's lines and totals, and every tier boundary
   (derived from the tier table).

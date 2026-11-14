@@ -75,6 +75,7 @@ for that spike, or builds every route.
     - its golden set,
     - the skills and articles to read first,
     - what done looks like.
+
    Write the brief in your own words; don't point at "the findings above".
 5. **A platform defect stops the thread.** The session records it with a repro and
    tells the main session; it doesn't build a workaround into the model on its own.
