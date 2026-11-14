@@ -59,7 +59,7 @@ Refresh a table when its source criteria become true, not when the source row is
 The repo realizes a subset of the graph as the `prepare_rlm_org` flow in `cumulusci.yml`,
 documented in
 [dependency-ordering.md](../repo-integration/dependency-ordering.md#prepare_rlm_org-step-ordering).
-Use it to confirm an edge, never as the customer plan. Cited by sub-flow name, not number;
+Use it to confirm an edge, never as the customer plan. Cited by flow or task name, not number;
 `tests/test_doc_build_steps.py` tracks numeric step citations, so none are used here.
 
 | Graph stage | Realized by | Notes |
