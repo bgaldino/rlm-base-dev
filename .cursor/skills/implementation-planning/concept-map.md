@@ -81,7 +81,7 @@ pointer, not the skill's full open list.
 
 | Source concept | Try first | Where documented |
 |---|---|---|
-| A contract created from the sale, with its terms and clauses | Contract types and lifecycle states, then templates and clauses. How the sale creates the contract (from the quote or order) is in no skill: record it as open and a skill gap | `salesforce-contracts` (types, states, templates and clauses only) |
+| A contract created from the sale, with its terms and clauses | Contract types and lifecycle states, then templates and clauses; the contract is created from an opportunity, quote or order through the contracts context definition's use-case mappings (Help, not measured: open until verified live) | `salesforce-contracts` → `setup-and-diagnostics.md` (Contract creation); `context-service` |
 | A quote, order form or contract document | A document template with its data mappers | `document-generation`; `odt-authoring` for the mappers |
 
 ## Negotiation and approvals

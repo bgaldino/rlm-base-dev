@@ -12,8 +12,9 @@ The plan's phases ([plan-template.md](plan-template.md) section 5) group these s
 is stage 0, P3 stages 1 and 2 plus the constraint models (P3 builds the context
 definition and tags they read first, or waits for P4's), P4 stages 3 to 5, P5 the
 approvals and stage 7, and P6 the rest of stage 6 and stages 9 and 10. P2 spikes build
-only the stages their must-hits need, on their own org, so stage 8 is first run by any P2a
-spike that places a quote (otherwise at P4) and first gated at P4. A P2b chain whose fulfilment its must-hits count loads its
+only the stages their must-hits need, on their own org, A quote is first placed by a P2a
+spike or by P3's configuration test (a bundle test places the quote with rules on, PCM fact
+e); the priced transaction (stage 8) is first gated at P4. A P2b chain whose fulfilment its must-hits count loads its
 fulfilment configuration before its first order (a submitted plan doesn't pick up later configuration,
 `dro-plans`); load the other stage 6 configuration its orders read first too `[inferred]`. Where the source shows tax or usage
 rates on the quote, or its quote lines bill on a cadence other than the pricing term or by
@@ -84,7 +85,8 @@ Refresh a table when its source criteria become true, not when the source row is
 The repo realizes a subset of the graph as the `prepare_rlm_org` flow in `cumulusci.yml`,
 documented in
 [dependency-ordering.md](../repo-integration/dependency-ordering.md#prepare_rlm_org-step-ordering).
-Use it to confirm an edge, never as the customer plan. Steps are cited by flow or task
+Use it to corroborate an edge (it shows one order that works, not that the order is
+required), never as the customer plan. Steps are cited by flow or task
 name, never by number, so `tests/test_doc_build_steps.py`, which tracks numeric step
 citations, has nothing here to track.
 
@@ -98,7 +100,7 @@ citations, has nothing here to track.
 | 3 (prices) | `prepare_price_adjustment_schedules`, `prepare_pricing_data` | Existing schedules are activated before the catalog loads (some stay inactive on purpose); the adjustment records load with the pricing data after it |
 | 5 (revenue settings) | `prepare_revenue_settings` | Runs late, after constraints and guided selling |
 | 6 (fulfillment) | `prepare_dro` | After pricing data |
-| 6 (tax) | `prepare_tax` | Before billing; billing reads its legal entity. It also switches estimated tax on, which `prepare_core` left off, when the `quote_est_tax` and `tax` flags are on and an active tax policy exists |
+| 6 (tax) | `prepare_tax` | Before billing; billing reads its legal entity. It also switches estimated tax on when the `quote_est_tax` and `tax` flags are on and an active tax policy exists; `prepare_core` never switches it on |
 | 6 (billing, usage) | `prepare_billing`, `prepare_rating` | The flow runs rating after billing; the rating data plan loads its own usage resource billing policies (`datasets/sfdmu/qb/en-US/qb-rating/README.md`) |
 | 5 (procedure plans) | `prepare_procedureplans` | After expression-set activation and the approvals pricing overlay |
 | 6 (contracts) | `prepare_clm` | |
