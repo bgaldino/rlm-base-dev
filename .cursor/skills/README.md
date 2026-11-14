@@ -110,6 +110,63 @@ tracker or sibling clone is required.
 | Find, claim or close durable work items across workstations and agents | Todo Tracker | [todo-tracker/SKILL.md](todo-tracker/SKILL.md) |
 | Cross-repo skill manifest (PMOS ↔ Foundations) | PMOS Integration | [pmos-integration/SKILL.md](pmos-integration/SKILL.md) |
 
+## Help Area to Owning Skill
+
+Route by the prefix of a 264 Help article id (`docs/salesforce/264/help/articles/`).
+"No owner yet" means no skill covers the area; start from
+[revenue-cloud-docs] and the Help snapshot.
+
+| Help prefix or cluster | Owning skill |
+|------------------------|--------------|
+| `ind.pricing_` | [pricing-setup] (org setup), [pricing-procedures] (elements, runtime) |
+| `ind.product_` | [product-catalog-modeling]; configurator rules: [constraint-models] |
+| `ind.qocal_` | [transaction-line-editor], [quote-negotiation-rounds], [asset-lifecycle-changes], [ramped-quotes] as the topic fits; API calls: [rlm-business-apis] |
+| `ind.billing_` setup (policies, treatments, milestones, terms) | [billing-setup] |
+| `ind.billing_` runtime (invoicing, tax, payments, memos) | No owner yet; see revenue-cloud-docs |
+| `ind.rm_`, `ind.um_` (rate, usage mgmt) | [usage-consumption] (demos); setup: no owner yet |
+| `ind.dro_` | [dro-plans] |
+| `ind.approvals_` | [advanced-approvals] |
+| `ind.sf_contracts_` | [salesforce-contracts] |
+| `ind.rev_agent_` (Agentforce for Revenue Cloud) | No owner yet; see revenue-cloud-docs |
+| Configurator customization (beyond CML rules) | No owner yet; see revenue-cloud-docs |
+
+Cross-cutting topics:
+
+| Topic | Start here |
+|-------|------------|
+| Promotions | [promotion-execution]; `ind.pricing_promotion_execution_element` |
+| Product discovery | [discovery-procedures] (browse prices), [product-catalog-modeling] |
+| Qualification rules | [expression-sets] (QualificationProcedure type) |
+| Multi-currency | [import-export-and-bulk-data] |
+| PRM and partner setup (`prm` flag, `prepare_prm` flow) | [feature-flags] |
+| Place Sales Transaction API | [rlm-business-apis] |
+
+[revenue-cloud-docs]: revenue-cloud-docs/SKILL.md
+[pricing-setup]: pricing-setup/SKILL.md
+[pricing-procedures]: pricing-procedures/SKILL.md
+[product-catalog-modeling]: product-catalog-modeling/SKILL.md
+[constraint-models]: constraint-models/SKILL.md
+[transaction-line-editor]: transaction-line-editor/SKILL.md
+[quote-negotiation-rounds]: quote-negotiation-rounds/SKILL.md
+[asset-lifecycle-changes]: asset-lifecycle-changes/SKILL.md
+[ramped-quotes]: ramped-quotes/SKILL.md
+[rlm-business-apis]: rlm-business-apis/SKILL.md
+[billing-setup]: billing-setup/SKILL.md
+[usage-consumption]: usage-consumption/SKILL.md
+[dro-plans]: dro-plans/SKILL.md
+[advanced-approvals]: advanced-approvals/SKILL.md
+[salesforce-contracts]: salesforce-contracts/SKILL.md
+[promotion-execution]: pricing-procedures/elements/promotion-execution.md
+[discovery-procedures]: pricing-procedures/discovery-procedures.md
+[expression-sets]: expression-sets/SKILL.md
+[import-export-and-bulk-data]: pricing-setup/import-export-and-bulk-data.md#adding-a-currency
+[feature-flags]: cci-orchestration/feature-flags.md
+
+Pricing skill split: pricing-setup is org setup (books, schedules, recipes);
+pricing-procedures is procedure elements and runtime; pricing-wiring is this
+repo's build sequencing; expression-sets is generic expression-set CRUD and
+overlays, including non-pricing procedures.
+
 ## How Skills Are Structured
 
 Every top-level `SKILL.md` starts with YAML `name` and `description` fields

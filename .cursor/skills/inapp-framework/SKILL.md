@@ -105,7 +105,7 @@ target** against `docs/salesforce/{release}/feature-index.md` and the Help snaps
 |---|---|---|
 | Renamed Help articles | `HELP_ID_REMAP` (`ind.*` → 262 ID) | file exists in `docs/salesforce/262/help/articles/<id>.md` |
 | Dead release-notes pages | `RN_ID_REMAP` (`rn_*`) | render page, read `<title>` (not "couldn't find that page") |
-| Renamed dev-guide pages | `DEVGUIDE_ID_REMAP` | file exists in `docs/salesforce/262/dev-guide/articles/` |
+| Renamed dev-guide pages | `DEVGUIDE_ID_REMAP` | file exists in `docs/salesforce/262/dev-guide/articles/` | <!-- staleness: allow -->
 | Release label bump | `VERSION_TEXT_REMAPS` + `release=258→262` | — |
 | Product rebrand | `_ARM_RE` (guarded "Revenue Cloud"→"Agentforce Revenue Management") | keeps editions/cert/Trailhead titles via lookahead guards |
 | Rebranded Trailhead titles | `TRAILHEAD_RELABEL` (exact live title) | fetch the trail/module og:title live |

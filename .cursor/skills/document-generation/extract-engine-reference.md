@@ -2,8 +2,8 @@
 
 Parent skill: `document-generation/SKILL.md`
 
-Verified on Release 262, API v67.0. All patterns below are live-tested
-against scratch orgs, not inferred from documentation.
+Verified on Release 262, API v67.0; not re-verified on the active release. The patterns below
+were live-tested against scratch orgs on that release, not inferred from documentation.
 
 The endpoint paths read `v68.0` (the Release 264 target), but the tests behind them
 ran at `v67.0` — the capture org's maximum, so a v68.0 call could not have been
