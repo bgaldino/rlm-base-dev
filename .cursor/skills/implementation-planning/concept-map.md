@@ -65,14 +65,24 @@ pointer, not the skill's full open list.
 | Billing frequency (annual, monthly) | `BillingFrequency` set on every Term Defined and Evergreen line placed through the API (a Term Defined line without one was refused). A cadence different from the pricing term needs a treatment that allows it | `billing-setup` |
 | In advance vs in arrears; milestone billing | Billing policy and treatment. Milestones the source doesn't name are a decision for its owner, not invented. Decide how amendments bill too: a quantity increase on a milestone-billed service is measured in `billing-setup`, but a service the amendment adds is open there, so record it as an open decision | `billing-setup` (amendments) |
 | Payment terms | `Order.PaymentTermId` for invoicing; the shipped approval reads a custom quote picklist, and nothing copies one to the other. Decide how they meet | `billing-setup`; `advanced-approvals` |
+| Invoice timing, draft or posted invoices, tax, payments, credits | Invoices come from billing schedules, which activation creates; a run picks schedules by target date or billing period count. Tax is a per-product choice of engine, and the legal entity is the accounting key | `billing-operations` |
 | Non-standard billing as an approval trigger | A quote-level value computed from the lines' billing frequency (in the approval data flow, or a roll-up count of non-standard lines) that the approval condition tests | `advanced-approvals` → `matrix-modeling.md` |
+
+## Usage and rating
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| A metered charge (per call, per GB) | A usage resource and unit, then a rate card entry per resource, product and selling model on a Base rate card, and a price book rate card pointing at it. A usage product can't be a bundle parent or child, so it is its own line | `rate-management` (Quick Rules 1 to 3); `usage-consumption` → `usage-setup.md` (Limits) |
+| Rates that fall as usage grows | Tier rate card: banded discounts, or a volume discount once a threshold is met | `rate-management` (Decision guide) |
+| An allowance, rollover, overage or commitment | Usage policies and grants: refresh, rollover, overage, commitment policy, drawdown order; the grant binding can't change after activation | `usage-consumption` → `usage-setup.md` (Policy decisions) |
+| A lifecycle change on a usage product | Check it against the changes Usage Selling doesn't support (swaps, backdated changes, rollbacks, among others) before mapping it | `usage-consumption` → `usage-setup.md` (Limits) |
 
 ## Negotiation and approvals
 
 | Source concept | Try first | Where documented |
 |---|---|---|
 | Rounds or versions of a bid | One quote per round, by deep clone; the winning round becomes the order | `quote-negotiation-rounds` |
-| An internal what-if round that must never be presented | A marker on the quote plus a guard on presenting and ordering it | `quote-negotiation-rounds` |
+| An internal what-if round that must never be presented | A marker on the quote plus a guard on presenting and ordering it. The standard order creation traced doesn't check the quote's status, so the ordering guard is a validation or flow the build adds | `quote-negotiation-rounds` (Final round to order) |
 | Discount per product line | Manual line discounts. A line-editor group discount is open: unmeasured inside a bundle, and Propagation ships off. Not a header discount: it was measured applying twice with an active procedure plan and `skipOrgSttPricing` on | `pricing-procedures` → `elements/manual-discount.md`, `elements/price-propagation.md`; `transaction-line-editor` → `runtime-behavior.md` |
 | Approval matrix by discount, margin, size | Advanced Approvals: one level per dimension, the maximum drives a cumulative chain. State what "discount" is measured against (list, or a standard price after programs). Give every quote-level dimension a basis on amendments, not only deal size (prediction-checks.md check 8) | `advanced-approvals` → `matrix-modeling.md` (deal size only) |
 | Line-level guards (below floor, below cost) | A count of breaking lines as an approval condition, with a marker so a round's bulk discount and an individual override can be told apart; name what sets the marker on each path. A line the round leaves undiscounted by design (resold at cost, priced to a target margin) needs, if the override test compares a line's discount with the round's marker, a marker equal to its own discount or a flag that keeps it out of the test (as `matrix-modeling.md` does for pass-through lines); otherwise it reads as an override `[inferred]` | `advanced-approvals` → `matrix-modeling.md` |

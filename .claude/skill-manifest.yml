@@ -190,7 +190,7 @@ foundations:
 
     - id: implementation-planning
       path: .cursor/skills/implementation-planning/SKILL.md
-      purpose: "Plan a Revenue Cloud implementation from a customer's commercial source (quoting spreadsheet, price list, web store, policies, PRD): concept mapping, repo-vs-live knowledge sources, golden tests, phases, sessions, skill gaps, prediction ledger"
+      purpose: "Plan a Revenue Cloud implementation from a customer's commercial source (quoting spreadsheet, price list, web store, policies, PRD): concept mapping, repo-vs-live knowledge sources, golden tests, build order, acceptance chain, phases, sessions, skill gaps, prediction ledger"
       consumed_by_pmos: []
       sub_skills:
         - .cursor/skills/implementation-planning/plan-template.md
@@ -198,6 +198,8 @@ foundations:
         - .cursor/skills/implementation-planning/knowledge-sources.md
         - .cursor/skills/implementation-planning/session-orchestration.md
         - .cursor/skills/implementation-planning/prediction-checks.md
+        - .cursor/skills/implementation-planning/build-order.md
+        - .cursor/skills/implementation-planning/acceptance-chain.md
 
     - id: billing-operations
       path: .cursor/skills/billing-operations/SKILL.md

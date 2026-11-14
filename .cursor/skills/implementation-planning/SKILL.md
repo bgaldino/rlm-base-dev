@@ -112,6 +112,8 @@ files can use it.
 | Building the approval matrix | No | `advanced-approvals` |
 | Bid rounds as quote versions | No | `quote-negotiation-rounds` |
 | Billing frequency, treatments, milestones, payment terms | No | `billing-setup` |
+| Invoice runs, tax, payments, credits, ledger | No | `billing-operations` |
+| Usage products: resources, policies, grants, rate cards, rating | No | `usage-consumption` → `usage-setup.md`, `rate-management` |
 | Order fulfilment: the work, steps and dependencies an order creates | No | `dro-plans` |
 | Amend, swap, cancel and renew rules and their numbers | No | `asset-lifecycle-changes` |
 | Configuring the line editor the rep uses | No | `transaction-line-editor` |
@@ -130,6 +132,11 @@ files can use it.
 - [prediction-checks.md](prediction-checks.md): read before writing decisions, the
   rule decision record, spikes and goldens. Checks a prior build's measurements showed
   the planner must run, each pointing at the domain skill that holds the fact.
+- [build-order.md](build-order.md): read when ordering phases. The cross-domain
+  prerequisite graph, each edge cited to its owning skill, the refresh triggers between
+  domains, and a cross-check against `prepare_rlm_org`.
+- [acceptance-chain.md](acceptance-chain.md): read when writing the end-to-end goldens.
+  Quote to renewal as one chain, each step with what to verify and the owner section.
 - [session-orchestration.md](session-orchestration.md): read when the user wants the
   build split across sessions. Org-per-session layout, file ownership, integration
   gates and session briefs.
@@ -214,6 +221,9 @@ first: a measurement covers only the shape and route it measured.
   configuration, rules (each with its message, template section 3), standard pricing, programs and edges
   (every band boundary), currency, policies, cost and margin, negotiation, approvals,
   lifecycle changes, billing, fulfilment, plus the template's Reprice and Attributes sets.
+- Lay the end-to-end order out on [acceptance-chain.md](acceptance-chain.md): each chain
+  step the source needs cites its golden ids, and a step the source rules out is marked
+  not applicable with the reason.
 - Each expected value cites where it comes from in the source. A value the source
   doesn't show but its rules determine (a band edge, a second example of a formula) is
   allowed: mark it **derived** and cite the rule's cells.
@@ -271,7 +281,9 @@ Write these in the template's order:
   [prediction-checks.md](prediction-checks.md) (5–8): choose each structure against every
   lifecycle change, name each recommendation's mechanism, and name where each native
   guard is enforced.
-- **Phases:** each with a gate and its skills.
+- **Phases:** each with a gate and its skills, ordered by the prerequisite graph in
+  [build-order.md](build-order.md). Record each `[inferred]` or open edge the order relies
+  on as a decision.
 - **Route prerequisites:** a spike that chooses between routes lists what each route
   needs from the catalog and the model. The catalog phase waits for that spike or
   builds them all, and the plan's dependency line shows that edge. A prior build let a

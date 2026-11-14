@@ -94,6 +94,9 @@ changes). Note who has to answer it: the source's owner or the build's owner.
 A case an open decision affects carries the recommended value, tagged with the decision
 ID, and the alternative's value beside it (SKILL.md step 5).
 
+Lay the sets out on [acceptance-chain.md](acceptance-chain.md): each chain step the source
+needs cites its golden ids.
+
 Always include a **Reprice** set (price again, then order, amend and renew) and an
 **Attributes** set (attributes unchanged through each step; on a bundle sized by
 configuration answers, the unchanged answers through two answer changes in a row). Include each attribute's
@@ -102,11 +105,16 @@ use, and a check for anything the source marks internal-only (for example a roun
 that must never be presented). Billing cases cover every order the plan creates (the
 new sale, each amendment, cancellation and renewal), not only the first. The measured
 invoice routes invoiced through today, sending only schedules due by then (`rlm-business-apis` →
-`backdated-asset-lifecycle.md`, Billing); invoicing to a future date isn't covered. So on a
+`backdated-asset-lifecycle.md`, Billing); invoicing to a future date isn't measured, and the
+scheduler's target date and billing period count (`billing-operations` → `invoicing.md`, from
+Help) are the route to spike `[inferred]`. So on a
 future-dated replay, check billing at schedule level, and say which invoice values wait
 for the replay-dates decision ([SKILL.md](SKILL.md), dated replay). For a
 milestone-billed service, state what a quantity an amendment adds is billed by, and
 record milestone billing of a service an amendment adds as an open decision (`billing-setup`).
+Read each amendment, cancellation and renewal quote's values before its order activates,
+and don't reprice it afterwards: a full reprice after activation set a renewal's totals to 0
+(`transaction-line-editor` Quick Rule 5).
 
 ## 5. Phases, gates, skills
 
@@ -117,7 +125,7 @@ Each phase opens with an unbulleted bold label naming it (P2's reads
 - **Skills:** the skills and sub-files to read first,
 - the **Gate:** what must pass, and on which org.
 
-The usual phases:
+The usual phases, ordered by the prerequisite graph in [build-order.md](build-order.md):
 
 | Phase | Typical content |
 |---|---|
@@ -127,7 +135,7 @@ The usual phases:
 | P3 Catalog, then configuration | Data plans derived from the base build's own plans; CML; the route prerequisites of every P2a spike that touches them; the first loader (SKILL.md step 7) |
 | P4 Pricing and cost | Price books, adjustments, procedure changes, cost wiring. The gate prices only after the decision tables it reads are fresh (`decision-tables` Quick Rule 1) |
 | P5 Negotiation, approvals, runtime surface | Quote rounds, approvals, Transaction Line Editor configuration |
-| P6 Lifecycle, billing and fulfilment | Order, activate, amend, swap, cancel, renew; billing frequency, treatments and payment terms on the order; fulfilment, with its composition (lines, steps, dependencies) gated apart from its execution. Load and read back the fulfilment configuration before the first order of any chain whose fulfilment a gate counts: a submitted plan doesn't pick up later configuration, and a lifecycle order's fulfilment actions depend on what its earlier orders created (`dro-plans` → `authoring-and-deployment.md`). Read the order-activation prerequisites the domain skills record before the first order (`dro-plans` → `examples-and-grounding.md`, Recheck; for lifecycle orders, `rlm-business-apis` → `backdated-asset-lifecycle.md` and `asset-lifecycle-changes` → `verification.md`). Name how each gate and spike completes manual steps: in the plan, as Help documents, or the undocumented update of the step record, measured on one org and only for a test org, never a live order (`dro-plans` → `examples-and-grounding.md`, Recheck; `updates-and-runtime.md`, Dependency across order items); record that route as a decision, since `dro-plans` (Supported Runtime Actions) lists only the plan UI |
+| P6 Lifecycle, billing and fulfilment | Order, activate, amend, swap, cancel, renew; billing frequency, treatments and payment terms on the order; where the source shows invoices, tax or payments, the invoice runs and their read-backs (`billing-operations`); where it meters anything, usage setup and rating (`usage-consumption` → `usage-setup.md`, `rate-management`); fulfilment, with its composition (lines, steps, dependencies) gated apart from its execution. Load and read back the fulfilment configuration before the first order of any chain whose fulfilment a gate counts: a submitted plan doesn't pick up later configuration, and a lifecycle order's fulfilment actions depend on what its earlier orders created (`dro-plans` → `authoring-and-deployment.md`). Read the order-activation prerequisites the domain skills record before the first order (`dro-plans` → `examples-and-grounding.md`, Recheck; for lifecycle orders, `rlm-business-apis` → `backdated-asset-lifecycle.md` and `asset-lifecycle-changes` → `verification.md`). Name how each gate and spike completes manual steps: in the plan, as Help documents, or the undocumented update of the step record, measured on one org and only for a test org, never a live order (`dro-plans` → `examples-and-grounding.md`, Recheck; `updates-and-runtime.md`, Dependency across order items); record that route as a decision, since `dro-plans` (Supported Runtime Actions) lists only the plan UI |
 | P7 Pack and fresh-org load | Every gate in one run on a new org, with the loader extended since P3; reload changes nothing |
 | P8 Walkthrough and sign-off | Independent verifier, then the user |
 | P9 Promotion | Public repo through a pull request, if chosen; its own approval |
@@ -185,6 +193,9 @@ Then list **extensions to existing skills** separately.
   ([concept-map.md](concept-map.md), Order fulfilment), and where a later order must
   act on an item an earlier order created, its scope is a recorded decision
   ([prediction-checks.md](prediction-checks.md) check 16).
+- [ ] Every [acceptance-chain.md](acceptance-chain.md) step the source needs cites its
+  golden ids, and the phase order follows [build-order.md](build-order.md) or records
+  why not.
 - [ ] Every row of the rule decision record names its fallback, or says why none is
   needed; list any row that doesn't.
 - [ ] Every rule that rejects or warns has its message in the plan.
