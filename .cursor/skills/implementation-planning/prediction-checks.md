@@ -213,9 +213,11 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     identifier (unmeasured in `dro-plans`) (Help `ind.dro_decomposition_scope`). A later new-sale
     order that carries a line decomposing to an Account-scope item got a line for it (one
     org; on other lifecycle orders unmeasured; see the bullet on lines that come back). Take each instance's quantity from its
-    quantity method: Always One gives each instance quantity 1, one per source line on Order Line Item scope (`dro-plans` →
-    `authoring-and-deployment.md`; under a scope that merges lines, or across orders, it is
-    unmeasured, so spike it),
+    quantity method: Always One gives each instance quantity 1 (Help
+    `ind.product_catalog_create_simple_products`,
+    `ind.dro_assetization_in_dynamic_revenue_orchestrator`; `dro-plans` →
+    `authoring-and-deployment.md` shows it on Order Line Item scope, and leaves merging
+    scopes unmeasured),
     and Aggregate sums the source lines' quantities with no unit-of-measure conversion
     (Help `ind.dro_unit_of_measure_inheritance_and_rounding_values`); quantities on fulfilment
     lines and assets are rounded to DRO's unit-of-measure scale and rounding rules (same
@@ -224,7 +226,8 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
     submission (same article). No method means
     Aggregate and no scope means Order Line Item (Help `ind.dro_creating_a_technical_product`,
     `ind.dro_decomposition_scope`). The count golden has columns for groups, definitions,
-    lines, steps with their scopes and edges with their scopes, a row for each order shape,
+    lines with their quantities (and, on lifecycle orders, their actions), steps with
+    their scopes and edges with their scopes, a row for each order shape,
     kit and variant the source fulfils, and a predicted row for each lifecycle order. Decide
     each edge's shape like any rule ([knowledge-sources.md](knowledge-sources.md)).
     - Count groups and step definitions per item before step instances. A definition
@@ -242,8 +245,10 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
       every line of the account then feeds one instance `[inferred]` (recount; Help's
       bundle-child scope warning may apply, which `dro-plans` → `authoring-and-deployment.md`
       leaves unmeasured for technical outputs); an Order-scope item can't be assetized. Where
-      the item must also stay one per sold line, that inference is untested (Account
-      would merge the lines): spike both Order Line Item and a per-line custom scope. On
+      the item must also stay one per sold line, the cross-order-scope inference is
+      untested (Account would merge the lines): spike both Order Line Item and a custom
+      scope keyed on a value the later order's line shares with the original, such as the
+      asset (same file). On
       the measured amendment and cancellation, lines acted on fulfillment assets an earlier
       order created, with their scopes unrecorded, so those routes neither show nor rule
       out that a cross-order scope is needed.
