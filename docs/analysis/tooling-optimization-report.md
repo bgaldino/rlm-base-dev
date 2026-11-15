@@ -8,9 +8,9 @@
 
 - Overall status: **PASS**
 - Required files: **6/6** present
-- Skills inventoried: **92** Markdown files under `.cursor/skills/`
+- Skills inventoried: **181** Markdown files under `.cursor/skills/`
 - Cursor rules inventoried: **12** `.mdc` files under `.cursor/rules/`
-- AGENTS.md skill references: **39** checked, **0** missing
+- AGENTS.md skill references: **7** checked, **0** missing
 - Generated CCI references: **3/3** present
 - Errors: **0**
 - Warnings: **0**
@@ -27,17 +27,34 @@
 ## Skill Inventory
 
 - `.cursor/skills/README.md`
+- `.cursor/skills/advanced-approvals/SKILL.md`
+- `.cursor/skills/advanced-approvals/actions-and-objects.md`
+- `.cursor/skills/advanced-approvals/limitations.md`
+- `.cursor/skills/advanced-approvals/matrix-modeling.md`
 - `.cursor/skills/apex-security-hardening/SKILL.md`
+- `.cursor/skills/asset-lifecycle-changes/SKILL.md`
+- `.cursor/skills/asset-lifecycle-changes/change-policy-mapping.md`
+- `.cursor/skills/asset-lifecycle-changes/verification.md`
 - `.cursor/skills/audit-review/SKILL.md`
 - `.cursor/skills/audit-review/external-review-briefing.md`
 - `.cursor/skills/audit-review/merge-and-review-procedures.md`
+- `.cursor/skills/billing-operations/SKILL.md`
+- `.cursor/skills/billing-operations/accounting.md`
+- `.cursor/skills/billing-operations/invoicing.md`
+- `.cursor/skills/billing-operations/payments-and-credits.md`
+- `.cursor/skills/billing-operations/tax.md`
+- `.cursor/skills/billing-setup/SKILL.md`
+- `.cursor/skills/billing-setup/measured-264.md`
+- `.cursor/skills/billing-setup/shipped-billing.md`
 - `.cursor/skills/build-harness/SKILL.md`
 - `.cursor/skills/cci-orchestration/SKILL.md`
 - `.cursor/skills/cci-orchestration/custom-task-authoring.md`
 - `.cursor/skills/cci-orchestration/feature-flags.md`
 - `.cursor/skills/cci-orchestration/flows-reference.md`
+- `.cursor/skills/cci-orchestration/org-cleanup.md`
 - `.cursor/skills/cci-orchestration/tasks-reference.md`
 - `.cursor/skills/constraint-models/SKILL.md`
+- `.cursor/skills/constraint-models/quantities-from-attributes.md`
 - `.cursor/skills/context-service/SKILL.md`
 - `.cursor/skills/context-service/authoring-and-lifecycle.md`
 - `.cursor/skills/context-service/data-model-and-api.md`
@@ -61,18 +78,85 @@
 - `.cursor/skills/expression-sets/SKILL.md`
 - `.cursor/skills/expression-sets/authoring-and-overlays.md`
 - `.cursor/skills/expression-sets/metadata-vs-connect.md`
+- `.cursor/skills/implementation-planning/SKILL.md`
+- `.cursor/skills/implementation-planning/acceptance-chain.md`
+- `.cursor/skills/implementation-planning/build-order.md`
+- `.cursor/skills/implementation-planning/concept-map.md`
+- `.cursor/skills/implementation-planning/knowledge-sources.md`
+- `.cursor/skills/implementation-planning/plan-template.md`
+- `.cursor/skills/implementation-planning/prediction-checks.md`
+- `.cursor/skills/implementation-planning/session-orchestration.md`
 - `.cursor/skills/inapp-framework/SKILL.md`
 - `.cursor/skills/mcp-integration/SKILL.md`
 - `.cursor/skills/odt-authoring/SKILL.md`
 - `.cursor/skills/pde-org-build/SKILL.md`
 - `.cursor/skills/pmos-integration/SKILL.md`
+- `.cursor/skills/pricing-procedures/SKILL.md`
+- `.cursor/skills/pricing-procedures/discovery-procedures.md`
+- `.cursor/skills/pricing-procedures/elements/aggregate-price.md`
+- `.cursor/skills/pricing-procedures/elements/assignment.md`
+- `.cursor/skills/pricing-procedures/elements/attribute-adjustment-matrix.md`
+- `.cursor/skills/pricing-procedures/elements/attribute-based-price.md`
+- `.cursor/skills/pricing-procedures/elements/bundle-based-price.md`
+- `.cursor/skills/pricing-procedures/elements/commitment-term-discount.md`
+- `.cursor/skills/pricing-procedures/elements/decision-table-lookups.md`
+- `.cursor/skills/pricing-procedures/elements/derived-price.md`
+- `.cursor/skills/pricing-procedures/elements/discount-distribution-service.md`
+- `.cursor/skills/pricing-procedures/elements/formula-based-pricing.md`
+- `.cursor/skills/pricing-procedures/elements/list-group-and-list-operation.md`
+- `.cursor/skills/pricing-procedures/elements/list-price.md`
+- `.cursor/skills/pricing-procedures/elements/manual-discount.md`
+- `.cursor/skills/pricing-procedures/elements/map-line-item.md`
+- `.cursor/skills/pricing-procedures/elements/price-adjustment-matrix.md`
+- `.cursor/skills/pricing-procedures/elements/price-propagation.md`
+- `.cursor/skills/pricing-procedures/elements/price-revision-compound-uplift.md`
+- `.cursor/skills/pricing-procedures/elements/price-revision.md`
+- `.cursor/skills/pricing-procedures/elements/price-tracking.md`
+- `.cursor/skills/pricing-procedures/elements/pricing-setting.md`
+- `.cursor/skills/pricing-procedures/elements/promotion-execution.md`
+- `.cursor/skills/pricing-procedures/elements/proration-and-subscription.md`
+- `.cursor/skills/pricing-procedures/elements/root-answer-child-price.md`
+- `.cursor/skills/pricing-procedures/elements/rounding-values.md`
+- `.cursor/skills/pricing-procedures/elements/stop-pricing.md`
+- `.cursor/skills/pricing-procedures/elements/volume-and-tier-discount.md`
+- `.cursor/skills/pricing-procedures/operations-and-troubleshooting.md`
+- `.cursor/skills/pricing-procedures/procedure-anatomy-and-ordering.md`
+- `.cursor/skills/pricing-procedures/runtime-and-observability.md`
+- `.cursor/skills/pricing-setup/SKILL.md`
+- `.cursor/skills/pricing-setup/cost-books.md`
+- `.cursor/skills/pricing-setup/import-export-and-bulk-data.md`
+- `.cursor/skills/pricing-setup/org-enablement-and-permissions.md`
+- `.cursor/skills/pricing-setup/price-adjustment-schedules.md`
+- `.cursor/skills/pricing-setup/price-books.md`
+- `.cursor/skills/pricing-setup/price-revision-policies.md`
+- `.cursor/skills/pricing-setup/pricing-actions.md`
+- `.cursor/skills/pricing-setup/pricing-recipes.md`
+- `.cursor/skills/pricing-setup/proration-and-selling-models.md`
+- `.cursor/skills/pricing-setup/scenarios/README.md`
+- `.cursor/skills/pricing-setup/scenarios/cost-and-margin.md`
+- `.cursor/skills/pricing-setup/scenarios/full-term-value.md`
+- `.cursor/skills/pricing-setup/scenarios/lowest-price-across-price-books.md`
+- `.cursor/skills/pricing-setup/scenarios/pricing-action-button.md`
+- `.cursor/skills/pricing-setup/scenarios/sequential-discounts.md`
+- `.cursor/skills/pricing-setup/scenarios/simple-pricing-procedure.md`
 - `.cursor/skills/pricing-wiring/SKILL.md`
 - `.cursor/skills/pricing-wiring/price-revision-cpi.md`
+- `.cursor/skills/product-catalog-modeling/SKILL.md`
+- `.cursor/skills/product-catalog-modeling/attributes-and-classifications.md`
+- `.cursor/skills/product-catalog-modeling/bundles-and-cardinality.md`
+- `.cursor/skills/product-catalog-modeling/catalogs-and-loading.md`
+- `.cursor/skills/product-catalog-modeling/selling-models-and-lifecycle.md`
 - `.cursor/skills/qb-demo-script/SKILL.md`
+- `.cursor/skills/quote-negotiation-rounds/SKILL.md`
+- `.cursor/skills/quote-negotiation-rounds/deep-clone.md`
+- `.cursor/skills/quote-negotiation-rounds/internal-round.md`
 - `.cursor/skills/ramped-quotes/SKILL.md`
+- `.cursor/skills/ramped-quotes/bundle-children-lifecycle.md`
 - `.cursor/skills/ramped-quotes/compound-uplift.md`
 - `.cursor/skills/ramped-quotes/field-legality.md`
 - `.cursor/skills/ramped-quotes/ui-group-ramp.md`
+- `.cursor/skills/rate-management/SKILL.md`
+- `.cursor/skills/rate-management/rating-procedures.md`
 - `.cursor/skills/release-enablement/SKILL.md`
 - `.cursor/skills/release-enablement/authoring-patterns.md`
 - `.cursor/skills/release-enablement/resume-enablement-work.md`
@@ -103,6 +187,7 @@
 - `.cursor/skills/salesforce-contracts/data-model-and-queries.md`
 - `.cursor/skills/salesforce-contracts/setup-and-diagnostics.md`
 - `.cursor/skills/schema-validation/SKILL.md`
+- `.cursor/skills/schema-validation/release-data-plan-audit.md`
 - `.cursor/skills/sfdmu-data-plans/SKILL.md`
 - `.cursor/skills/sfdmu-data-plans/object-plan-mapping.md`
 - `.cursor/skills/sfdmu-data-plans/plan-dependency-graph.md`
@@ -112,11 +197,15 @@
 - `.cursor/skills/toolchain/managed-workstations.md`
 - `.cursor/skills/toolchain/verification-handoff.md`
 - `.cursor/skills/toolchain/workstation-audit.md`
+- `.cursor/skills/transaction-line-editor/SKILL.md`
+- `.cursor/skills/transaction-line-editor/page-configuration.md`
+- `.cursor/skills/transaction-line-editor/runtime-behavior.md`
 - `.cursor/skills/troubleshooting/SKILL.md`
 - `.cursor/skills/troubleshooting/large-deal-preprocess-reference.md`
 - `.cursor/skills/txn-data-harness/SKILL.md`
 - `.cursor/skills/usage-consumption/SKILL.md`
 - `.cursor/skills/usage-consumption/building-usage-assets.md`
+- `.cursor/skills/usage-consumption/usage-setup.md`
 - `.cursor/skills/usage-consumption/verification.md`
 
 ## Cursor Rule Inventory
@@ -137,44 +226,12 @@
 ## AGENTS.md Skill Reference Check
 
 - ✅ `.cursor/skills/README.md`
-- ✅ `.cursor/skills/apex-security-hardening/SKILL.md`
 - ✅ `.cursor/skills/audit-review/SKILL.md`
-- ✅ `.cursor/skills/build-harness/SKILL.md`
-- ✅ `.cursor/skills/cci-orchestration/SKILL.md`
 - ✅ `.cursor/skills/cci-orchestration/custom-task-authoring.md`
-- ✅ `.cursor/skills/constraint-models/SKILL.md`
-- ✅ `.cursor/skills/context-service/SKILL.md`
-- ✅ `.cursor/skills/decision-tables/SKILL.md`
-- ✅ `.cursor/skills/df-workshop-setup/SKILL.md`
 - ✅ `.cursor/skills/doc-consistency/SKILL.md`
-- ✅ `.cursor/skills/document-generation/SKILL.md`
-- ✅ `.cursor/skills/dro-plans/SKILL.md`
-- ✅ `.cursor/skills/expression-sets/SKILL.md`
-- ✅ `.cursor/skills/inapp-framework/SKILL.md`
-- ✅ `.cursor/skills/mcp-integration/SKILL.md`
-- ✅ `.cursor/skills/odt-authoring/SKILL.md`
-- ✅ `.cursor/skills/pde-org-build/SKILL.md`
-- ✅ `.cursor/skills/pmos-integration/SKILL.md`
-- ✅ `.cursor/skills/pricing-wiring/SKILL.md`
-- ✅ `.cursor/skills/qb-demo-script/SKILL.md`
-- ✅ `.cursor/skills/ramped-quotes/SKILL.md`
-- ✅ `.cursor/skills/release-enablement/SKILL.md`
-- ✅ `.cursor/skills/renewal-asset-creation/SKILL.md`
-- ✅ `.cursor/skills/repo-integration/SKILL.md`
 - ✅ `.cursor/skills/repo-integration/ux-assembly-retrieve.md`
-- ✅ `.cursor/skills/revenue-cloud-data-model/SKILL.md`
-- ✅ `.cursor/skills/revenue-cloud-docs/SKILL.md`
-- ✅ `.cursor/skills/rlm-business-apis/SKILL.md`
 - ✅ `.cursor/skills/robot-testing/SKILL.md`
-- ✅ `.cursor/skills/salesforce-contracts/SKILL.md`
-- ✅ `.cursor/skills/schema-validation/SKILL.md`
 - ✅ `.cursor/skills/sfdmu-data-plans/SKILL.md`
-- ✅ `.cursor/skills/skill-authoring/SKILL.md`
-- ✅ `.cursor/skills/todo-tracker/SKILL.md`
-- ✅ `.cursor/skills/toolchain/SKILL.md`
-- ✅ `.cursor/skills/troubleshooting/SKILL.md`
-- ✅ `.cursor/skills/txn-data-harness/SKILL.md`
-- ✅ `.cursor/skills/usage-consumption/SKILL.md`
 
 ## Cursor Rule Coverage
 
@@ -204,9 +261,13 @@ Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` Fil
 - Present: **True**
 - Manifest version: `2`
 - Last verified: `2026-10-22`
-- Manifest skill count: **36**
+- Manifest skill count: **47**
+  - `advanced-approvals`
   - `apex-security-hardening`
+  - `asset-lifecycle-changes`
   - `audit-review`
+  - `billing-operations`
+  - `billing-setup`
   - `build-harness`
   - `cci-orchestration`
   - `constraint-models`
@@ -217,14 +278,20 @@ Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` Fil
   - `document-generation`
   - `dro-plans`
   - `expression-sets`
+  - `implementation-planning`
   - `inapp-framework`
   - `mcp-integration`
   - `odt-authoring`
   - `pde-org-build`
   - `pmos-integration`
+  - `pricing-procedures`
+  - `pricing-setup`
   - `pricing-wiring`
+  - `product-catalog-modeling`
   - `qb-demo-script`
+  - `quote-negotiation-rounds`
   - `ramped-quotes`
+  - `rate-management`
   - `release-enablement`
   - `renewal-asset-creation`
   - `repo-integration`
@@ -238,6 +305,7 @@ Each `.cursor/rules/*.mdc` is checked against the `.cursor/skills/README.md` Fil
   - `skill-authoring`
   - `todo-tracker`
   - `toolchain`
+  - `transaction-line-editor`
   - `troubleshooting`
   - `txn-data-harness`
   - `usage-consumption`
