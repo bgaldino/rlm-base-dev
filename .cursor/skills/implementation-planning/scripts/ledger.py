@@ -315,11 +315,12 @@ def init(args):
     blind = items(read_text(blind_file), str(blind_file)) if blind_file else None
     seen = set(plan["decision"]) | {k.split(":", 1)[1] for k in old.get("items", {})
                                     if k.startswith("decision:")}
-    unknown = sorted((intake | owner) - seen)
+    given = (intake if args.intake is not None else set()) | (owner if args.owner is not None else set())
+    unknown = sorted(given - seen)  # only the lists passed now: a remembered id stays until replaced
     if unknown:
         print(f"warning: not decision rows in the plan, so ignored: {', '.join(unknown)}", file=sys.stderr)
-        intake &= seen
-        owner &= seen
+        intake -= set(unknown)
+        owner -= set(unknown)
 
     ledger = {"meta": {"plan": relative(args.plan, ledger_dir), "blind": blind_path,
                        "intake": sorted(intake), "owner": sorted(owner)},
@@ -373,8 +374,6 @@ def init(args):
                 continue
             print(f"warning: {key} is no longer in the plan; kept as recorded", file=sys.stderr)
             ledger["items"][key] = entry(prev["kind"], prev["id"], prev["line"], prev["prediction"], prev)
-    for field, ids in (("intake", intake), ("owner", owner)):  # a dropped row leaves its list
-        ledger["meta"][field] = sorted(i for i in ids if f"decision:{i}" in ledger["items"])
     save(ledger_path, ledger)
     counts = {k: sum(1 for v in ledger["items"].values() if v["kind"] == k) for k in KINDS}
     print(f"{len(ledger['items'])} items in {ledger_path}: "
