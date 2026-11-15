@@ -373,6 +373,8 @@ def init(args):
                 continue
             print(f"warning: {key} is no longer in the plan; kept as recorded", file=sys.stderr)
             ledger["items"][key] = entry(prev["kind"], prev["id"], prev["line"], prev["prediction"], prev)
+    for field, ids in (("intake", intake), ("owner", owner)):  # a dropped row leaves its list
+        ledger["meta"][field] = sorted(i for i in ids if f"decision:{i}" in ledger["items"])
     save(ledger_path, ledger)
     counts = {k: sum(1 for v in ledger["items"].values() if v["kind"] == k) for k in KINDS}
     print(f"{len(ledger['items'])} items in {ledger_path}: "

@@ -432,6 +432,16 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(sorted(k for k in self.ledger() if k.startswith("rule:")),
                          ["rule:R-01", "rule:R-02", "rule:R-03"])
 
+    def test_rebuild_dropping_a_listed_row_drops_it_from_the_list(self):
+        self.run_ledger("init", "--plan", "plan.md", "--intake", "D1,D4")
+        (self.dir / "plan.md").write_text(PLAN.replace("| D4 | Added later? | Yes |\n", ""), encoding="utf-8")
+        p = self.run_ledger("init", "--plan", "plan.md", "--rebuild")
+        self.assertIn("decision:D4 is no longer in the plan and has nothing recorded", p.stderr)
+        meta = json.loads((self.dir / "verification/ledger.json").read_text(encoding="utf-8"))["meta"]
+        self.assertEqual(meta["intake"], ["D1"])
+        p = self.run_ledger("init", "--plan", "plan.md")
+        self.assertNotIn("ignored", p.stderr)
+
     def test_unknown_intake_ids_are_not_remembered_and_warnings_name_the_file(self):
         self.run_ledger("init", "--plan", "plan.md", "--intake", "D1,D8")
         self.assertEqual(self.ledger()["decision:D1"]["origin"], "intake")
