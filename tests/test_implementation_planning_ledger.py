@@ -440,6 +440,8 @@ class LedgerTest(unittest.TestCase):
         self.assertNotIn("ignored", p.stderr)
         p = self.run_ledger("init", "--plan", "plan.md")  # D4 is still out of the plan
         self.assertNotIn("ignored", p.stderr)
+        p = self.run_ledger("init", "--plan", "plan.md", "--intake", "D1,D4")  # the same list again
+        self.assertNotIn("ignored", p.stderr)
         (self.dir / "plan.md").write_text(PLAN, encoding="utf-8")
         self.run_ledger("init", "--plan", "plan.md")
         self.assertEqual(self.ledger()["decision:D4"]["origin"], "intake")

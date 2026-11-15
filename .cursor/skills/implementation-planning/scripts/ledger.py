@@ -35,10 +35,10 @@ its path relative to the ledger's folder); a new --intake or --owner list replac
 Outcome: affirmed, modified (held with different values or configuration), refuted
 (failed), inconclusive (not tested). New items are pending.
 
-Re-running init adds new rows and keeps outcomes and each row's first text, so the
+Re-running init adds new rows and keeps outcomes and each row's recorded text, so the
 blind measurement survives plan revisions; --rebuild re-reads the rows (and prints each
-replaced prediction's first text). Fenced code blocks in the plan are ignored. A row no longer in
-the plan is kept by init; --rebuild drops it if it is still pending with no evidence.
+replaced prediction's previous text). Fenced code blocks in the plan are ignored. A row no
+longer in the plan is kept by init; --rebuild drops it if it is still pending with no evidence.
 
 Scoring a later blind regeneration: its IDs won't match this plan's, so a fresh judge
 reads the regenerated plan with truth.json and labels every measured item:
@@ -313,8 +313,8 @@ def init(args):
             sys.exit(f"remembered blind plan {blind_file} not found; pass --blind")
     plan = items(read_text(args.plan), args.plan)
     blind = items(read_text(blind_file), str(blind_file)) if blind_file else None
-    seen = set(plan["decision"]) | {k.split(":", 1)[1] for k in old.get("items", {})
-                                    if k.startswith("decision:")}
+    seen = (set(plan["decision"]) | set(meta.get("intake", [])) | set(meta.get("owner", []))
+            | {k.split(":", 1)[1] for k in old.get("items", {}) if k.startswith("decision:")})
     given = (intake if args.intake is not None else set()) | (owner if args.owner is not None else set())
     unknown = sorted(given - seen)  # only the lists passed now: a remembered id stays until replaced
     if unknown:
@@ -357,11 +357,11 @@ def init(args):
             prev = old["items"].get(key)
             if prev and row_key(prev["line"]) != row_key(raw):
                 if args.rebuild:
-                    print(f"warning: {key} prediction replaced; first read was: {prev['line']}",
+                    print(f"warning: {key} prediction replaced; previous text was: {prev['line']}",
                           file=sys.stderr)
                 else:
-                    print(f"warning: {key} changed in the plan since it was first read; kept as "
-                          "first read (--rebuild re-reads it)", file=sys.stderr)
+                    print(f"warning: {key} changed in the plan since it was recorded; kept as "
+                          "recorded (--rebuild re-reads it)", file=sys.stderr)
             if prev and not args.rebuild:
                 ledger["items"][key] = entry(kind, iid, prev["line"], prev["prediction"], prev)
             else:
