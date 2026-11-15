@@ -300,7 +300,7 @@ class LedgerTest(unittest.TestCase):
         self.run_ledger("init", "--plan", "plan.md", "--intake", "D1,D4")
         self.run_ledger("record", "D4", "affirmed", "x")
         (self.dir / "plan.md").write_text(PLAN.replace("| D4 | Added later? | Yes |\n", ""), encoding="utf-8")
-        p = self.run_ledger("init", "--plan", "plan.md", "--rebuild")
+        p = self.run_ledger("init", "--plan", "plan.md", "--rebuild", "--intake", "D1,D4")
         self.assertNotIn("ignored", p.stderr)
         self.assertEqual(self.ledger()["decision:D4"]["origin"], "intake")
 
