@@ -437,6 +437,16 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(self.ledger()["decision:D1"]["origin"], "intake")
         meta = json.loads((self.dir / "verification/ledger.json").read_text(encoding="utf-8"))["meta"]
         self.assertEqual(meta["intake"], ["D1"])
+        # a row the list named, since removed from the plan, keeps its origin and its list entry
+        self.run_ledger("record", "D1", "affirmed", "x")
+        (self.dir / "plan.md").write_text(PLAN.replace("| D1 | **DECIDED 2026-01-01: demo.** What is it for? | Sets done |\n", ""),
+                                          encoding="utf-8")
+        p = self.run_ledger("init", "--plan", "plan.md")
+        self.assertNotIn("ignored", p.stderr)
+        self.assertEqual(self.ledger()["decision:D1"]["origin"], "intake")
+        meta = json.loads((self.dir / "verification/ledger.json").read_text(encoding="utf-8"))["meta"]
+        self.assertEqual(meta["intake"], ["D1"])
+        (self.dir / "plan.md").write_text(PLAN, encoding="utf-8")
         (self.dir / "blind.md").write_text(BLIND.replace("| R-02 |", "| R-01 | **Repo** | Volume tiers | exact |\n| R-02 |"),
                                            encoding="utf-8")
         p = self.run_ledger("init", "--plan", "plan.md", "--blind", "blind.md")

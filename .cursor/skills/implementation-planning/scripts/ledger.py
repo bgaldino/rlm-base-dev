@@ -313,11 +313,13 @@ def init(args):
             sys.exit(f"remembered blind plan {blind_file} not found; pass --blind")
     plan = items(read_text(args.plan), args.plan)
     blind = items(read_text(blind_file), str(blind_file)) if blind_file else None
-    unknown = sorted((intake | owner) - set(plan["decision"]))
+    seen = set(plan["decision"]) | {k.split(":", 1)[1] for k in old.get("items", {})
+                                    if k.startswith("decision:")}
+    unknown = sorted((intake | owner) - seen)
     if unknown:
         print(f"warning: not decision rows in the plan, so ignored: {', '.join(unknown)}", file=sys.stderr)
-        intake &= set(plan["decision"])
-        owner &= set(plan["decision"])
+        intake &= seen
+        owner &= seen
 
     ledger = {"meta": {"plan": relative(args.plan, ledger_dir), "blind": blind_path,
                        "intake": sorted(intake), "owner": sorted(owner)},
