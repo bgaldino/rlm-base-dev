@@ -246,8 +246,10 @@ class LedgerTest(unittest.TestCase):
                  "| S-2 Renewal value | R-02 | 50.00 | One line | `x` |\n\n")
         # a phase written as a heading ends at another phase's bold label
         plan = PLAN.replace("**P2 Live spikes** (each on its own org)", "### P2 Live spikes (each on its own org)")
+        plan = plan.replace("**P3 Catalog, then configuration**\n", "**P3 Catalog, then configuration**\n\n"
+                            + spike.replace("S-2 Renewal value", "S-8 In P3"))
         (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        self.init()
+        self.init("--rebuild")
         self.assertEqual(sorted(k for k in self.ledger() if k.startswith("spike:")), ["spike:S-1"])
         # a label with spaces or other case still reads its sub-labels as part of the phase
         end = PLAN.index("**P3 Catalog")
@@ -328,6 +330,21 @@ class LedgerTest(unittest.TestCase):
         rules = sorted(k for k in self.ledger() if k.startswith("rule:"))
         self.assertEqual(rules, ["rule:R-01", "rule:R-02", "rule:R-03"])
         self.assertNotIn("rule rows outside", p.stderr)
+        # under a heading, an out-of-scope table is not read as rules either
+        plan = PLAN.replace("### 3.11 Knowledge source per area", "Out of scope by decision:\n\n"
+                            "| Rule | Why out of scope |\n|---|---|\n| R-17 | not sold |\n\n### 3.11 Knowledge source per area")
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        p = self.init("--rebuild")
+        self.assertNotIn("rule:R-17", self.ledger())
+
+    def test_short_row_pads_to_the_header(self):
+        plan = PLAN.replace("| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n",
+                            "| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n| R-04 | Live (c) | Formula |\n")
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        p = self.init()
+        self.assertNotIn("cells under", p.stderr)
+        self.assertEqual(self.ledger()["rule:R-04"]["prediction"]["Decided by"], "Live (c)")
+        self.assertEqual(self.ledger()["rule:R-04"]["prediction"]["Exact vs source?"], "")
 
     def test_same_number_label_stays_inside_the_phase(self):
         end = PLAN.index("**P3 Catalog")
@@ -341,11 +358,15 @@ class LedgerTest(unittest.TestCase):
     def test_empty_spike_section_reads_no_other_phase(self):
         start = PLAN.index("**P2 Live spikes**")
         end = PLAN.index("**P3 Catalog")
+        p3_spike = ("| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
+                    "| S-8 In P3 | R-02 | 5.00 | One line | `x` |\n\n")
         plan = PLAN[:start] + "**P2 Live spikes** None: no rule is Live.\n\n" + PLAN[end:]
+        plan = plan.replace("**P3 Catalog, then configuration**\n", "**P3 Catalog, then configuration**\n\n" + p3_spike)
         (self.dir / "plan.md").write_text(plan.replace("| Not | a spike |", "| Item | Content |"), encoding="utf-8")
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertIn("no spike rows", p.stderr)
+        self.assertIn("not read: S-8", p.stderr)
         self.assertIn("section is there", p.stderr)
         self.assertFalse([k for k in self.ledger() if k.startswith("spike:")])
 

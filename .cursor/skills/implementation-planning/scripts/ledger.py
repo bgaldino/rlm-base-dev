@@ -14,7 +14,8 @@ verification/ledger.json under that folder; --ledger PATH (before the command) m
 
 Items are table rows of the plan (plan-template.md), the first cell being the ID:
   decision  tables with "#" as first column, under a heading or bold label "2. Decisions"
-  rule      tables with a first column starting "Rule", under "Rule decision record"
+  rule      tables with a first column starting "Rule" and a "Decided by" column, under
+            "Rule decision record" (a table of out-of-scope rules there is not read)
   spike     tables with a first column starting "Spike" and a "must hit" column, under the
             label "P2 Live spikes" (a gate table such as "| Check | Must hit |" is not a spike)
 A bold label (the marker comes first) ends at the next heading or bold line (a bulleted
@@ -22,8 +23,7 @@ label also at the next bulleted bold line). A phase label ("**P2 ...") instead r
 another phase's label or a heading, so its sub-labels (**P2a, **P2b), headings of its own
 phase ("### P2b") and other bold lines stay inside it. Punctuation
 between a marker's words is ignored ("**P2: Live spikes**"), as is a section number before a
-phase ("### 5.2 P2 Live spikes"). A spike table, or a rule table with a "Decided by" column,
-outside its section draws a warning. init fails if it finds no rule or decision rows.
+phase ("### 5.2 P2 Live spikes"). A spike or rule table outside its section draws a warning. init fails if it finds no rule or decision rows.
 
 Origin: blind (unchanged from the blind plan), edited (its blind text kept), added,
 intake or owner (given to the planner; not counted for accuracy). With no blind plan,
@@ -143,7 +143,7 @@ def clean_id(cell):
 
 TABLE_TEST = {
     "decision": lambda h: h[0] == "#",
-    "rule": lambda h: h[0].lower().startswith("rule"),
+    "rule": lambda h: h[0].lower().startswith("rule") and any(re.search(r"decided.by", c, re.I) for c in h),
     "spike": lambda h: h[0].lower().startswith("spike") and any(re.search(r"must.hit", c, re.I) for c in h),
 }
 
@@ -168,7 +168,9 @@ def table_rows(lines, kind, quiet=False):
         iid = clean_id(row[0]) if row else ""
         if not iid:
             continue
-        if len(row) != len(header) and not quiet:
+        if len(row) < len(header):  # GFM: a short row has blank trailing cells
+            row = row + [""] * (len(header) - len(row))
+        elif len(row) > len(header) and not quiet:
             print(f"warning: {iid} has {len(row)} cells under {len(header)} columns (an unescaped "
                   "'|' in a cell?); its cells are kept without column names", file=sys.stderr)
         if iid in rows:
@@ -200,7 +202,7 @@ def unfenced(lines, name):
 
 
 NEEDS = {"decision": "a table whose first column is '#'",
-         "rule": "a table whose first column starts with 'Rule'",
+         "rule": "a table whose first column starts with 'Rule' and that has a 'Decided by' column",
          "spike": "a table whose first column starts with 'Spike' and that has a 'Must hit' column"}
 
 
@@ -210,11 +212,9 @@ def items(text, name):
     for kind in KINDS:
         section, present = section_lines(lines, MARKERS[kind])
         found[kind] = table_rows(section, kind)
-        # A spike table, or a rule table shaped like the record (not the rule register),
-        # outside its section is a misplaced label or heading.
-        outside = [iid for iid, (header, _, _) in table_rows(lines, kind, quiet=True).items()
-                   if iid not in found[kind] and kind != "decision"
-                   and (kind == "spike" or any(re.search(r"decided.by", c, re.I) for c in header))]
+        # A spike or rule table outside its section is a misplaced label or heading.
+        outside = [iid for iid in table_rows(lines, kind, quiet=True)
+                   if iid not in found[kind] and kind != "decision"]
         if outside:
             print(f"warning: {name}: {kind} rows outside '{MARKERS[kind]}' are not read: "
                   f"{', '.join(outside)}", file=sys.stderr)
