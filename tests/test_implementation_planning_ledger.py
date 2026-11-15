@@ -186,6 +186,33 @@ class LedgerTest(unittest.TestCase):
             "decision:D1", "decision:D2", "decision:D3", "decision:D4",
             "rule:R-01", "rule:R-02", "rule:R-03", "spike:S-1"])
 
+    def test_fenced_code_is_not_read_as_headings_or_rows(self):
+        fence = "```bash\n# keep the org 7 days\n**not a label**\n| X-9 | fenced | 1 | a | b |\n```\n\n"
+        plan = PLAN.replace("| Spike | Rules |", fence + "| Spike | Rules |", 1)
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        p = self.init()
+        self.assertEqual(sorted(k for k in self.ledger() if k.startswith("spike:")), ["spike:S-1"])
+        (self.dir / "plan.md").write_text(PLAN.replace("## 2. Decisions\n", "## 2. Decisions\n\n" + fence), encoding="utf-8")
+        self.init()
+        self.assertIn("decision:D2", self.ledger())
+
+    def test_row_syntax_variants(self):
+        plan = (PLAN.replace("|---|---|---|---|", "|-|-|-|-|")
+                    .replace("| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |",
+                             "| R-03 | Repo | Formula ||"))
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        self.init()
+        pred = self.ledger()["rule:R-03"]["prediction"]
+        self.assertEqual(pred["Exact vs source?"], "")
+        self.assertEqual(pred["Native feature and fallback"], "Formula")
+
+    def test_missing_table_error_names_the_cause(self):
+        (self.dir / "plan.md").write_text(PLAN.replace("| Rule | Decided by |", "| ID | Decided by |"), encoding="utf-8")
+        p = self.run_ledger("init", "--plan", "plan.md")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("starts with 'Rule'", p.stderr)
+        self.assertIn("section is there but holds no such table", p.stderr)
+
     def test_missing_rule_record_fails(self):
         (self.dir / "plan.md").write_text(PLAN.replace("### 3.10 Rule decision record", "### 3.10 Rules"), encoding="utf-8")
         p = self.run_ledger("init", "--plan", "plan.md")
@@ -278,7 +305,8 @@ class LedgerTest(unittest.TestCase):
         item = self.ledger()["rule:R-02"]
         self.assertEqual(item["outcome"], "refuted")
         self.assertEqual(item["prediction"]["Native feature and fallback"], "Amendment")
-        self.run_ledger("init", "--plan", "plan.md", "--rebuild")
+        p = self.run_ledger("init", "--plan", "plan.md", "--rebuild")
+        self.assertIn("rule:R-02 prediction replaced", p.stderr)
         item = self.ledger()["rule:R-02"]
         self.assertEqual((item["outcome"], item["prediction"]["Native feature and fallback"]),
                          ("refuted", "Rewritten"))

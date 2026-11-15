@@ -29,7 +29,8 @@ Outcome: affirmed, modified (held with different values or configuration), refut
 (failed), inconclusive (not tested). New items are pending.
 
 Re-running init adds new rows and keeps outcomes and each row's first text, so the
-blind measurement survives plan revisions; --rebuild re-reads the rows. A row no longer in
+blind measurement survives plan revisions; --rebuild re-reads the rows (and prints each
+replaced prediction's first text). Fenced code blocks in the plan are ignored. A row no longer in
 the plan is kept if anything was recorded on it; --rebuild drops it if it is still pending
 with no evidence.
 
@@ -100,12 +101,15 @@ def section_lines(lines, marker):
 
 
 def cells(line):
-    parts = line.strip().strip("|").replace("\\|", "\0").split("|")
+    s = line.strip()
+    s = s[1:] if s.startswith("|") else s
+    s = s[:-1] if s.endswith("|") and not s.endswith("\\|") else s
+    parts = s.replace("\\|", "\0").split("|")
     return [p.replace("\0", "|").strip() for p in parts]
 
 
 def is_separator(line):
-    return bool(re.fullmatch(r"\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?", line.strip()))
+    return bool(re.fullmatch(r"\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?", line.strip()))
 
 
 def clean_id(cell):
@@ -152,13 +156,39 @@ def table_rows(lines, kind):
     return rows
 
 
+def unfenced(lines):
+    """The lines with fenced code blocks (and their fences) blanked, so a code comment is not
+    read as a heading and a fenced table is not read as plan rows."""
+    out, fence = [], None
+    for line in lines:
+        m = re.match(r"\s*(`{3,}|~{3,})", line)
+        if fence is None and m:
+            fence = m.group(1)[0]
+            out.append("")
+        elif fence is not None:
+            if m and m.group(1)[0] == fence:
+                fence = None
+            out.append("")
+        else:
+            out.append(line)
+    return out
+
+
+NEEDS = {"decision": "a table whose first column is '#'",
+         "rule": "a table whose first column starts with 'Rule'",
+         "spike": "a table with a 'Must hit' column"}
+
+
 def items(text, name):
-    lines = text.splitlines()
+    lines = unfenced(text.splitlines())
     found = {}
     for kind in KINDS:
-        found[kind] = table_rows(section_lines(lines, MARKERS[kind]), kind)
+        section = section_lines(lines, MARKERS[kind])
+        found[kind] = table_rows(section, kind)
         if not found[kind]:
-            msg = f"{name}: no {kind} rows under a heading or bold label containing '{MARKERS[kind]}'"
+            where = ("the section is there but holds no such table" if any(section)
+                     else "no such heading or bold label")
+            msg = (f"{name}: no {kind} rows under '{MARKERS[kind]}' in {NEEDS[kind]} ({where})")
             if kind == "spike":
                 print(f"warning: {msg}", file=sys.stderr)
             else:
@@ -270,10 +300,14 @@ def init(args):
             key = f"{kind}:{iid}"
             seen.add(key)
             prev = old["items"].get(key)
-            if prev and not args.rebuild:
-                if cells(prev["line"]) != cells(raw):
+            if prev and cells(prev["line"]) != cells(raw):
+                if args.rebuild:
+                    print(f"warning: {key} prediction replaced; first read was: {prev['line']}",
+                          file=sys.stderr)
+                else:
                     print(f"warning: {key} changed in the plan since it was first read; kept as "
                           "first read (--rebuild re-reads it)", file=sys.stderr)
+            if prev and not args.rebuild:
                 ledger["items"][key] = entry(kind, iid, prev["line"], prev["prediction"], prev)
             else:
                 ledger["items"][key] = entry(kind, iid, raw, prediction(header, row), prev)
