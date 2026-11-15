@@ -129,12 +129,13 @@ traced).
 
 Dependencies on one line, for example `P1 → P2 → P3a → (P3b ∥ P4) → P5 → P6 → P7 → P8 → P9`.
 Each phase opens with an unbulleted bold label naming it (P2's reads
-**P2 Live spikes**; the ledger finds the spike table by it), then bullets. The ledger reads
-a phase up to the next phase's label (a heading ends it too), so put every spike table of P2
-before the **P3** label:
+**P2 Live spikes**; the ledger finds the spike tables by it), then bullets:
 - the work items,
 - **Skills:** the skills and sub-files to read first,
 - the **Gate:** what must pass, and on which org.
+
+The ledger reads a phase up to the next phase's label (a heading ends it too), so put every
+spike table of P2 before the **P3** label.
 
 The usual phases, ordered by the prerequisite graph in [build-order.md](build-order.md):
 

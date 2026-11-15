@@ -352,7 +352,7 @@ is in the pack's repo, since the ledger copies the plan's rows.
   decision it comes from, and the evidence log (section 7) holds the trail. A prior
   build ran it this way.
 
-The ledger reads the plan's decisions, rule decision record and P2 spike table, by the
+The ledger reads the plan's decisions, rule decision record and P2 spike tables, by the
 names [plan-template.md](plan-template.md) gives them, and gives each row:
 - an **origin:** in the blind plan unchanged, edited, or added; or given to the planner
   (an intake answer, or a decision a person settled later), which doesn't count toward

@@ -187,7 +187,9 @@ class LedgerTest(unittest.TestCase):
             "rule:R-01", "rule:R-02", "rule:R-03", "spike:S-1"])
 
     def test_fenced_code_is_not_read_as_headings_or_rows(self):
-        fence = "```bash\n# keep the org 7 days\n**not a label**\n| X-9 | fenced | 1 | a | b |\n```\n\n"
+        fence = ("```bash\n# keep the org 7 days\n**not a label**\n"
+                 "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
+                 "| X-9 | R-02 | 1 | a | b |\n```\n\n")
         plan = PLAN.replace("| Spike | Rules |", fence + "| Spike | Rules |", 1)
         (self.dir / "plan.md").write_text(plan, encoding="utf-8")
         p = self.init()
@@ -195,6 +197,17 @@ class LedgerTest(unittest.TestCase):
         (self.dir / "plan.md").write_text(PLAN.replace("## 2. Decisions\n", "## 2. Decisions\n\n" + fence), encoding="utf-8")
         self.init()
         self.assertIn("decision:D2", self.ledger())
+
+    def test_fence_length_and_unclosed_fence(self):
+        nested = "````md\n```\n# inner\n```\n# still code\n````\n\n"
+        (self.dir / "plan.md").write_text(PLAN.replace("## 2. Decisions\n", "## 2. Decisions\n\n" + nested),
+                                          encoding="utf-8")
+        self.init()
+        self.assertIn("decision:D2", self.ledger())
+        (self.dir / "plan.md").write_text(PLAN.replace("**P3 Catalog", "```\n**P3 Catalog"), encoding="utf-8")
+        p = self.run_ledger("init", "--plan", "plan.md")
+        self.assertIn("never closed", p.stderr)
+        self.assertIn("opened at line", p.stderr)
 
     def test_row_syntax_variants(self):
         plan = (PLAN.replace("|---|---|---|---|", "|-|-|-|-|")
@@ -218,7 +231,17 @@ class LedgerTest(unittest.TestCase):
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("no rule rows", p.stderr)
+        self.assertIn("no such heading", p.stderr)  # the fixture's bold mention is not a section
         self.assertFalse((self.dir / "verification/ledger.json").exists())
+
+    def test_same_number_label_stays_inside_the_phase(self):
+        end = PLAN.index("**P3 Catalog")
+        second = ("**P2 gate:** wave 2.\n\n"
+                  "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
+                  "| S-2 Renewal value | R-02 | 50.00 | One line | `asset-lifecycle-changes` |\n\n")
+        (self.dir / "plan.md").write_text(PLAN[:end] + second + PLAN[end:], encoding="utf-8")
+        self.init()
+        self.assertIn("spike:S-2", self.ledger())
 
     def test_empty_spike_section_reads_no_other_phase(self):
         start = PLAN.index("**P2 Live spikes**")

@@ -16,9 +16,9 @@ Items are table rows of the plan (plan-template.md), the first cell being the ID
   decision  tables with "#" as first column, under a heading or bold label "2. Decisions"
   rule      tables with a first column starting "Rule", under "Rule decision record"
   spike     tables with a "must hit" column, under the label "P2 Live spikes"
-A bold label's section ends at the next heading or bold line. A phase label ("**P2 ...")
-instead runs to the next phase's label or a heading, so its sub-labels (**P2a, **P2b) and other
-bold lines stay inside it. init fails if it finds no rule or decision rows.
+A bold label (the marker comes first) ends at the next heading or bold line. A phase label
+("**P2 ...") instead runs to another phase's label or a heading, so its sub-labels (**P2a,
+**P2b) and other bold lines stay inside it. init fails if it finds no rule or decision rows.
 
 Origin: blind (unchanged from the blind plan), edited (its blind text kept), added,
 intake or owner (given to the planner; not counted for accuracy). With no blind plan,
@@ -79,15 +79,16 @@ def section_lines(lines, marker):
     (so tables in different sections never join), and whether any heading or label held the
     marker. A section starts at a heading or bold label (a line starting "**") that holds the
     marker, ignoring case. A heading ends at the next heading of the same or a higher level.
-    A phase label ("**P2 ...") ends at the next heading or the next phase's label ("**P3"),
+    A phase label ("**P2 ...") ends at the next heading or the label of another phase ("**P3"),
     and its own sub-labels ("**P2a", "**P2b") stay inside it, as do other bold lines. Any
     other label ends at the next heading or bold line. Overlapping sections are read once."""
-    named = re.compile(rf"(^|[\s*#]){re.escape(marker)}\b", re.I)
+    in_heading = re.compile(rf"(^|[\s*#]){re.escape(marker)}\b", re.I)
+    as_label = re.compile(rf"\*\*\s*{re.escape(marker)}\b", re.I)
     keep = set()
     found = False
     for start, line in enumerate(lines):
         level = heading_level(line)
-        if not named.search(line) or not (level or line.startswith("**")):
+        if not (in_heading.search(line) if level else as_label.match(line)):
             continue
         found = True
         phase = re.match(r"\*\*P(\d+)(?![\w])", line)
@@ -96,9 +97,9 @@ def section_lines(lines, marker):
             if h and (not level or h <= level):
                 break
             if not level and lines[i].startswith("**"):
-                other = re.match(r"\*\*P(\d+)([a-z]?)\b", lines[i])
+                other = re.match(r"\*\*P(\d+)", lines[i])
                 if phase:
-                    if other and (other.group(1) != phase.group(1) or not other.group(2)):
+                    if other and other.group(1) != phase.group(1):
                         break
                 else:
                     break
@@ -162,21 +163,23 @@ def table_rows(lines, kind):
     return rows
 
 
-def unfenced(lines):
+def unfenced(lines, name):
     """The lines with fenced code blocks (and their fences) blanked, so a code comment is not
-    read as a heading and a fenced table is not read as plan rows."""
-    out, fence = [], None
-    for line in lines:
+    read as a heading and a fenced table is not read as plan rows. A fence closes on a line of
+    the same character at least as long as the opening one, with nothing after it."""
+    out, fence, opened = [], None, 0
+    for n, line in enumerate(lines, 1):
         m = re.match(r"\s*(`{3,}|~{3,})", line)
         if fence is None and m:
-            fence = m.group(1)[0]
+            fence, opened = m.group(1), n
+        elif fence is not None and re.fullmatch(rf"\s*{fence[0]}{{{len(fence)},}}\s*", line):
+            fence = None
             out.append("")
-        elif fence is not None:
-            if m and m.group(1)[0] == fence:
-                fence = None
-            out.append("")
-        else:
-            out.append(line)
+            continue
+        out.append("" if fence is not None else line)
+    if fence is not None:
+        print(f"warning: {name}: the code fence opened at line {opened} is never closed; "
+              "the rest of the plan is ignored", file=sys.stderr)
     return out
 
 
@@ -186,7 +189,7 @@ NEEDS = {"decision": "a table whose first column is '#'",
 
 
 def items(text, name):
-    lines = unfenced(text.splitlines())
+    lines = unfenced(text.splitlines(), name)
     found = {}
     for kind in KINDS:
         section, present = section_lines(lines, MARKERS[kind])
