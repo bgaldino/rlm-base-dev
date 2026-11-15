@@ -438,7 +438,8 @@ class LedgerTest(unittest.TestCase):
         p = self.run_ledger("init", "--plan", "plan.md", "--rebuild")
         self.assertIn("decision:D4 is no longer in the plan and has nothing recorded", p.stderr)
         self.assertNotIn("ignored", p.stderr)
-        p = self.run_ledger("init", "--plan", "plan.md")  # D4 is still out of the plan
+        # D4 is still out of the plan; the id is remembered in the intake list, so naming it as an owner is valid
+        p = self.run_ledger("init", "--plan", "plan.md", "--owner", "D4")
         self.assertNotIn("ignored", p.stderr)
         p = self.run_ledger("init", "--plan", "plan.md", "--intake", "D1,D4")  # the same list again
         self.assertNotIn("ignored", p.stderr)
