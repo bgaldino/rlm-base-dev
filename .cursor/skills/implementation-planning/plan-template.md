@@ -134,8 +134,9 @@ Each phase opens with an unbulleted bold label naming it (P2's reads
 - **Skills:** the skills and sub-files to read first,
 - the **Gate:** what must pass, and on which org.
 
-The ledger reads a phase up to the next phase's label (a heading ends it too), so put every
-spike table of P2 before the **P3** label.
+The ledger reads a phase up to the next phase's label or any heading except one for its own
+wave (`### P2b` stays inside P2), so put every spike table of P2 before the **P3** label. It
+warns about a spike table it finds outside that section.
 
 The usual phases, ordered by the prerequisite graph in [build-order.md](build-order.md):
 

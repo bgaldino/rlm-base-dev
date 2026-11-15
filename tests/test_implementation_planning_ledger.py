@@ -144,17 +144,24 @@ class LedgerTest(unittest.TestCase):
     def test_blind_path_is_relative_and_survives_a_moved_folder(self):
         self.init()
         meta = json.loads((self.dir / "verification/ledger.json").read_text(encoding="utf-8"))["meta"]
-        self.assertEqual(meta["blind"], str(Path("..") / "blind.md"))
+        self.assertEqual((meta["blind"], meta["plan"]), (str(Path("..") / "blind.md"), str(Path("..") / "plan.md")))
         moved = self.dir / "moved"
         moved.mkdir()
         for name in ("plan.md", "blind.md", "verification"):
             src = self.dir / name
             (shutil.copytree if src.is_dir() else shutil.copy)(src, moved / name)
-        p = subprocess.run([sys.executable, "-I", str(SCRIPT), "init", "--plan", "plan.md"], cwd=moved,
-                           capture_output=True, text=True)
+        (self.dir / "blind.md").unlink()  # only the moved copy can answer now
+
+        def run_moved():
+            return subprocess.run([sys.executable, "-I", str(SCRIPT), "init", "--plan", "plan.md"],
+                                  cwd=moved, capture_output=True, text=True)
+        p = run_moved()
         self.assertEqual(p.returncode, 0, p.stderr)
-        (self.dir / "blind.md").unlink()
-        p = self.run_ledger("init", "--plan", "plan.md")
+        items = json.loads((moved / "verification/ledger.json").read_text(encoding="utf-8"))["items"]
+        self.assertEqual(items["decision:D3"]["origin"], "edited")
+        self.assertIn("At the end", items["decision:D3"]["blind_prediction"])
+        (moved / "blind.md").unlink()
+        p = run_moved()
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("pass --blind", p.stderr)
 
@@ -265,6 +272,34 @@ class LedgerTest(unittest.TestCase):
         p = self.init()
         self.assertNotIn("never closed", p.stderr)
         self.assertIn("rule:R-03", self.ledger())
+
+    def test_phase_label_variants_and_own_wave_headings(self):
+        for label in ("**P2: Live spikes**", "- **P2 — Live spikes**"):
+            (self.dir / "plan.md").write_text(PLAN.replace("**P2 Live spikes**", label), encoding="utf-8")
+            p = self.init("--rebuild")
+            self.assertIn("spike:S-1", self.ledger(), label)
+            self.assertNotIn("no spike rows", p.stderr)
+        end = PLAN.index("**P3 Catalog")
+        wave = ("### P2b spikes on the real catalog\n\n"
+                "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
+                "| S-2 Renewal value | R-02 | 50.00 | One line | `x` |\n\n")
+        (self.dir / "plan.md").write_text(PLAN[:end] + wave + PLAN[end:], encoding="utf-8")
+        self.init()
+        self.assertIn("spike:S-2", self.ledger())
+
+    def test_bold_header_cells_and_misplaced_tables(self):
+        plan = (PLAN.replace("| Spike | Rules | Must hit |", "| **Spike** | Rules | **Must hit** |")
+                .replace("| Rule | Decided by |", "| `Rule` | Decided by |")
+                .replace("| # | Decision |", "| **#** | Decision |"))
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        self.init()
+        self.assertTrue({"decision:D2", "rule:R-01", "spike:S-1"} <= set(self.ledger()))
+        late = ("\n| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
+                "| S-2 Renewal value | R-02 | 50.00 | One line | `x` |\n")
+        (self.dir / "plan.md").write_text(PLAN + late, encoding="utf-8")
+        p = self.init()
+        self.assertIn("spike rows outside 'P2 Live spikes' are not read: S-2\n", p.stderr)
+        self.assertNotIn("spike:S-2", self.ledger())
 
     def test_same_number_label_stays_inside_the_phase(self):
         end = PLAN.index("**P3 Catalog")

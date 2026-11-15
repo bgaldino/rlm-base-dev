@@ -18,7 +18,10 @@ Items are table rows of the plan (plan-template.md), the first cell being the ID
   spike     tables with a "must hit" column, under the label "P2 Live spikes"
 A bold label (the marker comes first) ends at the next heading or bold line. A phase label
 ("**P2 ...") instead runs to another phase's label or a heading, so its sub-labels (**P2a,
-**P2b) and other bold lines stay inside it. init fails if it finds no rule or decision rows.
+**P2b), headings of its own phase ("### P2b") and other bold lines stay inside it. Punctuation
+between a marker's words is ignored ("**P2: Live spikes**"). A rule table, or a spike table
+whose first column is the spike, outside its section draws a warning. init fails if it finds
+no rule or decision rows.
 
 Origin: blind (unchanged from the blind plan), edited (its blind text kept), added,
 intake or owner (given to the planner; not counted for accuracy). With no blind plan,
@@ -31,8 +34,7 @@ Outcome: affirmed, modified (held with different values or configuration), refut
 Re-running init adds new rows and keeps outcomes and each row's first text, so the
 blind measurement survives plan revisions; --rebuild re-reads the rows (and prints each
 replaced prediction's first text). Fenced code blocks in the plan are ignored. A row no longer in
-the plan is kept if anything was recorded on it; --rebuild drops it if it is still pending
-with no evidence.
+the plan is kept by init; --rebuild drops it if it is still pending with no evidence.
 
 Scoring a later blind regeneration: its IDs won't match this plan's, so a fresh judge
 reads the regenerated plan with truth.json and labels every measured item:
@@ -77,15 +79,17 @@ def heading_level(line):
 def section_lines(lines, marker):
     """(lines, found): the plan's lines that lie in any section for `marker`, others blanked
     (so tables in different sections never join), and whether any heading or label held the
-    marker. A section starts at a heading or bold label (a line starting "**") that holds the
-    marker, ignoring case. A heading ends at the next heading of the same or a higher level.
+    marker. A section starts at a heading or bold label (a line starting "**", or a bullet
+    and then "**") that holds the marker, ignoring case and the punctuation between its words
+    ("**P2: Live spikes**"). A heading ends at the next heading of the same or a higher level.
     A phase ("**P2 ..." or a heading "P2 ...") ends at the next heading (of its level or
-    higher) or at the bold label of another phase ("**P3"); its own sub-labels ("**P2a",
-    "**P2b") stay inside it, as do other bold lines. A bold label that is not a phase ends at
-    the next heading or bold line. A heading that is not a phase ignores bold lines.
-    Overlapping sections are read once."""
-    in_heading = re.compile(rf"(^|[\s*#]){re.escape(marker)}\b", re.I)
-    as_label = re.compile(rf"\*\*\s*{re.escape(marker)}\b", re.I)
+    higher) or at the bold label of another phase ("**P3"); its own sub-labels and headings
+    ("**P2a", "### P2b") stay inside it, as do other bold lines. A bold label that is not a
+    phase ends at the next heading or bold line. A heading that is not a phase ignores bold
+    lines. Overlapping sections are read once."""
+    words = r"\W+".join(re.escape(w) for w in marker.split())
+    in_heading = re.compile(rf"(^|[\s*#]){words}\b", re.I)
+    as_label = re.compile(rf"(?:[-*+]\s+)?\*\*\s*{words}\b", re.I)
     keep = set()
     found = False
     for start, line in enumerate(lines):
@@ -93,18 +97,18 @@ def section_lines(lines, marker):
         if not (in_heading.search(line) if level else as_label.match(line)):
             continue
         found = True
-        phase = re.match(r"(?:#{1,6}\s+)?(?:\*\*)?\s*P(\d+)(?!\w)", line, re.I)
+        phase = re.match(r"(?:#{1,6}\s+|[-*+]\s+)?(?:\*\*)?\s*P(\d+)(?!\w)", line, re.I)
         for i in range(start + 1, len(lines)):
             h = heading_level(lines[i])
-            if h and (not level or h <= level):
+            own = phase and re.match(rf"#+\s+(?:\*\*)?\s*P{phase.group(1)}(?!\d)", lines[i], re.I)
+            if h and (not level or h <= level) and not own:
                 break
-            if lines[i].startswith("**"):
-                other = re.match(r"\*\*\s*P(\d+)", lines[i], re.I)
-                if phase:
-                    if other and other.group(1) != phase.group(1):
-                        break
-                elif not level:
+            if phase:
+                other = re.match(r"(?:[-*+]\s+)?\*\*\s*P(\d+)", lines[i], re.I)
+                if other and other.group(1) != phase.group(1):
                     break
+            elif not level and lines[i].startswith("**"):
+                break
             keep.add(i)
     return [l if i in keep else "" for i, l in enumerate(lines)], found
 
@@ -138,9 +142,9 @@ TABLE_TEST = {
 }
 
 
-def table_rows(lines, kind):
+def table_rows(lines, kind, quiet=False):
     """{id: (header cells, row cells, raw line)} for the body rows of every table whose
-    header passes the kind's TABLE_TEST."""
+    header (bold and code marks dropped) passes the kind's TABLE_TEST."""
     rows = {}
     header = None
     for i, line in enumerate(lines):
@@ -150,7 +154,7 @@ def table_rows(lines, kind):
         if is_separator(line):
             continue
         if i + 1 < len(lines) and is_separator(lines[i + 1]):
-            header = cells(line)
+            header = [re.sub(r"[*`]", "", c).strip() for c in cells(line)]
             continue
         if not header or not TABLE_TEST[kind](header):
             continue
@@ -158,11 +162,12 @@ def table_rows(lines, kind):
         iid = clean_id(row[0]) if row else ""
         if not iid:
             continue
-        if len(row) != len(header):
+        if len(row) != len(header) and not quiet:
             print(f"warning: {iid} has {len(row)} cells under {len(header)} columns (an unescaped "
                   "'|' in a cell?); its cells are kept without column names", file=sys.stderr)
         if iid in rows:
-            print(f"warning: {iid} appears twice; keeping the first row", file=sys.stderr)
+            if not quiet:
+                print(f"warning: {iid} appears twice; keeping the first row", file=sys.stderr)
             continue
         rows[iid] = (header or [], row, line.strip())
     return rows
@@ -199,6 +204,13 @@ def items(text, name):
     for kind in KINDS:
         section, present = section_lines(lines, MARKERS[kind])
         found[kind] = table_rows(section, kind)
+        # A rule table, or a spike table whose first column is the spike, outside its section
+        # is a misplaced label or heading (golden tables also have a 'Must hit' column).
+        outside = [iid for iid, (header, _, _) in table_rows(lines, kind, quiet=True).items()
+                   if iid not in found[kind] and (kind == "rule" or header[0].lower().startswith("spike"))]
+        if outside:
+            print(f"warning: {name}: {kind} rows outside '{MARKERS[kind]}' are not read: "
+                  f"{', '.join(outside)}", file=sys.stderr)
         if not found[kind]:
             where = ("the section is there but holds no such table" if present
                      else "no such heading or bold label")
@@ -257,6 +269,14 @@ def save(path, ledger):
     write_text(path, json.dumps(ledger, indent=1, ensure_ascii=False) + "\n")
 
 
+def relative(path, folder):
+    """The path relative to the ledger's folder, so the ledger survives a moved folder."""
+    try:
+        return os.path.relpath(Path(path).resolve(), folder)
+    except ValueError:  # another drive on Windows
+        return str(Path(path).resolve())
+
+
 def init(args):
     ledger_path = Path(args.ledger)
     old = read_json(ledger_path) if ledger_path.exists() else {"meta": {}, "items": {}}
@@ -266,10 +286,7 @@ def init(args):
     ledger_dir = ledger_path.resolve().parent
     if args.blind:
         blind_file = Path(args.blind).resolve()
-        try:
-            blind_path = os.path.relpath(blind_file, ledger_dir)
-        except ValueError:  # another drive on Windows
-            blind_path = str(blind_file)
+        blind_path = relative(blind_file, ledger_dir)
     else:
         blind_path = meta.get("blind")
         blind_file = ledger_dir / blind_path if blind_path else None
@@ -281,7 +298,7 @@ def init(args):
     if unknown:
         print(f"warning: not decision rows in the plan, so ignored: {', '.join(unknown)}", file=sys.stderr)
 
-    ledger = {"meta": {"plan": args.plan, "blind": blind_path,
+    ledger = {"meta": {"plan": relative(args.plan, ledger_dir), "blind": blind_path,
                        "intake": sorted(intake), "owner": sorted(owner)},
               "items": {}}
     def origin_of(kind, iid, line):
