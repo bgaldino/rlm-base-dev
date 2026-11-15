@@ -79,9 +79,11 @@ def section_lines(lines, marker):
     (so tables in different sections never join), and whether any heading or label held the
     marker. A section starts at a heading or bold label (a line starting "**") that holds the
     marker, ignoring case. A heading ends at the next heading of the same or a higher level.
-    A phase label ("**P2 ...") ends at the next heading or the label of another phase ("**P3"),
-    and its own sub-labels ("**P2a", "**P2b") stay inside it, as do other bold lines. Any
-    other label ends at the next heading or bold line. Overlapping sections are read once."""
+    A phase ("**P2 ..." or a heading "P2 ...") ends at the next heading (of its level or
+    higher) or at the bold label of another phase ("**P3"); its own sub-labels ("**P2a",
+    "**P2b") stay inside it, as do other bold lines. A bold label that is not a phase ends at
+    the next heading or bold line. A heading that is not a phase ignores bold lines.
+    Overlapping sections are read once."""
     in_heading = re.compile(rf"(^|[\s*#]){re.escape(marker)}\b", re.I)
     as_label = re.compile(rf"\*\*\s*{re.escape(marker)}\b", re.I)
     keep = set()
@@ -91,17 +93,17 @@ def section_lines(lines, marker):
         if not (in_heading.search(line) if level else as_label.match(line)):
             continue
         found = True
-        phase = re.match(r"\*\*P(\d+)(?![\w])", line)
+        phase = re.match(r"(?:#{1,6}\s+)?(?:\*\*)?\s*P(\d+)(?!\w)", line, re.I)
         for i in range(start + 1, len(lines)):
             h = heading_level(lines[i])
             if h and (not level or h <= level):
                 break
-            if not level and lines[i].startswith("**"):
-                other = re.match(r"\*\*P(\d+)", lines[i])
+            if lines[i].startswith("**"):
+                other = re.match(r"\*\*\s*P(\d+)", lines[i], re.I)
                 if phase:
                     if other and other.group(1) != phase.group(1):
                         break
-                else:
+                elif not level:
                     break
             keep.add(i)
     return [l if i in keep else "" for i, l in enumerate(lines)], found
@@ -116,7 +118,7 @@ def cells(line):
 
 
 def is_separator(line):
-    return bool(re.fullmatch(r"\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?", line.strip()))
+    return "|" in line and bool(re.fullmatch(r"\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?", line.strip()))
 
 
 def clean_id(cell):
@@ -156,6 +158,9 @@ def table_rows(lines, kind):
         iid = clean_id(row[0]) if row else ""
         if not iid:
             continue
+        if len(row) != len(header):
+            print(f"warning: {iid} has {len(row)} cells under {len(header)} columns (an unescaped "
+                  "'|' in a cell?); its cells are kept without column names", file=sys.stderr)
         if iid in rows:
             print(f"warning: {iid} appears twice; keeping the first row", file=sys.stderr)
             continue
@@ -170,7 +175,7 @@ def unfenced(lines, name):
     out, fence, opened = [], None, 0
     for n, line in enumerate(lines, 1):
         m = re.match(r"\s*(`{3,}|~{3,})", line)
-        if fence is None and m:
+        if fence is None and m and not (m.group(1)[0] == "`" and "`" in line[m.end():]):
             fence, opened = m.group(1), n
         elif fence is not None and re.fullmatch(rf"\s*{fence[0]}{{{len(fence)},}}\s*", line):
             fence = None

@@ -234,6 +234,38 @@ class LedgerTest(unittest.TestCase):
         self.assertIn("no such heading", p.stderr)  # the fixture's bold mention is not a section
         self.assertFalse((self.dir / "verification/ledger.json").exists())
 
+    def test_parser_edge_cases(self):
+        spike = ("| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
+                 "| S-2 Renewal value | R-02 | 50.00 | One line | `x` |\n\n")
+        # a phase written as a heading ends at another phase's bold label
+        plan = PLAN.replace("**P2 Live spikes** (each on its own org)", "### P2 Live spikes (each on its own org)")
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        self.init()
+        self.assertEqual(sorted(k for k in self.ledger() if k.startswith("spike:")), ["spike:S-1"])
+        # a label with spaces or other case still reads its sub-labels as part of the phase
+        end = PLAN.index("**P3 Catalog")
+        plan = (PLAN[:end].replace("**P2 Live spikes**", "** p2 Live spikes**") + "**P2b** later\n\n" + spike + PLAN[end:])
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        self.init()
+        self.assertIn("spike:S-2", self.ledger())
+        # a rule after a table with no blank line before a horizontal rule is kept
+        plan = PLAN.replace("| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n",
+                            "| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n---\n")
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        self.init()
+        self.assertIn("rule:R-03", self.ledger())
+        # a row with too many cells warns instead of silently losing its columns
+        plan = PLAN.replace("| R-01 | **Repo** |", "| R-01 | **Repo** | extra |")
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        p = self.init()
+        self.assertIn("R-01 has 5 cells under 4 columns", p.stderr)
+        # inline triple-backtick code is not a fence
+        plan = PLAN.replace("What D2 changes:", "```x``` is inline.\n\nWhat D2 changes:")
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        p = self.init()
+        self.assertNotIn("never closed", p.stderr)
+        self.assertIn("rule:R-03", self.ledger())
+
     def test_same_number_label_stays_inside_the_phase(self):
         end = PLAN.index("**P3 Catalog")
         second = ("**P2 gate:** wave 2.\n\n"
