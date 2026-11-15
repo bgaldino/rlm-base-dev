@@ -136,8 +136,8 @@ class LedgerTest(unittest.TestCase):
         self.run_ledger("init", "--plan", "plan.md", "--owner", "D2")
         item = self.ledger()["decision:D2"]
         self.assertEqual((item["origin"], item["outcome"]), ("owner", "affirmed"))
-        self.run_ledger("init", "--plan", "plan.md", "--owner", "")
-        self.assertEqual(self.ledger()["decision:D2"]["origin"], "blind")
+        self.run_ledger("init", "--plan", "plan.md")  # a plain re-init keeps it
+        self.assertEqual(self.ledger()["decision:D2"]["origin"], "owner")
 
     def test_blind_plan_is_remembered_across_inits(self):
         self.init()
@@ -190,14 +190,6 @@ class LedgerTest(unittest.TestCase):
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("cannot read", p.stderr)
 
-    def test_heading_case_and_mentions(self):
-        (self.dir / "plan.md").write_text(PLAN.replace("### 3.10 Rule decision record",
-                                                       "### 3.10 Rule Decision Record"), encoding="utf-8")
-        self.init()
-        self.assertEqual(sorted(self.ledger()), [
-            "decision:D1", "decision:D2", "decision:D3", "decision:D4",
-            "rule:R-01", "rule:R-02", "rule:R-03", "spike:S-1"])
-
     def test_fenced_code_is_not_read_as_headings_or_rows(self):
         fence = ("```bash\n# keep the org 7 days\n**not a label**\n"
                  "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
@@ -236,32 +228,8 @@ class LedgerTest(unittest.TestCase):
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("starts with 'Rule'", p.stderr)
-        self.assertIn("section is there but holds no such table", p.stderr)
-
-    def test_missing_rule_record_fails(self):
-        (self.dir / "plan.md").write_text(PLAN.replace("### 3.10 Rule decision record", "### 3.10 Rules"), encoding="utf-8")
-        p = self.run_ledger("init", "--plan", "plan.md")
-        self.assertNotEqual(p.returncode, 0)
-        self.assertIn("no rule rows", p.stderr)
-        self.assertIn("no such heading", p.stderr)  # the fixture's bold mention is not a section
-        self.assertFalse((self.dir / "verification/ledger.json").exists())
 
     def test_parser_edge_cases(self):
-        spike = ("| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
-                 "| S-2 Renewal value | R-02 | 50.00 | One line | `x` |\n\n")
-        # a phase written as a heading ends at another phase's bold label
-        plan = PLAN.replace("**P2 Live spikes** (each on its own org)", "### P2 Live spikes (each on its own org)")
-        plan = plan.replace("**P3 Catalog, then configuration**\n", "**P3 Catalog, then configuration**\n\n"
-                            + spike.replace("S-2 Renewal value", "S-8 In P3"))
-        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        self.fresh_init()
-        self.assertEqual(sorted(k for k in self.ledger() if k.startswith("spike:")), ["spike:S-1"])
-        # a label with spaces or other case still reads its sub-labels as part of the phase
-        end = PLAN.index("**P3 Catalog")
-        plan = (PLAN[:end].replace("**P2 Live spikes**", "** p2 Live spikes**") + "**P2b** later\n\n" + spike + PLAN[end:])
-        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        self.fresh_init()
-        self.assertIn("spike:S-2", self.ledger())
         # a rule after a table with no blank line before a horizontal rule is kept
         plan = PLAN.replace("| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n",
                             "| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n---\n")
@@ -280,67 +248,13 @@ class LedgerTest(unittest.TestCase):
         self.assertNotIn("never closed", p.stderr)
         self.assertIn("rule:R-03", self.ledger())
 
-    def test_phase_label_variants_and_own_wave_headings(self):
-        for label in ("**P2: Live spikes**", "- **P2 — Live spikes**"):
-            (self.dir / "plan.md").write_text(PLAN.replace("**P2 Live spikes**", label), encoding="utf-8")
-            p = self.init("--rebuild")
-            self.assertIn("spike:S-1", self.ledger(), label)
-            self.assertNotIn("no spike rows", p.stderr)
-        end = PLAN.index("**P3 Catalog")
-        wave = ("### P2b spikes on the real catalog\n\n"
-                "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
-                "| S-2 Renewal value | R-02 | 50.00 | One line | `x` |\n\n")
-        (self.dir / "plan.md").write_text(PLAN[:end] + wave + PLAN[end:], encoding="utf-8")
-        self.init()
-        self.assertIn("spike:S-2", self.ledger())
-
-    def test_bold_header_cells_and_misplaced_tables(self):
+    def test_bold_header_cells(self):
         plan = (PLAN.replace("| Spike | Rules | Must hit |", "| **Spike** | Rules | **Must hit** |")
                 .replace("| Rule | Decided by |", "| `Rule` | Decided by |")
                 .replace("| # | Decision |", "| **#** | Decision |"))
         (self.dir / "plan.md").write_text(plan, encoding="utf-8")
         self.init()
         self.assertTrue({"decision:D2", "rule:R-01", "spike:S-1"} <= set(self.ledger()))
-        late = ("\n| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
-                "| S-2 Renewal value | R-02 | 50.00 | One line | `x` |\n")
-        (self.dir / "plan.md").write_text(PLAN + late, encoding="utf-8")
-        p = self.init()
-        self.assertIn("spike rows outside 'P2 Live spikes' are not read: S-2\n", p.stderr)
-        self.assertNotIn("spike:S-2", self.ledger())
-
-    def test_gate_tables_numbered_phase_headings_and_bulleted_sections(self):
-        # a gate table inside P2 is not a spike table
-        end = PLAN.index("**P3 Catalog")
-        gate = "**Gate:**\n\n| Check | Must hit |\n|---|---|\n| G-9 | every spike settled |\n\n"
-        (self.dir / "plan.md").write_text(PLAN[:end] + gate + PLAN[end:], encoding="utf-8")
-        self.init()
-        self.assertEqual(sorted(k for k in self.ledger() if k.startswith("spike:")), ["spike:S-1"])
-        # a numbered phase heading still ends at the next phase's label
-        late = ("| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
-                "| S-9 Late | R-02 | 1.00 | One line | `x` |\n\n")
-        plan = PLAN.replace("**P2 Live spikes** (each on its own org)", "### 5.2 P2 Live spikes")
-        plan = plan.replace("**P3 Catalog, then configuration**\n", "**P3 Catalog, then configuration**\n\n" + late)
-        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        p = self.init("--rebuild")
-        self.assertIn("spike:S-1", self.ledger())
-        self.assertNotIn("spike:S-9", self.ledger())
-        self.assertIn("not read: S-9", p.stderr)
-        # a bulleted label ends at the next bulleted bold line, so a record-shaped table after it is outside
-        plan = PLAN.replace("### 3.10 Rule decision record", "- **Rule decision record:**").replace(
-            "| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n",
-            "| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n\n- **Out of scope by decision:**\n\n"
-            "| Rule | Decided by | Why out of scope |\n|---|---|---|\n| R-17 | Repo | not sold |\n")
-        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        p = self.init("--rebuild")
-        rules = sorted(k for k in self.ledger() if k.startswith("rule:"))
-        self.assertEqual(rules, ["rule:R-01", "rule:R-02", "rule:R-03"])
-        self.assertIn("rule rows outside 'Rule decision record' are not read: R-17", p.stderr)
-        # under a heading, an out-of-scope table is not read as rules either
-        plan = PLAN.replace("### 3.11 Knowledge source per area", "Out of scope by decision:\n\n"
-                            "| Rule | Why out of scope |\n|---|---|\n| R-17 | not sold |\n\n### 3.11 Knowledge source per area")
-        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        p = self.init("--rebuild")
-        self.assertNotIn("rule:R-17", self.ledger())
 
     def test_short_row_pads_to_the_header(self):
         plan = PLAN.replace("| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n",
@@ -359,56 +273,13 @@ class LedgerTest(unittest.TestCase):
         self.init("--rebuild")
         self.assertEqual(self.ledger()["rule:R-04"]["origin"], "blind")
 
-    def test_same_number_label_stays_inside_the_phase(self):
-        end = PLAN.index("**P3 Catalog")
-        second = ("**P2 gate:** wave 2.\n\n"
-                  "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
-                  "| S-2 Renewal value | R-02 | 50.00 | One line | `asset-lifecycle-changes` |\n\n")
-        (self.dir / "plan.md").write_text(PLAN[:end] + second + PLAN[end:], encoding="utf-8")
+    def test_spike_tables_anywhere_and_escaped_pipes(self):
+        late = ("\n| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
+                "| S-2 Renewal value | R-02 | `a\\b\\|\\bb` | One line | `x` |\n")
+        (self.dir / "plan.md").write_text(PLAN + late, encoding="utf-8")
         self.init()
-        self.assertIn("spike:S-2", self.ledger())
-
-    def test_empty_spike_section_reads_no_other_phase(self):
-        start = PLAN.index("**P2 Live spikes**")
-        end = PLAN.index("**P3 Catalog")
-        p3_spike = ("| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
-                    "| S-8 In P3 | R-02 | 5.00 | One line | `x` |\n\n")
-        plan = PLAN[:start] + "**P2 Live spikes** None: no rule is Live.\n\n" + PLAN[end:]
-        plan = plan.replace("**P3 Catalog, then configuration**\n", "**P3 Catalog, then configuration**\n\n" + p3_spike)
-        (self.dir / "plan.md").write_text(plan.replace("| Not | a spike |", "| Item | Content |"), encoding="utf-8")
-        p = self.run_ledger("init", "--plan", "plan.md")
-        self.assertEqual(p.returncode, 0, p.stderr)
-        self.assertIn("no spike rows", p.stderr)
-        self.assertIn("not read: S-8", p.stderr)
-        self.assertIn("section is there", p.stderr)
-        self.assertFalse([k for k in self.ledger() if k.startswith("spike:")])
-
-    def test_phase_runs_past_wrapped_bold_lines_to_the_next_phase(self):
-        end = PLAN.index("**P3 Catalog")
-        second = ("\n**Gate:** both waves pass.\n\n"
-                  "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
-                  "| S-2 Renewal value | R-02 | 50.00 | One line | `asset-lifecycle-changes` |\n\n")
-        plan = PLAN[:end].rstrip("\n") + "\n" + second + PLAN[end:]
-        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        self.init()
-        spikes = sorted(k for k in self.ledger() if k.startswith("spike:"))
-        self.assertEqual(spikes, ["spike:S-1", "spike:S-2"])
-
-    def test_spike_waves_under_sub_labels(self):
-        start = PLAN.index("| Spike | Rules |")
-        end = PLAN.index("**P3 Catalog")
-        waves = ("**P2a** probe-product spikes\n\n"
-                 "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
-                 "| S-1 Amendment value | R-02 | 100.00 | One line | `asset-lifecycle-changes` |\n\n"
-                 "**P2b** spikes on the real catalog\n\n"
-                 "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
-                 "| S-2 Renewal value | R-02 | `a\\b\\|\\bb` | One line | `asset-lifecycle-changes` |\n\n")
-        (self.dir / "plan.md").write_text(PLAN[:start] + waves + PLAN[end:], encoding="utf-8")
-        p = self.run_ledger("init", "--plan", "plan.md")
-        self.assertEqual(p.returncode, 0, p.stderr)
-        spikes = {k: v for k, v in self.ledger().items() if k.startswith("spike:")}
-        self.assertEqual(len(spikes), 2, sorted(spikes))
-        self.assertEqual(spikes["spike:S-2"]["prediction"]["Must hit"], "`a\\b|\\bb`")
+        self.assertEqual(self.ledger()["spike:S-2"]["prediction"]["Must hit"], "`a\\b|\\bb`")
+        self.assertNotIn("G-1", json.dumps(self.ledger()))  # a "Check | Must hit" table is no spike
 
     def test_rules_in_several_tables(self):
         (self.dir / "plan.md").write_text(PLAN.replace(
@@ -419,49 +290,15 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(sorted(k for k in self.ledger() if k.startswith("rule:")),
                          ["rule:R-01", "rule:R-02", "rule:R-03"])
 
-    def test_rule_record_under_one_heading_per_area(self):
-        head = "| Rule | Decided by | Native feature and fallback | Exact vs source? |\n|---|---|---|---|\n"
-        plan = PLAN.replace("### 3.10 Rule decision record", "### 3.10 Rule decision record: pricing")
-        plan = plan.replace("| R-02 | Live (c) | Amendment | exact |\n", "")
-        plan = plan.replace("### 3.11 Knowledge source per area",
-                            "### 3.12 Rule decision record: lifecycle\n\n" + head
-                            + "| R-02 | Live (c) | Amendment | exact |\n\n### 3.11 Knowledge source per area")
-        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        p = self.init()
-        self.assertNotIn("appears twice", p.stderr)
-        self.assertEqual(sorted(k for k in self.ledger() if k.startswith("rule:")),
-                         ["rule:R-01", "rule:R-02", "rule:R-03"])
-
-    def test_rebuild_dropping_a_listed_row_keeps_it_in_the_list(self):
+    def test_intake_origin_sticks_to_a_row_with_evidence(self):
         self.run_ledger("init", "--plan", "plan.md", "--intake", "D1,D4")
+        self.run_ledger("record", "D4", "affirmed", "x")
         (self.dir / "plan.md").write_text(PLAN.replace("| D4 | Added later? | Yes |\n", ""), encoding="utf-8")
         p = self.run_ledger("init", "--plan", "plan.md", "--rebuild")
-        self.assertIn("decision:D4 is no longer in the plan and has nothing recorded", p.stderr)
         self.assertNotIn("ignored", p.stderr)
-        # D4 is still out of the plan; the id is remembered in the intake list, so naming it as an owner is valid
-        p = self.run_ledger("init", "--plan", "plan.md", "--owner", "D4")
-        self.assertNotIn("ignored", p.stderr)
-        p = self.run_ledger("init", "--plan", "plan.md", "--intake", "D1,D4")  # the same list again
-        self.assertNotIn("ignored", p.stderr)
-        (self.dir / "plan.md").write_text(PLAN, encoding="utf-8")
-        self.run_ledger("init", "--plan", "plan.md")
         self.assertEqual(self.ledger()["decision:D4"]["origin"], "intake")
 
-    def test_unknown_intake_ids_are_not_remembered_and_warnings_name_the_file(self):
-        self.run_ledger("init", "--plan", "plan.md", "--intake", "D1,D8")
-        self.assertEqual(self.ledger()["decision:D1"]["origin"], "intake")
-        meta = json.loads((self.dir / "verification/ledger.json").read_text(encoding="utf-8"))["meta"]
-        self.assertEqual(meta["intake"], ["D1"])
-        # a row the list named, since removed from the plan, keeps its origin and its list entry
-        self.run_ledger("record", "D1", "affirmed", "x")
-        (self.dir / "plan.md").write_text(PLAN.replace("| D1 | **DECIDED 2026-01-01: demo.** What is it for? | Sets done |\n", ""),
-                                          encoding="utf-8")
-        p = self.run_ledger("init", "--plan", "plan.md")
-        self.assertNotIn("ignored", p.stderr)
-        self.assertEqual(self.ledger()["decision:D1"]["origin"], "intake")
-        meta = json.loads((self.dir / "verification/ledger.json").read_text(encoding="utf-8"))["meta"]
-        self.assertEqual(meta["intake"], ["D1"])
-        (self.dir / "plan.md").write_text(PLAN, encoding="utf-8")
+    def test_duplicate_warnings_name_the_file(self):
         (self.dir / "blind.md").write_text(BLIND.replace("| R-02 |", "| R-01 | **Repo** | Volume tiers | exact |\n| R-02 |"),
                                            encoding="utf-8")
         p = self.run_ledger("init", "--plan", "plan.md", "--blind", "blind.md")

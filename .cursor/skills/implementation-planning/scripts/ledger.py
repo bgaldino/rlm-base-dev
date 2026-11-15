@@ -12,32 +12,25 @@ verification/ledger.json under that folder; --ledger PATH (before the command) m
     python3 ledger.py truth      # writes truth.json: every measured item, predicted vs measured
     python3 ledger.py score <judgments.json> <label>   # tallies a judged regeneration
 
-Items are table rows of the plan (plan-template.md), the first cell being the ID:
-  decision  tables with "#" as first column, under a heading or bold label "2. Decisions"
-  rule      tables with a first column starting "Rule" and a "Decided by" column, under
-            "Rule decision record" (an out-of-scope list there, with no "Decided by" column,
-            is not read)
-  spike     tables with a first column starting "Spike" and a "must hit" column, under the
-            label "P2 Live spikes" (a gate table such as "| Check | Must hit |" is not a spike)
-A bold label (the marker comes first) ends at the next heading or bold line (a bulleted
-label also at the next bulleted bold line). A phase label ("**P2 ...") instead runs to
-another phase's label or a heading, so its sub-labels (**P2a, **P2b), headings of its own
-phase ("### P2b") and other bold lines stay inside it. Punctuation
-between a marker's words is ignored ("**P2: Live spikes**"), as is a section number before a
-phase ("### 5.2 P2 Live spikes"). A spike or rule table outside its section draws a warning.
+Items are table rows of the plan (plan-template.md), the first cell being the ID. A table is
+recognised by its header, wherever it sits in the plan (fenced code blocks are ignored):
+  decision  first column "#" (only decision tables start with one)
+  rule      first column starting "Rule", and a "Decided by" column
+  spike     first column starting "Spike", and a "Must hit" column
 init fails if it finds no rule or decision rows.
 
 Origin: blind (unchanged from the blind plan), edited (its blind text kept), added,
 intake or owner (given to the planner; not counted for accuracy). With no blind plan,
-everything else is blind. --blind, --intake and --owner are remembered (the blind plan by
-its path relative to the ledger's folder); a new --intake or --owner list replaces the old one.
+everything else is blind. --blind is remembered (by its path relative to the ledger's
+folder). --intake and --owner set the origin of the rows they name; a row keeps that origin
+until a later list names it again.
 
 Outcome: affirmed, modified (held with different values or configuration), refuted
 (failed), inconclusive (not tested). New items are pending.
 
 Re-running init adds new rows and keeps outcomes and each row's recorded text, so the
 blind measurement survives plan revisions; --rebuild re-reads the rows (and prints each
-replaced prediction's previous text). Fenced code blocks in the plan are ignored. A row no
+replaced prediction's previous text). A row no
 longer in the plan is kept by init; --rebuild drops it if it is still pending with no evidence.
 
 Scoring a later blind regeneration: its IDs won't match this plan's, so a fresh judge
@@ -60,11 +53,6 @@ from pathlib import Path
 
 OUTCOMES = ("pending", "affirmed", "modified", "refuted", "inconclusive")
 KINDS = ("rule", "decision", "spike")
-MARKERS = {
-    "rule": "Rule decision record",
-    "decision": "2. Decisions",
-    "spike": "P2 Live spikes",
-}
 LABELS = ("Repo (inferred)", "Build (custom)", "Repo", "Snapshot", "Live")
 
 
@@ -73,52 +61,6 @@ def read_text(path):
         return Path(path).read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as e:
         sys.exit(f"{path}: cannot read ({e})")
-
-
-def heading_level(line):
-    m = re.match(r"(#{1,6}) ", line)
-    return len(m.group(1)) if m else 0
-
-
-def section_lines(lines, marker):
-    """(lines, found): the plan's lines that lie in any section for `marker`, others blanked
-    (so tables in different sections never join), and whether any heading or label held the
-    marker. A section starts at a heading or bold label (a line starting "**", or a bullet
-    and then "**") that holds the marker, ignoring case and the punctuation between its words
-    ("**P2: Live spikes**"). A heading ends at the next heading of the same or a higher level.
-    A phase ("**P2 ..." or a heading "P2 ...") ends at the next heading (of its level or
-    higher) or at the bold label of another phase ("**P3"); its own sub-labels and headings
-    ("**P2a", "### P2b") stay inside it, as do other bold lines. A section number may come
-    before the phase ("### 5.2 P2"). A bold label that is not a phase ends at the next heading
-    or bold line; a bulleted one also at the next bulleted bold line. A heading that is not a
-    phase ignores bold lines. Overlapping sections are read once."""
-    words = r"\W+".join(re.escape(w) for w in marker.split())
-    in_heading = re.compile(rf"(^|[\s*#]){words}\b", re.I)
-    as_label = re.compile(rf"(?:[-*+]\s+)?\*\*\s*{words}\b", re.I)
-    keep = set()
-    found = False
-    for start, line in enumerate(lines):
-        level = heading_level(line)
-        if not (in_heading.search(line) if level else as_label.match(line)):
-            continue
-        found = True
-        phase = re.match(r"(?:#{1,6}\s+(?:\d+(?:\.\d+)*\.?\s+)?|[-*+]\s+)?(?:\*\*)?\s*P(\d+)(?!\w)",
-                         line, re.I)
-        bold = r"(?:[-*+]\s+)?\*\*" if re.match(r"[-*+]\s", line) else r"\*\*"
-        for i in range(start + 1, len(lines)):
-            h = heading_level(lines[i])
-            own = phase and re.match(rf"#+\s+(?:\d+(?:\.\d+)*\.?\s+)?(?:\*\*)?\s*P{phase.group(1)}(?!\d)",
-                                     lines[i], re.I)
-            if h and (not level or h <= level) and not own:
-                break
-            if phase:
-                other = re.match(r"(?:[-*+]\s+)?\*\*\s*P(\d+)", lines[i], re.I)
-                if other and other.group(1) != phase.group(1):
-                    break
-            elif not level and re.match(bold, lines[i]):
-                break
-            keep.add(i)
-    return [l if i in keep else "" for i, l in enumerate(lines)], found
 
 
 def cells(line):
@@ -158,7 +100,7 @@ TABLE_TEST = {
 }
 
 
-def table_rows(lines, kind, quiet=False, name=""):
+def table_rows(lines, kind, name=""):
     """{id: (header cells, row cells, raw line)} for the body rows of every table whose
     header (bold and code marks dropped) passes the kind's TABLE_TEST."""
     rows = {}
@@ -180,14 +122,13 @@ def table_rows(lines, kind, quiet=False, name=""):
             continue
         if len(row) < len(header):  # GFM: a short row has blank trailing cells
             row = row + [""] * (len(header) - len(row))
-        elif len(row) > len(header) and not quiet:
+        elif len(row) > len(header):
             print(f"warning: {name + ': ' if name else ''}{iid} has {len(row)} cells under "
                   f"{len(header)} columns (an unescaped '|' in a cell?); its cells are kept "
                   "without column names", file=sys.stderr)
         if iid in rows:
-            if not quiet:
-                print(f"warning: {name + ': ' if name else ''}{iid} appears twice; keeping the "
-                      "first row", file=sys.stderr)
+            print(f"warning: {name + ': ' if name else ''}{iid} appears twice; keeping the "
+                  "first row", file=sys.stderr)
             continue
         rows[iid] = (header or [], row, line.strip())
     return rows
@@ -222,18 +163,9 @@ def items(text, name):
     lines = unfenced(text.splitlines(), name)
     found = {}
     for kind in KINDS:
-        section, present = section_lines(lines, MARKERS[kind])
-        found[kind] = table_rows(section, kind, name=name)
-        # A spike or rule table outside its section is a misplaced label or heading.
-        outside = [iid for iid in table_rows(lines, kind, quiet=True)
-                   if iid not in found[kind] and kind != "decision"]
-        if outside:
-            print(f"warning: {name}: {kind} rows outside '{MARKERS[kind]}' are not read: "
-                  f"{', '.join(outside)}", file=sys.stderr)
+        found[kind] = table_rows(lines, kind, name=name)
         if not found[kind]:
-            where = ("the section is there but holds no such table" if present
-                     else "no such heading or bold label")
-            msg = (f"{name}: no {kind} rows under '{MARKERS[kind]}' in {NEEDS[kind]} ({where})")
+            msg = f"{name}: no {kind} rows; the plan needs {NEEDS[kind]}"
             if kind == "spike":
                 print(f"warning: {msg}", file=sys.stderr)
             else:
@@ -300,8 +232,7 @@ def init(args):
     ledger_path = Path(args.ledger)
     old = read_json(ledger_path) if ledger_path.exists() else {"meta": {}, "items": {}}
     meta = old.get("meta", {})
-    intake = id_set(args.intake) if args.intake is not None else set(meta.get("intake", []))
-    owner = id_set(args.owner) if args.owner is not None else set(meta.get("owner", []))
+    intake, owner = id_set(args.intake), id_set(args.owner)
     ledger_dir = ledger_path.resolve().parent
     if args.blind:
         blind_file = Path(args.blind).resolve()
@@ -313,23 +244,20 @@ def init(args):
             sys.exit(f"remembered blind plan {blind_file} not found; pass --blind")
     plan = items(read_text(args.plan), args.plan)
     blind = items(read_text(blind_file), str(blind_file)) if blind_file else None
-    seen = (set(plan["decision"]) | set(meta.get("intake", [])) | set(meta.get("owner", []))
-            | {k.split(":", 1)[1] for k in old.get("items", {}) if k.startswith("decision:")})
-    given = (intake if args.intake is not None else set()) | (owner if args.owner is not None else set())
-    unknown = sorted(given - seen)  # only the lists passed now: a remembered id stays until replaced
+    known = set(plan["decision"]) | {v["id"] for v in old["items"].values() if v["kind"] == "decision"}
+    unknown = sorted((intake | owner) - known)
     if unknown:
         print(f"warning: not decision rows in the plan, so ignored: {', '.join(unknown)}", file=sys.stderr)
-        intake -= set(unknown)
-        owner -= set(unknown)
 
-    ledger = {"meta": {"plan": relative(args.plan, ledger_dir), "blind": blind_path,
-                       "intake": sorted(intake), "owner": sorted(owner)},
-              "items": {}}
-    def origin_of(kind, iid, line):
+    ledger = {"meta": {"plan": relative(args.plan, ledger_dir), "blind": blind_path}, "items": {}}
+
+    def origin_of(kind, iid, line, prev):
         if kind == "decision" and iid in intake:
             return "intake"
         if kind == "decision" and iid in owner:
             return "owner"
+        if prev and prev["origin"] in ("intake", "owner"):
+            return prev["origin"]
         if blind is None:
             return "blind"
         if iid not in blind[kind]:
@@ -337,7 +265,7 @@ def init(args):
         return "blind" if row_key(blind[kind][iid][2]) == row_key(line) else "edited"
 
     def entry(kind, iid, line, pred, prev):
-        origin = origin_of(kind, iid, line)
+        origin = origin_of(kind, iid, line, prev)
         return {
             "kind": kind,
             "id": iid,
@@ -540,9 +468,9 @@ def main(argv=None):
     i = sub.add_parser("init", help="build or update the ledger from the plan")
     i.add_argument("--plan", required=True, help="the plan as approved: a frozen copy (SKILL.md step 9)")
     i.add_argument("--blind", help="the blind plan, as generated before any edit (remembered)")
-    i.add_argument("--intake", help="decision IDs given at intake, e.g. D1-D6 (remembered; a new list replaces it)")
+    i.add_argument("--intake", help="decision IDs given at intake, e.g. D1-D6 (sticks to those rows)")
     i.add_argument("--owner", help="decision IDs a person settled after the blind plan, e.g. D7,D8 "
-                   "(remembered; a new list replaces it)")
+                   "(sticks to those rows)")
     i.add_argument("--rebuild", action="store_true", help="re-read every prediction from the plan")
     i.set_defaults(func=init)
 

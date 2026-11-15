@@ -29,7 +29,7 @@ One bullet per capability area, each phrased as something checkable. End with:
 
 ## 2. Decisions
 
-Only decision tables start with a `#` column (the ledger reads every one here). Number
+Only decision tables start with a `#` column (the ledger reads every one in the plan). Number
 intake answers first, in the intake's order, so `ledger.py init --intake` takes one range.
 Decisions a person settles after the blind plan keep their IDs and go to `--owner` as a
 list (`D7,D9`).
@@ -129,15 +129,13 @@ traced).
 
 Dependencies on one line, for example `P1 → P2 → P3a → (P3b ∥ P4) → P5 → P6 → P7 → P8 → P9`.
 Each phase opens with an unbulleted bold label naming it (P2's reads
-**P2 Live spikes**; the ledger finds the spike tables by it), then bullets:
+**P2 Live spikes**), then bullets:
 - the work items,
 - **Skills:** the skills and sub-files to read first,
 - the **Gate:** what must pass, and on which org.
 
-The ledger reads a phase up to the next phase's label or any heading except one for its own
-wave (`### P2b` stays inside P2), so put every spike table of P2 before the **P3** label. A
-spike table's first column starts with "Spike", so a gate table (`| Check | Must hit |`) in P2
-is not read as spikes. The ledger warns about a spike table it finds outside the P2 section.
+The ledger finds a spike table by its header, wherever it sits: a first column starting
+"Spike" and a "Must hit" column. A gate table (`| Check | Must hit |`) is not read as spikes.
 
 The usual phases, ordered by the prerequisite graph in [build-order.md](build-order.md):
 
@@ -145,7 +143,7 @@ The usual phases, ordered by the prerequisite graph in [build-order.md](build-or
 |---|---|
 | P0 Environment | Integration org through the build harness, on a named scenario or shape, with a lifetime that covers the build (shipped scenarios use `days: 1`; see `build-harness` → Keep an org for a multi-day build); feature and enablement checks; tooling. A checklist of the org settings the plan relies on. Some have no known API (a 264 build found them in no settings metadata or sObject or Tooling describe): the Salesforce Pricing Setup default term counts (Evergreen, One Time) are read in Setup → Salesforce Pricing Setup → Proration Settings (a fresh 264 `ent-sb0` org showed Evergreen 1, One Time 0), or the plan adds a step that sets them. Copy each domain skill's settings checklist the plan relies on (for fulfillment, `dro-plans` → `authoring-and-deployment.md`), each marked on, off or n/a |
 | P1 Extraction | Source → design model and golden values; the converter's acceptance tests (section 3, Extraction); an independent re-check: a fresh agent, without the converter, recomputes a sample of golden values weighted to derived ones (exercised in a prior build); user reviews the design |
-| P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table with columns spike ID, rules, must hit, smallest case, read first. Usually two waves, exercised in a prior build, in one table with the wave in a column, or under sub-labels **P2a** and **P2b** that both sit inside the P2 section, before the P3 label (the ledger reads no spike table after it): **P2a**, spikes a probe product can answer (pricing routes, surface), beside or before P3; **P2b**, spikes whose must-hits need the real catalog, model and prices (amend, cancel, renew), run on an org the loader fills after the pricing gate's standard-price goldens pass |
+| P2 Live spikes | Only the rules the rule decision record marks **Live**, in a table with columns spike ID, rules, must hit, smallest case, read first. Usually two waves, exercised in a prior build, in one table with the wave in a column, or under sub-labels **P2a** and **P2b**: **P2a**, spikes a probe product can answer (pricing routes, surface), beside or before P3; **P2b**, spikes whose must-hits need the real catalog, model and prices (amend, cancel, renew), run on an org the loader fills after the pricing gate's standard-price goldens pass |
 | P3 Catalog, then configuration | Data plans derived from the base build's own plans, with units of measure before any usage product (`usage-setup.md` steps 1 to 3); CML, with the context definition and tags its rules read, or waiting for P4's; its configuration test places a quote and so first needs price book entries `[inferred]` and the refresh newly loaded products need ([build-order.md](build-order.md)), or waits for P4; the route prerequisites of every P2a spike that touches them; the first loader (SKILL.md step 7) |
 | P4 Pricing and cost | Price books, adjustments, the context definition, mappings and tags, procedure changes, cost wiring; the stage 6 items the source shows on the quote (estimated tax, usage rates) or that its lines' billing cadence needs (treatments for a cadence other than the pricing term, or for milestones), with their prerequisites, per [build-order.md](build-order.md), or a decision that leaves them out of the P4 goldens. The gate prices only after the decision tables it reads are fresh (`decision-tables` Quick Rule 1) |
 | P5 Negotiation, approvals, runtime surface | Quote rounds, approvals, Transaction Line Editor configuration; quote and order documents where the source produces them (`document-generation`); contract documents are built with contract setup in P6 |
@@ -197,7 +195,7 @@ Then list **extensions to existing skills** separately.
   golden tests.
 - [ ] Every rule in the source appears in the mapping, or is listed as out of scope by
   decision (in a table with no "decided by" column, or in the register: the ledger reads
-  a rule table under the record only if it has that column).
+  every table with a first column "Rule" and a "Decided by" column as rules).
 - [ ] Every area has a knowledge-source row; every live spike has a must-hit value
   and the skills and articles to read first.
 - [ ] Every skill, sub-file and snapshot article named exists.
