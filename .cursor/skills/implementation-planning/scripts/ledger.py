@@ -12,8 +12,9 @@ verification/ledger.json under that folder; --ledger PATH (before the command) m
     python3 ledger.py truth      # writes truth.json: measured items, predicted vs measured
     python3 ledger.py score <judgments.json> <label>   # tallies a judged regeneration
 
-Items are table rows of the plan (plan-template.md), the first cell being the ID. A table is
-recognised by its header, wherever it sits in the plan (fenced code blocks are ignored):
+Items are table rows of the plan (plan-template.md), the first cell being the ID. Every table
+line starts with "|". A table is recognised by its header, wherever it sits in the plan (fenced
+code blocks are ignored):
   decision  first column "#" and second column "Decision"
   rule      first column starting "Rule", and a "Decided by" column
   spike     first column starting "Spike", and a "Must hit" column
@@ -81,7 +82,7 @@ def row_key(line):
 
 
 def is_separator(line):
-    return "|" in line and bool(re.fullmatch(r"\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?", line.strip()))
+    return bool(re.fullmatch(r"\|\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?", line.strip()))
 
 
 def clean_id(cell):

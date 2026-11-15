@@ -353,7 +353,8 @@ is in the pack's repo, since the ledger copies the plan's rows.
   build ran it this way.
 
 The ledger reads the plan's decision, rule decision record and spike tables by their
-headers ([plan-template.md](plan-template.md)), and gives each row:
+headers ([plan-template.md](plan-template.md)); every table line starts with `|`. It gives
+each row:
 - an **origin:** in the blind plan unchanged, edited, or added; or given to the planner
   (an intake answer, or a decision a person settled later), which doesn't count toward
   accuracy;

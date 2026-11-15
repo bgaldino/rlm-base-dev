@@ -437,7 +437,8 @@ class LedgerTest(unittest.TestCase):
     def test_truth_and_score(self):
         self.init()
         self.run_ledger("record", "R-01", "affirmed", "ok")
-        self.run_ledger("record", "R-02", "refuted", "90.00", "--path", "fallback")
+        self.run_ledger("record", "R-02", "refuted", "90.00", "--path", "fallback",
+                        "--skill", "s: c")
         self.run_ledger("record", "S-1", "inconclusive", "not run")
         self.run_ledger("record", "D1", "affirmed", "intake, excluded")
         p = self.run_ledger("truth")
@@ -445,6 +446,9 @@ class LedgerTest(unittest.TestCase):
         tr = json.loads((self.dir / "verification/truth.json").read_text(encoding="utf-8"))
         self.assertEqual(sorted(tr), ["rule:R-01", "rule:R-02", "spike:S-1"])
         self.assertEqual(tr["rule:R-02"]["path_taken"], ["fallback"])
+        self.assertEqual(tr["rule:R-02"]["measured"], ["90.00"])
+        self.assertEqual(tr["rule:R-02"]["skill_claim"], ["s: c"])
+        self.assertEqual(tr["rule:R-01"]["skill_claim"], [])
 
         judged = {"rule:R-01": {"label": "hit"}, "rule:R-02": {"label": "hedged", "where": "S-9"},
                   "spike:S-1": {"label": "absent", "why": "dropped"}}
