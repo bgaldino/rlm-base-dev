@@ -14,7 +14,7 @@ verification/ledger.json under that folder; --ledger PATH (before the command) m
 
 Items are table rows of the plan (plan-template.md), the first cell being the ID. A table is
 recognised by its header, wherever it sits in the plan (fenced code blocks are ignored):
-  decision  first column "#" and a "Decision" column
+  decision  first column "#" and second column "Decision"
   rule      first column starting "Rule", and a "Decided by" column
   spike     first column starting "Spike", and a "Must hit" column
 init fails if it finds no rule or decision rows.
@@ -94,7 +94,7 @@ def clean_id(cell):
 
 
 TABLE_TEST = {
-    "decision": lambda h: h[0] == "#" and any(re.search(r"\bdecision\b", c, re.I) for c in h),
+    "decision": lambda h: h[0] == "#" and len(h) > 1 and h[1].lower() == "decision",
     "rule": lambda h: h[0].lower().startswith("rule") and any(re.search(r"decided.by", c, re.I) for c in h),
     "spike": lambda h: h[0].lower().startswith("spike") and any(re.search(r"must.hit", c, re.I) for c in h),
 }
@@ -154,7 +154,7 @@ def unfenced(lines, name):
     return out
 
 
-NEEDS = {"decision": "a table whose first column is '#' and that has a 'Decision' column",
+NEEDS = {"decision": "a table whose first column is '#' and second column 'Decision'",
          "rule": "a table whose first column starts with 'Rule' and that has a 'Decided by' column",
          "spike": "a table whose first column starts with 'Spike' and that has a 'Must hit' column"}
 

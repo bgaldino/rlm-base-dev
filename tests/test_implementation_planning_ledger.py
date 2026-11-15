@@ -77,9 +77,13 @@ What D2 changes:
 
 **P3 Catalog, then configuration**
 
-| Not | a spike |
-|---|---|
-| X-01 | ignored |
+| Spike | Rules | Expected |
+|---|---|---|
+| X-01 | R-02 | ignored |
+
+| # | Case | Decision |
+|---|---|---|
+| Pricing-3 | Round | D2 |
 
 | Check | Must hit |
 |---|---|
