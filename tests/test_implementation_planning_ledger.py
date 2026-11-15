@@ -143,6 +143,8 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual((item["origin"], item["outcome"]), ("owner", "affirmed"))
         self.run_ledger("init", "--plan", "plan.md")  # a plain re-init keeps it
         self.assertEqual(self.ledger()["decision:D2"]["origin"], "owner")
+        self.run_ledger("init", "--plan", "plan.md", "--owner", "D1")  # intake moved to owner
+        self.assertEqual(self.ledger()["decision:D1"]["origin"], "owner")
         self.run_ledger("report")
         card = (self.dir / "verification/scorecard.md").read_text(encoding="utf-8")
         self.assertIn("Excluded (intake or owner): 2.", card)
@@ -307,15 +309,18 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(sorted(k for k in self.ledger() if k.startswith("rule:")),
                          ["rule:R-01", "rule:R-02", "rule:R-03"])
 
-    def test_intake_origin_sticks_to_a_row_with_evidence(self):
+    def test_intake_origin_is_kept_until_rebuild(self):
         self.run_ledger("init", "--plan", "plan.md", "--intake", "D1,D4")
         self.run_ledger("record", "D4", "affirmed", "x")
         (self.dir / "plan.md").write_text(PLAN.replace("| D4 | Added later? | Yes |\n", ""), encoding="utf-8")
         p = self.run_ledger("init", "--plan", "plan.md", "--rebuild", "--intake", "D1,D4")
         self.assertNotIn("ignored", p.stderr)
-        self.run_ledger("init", "--plan", "plan.md", "--rebuild")  # no list: the origin must stick
+        self.run_ledger("init", "--plan", "plan.md")  # no list: the origin is kept
         item = self.ledger()["decision:D4"]
         self.assertEqual((item["origin"], item["outcome"]), ("intake", "affirmed"))
+        self.run_ledger("init", "--plan", "plan.md", "--rebuild", "--intake", "D1")  # a mistaken D4 undone
+        item = self.ledger()["decision:D4"]
+        self.assertEqual((item["origin"], item["outcome"]), ("blind", "affirmed"))
 
     def test_list_naming_a_row_that_rebuild_drops_is_warned(self):
         self.init()
@@ -376,7 +381,7 @@ class LedgerTest(unittest.TestCase):
         item = self.ledger()["rule:R-02"]
         self.assertEqual((item["outcome"], item["prediction"]["Native feature and fallback"]),
                          ("refuted", "Rewritten"))
-        self.assertEqual(self.ledger()["decision:D1"]["origin"], "intake")  # the origin sticks
+        self.assertEqual(self.ledger()["decision:D1"]["origin"], "blind")  # no list given now
 
     def test_refusals(self):
         self.init()

@@ -23,8 +23,8 @@ init fails if it finds no rule or decision rows.
 Origin: blind (unchanged from the blind plan), edited (its blind text kept), added,
 intake or owner (given to the planner; not counted for accuracy). With no blind plan,
 everything else is blind. --blind is remembered (by its path relative to the ledger's
-folder). --intake and --owner set the origin of the rows they name (an ID can't be in both);
-a row keeps that origin until a later list names it again.
+folder). --intake and --owner set the origin of the rows they name (an ID can't be in both).
+Later inits keep it; --rebuild sets every origin afresh from the lists it is given.
 
 Outcome: affirmed, modified (held with different values or configuration), refuted
 (failed), inconclusive (not tested). New items are pending.
@@ -267,7 +267,7 @@ def init(args):
             return "intake"
         if kind == "decision" and iid in owner:
             return "owner"
-        if prev and prev["origin"] in ("intake", "owner"):
+        if prev and not args.rebuild and prev["origin"] in ("intake", "owner"):
             return prev["origin"]
         if blind is None:
             return "blind"
@@ -476,10 +476,11 @@ def main(argv=None):
     i = sub.add_parser("init", help="build or update the ledger from the plan")
     i.add_argument("--plan", required=True, help="the plan as approved: a frozen copy (SKILL.md step 9)")
     i.add_argument("--blind", help="the blind plan, as generated before any edit (remembered)")
-    i.add_argument("--intake", help="decision IDs given at intake, e.g. D1-D6 (sticks to those rows)")
+    i.add_argument("--intake", help="decision IDs given at intake, e.g. D1-D6 (kept until --rebuild)")
     i.add_argument("--owner", help="decision IDs a person settled after the blind plan, e.g. D7,D8 "
-                   "(sticks to those rows)")
-    i.add_argument("--rebuild", action="store_true", help="re-read every prediction from the plan")
+                   "(kept until --rebuild)")
+    i.add_argument("--rebuild", action="store_true",
+                   help="re-read every prediction from the plan, and every origin from the lists given now")
     i.set_defaults(func=init)
 
     r = sub.add_parser("record", help="record a build outcome for one item")
