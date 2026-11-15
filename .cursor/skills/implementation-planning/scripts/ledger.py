@@ -16,9 +16,9 @@ Items are table rows of the plan (plan-template.md), the first cell being the ID
   decision  tables with "#" as first column, under a heading or bold label "2. Decisions"
   rule      tables with a first column starting "Rule", under "Rule decision record"
   spike     tables with a "must hit" column, under the label "P2 Live spikes"
-A bold label's section ends at the next heading or bold label, except a phase label's own
-sub-labels (**P2a, **P2b under **P2 ...). init fails if it finds
-no rule or decision rows.
+A bold label's section ends at the next heading or bold line. A phase label ("**P2 ...")
+instead runs to the next phase's label or a heading, so its sub-labels (**P2a, **P2b) and other
+bold lines stay inside it. init fails if it finds no rule or decision rows.
 
 Origin: blind (unchanged from the blind plan), edited (its blind text kept), added,
 intake or owner (given to the planner; not counted for accuracy). With no blind plan,
@@ -75,29 +75,35 @@ def heading_level(line):
 
 
 def section_lines(lines, marker):
-    """The plan's lines that lie in any section for `marker`, others blanked (so tables in
-    different sections never join). A section starts at a heading or bold label (a line
-    starting "**") that holds the marker, ignoring case. A heading ends at the next heading
-    of the same or a higher level; a label ends at the next heading or the next label
-    (the next phase), while bulleted bold lines ("- **Gate:**") stay inside it, and so do
-    a phase label's own sub-labels ("**P2a" and "**P2b" under "**P2 ...").
-    Overlapping sections are read once."""
+    """(lines, found): the plan's lines that lie in any section for `marker`, others blanked
+    (so tables in different sections never join), and whether any heading or label held the
+    marker. A section starts at a heading or bold label (a line starting "**") that holds the
+    marker, ignoring case. A heading ends at the next heading of the same or a higher level.
+    A phase label ("**P2 ...") ends at the next heading or the next phase's label ("**P3"),
+    and its own sub-labels ("**P2a", "**P2b") stay inside it, as do other bold lines. Any
+    other label ends at the next heading or bold line. Overlapping sections are read once."""
     named = re.compile(rf"(^|[\s*#]){re.escape(marker)}\b", re.I)
     keep = set()
+    found = False
     for start, line in enumerate(lines):
         level = heading_level(line)
         if not named.search(line) or not (level or line.startswith("**")):
             continue
-        phase = re.match(r"\*\*(P\d+)(?![\w])", line)
+        found = True
+        phase = re.match(r"\*\*P(\d+)(?![\w])", line)
         for i in range(start + 1, len(lines)):
             h = heading_level(lines[i])
             if h and (not level or h <= level):
                 break
             if not level and lines[i].startswith("**"):
-                if not (phase and re.match(rf"\*\*{phase.group(1)}[a-z]\b", lines[i])):
+                other = re.match(r"\*\*P(\d+)([a-z]?)\b", lines[i])
+                if phase:
+                    if other and (other.group(1) != phase.group(1) or not other.group(2)):
+                        break
+                else:
                     break
             keep.add(i)
-    return [l if i in keep else "" for i, l in enumerate(lines)]
+    return [l if i in keep else "" for i, l in enumerate(lines)], found
 
 
 def cells(line):
@@ -183,10 +189,10 @@ def items(text, name):
     lines = unfenced(text.splitlines())
     found = {}
     for kind in KINDS:
-        section = section_lines(lines, MARKERS[kind])
+        section, present = section_lines(lines, MARKERS[kind])
         found[kind] = table_rows(section, kind)
         if not found[kind]:
-            where = ("the section is there but holds no such table" if any(section)
+            where = ("the section is there but holds no such table" if present
                      else "no such heading or bold label")
             msg = (f"{name}: no {kind} rows under '{MARKERS[kind]}' in {NEEDS[kind]} ({where})")
             if kind == "spike":

@@ -228,7 +228,19 @@ class LedgerTest(unittest.TestCase):
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertIn("no spike rows", p.stderr)
+        self.assertIn("section is there", p.stderr)
         self.assertFalse([k for k in self.ledger() if k.startswith("spike:")])
+
+    def test_phase_runs_past_wrapped_bold_lines_to_the_next_phase(self):
+        end = PLAN.index("**P3 Catalog")
+        second = ("\n**Gate:** both waves pass.\n\n"
+                  "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
+                  "| S-2 Renewal value | R-02 | 50.00 | One line | `asset-lifecycle-changes` |\n\n")
+        plan = PLAN[:end].rstrip("\n") + "\n" + second + PLAN[end:]
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        self.init()
+        spikes = sorted(k for k in self.ledger() if k.startswith("spike:"))
+        self.assertEqual(spikes, ["spike:S-1", "spike:S-2"])
 
     def test_spike_waves_under_sub_labels(self):
         start = PLAN.index("| Spike | Rules |")
