@@ -93,9 +93,10 @@ def clean_id(cell):
     return text
 
 
+DECIDED_BY = re.compile(r"decided.by", re.I)
 TABLE_TEST = {
     "decision": lambda h: h[0] == "#" and len(h) > 1 and h[1].lower() == "decision",
-    "rule": lambda h: h[0].lower().startswith("rule") and any(re.search(r"decided.by", c, re.I) for c in h),
+    "rule": lambda h: h[0].lower().startswith("rule") and any(DECIDED_BY.search(c) for c in h),
     "spike": lambda h: h[0].lower().startswith("spike") and any(re.search(r"must.hit", c, re.I) for c in h),
 }
 
@@ -342,8 +343,7 @@ def record(args):
 
 
 def label(item):
-    by = next((v for k, v in item["prediction"].items() if "decided by" in k.lower()), "")
-    by = re.sub(r"[*`]", "", by)
+    by = next((v for k, v in item["prediction"].items() if DECIDED_BY.search(k)), "")
     found = []
     for m in re.finditer(r"(?<!\w)(?:" + "|".join(re.escape(x) for x in LABELS) + r")(?!\w)", by):
         if m.group(0) not in found:

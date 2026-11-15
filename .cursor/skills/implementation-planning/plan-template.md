@@ -197,7 +197,7 @@ Then list **extensions to existing skills** separately.
   golden tests.
 - [ ] Every rule in the source appears in the mapping, or is listed as out of scope by
   decision (in a table with no "decided by" column, or in the register: the ledger reads
-  every table with a first column "Rule" and a "Decided by" column as rules).
+  every table with a first column starting "Rule" and a "Decided by" column as rules).
 - [ ] Every area has a knowledge-source row; every live spike has a must-hit value
   and the skills and articles to read first.
 - [ ] Every skill, sub-file and snapshot article named exists.

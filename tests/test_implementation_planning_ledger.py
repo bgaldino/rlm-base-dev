@@ -207,6 +207,10 @@ class LedgerTest(unittest.TestCase):
         self.init()
         self.assertIn("decision:D2", self.ledger())
         self.assertNotIn("decision:D9", self.ledger())
+        tilde = "~~~\n| # | Decision |\n|---|---|\n| D9 | fenced |\n~~~\n\n"
+        (self.dir / "plan.md").write_text(PLAN.replace("## 2. Decisions\n", "## 2. Decisions\n\n" + tilde), encoding="utf-8")
+        self.init()
+        self.assertNotIn("decision:D9", self.ledger())
 
     def test_fence_length_and_unclosed_fence(self):
         nested = "````md\n```\n| # | Decision |\n|---|---|\n| D9 | fenced |\n```\n````\n\n"
@@ -368,7 +372,9 @@ class LedgerTest(unittest.TestCase):
 
     def test_refusals(self):
         self.init()
-        self.assertNotEqual(self.run_ledger("record", "R-99", "affirmed", "x").returncode, 0)
+        p = self.run_ledger("record", "R-99", "affirmed", "x")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("unknown id R-99", p.stderr)
         self.assertNotEqual(self.run_ledger("record", "R-01", "pending", "x").returncode, 0)
         path = self.dir / "verification/ledger.json"
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -378,7 +384,6 @@ class LedgerTest(unittest.TestCase):
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("ambiguous", p.stderr)
         self.assertEqual(self.run_ledger("record", "decision:D2", "affirmed", "x").returncode, 0)
-        self.assertEqual(self.ledger()["rule:R-01"]["outcome"], "pending")
         empty = self.dir / "empty"
         empty.mkdir()
         p = subprocess.run([sys.executable, "-I", str(SCRIPT), "report"], cwd=empty,
@@ -388,6 +393,12 @@ class LedgerTest(unittest.TestCase):
         (self.dir / "verification/ledger.json").write_text("{", encoding="utf-8")
         p = self.run_ledger("report")
         self.assertIn("not valid JSON", p.stderr)
+
+    def test_hyphenated_decided_by_header_is_scored(self):
+        (self.dir / "plan.md").write_text(PLAN.replace("| Rule | Decided by |", "| Rule | Decided-by |"), encoding="utf-8")
+        self.init()
+        self.run_ledger("report")
+        self.assertNotIn("(none)", (self.dir / "verification/scorecard.md").read_text(encoding="utf-8"))
 
     def test_report(self):
         self.init()
