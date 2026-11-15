@@ -113,6 +113,11 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stderr)
         return p
 
+    def fresh_init(self):
+        """init on a new ledger, so a row can't be there only because an earlier init kept it."""
+        (self.dir / "verification/ledger.json").unlink(missing_ok=True)
+        return self.init()
+
     def test_origins(self):
         self.init()
         origin = {k: v["origin"] for k, v in self.ledger().items()}
@@ -249,29 +254,29 @@ class LedgerTest(unittest.TestCase):
         plan = plan.replace("**P3 Catalog, then configuration**\n", "**P3 Catalog, then configuration**\n\n"
                             + spike.replace("S-2 Renewal value", "S-8 In P3"))
         (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        self.init("--rebuild")
+        self.fresh_init()
         self.assertEqual(sorted(k for k in self.ledger() if k.startswith("spike:")), ["spike:S-1"])
         # a label with spaces or other case still reads its sub-labels as part of the phase
         end = PLAN.index("**P3 Catalog")
         plan = (PLAN[:end].replace("**P2 Live spikes**", "** p2 Live spikes**") + "**P2b** later\n\n" + spike + PLAN[end:])
         (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        self.init()
+        self.fresh_init()
         self.assertIn("spike:S-2", self.ledger())
         # a rule after a table with no blank line before a horizontal rule is kept
         plan = PLAN.replace("| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n",
                             "| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n---\n")
         (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        self.init()
+        self.fresh_init()
         self.assertIn("rule:R-03", self.ledger())
         # a row with too many cells warns instead of silently losing its columns
         plan = PLAN.replace("| R-01 | **Repo** |", "| R-01 | **Repo** | extra |")
         (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        p = self.init()
+        p = self.fresh_init()
         self.assertIn("R-01 has 5 cells under 4 columns", p.stderr)
         # inline triple-backtick code is not a fence
         plan = PLAN.replace("What D2 changes:", "```x``` is inline.\n\nWhat D2 changes:")
         (self.dir / "plan.md").write_text(plan, encoding="utf-8")
-        p = self.init()
+        p = self.fresh_init()
         self.assertNotIn("never closed", p.stderr)
         self.assertIn("rule:R-03", self.ledger())
 
