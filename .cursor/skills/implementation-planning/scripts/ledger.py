@@ -9,7 +9,7 @@ verification/ledger.json under that folder; --ledger PATH (before the command) m
     python3 ledger.py [--ledger PATH] init --plan plan-as-approved.md [--blind <blind plan>] [--intake D1-D6] [--owner D7,D8] [--rebuild]
     python3 ledger.py record <ID> <outcome> "<evidence>" [--path "<what was built>"] [--skill "<file: claim>"]
     python3 ledger.py report     # writes scorecard.md next to the ledger
-    python3 ledger.py truth      # writes truth.json: every measured item, predicted vs measured
+    python3 ledger.py truth      # writes truth.json: measured items, predicted vs measured
     python3 ledger.py score <judgments.json> <label>   # tallies a judged regeneration
 
 Items are table rows of the plan (plan-template.md), the first cell being the ID. A table is
@@ -34,7 +34,8 @@ replaced prediction's previous text). A row no
 longer in the plan is kept by init; --rebuild drops it if it is still pending with no evidence.
 
 Scoring a later blind regeneration: its IDs won't match this plan's, so a fresh judge
-reads the regenerated plan with truth.json and labels every measured item:
+reads the regenerated plan with truth.json and labels every item in it (the measured ones,
+not intake or owner rows):
   hit     the plan predicts the measured result (route, value or behavior)
   hedged  the plan doesn't assert it, but routes it to a live measurement that would find it
   miss    the plan asserts what the build refuted or changed
@@ -490,7 +491,7 @@ def main(argv=None):
     r.set_defaults(func=record)
 
     sub.add_parser("report", help="write the scorecard").set_defaults(func=report)
-    sub.add_parser("truth", help="write truth.json: every measured item, predicted vs measured"
+    sub.add_parser("truth", help="write truth.json: measured items (not intake or owner), predicted vs measured"
                    ).set_defaults(func=truth)
     sc = sub.add_parser("score", help="tally a judged regeneration into regen-scores.md")
     sc.add_argument("judgments", help="JSON of {truth key: {label, where, why}}")

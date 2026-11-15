@@ -370,8 +370,8 @@ refuted skill claim is fixed in that skill
 **Score each later blind regeneration against the measured outcomes.** When the
 planning skill or the domain skills change, a fresh session regenerates the plan blind
 from the same source (step 8), and its accuracy is scored:
-1. `ledger.py truth` writes `truth.json` beside the ledger: every measured item, with
-   what the plan predicted and what the build measured.
+1. `ledger.py truth` writes `truth.json` beside the ledger: every measured item
+   except intake and owner rows, with what the plan predicted and what the build measured.
 2. A fresh judge agent, given only the regenerated plan and `truth.json`, labels every
    item by topic, since the regeneration's IDs won't match: **hit** (predicts the
    measured result), **hedged** (doesn't assert it, but routes it to a live measurement
