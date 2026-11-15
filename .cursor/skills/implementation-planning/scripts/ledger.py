@@ -15,7 +15,8 @@ verification/ledger.json under that folder; --ledger PATH (before the command) m
 Items are table rows of the plan (plan-template.md), the first cell being the ID:
   decision  tables with "#" as first column, under a heading or bold label "2. Decisions"
   rule      tables with a first column starting "Rule" and a "Decided by" column, under
-            "Rule decision record" (a table of out-of-scope rules there is not read)
+            "Rule decision record" (an out-of-scope list there, with no "Decided by" column,
+            is not read)
   spike     tables with a first column starting "Spike" and a "must hit" column, under the
             label "P2 Live spikes" (a gate table such as "| Check | Must hit |" is not a spike)
 A bold label (the marker comes first) ends at the next heading or bold line (a bulleted

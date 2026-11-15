@@ -196,7 +196,8 @@ Then list **extensions to existing skills** separately.
 - [ ] Rule IDs and counts agree across the register, the decision record and the
   golden tests.
 - [ ] Every rule in the source appears in the mapping, or is listed as out of scope by
-  decision.
+  decision (in a table with no "decided by" column, or in the register: the ledger reads
+  a rule table under the record only if it has that column).
 - [ ] Every area has a knowledge-source row; every live spike has a must-hit value
   and the skills and articles to read first.
 - [ ] Every skill, sub-file and snapshot article named exists.

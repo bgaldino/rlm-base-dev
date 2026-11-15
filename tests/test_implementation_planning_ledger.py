@@ -345,14 +345,14 @@ class LedgerTest(unittest.TestCase):
         self.assertNotIn("cells under", p.stderr)
         self.assertEqual(self.ledger()["rule:R-04"]["prediction"]["Decided by"], "Live (c)")
         self.assertEqual(self.ledger()["rule:R-04"]["prediction"]["Exact vs source?"], "")
-        # the same row written padded is not a change from the blind plan or on re-init
-        (self.dir / "blind.md").write_text(plan, encoding="utf-8")
+        # the same row written padded is not a change on a plain re-init, nor from the blind plan
         (self.dir / "plan.md").write_text(plan.replace("| R-04 | Live (c) | Formula |",
                                                        "| R-04 | Live (c) | Formula | |"), encoding="utf-8")
-        self.init("--rebuild")
-        self.assertEqual(self.ledger()["rule:R-04"]["origin"], "blind")
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertNotIn("changed in the plan", p.stderr)
+        (self.dir / "blind.md").write_text(plan, encoding="utf-8")
+        self.init("--rebuild")
+        self.assertEqual(self.ledger()["rule:R-04"]["origin"], "blind")
 
     def test_same_number_label_stays_inside_the_phase(self):
         end = PLAN.index("**P3 Catalog")
