@@ -34,7 +34,7 @@ as decisions, so a copied chain or case table (`| # | Step | ...`) is not one. I
 table lines that start with `|`, in this and every other ledger table. Number
 intake answers first, in the intake's order, so `ledger.py init --intake` takes one range.
 Decisions a person settles after the blind plan keep their IDs and go to `--owner` as a
-list (`D7,D9`).
+list (`D7,D9`). Later inits keep both; with `--rebuild`, pass both lists again.
 
 | # | Decision | Recommendation |
 |---|---|---|

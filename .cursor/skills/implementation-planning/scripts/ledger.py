@@ -277,6 +277,9 @@ def init(args):
 
     def entry(kind, iid, line, pred, prev):
         origin = origin_of(kind, iid, line, prev)
+        if prev and prev["origin"] in ("intake", "owner") and origin not in ("intake", "owner"):
+            print(f"warning: {kind}:{iid} was {prev['origin']}; no list names it now, so it is "
+                  f"scored as {origin}", file=sys.stderr)
         return {
             "kind": kind,
             "id": iid,

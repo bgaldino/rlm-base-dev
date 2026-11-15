@@ -143,8 +143,9 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual((item["origin"], item["outcome"]), ("owner", "affirmed"))
         self.run_ledger("init", "--plan", "plan.md")  # a plain re-init keeps it
         self.assertEqual(self.ledger()["decision:D2"]["origin"], "owner")
-        self.run_ledger("init", "--plan", "plan.md", "--owner", "D1")  # intake moved to owner
+        p = self.run_ledger("init", "--plan", "plan.md", "--owner", "D1")  # intake moved to owner
         self.assertEqual(self.ledger()["decision:D1"]["origin"], "owner")
+        self.assertNotIn("no list names it", p.stderr)
         self.run_ledger("report")
         card = (self.dir / "verification/scorecard.md").read_text(encoding="utf-8")
         self.assertIn("Excluded (intake or owner): 2.", card)
@@ -378,10 +379,18 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(item["prediction"]["Native feature and fallback"], "Amendment")
         p = self.run_ledger("init", "--plan", "plan.md", "--rebuild")
         self.assertIn("rule:R-02 prediction replaced", p.stderr)
+        self.assertIn("decision:D1 was intake; no list names it now, so it is scored as blind", p.stderr)
         item = self.ledger()["rule:R-02"]
         self.assertEqual((item["outcome"], item["prediction"]["Native feature and fallback"]),
                          ("refuted", "Rewritten"))
         self.assertEqual(self.ledger()["decision:D1"]["origin"], "blind")  # no list given now
+
+    def test_plan_without_spikes_only_warns(self):
+        plan = PLAN.replace("| Spike | Rules | Must hit |", "| Item | Rules | Must hit |")
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        p = self.init()
+        self.assertIn("plan.md: no spike rows", p.stderr)
+        self.assertFalse([k for k in self.ledger() if k.startswith("spike:")])
 
     def test_refusals(self):
         self.init()
