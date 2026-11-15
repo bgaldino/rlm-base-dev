@@ -320,16 +320,16 @@ class LedgerTest(unittest.TestCase):
         self.assertIn("spike:S-1", self.ledger())
         self.assertNotIn("spike:S-9", self.ledger())
         self.assertIn("not read: S-9", p.stderr)
-        # a bulleted label ends at the next bulleted bold line; a register-shaped rule table is not warned about
+        # a bulleted label ends at the next bulleted bold line, so a record-shaped table after it is outside
         plan = PLAN.replace("### 3.10 Rule decision record", "- **Rule decision record:**").replace(
             "| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n",
             "| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n\n- **Out of scope by decision:**\n\n"
-            "| Rule | Why out of scope |\n|---|---|\n| R-17 | not sold |\n")
+            "| Rule | Decided by | Why out of scope |\n|---|---|---|\n| R-17 | Repo | not sold |\n")
         (self.dir / "plan.md").write_text(plan, encoding="utf-8")
         p = self.init("--rebuild")
         rules = sorted(k for k in self.ledger() if k.startswith("rule:"))
         self.assertEqual(rules, ["rule:R-01", "rule:R-02", "rule:R-03"])
-        self.assertNotIn("rule rows outside", p.stderr)
+        self.assertIn("rule rows outside 'Rule decision record' are not read: R-17", p.stderr)
         # under a heading, an out-of-scope table is not read as rules either
         plan = PLAN.replace("### 3.11 Knowledge source per area", "Out of scope by decision:\n\n"
                             "| Rule | Why out of scope |\n|---|---|\n| R-17 | not sold |\n\n### 3.11 Knowledge source per area")
@@ -345,6 +345,14 @@ class LedgerTest(unittest.TestCase):
         self.assertNotIn("cells under", p.stderr)
         self.assertEqual(self.ledger()["rule:R-04"]["prediction"]["Decided by"], "Live (c)")
         self.assertEqual(self.ledger()["rule:R-04"]["prediction"]["Exact vs source?"], "")
+        # the same row written padded is not a change from the blind plan or on re-init
+        (self.dir / "blind.md").write_text(plan, encoding="utf-8")
+        (self.dir / "plan.md").write_text(plan.replace("| R-04 | Live (c) | Formula |",
+                                                       "| R-04 | Live (c) | Formula | |"), encoding="utf-8")
+        self.init("--rebuild")
+        self.assertEqual(self.ledger()["rule:R-04"]["origin"], "blind")
+        p = self.run_ledger("init", "--plan", "plan.md")
+        self.assertNotIn("changed in the plan", p.stderr)
 
     def test_same_number_label_stays_inside_the_phase(self):
         end = PLAN.index("**P3 Catalog")

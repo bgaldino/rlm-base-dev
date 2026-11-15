@@ -23,7 +23,8 @@ label also at the next bulleted bold line). A phase label ("**P2 ...") instead r
 another phase's label or a heading, so its sub-labels (**P2a, **P2b), headings of its own
 phase ("### P2b") and other bold lines stay inside it. Punctuation
 between a marker's words is ignored ("**P2: Live spikes**"), as is a section number before a
-phase ("### 5.2 P2 Live spikes"). A spike or rule table outside its section draws a warning. init fails if it finds no rule or decision rows.
+phase ("### 5.2 P2 Live spikes"). A spike or rule table outside its section draws a warning.
+init fails if it finds no rule or decision rows.
 
 Origin: blind (unchanged from the blind plan), edited (its blind text kept), added,
 intake or owner (given to the planner; not counted for accuracy). With no blind plan,
@@ -125,6 +126,14 @@ def cells(line):
     s = s[:-1] if s.endswith("|") and not s.endswith("\\|") else s
     parts = s.replace("\\|", "\0").split("|")
     return [p.replace("\0", "|").strip() for p in parts]
+
+
+def row_key(line):
+    """A row's cells without trailing blanks, so a short row equals the same row padded."""
+    row = cells(line)
+    while row and not row[-1]:
+        row.pop()
+    return row
 
 
 def is_separator(line):
@@ -317,7 +326,7 @@ def init(args):
             return "blind"
         if iid not in blind[kind]:
             return "added"
-        return "blind" if cells(blind[kind][iid][2]) == cells(line) else "edited"
+        return "blind" if row_key(blind[kind][iid][2]) == row_key(line) else "edited"
 
     def entry(kind, iid, line, pred, prev):
         origin = origin_of(kind, iid, line)
@@ -338,7 +347,7 @@ def init(args):
             key = f"{kind}:{iid}"
             seen.add(key)
             prev = old["items"].get(key)
-            if prev and cells(prev["line"]) != cells(raw):
+            if prev and row_key(prev["line"]) != row_key(raw):
                 if args.rebuild:
                     print(f"warning: {key} prediction replaced; first read was: {prev['line']}",
                           file=sys.stderr)
