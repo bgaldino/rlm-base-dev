@@ -344,6 +344,7 @@ def record(args):
 
 def label(item):
     by = next((v for k, v in item["prediction"].items() if DECIDED_BY.search(k)), "")
+    by = re.sub(r"[*`]", "", by)  # **Repo** (inferred) is one label
     found = []
     for m in re.finditer(r"(?<!\w)(?:" + "|".join(re.escape(x) for x in LABELS) + r")(?!\w)", by):
         if m.group(0) not in found:

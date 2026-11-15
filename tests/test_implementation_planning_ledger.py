@@ -400,6 +400,14 @@ class LedgerTest(unittest.TestCase):
         self.run_ledger("report")
         self.assertNotIn("(none)", (self.dir / "verification/scorecard.md").read_text(encoding="utf-8"))
 
+    def test_partly_bold_decided_by_cell_keeps_its_label(self):
+        plan = (PLAN.replace("| R-01 | **Repo** |", "| R-01 | **Repo** (inferred) |")
+                .replace("| Repo (inferred); Live (b) on renewal |", "| Live (b) |"))
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        self.init()
+        self.run_ledger("report")
+        self.assertIn("| Repo (inferred) |", (self.dir / "verification/scorecard.md").read_text(encoding="utf-8"))
+
     def test_report(self):
         self.init()
         self.run_ledger("record", "R-01", "affirmed", "goldens pass")
