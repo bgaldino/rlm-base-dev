@@ -133,7 +133,7 @@ def table_rows(lines, kind, name=""):
             print(f"warning: {name + ': ' if name else ''}{iid} appears twice; keeping the "
                   "first row", file=sys.stderr)
             continue
-        rows[iid] = (header or [], row, line.strip())
+        rows[iid] = (header, row, line.strip())
     return rows
 
 
@@ -233,7 +233,7 @@ def relative(path, folder):
 
 def droppable(item):
     """A row that has left the plan and that --rebuild may drop: nothing was recorded on it."""
-    return item["outcome"] == "pending" and not item["evidence"]
+    return item["outcome"] == "pending"
 
 
 def init(args):

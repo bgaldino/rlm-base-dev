@@ -30,7 +30,8 @@ One bullet per capability area, each phrased as something checkable. End with:
 ## 2. Decisions
 
 The ledger reads every table in the plan whose first column is `#` and second column `Decision`
-as decisions, so a copied chain or case table (`| # | Step | ...`) is not one. Number
+as decisions, so a copied chain or case table (`| # | Step | ...`) is not one. It reads only
+table lines that start with `|`, in this and every other ledger table. Number
 intake answers first, in the intake's order, so `ledger.py init --intake` takes one range.
 Decisions a person settles after the blind plan keep their IDs and go to `--owner` as a
 list (`D7,D9`).

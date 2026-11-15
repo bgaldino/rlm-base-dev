@@ -143,6 +143,12 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual((item["origin"], item["outcome"]), ("owner", "affirmed"))
         self.run_ledger("init", "--plan", "plan.md")  # a plain re-init keeps it
         self.assertEqual(self.ledger()["decision:D2"]["origin"], "owner")
+        self.run_ledger("report")
+        card = (self.dir / "verification/scorecard.md").read_text(encoding="utf-8")
+        self.assertIn("Excluded (intake or owner): 2.", card)
+        self.run_ledger("truth")
+        tr = json.loads((self.dir / "verification/truth.json").read_text(encoding="utf-8"))
+        self.assertNotIn("decision:D2", tr)
 
     def test_blind_plan_is_remembered_across_inits(self):
         self.init()
@@ -439,25 +445,27 @@ class LedgerTest(unittest.TestCase):
         self.run_ledger("record", "R-01", "affirmed", "ok")
         self.run_ledger("record", "R-02", "refuted", "90.00", "--path", "fallback",
                         "--skill", "s: c")
+        self.run_ledger("record", "R-03", "modified", "per line")
         self.run_ledger("record", "S-1", "inconclusive", "not run")
         self.run_ledger("record", "D1", "affirmed", "intake, excluded")
         p = self.run_ledger("truth")
         self.assertEqual(p.returncode, 0, p.stderr)
         tr = json.loads((self.dir / "verification/truth.json").read_text(encoding="utf-8"))
-        self.assertEqual(sorted(tr), ["rule:R-01", "rule:R-02", "spike:S-1"])
+        self.assertEqual(sorted(tr), ["rule:R-01", "rule:R-02", "rule:R-03", "spike:S-1"])
         self.assertEqual(tr["rule:R-02"]["path_taken"], ["fallback"])
         self.assertEqual(tr["rule:R-02"]["measured"], ["90.00"])
         self.assertEqual(tr["rule:R-02"]["skill_claim"], ["s: c"])
         self.assertEqual(tr["rule:R-01"]["skill_claim"], [])
 
         judged = {"rule:R-01": {"label": "hit"}, "rule:R-02": {"label": "hedged", "where": "S-9"},
+                  "rule:R-03": {"label": "hit"},
                   "spike:S-1": {"label": "absent", "why": "dropped"}}
         (self.dir / "j.json").write_text(json.dumps(judged), encoding="utf-8")
         p = self.run_ledger("score", "j.json", "r2")
         self.assertEqual(p.returncode, 0, p.stderr)
         out = (self.dir / "verification/regen-scores.md").read_text(encoding="utf-8")
-        self.assertIn("| measured plan (baseline) | 1 | 1 | 1 | 0 | 2/3 |", out)
-        self.assertIn("| r2 | 1 | 1 | 0 | 1 | 2/3 |", out)
+        self.assertIn("| measured plan (baseline) | 1 | 1 | 2 | 0 | 2/4 |", out)
+        self.assertIn("| r2 | 2 | 1 | 0 | 1 | 3/4 |", out)
         self.assertIn("**spike:S-1** (spike, was inconclusive): absent", out)
         judged["rule:R-01"]["label"] = "miss"
         (self.dir / "j.json").write_text(json.dumps(judged), encoding="utf-8")
@@ -465,7 +473,7 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stderr)
         out = (self.dir / "verification/regen-scores.md").read_text(encoding="utf-8")
         self.assertEqual(out.count("## r2"), 1)
-        self.assertIn("| r2 | 0 | 1 | 1 | 1 | 1/3 |", out)
+        self.assertIn("| r2 | 1 | 1 | 1 | 1 | 2/4 |", out)
 
     def test_score_refuses_incomplete_or_bad_judgments(self):
         self.init()
