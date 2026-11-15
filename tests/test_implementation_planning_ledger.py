@@ -197,9 +197,10 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(self.ledger()["decision:D3"]["outcome"], "affirmed")
 
     def test_unknown_intake_id_warns_and_missing_plan_fails(self):
-        p = self.init("--intake", "R-01")
-        self.assertIn("not decision rows", p.stderr)
-        self.assertIn("R-01", p.stderr)
+        p = self.run_ledger("init", "--plan", "plan.md", "--intake", "R-01", "--owner", "R-02")
+        self.assertIn("not decision rows in the plan, so ignored: R-01, R-02", p.stderr)
+        items = self.ledger()
+        self.assertEqual((items["rule:R-01"]["origin"], items["rule:R-02"]["origin"]), ("blind", "blind"))
         p = self.run_ledger("init", "--plan", "missing.md")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("cannot read", p.stderr)
