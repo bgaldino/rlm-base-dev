@@ -158,7 +158,7 @@ TABLE_TEST = {
 }
 
 
-def table_rows(lines, kind, quiet=False):
+def table_rows(lines, kind, quiet=False, name=""):
     """{id: (header cells, row cells, raw line)} for the body rows of every table whose
     header (bold and code marks dropped) passes the kind's TABLE_TEST."""
     rows = {}
@@ -181,11 +181,13 @@ def table_rows(lines, kind, quiet=False):
         if len(row) < len(header):  # GFM: a short row has blank trailing cells
             row = row + [""] * (len(header) - len(row))
         elif len(row) > len(header) and not quiet:
-            print(f"warning: {iid} has {len(row)} cells under {len(header)} columns (an unescaped "
-                  "'|' in a cell?); its cells are kept without column names", file=sys.stderr)
+            print(f"warning: {name + ': ' if name else ''}{iid} has {len(row)} cells under "
+                  f"{len(header)} columns (an unescaped '|' in a cell?); its cells are kept "
+                  "without column names", file=sys.stderr)
         if iid in rows:
             if not quiet:
-                print(f"warning: {iid} appears twice; keeping the first row", file=sys.stderr)
+                print(f"warning: {name + ': ' if name else ''}{iid} appears twice; keeping the "
+                      "first row", file=sys.stderr)
             continue
         rows[iid] = (header or [], row, line.strip())
     return rows
@@ -221,7 +223,7 @@ def items(text, name):
     found = {}
     for kind in KINDS:
         section, present = section_lines(lines, MARKERS[kind])
-        found[kind] = table_rows(section, kind)
+        found[kind] = table_rows(section, kind, name=name)
         # A spike or rule table outside its section is a misplaced label or heading.
         outside = [iid for iid in table_rows(lines, kind, quiet=True)
                    if iid not in found[kind] and kind != "decision"]
@@ -314,6 +316,8 @@ def init(args):
     unknown = sorted((intake | owner) - set(plan["decision"]))
     if unknown:
         print(f"warning: not decision rows in the plan, so ignored: {', '.join(unknown)}", file=sys.stderr)
+        intake &= set(plan["decision"])
+        owner &= set(plan["decision"])
 
     ledger = {"meta": {"plan": relative(args.plan, ledger_dir), "blind": blind_path,
                        "intake": sorted(intake), "owner": sorted(owner)},

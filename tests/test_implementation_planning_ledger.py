@@ -420,15 +420,27 @@ class LedgerTest(unittest.TestCase):
                          ["rule:R-01", "rule:R-02", "rule:R-03"])
 
     def test_rule_record_under_one_heading_per_area(self):
-        plan = PLAN.replace("| R-02 | Live (c) | Amendment | exact |\n",
-                            "\n#### Rule decision record: lifecycle\n\n"
-                            "| Rule | Decided by | Native feature and fallback | Exact vs source? |\n"
-                            "|---|---|---|---|\n| R-02 | Live (c) | Amendment | exact |\n")
+        head = "| Rule | Decided by | Native feature and fallback | Exact vs source? |\n|---|---|---|---|\n"
+        plan = PLAN.replace("### 3.10 Rule decision record", "### 3.10 Rule decision record: pricing")
+        plan = plan.replace("| R-02 | Live (c) | Amendment | exact |\n", "")
+        plan = plan.replace("### 3.11 Knowledge source per area",
+                            "### 3.12 Rule decision record: lifecycle\n\n" + head
+                            + "| R-02 | Live (c) | Amendment | exact |\n\n### 3.11 Knowledge source per area")
         (self.dir / "plan.md").write_text(plan, encoding="utf-8")
         p = self.init()
         self.assertNotIn("appears twice", p.stderr)
         self.assertEqual(sorted(k for k in self.ledger() if k.startswith("rule:")),
                          ["rule:R-01", "rule:R-02", "rule:R-03"])
+
+    def test_unknown_intake_ids_are_not_remembered_and_warnings_name_the_file(self):
+        self.run_ledger("init", "--plan", "plan.md", "--intake", "D1,D8")
+        self.assertEqual(self.ledger()["decision:D1"]["origin"], "intake")
+        meta = json.loads((self.dir / "verification/ledger.json").read_text(encoding="utf-8"))["meta"]
+        self.assertEqual(meta["intake"], ["D1"])
+        (self.dir / "blind.md").write_text(BLIND.replace("| R-02 |", "| R-01 | **Repo** | Volume tiers | exact |\n| R-02 |"),
+                                           encoding="utf-8")
+        p = self.run_ledger("init", "--plan", "plan.md", "--blind", "blind.md")
+        self.assertIn("blind.md: R-01 appears twice", p.stderr)
 
     def test_without_blind_every_row_is_blind(self):
         p = self.run_ledger("init", "--plan", "plan.md")
