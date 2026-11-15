@@ -1,0 +1,134 @@
+# Concept Map — Commercial Concepts to Revenue Cloud
+
+Read this when mapping a source with [implementation-planning](SKILL.md). Each row
+names the feature to try first and the skill that covers it. It is a starting point,
+not a decision. For each rule, read the domain skill, including its open items, then
+decide the knowledge source with [knowledge-sources.md](knowledge-sources.md) after the
+coverage sweep. A few rows note an open item that changes the choice; that note is a
+pointer, not the skill's full open list.
+
+## Catalog
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| Item with a list price and unit | `Product2` + price book entry | `product-catalog-modeling`; `sfdmu-data-plans` (loading) |
+| Pricing basis: one-time / committed term / until canceled | Selling models by end date: One-Time; Term Defined for a committed term (any term unit, so 12 months billed monthly is Term Defined); Evergreen for until canceled. Billing cadence is a separate choice (`billing-setup`) | `product-catalog-modeling` → `selling-models-and-lifecycle.md`; `pricing-setup` → `proration-and-selling-models.md` |
+| Package priced as the sum of its contents | Configurable bundle; component groups with min and max. Decide the root's own selling model | `product-catalog-modeling` → `bundles-and-cardinality.md`, `selling-models-and-lifecycle.md` |
+| Fixed kit | Static bundle. If any child is Term Defined or Evergreen, try a locked configurable bundle; the static kit with recurring children is open | `product-catalog-modeling` → `bundles-and-cardinality.md` |
+| Option the rep picks, priced | Attribute with attribute-based price, or a component | `product-catalog-modeling` → `attributes-and-classifications.md`; `pricing-procedures` → `elements/attribute-based-price.md`; for an answer on the parent priced on a child, `elements/root-answer-child-price.md` |
+| Not sold standalone | `IsSoldOnlyWithOtherProds`. The only refusal measured is at category assignment: Place, order and activation accepted the product alone, so a quote that must never sell it alone needs its own check | `product-catalog-modeling` → `selling-models-and-lifecycle.md` |
+| Not tracked in the installed base | `IsAssetizable = false` on a standalone product or a bundle root (the root's value applies to every child). Under an assetizable root a non-assetizable child still becomes an asset, so a child that must stay out of the installed base becomes a separate line | same (`IsAssetizable`) |
+| Product lines, categories, catalogs | Catalog categories and `Family` | `product-catalog-modeling` → `catalogs-and-loading.md` |
+| Part number per configuration | Attribute set by CML from the selection. No skill covers building one value from several selections; record it as a skill gap | — (`elements/root-answer-child-price.md` route 1 shows CML setting a child attribute, measured) |
+
+## Configuration and rules
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| Sizing questions | Attributes on the bundle root | `constraint-models` → `quantities-from-attributes.md` |
+| Quantity derived from answers (one per user, one per block of N rounded up) | CML cardinality constraints driven by `int` variables, with an integer bracket for rounding up | `constraint-models` → `quantities-from-attributes.md` (`ceil()` doesn't round inside a constraint) |
+| Effort or hours estimator | Same, on service components | same |
+| "X only with Y", "exactly one of" | CML constraints with messages. Before holding an "exactly one of" choice as a component group, check the source's changes: a later change that splits units across the choices can't run under a one-of group (prediction-checks.md check 5) | `constraint-models`; `product-catalog-modeling` Quick Rule 3 |
+| Note that doesn't block | CML message with `Info` severity. `Warning` blocks the next step until the rep acts | `constraint-models` → `quantities-from-attributes.md` |
+| Rep may change a quantity the rules size | Decide which wins: rule-owned sizing, or an editable line | `constraint-models` → `quantities-from-attributes.md` |
+
+## Pricing
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| Volume bands by quantity | Volume and tier discounts, price adjustment schedule | `pricing-procedures` → `elements/volume-and-tier-discount.md`; `pricing-setup` → `price-adjustment-schedules.md` |
+| Discount when bought in a package | Bundle-based adjustment | `pricing-procedures` → `elements/bundle-based-price.md` |
+| Regional or channel uplift | A documented route first: CML copies the root answer to a price-impacting child attribute plus an attribute-based price; formula-based pricing on a header value; or a price adjustment matrix over a lookup table. The first was built and measured end to end on a fresh scratch org, and a top-level line held in a `Quote` container, its region taken from the root's answer through `parent()` and its product on the regional classification, took the regional adjustment (one org; a quote with no bundle kept the default); the other two are documented but unmeasured (open), and the attribute adjustment matrix is unverified. Each route needs different catalog and model pieces (the first, a price-impacting attribute on the children's classification and a CML line; for a top-level line, also the CML `Quote` container relation): list them per route (SKILL step 6) | `pricing-procedures` → `elements/root-answer-child-price.md` |
+| Order of application, rounding | Procedure element order, rounding element | `pricing-procedures` → `procedure-anatomy-and-ordering.md`, `elements/rounding-values.md` |
+| Second currency | Multicurrency price book entries, and per-currency rows for every adjustment that matches on currency (volume tiers, bundle-based adjustments) as well as cost entries. Where the source costs items in one currency only, decide converted cost entries or no margin in the other: a line without a cost entry shows no margin, not zero margin. An approval threshold stated in one currency needs a decision for quotes in the other (`advanced-approvals` → `matrix-modeling.md` §1) | `pricing-setup` (→ `scenarios/cost-and-margin.md` for missing costs), `sfdmu-data-plans` |
+| Annual escalator | Group ramp with uplift. On a mixed bundle decide which lines escalate: in a UI-built Compound ramp (Standard and API-built not measured), the segment uplift reaches every ramp-stamped line (`UnitPriceUplift` 0 exempts one; a line without a `RampIdentifier` took no uplift, one org, so check whether any line still needs exempting), a UI-built bundle ramp puts every child in every segment and quotes a one-time child once per segment, and a compound uplift isn't rounded to the cent, so if the source rounds, round after it. If the plan amends or cancels such a ramp, note that an API-built group-ramped bundle with a one-time or evergreen child failed to amend, and in one shape to cancel (`asset-lifecycle-changes` Quick Rule 8; `ramped-quotes` → `bundle-children-lifecycle.md`) | `ramped-quotes` → `bundle-children-lifecycle.md`, `ui-group-ramp.md`; `pricing-procedures` → `elements/price-revision-compound-uplift.md` |
+| Renewal uplift | Price revision policy. Renewal uplifts apply only to term-defined selling models [Help: `ind.qocal_renewal_price_uplifts`], so an Evergreen line takes none. A policy and uplift set on the new-sale lines reached the renewal | `pricing-setup` → `price-revision-policies.md`; `asset-lifecycle-changes` → `change-policy-mapping.md` |
+| Discount for a longer commitment | List filter on term plus a formula step on Term Defined lines. Where it sits against negotiated discounts is a decision (the file's Placement section). If the discount must also apply inside a group ramp, note that segment lines of a UI-built ramp carried a term of 1 (state the term for every way the plan creates ramp lines: [prediction-checks.md](prediction-checks.md) check 12), so the filter needs the file's criterion 14 (`ItemRampIdentifier` IsNotNull), ORed with the term criteria as in the file's filter logic. That criterion admits every ramp segment line whatever the ramp's length (inferred from the filter), so if the discount depends on the commitment's length, record how a short ramp is kept out as a decision | `pricing-procedures` → `elements/commitment-term-discount.md` |
+| A policy the source marks approved but not yet applied in its calculator | Build it behind a quote-level switch the procedure reads; run the source's goldens with it off and the policy's own examples with it on. A policy that changes the quote's structure (an escalator built as a ramp) isn't a procedure branch: the source's goldens run without that structure and the policy's own examples with it, so it needs no switch of its own. Ask whether the policies stack, whether one switch can serve every policy the procedure applies, and for each policy's effective date. If a term discount stacks with a ramp-built escalator, the discount applies inside a group ramp (row Discount for a longer commitment) | `pricing-procedures` → `elements/commitment-term-discount.md` (a header checkbox mapped into the context as a `SalesTransaction` tag, read by a list filter: measured; a header-only Place PATCH didn't reprice the lines, Reprice All did). A formula reading the header field (`elements/root-answer-child-price.md`, route 2) is documented but unmeasured |
+| Price from cost and a target margin | Formula step on a cost looked up from a decision table | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md`; `pricing-procedures` → `elements/formula-based-pricing.md` |
+
+## Cost and margin
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| Standard cost per item | Cost book entries | `pricing-setup` → `cost-books.md`, `scenarios/cost-and-margin.md` |
+| Labor rates, loaded cost | Computed during extraction into cost entries | `pricing-setup` → `scenarios/cost-and-margin.md` (modeling costs from a source) |
+| Line and quote margin | The shipped cost-and-margin wiring, plus a roll-up for the quote total | `pricing-setup` → `scenarios/cost-and-margin.md` |
+| Contract value that counts until-canceled lines over a fixed term | A computed value of its own, gated on every quote structure the plan builds: ramp segments, amendments, renewals (prediction-checks.md check 8); a quote total counts an Evergreen line without an end date for one period, not the source's term (measured in `scenarios/full-term-value.md`). The shipped procedure's `EvergreenPricingTermCountConstant` sets 1, which matches the fresh-org Setup default; check both (`proration-and-selling-models.md` → Default term counts). Don't raise that count to get a full-term figure; it changes every Evergreen price. Read the default counts in Setup at P0 (no API is known; template P0) | `pricing-setup` → `scenarios/full-term-value.md`, `proration-and-selling-models.md`, `scenarios/cost-and-margin.md` |
+| A fee or commission computed from the deal's revenue | A computed value (a field or a formula), not a price adjustment. Check which deals it applies to. Over one product line only, check the field that selects the lines is in the pricing context: the sales transaction context has no product Family | `pricing-setup` → `scenarios/full-term-value.md` |
+| Items resold at or near cost | Priced near cost by design; decide how margin and below-cost guards and discounts treat them | `pricing-setup` → `scenarios/cost-and-margin.md`; `advanced-approvals` → `matrix-modeling.md` |
+
+## Billing
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| Billing frequency (annual, monthly) | `BillingFrequency` set on every Term Defined and Evergreen line placed through the API (a Term Defined line without one was refused). A cadence different from the pricing term needs a treatment that allows it | `billing-setup` |
+| In advance vs in arrears; milestone billing | Billing policy and treatment. Milestones the source doesn't name are a decision for its owner, not invented. Decide how amendments bill too: a quantity increase on a milestone-billed service is measured in `billing-setup`, but a service the amendment adds is open there, so record it as an open decision | `billing-setup` (amendments) |
+| Payment terms | `Order.PaymentTermId` for invoicing; the shipped approval reads a custom quote picklist, and nothing copies one to the other. Decide how they meet | `billing-setup`; `advanced-approvals` |
+| Invoice timing, draft or posted invoices, tax, payments, credits | Invoices come from billing schedules, which activation creates when one order-to-billing-schedule flow is active; a run picks schedules by target date, or bills a fixed count of periods per schedule (not milestone or usage schedules). Tax is a per-product choice of engine, and the legal entity is the accounting key | `billing-operations` (a read of Help, not measured) |
+| Non-standard billing as an approval trigger | A quote-level value computed from the lines' billing frequency (in the approval data flow, or a roll-up count of non-standard lines) that the approval condition tests | `advanced-approvals` → `matrix-modeling.md` |
+
+## Usage and rating
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| A metered charge (per call, per GB) | A usage resource and unit, then a rate card entry per resource, product and selling model on a Base rate card, and a price book rate card pointing at it. A usage product can't be a bundle parent or child, so it is its own line | `rate-management` (Quick Rules 1 to 3); `usage-consumption` → `usage-setup.md` (Limits); Help, not measured |
+| Rates that fall as usage grows | A Tier rate card for banded discounts, or a volume adjustment (Volume-Based Rate Discount) for one discount on all units once a threshold is met | `rate-management` (Decision guide: Help for what each option does, the choice `[inferred]`); not measured |
+| An allowance, rollover, overage or commitment | Usage policies and grants: refresh, rollover, overage, commitment policy, drawdown order; the grant binding can't change after activation | `usage-consumption` → `usage-setup.md` (Policy decisions; Help, not measured); `usage-consumption` Quick Rule 6 and DO NOT for commitments (repo findings, not Help); Quick Rule 5, the commitment link (`usage-setup.md` step 11, Help) |
+| A lifecycle change on a usage product | Check it against the changes Usage Selling doesn't support (swaps, backdated changes, rollbacks, among others) before mapping it | `usage-consumption` → `usage-setup.md` (Limits; Help, not measured); backdated amend, cancel and renew were refused, measured (`rlm-business-apis` → `backdated-asset-lifecycle.md`) |
+
+## Contracts and documents
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| A contract created from the sale, with its terms and clauses | Contract types and lifecycle states, then templates and clauses; the contract is created from an opportunity, quote or order through the contracts context definition's use-case mappings [Help: `ind.sf_contracts_configure_context_services_to_create_and_update_contracts`] (not measured; decided by the snapshot, proved at its build gate) | `salesforce-contracts` → `setup-and-diagnostics.md` (Contract creation); `context-service` |
+| A quote, order form or contract document | A document template with its data mappers | `document-generation`; `odt-authoring` for the mappers |
+
+## Negotiation and approvals
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| Rounds or versions of a bid | One quote per round, by deep clone; the winning round becomes the order | `quote-negotiation-rounds` |
+| An internal what-if round that must never be presented | A marker on the quote plus a guard on presenting and ordering it. The standard order creation traced doesn't check the quote's status (traced in part; not run against a Draft or Rejected quote), so the ordering guard is a validation or flow the build adds | `quote-negotiation-rounds` (Final round to order) |
+| Discount per product line | Manual line discounts. A line-editor group discount is open: unmeasured inside a bundle, and Propagation ships off. Not a header discount: it was measured applying twice with an active procedure plan and `skipOrgSttPricing` on | `pricing-procedures` → `elements/manual-discount.md`, `elements/price-propagation.md`; `transaction-line-editor` → `runtime-behavior.md` |
+| Approval matrix by discount, margin, size | Advanced Approvals: one level per dimension, the maximum drives a cumulative chain. State what "discount" is measured against (list, or a standard price after programs). Give every quote-level dimension a basis on amendments, not only deal size (prediction-checks.md check 8) | `advanced-approvals` → `matrix-modeling.md` (its amendment base covers deal size only) |
+| Line-level guards (below floor, below cost) | A count of breaking lines as an approval condition, with a marker so a round's bulk discount and an individual override can be told apart; name what sets the marker on each path. A line the round leaves undiscounted by design (resold at cost, priced to a target margin) needs, if the override test compares a line's discount with the round's marker, a marker equal to its own discount or a flag that keeps it out of the test (as `matrix-modeling.md` does for pass-through lines); otherwise it reads as an override `[inferred]` | `advanced-approvals` → `matrix-modeling.md` |
+| "Resubmit from the start" after a rejection | Smart Approval off on that chain's steps, or accepted as a difference | `advanced-approvals` → `matrix-modeling.md`, `limitations.md` |
+
+## Lifecycle
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| Co-termed addition | Amendment of the top-level asset. On a bundle sized from root answers, decide how "add N" maps onto the root. Added units on a `LastTransaction` asset took the last net price and didn't re-band; re-banding needed a procedure overlay (**Build (custom)**). Partial periods prorate by day | `asset-lifecycle-changes` → `change-policy-mapping.md`; `pricing-setup` → `proration-and-selling-models.md`; for a backdated replay only, `rlm-business-apis` → `backdated-asset-lifecycle.md` |
+| Swap one plan for another | Swap action | `asset-lifecycle-changes` |
+| Cancellation credit | Cancellation | `asset-lifecycle-changes` → `change-policy-mapping.md` |
+| Renewal at a new price | Renewal with a price revision policy. On a last-transaction pricing source each lot renewed from its own last price (conditions in `asset-lifecycle-changes` Quick Rule 4), and a multi-year renewal needs `renewalEndDate` (a 3-year new-sale line still left a 1-year renewal term) | `asset-lifecycle-changes` (Quick Rule 4, `change-policy-mapping.md`); `pricing-setup` → `price-revision-policies.md`; `renewal-asset-creation` for renewal test data only |
+| Proving a change end to end | Reprice, order, activate, check the asset | `asset-lifecycle-changes` → `verification.md` |
+
+## Order fulfillment
+
+`dro-plans` holds a settings checklist from Help (`authoring-and-deployment.md`), and a live smoke
+with a recheck (`examples-and-grounding.md`) and measured runtime behavior
+(`updates-and-runtime.md`), each on one org; for the rest, the Help articles named here are the
+evidence. Decide each rule's source with [knowledge-sources.md](knowledge-sources.md); where Help
+disagrees with itself, that is trigger (d).
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| The work each sold item creates (something to ship, a service to switch on) | A fulfillment scenario on the sold product selecting a step group; technical products and decomposition rules (decomposition scope, quantity method) only where the source names separate outputs to track or group; keep a bundle child's decomposition scope no broader than its parent's (Help; whether that reaches technical outputs decomposed from a bundle's components is unmeasured in `dro-plans`). Count the expected lines, steps and dependencies ([prediction-checks.md](prediction-checks.md) check 16) | `dro-plans` → `authoring-and-deployment.md`; [Help: `ind.dro_decomposition_scope`] |
+| Steps and the order they run in | Step definitions in step groups, each with a step scope, and dependency scopes. A definition belongs to one group, and a scenario binds a group to the item it orchestrates, so design each item's group before counting steps. | `dro-plans` → `authoring-and-deployment.md`, `examples-and-grounding.md` (shipped dependency scopes flagged for runtime verification); [Help: `ind.dro_set_dependencies_between_fulfillment_steps`, `ind.dro_custom_scope_step_dependencies`] |
+| A step that may not start before a date | Future-dated steps, a DRO setting. A date before the source line's start needs the Custom Date schedule on a field computed to that date, mapped as a context tag `[inferred]` from Help (same article; `dro-plans` → `updates-and-runtime.md`), unmeasured in `dro-plans`, including which record a step on a decomposed technical line reads the tag from (those lines carried null service dates), so spike it before a golden relies on it; `dro-plans` records offsets from the source line's start that didn't wait (one org), and advises a previous-step delay instead | [Help: `ind.dro_configure_steps_for_future_execution`]; `dro-plans` → `updates-and-runtime.md`, Measured Runtime Behavior |
+| No changes after a step | Point of no return. Help applies the state when the flagged step goes In Progress and spreads it within the bundle. `dro-plans` records, each on one org, where the flag lands, which lines the freeze output denied, that a plain amendment of the activated asset was accepted with the flag set, and that a supplemental quantity change on an activated order was refused because its lines were already assets with billing schedules. So compare when it applies and which lines it locks with the source's rule. A rule that must also stop changes to the activated asset (amendments or cancellations) needs its own validation on those paths, since the plain amend route accepted a change with the flag set; otherwise record the gap as a decision ([prediction-checks.md](prediction-checks.md) check 7) `[inferred]`. Check that the build can reach the in-flight route before a golden relies on it; where it can't, no in-flight change reaches a PONR check, so the goldens assert the flag and the freeze output's per-line allowed flags, and a rule that must hold goes in that validation `[inferred]`. Choose the flagged step and its item from `dro-plans` (PONR), and count its edges ([prediction-checks.md](prediction-checks.md) check 16) | [Help: `ind.dro_point_of_no_return_state_propagation`, `ind.dro_considerations_for_changing_in_flight_orders`]; `dro-plans` → `updates-and-runtime.md` (PONR) |
+| At-risk windows, retries, escalation | Jeopardy and fallout rules, matched on step type with an optional flow or integration definition rather than on one step, so a window for one step needs its own flow or integration definition `[inferred]`, and "at risk after N" needs a decided estimated duration. Changing a step's type changes which rules reach it: Help names none for Milestone steps. Help names no setting for who is notified `[inferred]` from its silence. Refresh a rule's decision table after editing it. Verify that a rule applied on a live step | `dro-plans` → `updates-and-runtime.md`, Measured Runtime Behavior; [Help: `ind.dro_configure_fulfillment_step_jeopardy_rules`, `ind.dro_configure_fallout_rules`] |
+| Billing or the installed base started by a fulfillment step | In the recheck (one org), assets and billing schedules were created at activation, before any step ran; in the smoke (one org) they were in place while the fulfillment plan stayed in progress. In both, a Milestone step completed on its own (in the recheck, one with no unmet dependency). A step that "starts billing", "records the installed base" or waits for a person needs a decided route, and a billing milestone named after a fulfillment step needs a decided way to mark it accomplished. Where a step marks it (an AutoTask flow, `[inferred]` in `billing-setup`), that step is part of the step design and its count, one marking point per event-based milestone plan item (`billing-setup`, Marking an event milestone done), after the step it names `[inferred]`; a Milestone step completed by itself and Help names no action it takes, so it can't be that step `[inferred]` | `dro-plans` → `examples-and-grounding.md`; `billing-setup` (Marking an event milestone done) |
+| Fulfillment of backdated or future-dated changes, and of ramped sales | Time-awareness. Without it, a backdated or future-dated change can get the wrong fulfillment action; either dated replay in SKILL.md step 5 (the source's future dates, or shifted back) makes such changes. Help says it can't be turned off, so turning it on is a decision and puts the runs `dro-plans` measured (time-awareness not recorded; off by default per Help) outside their conditions ([prediction-checks.md](prediction-checks.md) check 1). Help also disagrees on how a ramped sale decomposes without it. With it off, assert fulfillment for each backdated or future-dated change on a current-dated copy, or leave its dated assertions to a decision | [Help: `ind.dro_considerations_for_backdated_changes_in_dynamic_revenue_orchestrator`, `ind.dro_time_aware_fulfillment_enable`, `ind.dro_ramp_deal_decomposition`, `ind.dro_time_aware_fulfillment_example_add`] |
+| Who does each step | A manual step's assignee (a user or queue); a system step runs as its Run As User, or the Fulfillment User in DRO settings. Resolve each per target org, never by a copied Id | `dro-plans` → `csv-and-sfdmu.md`, User/Queue Portability; [Help: `ind.dro_define_a_fulfillment_step`] |
+| Extra work for one variant or option | A step condition on the attribute or product that marks the variant (with Skip Branch on, Help also skips the steps that depend only on the skipped one), or the variant's own scenario and group; count both cases ([prediction-checks.md](prediction-checks.md) check 16) | [Help: `ind.dro_define_conditions_for_a_fulfillment_step_to_run`, `ind.dro_configure_scenarios_for_a_fulfillment_step_definition_group`] |
+
+## Runtime surface
+
+| Source concept | Try first | Where documented |
+|---|---|---|
+| Columns the rep needs (margin, product line, uplift) | Line editor display columns | `transaction-line-editor` → `page-configuration.md` |
+| Grouping lines | Line groups in the line editor | `transaction-line-editor`; `ramped-quotes` (groups) |
+| Header actions (reprice, ramp schedule, header adjustment) | Line editor action buttons | `transaction-line-editor` |

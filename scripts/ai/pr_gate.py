@@ -947,6 +947,7 @@ STDLIB_SUITES = [
     "tests/test_df_workshop_replay.py",
     "tests/test_expression_sets_toolkit.py",
     "tests/test_fix_scratch_identity.py",
+    "tests/test_implementation_planning_ledger.py",
     "tests/test_manage_expression_sets_constraint_activation.py",
     "tests/test_mcp_scripts_security.py",
     "tests/test_org_cleanup.py",
