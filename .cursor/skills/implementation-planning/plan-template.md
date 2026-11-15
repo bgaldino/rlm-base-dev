@@ -135,8 +135,9 @@ Each phase opens with an unbulleted bold label naming it (P2's reads
 - the **Gate:** what must pass, and on which org.
 
 The ledger reads a phase up to the next phase's label or any heading except one for its own
-wave (`### P2b` stays inside P2), so put every spike table of P2 before the **P3** label. It
-warns about a spike table it finds outside that section.
+wave (`### P2b` stays inside P2), so put every spike table of P2 before the **P3** label. A
+spike table's first column starts with "Spike", so a gate table (`| Check | Must hit |`) in P2
+is not read as spikes. The ledger warns about a spike table it finds outside the P2 section.
 
 The usual phases, ordered by the prerequisite graph in [build-order.md](build-order.md):
 

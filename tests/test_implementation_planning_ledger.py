@@ -301,6 +301,34 @@ class LedgerTest(unittest.TestCase):
         self.assertIn("spike rows outside 'P2 Live spikes' are not read: S-2\n", p.stderr)
         self.assertNotIn("spike:S-2", self.ledger())
 
+    def test_gate_tables_numbered_phase_headings_and_bulleted_sections(self):
+        # a gate table inside P2 is not a spike table
+        end = PLAN.index("**P3 Catalog")
+        gate = "**Gate:**\n\n| Check | Must hit |\n|---|---|\n| G-9 | every spike settled |\n\n"
+        (self.dir / "plan.md").write_text(PLAN[:end] + gate + PLAN[end:], encoding="utf-8")
+        self.init()
+        self.assertEqual(sorted(k for k in self.ledger() if k.startswith("spike:")), ["spike:S-1"])
+        # a numbered phase heading still ends at the next phase's label
+        late = ("| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
+                "| S-9 Late | R-02 | 1.00 | One line | `x` |\n\n")
+        plan = PLAN.replace("**P2 Live spikes** (each on its own org)", "### 5.2 P2 Live spikes")
+        plan = plan.replace("**P3 Catalog, then configuration**\n", "**P3 Catalog, then configuration**\n\n" + late)
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        p = self.init("--rebuild")
+        self.assertIn("spike:S-1", self.ledger())
+        self.assertNotIn("spike:S-9", self.ledger())
+        self.assertIn("not read: S-9", p.stderr)
+        # a bulleted label ends at the next bulleted bold line; a register-shaped rule table is not warned about
+        plan = PLAN.replace("### 3.10 Rule decision record", "- **Rule decision record:**").replace(
+            "| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n",
+            "| R-03 | Repo (inferred); Live (b) on renewal | Formula | exact |\n\n- **Out of scope by decision:**\n\n"
+            "| Rule | Why out of scope |\n|---|---|\n| R-17 | not sold |\n")
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        p = self.init("--rebuild")
+        rules = sorted(k for k in self.ledger() if k.startswith("rule:"))
+        self.assertEqual(rules, ["rule:R-01", "rule:R-02", "rule:R-03"])
+        self.assertNotIn("rule rows outside", p.stderr)
+
     def test_same_number_label_stays_inside_the_phase(self):
         end = PLAN.index("**P3 Catalog")
         second = ("**P2 gate:** wave 2.\n\n"

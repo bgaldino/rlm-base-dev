@@ -15,13 +15,15 @@ verification/ledger.json under that folder; --ledger PATH (before the command) m
 Items are table rows of the plan (plan-template.md), the first cell being the ID:
   decision  tables with "#" as first column, under a heading or bold label "2. Decisions"
   rule      tables with a first column starting "Rule", under "Rule decision record"
-  spike     tables with a "must hit" column, under the label "P2 Live spikes"
-A bold label (the marker comes first) ends at the next heading or bold line. A phase label
-("**P2 ...") instead runs to another phase's label or a heading, so its sub-labels (**P2a,
-**P2b), headings of its own phase ("### P2b") and other bold lines stay inside it. Punctuation
-between a marker's words is ignored ("**P2: Live spikes**"). A rule table, or a spike table
-whose first column is the spike, outside its section draws a warning. init fails if it finds
-no rule or decision rows.
+  spike     tables with a first column starting "Spike" and a "must hit" column, under the
+            label "P2 Live spikes" (a gate table such as "| Check | Must hit |" is not a spike)
+A bold label (the marker comes first) ends at the next heading or bold line (a bulleted
+label also at the next bulleted bold line). A phase label ("**P2 ...") instead runs to
+another phase's label or a heading, so its sub-labels (**P2a, **P2b), headings of its own
+phase ("### P2b") and other bold lines stay inside it. Punctuation
+between a marker's words is ignored ("**P2: Live spikes**"), as is a section number before a
+phase ("### 5.2 P2 Live spikes"). A spike table, or a rule table with a "Decided by" column,
+outside its section draws a warning. init fails if it finds no rule or decision rows.
 
 Origin: blind (unchanged from the blind plan), edited (its blind text kept), added,
 intake or owner (given to the planner; not counted for accuracy). With no blind plan,
@@ -84,9 +86,10 @@ def section_lines(lines, marker):
     ("**P2: Live spikes**"). A heading ends at the next heading of the same or a higher level.
     A phase ("**P2 ..." or a heading "P2 ...") ends at the next heading (of its level or
     higher) or at the bold label of another phase ("**P3"); its own sub-labels and headings
-    ("**P2a", "### P2b") stay inside it, as do other bold lines. A bold label that is not a
-    phase ends at the next heading or bold line. A heading that is not a phase ignores bold
-    lines. Overlapping sections are read once."""
+    ("**P2a", "### P2b") stay inside it, as do other bold lines. A section number may come
+    before the phase ("### 5.2 P2"). A bold label that is not a phase ends at the next heading
+    or bold line; a bulleted one also at the next bulleted bold line. A heading that is not a
+    phase ignores bold lines. Overlapping sections are read once."""
     words = r"\W+".join(re.escape(w) for w in marker.split())
     in_heading = re.compile(rf"(^|[\s*#]){words}\b", re.I)
     as_label = re.compile(rf"(?:[-*+]\s+)?\*\*\s*{words}\b", re.I)
@@ -97,17 +100,20 @@ def section_lines(lines, marker):
         if not (in_heading.search(line) if level else as_label.match(line)):
             continue
         found = True
-        phase = re.match(r"(?:#{1,6}\s+|[-*+]\s+)?(?:\*\*)?\s*P(\d+)(?!\w)", line, re.I)
+        phase = re.match(r"(?:#{1,6}\s+(?:\d+(?:\.\d+)*\.?\s+)?|[-*+]\s+)?(?:\*\*)?\s*P(\d+)(?!\w)",
+                         line, re.I)
+        bold = r"(?:[-*+]\s+)?\*\*" if re.match(r"[-*+]\s", line) else r"\*\*"
         for i in range(start + 1, len(lines)):
             h = heading_level(lines[i])
-            own = phase and re.match(rf"#+\s+(?:\*\*)?\s*P{phase.group(1)}(?!\d)", lines[i], re.I)
+            own = phase and re.match(rf"#+\s+(?:\d+(?:\.\d+)*\.?\s+)?(?:\*\*)?\s*P{phase.group(1)}(?!\d)",
+                                     lines[i], re.I)
             if h and (not level or h <= level) and not own:
                 break
             if phase:
                 other = re.match(r"(?:[-*+]\s+)?\*\*\s*P(\d+)", lines[i], re.I)
                 if other and other.group(1) != phase.group(1):
                     break
-            elif not level and lines[i].startswith("**"):
+            elif not level and re.match(bold, lines[i]):
                 break
             keep.add(i)
     return [l if i in keep else "" for i, l in enumerate(lines)], found
@@ -138,7 +144,7 @@ def clean_id(cell):
 TABLE_TEST = {
     "decision": lambda h: h[0] == "#",
     "rule": lambda h: h[0].lower().startswith("rule"),
-    "spike": lambda h: any(re.search(r"must.hit", c, re.I) for c in h),
+    "spike": lambda h: h[0].lower().startswith("spike") and any(re.search(r"must.hit", c, re.I) for c in h),
 }
 
 
@@ -195,7 +201,7 @@ def unfenced(lines, name):
 
 NEEDS = {"decision": "a table whose first column is '#'",
          "rule": "a table whose first column starts with 'Rule'",
-         "spike": "a table with a 'Must hit' column"}
+         "spike": "a table whose first column starts with 'Spike' and that has a 'Must hit' column"}
 
 
 def items(text, name):
@@ -204,10 +210,11 @@ def items(text, name):
     for kind in KINDS:
         section, present = section_lines(lines, MARKERS[kind])
         found[kind] = table_rows(section, kind)
-        # A rule table, or a spike table whose first column is the spike, outside its section
-        # is a misplaced label or heading (golden tables also have a 'Must hit' column).
+        # A spike table, or a rule table shaped like the record (not the rule register),
+        # outside its section is a misplaced label or heading.
         outside = [iid for iid, (header, _, _) in table_rows(lines, kind, quiet=True).items()
-                   if iid not in found[kind] and (kind == "rule" or header[0].lower().startswith("spike"))]
+                   if iid not in found[kind] and kind != "decision"
+                   and (kind == "spike" or any(re.search(r"decided.by", c, re.I) for c in header))]
         if outside:
             print(f"warning: {name}: {kind} rows outside '{MARKERS[kind]}' are not read: "
                   f"{', '.join(outside)}", file=sys.stderr)
