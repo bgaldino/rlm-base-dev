@@ -2,7 +2,7 @@
 
     python tests/test_implementation_planning_ledger.py
 
-Builds a synthetic plan and blind plan in the template's section names, then checks every
+Builds a synthetic plan and blind plan shaped like the template, then checks every
 origin, recording, re-init and the scorecard, and that each refusal can happen.
 """
 import importlib.util
@@ -21,8 +21,9 @@ BLIND = """# Example on Revenue Cloud — Build Plan
 
 ## 1. Goal and definition of done
 
-- The Rule decision record below is the record.
-**The record:** the Rule decision record in section 3.
+| # | Step | Verify |
+|---|---|---|
+| 1 | Price | Pricing-1 |
 
 ## 2. Decisions
 
@@ -190,17 +191,18 @@ class LedgerTest(unittest.TestCase):
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("cannot read", p.stderr)
 
-    def test_fenced_code_is_not_read_as_headings_or_rows(self):
-        fence = ("```bash\n# keep the org 7 days\n**not a label**\n"
-                 "| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
+    def test_fenced_tables_are_not_read_as_rows(self):
+        fence = ("```bash\n| Spike | Rules | Must hit | Smallest case | Read first |\n|---|---|---|---|---|\n"
                  "| X-9 | R-02 | 1 | a | b |\n```\n\n")
         plan = PLAN.replace("| Spike | Rules |", fence + "| Spike | Rules |", 1)
         (self.dir / "plan.md").write_text(plan, encoding="utf-8")
         p = self.init()
         self.assertEqual(sorted(k for k in self.ledger() if k.startswith("spike:")), ["spike:S-1"])
-        (self.dir / "plan.md").write_text(PLAN.replace("## 2. Decisions\n", "## 2. Decisions\n\n" + fence), encoding="utf-8")
+        dfence = "```\n| # | Decision |\n|---|---|\n| D9 | fenced |\n```\n\n"
+        (self.dir / "plan.md").write_text(PLAN.replace("## 2. Decisions\n", "## 2. Decisions\n\n" + dfence), encoding="utf-8")
         self.init()
         self.assertIn("decision:D2", self.ledger())
+        self.assertNotIn("decision:D9", self.ledger())
 
     def test_fence_length_and_unclosed_fence(self):
         nested = "````md\n```\n# inner\n```\n# still code\n````\n\n"
@@ -298,6 +300,13 @@ class LedgerTest(unittest.TestCase):
         self.assertNotIn("ignored", p.stderr)
         self.assertEqual(self.ledger()["decision:D4"]["origin"], "intake")
 
+    def test_list_naming_a_row_that_rebuild_drops_is_warned(self):
+        self.init()
+        (self.dir / "plan.md").write_text(PLAN.replace("| D4 | Added later? | Yes |\n", ""), encoding="utf-8")
+        p = self.run_ledger("init", "--plan", "plan.md", "--rebuild", "--intake", "D4")
+        self.assertIn("ignored: D4", p.stderr)
+        self.assertNotIn("decision:D4", self.ledger())
+
     def test_duplicate_warnings_name_the_file(self):
         (self.dir / "blind.md").write_text(BLIND.replace("| R-02 |", "| R-01 | **Repo** | Volume tiers | exact |\n| R-02 |"),
                                            encoding="utf-8")
@@ -348,7 +357,7 @@ class LedgerTest(unittest.TestCase):
         item = self.ledger()["rule:R-02"]
         self.assertEqual((item["outcome"], item["prediction"]["Native feature and fallback"]),
                          ("refuted", "Rewritten"))
-        self.assertEqual(self.ledger()["decision:D1"]["origin"], "intake")  # --intake remembered
+        self.assertEqual(self.ledger()["decision:D1"]["origin"], "intake")  # the origin sticks
 
     def test_refusals(self):
         self.init()

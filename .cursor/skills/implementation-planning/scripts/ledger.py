@@ -14,7 +14,7 @@ verification/ledger.json under that folder; --ledger PATH (before the command) m
 
 Items are table rows of the plan (plan-template.md), the first cell being the ID. A table is
 recognised by its header, wherever it sits in the plan (fenced code blocks are ignored):
-  decision  first column "#" (only decision tables start with one)
+  decision  first column "#" and a "Decision" column
   rule      first column starting "Rule", and a "Decided by" column
   spike     first column starting "Spike", and a "Must hit" column
 init fails if it finds no rule or decision rows.
@@ -94,7 +94,7 @@ def clean_id(cell):
 
 
 TABLE_TEST = {
-    "decision": lambda h: h[0] == "#",
+    "decision": lambda h: h[0] == "#" and any(re.search(r"\bdecision\b", c, re.I) for c in h),
     "rule": lambda h: h[0].lower().startswith("rule") and any(re.search(r"decided.by", c, re.I) for c in h),
     "spike": lambda h: h[0].lower().startswith("spike") and any(re.search(r"must.hit", c, re.I) for c in h),
 }
@@ -135,9 +135,9 @@ def table_rows(lines, kind, name=""):
 
 
 def unfenced(lines, name):
-    """The lines with fenced code blocks (and their fences) blanked, so a code comment is not
-    read as a heading and a fenced table is not read as plan rows. A fence closes on a line of
-    the same character at least as long as the opening one, with nothing after it."""
+    """The lines with fenced code blocks (and their fences) blanked, so a fenced table is not
+    read as plan rows. A fence closes on a line of the same character at least as long as the
+    opening one, with nothing after it."""
     out, fence, opened = [], None, 0
     for n, line in enumerate(lines, 1):
         m = re.match(r"\s*(`{3,}|~{3,})", line)
@@ -154,7 +154,7 @@ def unfenced(lines, name):
     return out
 
 
-NEEDS = {"decision": "a table whose first column is '#'",
+NEEDS = {"decision": "a table whose first column is '#' and that has a 'Decision' column",
          "rule": "a table whose first column starts with 'Rule' and that has a 'Decided by' column",
          "spike": "a table whose first column starts with 'Spike' and that has a 'Must hit' column"}
 
@@ -228,6 +228,11 @@ def relative(path, folder):
         return str(Path(path).resolve())
 
 
+def droppable(item):
+    """A row that has left the plan and that --rebuild may drop: nothing was recorded on it."""
+    return item["outcome"] == "pending" and not item["evidence"]
+
+
 def init(args):
     ledger_path = Path(args.ledger)
     old = read_json(ledger_path) if ledger_path.exists() else {"meta": {}, "items": {}}
@@ -244,7 +249,8 @@ def init(args):
             sys.exit(f"remembered blind plan {blind_file} not found; pass --blind")
     plan = items(read_text(args.plan), args.plan)
     blind = items(read_text(blind_file), str(blind_file)) if blind_file else None
-    known = set(plan["decision"]) | {v["id"] for v in old["items"].values() if v["kind"] == "decision"}
+    known = set(plan["decision"]) | {v["id"] for v in old["items"].values() if v["kind"] == "decision"
+                                     and not (args.rebuild and droppable(v))}
     unknown = sorted((intake | owner) - known)
     if unknown:
         print(f"warning: not decision rows in the plan, so ignored: {', '.join(unknown)}", file=sys.stderr)
@@ -296,7 +302,7 @@ def init(args):
                 ledger["items"][key] = entry(kind, iid, raw, prediction(header, row), prev)
     for key, prev in old["items"].items():
         if key not in seen:
-            if args.rebuild and prev["outcome"] == "pending" and not prev["evidence"]:
+            if args.rebuild and droppable(prev):
                 print(f"warning: {key} is no longer in the plan and has nothing recorded; dropped",
                       file=sys.stderr)
                 continue

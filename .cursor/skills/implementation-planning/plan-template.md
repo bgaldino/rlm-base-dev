@@ -29,7 +29,8 @@ One bullet per capability area, each phrased as something checkable. End with:
 
 ## 2. Decisions
 
-Only decision tables start with a `#` column (the ledger reads every one in the plan). Number
+The ledger reads every table in the plan whose first column is `#` and that has a `Decision`
+column as decisions, so a copied chain table (`| # | Step | ...`) is not one. Number
 intake answers first, in the intake's order, so `ledger.py init --intake` takes one range.
 Decisions a person settles after the blind plan keep their IDs and go to `--owner` as a
 list (`D7,D9`).
@@ -80,7 +81,7 @@ changes). Note who has to answer it: the source's owner or the build's owner.
       to prove it can fail, which is recommended so none passes vacuously.
       A source without formulas (a store capture, a document) keeps the checks that
       apply to it.
-- **Rule decision record,** under a heading containing that name: one row per rule ID,
+- **Rule decision record:** one row per rule ID,
   with columns rule | decided by | native feature and fallback | exact vs source?, all
   set at planning time. A rule may carry two "decided by" values (new sale vs
   amendment). Build results go to the ledger; in `plan.md` an as-built revision of a
@@ -128,7 +129,7 @@ traced).
 ## 5. Phases, gates, skills
 
 Dependencies on one line, for example `P1 → P2 → P3a → (P3b ∥ P4) → P5 → P6 → P7 → P8 → P9`.
-Each phase opens with an unbulleted bold label naming it (P2's reads
+Each phase opens with a bold label naming it (P2's reads
 **P2 Live spikes**), then bullets:
 - the work items,
 - **Skills:** the skills and sub-files to read first,
