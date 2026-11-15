@@ -209,11 +209,12 @@ class LedgerTest(unittest.TestCase):
         self.assertNotIn("decision:D9", self.ledger())
 
     def test_fence_length_and_unclosed_fence(self):
-        nested = "````md\n```\n# inner\n```\n# still code\n````\n\n"
+        nested = "````md\n```\n| # | Decision |\n|---|---|\n| D9 | fenced |\n```\n````\n\n"
         (self.dir / "plan.md").write_text(PLAN.replace("## 2. Decisions\n", "## 2. Decisions\n\n" + nested),
                                           encoding="utf-8")
         self.init()
         self.assertIn("decision:D2", self.ledger())
+        self.assertNotIn("decision:D9", self.ledger())
         (self.dir / "plan.md").write_text(PLAN.replace("**P3 Catalog", "```\n**P3 Catalog"), encoding="utf-8")
         p = self.run_ledger("init", "--plan", "plan.md")
         self.assertIn("never closed", p.stderr)
