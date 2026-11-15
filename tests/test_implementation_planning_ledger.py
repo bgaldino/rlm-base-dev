@@ -383,6 +383,9 @@ class LedgerTest(unittest.TestCase):
         p = self.run_ledger("record", "R-99", "affirmed", "x")
         self.assertNotEqual(p.returncode, 0)
         self.assertIn("unknown id R-99", p.stderr)
+        p = self.run_ledger("init", "--plan", "plan.md", "--intake", "D1-D2", "--owner", "D2")
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("in both --intake and --owner: D2", p.stderr)
         self.assertNotEqual(self.run_ledger("record", "R-01", "pending", "x").returncode, 0)
         path = self.dir / "verification/ledger.json"
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -415,6 +418,13 @@ class LedgerTest(unittest.TestCase):
         self.init()
         self.run_ledger("report")
         self.assertIn("| Repo (inferred) |", (self.dir / "verification/scorecard.md").read_text(encoding="utf-8"))
+
+    def test_labels_join_in_one_order(self):
+        plan = PLAN.replace("| Repo (inferred); Live (b) on renewal |", "| Live (b) on renewal; Repo (inferred) |")
+        (self.dir / "plan.md").write_text(plan, encoding="utf-8")
+        self.init()
+        self.run_ledger("report")
+        self.assertIn("| Repo (inferred) + Live | 1 |", (self.dir / "verification/scorecard.md").read_text(encoding="utf-8"))
 
     def test_report(self):
         self.init()

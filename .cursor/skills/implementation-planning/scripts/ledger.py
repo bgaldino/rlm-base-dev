@@ -23,16 +23,16 @@ init fails if it finds no rule or decision rows.
 Origin: blind (unchanged from the blind plan), edited (its blind text kept), added,
 intake or owner (given to the planner; not counted for accuracy). With no blind plan,
 everything else is blind. --blind is remembered (by its path relative to the ledger's
-folder). --intake and --owner set the origin of the rows they name; a row keeps that origin
-until a later list names it again.
+folder). --intake and --owner set the origin of the rows they name (an ID can't be in both);
+a row keeps that origin until a later list names it again.
 
 Outcome: affirmed, modified (held with different values or configuration), refuted
 (failed), inconclusive (not tested). New items are pending.
 
 Re-running init adds new rows and keeps outcomes and each row's recorded text, so the
 blind measurement survives plan revisions; --rebuild re-reads the rows (and prints each
-replaced prediction's previous text). A row no
-longer in the plan is kept by init; --rebuild drops it if it is still pending with no evidence.
+replaced prediction's previous text). A row no longer in the plan is kept by init; --rebuild
+drops it if it is still pending.
 
 Scoring a later blind regeneration: its IDs won't match this plan's, so a fresh judge
 reads the regenerated plan with truth.json and labels every item in it (the measured ones,
@@ -241,6 +241,8 @@ def init(args):
     old = read_json(ledger_path) if ledger_path.exists() else {"meta": {}, "items": {}}
     meta = old.get("meta", {})
     intake, owner = id_set(args.intake), id_set(args.owner)
+    if intake & owner:
+        sys.exit(f"error: in both --intake and --owner: {', '.join(sorted(intake & owner))}")
     ledger_dir = ledger_path.resolve().parent
     if args.blind:
         blind_file = Path(args.blind).resolve()
@@ -347,11 +349,8 @@ def record(args):
 def label(item):
     by = next((v for k, v in item["prediction"].items() if DECIDED_BY.search(k)), "")
     by = re.sub(r"[*`]", "", by)  # **Repo** (inferred) is one label
-    found = []
-    for m in re.finditer(r"(?<!\w)(?:" + "|".join(re.escape(x) for x in LABELS) + r")(?!\w)", by):
-        if m.group(0) not in found:
-            found.append(m.group(0))
-    return " + ".join(found) or "(none)"
+    found = set(re.findall(r"(?<!\w)(?:" + "|".join(re.escape(x) for x in LABELS) + r")(?!\w)", by))
+    return " + ".join(x for x in LABELS if x in found) or "(none)"  # one order, however written
 
 
 def report(args):
