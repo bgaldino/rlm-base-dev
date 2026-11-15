@@ -349,6 +349,8 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertEqual(self.ledger()["rule:R-01"]["evidence"][-1]["evidence"],
                          "margin ≥ 20% — goldens pass")
+        raw = (self.dir / "verification/ledger.json").read_text(encoding="utf-8")
+        self.assertIn("margin ≥ 20% — goldens pass", raw)  # written as the characters, not \\u escapes
         self.assertFalse((self.dir / "verification/ledger.json.tmp").exists())
 
     def test_record_and_reinit_keep_outcomes_and_frozen_prediction(self):
@@ -414,16 +416,22 @@ class LedgerTest(unittest.TestCase):
         self.run_ledger("record", "D3", "modified", "rounded per line")
         self.run_ledger("record", "D3", "modified", "later gate, same result")
         self.run_ledger("record", "R-02", "refuted", "90.00", "--path", "fallback", "--skill", "s: c")
+        self.run_ledger("record", "R-03", "affirmed", "first look")
+        self.run_ledger("record", "R-03", "modified", "second look")
         p = self.run_ledger("report")
         self.assertEqual(p.returncode, 0, p.stderr)
         card = (self.dir / "verification/scorecard.md").read_text(encoding="utf-8")
-        self.assertIn("| rule | blind | 3 | 1 | 0 | 1 | 0 | 1 |", card)
+        self.assertIn("| rule | blind | 3 | 1 | 1 | 1 | 0 | 0 |", card)  # R-03: the latest record wins
         self.assertIn("| decision | edited | 1 | 0 | 1 | 0 | 0 | 0 |", card)
         self.assertIn("Excluded (intake or owner): 1.", card)
         self.assertIn("| Repo | 1 | 1 |", card)
         self.assertIn("| Repo (inferred) + Live | 1 |", card)
         self.assertIn("**rule:R-02** (blind): refuted. 90.00 Path: fallback.", card)
         self.assertIn("**rule:R-02** (refuted): s: c", card)
+        self.assertIn("second look", card)
+        self.assertNotIn("first look", card)
+        self.assertIn("later gate, same result", card)
+        self.assertNotIn("rounded per line", card)
         self.assertEqual([k for k in self.ledger() if k.startswith("spike:")], ["spike:S-1"])
 
     def test_truth_and_score(self):
