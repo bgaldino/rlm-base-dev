@@ -269,6 +269,29 @@ where each level is computed:
   the Help gives an approval administrator the right to "review or override any work item"
   [Help: `ind.approvals_personas`]. The admin held Approval Admin (through its profile and the
   `RLM_CLM` permission set group) [Measured: 2026-11-10, 264], which fits the Help. Don't rely on it for ordinary reviewers: give the groups members.
+- A group member needs more than membership to review. A Standard User in the `Manager`
+  group could open neither the quote ("We couldn't find the record") nor its work item ("This
+  page isn't available in Lightning Experience"). After the two grants below, that user and a
+  `Director` member each approved their item from the work item's Review button,
+  `ReviewedById` named each of them, and the submission and quote ended Approved
+  [Measured: 2026-11-18, 264, scratch, one org]:
+    - **The reviewer persona,** in a permission set: Run Flows, and Read on Approval Submission
+      and Approval Work Item. The personas table names only Approval Submission
+      [Help: `ind.approvals_personas`]; both were granted together, so whether Approval Work
+      Item is also needed isn't established.
+    - **Read on the quote.** Quote access is controlled by its parent opportunity, so share
+      the opportunities with the approver groups. In the measured org Opportunity sharing was
+      Private and an admin with no role owned every record. An owner-based sharing rule from
+      All Internal Users then shared nothing, because that group is built from roles. A
+      criteria-based rule (Opportunity Name not equal to blank, Read to the approver group)
+      shares every opportunity whoever owns it. Recalculation is asynchronous: before testing,
+      check `UserRecordAccess` for the reviewer, or `OpportunityShare` rows with
+      `RowCause = 'Rule'`.
+
+  The repo ships neither grant ([SKILL.md](SKILL.md) → What the repo ships). To review as a
+  test user who has no password, use Login As from an admin session (Setup → Users → Login).
+  A rejection by such a user, and the `reviewApprovalWorkItem` action run as one, were not
+  tested ([limitations.md](limitations.md) → Open questions).
 - Documented approver types: user, group and queue. A "Resource" type exists, but Preview
   doesn't support it [Help: `ind.approvals_preview_feature_limitations`].
 - The docs don't describe a manager or role-hierarchy approver type ([limitations.md](limitations.md)).
