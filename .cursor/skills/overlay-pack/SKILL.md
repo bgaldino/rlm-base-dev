@@ -26,7 +26,8 @@ runs each step onto an org that already has a Foundations base build.
 **The repo ships no pack format and no loader code.** This skill documents the format
 and the behaviour a loader must have, as one private build wrote and proved them: a
 fresh-org load of 32 steps, every one exit 0 in 36 minutes, and a second load that
-changed nothing except one schedule its plan switches off and on by design
+changed nothing except one schedule its plan switches off and on by design and the
+constraint records the CML import rewrites (**Rerun and idempotency**)
 [Measured: 2026-11-17, 264, harness scratch org]. Each build writes its own loader against this contract.
 [implementation-planning](../implementation-planning/SKILL.md) step 7 decides whether a
 build repeats as a pack, a feature flag or a single task.
@@ -151,7 +152,8 @@ layers:
       - {id: catalog-meta, kind: deploy, dir: "{pack}/catalog/metadata"}
       - {id: catalog-pass1, kind: run, cmd: ["{cci}", task, run, load_sfdmu_data, -o, pathtoexportjson, "{pack}/catalog", --org, "{org}"]}
       - {id: catalog-pass2, kind: run, cmd: ["{cci}", task, run, load_sfdmu_data, -o, pathtoexportjson, "{pack}/catalog", --org, "{org}"], note: "classification attributes settle on pass 2"}
-      - {id: cml-import, kind: run, cmd: ["{cci}", task, run, import_cml, --org, "{org}", -o, data_dir, "{pack}/cml"], note: "add a deactivate step before cml-activate to pick up a changed model (Rerun and idempotency)"}
+      - {id: cml-import, kind: run, cmd: ["{cci}", task, run, import_cml, --org, "{org}", -o, data_dir, "{pack}/cml"]}
+      - {id: cml-cycle, kind: run, cmd: ["{cci}", task, run, manage_expression_sets, --org, "{org}", -o, operation, deactivate_versions, -o, version_full_names, MyModel_V1], note: "a reload's changed model reaches the solver only after a cycle; skipped when inactive (Rerun and idempotency)"}
       - {id: cml-activate, kind: run, cmd: ["{cci}", task, run, manage_expression_sets, --org, "{org}", -o, operation, activate_versions, -o, version_full_names, MyModel_V1]}
   - id: pricing
     phase: P4
