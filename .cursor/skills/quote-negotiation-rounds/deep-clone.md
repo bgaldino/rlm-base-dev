@@ -92,7 +92,7 @@ opportunity and with an approval submission in progress [Measured: 2026-11-10, 2
 | `RLM_Payment_Terms__c` (custom, editable by the user) | Copied |
 | `RLM_Approval_Status__c` (custom, read-only to the user through `RLM_Approvals`) | Blank (source: `Pending`) |
 | `RLM_Approval_Level__c` (roll-up of the line level) | Same value, from the cloned lines |
-| `Description`, `ExpirationDate` | Blank (source: set) |
+| `Description`, `ExpirationDate` | Blank (source: set); blank again on another org [Measured: 2026-11-17, 264, scratch] |
 | `ApprovalSubmission`, `ApprovalWorkItem` | None |
 | `RelatedQuoteId` | Blank |
 
@@ -102,7 +102,7 @@ Connect API [Measured: 2026-11-12, 264]:
 | Item | On the clone |
 |---|---|
 | A custom header picklist that no context plan mapped | The picklist's **default**, not the source's value. A source already holding the default looked as if it copied |
-| A custom header checkbox that no context plan mapped (the internal-round flag) | `false` (source: `true`) |
+| A custom header checkbox that no context plan mapped (the internal-round flag) | `false` (source: `true`); on another org `false` again on a clone and on a clone of that clone [Measured: 2026-11-17, 264, scratch] |
 | Two custom header fields the rounds compared (mapped in the context plan), and `StartDate` | Same as the source; the two custom fields held their defaults on every source, so this run doesn't show whether they copy |
 | `RLM_Payment_Terms__c` | Same as the source, but every source held `Net 30`, the picklist default, so this run doesn't show whether it copies |
 | Line `Discount` and a custom line field mapped in the context definition | Copied on every line |

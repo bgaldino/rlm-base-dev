@@ -205,7 +205,10 @@ already [Help: `ind.billing_treatment_resolution`]:
 | (product has no policy) | The org's default billing treatment; with none, the billing calculation fails |
 
 Only active policies and treatments count. Activate bottom-up: treatment item, then
-treatment, then policy [Help: `ind.billing_policies_and_treatments_create`].
+treatment, then policy [Help: `ind.billing_policies_and_treatments_create`]. A load that
+rewrites `Status` to Draft fails on a rerun once the records are Active (M12). Upsert them Draft
+with `skipExistingRecords`, then activate only records not yet Active; `qb-billing` and the
+`activate_billing_records` Apex task show the pattern.
 
 **Exclude From Billing = Yes** on a treatment skips billing schedules and invoices for the
 order items that carry it, without holding up the rest of the order. Switch it back, or give
