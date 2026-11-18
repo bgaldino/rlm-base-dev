@@ -151,7 +151,7 @@ layers:
       - {id: catalog-meta, kind: deploy, dir: "{pack}/catalog/metadata"}
       - {id: catalog-pass1, kind: run, cmd: ["{cci}", task, run, load_sfdmu_data, -o, pathtoexportjson, "{pack}/catalog", --org, "{org}"]}
       - {id: catalog-pass2, kind: run, cmd: ["{cci}", task, run, load_sfdmu_data, -o, pathtoexportjson, "{pack}/catalog", --org, "{org}"], note: "classification attributes settle on pass 2"}
-      - {id: cml-import, kind: run, cmd: ["{cci}", task, run, import_cml, --org, "{org}", -o, data_dir, "{pack}/cml"], note: "on a reload, deactivate the version first (Rerun and idempotency)"}
+      - {id: cml-import, kind: run, cmd: ["{cci}", task, run, import_cml, --org, "{org}", -o, data_dir, "{pack}/cml"], note: "add a deactivate step before cml-activate to pick up a changed model (Rerun and idempotency)"}
       - {id: cml-activate, kind: run, cmd: ["{cci}", task, run, manage_expression_sets, --org, "{org}", -o, operation, activate_versions, -o, version_full_names, MyModel_V1]}
   - id: pricing
     phase: P4
@@ -257,13 +257,19 @@ Every step must be safe to run twice. What the proved build learned:
   third pass is expected to change nothing.
 - **Procedure overlays:** skip the save when no step is new or changed. Re-saving an
   unchanged active version counted as a change on every run [Measured: 2026-11-17, 264].
-- **CML:** a reload needs the active version deactivated before `import_cml`
-  (`constraint-models`). The proved build's second-load record doesn't show the CML step,
-  so a hands-off rerun of it isn't proved. The manifest has no conditional steps, so either
-  add a `run` step before the import that calls a pack script which deactivates the version
-  only when it is active (a plain `manage_expression_sets -o operation deactivate_versions`
-  step would also run on a first load, before the version exists), or start the second load
-  after the CML layer with `--from`. Say which in the pack's README [not measured].
+- **CML:** on the proved second load, with the model's version Active, `import_cml` exited
+  0. It deleted the model's constraint records and created them again with new Ids, and
+  uploaded the blob. The activate step skipped the already-Active version and warned that
+  the solver keeps the model it last deployed [Measured: 2026-11-17, 264]. So:
+    - A rerun with an unchanged model passes, but rewrites those records on every load.
+      Count the rewrite as designed when you prove a rerun.
+    - A changed model reaches the solver only when its version is cycled after the
+      import: deactivated, then activated, through `manage_expression_sets`
+      (`constraint-models` Quick Rule 3). To make that hands-off, put a step
+      `manage_expression_sets -o operation deactivate_versions -o version_full_names
+      <version>` between the import and the activate step. The task skips a version that
+      is already Inactive or not in the org, so the same step is harmless on a first load
+      [Repo: `tasks/rlm_manage_expression_sets.py`; not run as a pack step].
 - **Scripts that create records:** create what is missing and correct what differs on
   existing records. A script that only created missing products never applied its
   design's flag to the ten that already existed, so the org and the design disagreed
@@ -279,7 +285,8 @@ had one: a schedule switched off and on by design [Measured: 2026-11-17, 264].
 
 The count covers data plans only. Every step that writes records another way (a build
 script, a procedure overlay, a CML import, a context plan) must report what it changed
-in its own log, and a rerun must report nothing changed. The proved build's fulfillment
+in its own log, and a rerun must report nothing changed, or only a designed rewrite such
+as the CML import's (above). The proved build's fulfillment
 script reported 0 changes on its rerun [Measured: 2026-11-17, 264].
 
 ## Gates
