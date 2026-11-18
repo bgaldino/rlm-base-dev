@@ -151,7 +151,7 @@ layers:
       - {id: catalog-meta, kind: deploy, dir: "{pack}/catalog/metadata"}
       - {id: catalog-pass1, kind: run, cmd: ["{cci}", task, run, load_sfdmu_data, -o, pathtoexportjson, "{pack}/catalog", --org, "{org}"]}
       - {id: catalog-pass2, kind: run, cmd: ["{cci}", task, run, load_sfdmu_data, -o, pathtoexportjson, "{pack}/catalog", --org, "{org}"], note: "classification attributes settle on pass 2"}
-      - {id: cml-import, kind: run, cmd: ["{cci}", task, run, import_cml, --org, "{org}", -o, data_dir, "{pack}/cml"], note: "on a reload, deactivate the version first"}
+      - {id: cml-import, kind: run, cmd: ["{cci}", task, run, import_cml, --org, "{org}", -o, data_dir, "{pack}/cml"], note: "on a reload, deactivate the version first (Rerun and idempotency)"}
       - {id: cml-activate, kind: run, cmd: ["{cci}", task, run, manage_expression_sets, --org, "{org}", -o, operation, activate_versions, -o, version_full_names, MyModel_V1]}
   - id: pricing
     phase: P4
@@ -258,7 +258,11 @@ Every step must be safe to run twice. What the proved build learned:
 - **Procedure overlays:** skip the save when no step is new or changed. Re-saving an
   unchanged active version counted as a change on every run [Measured: 2026-11-17, 264].
 - **CML:** a reload needs the active version deactivated before `import_cml`
-  (`constraint-models`).
+  (`constraint-models`). The proved build's second-load record doesn't show the CML step,
+  so a hands-off rerun of it isn't proved. Either put the deactivation in the manifest (a
+  `run` step with `manage_expression_sets -o operation deactivate_versions` before the
+  import, on a reload only) or start the second load after the CML layer with `--from`, and
+  say which in the pack's README [not measured].
 - **Scripts that create records:** create what is missing and correct what differs on
   existing records. A script that only created missing products never applied its
   design's flag to the ten that already existed, so the org and the design disagreed
