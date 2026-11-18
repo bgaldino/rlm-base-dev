@@ -29,6 +29,11 @@ Items tagged `[Measured: 2026-11-12 ...]` in this file and in SKILL.md come from
 with configuration method Force and configuration rules on, its one-time service lines then PATCHed with configuration Skip, ordered
 and activated, and later amendments of that contract ordered and activated (two of them adding milestone-billed service quantity).
 
+M12–M15 come from three more scratch orgs (release 264, API v68.0, 2026-11-16 to 2026-11-18)
+built from this repo with another catalog loaded: billing policies and treatments loaded by
+data plan, orders ordered and activated (one starting in the future, one starting the day it
+was placed), and a DRO fulfillment plan run on each. No invoice was run.
+
 ## Results
 
 | Row | What was placed | Result |
@@ -44,6 +49,10 @@ and activated, and later amendments of that contract ordered and activated (two 
 | M9 | Describe of the transaction and billing objects | `QuoteLineItem.BillingFrequency`, `OrderItem.BillingFrequency2` and `AssetStatePeriod.BillingFrequency`, each labelled Billing Frequency, API values `MilestonePlan` (label Milestone Plan), `Weekly`, `Monthly`, `Quarterly`, `Semi-Annual`, `Annual`; `Asset` has no billing frequency field. `BillingTerm` (label Billing Term) on the quote line, order product and asset action source. `QuoteLineItem.ProductSellingModelId` is read-only (Place refused it; the price book entry sets it). `Order.PaymentTermId`, `BillingAccount.PaymentTermId` and `BillingScheduleGroup.PaymentTermId` exist; `Quote` has no standard payment-term field, only the repo's `RLM_Payment_Terms__c` |
 | M10 | Org state after a full build | Active: `RLM_Order_to_Billing_Schedule_Flow`. Inactive: the standard `o2bsflows` (*Order To Billing Schedule Flow*). Three active policies, 15 active treatments (all with Change Billing Frequency), two active payment terms, no billing milestone plans |
 | M11 | One-time service lines as components of a bundle, each with `MilestonePlan` and *Milestone Billing Treatment* in `BillingTreatmentId`, placed with `configurationMethod: Force` and configuration rules on (second org, see Scope) | Place returned success, but `BillingFrequency` was stored blank on those lines; `BillingTreatmentId` was kept. Read the frequency back after placing; a success response doesn't mean it was kept. The save check refuses Milestone Plan on non-One-Time lines and accepts a treatment with a blank frequency, so it neither explains nor rules out a silent drop; cause not established [Platform behaviour, traced in part]. A later Skip PATCH was run on a third org, see Scope and SKILL Quick Rule 4 |
+| M12 | Insert `BillingPolicy`, `BillingTreatment` and `BillingTreatmentItem` records by data plan | A policy or treatment inserted without `Status` was refused, so insert them Draft and activate bottom-up in later passes. An event item's `MilestoneStartDate` had to be blank: the field is a restricted picklist whose only value is `OrderProductActivation` |
+| M13 | Read the billing schedules of an activated order with Annual and Monthly recurring lines | `BillingSchedule.BillingTermUnit` read `Year` on the Annual lines and `Month` on the Monthly lines (the line field's values are `Annual` and `Monthly`, M9) |
+| M14 | Set `IsMilestoneAccomplished` on an event item, on an order whose schedules start in the future, and on one starting today | Future start: refused, *"You can accomplish a milestone only after the billing schedule starts."* Today: accepted, the item moved to Ready for Invoicing. Two orgs |
+| M15 | An AutoTask DRO step marking its lines' next event item (SKILL → Marking from a fulfillment AutoTask) | Today-dated order: each line's next event item Ready for Invoicing, two orgs. Future-dated order: every mark deferred, and every item still waiting after the plan completed. Items after a manual step: still waiting, left for a person |
 
 M2 and M3 are the measured basis for the qb-billing README limiting its treatment
 requirement to a frequency that differs from the pricing term

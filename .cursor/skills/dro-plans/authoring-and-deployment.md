@@ -35,10 +35,17 @@ Settings checklist (copy, mark each on, off or n/a for the target):
 - [ ] Fulfillment user set; holds Assetize Order and Submit Transaction User or DRO Admin User [Help: ind.dro_add_a_fulfillment_user]
 - [ ] In-Flight Amendments, only if amend or cancel of active plans is in scope [Help: ind.dro_enable_in_flight_amendments]
 - [ ] Future-Dated Steps, only if a step has an execution schedule [Help: ind.dro_turn_on_future_dated_steps]
-- [ ] Fallout and SLA features, only if fallout, retries or jeopardy are in scope [Help: ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements]
+- [ ] Fallout and SLA features, only if fallout, retries or jeopardy are in scope [Help: ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements].
+  This repo's settings metadata turns both on but creates neither decision table. Switch each
+  off and on in Setup > Dynamic Revenue Orchestrator > Fallout and SLA Settings, then check that
+  both tables exist and are Active (step 5 below) [Measured: 2026-11-16, 264, scratch, one org;
+  repeated 2026-11-17 on a second org]
 - [ ] Time-awareness, only after the migration it names and for backdated or future-dated changes [Help: ind.dro_time_aware_fulfillment_enable]
 - [ ] Rule library named `DRORuleLibrary` for the default usage type [Help: ind.dro_orchestrate_a_business_process]
-- [ ] Selected sales or asset context and node bindings: the snapshot names no setting for these, so read them in the target (not a Help-grounded item)
+- [ ] Selected sales transaction context and node bindings: Setup > Dynamic Revenue Orchestrator > Context Definition Settings, Setup-only fields with no metadata route [Dev guide: deployment_dynamic_revenue_orchestrator_metadata; Help: ind.dro_associate_custom_context_definition_with_sales_transaction_attribute].
+  A fresh build of this repo leaves the standard `SalesTransactionContext__stdctx` selected
+  [Measured: 2026-11-16, 264, scratch, one org]. Switch it only when DRO must read a tag of the
+  extended context, such as a Custom Date step; the procedure is in section 3
 
 Discover product/classification matches, technical-product activation, attributes,
 active flows/providers, credential access, users/queues, scenarios and workspace
@@ -63,7 +70,10 @@ Use the [object graph](objects-and-relationships.md) to select records. Check:
 - **Steps:** type-specific fields. `AutoTask` needs its active Flow;
   `Callout` needs its integration provider; successful execution also needs usable
   credentials and a working endpoint/response contract;
-  `ManualTask` needs suitable assignment and no callout provider. `Milestone`,
+  `ManualTask` needs suitable assignment and no callout provider. A manual step assigned to
+  a queue with no `TaskAllocationType` was refused with "Step Assignment Method is invalid";
+  `RoundRobin` was accepted and handed each step to a queue member, so the build gave every
+  queue a member [Measured: 2026-11-17, 264, scratch, one org]. `Milestone`,
   `Pause`, and `StagedAssetize` need their own documented execution behavior.
   An explicitly requested callout-failure demonstration can omit its credential;
   document the expected failure and verify its actual state before claiming it works.
@@ -179,6 +189,52 @@ version lifecycle: clone the **latest** version, preserve rule sets, deactivate
 the older version, then activate the replacement. Use the existing configured
 library rather than creating another because a sample uses a different name.
 
+Switching DRO's selected context, as measured [Measured: 2026-11-16, 264, scratch, one org;
+repeated 2026-11-17 on a second org]:
+
+1. Setup > Dynamic Revenue Orchestrator > Context Definition Settings > Sales Transaction
+   Context Definition: pick the new context, then the header node. That unlocks the child
+   nodes, each reset to unselected; set each again (on the repo's extended context, to its
+   namesake). Save.
+2. The optional Orchestration Group Key wasn't offered on the extended context and was left
+   blank. It groups orders for cross-plan dependencies [Help: `ind.dro_cross_plan_dependencies`].
+3. Clone the library's latest version onto the new context, deactivate the old version, then
+   activate the new one. Check with
+   `SELECT Name, Status, ContextDefinitionName FROM RuleLibraryVersion`.
+4. The library record's own context name kept the old value; only the versions carry the new one.
+5. Rerun one existing order and check its composition. Configuration with no condition JSON
+   kept composing after the switch (one order); conditions bound to the old version weren't tested.
+
+Condition JSON, as a UI-made rule saved it and as API writes in the same shape evaluated
+[Measured: 2026-11-17, 264, scratch, one org]:
+
+```json
+{"Rules":[{"SequenceNumber":"1","Filter":"All","Criteria":[{"criteriaName":"Criteria_1",
+ "Conditions":[{"variableName":"STITags_SalesTransactionActionType","operator":"Equals",
+ "valueDataType":"string","value":"Add","valueType":"Literal","sequenceNumber":"1"}],
+ "ConditionLogic":"1","SequenceNumber":"1"}],
+ "Variables":[{"collection":true,"name":"STITags_SalesTransactionActionType","dataType":"string",
+ "type":"Tag","fieldType":"INPUT,OUTPUT","contextTag":"SalesTransactionActionType","category":"STITags"}]}]}
+```
+
+- In the UI, a decomposition-rule condition is on the source product's Decomposition tab: the
+  connector to the technical product > Execution Rules, Based On Sales Transaction Items.
+- A step condition is on the workspace's step > Configure Execution Rules. Skip Branch is a
+  toggle on the rule list after saving, and writes `IsSkipBranch`.
+- By API, a REST PATCH of `ConditionData` (decomposition rule) or `ExecuteOnConditionData`
+  (step definition) set `ExecuteOnRuleId` to a new generated RuleSet, as the UI did. A null
+  `ExecuteOnRuleId` after a write means the condition didn't save.
+- Use the context tag name, not the attribute name: `LineItemQuantity`, `ItemStartQuantity`,
+  `ItemEndQuantity`, `SalesTransactionActionType`, `ItemSalesTransactionAction`.
+  `Quantity` was refused: "a valid value in ContextTag field should be provided".
+- Numbers take `dataType` and `valueDataType` `number`; `double` and `decimal` were refused
+  with "No enum constant …RuleRefVariableDataType".
+- Other validator messages seen: "Specify a value for Rules" and "The JSON structure is invalid".
+- These tags evaluated correctly in decomposition-rule conditions, but False in step
+  conditions on a new sale; see **Lifecycle orders** in
+  [updates-and-runtime.md](updates-and-runtime.md). The standard context's rule library was
+  enough for these tags.
+
 ## 4. Deploy in Dependency Order
 
 Use [CSV/SFDMU](csv-and-sfdmu.md) for normal configuration records. Deploy setup and
@@ -205,7 +261,16 @@ metadata dependencies through their supported surfaces before their data referen
    precede fallout, jeopardy and assignment rules.
 5. Refresh decision tables used by fallout/jeopardy after their source rules change.
    Discover tables by source object and inspect related sources/criteria using
-   [decision-tables](../decision-tables/SKILL.md). For each relevant table:
+   [decision-tables](../decision-tables/SKILL.md). The two DRO tables exist only after the
+   Setup toggle in the settings checklist; expect `FulfillmentFalloutRules` and
+   `Fulfillment_Step_Jeopardy_Rule_Decision_Table`, both Active [Measured: 2026-11-16, 264,
+   scratch, one org]:
+
+   ```bash
+   sf data query --target-org "$SF_ORG" --query "SELECT DeveloperName, Status, LastSyncDate FROM DecisionTable WHERE SourceObject IN ('FulfillmentFalloutRule','FulfillmentStepJeopardyRule')"
+   ```
+
+   For each relevant table, refresh, then confirm `LastSyncDate` moved:
 
    ```bash
    python scripts/decision_tables/refresh_decision_table.py \

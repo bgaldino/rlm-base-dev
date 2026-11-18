@@ -73,6 +73,9 @@ The platform processes condition creation, updates and removal, including remova
 of associated rule artifacts where applicable. Verify generated references and true/false
 evaluation on the target; do not clear a raw RuleSet lookup and assume the condition
 was removed, or manually copy internal rule tables across orgs.
+A REST PATCH of the condition JSON to null cleared `ExecuteOnRuleId` and deleted its
+generated RuleSet [Measured: 2026-11-17, 264, scratch, one org]. The JSON shape is in
+[authoring-and-deployment.md](authoring-and-deployment.md#3-conditions-and-rule-libraries).
 
 The repository's `update_product_fulfillment_decomp_rules` task updates **all**
 decomposition rules. It is not a safe general repair command for a scoped update.
@@ -182,9 +185,11 @@ introduce a blanket extra approval for ordinary configuration updates.
 
 ## Measured Runtime Behaviour
 
-Each item is one scratch org, 264, 2026-11-13 [Measured: 2026-11-13, 264, scratch, one org],
-except the fallout and jeopardy match fields (from describe) and statements marked as Help's.
-Time-awareness wasn't recorded for these runs: no time-awareness setting appeared in the
+Statements without their own tag are one scratch org, 264, 2026-11-13 [Measured: 2026-11-13,
+264, scratch, one org], except the fallout and jeopardy match fields (from describe) and
+statements marked as Help's. Statements tagged 2026-11-16 or 2026-11-17 come from later 264
+scratch orgs with time-awareness off.
+Time-awareness wasn't recorded for the 2026-11-13 runs: no time-awareness setting appeared in the
 org's retrieved DRO settings metadata [Measured: 2026-11-13, 264, scratch, one org;
 retrieved settings metadata]. Help says it is off by default and can't be turned off once
 on [Help: `ind.dro_time_aware_fulfillment_enable`], so a plan that turns it on is outside
@@ -192,20 +197,54 @@ these conditions; rerun the amendment and cancel checks there.
 
 - **Future-dated steps (setting on).** A step delayed from the previous step's execution
   by two minutes waited, then started. A step waiting on a scheduled date still waited for
-  its dependencies. A step with an offset from the source line's start date did not wait
+  its dependencies. A step on a decomposed technical item with an offset from the source
+  line's start date did not wait
   when the line's service date was a month out and the order was dated today; on two further
   orders with the order date and the line service date a month out (the second also with the
   quote line's start dates), a 10-day offset and a 3-minute offset from that date both
   started at plan creation, and the next-run time carried no offset [Measured: 2026-11-13, 264,
   scratch, one org]. On all three orders the decomposed technical lines had null service and
   end dates [Measured: 2026-11-13, 264, scratch, one org], which may explain it [inferred];
-  Help doesn't settle it. Don't promise a start-date offset; use a previous-step delay
-  instead (the two-minute delay above waited, then started).
-  A step can also run from a custom date: a date or datetime tag in the context definition,
-  mapped to a field, with a positive delay [Help: `ind.dro_configure_steps_for_future_execution`].
-  Help's delay is positive only, so a date before the line start needs a field computed to that
-  date [inferred]. Which context node a step on a decomposed technical line reads the tag from
-  was not measured; those lines carried null service dates.
+  Help doesn't settle it. Don't promise a start-date offset on a technical item; use a
+  previous-step delay (the two-minute delay above waited, then started) or a Custom Date step
+  on the commercial line (next item).
+- **Custom Date ("not before") steps.** A step can run from a custom date: a date or datetime
+  tag in the context definition, mapped to a field, with a positive delay
+  [Help: `ind.dro_configure_steps_for_future_execution`]. Each point below is
+  [Measured: 2026-11-16, 264, scratch, one org] unless tagged otherwise.
+  - `CustomBaseExecutionDate` accepts only a tag of the context DRO has selected. Other tags
+    are refused at insert with `INVALID_INPUT: Custom Date field contains an invalid
+    Date/DateTime context node name.`
+  - A fresh build of this repo selects the standard `SalesTransactionContext__stdctx`, so a tag
+    on the repo's extended context needs the Setup switch in
+    [authoring-and-deployment.md](authoring-and-deployment.md#3-conditions-and-rule-libraries) first.
+  - The date resolves only from an item-level tag on the step's own commercial line. Put the
+    step in a group bound to the commercial product.
+  - On a decomposed technical item the schedule was ignored with no error, before and after the
+    switch; so was a header tag (the standard effective date, or a custom header tag). The step
+    ran once its dependencies were done, so a configuration-only test still passes.
+  - An unresolved step keeps `NextEarliestRunTime` at plan creation.
+  - A resolved step goes Scheduled at 00:00 UTC on the date, plus the delay; in a US time zone
+    that is the previous evening.
+  - For a date before the line start, map a formula field (start minus N days) as an item DATE
+    tag and set no delay: the step went Scheduled at exactly that date.
+  - `DelayOf` and `DelayUnit` may be null with `CustomDate`.
+  - A Scheduled step whose date had passed stayed Pending behind its open predecessor, and
+    started about 2 s after the predecessor completed.
+  - Due steps started 9–55 s late. Previous-step delays started late, never early.
+  - With the standard context, a Custom Date on the commercial line's standard start-date tag
+    did schedule, so start plus a positive delay works; it can't reach a date before the start.
+  - One-time lines carry no service date, so a date formula needs a fallback such as
+    `BLANKVALUE(ServiceDate, Order.EffectiveDate) - N` [Measured: 2026-11-17, 264, scratch, one org].
+  - Two hardware lines feeding one Plan-scope Custom Date step gave one step instance
+    [Measured: 2026-11-17, 264, scratch, one org].
+    [Open: which line's date a Plan-scope step uses when several lines carry the tag.]
+  - [Open: whether a context switch moves steps scheduled before it.] [Open: a start
+    scheduled hours or more ahead; only starts due within minutes were observed.]
+  - The org's `ExecuteOn` picklist read `SourceLineStartDate`, `CustomDate` and
+    `PreviousStepExecutionDate`. The developer guide lists `PreviousStepsStartDate` and
+    `SourceLineStartDate` [Dev guide: `sforce_api_objects_fulfillmentstepdefinition`]; use the
+    target's describe.
 - **Amendment decomposition.** An amendment created a new plan holding the full step set,
   not a delta, and a changed quantity was a full replace. One fulfillment asset's quantity
   after the amendment did not match its line's end quantity; unexplained.
@@ -214,7 +253,8 @@ these conditions; rerun the amendment and cancel checks there.
   but on a bundle amendment two of the unchanged lines came through as an add of 1 (fulfillment
   asset 0 to 1) and a cancel of -1 (asset 1 to 0), while another line of the same order was No
   Change [Measured: 2026-11-13, 264, scratch, one org]. So excluding No Change from a scenario
-  or condition does not by itself keep unchanged lines from running steps [inferred]. On that
+  does not by itself keep unchanged lines from running steps; a later run measured that by
+  another route (see **Lifecycle orders** below). On that
   order the unchanged lines' pairs netted to zero (1 and -1), and the changed line's did not
   (an add of 7 and a cancel of -5, asset 0 to 7 and 5 to 0). A condition on the action alone
   can't separate them; whether a condition can read the pair's net quantity was not measured.
@@ -231,8 +271,8 @@ these conditions; rerun the amendment and cancel checks there.
   Help defines Account scope as one instance across the account's orders and Order scope as
   one per order, which can't be assetized [Help: `ind.dro_decomposition_scope`]. So work
   that must act on an item an earlier order created needs a scope that spans orders, on an
-  assetizable technical product; a custom scope wasn't measured, and an Order-scope item
-  recurs on every order [inferred from Help]. With one Account-scope instance, every line of
+  assetizable technical product; a custom scope wasn't measured. An Order-scope item recurs on
+  every order (measured below, under **Lifecycle orders**). With one Account-scope instance, every line of
   the account that decomposes to the item feeds it [inferred], so an item that must stay one per
   sold line and be changed by later orders has no measured scope: Order Line Item scope keeps
   one per line but whether a later order acts on each was not measured, and neither was a
@@ -244,27 +284,101 @@ these conditions; rerun the amendment and cancel checks there.
   Branch is on, Help skips the branch that depends solely on it
   [Help: `ind.dro_define_conditions_for_a_fulfillment_step_to_run`]; decide that per edge.
   Check the line actions on the first later order.
+- **Lifecycle orders (amendments and renewals).** One contract on one org ran a new sale, four
+  amendments, a renewal and a price-only amendment [Measured: 2026-11-17, 264, scratch, one org;
+  manual steps completed by REST update, see the last item]. Its technical items were Order-scope
+  (not assetizable) and Order Line Item–scope (assetizable, Always One).
+  - With no conditions, every order recomposed the whole step set.
+  - Each Order-scope item came back as Add once per order. It was fed by every line that
+    decomposes to it, including lines at No Change with quantity 0.
+  - Every unchanged commercial line decomposed to its line-scope item as Amend and ran that
+    item's steps, although every scenario excluded No Change.
+  - The cause: after the first plan completed, its fulfillment assets read quantity 0, Inactive,
+    with no state period. Each later line read start 0, end 1, which Help's rule makes Amend.
+  - A `StagedAssetize` step completed but didn't activate those fulfillment assets.
+    [Open: whether steps completed by the engine or in the plan UI, or current-dated lines,
+    activate them; both differed from this run.]
+  - Renew lines decomposed as Amend, never Renew, so a scenario's Renew action never matched.
+  - A component cancelled to 0 decomposed as Cancel at quantity 0, with no steps because no
+    Cancel scenario existed. On the next order it came back as Add at quantity 0.
+  - Step conditions on Sales Transaction Item tags evaluated False on a new sale where they were
+    true (action Add, positive quantity). Both a UI-made and an API-made one did. With Skip
+    Branch on, they also skipped dependent steps. Don't use them to filter lifecycle work.
+    [Open: a step condition based on fulfillment line items.]
+  - The same tags in decomposition-rule conditions worked on a new sale, an amendment, a
+    services-only change and a renewal. They evaluate per source line, and an Order-scope item
+    is created when any of its rules is true.
+  - Conditions that held there: `LineItemQuantity` GreaterThan 0 on a shipment item;
+    `SalesTransactionActionType` Equals `Add` on one-time setup items (a tenant, a project);
+    none on an order-review item that must run on every order.
+  - On line-scope assetizable items, `LineItemQuantity` NotEquals 0 turned each false line into
+    a Cancel line at quantity 0 with no steps.
+  - On a second org, a reduction (negative quantity) passed NotEquals 0 and composed an Add
+    with its activation steps. With GreaterThan 0 instead, unchanged lines and reductions ran
+    none of those items' steps, reaching only the unconditioned order-review item [Measured:
+    2026-11-17, 264, scratch, a second org].
+  - A deprovision (Cancel) scenario on such items would fire for every false line under
+    NotEquals 0 [inferred]. Record each line's action and quantity on the first lifecycle order
+    before designing conditions.
 - **Fallout and jeopardy rules** match on step type, with an optional integration
   definition, flow definition and error code; this is from the rule objects' describe,
-  not a run. Measured on the org's steps: a step's jeopardy threshold was null on
-  manual steps, and a failed callout step (credential missing) showed zero retries
-  although a retry rule exists; both unexplained. A rule existing doesn't show it applied: verify on a live
-  step. A decision-table lookup returned nothing, so the freshness link for these rules
-  was not tested. For planning: a jeopardy rule targets callouts through an integration
+  not a run. They act through two decision tables, `FulfillmentFalloutRules` and
+  `Fulfillment_Step_Jeopardy_Rule_Decision_Table`. Help says turning the features on creates
+  them [Help: `ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements`].
+  - The settings metadata this repo deploys turns both features on but created neither table;
+    an off/on toggle through that metadata didn't either [Measured: 2026-11-16, 264, scratch, one org].
+  - Switching each feature off and on in Setup created both tables, Active [Measured:
+    2026-11-16, 264, scratch, one org; repeated 2026-11-17 on a second org]. The steps are in
+    [authoring-and-deployment.md](authoring-and-deployment.md).
+  - Without the tables, a failing auto task went Fatally Failed at once with `Fallout Rule is
+    misconfigured: Specify valid name for Data set Link`, 0 retries and no queue. Every manual
+    step had a null jeopardy threshold and stayed On Time [Measured: 2026-11-16, 264, scratch, one org].
+  - The 2026-11-13 org showed the same symptoms (null thresholds on manual steps, zero retries
+    on a failed callout, an empty table lookup). This file called them unexplained; missing
+    tables are the likely cause [inferred]. A rule existing doesn't show it applied: verify on
+    a live step.
+
+  After the Setup toggle and a refresh of both tables [Measured: 2026-11-16, 264, scratch, one
+  org; the retry repeated 2026-11-17 on a second org]:
+  - A fallout rule (auto task, its flow, the error code the flow returns, Monotonous, 3
+    retries, interval 15) retried the failing step 3 times. Each attempt was due 15 minutes
+    after the previous failure, so with scheduler latency they ran about 15–16 minutes apart.
+  - After the third retry the step went Fatally Failed with `RetryAttempts` 3 and
+    `FalloutQueueId` set to the rule's queue. Its `OwnerId` didn't change.
+  - So "in the queue" means `FalloutQueueId`. Help's Fatally Failed Fulfillment Steps list view
+    filters it by the Queue column, and the queue needs Fulfillment Step as a supported object
+    [Help: `ind.dro_fallout_design_and_management`].
+  - The auto task's flow must return `isSuccess` false and `fulfillmentStepErrorCode` on its
+    fault path. That contract is in Help's Auto Task article `ind.dro_auto_task`, read live; the
+    snapshot lacks it. With no matching rule, DRO sets the step Fatally Failed without retrying
+    [Help: `ind.dro_fallout_design_and_management`].
+  - A jeopardy rule with its own flow definition matched a manual task through the step's
+    `FlowDefinitionName`. The step showed the rule's threshold and a planned completion of
+    start plus the estimated duration. The per-flow rule applied although blank-flow manual
+    rules also matched.
+  - A rule of 4 minutes with a 2-minute threshold took its step from On Time to In Jeopardy at
+    start + 2 minutes, then Overdue at start + 4 minutes. Nobody was notified of either.
+  - A manual step with no flow name got one of the two blank-flow manual-task rules the repo's
+    `qb-dro` plan loads (1 Day / 20 Hours and 1 Day / 12 Hours): the 12-hour one. Give each
+    step its own rule rather than rely on overlapping blank rules.
+  - A manual task's flow name served only as the rule's key here; a no-op flow per step is
+    enough [inferred].
+
+  For planning: a jeopardy rule targets callouts through an integration
   definition and manual or auto tasks through a flow definition, and a blank field applies
   it to every step of that kind [Help: `ind.dro_configure_fulfillment_step_jeopardy_rules`,
   `ind.dro_sla_jeopardy_administration`]; fallout rules cover callouts and auto tasks, with
   retries and a queue for fatally failed steps [Help: `ind.dro_configure_fallout_rules`].
   A step definition carries a `FlowDefinitionName` field whatever its type, empty on every
   manual task in the measured org [Measured: 2026-11-13, 264, scratch, one org; describe and
-  query]; whether a jeopardy rule then matches a manual task through it was not run. Help
-  names no rule for Milestone steps. A separate window or queue per step needs its own
-  flow or integration definition per step [inferred]. You set the estimated duration and
+  query]; a jeopardy rule does match a manual task through it (above). Help names no rule
+  for Milestone steps, and a Milestone rule wasn't tested. A separate window or queue per
+  step needs its own flow or integration definition per step [inferred]. You set the estimated duration and
   threshold on the jeopardy rule, and the threshold counts back from the duration [Help:
   `ind.dro_configure_fulfillment_step_jeopardy_rules`]. A rule with a blank flow
   definition applies to every manual and auto task, so two manual steps with different windows
-  need a flow definition each, or share a window [inferred]. Which rule applies when a
-  blank-flow rule and a per-flow rule both match was not read. Help describes a
+  need a flow definition each, or share a window [inferred]. Where a blank-flow rule and a
+  per-flow rule both matched, the per-flow rule applied (above). Help describes a
   jeopardy status and notification, names no setting for who is notified, and has no
   reassignment of a late step [inferred from Help's silence]. After editing a fallout or
   jeopardy rule, refresh its decision table [Help: `ind.dro_configure_fallout_rules`,
@@ -275,19 +389,27 @@ these conditions; rerun the amendment and cancel checks there.
   fulfillment asset was created or changed for it, while the assetizable lines decomposed as
   Cancel [Measured: 2026-11-13, 264, scratch, one org]. Design Add steps to tolerate a zero
   quantity [inferred from one run]. Order-scope items can't be assetized [Help:
-  `ind.dro_decomposition_scope`], so expect the same quantity-0 Add on them [inferred]. A step
+  `ind.dro_decomposition_scope`], and they composed as Add at quantity 0 on lifecycle orders
+  whose source lines were unchanged [Measured: 2026-11-17, 264, scratch, one org]. A step
   that must run when the item is cancelled needs an assetizable item with a Cancel action, or a
   condition on quantity 0 [inferred].
 - **Dependency across order items.** A plan-scope step whose dependency was set at line scope
   waited for every instance across the order items, not one line [Measured: 2026-11-13, 264, scratch, one org]. Help says a
   dependency between line-scope steps pairs steps of the same line only; that pairing was not
   measured, and neither was the cross-plan scope.
-  Whether a dependent step waits when its predecessor's item isn't on the order (an optional
-  product left off) is unmeasured; check it on the first order of each shape before
-  relying on it.
-  The measured run completed manual steps by setting their state directly; the engine
-  accepted it, but that is not a documented route, so don't use it as a recipe for a live
-  order.
+  When a predecessor's item wasn't on the order (its decomposition condition was false), a step
+  that depended on it at Plan scope ran without waiting: the edge was dropped [Measured:
+  2026-11-17, 264, scratch, one org]. An optional product left off should behave the same
+  [inferred]; check it on the first order of each shape before relying on it.
+- **Completing manual steps.** The measured runs completed manual steps by a REST update of
+  the step record's state; the engine accepted it on scratch orgs [Measured: 2026-11-13,
+  2026-11-16 and 2026-11-17, 264, scratch]. It is not a documented route: use it on a scratch
+  org only, never on a live order, and complete live steps in the plan UI.
+  Plans completed this way left their line-scope fulfillment assets inactive (see
+  **Lifecycle orders**), so a test that reads fulfillment-asset state needs steps completed by
+  the engine or in the plan UI [inferred].
+  Nothing reacts to a step's completion: a describe of `FulfillmentStep` returns `triggerable`
+  false [Measured: 2026-11-18, 264, scratch]. Put follow-on work in a later step, or leave it to a person.
 
 ## Update Acceptance Scenarios
 

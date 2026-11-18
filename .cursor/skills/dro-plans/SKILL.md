@@ -48,6 +48,13 @@ configured tasks; Salesforce CLI (`sf`) inspects and operates on the target org.
    undated smoke plus one dated recheck, each on one org, not a rule. See
    [examples-and-grounding.md](examples-and-grounding.md#live-quantumbit-bundle-smoke),
    including its open contradiction with Help and the recheck's measured limits.
+10. Settings metadata doesn't finish DRO setup. Selecting a context for Custom Date tags and
+    creating the fallout and jeopardy decision tables are Setup steps. Without the context
+    switch a Custom Date tag of the extended context is refused at insert; without the tables a
+    failing step falls out with no retry. Put Custom Date steps on the commercial line (on a
+    technical item the date is ignored and the step runs at once),
+    and filter lifecycle work with decomposition-rule conditions, not step conditions. See
+    [updates-and-runtime.md](updates-and-runtime.md#measured-runtime-behaviour).
 
 ## DO NOT
 

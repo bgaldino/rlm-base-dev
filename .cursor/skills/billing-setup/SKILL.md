@@ -20,7 +20,7 @@ advance", "services in milestones", "Net 45") and you have to turn that into Rev
 records and line values. It covers the decisions and the line rules the platform enforces.
 The objects themselves are in `revenue-cloud-data-model` → `domains/billing.md`. Claims are
 tagged `[Help: <article>]`, `[Dev guide: <page>]`, `[Repo: <path>]` and `[Measured: Mn]`.
-Each `Mn` is a row in [measured-264.md](measured-264.md), measured on 264 on 2026-11-10;
+Each `Mn` is a row in [measured-264.md](measured-264.md), measured on 264 between 2026-11-10 and 2026-11-18;
 read the row's scope before generalising it.
 What happens after setup (invoice runs, tax, payments, credits, ledger) is in
 [billing-operations](../billing-operations/SKILL.md).
@@ -104,6 +104,9 @@ What happens after setup (invoice runs, tax, payments, credits, ledger) is in
   Plan on a Term Defined line. Both were refused (Quick Rule 4).
 - **DO NOT** assume an approved quote payment term reaches the invoice. Nothing in the repo
   sets `Order.PaymentTermId` from the quote ([Payment terms](#payment-terms)).
+- **DO NOT** plan to mark a milestone before its billing schedule starts. The mark is refused
+  until then, so a future-dated order needs a marking point on or after its start
+  ([Milestone billing](#milestone-billing-for-services)).
 - **DO NOT** invent milestone names, percentages or dates for a source that names none.
   Record them as decisions in the plan ([Milestone billing](#milestone-billing-for-services)).
 - **DO NOT** edit an active billing treatment's currency, or deactivate the default
@@ -240,8 +243,13 @@ accomplished milestones are invoiced [Help:
 `ind.billing_understand_target_date_and_billing_period_count`]. Help names no link from
 fulfillment steps to billing milestones [inferred from Help's silence], so a source milestone tied
 to a delivery step needs a decided way to be marked: a billing user, or automation such as a
-fulfillment AutoTask flow that sets the field [inferred, not measured]. Without one the
-item stays waiting and is not invoiced [inferred from Help]. A DRO Milestone step completed by
+fulfillment AutoTask that sets the field (measured, below). Without one the item stays
+waiting (measured, below) and is not invoiced [inferred from Help]. **You can't mark an item
+before its billing schedule starts:** the save was refused with "You can accomplish a
+milestone only after the billing schedule starts." [Measured: 2026-11-16 and 2026-11-17,
+264, scratch, two orgs; future-dated orders]. So on a future-dated order, a mark made when
+the delivery step finishes fails, and the item needs another marking point on or after the
+start date. A DRO Milestone step completed by
 itself with nobody acting [Measured: 2026-11-13, 264, scratch, one org], and Help names no
 action it takes [inferred from Help's silence], so don't count on a Milestone step to mark a
 billing milestone; each event item needs its own marking point after the step it names
@@ -250,6 +258,41 @@ amendment makes a new milestone plan (dro-plans measured a full new plan on amen
 flow scoped to the original order may not reach its event items; select plan items by asset or
 contract, or have the amendment's own fulfillment mark them [inferred]. Decide who marks an event
 already past when the amendment activates [inferred, unmeasured].
+
+**Marking from a fulfillment AutoTask (measured route).** An AutoTask step after the delivery
+step, whose autolaunched flow calls an Apex invocable action, marked the step's lines'
+milestone items:
+- On an order dated today, it marked the next event item of each line the step came from,
+  and each moved to Ready for Invoicing [Measured: 2026-11-17, 264, scratch, two orgs].
+- From the step to the item: `FulfillmentStepSource` (`StepId` → `SourceLineItemId`, the
+  fulfillment line) → `FulfillmentLineSourceRel` (`FulfilmentOrderLineId` →
+  `SourceLineItemId`) → `BillingSchedule` (`ReferenceEntityItemId` = the order product,
+  `BillingMilestonePlanId` set) → `BillingMilestonePlanItem` (`MilestoneType` Event,
+  `IsMilestoneAccomplished` false). Set `IsMilestoneAccomplished` true.
+- `FulfillmentLineSourceRel.SourceLineItemId` and `BillingSchedule.ReferenceEntityItemId`
+  are polymorphic: keep only `OrderItem` Ids, and read the order product in its own query.
+- The action picked the first unaccomplished event item by name, and skipped by name an item
+  meant for a later step. Name items so their order is the event order, or map step to item
+  in the action [inferred].
+- Before the schedule starts the platform refuses the mark (above), so the action compared
+  `BillingScheduleStartDate` with today and returned success with "deferred". The step
+  completed instead of falling out.
+- On a future-dated order nothing was marked, and after the whole plan completed every item
+  still read Waiting for Milestone Accomplishment [Measured: 2026-11-18, 264, scratch, one
+  org]. A deferred mark needs a later run on or after the start date, by a scheduled job or
+  a billing user [inferred].
+- Date a test order by the org's local date. An order dated by the UTC date during the org's
+  evening started a day later, and every mark deferred [Measured: 2026-11-17, 264, scratch,
+  one org].
+- An item tied to a **manual** step was left for a person. The build found no automation
+  that runs when a `FulfillmentStep` completes, because the object takes no record trigger.
+  After every step completed, those items were still waiting [Measured: 2026-11-18, 264,
+  scratch, one org]; a describe of `FulfillmentStep` returns `triggerable` false [Measured:
+  2026-11-18, 264, scratch]. An AutoTask step that depends on the manual step
+  could mark it instead [inferred, not built].
+- On an amendment order the action reaches the amendment's own plan, because it starts from
+  the order product the step fulfils [inferred from the query; not measured, as the measured
+  amendment was future-dated].
 
 **When a source names no milestones,** Revenue Cloud still needs, for each milestone:
 - a name;

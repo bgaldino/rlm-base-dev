@@ -72,6 +72,22 @@ the contract value after it.
   with a source-specific data flow and the submissions were recorded; a margin computed on a
   credit-heavy change alone (negative revenue against negative cost) fell under the floor and
   raised the level [Measured: 2026-11-12, 264, scratch, one org], so decide whether the margin dimension should read the change or the contract.
+- **Level fields show the change alone until the data flow runs.** A second build kept each
+  level as a quote formula (§2). Its approval data flow wrote two custom quote fields: the
+  contract value after the change (activated orders on the account plus the change) and the
+  contract margin after it. The deal-size and margin formulas read those fields when set and
+  the quote's own totals otherwise [Measured: 2026-11-17, 264, scratch, one org]:
+    - before the flow ran, an amendment's level fields showed the change's level;
+    - on a probe amendment whose change alone was under the deal-size threshold, the
+      contract after the change was over it, and the quote read the top level once the flow ran;
+    - submitted, it went to the three approvers in turn and ended Approved.
+
+  Submission runs the flow. To read an amendment's level without submitting, run
+  `RLM_Quote_Approval_Data` on its own first ([actions-and-objects.md](actions-and-objects.md)).
+  The sum reads every activated order on the account, so the probe used an account that held
+  only its own contract; orders left on an account by earlier test runs would be counted
+  [inferred, from the sum's filter]. That build also gave a change worth 0 or less no discount
+  or margin level: a decision, recorded for the credit-heavy case above.
 
 ## 2. Compute each level as a Number
 
@@ -90,6 +106,7 @@ where each level is computed:
 | Approval data flow (background step) | Quote-level values (margin, net value, quote validity, payment terms), and the MAX across dimensions | `RLM_Quote_Approval_Data` returns `DiscountApprovalLevel`, `PaymentTerms` |
 | Roll-up summary field | A MAX, MIN or count over lines | `Quote.RLM_Approval_Level__c` (MAX of `QuoteLineItem.RLM_Approval_Level_Calc__c`) |
 | A loop over the lines in the approval data flow | Line conditions on the line's product (family, a custom product flag), which a roll-up summary's filter can't reach | None shipped; measured below |
+| Quote formula fields over line roll-ups, read by the data flow | A level that must show without a submission (an internal what-if quote) | None shipped; measured below |
 
 - **Line conditions in a loop:** get the quote's lines (Get Records on `QuoteLineItem` by
   `QuoteId`, all records), loop over them, and count or take the maximum in assignments;
@@ -108,6 +125,13 @@ where each level is computed:
   pass" [Help: `ind.approvals_smart_approval_limitations`].
 - **Freshness:** a level stored on lines comes from the last reprice, with no staleness
   guard. Make reprice part of submission [Repo: `datasets/expression_set_overlays/README.md`].
+  The approval status has none either: a quote approved and then repriced to a higher level
+  keeps Approved, because nothing resets the status [inferred: no shipped or measured build
+  resets it; not run]. A Quote validation rule refusing Presented or Accepted while the level
+  is above 0 and the status isn't Approved refused an unapproved quote
+  [Measured: 2026-11-17, 264, scratch, one org], but it reads the current status, so it
+  doesn't catch this case. [Open: build and run a guard that records the approved level and
+  refuses presenting, or resets the status, when the level rises above it]
 - **Security:** keep stored levels read-only for submitters
   [Repo: `docs/references/revenue-cloud-permissions.md`].
 
@@ -128,6 +152,66 @@ where each level is computed:
 - A source that measures discount off list needs its own percentage, for example a formula
   step at the same point that computes it from `ListPrice` and `NetUnitPrice`, banded the
   same way.
+
+**Discount against a standard net, computed in pricing.** A source that measures discount on
+top of a standard price (after volume, contract or program pricing) can have the procedure
+keep that base. A second build did, instead of computing the level in the data flow's line loop
+[Measured: 2026-11-17, 264, scratch, one org]:
+- A step after the steps that build the standard price, and before target-margin pricing and
+  the manual discount, copies `NetUnitPrice` into a custom line field: the standard net.
+- A step before the shipped approval-flag steps writes a second line field,
+  `ROUND((standard net − NetUnitPrice) / standard net × 100, 4)`, 0 when either is missing.
+- The shipped band steps were edited to band that field instead of `ItemDiscountPercentage`,
+  so `Quote.RLM_Approval_Level__c` and the line's `RLM_Approval__c` carry the source's
+  discount level.
+- Both fields are mapped into the pricing context like the shipped approval fields
+  [Repo: `datasets/context_plans/Approvals`].
+- Target-margin pricing counts as discount: a line priced to a target margin, with no manual
+  discount, took a level from its distance below the standard net. `ItemDiscountPercentage`
+  doesn't see that pricing.
+- A line exactly on a band's threshold stayed under it, and one 0.01 point over took the level.
+
+**Levels as quote fields.** That build made every other dimension a quote formula over line
+roll-ups, plus one formula for their MAX; `RLM_Quote_Approval_Data` reads the fields and returns
+them. So a quote shows its level whether or not it is submitted:
+- an internal what-if round that is never submitted
+  ([quote-negotiation-rounds](../quote-negotiation-rounds/SKILL.md)) read its level from the quote;
+- in every case, the quote's fields and the data flow run on its own gave the same levels
+  [Measured: 2026-11-17, 264, scratch, one org].
+
+The costs: a formula can't read every line field (below), and values only the data flow
+computes reach the level after it runs (§1, amendments).
+
+**Billing frequency and commitment term.**
+- `QuoteLineItem` formula fields can't read `SellingModelType`, `PricingTermUnit` or
+  `SubscriptionTermUnit`. The deploy refused each as a field that does not exist, though
+  describe lists them, and a roll-up over such a formula was refused as not deterministic
+  [Measured: 2026-11-17, 264, scratch, one org].
+- **Billing:** flag the line in the pricing procedure instead. Two groups filtered on
+  `SellingModelType` and `ItemBillingFrequency` set a mapped line field to 1 when the frequency
+  isn't the standard one for its selling model (for example a term-defined line not billed
+  annually); a blank frequency counted as standard. A quote roll-up counts the flagged lines,
+  and a count above 0 is the level. A line switched to a non-standard frequency took the level
+  and went to the first approver [Measured: 2026-11-17, 264, scratch, one org].
+- To test it, set a billing treatment on the line with the new frequency. 264 refused a
+  `BillingFrequency` change on a line with no treatment, and lines that ride on the org's default
+  treatment carry none [Measured: 2026-11-17, 264, scratch, one org]
+  ([billing-setup](../billing-setup/SKILL.md), Quick Rule 3).
+- **Commitment term:** a line formula can read `StartDate`, `EndDate` and `SubscriptionTerm`.
+  That build flagged a line with a subscription term when
+  `EndDate < ADDMONTHS(StartDate, <standard months>) - 1`, counted the flags in a roll-up, and
+  took the level when the count was above 0 [Measured: 2026-11-17, 264, scratch, one org].
+- Set a short term by the end date. `SubscriptionTermUnit` Months on annual term-defined bundle
+  lines wasn't taken: the lines kept Annual, through Place with configuration skipped and
+  pricing forced. An earlier end date set the term, and the lines priced for a fraction of a
+  year [Measured: 2026-11-17, 264, scratch, one org].
+- A shorter term also shrinks full-term value, so the measured short-term case took a margin
+  level as well.
+- **On amendments:** a change late in the term co-terms to the contract end, so its lines can
+  run under the standard term. That build returned commitment level 0 on any quote carrying
+  the commitment-start date its lifecycle flow stamps on amendment and renewal quotes, so
+  co-termed amendments weren't flagged. It's a design decision: record it, with its cost (an
+  amendment that does shorten the commitment isn't flagged either) [inferred].
 
 **Line guards (below floor margin, below cost).**
 - The shipped procedure computes line margin (`ItemMargin__std`, net total less unit cost
@@ -178,6 +262,17 @@ where each level is computed:
   worded "no line may ...": record it as a decision, with the outcome of the literal reading
   beside it. The source must also say whether excluded lines still count in a blended
   margin.
+- **Crossing a floor** (margin at the standard net at or above the floor, quoted margin under
+  it) can be a line formula over the standard net above, `UnitCost` and `NetUnitPrice`, counted
+  by a roll-up. A line discounted from a standard margin above the floor to one under it took
+  the guard's level as well as the discount level [Measured: 2026-11-17, 264, scratch, one org].
+  A line already under the floor at standard is never flagged. On the measured rounds the
+  literal reading ("no line under the floor") would have raised every round, because several
+  lines sat under the floor at list [Measured: 2026-11-17, 264, scratch, one org; computed from
+  the rounds' lines, not submitted]. Record both outcomes, as above.
+- A second build's below-cost guard behaved the same: just under cost took the top level and
+  went to all three approvers in turn; at cost it was Approved at once
+  [Measured: 2026-11-17, 264, scratch, one org].
 
 ## 3. Lay out chains and steps
 
@@ -191,7 +286,11 @@ where each level is computed:
   every dimension, payment terms included, into `ApprovalLevel`, no level → Approved with no
   work items; level 1 → the first approver; a non-standard payment term mapped to a middle
   level → the approvers up to that level, in turn; level 3 → all three in turn. Each submission and its quote
-  ended Approved [Measured: 2026-11-12, 264].
+  ended Approved [Measured: 2026-11-12, 264]. A second build folded eight dimensions
+  (discount, margin, deal size, billing frequency, commitment term, payment terms, floor and
+  cost guards) into one quote formula, returned by the data flow as `ApprovalLevel` beside one
+  output per dimension; each case's chain matched its level [Measured: 2026-11-17, 264,
+  scratch, one org].
 - **Several dimensions, separate sign-offs:** give each its own `ApprovalChainName` when a
   dimension needs its own sign-off, usually from different approvers. Chains in one stage
   run in parallel [Help: `ind.approvals_types_of_approvals`]. The shipped `Finance` chain is
@@ -212,6 +311,13 @@ where each level is computed:
       shipped `rejectedQuote` formula includes `Payment_Terms`, so a terms rejection also
       routes the flow to Rejected (not yet run; see Rejection below).
     - Either way, `Requires_Approval` and the stage exit conditions must cover terms.
+    - A measured fold into the ladder: terms other than standard mapped to a middle level in
+      a quote formula, and the `Payment_Terms` step removed from the stage, the
+      `Requires_Approval` decision, the stage exit logic and the `rejectedQuote` formula. Its
+      alert definition stayed in the org, unused. A non-standard term went to the approvers up
+      to that level in turn and ended Approved [Measured: 2026-11-17, 264, scratch, one org].
+    - Decide what blank terms mean. The shipped entry `PaymentTerms != "Net 30"` treats blank
+      as non-standard; that build counted blank as the standard term.
 - **Level 0:** route around the approval stage with a Decision, as the repo does
   (`Requires_Approval`). The Decision must test **every** dimension: a dimension it leaves
   out never gets approval when it is the only one triggered. The steps use explicit entry
