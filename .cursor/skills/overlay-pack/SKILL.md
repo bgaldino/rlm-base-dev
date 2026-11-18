@@ -259,10 +259,11 @@ Every step must be safe to run twice. What the proved build learned:
   unchanged active version counted as a change on every run [Measured: 2026-11-17, 264].
 - **CML:** a reload needs the active version deactivated before `import_cml`
   (`constraint-models`). The proved build's second-load record doesn't show the CML step,
-  so a hands-off rerun of it isn't proved. Either put the deactivation in the manifest (a
-  `run` step with `manage_expression_sets -o operation deactivate_versions` before the
-  import, on a reload only) or start the second load after the CML layer with `--from`, and
-  say which in the pack's README [not measured].
+  so a hands-off rerun of it isn't proved. The manifest has no conditional steps, so either
+  add a `run` step before the import that calls a pack script which deactivates the version
+  only when it is active (a plain `manage_expression_sets -o operation deactivate_versions`
+  step would also run on a first load, before the version exists), or start the second load
+  after the CML layer with `--from`. Say which in the pack's README [not measured].
 - **Scripts that create records:** create what is missing and correct what differs on
   existing records. A script that only created missing products never applied its
   design's flag to the ten that already existed, so the org and the design disagreed
