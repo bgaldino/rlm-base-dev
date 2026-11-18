@@ -58,7 +58,9 @@ only through a template patch and the assembler.
 - **Measured** on one fresh 264 scratch org (2026-11-12): five quote-page actions given a
   visibility rule this way, one action removed and line-editor columns added; the deploy
   succeeded and the re-retrieved page had each action with its rule. The page wasn't looked at
-  in the UI.
+  in the UI. In another run, a retrieve six minutes after a deploy lacked a patch that a later retrieve
+  showed, so one early retrieve doesn't prove a patch failed; retrieve again later
+  [Measured: 2026-11-17, 264, scratch].
 
 ## DO NOT
 

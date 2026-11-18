@@ -303,7 +303,9 @@ these conditions; rerun the amendment and cancel checks there.
     Cancel scenario existed. On the next order it came back as Add at quantity 0.
   - Step conditions on Sales Transaction Item tags evaluated False on a new sale where they were
     true (action Add, positive quantity). Both a UI-made and an API-made one did. With Skip
-    Branch on, they also skipped dependent steps. Don't use them to filter lifecycle work.
+    Branch on, they also skipped their direct dependents, but a step one dependency further
+    still ran [Measured: 2026-11-17, 264, scratch], so don't count on it removing a whole
+    chain. Don't use them to filter lifecycle work.
     [Open: a step condition based on fulfillment line items.]
   - The same tags in decomposition-rule conditions worked on a new sale, an amendment, a
     services-only change and a renewal. They evaluate per source line, and an Order-scope item
@@ -405,6 +407,11 @@ these conditions; rerun the amendment and cancel checks there.
   the step record's state; the engine accepted it on scratch orgs [Measured: 2026-11-13,
   2026-11-16 and 2026-11-17, 264, scratch]. It is not a documented route: use it on a scratch
   org only, never on a live order, and complete live steps in the plan UI.
+  One update to Completed, sent before the engine had created the step's task, left the step
+  Fatally Failed ("State not supported: Completed"); recovery wasn't measured
+  [Open: which record or state shows the task exists]. Setting the
+  step's `NextEarliestRunTime` to now released a Custom Date step early; that is undocumented too, so scratch orgs only [Measured:
+  2026-11-17, 264, scratch].
   Plans completed this way left their line-scope fulfillment assets inactive (see
   **Lifecycle orders**), so a test that reads fulfillment-asset state needs steps completed by
   the engine or in the plan UI [inferred].
