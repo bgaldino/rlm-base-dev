@@ -42,7 +42,7 @@ class ManageExpressionSets(BaseSalesforceTask):
             "required": True
         },
         "developer_names": {
-            "description": "List of Expression Set DeveloperNames to operate on. If not provided, queries all expression sets.",
+            "description": "List of Expression Set DeveloperNames to operate on. If not provided, queries all expression sets. Used by list, query and list_versions only; version operations ignore it: activate_version and deactivate_version read version_full_name; activate_versions and deactivate_versions read version_full_names, else every version under metadata_path (default force-app/main/default/expressionSetDefinition).",
             "required": False
         },
         "status": {

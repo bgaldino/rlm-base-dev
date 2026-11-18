@@ -277,7 +277,8 @@ SELECT Id, Name FROM QuoteLineGroup WHERE QuoteId = '<NEW>'
 SELECT LineNumber, QuoteLineGroupId, Quantity, Discount, NetUnitPrice, TotalPrice
   FROM QuoteLineItem WHERE QuoteId = '<NEW>' ORDER BY LineNumber
 SELECT QuoteLineItemId, AttributeDefinition.Name, AttributeValue
-  FROM QuoteLineItemAttribute WHERE QuoteLineItem.QuoteId = '<NEW>'
+  FROM QuoteLineItemAttribute
+ WHERE QuoteLineItemId IN (SELECT Id FROM QuoteLineItem WHERE QuoteId = '<NEW>')
 SELECT Id, Status FROM ApprovalSubmission WHERE RelatedRecordId = '<NEW>'
 ```
 

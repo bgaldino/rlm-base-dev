@@ -98,6 +98,20 @@ The standard ERD is not a complete Salesforce Contracts schema reference.
 Discover the target org's objects and fields with `sf sobject describe` before
 writing SOQL; CLM licensing and release differences affect what is available.
 
+## Reading and formula gotchas
+
+- `Quote` has no `TotalAmount` field; read `TotalPrice` (what the sales transaction context's `TotalAmount`
+  attribute hydrates from); `GrandTotal` adds tax and shipping [Measured: 2026-11-16, 264, scratch].
+- Formula fields can't reference `QuoteLineItem` `SellingModelType`, `PricingTermUnit` or `SubscriptionTermUnit`
+  though describe lists them, and a roll-up over such a formula is refused
+  ([`advanced-approvals/matrix-modeling.md`](../../advanced-approvals/matrix-modeling.md)).
+- Filter `QuoteLineItemAttribute` by `QuoteLineItemId IN (SELECT Id FROM QuoteLineItem WHERE QuoteId = …)`: a
+  `QuoteLineItem.QuoteId` relationship filter was refused in one run and dropped beside `QuoteLineItem.Product2.*` in
+  another ([`asset-lifecycle-changes/verification.md`](../../asset-lifecycle-changes/verification.md),
+  [`root-answer-child-price.md`](../../pricing-procedures/elements/root-answer-child-price.md)).
+- A sold root's configured answers are on `AssetStatePeriodAttribute` (`asset-lifecycle-changes/verification.md` step 6); there is no
+  `AssetAttribute` object.
+
 ## SFDMU Data Plans
 
 - `scratch_data` — base Account and Contact records

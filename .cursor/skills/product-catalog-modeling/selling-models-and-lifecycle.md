@@ -142,9 +142,15 @@ Help does not say what enforces it. Three write paths refuse, each on its own ob
 
 **Modeling advice:** set the flag, make the add-on a bundle component, and keep it out of
 categories (the platform requires that). To make "only with X" real, require it through a bundle
-component or add your own check (a configuration rule or a quote validation): the
+component or add your own check: a configuration rule, or a trigger (a validation rule can't; see below): the
 refusals found are all on catalog writes (category assignment, switching the flag on for a product that already has a category, a Product Set); none was found at sale time.
-Whether search hides it because of the flag or because it has no category (the flag is in the search index documents, so a filter is plausible; its logic is not traced), and what amend,
+A quote line validation rule can't tell a bundle child from a standalone line: `ParentQuoteLineItemId` can't be read in a formula, and a rule on insert saw the engine's own children without
+it. The rule refused those children; limiting it to update let a standalone line through. An after-insert trigger on `QuoteLineItem` that looks
+for the bundle's root line on the same quote refused a standalone line while Place still placed bundles; Place
+returned `FIELD_CUSTOM_VALIDATION_EXCEPTION` with its message [Measured: 2026-11-16, 264, scratch]. The trigger checks the
+quote, not the line, so a quote that already holds the root passes a standalone line. [inferred]
+
+Whether search hides the flagged product because of the flag or because it has no category (the flag is in the search index documents, so a filter is plausible; its logic is not traced), and what amend,
 renew or cancel do when its companion is removed: **Open — needs live verification.** The
 QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
 

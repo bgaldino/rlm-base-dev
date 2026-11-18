@@ -161,7 +161,7 @@ sf data query --target-org <clone> -q "SELECT Name, LineItemCount, CalculationSt
 # ramp segments per ramp quote
 sf data query --target-org <clone> -q "SELECT SegmentName, IsPrimarySegment, Quantity, Discount, TotalPrice, RampIdentifier FROM QuoteLineItem WHERE Quote.Name='<ramp quote>' ORDER BY StartDate"
 # configured attributes on the attribute-bearing quote
-sf data query --target-org <clone> -q "SELECT COUNT() FROM QuoteLineItemAttribute WHERE QuoteLineItem.Quote.Name='<quote>'"
+sf data query --target-org <clone> -q "SELECT COUNT() FROM QuoteLineItemAttribute WHERE QuoteLineItemId IN (SELECT Id FROM QuoteLineItem WHERE Quote.Name='<quote>')"
 # anchors (include Pricebook2 — opps must carry their pricebook lookup for quoting/Coworker context)
 sf data query --target-org <clone> -q "SELECT Name, Account.Name, Amount, StageName, Pricebook2.Name FROM Opportunity WHERE Name IN (...)"
 # bucket B: perm-set assignment + no active DefaultPricing procedure that breaks orders
