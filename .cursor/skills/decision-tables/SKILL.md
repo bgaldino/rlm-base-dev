@@ -40,7 +40,11 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    binding-object tables and `Commitment_based_Rate_Adjustment`), which that flow queues
    for refresh on order activation; whether the Automated Process user that runs that flow
    passes the admin-only check below is unverified (see `usage-consumption/SKILL.md`).
-   [Open: activate an order and check whether those tables queue a refresh] See
+   *Asset Action Source Entries V2*, which that flow names, still read Stale six minutes
+   after one activation and an amendment priced in that window was wrong [Measured:
+   2026-11-16, 264, scratch]: refresh once (*Refreshing*), then poll until Fresh and don't
+   re-trigger before the next change (`asset-lifecycle-changes/verification.md` step 7).
+   [Open: whether the flow's refresh of that table ran late or not at all] See
    `lifecycle-and-refresh.md` → *After editing setup data*.
    **The Refresh Decision Table flow action is admin-only.** Salesforce gates it on Modify All
    Data *and* Customize Application, and no narrower permission (BRE, RunFlow,
@@ -59,7 +63,8 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    enabled]
 2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
    Add `-o param1 strict` to fail a build on any stale table, or `-o param1 json` for the
-   dependency map as JSON (Examples). On a Trialforce-spun org,
+   dependency map as JSON (Examples). Without `strict` the task exits 0 even when tables
+   are Stale, so read the counts it prints [Repo: `scripts/apex/checkDecisionTableFreshness.apex`]. On a Trialforce-spun org,
    `cci flow run check_org_readiness --org "your-cci-alias"` also checks that the search
    index was built in this org (`check_search_index_readiness`).
 3. **Freshness is measured against EVERY object a table reads**, not just its source

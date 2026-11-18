@@ -55,6 +55,15 @@ python scripts/expression_sets/export_expression_set_overlay.py --target-org <sf
 See the toolkit guide’s [existing-step and read-back rules](../../../scripts/expression_sets/README.md#existing-steps-and-verification)
 for `addSteps` replay, `updateSteps` edits, and verification shared by the CLI and CCI task.
 
+In a formula step, a `type: Formula` parameter whose value was only a context tag (no
+operator) read back as `type: Parameter`. The read-back compares `type`, so it failed after a
+successful PATCH and left the version deactivated [Measured: 2026-11-16, 264, scratch]. Send a
+bare tag as `type: Parameter` instead. To recover, read the verify error: if it
+lists only `.type` paths on those parameters, reactivate with
+`activate_expression_set.py --target-org <sf_alias> --expression-set <name> --version
+<version_api_name> --activate --confirm`. A failed verify skips the label restore, so also
+restore the step labels (README → *Labels are Connect-clobbered*).
+
 ### Several overlays on one procedure: merge locally, import once
 
 Applying overlays one after another to the same procedure is not reliable. On a clone of the

@@ -51,7 +51,9 @@ as shipped. [inferred]
   price and subtotal 0 and the line flagged inclusive; the skipping of later elements is
   not re-verified in core. [Core][Help]
 - Prerequisites: product, root bundle, parent in a price book, with selling models for
-  each. [Help]
+  each. [Help] Insert each row with both `ParentProductSellingModelId` and
+  `RootProductSellingModelId`: both are create-only, and a row without them never matched
+  ([`root-answer-child-price.md`](root-answer-child-price.md)) [Measured: 2026-11-16, 264, scratch].
 - A `BundleBasedAdjustment` row inserted while its schedule was **active** succeeded, and after
   a decision-table refresh it priced the component [Measured: 2026-11-11, 264, fresh `ent-sb0`
   scratch org]. The adjustment validation has no check on the schedule's active flag, whereas adding or removing a tier and bound edits are refused while the schedule is active [Platform behaviour, traced]; do not treat this as a supported way to change an active schedule. Volume tiers behave differently: adding or removing a tier, or changing its bounds, fails while its schedule is active
@@ -148,6 +150,6 @@ Entries table.
 
 ## Settled notes
 - Root selling model (settled): the Bundle Based Adjustment field is
-  `RootProductSellingModel`, as in the shipped XML and the sfdmu CSVs. The context tag
-  `RootItemProductSellingModel` (the Help name) is a separate, built-in sales
-  transaction tag. Use the XML names above. [Repo]
+  `RootProductSellingModelId` (relationship `RootProductSellingModel`), as in the sfdmu plans.
+  The context tag in the shipped XML is `RootProductSellingModel`; Help's
+  `RootItemProductSellingModel` is a separate, built-in sales transaction tag. [Repo]

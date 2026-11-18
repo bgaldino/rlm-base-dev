@@ -36,7 +36,7 @@ Permission: users renewing with CPI uplifts need the **Renew Assets** user permi
 | Type | `PolicyType` | **Flat** (manual uplift value, no table) or **Price Index** (rate from Index Rate table). [Help] |
 | Formula | `Formula` | Resources include `PriceIndex`; line `UnitPriceUplift` appears as `PolicyAdjustment` in the repo's formulas [Repo]. |
 | Region | `Region` | Picklist; selects which Index Rate applies. |
-| Effective From / To | `EffectiveFrom`, `EffectiveTo` | Same-region ranges can't overlap unless the org is multi-currency. [Help] |
+| Effective From / To | `EffectiveFrom`, `EffectiveTo` | Same-region ranges can't overlap unless the org is multi-currency. [Help] A measured exception is under Troubleshooting. |
 | Index Rate Rate | `IndexRate.Rate` (percent) | CPI value for the period. |
 | Valid Start / End Date | `ValidStartDate`, `ValidEndDate` | Pricing date must fall inside; no overlap per region (non multi-currency). [Help] |
 | Region | `IndexRate.Region` | Picklist; add values first. |
@@ -69,7 +69,7 @@ Then Simulate with an in-range Valid Start Date and region; the waterfall shows 
 | Symptom | Cause | Fix |
 |---|---|---|
 | No revision or zero rate | Index Rate table inactive or stale; region/date out of range | Activate, refresh, check ranges |
-| Overlap error saving policy/rate | Same-region date overlap | Re-date; multi-currency orgs are exempt |
+| Overlap error saving policy/rate ("The selected effective dates are already in use") | Same-region date overlap, or two no-region Flat policies over the same dates (refused on a multi-currency scratch org; whether they shared a currency wasn't recorded; regioned overlap not tested) [Measured: 2026-11-16, 264, scratch] | Re-date, or reuse the existing policy if its `Formula` fits and set `UnitPriceUplift` per line |
 | Region value rejected | Picklist lacks the value (or is restricted) | Add the value first; repo notes behavior varies by org |
 | Renewal errors on date | No Index Rate for effective date | Add the rate for that period |
 | Policy missing on line | Field not on layout | Add Price Revision Policy / Unit Price Uplift to layouts |

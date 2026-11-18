@@ -95,7 +95,7 @@ Count, per line, the months it covers, in a line field the procedure reads.
 transaction context hydrates no Asset node for a quote; an Evergreen asset has no
 `LifecycleEndDate`; and a quote roll-up of MAX(line `EndDate`) is blank when the amendment
 has no Term line `[Measured]`. What every amended line has is `QuoteLineItem.QuoteActionId`
-→ `QuoteAction` (`Type` Amend) → `SourceAsset.LifecycleStartDate` `[Measured]`. Nor can a
+→ `QuoteAction` → `SourceAsset.LifecycleStartDate` `[Measured]`. Nor can a
 line formula read its parent line: a formula that spans `ParentQuoteLineItem` fails to
 deploy ("Field ParentQuoteLineItem does not exist") `[Measured]`.
 
@@ -104,7 +104,7 @@ Field names below are examples; use your own.
 | # | Layer | What |
 |---|---|---|
 | 1 | Quote field | Date `Commitment_Start__c` |
-| 2 | Flow | Record-triggered on `QuoteLineItem`, after save, on **create and update**: when `QuoteAction.Type` is Amend and `QuoteAction.SourceAsset.LifecycleStartDate` is set, stamp the quote's `Commitment_Start__c` with the earliest such start, as the GMT date: `DATEVALUE(LEFT(TEXT(<datetime>), 10))`. `QuoteAction` isn't triggerable. The amend API sets `QuoteActionId` when it inserts the line; on an amend sent with `quantityChange` 0 the action's `Type` read No Change after the amend (before any edit) and read Amend after a Place PATCH that changed the line's quantity `[Measured: 2026-11-12, 264, scratch; one org]`, so a create-only trigger that tests `Type` = Amend would miss those lines `[inferred]`. Plain `DATEVALUE` on the midnight-GMT start returned the previous day in a US user's time zone `[Measured]` |
+| 2 | Flow | Record-triggered on `QuoteLineItem`, after save, on **create and update**, entering when `QuoteActionId` is set and `QuoteAction.SourceAsset.LifecycleStartDate` isn't blank, not on `QuoteAction.Type` Amend (why: `asset-lifecycle-changes` → `change-policy-mapping.md`, *Don't key it on Amend lines*): stamp the quote's `Commitment_Start__c` with the earliest `QuoteAction.SourceAsset.LifecycleStartDate`, as the GMT date: `DATEVALUE(LEFT(TEXT(<datetime>), 10))`. `QuoteAction` isn't triggerable. Plain `DATEVALUE` on the midnight-GMT start returned the previous day in a US user's time zone `[Measured]` |
 | 3 | Line formula | Number `Months_Counted__c` (below) |
 | 4 | Context | Map `Months_Counted__c` as a `SalesTransactionItem` attribute, INPUT, with a tag. A formula field mapped INPUT hydrates into pricing `[Measured]` |
 | 5 | Procedure | Group b multiplies by `<months>` (that tag) where it's set, else by `<horizon>` (formulas below), and drops its `ItemRampIdentifier` criterion; group c is removed, since the field counts a segment's months |
@@ -143,28 +143,34 @@ Group b's formulas become:
 `<months>` is blank where nothing maps the field (an order, say), and those lines keep the
 horizon.
 
-- **Reprice after creating the amendment.** The stamp lands after the amendment's lines are
-  created, so the first price of a new amendment still counts the whole horizon. A full
-  reprice afterwards reads it (measured: every line PATCHed through Place with pricing
-  `Force`) `[Measured]`.
+- **Reprice before the first change.** The amendment's first price can count the whole horizon
+  if it ran before the stamp. Confirm the stamp is on the quote, then reprice (every line PATCHed
+  through Place with pricing `Force`; the reprice reads the stamp `[Measured]`) before the first
+  change: a reprice after a reduction was priced didn't correct it
+  (`asset-lifecycle-changes` → `change-policy-mapping.md`).
 - **Measured shape.** A mid-term add on an Evergreen asset counted only the months left; a
   support-only amendment that reduced one Evergreen asset and added a new Evergreen line
   counted the months left on both, the new line (which has no source asset) through the
   quote's stamp; every case matched its expected full-term value, and new-sale values
   didn't change `[Measured]`. A reduction line's stored parent price is null, yet its net unit
   price is in the pricing context `[inferred]` from the group admitting it and the value matching;
-  a per-lot renewal line has none (see Not stamped, below), so groups a to d skip it.
+  a per-lot renewal line has none (see New-sale and renewal quotes, below), so groups a to d skip it.
 - **A price change dated on a renewal start.** The stamp reads the source asset's lifecycle start, which
   `[Platform behaviour, traced]` is the only route from an amendment line to a contract start (the line's own start is
   the amendment date). On a change dated on a renewal's start, the formula then counts the months from the
   original start, which can leave 0 months to the horizon. A custom months-remaining value was 0 for a price change dated at the renewal start, after the original commitment's end `[Measured: 2026-11-12, 264, scratch; one org]`; the line's own change value matched the expected value, and billing showed a monthly credit and a monthly charge schedule per changed line. What a renewed asset's lifecycle
   start is was not traced. Fix `[inferred]`: if the asset's lifecycle start is the original start, stamp the start of the current term instead.
-- **Not stamped:** a new-sale quote and a renewal quote. On a new-sale quote the formula counts
-  from its own `StartDate`. On a renewal priced per lot, line-level full-term fields stayed blank: the lines'
+- **New-sale and renewal quotes.** A new-sale quote isn't stamped: on it the formula counts from its own
+  `StartDate`. A renewal quote's lines may carry a source asset, so step 2 would stamp it too, changing
+  no renewal value, because a per-lot renewal has no full-term value to change `[inferred]`. On a
+  renewal priced per lot, line-level full-term fields stayed blank: the lines'
   net unit price was null, the prices sat on per-lot detail rows, a procedure step ran per lot but its
   output was not saved to the line or to a mapped detail field, and a quote roll-up read 0
-  `[Measured: 2026-11-12, 264, scratch; one org, two renewal quotes, one ordered and activated]`. Compute renewal full-term values outside the procedure and gate
-  them on a renewal quote; a before-save route was built but not verified.
+  `[Measured: 2026-11-12, 264, scratch; one org, two renewal quotes, one ordered and activated]`.
+  A second org gave the same result, and the renewal quote's `GrandTotal` (its per-lot rows)
+  equalled its order's total `[Measured: 2026-11-17, 264, scratch]`. Compute renewal full-term
+  values outside the procedure and gate them on a renewal quote; a before-save
+  route was built but not verified.
 - **Ramps.** An Evergreen line in a dated quote line group counts that segment's months, so
   segments that span the horizon count it between them `[Measured]`. This also covers an
   Evergreen line added to every segment unramped: it carries no ramp identifier and gets no
@@ -219,7 +225,7 @@ summed it on new-sale orders [Measured: 2026-11-12, 264, scratch, one org]. An a
 approval that added the account's activated orders' roll-ups to the change gave the level the
 source's matrix assigns, and the summed value matched the expected running full-term value, on
 amendments before any renewal [Measured: 2026-11-12, 264, scratch, one org]. A renewal priced per
-lot carries no full-term value (Not stamped, above), so its order added 0 and a later amendment
+lot carries no full-term value (New-sale and renewal quotes, above), so its order added 0 and a later amendment
 left the renewal out of the sum [Measured: 2026-11-12, 264, scratch, one org]; compute renewal
 values elsewhere before relying on the roll-up after a renewal. Order totals alone count an
 until-cancelled line for one pricing period, so a threshold on the full commitment needs the full-term roll-up, not
