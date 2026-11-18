@@ -123,7 +123,7 @@ This table is a snapshot as of 264 and will age. To see what ships now, run
 | `datasets/expression_set_overlays/approval_flags.json` (`apply_approval_flags_overlay`) | Sets each line's level from its discount on every reprice: 15% to under 25% → 1 Manager, 25% to under 35% → 2 Director, 35% to under 100% → 3 VP |
 | `datasets/context_plans/Approvals` (`apply_context_approvals`) | Maps the two line fields into `RLM_SalesTransactionContext` so pricing can write them |
 | `RLM_Quote_Smart_Approval` (orchestration) | Background data step → approval stage with a Discount chain (Manager → Director → VP, cumulative) and a Finance chain (payment terms other than Net 30) → Approved or Rejected stage. Level 0 with Net 30 skips approval |
-| `force-app/main/default/groups/` | The `Manager`, `Director` and `VP` public groups the steps assign to, shipped with no members; no task adds members |
+| `force-app/main/default/groups/` | The `Manager`, `Director` and `VP` public groups the steps assign to, shipped with no members; no task adds members, and nothing ships the reviewer persona (Run Flows, Read on the approval objects) or shares the quotes with the groups, which a member needs to review ([matrix-modeling.md](matrix-modeling.md) §4) |
 | `RLM_AA_Reset_Quote_Status` (record-triggered on `ApprovalSubmission`) | Sets the quote's `RLM_Approval_Status__c` to `Recalled` on recall and clears it on cancel. The shipped orchestration has no recall path and nothing that runs on cancel |
 | `datasets/sfdmu/qb/en-US/qb-approvals` + `create_approval_email_templates` | Lightning email templates and the alert definitions that link them to steps |
 

@@ -21,7 +21,11 @@ before telling anyone how approvals behave where the docs are unclear. Parent:
 
   [Help: `ind.approvals_personas`]. One quote walkthrough says approving needs Approval
   Admin [Help: `ind.approvals_use_advanced_approvals_in_a_quote`]; the personas table says
-  otherwise. Test with a reviewer who has no admin permissions.
+  otherwise. A Standard User without Approval Admin approved their own work item from its
+  Review button once they held Run Flows, Read on Approval Submission and Approval Work Item,
+  and Read on the quote; before that they could open neither the quote nor the item
+  [Measured: 2026-11-18, 264, scratch, one org]. So approving in the UI doesn't need Approval Admin. The setup is in
+  [matrix-modeling.md](matrix-modeling.md) §4.
 - **Supported objects:** the docs publish no list of supported objects
   [Help: `ind.approvals_objects_considerations`]. Quotes, orders and custom objects are named
   [Help: `ind.approvals_advanced_approvals`], and contracts have their own setup
@@ -136,12 +140,15 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
 ## Open questions (not settled by the docs or a measured run)
 
 - Where "First Response" vs "All Must Approve" is configured for a group or queue step.
-- Whether approving and recalling need Approval Admin, or only Run Flows plus Read. For
-  recall, the dev guide requires Approval Admin plus being the submitter, while the Help
-  personas table gives submitters Run Flows plus Read. For approving, only the Help quote
-  walkthrough requires Approval Admin. Measured runs used an admin holding Approval Admin
-  (through its profile and `RLM_CLM`), which the personas table allows to review any work item, so they don't
-  settle what an ordinary reviewer needs.
+- Whether recalling needs Approval Admin, or only Run Flows plus Read. The dev guide
+  requires Approval Admin plus being the submitter, while the Help personas table gives
+  submitters Run Flows plus Read. Measured recalls used an admin holding Approval Admin
+  (through its profile and `RLM_CLM`). Approving doesn't need it: a group member without it
+  approved from the Review button [Measured: 2026-11-18, 264, scratch, one org]
+  ([matrix-modeling.md](matrix-modeling.md) §4). [Open: as a reviewer without Approval Admin,
+  reject from the Review button and approve through `reviewApprovalWorkItem`; and grant Read
+  on Approval Submission alone, without Approval Work Item, to see whether the personas
+  table's grant is enough]
 - Which Approval Settings a fresh scratch org has on, and whether Metadata API can set them. In
   the one org checked, the Metadata API exposed no Approval or Smart Approval setting: no
   Settings type carried one, and the only approval metadata type was the classic approval
