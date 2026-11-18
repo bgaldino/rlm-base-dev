@@ -465,6 +465,12 @@ foundations:
       purpose: "SFDMU v5 plan authoring + composite-key patterns"
       consumed_by_pmos: []
 
+    - id: overlay-pack
+      path: .cursor/skills/overlay-pack/SKILL.md
+      purpose: "Overlay pack format and loader contract: the pack.yml manifest and its step kinds, staging, resume, the post-deploy component check, rerun idempotency and gate reruns for loading a private build onto a Foundations base build"
+      consumed_by_pmos: []
+      provenance: written from one private customer build's manifest and loader, proved by a fresh-org load and a second load on 264 (2026-11-17/18); the repo ships no loader code
+
     - id: inapp-framework
       path: .cursor/skills/inapp-framework/SKILL.md
       purpose: "Maintain the temporary In-App Learning framework (inapp): SFDMU plan + convert_from_legacy.py, per-release content remaps, RLM_Learning_*/rlmLearning* naming, deploy/reload/verify"

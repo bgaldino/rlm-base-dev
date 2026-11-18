@@ -74,6 +74,7 @@ Private artifacts and PMOS are optional; neither is needed to use this catalog.
 | Work with CCI tasks/flows/CLI, or clean expired orgs and stale SF auth | CCI Orchestration | [cci-orchestration/SKILL.md](cci-orchestration/SKILL.md) |
 | Write a Python CCI task class | Custom Task Authoring | [cci-orchestration/custom-task-authoring.md](cci-orchestration/custom-task-authoring.md) |
 | Create/modify SFDMU data plans | SFDMU Data Plans | [sfdmu-data-plans/SKILL.md](sfdmu-data-plans/SKILL.md) |
+| Write or run an overlay pack (`pack.yml` manifest, loader, post-deploy component check) that loads a private build onto a base build | Overlay Pack | [overlay-pack/SKILL.md](overlay-pack/SKILL.md) |
 | Run build harness profiles/resume/report | Build Harness | [build-harness/SKILL.md](build-harness/SKILL.md) |
 | Set up, audit, update or verify the local dev toolchain (incl. managed workstations) | Toolchain | [toolchain/SKILL.md](toolchain/SKILL.md) |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | PDE Org Build | [pde-org-build/SKILL.md](pde-org-build/SKILL.md) |

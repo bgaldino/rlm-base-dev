@@ -309,8 +309,9 @@ plan:
   build's data plans, constraint models, procedure overlays and metadata, with a
   manifest that lists its steps, side effects and gates. A loader runs Foundations'
   own CCI tasks on it with explicit paths, onto a base build.
-    - The repo ships no pack format or loader. The first build writes them; plan that
-      as build work, not as existing tooling.
+    - The repo ships no pack format or loader. The first build writes them, to the
+      contract in [overlay-pack](../overlay-pack/SKILL.md); plan that as build work, not
+      as existing tooling.
     - **Write the loader at the end of the catalog phase and extend it at each later
       gate,** not only in the pack phase. Spike sessions after the catalog and orgs that
       replace expiring ones load from it, so the fresh-org load runs a loader exercised
