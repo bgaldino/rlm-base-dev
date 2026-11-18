@@ -8,7 +8,8 @@
 > `ind.pricing_add_the_price_adjustment_matrix_element.htm`; shipped
 > `RLM_PRM_DISTI_Pricing_Procedure` and `datasets/context_plans/PartnerAccount/contexts/partner_account.json`.
 > Route 1 was built and measured end to end on a fresh 264 `ent-sb0` scratch org on 2026-11-11,
-> configuration rules on; routes 2 and 3 were not built.
+> configuration rules on, and again on another on 2026-11-16 with more children, selling models
+> and answer values; routes 2 and 3 were not built.
 
 The need: a child line's price depends on an answer given on the bundle root. Example: a kit
 bundle asks for a ClimateZone on the root, and its Installation and Warranty child lines take a climate-zone
@@ -70,8 +71,39 @@ Built on a Place Sales Transaction quote (`configurationMethod: Force`,
 - **Order in the waterfall:** list price, then the attribute-based uplift, then the bundle-based
   and volume discounts, each on the previous net, as the shipped phase order puts them
   ([`../procedure-anatomy-and-ordering.md`](../procedure-anatomy-and-ordering.md), phase 7).
+  The 2026-11-16 run below reproduced it to the cent (list × uplift × bundle × volume).
 - **Editing the root answer reprices.** A Place PATCH of only the root's `QuoteLineItemAttribute`
   (rules on) re-derived the child's attribute and repriced the child lines.
+
+Measured again with a wider set-up [Measured: 2026-11-16, 264, scratch, one org; names and
+values illustrative]:
+
+- **Three children on two selling models.** Three children (one Term Defined Annual, two
+  Evergreen Monthly) sat in one product component group, each with `string <Attr> =
+  parent(<Attr>);` and no level, in a model that declares no group types. A fourth child in the
+  same group, without the attribute, kept its list price.
+- **Every answer value.** The attribute had three values: two with an adjustment row per
+  product, one with none. A Place PATCH of only the root's answer, to each value in turn,
+  re-derived every child's attribute and repriced the children in the same request. The value
+  with no row priced at list. Every run: solver success, no error log.
+- **A bundle-based row needs the parent's and root's selling models.** On the first run the
+  uplift and the volume step applied, but the bundle discount didn't. The `BundleBasedAdjustment`
+  row had its product selling model, parent and root bundle, but no `ParentProductSellingModelId`
+  or `RootProductSellingModelId`. The shipped `Bundle_Based_Adjustment_Decision_Table` takes
+  both as required `Equals` inputs, so the row never matched, with no error. Both fields are
+  create-only (an update was refused, `INVALID_FIELD_FOR_INSERT_UPDATE`): insert a complete row,
+  delete the incomplete one, and refresh the decision tables. Element detail:
+  [`bundle-based-price.md`](bundle-based-price.md).
+- **The copy beside sizing rules.** In a later build, the same `parent()` copy sat in one type
+  with rules that size the bundle from other root answers. Every sizing case held, and the
+  children carried the root's value in each. The children of a locked bundle took it too
+  [Measured: 2026-11-16, 264, scratch, two orgs].
+- **Reading the child attributes back.** Filter `QuoteLineItemAttribute` on
+  `QuoteLineItemId IN (…)`. A filter through the relationship (`QuoteLineItem.QuoteId = …`)
+  was refused in this run ("not yet supported by this sObject storage type"), and with
+  `QuoteLineItem.Product2.*` in the same query another run's quote condition was silently
+  dropped ([`asset-lifecycle-changes` → verification.md](../../asset-lifecycle-changes/verification.md));
+  which query shapes are refused isn't established.
 
 ## Route 2: Formula-Based Pricing reads a header tag
 

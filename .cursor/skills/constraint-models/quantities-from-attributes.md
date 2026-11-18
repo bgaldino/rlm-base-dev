@@ -58,6 +58,11 @@ Where the dev guide and the org disagree, this file follows the org and says so.
 9. **Set `property maxRelationSize` when any relation can exceed 9,999.** That is the
    default cap on every relation, whatever its declared bounds `[Measured: M25]`
    `[Dev guide: cml_relationships]`.
+10. **Leave `IsQuantityEditable` on, and `QuantityScaleMethod` blank, on the
+    `ProductRelatedComponent` of every component a rule sizes.** With the flag off, no quote
+    that sized the component could be ordered; a `Proportional` scale method refused
+    answer-change amendments. See
+    [Cardinality vs reading quantity](#cardinality-vs-reading-quantity).
 
 ## DO NOT
 
@@ -113,7 +118,28 @@ A line already on the quote can change that; see
 **Check the component's PCM quantity settings.** With `IsQuantityEditable = false` on the
 component's `ProductRelatedComponent`, a CML-set quantity drew a `bundlevalidation`
 warning `[Measured: M16]`, and a hand edit of that line wrote an error log that blocked
-the order `[Measured: M31]`.
+the order `[Measured: M31]`. The hand edit isn't needed:
+
+- **Leave `IsQuantityEditable` on.** With it off, a plain new-sale Place, with no hand edit,
+  wrote one error-log row of severity Warning per sized line ("The Quantity of the line item
+  containing product … can't be edited."), `configure` reported `solverStatus: "success"`, and
+  `createOrdersFromQuote` refused the quote. With the flag on, the same answers placed with no
+  rows and ordered `[Measured: 2026-11-16, 264, scratch, two orgs]`. A rule-owned component
+  with the flag off can never be ordered. `@(split = false)` still refuses a hand edit with the
+  flag on ([One line per component](#one-line-per-component-split--false)).
+- **Leave `QuantityScaleMethod` blank.** A PRC inserted with `IsQuantityEditable = false`
+  stored `QuantityScaleMethod = Proportional`; one inserted editable stayed blank. The
+  default-added line took `AssociatedQuantScaleMethod = Proportional`, the asset relationship
+  kept it (`AssetRelationship.RelatedAssetQtyScaleMethod`), and the next amendment that changed
+  a sizing answer was refused by Place: `PROPORTIONAL_QUANTITY_MANUAL_UPDATE_NOT_ALLOWED`,
+  "Cannot manually change the quantity of a proportional quantity line in amendment
+  transactions." Clearing `AssociatedQuantScaleMethod` on the amendment quote's
+  `QuoteLineRelationship` let that request through, but the next amendment copied
+  `Proportional` back from the asset, so assets sold that way stay affected. Assets sold with a
+  blank scale method amended with no workaround. Updating the PRC's scale method to blank was
+  accepted `[Measured: 2026-11-16, 264, scratch, one org]`.
+
+Read both fields back on the org before the first sale.
 
 ### `sum()` and `total()` aren't the same
 
@@ -136,14 +162,18 @@ keeps one instance and adds quantity to it; `true` makes every instance quantity
 |---|---|---|
 | A default component, added at 1 by Place with defaults on | Kept at 1; the solver added a line for the rest (1 + (n − 1) for a rule of n) `[Measured: M22]` | One line at the rule's quantity `[Measured: M23]` |
 | A rep adds an optional add-on at quantity 1 | Kept; a second line for the rest `[Measured: M22]` | One line, raised to the rule's quantity `[Measured: M23]` |
-| A hand edit of a sized line, down | Kept; a second line for the difference (n edited to m became m + (n − m)). No rule message; at most a `bundlevalidation` group-range warning (see below) `[Measured: M22]` | Rejected with the rule's message `[Measured: M23]` |
+| A hand edit of a sized line, down | Kept; a second line for the difference (n edited to m became m + (n − m)). No rule message; at most a `bundlevalidation` group-range warning (see below) `[Measured: M22]` | Rejected with the rule's message `[Measured: M23]`; its Error log row refused the order, with `IsQuantityEditable` on `[Measured: 2026-11-16, 264, scratch, two orgs]` |
 | A hand edit of a sized line, up | Not measured | Rejected with the rule's message `[Measured: M23]` |
+| A rep deletes a default line the rule sizes (Place `DELETE`) | Not measured | The delete succeeded, then the solver recreated the line at the rule's quantity as a new line: no message, no log row, and the quote ordered `[Measured: 2026-11-16, 264, scratch, two orgs]` |
 | The configurator UI | A default component split into two instances (1 + the rest); non-default children stayed one instance `[Measured: M24]` | One line per component at the rule's quantity, defaults kept, no warning; a changed answer resized each line `[Measured: M24]` |
 
 Where the PCM component groups had a quantity range, each split group drew a
 `bundlevalidation` group-range warning `[Measured: M22]`; don't rely on it to detect a
 split, assert the line count. "Rejected" means flagged, not undone: Place saved the edit (read back
 for one downward edit) `[Measured: M23]`; read the message as in [Reading a result](#reading-a-result).
+A rule-owned line can't be taken to 0 by hand: Place refuses quantity 0 (see
+[Reading a result](#reading-a-result)), and a deleted line comes back. To test a rule that
+forbids 0, use a hand edit to a non-zero value that breaks it.
 
 When defaults are added, each default (or required, qualified) component goes in at its
 configured component quantity, 1 when unset, not always 1. With `split` unset, that line
@@ -354,8 +384,51 @@ warranty example, each with its own message (here with this file's finish exampl
 `[Dev guide: cml_logical_constraints]`.
 
 This picks one option for the whole bundle. It can't express a mixed split, with some seats
-on one option and the rest on another. The dev guide has no such example; how to model one
-is [open item 13](#open-items).
+on one option and the rest on another. The dev guide has no such example; one route was run
+end to end, below. The others are [open item 13](#open-items).
+
+### A mixed split per seat: an answer per option
+
+Add one answer on the root for the seats on the second option (default 0), derive the first
+option as the rest, and size each option from its derived `int`. Every seat then has exactly
+one option, and moving some seats is an answer change:
+
+```
+type Booth : LineItem {
+    int seats = [1..200];
+    int counterSeats = [0..200];
+    int floorQty = [0..200];
+    int counterQty = [0..200];
+    relation floorMounts : FloorMount[0..200];
+    relation counterMounts : CounterMount[0..200];
+    constraint(counterSeats <= seats, "Counter seats can't be more than seats.");
+    constraint(floorQty == seats - counterSeats, "Every seat needs exactly one mount.");
+    constraint(counterQty == counterSeats, "Every seat needs exactly one mount.");
+    constraint(floorMounts[FloorMount] == floorQty, "Floor mounts: one per seat without a counter mount.");
+    constraint(counterMounts[CounterMount] == counterQty, "Counter mounts: one per counter seat.");
+}
+@(split = false)
+type FloorMount : LineItem;
+@(split = false)
+type CounterMount : LineItem;
+```
+
+Raise the maximum of the PCM component group that holds both options to 2, and set the PCM
+quantity fields as in [Cardinality vs reading quantity](#cardinality-vs-reading-quantity).
+Measured with a model of this shape `[Measured: 2026-11-16, 264, scratch, one org; names and values illustrative]`:
+
+- A new sale with the split answer at 0 sized the first option (a default component) to every
+  seat, with no line for the second. Solver success, no log row; it ordered and activated.
+- A root amendment at `quantityChange` 0 that moved 10 of 45 seats changed the first option
+  by −10 (Amend) and added the second at +10 as a new component line. The order activated it
+  as a new asset under the same root. Every other answer held, and the root's latest
+  `AssetActionSource` node status kept both answers at `cfgStatus` User.
+- An add-on whose rule needs every seat on the first option (`addOn > 0 -> counterSeats == 0`),
+  carried from the asset, refused the same change: Place saved the answer, no line moved, an
+  Error log row and `configure` carried the rule's message, and the order was refused.
+
+With the split answer equal to `seats`, the quote held no line for the first option
+`[Measured: 2026-11-16, 264, scratch, one org]`. Not run: this route in the configurator UI.
 
 ### Exactly one option when each option is sized per seat
 
@@ -421,6 +494,27 @@ amendments, where the answer form of a rule removed an optional line and the lin
 a different rule; which status Place gives those amendment lines is not traced. That the
 line form's message comes from another rule is an inference; why the line form lacks its own
 message is not established `[Platform behaviour, traced]`.
+
+**A default add-on is removed; a rep's add-on is refused.** Measured with an optional,
+default add-on and the rule `addOn > 0 -> answer == 0`, with its own message
+`[Measured: 2026-11-16, 264, scratch, two orgs]`:
+
+| The add-on came from | The answer broke the rule | Result |
+|---|---|---|
+| The defaults (`addDefaultConfiguration`) | On the new sale, or by a later answer change | Add-on line removed. No message, no log row; the quote ordered |
+| The rep, sent in the same Place as the root | On the new sale | Refused: the rule's message in `configure` and an Error log row; the order refused. While in conflict, every sized line stayed at its PCM quantity (1) |
+| The rep, then a later answer change | By the change | Refused the same way; no line moved |
+| An owned asset, on a root amendment | By the amendment's answer change | Refused the same way; nothing removed `[Measured: 2026-11-16, 264, scratch, one org]` |
+
+The second row doesn't fit the trace above, under which a rep's add in the request that makes
+it arrives as new and is a candidate; this file follows the org.
+
+To make the removal visible without blocking, add an `Info` message on the answer side, such as
+`message(answer > 0, "<add-on> isn't available when <condition>.", "Info");`. The removal then
+showed the note in `configure`, with no log row, and the quote ordered. When the rule refused a
+rep's add-on, `configure` listed only the Error, not the note
+`[Measured: 2026-11-16, 264, scratch, two orgs]`. To refuse instead, make the add-on
+non-default, so it is on the quote only when a rep added it `[inferred]`.
 
 `exclude` differs: with a fixed or existing instance when its condition holds, it fails with
 its own message rather than removing the line. It removes a line silently only when the
@@ -745,6 +839,10 @@ log wasn't measured. Bundle-validation rows can appear in the log too, and one m
 any configurator error-log row, whatever its severity `[Platform behaviour, traced]` `[Measured: 2026-11-11, 264, Force with configuration rules off]` (see
 [open item 1](#open-items)).
 
+`configure` returns message text HTML-escaped (an apostrophe came back as `&#39;`); the error
+log's text isn't. Unescape before comparing either to the expected text
+`[Measured: 2026-11-16, 264, scratch]`.
+
 ---
 
 ## Examples
@@ -963,9 +1061,12 @@ nothing else in this file was run. In rows M1 to M10 the inputs, and in all rows
 
 Each needs a live 264 org:
 
-1. For a component with `IsQuantityEditable = false`: whether `true` clears the M16
-   warning, and whether a CML-set quantity alone, with no hand edit, writes an error log
-   (M31 edited by hand). Quote-to-order refuses on any configurator error-log row on the
+1. Settled for a component with `IsQuantityEditable = false`: a CML-set quantity alone, with
+   no hand edit, wrote a Warning error-log row that refused the order, with configuration
+   rules on, and setting the flag to `true` cleared it `[Measured: 2026-11-16, 264, scratch, two orgs]`
+   (see [Cardinality vs reading quantity](#cardinality-vs-reading-quantity)). Still open:
+   what Place does with such a row under a "run and block errors" choice. Background follows.
+   Quote-to-order refuses on any configurator error-log row on the
    quote, whatever its severity or category (M29 saw such rows for bundle-validation
    warnings) `[Platform behaviour, traced]`. The rows come from placements in the
    allow-errors modes, and the bundle-validation row is written only when catalog
@@ -1017,8 +1118,9 @@ Each needs a live 264 org:
 13. How to model a mixed per-seat mount split, which
     [Exactly one of a choice group](#exactly-one-of-a-choice-group) can't express.
     Three routes, none in the dev guide: the options as top-level lines, an answer per mount type
-    (a seat count each, constrained to sum to `seats`, each driving its mount type's cardinality),
-    or per-seat child instances that each carry a mount type. Trade-offs:
+    (a seat count for each but the first, which is derived as the rest of `seats`, each driving its
+    mount type's cardinality), or per-seat child instances that each carry a mount type. The
+    first two were run. Trade-offs:
     - *Top-level route* (run): the options as top-level lines, sized outside the configurator
       and checked on a virtual container
       ([Checks across top-level lines](#checks-across-top-level-lines-a-virtual-quote-container)).
@@ -1033,9 +1135,12 @@ Each needs a live 264 org:
       Change" at quantity 0) was ordered with 0 messages and no error log; one without them
       wasn't run [Measured: 2026-11-12, 264, scratch, one org]. See `asset-lifecycle-changes`
       Quick Rule 7.
-    - *Answer-per-option route* (not run): keeps the sizing rules in the model, so the
-      configurator owns them. Whether the sum constraint and the per-option cardinalities hold
-      together is untested.
+    - *Answer-per-option route* (run): settled for headless Place, see
+      [A mixed split per seat](#a-mixed-split-per-seat-an-answer-per-option). One answer per
+      option but the first, which is derived as the rest; the derived ints and the per-option
+      cardinalities held together through a new sale, an answer-change amendment, a refusal,
+      ordering and activation [Measured: 2026-11-16, 264, scratch, one org]. The configurator
+      owns the split. Still open: the configurator UI.
     - *Per-seat child instances* (not run): untested, so neither the sizing rules nor the
       configurator behavior are known.
     CML has no documented signal for a new sale. A flow can read the quote's `OriginalActionType`,
@@ -1074,7 +1179,9 @@ Each needs a live 264 org:
    as a `^` in a regular expression in a `define`, are fine.
 3. Every component quantity is a cardinality (`relation[Type] == …`); no rule writes
    `lineItemQuantity`, `ItemEndQuantity` or `this.quantity`. Every sized component type is
-   `@(split = false)`, unless its lines must carry different attribute values.
+   `@(split = false)`, unless its lines must carry different attribute values. Its
+   `ProductRelatedComponent` reads `IsQuantityEditable = true` and a blank
+   `QuantityScaleMethod` on the org.
 4. No derived variable depends, directly or through an aggregate, on a cardinality it sets.
 5. Each "per N" rule is checked at an exact multiple and one past it. If any relation's
    upper bound is above 9,999, the model sets `property maxRelationSize` equal to the

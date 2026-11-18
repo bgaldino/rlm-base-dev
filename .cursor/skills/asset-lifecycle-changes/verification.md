@@ -14,7 +14,10 @@ For each change, record the state after every step:
    `rlm-business-apis` → `backdated-asset-lifecycle.md` → API path. The 2026-11-11 runs
    amended through Connect instead (`POST /connect/revenue-management/assets/actions/amend`
    on the top-level asset, `quantityChange` 0, Quote output), then made the change with a
-   Place request.
+   Place request. Both routes made usable amendment quotes; the new quote's Id comes back
+   as `amendmentRecordId` from the Connect amend and as `amendRecordId` from the invocable
+   (`renewRecordId` from `initiateRenewal`) [Measured: 2026-11-17, 264, fresh `ent-sb0`
+   scratch org].
 2. **Make the change and read the quote.** Edit an amendment line or answer through Place
    with `configurationMethod: Force` (and `configurationPref.configurationOptions.executeConfigurationRules: true` for rules on), as in
    the measured runs. On a No Change line, `Skip` refused a non-zero quantity ("Specify 0 in
@@ -28,7 +31,15 @@ For each change, record the state after every step:
       reach the asset only through the quote action (change-policy-mapping.md → Questions to
       settle in the plan);
     - its `QuoteLineDetail` rows (dated by `EffectiveFrom` and `EffectiveTo`);
-    - `QuoteLineItemAttribute` for configured products;
+    - `QuoteLineItemAttribute` for configured products. Find the root line by `QuoteId`
+      first, then read its attribute rows by `QuoteLineItemId`. A query filtering
+      `QuoteLineItem.QuoteId` together with `QuoteLineItem.Product2.*` returned rows from
+      dozens of other quotes: the quote condition was dropped. `QuoteId` with an
+      `AttributeDefinition.*` condition, or a `QuoteLineItemId IN (SELECT Id FROM
+      QuoteLineItem WHERE QuoteId = ...)` semi-join, returned only the quote's rows
+      [Measured: 2026-11-17, 264, scratch, two orgs]. An answer PATCH aimed at another
+      quote's row failed with "Delta count 0 does not match with input size 1": the request
+      held no change for its own quote, and nothing was written;
     - the header `Subtotal`, `Discount` and `TotalPrice`.
 3. **Reprice before the order is activated** and read again: nothing should move. Pricing of
    a renewal, amendment or cancellation line reads the source asset's current state, and
@@ -82,6 +93,12 @@ For each change, record the state after every step:
       the activation time, so the latest action is the last one activated. The field is
       long text, so read it rather than filtering on it:
       `SELECT Id, ReferenceEntityItemId, RLM_ConstraintEngineNodeStatus__c, AssetAction.ActionDate FROM AssetActionSource WHERE AssetAction.AssetId = '<root asset>' ORDER BY AssetAction.ActionDate DESC`.
+7. **Refresh before the next change.** Lifecycle pricing reads the *Asset Action Source
+   Entries V2* decision table, and each activation left it Stale. After a refresh it took up to
+   about 3 minutes to read Fresh, so poll `check_decision_table_freshness` until the tables
+   read Fresh before you initiate the next change; don't re-trigger the refresh
+   [Measured: 2026-11-17, 264, fresh `ent-sb0` scratch org]. Refresh detail:
+   `decision-tables`.
 
 ## Measured results (QuantumBit builds, release 264, 2026-11-05)
 
@@ -138,6 +155,29 @@ filled. That conflicts with the platform reading in SKILL.md Quick Rule 2, where
 rows take a mapped line value; the cause is **Open** (live check: which rows were blank). Copying the order lines' value onto the asset action sources before amending stopped
 the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
 
+## Measured results (fresh 264 `ent-sb0` scratch org, 2026-11-17)
+
+One bundle contract like the 2026-11-11 one (CML root answers; Term Defined, Evergreen
+monthly and one-time components; every asset `LastTransaction`), with the repo's node-status
+rule and trigger. A price revision policy and `UnitPriceUplift` were set on the new-sale
+Term Defined lines. The changes ran in date order, each through activation and the step 7
+refresh before the next. Every quote was read before its order activated and never repriced
+afterwards:
+
+| Change | Quote | After order and activation |
+|---|---|---|
+| Root answer changed, mid-period | As on 2026-11-11: CML-sized children as delta lines, Term Defined lines at whole periods plus days | State periods from the date; the other answers kept |
+| Second answer changed on an anniversary, with the re-band overlay | Added units at the band for the new total; earlier units keep their price | State period at the new total |
+| Term Defined component to 0 on an anniversary (component quantity, `Force`) | Two last-in-first-out detail rows, term count 1 | 0 state period from the date |
+| Answer change moving part of an Evergreen component to another, same date, after the reduction | One last-in-first-out credit row per lot (two), one period each; the other component +n | The other component a new asset; state periods from the date |
+| Renewal of the root (`initiateRenewal`, `renewStartDate` and `renewEndDate`) | Each Term Defined lot on its own detail row at its net price plus the uplift, amendment lots included; one-time lines No Change at 0; the zero component a Renew line at 0 | Same assets extended, `LifecycleEndDate` moved (the zero component's too); MRR = sum of lot values ÷ 12 |
+| Price amendment on two Evergreen components, dated on the renewal start, after the renewal activated | `Skip`: No Change, total 0. `Skip` + `QuoteAction` Amend: Amend, no detail rows, total 0. `Force`: per line a credit at the old price and a charge at the new; the zero component flipped to Amend with a 0.00 row | New state periods at the new price; the zero component's stays 0 |
+
+For every change, each line's quantity and total, every detail row and the header total were
+the same on the quote and its order. After each activation every root asset action source
+row carried the node status. The renewal quote's quote-level full-term roll-up read 0, while
+its `GrandTotal` equalled the order's (SKILL.md Quick Rule 4).
+
 ## Open: measure before promising
 
 - **Term Defined top-level cancellation** (`initiateCancellation`): a Term Defined
@@ -154,7 +194,10 @@ the reset. SKILL.md Quick Rule 2 has the cause, measured on a third org.
   line, or a swap of the component asset. A price amendment on a component's line, a plan
   held as a root answer, and a partial move under a one-plan group are measured (above;
   [change-policy-mapping.md](change-policy-mapping.md)).
-- **Evergreen component removal to 0, and a Force-edited reduction through to an order:** only `Skip` plus a `QuoteAction` edit was ordered; the `Force` quote was refused because the test bundle lacked a required child, a test-setup gap; whether `Force` orders on a complete bundle is unmeasured.
+- **Evergreen component removal to 0.** A partial Evergreen component reduction is
+  measured through order and activation, by `Skip` plus a `QuoteAction` edit (2026-11-12)
+  and by `Force` on a complete bundle (2026-11-17, above); removal of the whole quantity
+  isn't.
 - **Evergreen swaps:** what a swap's outgoing side credits on an evergreen line. Evergreen
   reductions (standalone, and a one-lot bundle component) and the renewal of a standalone
   evergreen asset are measured: SKILL.md Quick Rules 5 and 6, and

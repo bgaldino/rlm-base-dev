@@ -26,7 +26,10 @@ mechanism was read; its scope, path or consequence isn't established. The 2026-1
 builds. The 2026-11-11 runs were on fresh 264 `ent-sb0` scratch orgs, on a bundle sized by
 CML root answers, priced by a procedure cloned from the shipped default with overlays,
 with configuration rules on ([verification.md](verification.md) → Measured
-results, 2026-11-11).
+results, 2026-11-11). The 2026-11-17 runs replayed a dated sequence of amendments and a
+renewal on one bundle contract, on a fresh 264 `ent-sb0` scratch org with the repo's
+node-status rule and trigger ([verification.md](verification.md) → Measured results,
+2026-11-17).
 
 ## Quick Rules
 
@@ -46,6 +49,8 @@ results, 2026-11-11).
       on amendments or cancellations, or on any ramped quote; why the reprice returned 0 is not
       traced.
       Read quote values before activation and don't reprice afterwards.
+      A renewal quote that wasn't repriced still read its total after its order activated
+      [Measured: 2026-11-17, 264, fresh `ent-sb0` scratch org].
 2. **Read attributes as well as prices.** A quantity change on an amendment line, placed
    with configuration rules on (the UI's inline quantity edit does this), resets the
    line's attributes to the product defaults. Activation keeps them on the asset, and the
@@ -95,7 +100,10 @@ results, 2026-11-11).
       or through the detail row [Repo:
       `unpackaged/post_constraints/triggers/RLM_AssetActionSourceTrigger.trigger`]. With
       both, answers held through two answer-change amendments in a row on a fresh build
-      [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org].
+      [Measured: 2026-11-11, 264, fresh `ent-sb0` scratch org]. On another fresh build they
+      held through three answer-change amendments, a line-only amendment and a renewal:
+      after each activation every root asset action source row carried the node status,
+      every answer at user status [Measured: 2026-11-17, 264, fresh `ent-sb0` scratch org].
       Configurator side: `constraint-models` → `quantities-from-attributes.md` → open item 12.
     - **Check and work around.** After every activation in a multi-step replay, read the
       root's latest asset action source rows (verification.md step 6). Where they're blank,
@@ -147,7 +155,13 @@ results, 2026-11-11).
       the quote action Amend / FieldAmendment, delta quantity 0, detail rows crediting each
       earlier lot at the old price and charging the full quantity at the new one, and, after
       activation, a new state period MRR and a "Change / Upsells" action [Measured:
-      2026-11-11, 264, fresh `ent-sb0` scratch org]. A line that would have been No Change
+      2026-11-11, 264, fresh `ent-sb0` scratch org]. **Only configuration `Force` priced a
+      price change on a component line.** `Skip` saved the new `UnitPrice` but left the line
+      No Change at total 0. `Skip` with a `QuoteAction` PATCH to Amend turned the line Amend,
+      still with no detail rows and total 0, under System and then Force pricing. `Force`
+      wrote the credit and charge rows; it also turned a sibling component at quantity 0 to
+      Amend, with one 0.00 detail row (Quick Rule 7) [Measured: 2026-11-17, 264, fresh
+      `ent-sb0` scratch org; two Evergreen component lines]. A line that would have been No Change
       is promoted to Amend / FieldAmendment when a price or other mapped field differs from
       the latest state period's, checked only for assets with no attribute change; the
       priced result is a cancel-and-reprice pair with delta quantity 0 [Platform behaviour,
@@ -166,6 +180,10 @@ results, 2026-11-11).
       264, scratch, one org]; that the net unit price is read from the pricing context is `[inferred]`. A per-lot renewal line
       has no net unit price at all: its prices sit on the per-lot detail rows, so such a group
       does not admit it ([../pricing-setup/scenarios/full-term-value.md](../pricing-setup/scenarios/full-term-value.md)).
+      A quote-level full-term roll-up built on such groups read 0 on a per-lot renewal quote,
+      while the quote's `GrandTotal` held the per-lot total and equalled the order's
+      `TotalAmount` [Measured: 2026-11-17, 264, fresh `ent-sb0` scratch org]. Read a renewal's
+      value from `GrandTotal` or the detail rows, not from a line-level roll-up.
     - A positive API amendment keeps the price on the parent.
     - A positive amendment edited in the UI also moved its price to detail rows (+2 and −1
       at the unit price) [Measured: 2026-11-05, 264].
@@ -195,7 +213,16 @@ results, 2026-11-11).
       doesn't re-band; a re-band needs an explicit pricing step, and only lines the step
       admits (renewal lines start at quantity 0) [Platform behaviour, traced]. A price
       revision policy applies to each lot's row separately, only when the renewal date falls
-      inside the policy's validity window [Platform behaviour, traced]. On the asset, a new
+      inside the policy's validity window [Platform behaviour, traced].
+    - **Measured on a bundle that grew by amendment.** A renewal of the root renewed each Term
+      Defined lot on its own detail row at that lot's net price plus the uplift: the sale's
+      lots, lots added by two later amendments, and a lot added at a re-banded price, which
+      kept its band (no re-band on the combined quantity). The policy and `UnitPriceUplift`
+      were set only on the new-sale lines; the amendment lines already carried them, inherited
+      from the asset, with no edit. The renewal date was inside the policy's window, and every
+      asset's `PricingSource` was `LastTransaction`. `enableAsIsRenewals` wasn't read on that
+      org; the per-lot rows show the path ran [Measured: 2026-11-17, 264, fresh `ent-sb0`
+      scratch org]. On the asset, a new
       sale copies the policy from the order line, and amend and renew periods inherit it from
       the current state period when the period's policy field is in the context definition, so an amend line doesn't reset it (without that field, not read); one step of that copy
       wasn't read [Platform behaviour, traced in part]. A renewal on an asset whose
@@ -221,13 +248,20 @@ results, 2026-11-11).
     - In that renewal an evergreen component was a "No Change" line at quantity 0 with its
       per-period unit price, and its asset and open state period were untouched. A Term
       Defined component reduced to 0 earlier renewed at quantity 0, and its asset got a 0
-      state period for the renewal term. Standalone evergreen assets passed to a renewal
+      state period for the renewal term. It stays on the renewal as a Renew line at quantity
+      0 and total 0, and its `LifecycleEndDate` moves to the renewal end, so assert "quantity
+      0, value 0", not absence [Measured: 2026-11-17, 264, fresh `ent-sb0` scratch org].
+      Standalone evergreen assets passed to a renewal
       request beside a Term Defined root came back as "No Change" lines at quantity 0, and
       their assets were untouched (no lifecycle end date, no new state period)
       [Measured: 2026-11-12, 264, scratch, one org]. To uplift them, send a price amendment (`quantityChange` 0, new `UnitPrice`)
       dated on the renewal start, after the renewal is activated; it was accepted on those
       standalone assets, with a new state period and a "Change / Upsells" action
-      [Measured: 2026-11-12, 264, scratch, one org].
+      [Measured: 2026-11-12, 264, scratch, one org]. The same route uplifted Evergreen bundle
+      components: a root amendment (`quantityChange` 0) dated on the renewal start, after the
+      renewal activated, with the new `UnitPrice` on the component lines under configuration
+      `Force` (Quick Rule 3), gave new state periods at the new price from that date
+      [Measured: 2026-11-17, 264, fresh `ent-sb0` scratch org].
 6. **On the quote, credits follow the selling model.** For one-time and evergreen lines
    the effective date didn't matter. At every date tested (+1, +30, +180, +300 and +400
    days):
@@ -262,8 +296,14 @@ results, 2026-11-11).
       bundle component by 2 of 5 (one lot), ordered and activated through Skip plus a
       `QuoteAction` Amend edit (the test bundle lacked a required child, which `Skip` let through), gave a new state period at the reduced quantity and one credit
       schedule for the 2 [Measured: 2026-11-12, 264, scratch, one org]; read the state period, because
-      `Asset.CurrentQuantity` still showed the old quantity after activation (unexplained); per-lot credits on a
-      component weren't tested (one lot), and the Force path to an order wasn't completed. Evergreen swap credits are **Open** ([verification.md](verification.md) → Open).
+      `Asset.CurrentQuantity` still showed the old quantity after activation (unexplained).
+      A reduction across two lots on a complete bundle, through `Force` with rules on, is
+      measured too: a root answer change that moved part of an Evergreen monthly component's
+      quantity to another component credited one period in one last-in-first-out detail row
+      per lot (two rows), and added the other component as a new asset. It was ordered and
+      activated, with state periods from the amendment date and quote values equal to the
+      order's [Measured: 2026-11-17, 264, fresh `ent-sb0` scratch org]. Both lots had the
+      same price, so a credit at each lot's own price isn't shown on a component. Evergreen swap credits are **Open** ([verification.md](verification.md) → Open).
     - A source's term-total value for an evergreen line (a total credit over the remaining
       term) doesn't compare with the quote directly: the quote counts the line for its
       pricing term count, not the term ([change-policy-mapping.md](change-policy-mapping.md)
@@ -312,8 +352,10 @@ results, 2026-11-11).
       the line's `QuoteAction.Type` from No Change to Amend (`Quantity` the delta,
       `EndQuantity` = `StartQuantity` + delta). `Force` with quantity 0 also turned it to
       Amend, so a Force PATCH on a No Change line you meant to leave alone makes it an Amend
-      line (what a Force-flipped line does at order and activation was not measured; a line flipped
-      with Skip plus the `QuoteAction` Amend edit was ordered and activated, see Quick Rule 6). `Skip` with a `QuoteAction` PATCH setting `Type` Amend in the same request
+      line. A sibling at quantity 0 that a `Force` price edit flipped to Amend (one 0.00
+      detail row) was ordered and activated with no error, and its state period stayed 0
+      [Measured: 2026-11-17, 264, fresh `ent-sb0` scratch org]; a line flipped
+      with Skip plus the `QuoteAction` Amend edit was ordered and activated, see Quick Rule 6. `Skip` with a `QuoteAction` PATCH setting `Type` Amend in the same request
       accepted the edit with the same end state [Measured: 2026-11-12, 264, scratch; one
       standalone Term Defined asset, System pricing, configuration rules at default; single-line
       amendment quotes, so whether Force also changes No Change lines not in the PATCH was not
@@ -328,7 +370,11 @@ results, 2026-11-11).
       `Force` quote was refused [Measured: 2026-11-12, 264, scratch, one org], so `Skip` let an
       incomplete bundle through to an order, and CML-sized children may not be re-derived
       [inferred].
-      Use it for line-only edits and check rules and bundle validation separately. The message is a save-time quantity check that fires only while
+      Use it for line-only quantity edits and check rules and bundle validation separately.
+      It doesn't price a `UnitPrice` change on a component line; use `Force` for that (Quick
+      Rule 3). `Force` edits on a complete bundle (a component's quantity, a root answer, a
+      component's price) were each ordered and activated [Measured: 2026-11-17, 264, fresh
+      `ent-sb0` scratch org]. The message is a save-time quantity check that fires only while
       the action type is No Change and reads no configuration method; how `Force` changes the
       action type is not traced [Platform behaviour, traced in part]. On a new-business line
       `Force` and `Skip` both accepted non-zero edits and refused 0 (see constraint-models →
@@ -431,6 +477,15 @@ moves all of the component's units, not some, and a split was refused where the 
 group allows one plan. Whether a swap takes the component asset is undocumented.
 [change-policy-mapping.md](change-policy-mapping.md) lists the paths with what to check;
 pick one in the plan and measure it.
+
+**"Renew at each lot's current price plus N%, and raise support by N% too."** Put the price
+revision policy and `UnitPriceUplift` on the new-sale Term Defined lines; lots added by
+amendment inherit them. Renew the root with an end date, so each lot renews at its own price
+plus the uplift (Quick Rule 4). Evergreen support isn't uplifted by the renewal: after it
+activates, amend the root dated on the renewal start and set the support lines' new
+`UnitPrice` with configuration `Force` (Quick Rules 3 and 5). Report the renewal total from
+`GrandTotal`, and a combined total by adding the support change yourself: no single record
+holds both.
 
 ## Validation Checks
 
