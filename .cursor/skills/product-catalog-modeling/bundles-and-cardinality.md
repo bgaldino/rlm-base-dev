@@ -127,7 +127,7 @@ validation. [Help: `ind.product_catalog_group_cardinality.htm`; `ind.product_cat
 |---|---|---|
 | Require this component | `IsComponentRequired` | Cannot be removed; requires *Include by default* |
 | Include component by default | `IsDefaultComponent` | Pre-selected |
-| Allow quantity changes | `IsQuantityEditable` | Off → no min/max can be entered |
+| Allow quantity changes | `IsQuantityEditable` | Off → no min/max can be entered; the API refused them [Measured: 2026-11-16, 264, scratch] |
 | Quantity / Min / Max | `Quantity`, `MinQuantity`, `MaxQuantity` | Default and bounds of the **quantity** of that product |
 | Price includes component | `DoesBundlePriceIncludeChild` | Bundle price covers the child; quantity must be locked |
 | Quantity scaling method | `QuantityScaleMethod` | Constant, Proportional, or blank (see below) |
@@ -162,7 +162,9 @@ quantity 1–5. [Help: `ind.product_catalog_cardinality_examples.htm`; `ind.prod
 
 ### Mistakes Validate Product Definition catches
 
-Run **Validate Product Definition** on a bundle after a change. For configurable bundles it
+Run **Validate Product Definition** on a bundle after a change. Help describes it as a
+product-page action and the dev guide has no endpoint for it, so run it on the page and record the result.
+[Help: `ind.product_catalog_validate_product_definition.htm`] For configurable bundles it
 checks: products in a group ≥ group min; required products in a group ≤ group max; child
 groups ≥ parent group min; child groups with required products ≤ parent group max. Static
 bundles: default components within min/max, and child-group count within the parent's
@@ -190,6 +192,13 @@ rows a method. (The QuantumBit plan has locked rows with a blank method; what a 
 for them was not checked.) [Measured: 2026-11-11, fresh 264 ent-sb0 scratch org] A locked
 child's quantity edit still saved in the line editor; see
 [the locked bundle measurement](#static-kit-or-locked-configurable-bundle-when-children-recur).
+
+Other writes on a `ProductRelatedComponent` [Measured: 2026-11-16, 264, scratch]:
+- A PATCH of `QuantityScaleMethod` to null was accepted. Writing `None` on insert is rejected (above); a PATCH to `None` wasn't tried.
+- On a load, a component of a configurable bundle refused `ParentSellingModelId` and `ChildSellingModelId`, as Help's rule
+  for configurable bundles predicts ([`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles)).
+- A plan Upsert whose rows left `QuantityScaleMethod` blank cleared an existing `Proportional` to null on editable rows, so a
+  plan that must keep it carries the value in its CSV.
 
 **Downstream:** choosing Proportional fixes the parent-to-child ratio for every later
 amendment. If a customer must later change one child's quantity independently, model it

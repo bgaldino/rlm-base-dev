@@ -83,7 +83,9 @@ For each change, record the state after every step:
    [Platform behaviour, traced].
 6. **Read the asset:**
     - `AssetStatePeriod` (`StartDate`, `EndDate`, `Quantity`, `Amount`, `Mrr`);
-    - `AssetStatePeriodAttribute`;
+    - `AssetStatePeriodAttribute`: configured answers, one row per attribute per state period (measured on a root); there is no
+      `AssetAttribute` object, and number answers read back as `40.0`, so compare as numbers
+      [Measured: 2026-11-16, 264, scratch];
     - `AssetAction` (`Type`, `CategoryEnum`, `QuantityChange`, `Amount`), which links to
       the order lines through `AssetActionSource.ReferenceEntityItemId`: the order line's
       Id, or its `OrderItemDetail` Id when the line has detail rows (SKILL.md Quick Rule 2)

@@ -495,6 +495,14 @@ python scripts/ai/check_plan_readme_consistency.py --strict                     
 python scripts/ai/check_plan_readme_consistency.py --strict datasets/sfdmu/qb/en-US/qb-pricing  # one plan
 ```
 
+A plan outside the repo is skipped (`skip … — outside the repo`), and the run can still pass with
+zero plans checked: read the "Checked N" count, not the result. To check a plan kept elsewhere (an
+overlay pack), copy it without `source/`, `target/` and `reports/` under the gitignored `datasets/sfdmu/test/`,
+check the copy by passing its path (a run with no path skips `test/`) and delete it. [Repo: `scripts/ai/check_plan_readme_consistency.py`]
+
+A load run in the plan directory leaves `reports/`, `source/` and `target/` there; `reports/` isn't gitignored, so
+delete it. [Repo: `tasks/rlm_sfdmu.py`, `.gitignore`]
+
 To check a plan against the **release** (fields it selects that the release doesn't have, values a
 restricted picklist won't take, required fields it leaves out), run the release audit. `pr_gate`
 runs it offline against the committed describe snapshot; at the start of a release, capture a new
