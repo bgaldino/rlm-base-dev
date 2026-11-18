@@ -381,7 +381,12 @@ compound ramp you must, after the segments exist, PATCH `RampUpliftType='Compoun
 onto the **top-level `RampScheduleGroup`** (multi-schedule; the single segment group
 when the setting is off) and the per-segment **`UnitPriceUplift`** onto each segment's
 line, in one Place graph, then reprice and poll. This step is what actually yields the
-compound result — the three calls above alone do not. It also needs the fully-configured
+compound result — the three calls above alone do not. Segments
+reparented to the `RampScheduleGroup` by DML priced as Standard until this PATCH sent
+`RampUpliftType` [Measured: 2026-11-16, 264, scratch]. `build_quote_to_asset.py --ramp-kind
+group` sets neither `RampUpliftType` nor `UnitPriceUplift` [Repo], so send this step yourself.
+[Open: whether `RampUpliftType` set on the `RampScheduleGroup` POST takes effect; until tested,
+send it in this PATCH] It also needs the fully-configured
 `PriceRevision` engine ([Compound uplift](#compound-uplift)).
 
 ```json

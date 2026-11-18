@@ -113,11 +113,16 @@ formula field.
 `[Measured]` A rule such as "price = unit cost ÷ (1 − target margin)", with the target
 entered per line, works with:
 - a custom Percent field on the line for the target margin, mapped into the context
-  definition (`context-service`);
+  definition (`context-service`) as `INPUTOUTPUT` if reps set it at placement. Place dropped a
+  line value mapped `INPUT`, with pricing `Force` or `Skip`, and saved one mapped `INPUTOUTPUT`
+  `[Measured: 2026-11-16, 264, scratch]`. An active definition refused the change of direction,
+  so set it when the attribute is inserted (changing it after deactivating is untested);
 - a List Group whose filter admits lines with the target set and greater than 0 and
   `ItemUnitCost__std` not null, and a formula step under it writing
-  `ROUND(ItemUnitCost__std / (1 - <target field> / 100), 2)` to `NetUnitPrice`. A Percent
-  field reaches the formula in percent units, hence the `/ 100`;
+  `ROUND(ItemUnitCost__std / (1 - <target>), 2)` to `NetUnitPrice`, where `<target>` is the
+  field's tag over 100 when it arrives in percent units (40 for 40%) and the tag alone when it
+  arrives as a fraction (0.4). One build got percent units; another, with a `PERCENT` context
+  attribute, got a fraction `[Measured: 2026-11-16, 264, scratch]`. Price one line with a known target to see which you have;
 - that group placed before Manual Discount (`pricing-procedures` →
   `procedure-anatomy-and-ordering.md`). The measured build placed it after the volume
   discount steps, so on a line with a target it replaces their result.

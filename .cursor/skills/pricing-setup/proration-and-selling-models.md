@@ -131,6 +131,16 @@ that prorates by months remaining ÷ 12 differs by the day fraction: on a mid-te
 line totals won't match it. Either accept the day-based value or state the source's value as the
 expected result only where the dates cover whole years.
 
+### Measured: added bundle components default to one term
+
+Term Defined components the configurator added to a bundle came back with `SubscriptionTerm` 1,
+an end date one year after the start and `PricingTermCount` 1, whatever the root's term, in the
+bundles measured. A PATCH of the term alone left the count at 1, and a Months
+`SubscriptionTermUnit` on an annual line didn't change it; the end date sets the count (a dates-only
+PATCH moved it, as in *How pricing uses it*). After placement, PATCH each such component's term and end date to the
+root's (configuration method `Skip`, pricing `Force`) [Measured: 2026-11-16 and 2026-11-17, 264,
+scratch]. No catalog setting that makes them take the root's term was found.
+
 ## Data and automation
 
 Objects: `ProductSellingModel`, `ProrationPolicy`, `ProductSellingModelOption`. This repo loads them with the `qb-pcm` plan (policy keyed on `Name`; `ProrationPolicyId` on options is create-only on reload). Repo data rules: [`../sfdmu-data-plans/SKILL.md`](../sfdmu-data-plans/SKILL.md), [`../../../datasets/sfdmu/qb/en-US/qb-pcm/README.md`](../../../datasets/sfdmu/qb/en-US/qb-pcm/README.md). Object relationships: [`../revenue-cloud-data-model/domains/pricing.md`](../revenue-cloud-data-model/domains/pricing.md).
