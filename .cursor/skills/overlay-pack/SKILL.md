@@ -227,7 +227,9 @@ and an empty `package.xml` deploys nothing and succeeds. So a `deploy` step:
    --target-org <sf alias> --json` and matches members case-insensitively. A type the
    listing returns nothing for (`StandardValueSet` is not listable) is retrieved by
    name with `sf project retrieve start --metadata <type>:<member>
-   --target-metadata-dir <tmp> --unzip`; a member with no retrieved file is missing.
+   --target-metadata-dir <tmp> --unzip --target-org <sf alias>`; a member with no retrieved
+   file is missing. Name the target org on every `sf` call: without it the CLI falls back to
+   its default org, which may not be the one the pack is loading.
 6. Prints package.xml, deployed and on-org counts, names each `NOT DEPLOYED` and
    `NOT ON ORG` member, and exits 4 if any.
 
