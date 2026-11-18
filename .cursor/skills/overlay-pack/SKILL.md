@@ -66,7 +66,7 @@ build repeats as a pack, a feature flag or a single task.
   Plans use Upsert so a rerun matches instead of duplicating or deleting
   (`sfdmu-data-plans`; `AGENTS.md` → SFDMU v5 rules).
 - **DO NOT** pass a CCI alias to `sf`, an sf alias to `cci`, or an access token to
-  either (`cci-orchestration` → CCI vs SF CLI aliases).
+  either (`cci-orchestration` → Org Identity: CCI vs SF CLI).
 - **DO NOT** run the loader's CCI steps from a git worktree of Foundations. CCI takes
   as its project root the first folder whose `.git` is a directory, so a worktree runs
   the enclosing checkout's code or none (`build-harness` → Where to run a build).
@@ -253,7 +253,7 @@ Every step must be safe to run twice. What the proved build learned:
   objects take `skipExistingRecords: true`, as `sfdmu-data-plans` prescribes
   [Measured: 2026-11-17, 264].
 - **Catalog:** run the PCM plan twice on a fresh org; the second pass applies
-  classification-attribute values (`product-catalog-modeling` → PCM load fact a). A
+  classification-attribute values (`product-catalog-modeling` → `catalogs-and-loading.md`, PCM load fact a). A
   third pass is expected to change nothing.
 - **Procedure overlays:** skip the save when no step is new or changed. Re-saving an
   unchanged active version counted as a change on every run [Measured: 2026-11-17, 264].
@@ -320,12 +320,12 @@ only the base build. On the proved load the `check` passed when the loader reach
 | Exit or symptom | Do |
 |-----------------|----|
 | 3 (`check` missed) | Do the printed instructions, then `--from <id>`. |
-| `verify` exits 1 | A member isn't on the org: redeploy its step with `--from <id> --to <id>`, or fix its `package.xml`. |
+| `verify` exits 1 | A member isn't on the org: redeploy its step with `--from <id> --to <id>`; if you fixed its folder or `package.xml` in the pack, add `--restage`. |
 | 4 (deploy unverified) | Read the `NOT DEPLOYED` / `NOT ON ORG` lines. Fix the folder or `package.xml` in the pack, then `--from <id> --restage`. |
 | 1 on a deploy | Read the component failures; fix the metadata or deploy its dependency first. |
 | 1 on a `run` step | Read the step's log. For a data plan, follow `sfdmu-data-plans` (never switch to Insert + `deleteOldData`). |
 | `fresh` timed out | Run `check_decision_table_freshness` and read which table is Stale and why (`decision-tables`). |
-| Place says it can't find a newly loaded product | Wait for the search index after `rebuild_search_index` (`product-catalog-modeling` → PCM load fact f). |
+| Place says it can't find a newly loaded product | Wait for the search index after `rebuild_search_index` (`product-catalog-modeling` → `catalogs-and-loading.md`, PCM load fact f). |
 | A fix in the pack isn't picked up | The resume reused the stage: add `--restage`. |
 | A CCI step runs the wrong code or finds no project | The Foundations path is a worktree; point it at a regular checkout. |
 
