@@ -82,10 +82,28 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    `LastIncrementalSyncDate`, not `LastSyncDate` [Measured: 2026-11-18, 264, scratch, one org]; the
    request had no refresh-type field, and the type is chosen by the platform (*Release 264 chooses the
    refresh type* in `lifecycle-and-refresh.md`). Versioned CSV tables were not tried.
-   On an admin's Setup page, Refresh calls an Aura action, not the flow action or the Connect
-   resource; which check it applies is not established. With only the three permission sets, a user
-   saw a pricing table in Setup without Refresh or Deactivate [Measured: 2026-11-18, 264, scratch, one
-   org]. [Open: the check behind Setup's Refresh button]
+   **Setup's Refresh button** (a table's detail page, Setup → Decision Tables) calls an Aura action,
+   not the flow action. What follows was measured on an Active table [Measured: 2026-11-19, 264,
+   scratch, one org]. Except for Modify All Data plus Customize Application, every user needed read
+   access to the table's source object: without it the detail page opened two error dialogs that blame
+   the source object's configuration, with no button. With that read access, the button showed for
+   Customize Application or Modify All Data, and the click admitted the same users as the Connect route
+   above. Customize Application alone, and Modify All Data alone, got the refusal toast ("We
+   can't refresh the decision table..."). Modify All Data plus Customize Application, and Customize
+   Application plus Rule Engine Designer or Salesforce Pricing Design Time User, refreshed
+   (`LastIncrementalSyncDate` moved, not `LastSyncDate`). Either designer set without Customize
+   Application had no button. The list page (Decision Tables in the Setup tree) showed for Modify All
+   Data plus Customize Application; Customize Application, Modify All Data, Rule Engine Designer, and
+   Customize Application with read access saw only Settings. Salesforce Pricing Design Time User,
+   alone or with Customize Application, and Rule Engine Designer with Customize Application, were
+   not checked.
+   **Sync Pricing Data** (Setup → Salesforce Pricing Setup) is gated separately [Measured: 2026-11-19,
+   264, scratch, one org; the same users, so all but the first had that read access]. It ran for Modify
+   All Data plus Customize Application (13 tables queued) and for Customize Application plus
+   Salesforce Pricing Design Time User (12). Customize Application, and Customize Application plus
+   Rule Engine Designer, got "You don't have access to Salesforce Pricing setup"; Modify All Data, and
+   either designer set without Customize Application, got "Page not found". Whether Modify All Data
+   plus Customize Application passes through Modify All Data or another admin check was not isolated.
    The Manager shows freshness to any user with `RLM_DecisionTableManager` but disables Refresh unless the user has both Modify All
    Data and Customize Application [Repo: `RLM_DecisionTableManagerController.canRefreshTables`].
 2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
@@ -311,7 +329,7 @@ header — read it there rather than re-deriving it.
 |---|---|
 | `cci flow run refresh_all_decision_tables --org "your-cci-alias"` | After a build, a data load, or any catalog/pricing change. Flag-scoped. |
 | The **Decision Table Manager** component (Home page, utilities accordion) | Interactive: per-table refresh (admin only, see rule 1), status polling, why a table is stale. |
-| Setup → Decision Tables | One table, manually. |
+| Setup → Decision Tables | One Active table, manually. Refresh worked for Customize Application plus one of Modify All Data, Rule Engine Designer or Salesforce Pricing Design Time User (with a designer set, the user also needed read access to the table's source object); neither admin permission alone worked, with or without read access (rule 1). |
 | `RLM_Refresh_Decision_Tables_Bulk` flow | From Apex or another flow — the only way Apex can reach the refresh action. Queues only when the running user can refresh (rule 1). |
 
 An **incremental** sync advances `LastIncrementalSyncDate` and usually does not move

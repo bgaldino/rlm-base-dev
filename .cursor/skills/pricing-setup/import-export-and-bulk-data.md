@@ -24,14 +24,14 @@ Price book entry and price adjustment record pages show a grid by default. To sw
 
 [Help: `ind.pricing_sync_pricing_data.htm`] Sync refreshes every decision table that is mapped to a pricing recipe **and** has Usage Type = Pricing. Tables with source objects must have Usage Type Pricing for an accurate sync.
 
-[Core] Disagrees with Help on scope: Sync refreshes every **active** decision table mapped to the recipe (the recipe page's Sync) or to any active Revenue Cloud recipe (the Setup button), with no usage-type filter, plus the Derived Pricing Entries and Asset Action Source Entries V2 tables if active. It never activates a table. The button shows for Design Time, Pricing Manager and Pricing Admin users.
+[Core] Disagrees with Help on scope: Sync refreshes every **active** decision table mapped to the recipe (the recipe page's Sync) or to any active Revenue Cloud recipe (the Setup button), with no usage-type filter, plus the Derived Pricing Entries and Asset Action Source Entries V2 tables if active. It never activates a table. The button shows for Design Time, Pricing Manager and Pricing Admin users (on the measured org Design Time also needed Customize Application; Permissions, below).
 
 [Repo, measured on a fresh 264 build] Sync refreshed all 11 DefaultPricing tables and 2 PricingDiscovery tables (a usage type Help's rule does not name, consistent with core), and no rating, qualification or tax tables ([decision-tables measurement](../decision-tables/lifecycle-and-refresh.md#after-editing-setup-data--what-refreshes-what)). Check Last Refreshed rather than relying on usage type alone.
 
 1. Setup > Quick Find > Salesforce Pricing > Salesforce Pricing Setup.
 2. Sync Pricing Data > Sync.
 
-Permissions: Salesforce Pricing Design Time to enable sync; Assetize Order for complete sync of tables. If a complete sync fails, the Help recommends the System Admin permission set. Sync is manual. A scheduled flow can refresh pricing tables on a cadence ([pricing-recipes → Data and automation](pricing-recipes.md#data-and-automation)). After a sandbox refresh or clone, re-run Sync Pricing Data and refresh each table; pricing data does not carry over.
+Permissions: Salesforce Pricing Design Time to enable sync; Assetize Order for complete sync of tables. If a complete sync fails, the Help recommends the System Admin permission set. On one org, Salesforce Pricing Design Time User also needed Customize Application: without it the Salesforce Pricing Setup page returned "Page not found". The page and its Sync ran for Design Time User plus Customize Application and for Modify All Data plus Customize Application; Customize Application, alone or with Rule Engine Designer, got "You don't have access to Salesforce Pricing setup" [Measured: 2026-11-19, 264, scratch, one org] (details: [decision-tables](../decision-tables/SKILL.md) rule 1). Sync is manual. A scheduled flow can refresh pricing tables on a cadence ([pricing-recipes → Data and automation](pricing-recipes.md#data-and-automation)). After a sandbox refresh or clone, re-run Sync Pricing Data and refresh each table; pricing data does not carry over.
 
 ## After-load refresh rule
 
