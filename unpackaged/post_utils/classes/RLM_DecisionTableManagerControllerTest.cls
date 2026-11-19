@@ -1673,7 +1673,7 @@ private with sharing class RLM_DecisionTableManagerControllerTest {
 
     @isTest
     static void refreshIsRefusedWithTheReasonForAUserWithoutAdminPermissions() {
-        // The platform's own gate is Modify All Data AND Customize Application. A user
+        // The refresh action's gate is Modify All Data AND Customize Application. A user
         // without them must get the permission named, not the flow's per-table
         // "Unsupported action type", and nothing may be started on their behalf.
         List<DecisionTable> existing = [SELECT DeveloperName FROM DecisionTable WHERE Status = 'Active' LIMIT 1];
