@@ -130,8 +130,12 @@ class StampGitCommit(SFDXBaseTask):
     # Git helpers
     # ------------------------------------------------------------------
 
-    def _git(self, *args):
-        """Run a git command and return stripped stdout."""
+    def _git(self, *args, strip=True):
+        """Run a git command and return its stdout, stripped unless strip=False.
+
+        Pass strip=False for column-sensitive output such as `status --porcelain`, whose
+        first line can begin with a meaningful space (todo 396).
+        """
         command = ["git"] + list(args)
         try:
             result = subprocess.run(
@@ -141,7 +145,7 @@ class StampGitCommit(SFDXBaseTask):
                 check=True,
                 timeout=10,
             )
-            return result.stdout.strip()
+            return result.stdout.strip() if strip else result.stdout
         except subprocess.CalledProcessError as e:
             raise CommandException(
                 f"git command failed: {shlex.join(command)}\n{e.stderr}"
@@ -177,14 +181,24 @@ class StampGitCommit(SFDXBaseTask):
         Excludes known build-output paths (e.g. unpackaged/post_ux/) that are
         regenerated during the flow and would otherwise always flag dirty in CI.
         """
-        output = self._git("status", "--porcelain")
-        if not output:
-            return False
-        for line in output.splitlines():
-            # porcelain format: XY <path> or XY <old path> -> <new path>
-            # Check both sides of a rename: a rename from a build-output path
-            # to a non-build-output path (or vice versa) must still count as dirty.
-            paths = [p.strip() for p in line[3:].split(" -> ")]
+        # `--porcelain -z` (todo 396): entries are `XY <path>` separated by NUL, never C-quoted,
+        # and a rename or copy is followed by its source path as a separate entry. The text form
+        # broke the exclusion two ways: a path with a space (every post_ux layout) is printed in
+        # double quotes, and stripping stdout removed the first entry's blank index column
+        # (" M path") so `entry[3:]` cut the path. So the output is read raw (strip=False).
+        entries = self._git("status", "--porcelain", "-z", strip=False).split("\0")
+        index = 0
+        while index < len(entries):
+            entry = entries[index]
+            index += 1
+            if not entry.strip():
+                continue
+            status, paths = entry[:2], [entry[3:]]
+            if "R" in status or "C" in status:
+                # A rename across the build-output boundary, either way, must still count.
+                if index < len(entries):
+                    paths.append(entries[index])
+                index += 1
             for path in paths:
                 if path and not any(path.startswith(bp) for bp in self.BUILD_OUTPUT_PATHS):
                     return True
