@@ -371,7 +371,8 @@ class GitHelpers(unittest.TestCase):
         # drops the path's first character ("npackaged/post_ux/..."), so the exclusion
         # misses and an unstaged, regenerated post_ux file - the state every build leaves -
         # stamps the tree dirty. The same line in second position is excluded correctly.
-        # If this assertion starts failing, the bug was fixed: flip it to False.
+        # Tracked as todo 396. If this assertion starts failing, the bug was fixed: flip it to
+        # False and close 396.
         self.assertIs(self.dirty(" M unpackaged/post_ux/assembly_manifest.json"), True)
         self.assertIs(
             self.dirty("M  unpackaged/post_ux/a.json\n M unpackaged/post_ux/assembly_manifest.json"),
