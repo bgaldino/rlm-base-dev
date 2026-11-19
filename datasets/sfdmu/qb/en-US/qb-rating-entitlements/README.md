@@ -14,7 +14,7 @@ which creates the usage definitions, the policy records these point at, and the 
 | `prepare_rating` | 7 | `activate_rating_records` (activates the PURs and grants) |
 | `extract_rating` | 2 | `extract_qb_rating_entitlements_data` |
 | `run_qb_extracts` | 7 | `extract_qb_rating_entitlements_data` (right after `extract_qb_rating_data`) |
-| `run_qb_idempotency_tests` | 7 | `test_qb_rating_entitlements_idempotency` (right after `test_qb_rating_idempotency`, which loads the PURs) |
+| `run_qb_idempotency_tests` | 8 | `test_qb_rating_entitlements_idempotency` (right after `test_qb_rating_idempotency`, which loads the PURs) |
 
 `test_qb_rating_entitlements_idempotency` runs the extraction round-trip against an org that
 already has qb-rating loaded.

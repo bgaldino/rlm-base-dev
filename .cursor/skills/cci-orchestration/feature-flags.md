@@ -91,7 +91,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_approvals_pricing` step 2 → `apply_approval_flags_overlay`
 - `prepare_personas` step 11 → `assign_permission_sets`
 - `run_qb_extracts` step 13 → `extract_qb_approvals_data`
-- `run_qb_idempotency_tests` step 13 → `test_qb_approvals_idempotency`
+- `run_qb_idempotency_tests` step 14 → `test_qb_approvals_idempotency`
 
 ### `billing` (default: `True`)
 
@@ -117,7 +117,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing_portal` step 4 → `revert_network_email_after_deploy`
 - `prepare_billing_portal` step 5 → `publish_community`
 - `run_qb_extracts` step 11 → `extract_qb_billing_data`
-- `run_qb_idempotency_tests` step 11 → `test_qb_billing_idempotency`
+- `run_qb_idempotency_tests` step 12 → `test_qb_billing_idempotency`
 - `run_q3_idempotency_tests` step 8 → `test_q3_billing_idempotency`
 
 ### `billing_portal` (default: `False`)
@@ -307,8 +307,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `refresh_all_decision_tables` step 8 → `refresh_dt_prm_pricing`
 - `run_qb_extracts` step 12 → `extract_qb_prm_data`
 - `run_qb_extracts` step 14 → `extract_qb_prm_pricing_data`
-- `run_qb_idempotency_tests` step 12 → `test_qb_prm_idempotency`
-- `run_qb_idempotency_tests` step 14 → `test_qb_prm_pricing_idempotency`
+- `run_qb_idempotency_tests` step 13 → `test_qb_prm_idempotency`
+- `run_qb_idempotency_tests` step 15 → `test_qb_prm_pricing_idempotency`
 
 ### `prm_exp_bundle` (default: `False`)
 
@@ -334,7 +334,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
 - `refresh_all_decision_tables` step 8 → `refresh_dt_prm_pricing`
 - `run_qb_extracts` step 14 → `extract_qb_prm_pricing_data`
-- `run_qb_idempotency_tests` step 14 → `test_qb_prm_pricing_idempotency`
+- `run_qb_idempotency_tests` step 15 → `test_qb_prm_pricing_idempotency`
 
 ### `procedureplans` (default: `True`)
 
@@ -402,11 +402,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `run_qb_extracts` step 12 → `extract_qb_prm_data`
 - `run_qb_extracts` step 13 → `extract_qb_approvals_data`
 - `run_qb_extracts` step 14 → `extract_qb_prm_pricing_data`
-- `run_qb_idempotency_tests` step 10 → `test_qb_tax_idempotency`
-- `run_qb_idempotency_tests` step 11 → `test_qb_billing_idempotency`
-- `run_qb_idempotency_tests` step 12 → `test_qb_prm_idempotency`
-- `run_qb_idempotency_tests` step 13 → `test_qb_approvals_idempotency`
-- `run_qb_idempotency_tests` step 14 → `test_qb_prm_pricing_idempotency`
+- `run_qb_idempotency_tests` step 11 → `test_qb_tax_idempotency`
+- `run_qb_idempotency_tests` step 12 → `test_qb_billing_idempotency`
+- `run_qb_idempotency_tests` step 13 → `test_qb_prm_idempotency`
+- `run_qb_idempotency_tests` step 14 → `test_qb_approvals_idempotency`
+- `run_qb_idempotency_tests` step 15 → `test_qb_prm_pricing_idempotency`
 
 ### `quantumbit` (default: `True`)
 
@@ -490,7 +490,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_tax` step 4 → `activate_tax_records`
 - `run_qb_extracts` step 10 → `extract_qb_tax_data`
-- `run_qb_idempotency_tests` step 10 → `test_qb_tax_idempotency`
+- `run_qb_idempotency_tests` step 11 → `test_qb_tax_idempotency`
 - `run_q3_idempotency_tests` step 7 → `test_q3_tax_idempotency`
 - `run_q3_idempotency_tests` step 8 → `test_q3_billing_idempotency`
 

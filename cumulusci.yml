@@ -5076,6 +5076,8 @@ flows:
         task: extract_qb_prm_pricing_data
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb
 
+  # test_inapp_idempotency is not a step here or in run_q3_idempotency_tests: inapp is a
+  # standalone plan with its own load and test tasks (inapp-framework skill).
   run_qb_idempotency_tests:
     group: Data Management - Idempotency
     description: Run all QB data idempotency tests (load twice, assert no new records). Use --org to specify target org.
@@ -5085,39 +5087,43 @@ flows:
       2:
         task: test_qb_pricing_idempotency
       3:
-        task: test_qb_dro_idempotency
+        # qb-price-revision loads in prepare_pricing_data right after the qb pricing plan,
+        # under the same qb guard, so it is tested right after the pricing step (todo 385).
+        task: test_qb_price_revision_idempotency
       4:
-        task: test_qb_clm_idempotency
+        task: test_qb_dro_idempotency
       5:
-        task: test_qb_rating_idempotency
+        task: test_qb_clm_idempotency
       6:
-        task: test_qb_rating_entitlements_idempotency
+        task: test_qb_rating_idempotency
       7:
-        task: test_qb_rates_idempotency
+        task: test_qb_rating_entitlements_idempotency
       8:
-        task: test_qb_transactionprocessingtypes_idempotency
+        task: test_qb_rates_idempotency
       9:
+        task: test_qb_transactionprocessingtypes_idempotency
+      10:
         task: test_qb_guidedselling_products_idempotency
-      # Steps 10-14: feature-gated module idempotency tests, ordered to match the module
+      # Steps 11-15: feature-gated module idempotency tests, ordered to match the module
       # load order in prepare_rlm_org so cross-plan dependencies resolve on an org that does
       # not already have the data. Notably TAX before BILLING: qb-billing references
       # LegalEntity.Name with LegalEntity as Readonly, and those LegalEntity rows are created
       # by qb-tax (LegalEntity = Upsert). prm also precedes prm_pricing (the pricing overlay).
       # Each is guarded by the same feature flags as its data-load task, so the flow stays
       # runnable on a base org where the module's data was never loaded.
-      10:
+      11:
         task: test_qb_tax_idempotency
         when: project_config.project__custom__tax and project_config.project__custom__qb
-      11:
+      12:
         task: test_qb_billing_idempotency
         when: project_config.project__custom__billing and project_config.project__custom__qb
-      12:
+      13:
         task: test_qb_prm_idempotency
         when: project_config.project__custom__prm and project_config.project__custom__qb
-      13:
+      14:
         task: test_qb_approvals_idempotency
         when: project_config.project__custom__qb and project_config.project__custom__approvals
-      14:
+      15:
         task: test_qb_prm_pricing_idempotency
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb
 
