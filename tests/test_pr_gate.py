@@ -4067,6 +4067,10 @@ NOT_INPUTS = {
     "tests/test_repo_paths.py": {
         ".gitignore": "a file written inside a throwaway synthetic repo, not read from this one",
     },
+    "tests/test_rlm_stamp_commit.py": {
+        "sfdx-project.json": "the file the task writes into its own temp deploy dir; the suite "
+                             "reads it from there, never this repo's",
+    },
 }
 
 

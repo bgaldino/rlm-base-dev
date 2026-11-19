@@ -1,6 +1,11 @@
 """Regression tests for the generated CCI reference helpers."""
 
-from scripts.ai.generate_cci_reference import _scan_when_clauses
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.ai.generate_cci_reference import _scan_when_clauses  # noqa: E402
 
 
 def test_scan_when_clauses_matches_complete_feature_flag_names():
@@ -89,3 +94,16 @@ def test_scan_when_clauses_does_not_treat_a_longer_flag_as_a_prefix_match():
 
     assert "billing_portal" not in usage
     assert usage["billing_portal_deploy"] == ["`synthetic` step 1 → `deploy`"]
+
+
+def main():
+    """Run the test functions without pytest, so the file also works as a script (todo 384)."""
+    tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
+    for test in tests:
+        test()
+    print(f"{len(tests)} tests passed")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
