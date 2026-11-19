@@ -75,8 +75,11 @@ files can use it.
   worked example's stated outcome, follow a resolution the source states itself (a note
   on the example). Otherwise look for a reading that keeps both (a narrower scope, or a
   data choice such as a line the rule never touches) and recommend it, with the literal
-  reading as the alternative; if none keeps both, recommend the stated rule. Either way,
-  list the examples the literal reading breaks.
+  reading as the alternative; if more than one reading keeps both, recommend the one that
+  also keeps the examples' stated reasons; if none keeps both, recommend the stated rule.
+  Unless the source resolves it, list the recommended reading and the literal reading with their
+  numbers and the examples the literal reading breaks, and put the choice to the source's owner; don't adopt either
+  reading before the owner answers.
 - **DO NOT** put customer, brand or third-party commercial data in the public repo.
   Decide where the plan and data live (Quick Rule 1). A private plan may name real
   data; this skill and anything public may not.
@@ -157,7 +160,7 @@ the request already answers, and say what you assumed instead.
 |---|---|
 | What is the build for (demo, customer proof, benchmark, product extension)? | Sets "done": reproducing worked examples, a walkthrough, or a shipped feature |
 | Where does it live (private pack first, public repo behind a flag, or both)? | Sets data handling and the promotion phase |
-| What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, billing, usage and rating, order fulfillment, contracts and documents, policies not yet in force |
+| What is in scope beyond catalog and standard pricing? | Cost and margin, negotiation and approvals, lifecycle changes and renewal, billing, usage and rating, order fulfillment, contracts and documents, policies not yet in force. A source that states billing per line (a cadence, a milestone, an in-advance or in-arrears term) brings billing into scope even when the answer here didn't name it |
 | Is the source read once, or kept in sync? | Read once means one extraction with a parity check; kept in sync adds a generator to maintain |
 | What runtime surface? | The standard Transaction Line Editor and configurator, or custom UI |
 | How are quantities derived, and may a rep override them? | Rule-owned sizing or editable defaults (`constraint-models` → `quantities-from-attributes.md`), and the amendment path. A source can say both in different places |

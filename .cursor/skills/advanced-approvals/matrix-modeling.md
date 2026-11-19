@@ -127,8 +127,8 @@ where each level is computed:
   guard. Make reprice part of submission [Repo: `datasets/expression_set_overlays/README.md`].
   The approval status has none either: a quote approved and then repriced to a higher level
   keeps Approved, because nothing resets the status [inferred: no shipped or measured build
-  resets it; not run]. A Quote validation rule refusing Presented or Accepted while the level
-  is above 0 and the status isn't Approved refused an unapproved quote
+  resets it; not run]. A Quote validation rule refusing `Quote.Status` Presented or Accepted while
+  `RLM_Approval_Level__c` is above 0 and `RLM_Approval_Status__c` isn't Approved refused an unapproved quote
   [Measured: 2026-11-17, 264, scratch, one org], but it reads the current status, so it
   doesn't catch this case. [Open: build and run a guard that records the approved level and
   refuses presenting, or resets the status, when the level rises above it]

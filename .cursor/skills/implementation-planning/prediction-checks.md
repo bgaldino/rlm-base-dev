@@ -102,7 +102,11 @@ prediction: a decision, a rule decision record row, a spike's must-hit or a gold
    amendment, renewal) and the step that refuses (category assignment, configurator,
    Place, order, activation). A path the guard doesn't cover gets its own check, or the
    gap is a decision. `IsSoldOnlyWithOtherProds` was measured refusing only at category
-   assignment; Place, order and activation accepted the product alone
+   assignment; Place, order and activation accepted the product alone. An after-insert
+   trigger on the quote line, checking the quote for the required root line, refused a
+   standalone line at Place, but it checks the quote, not the line, so a standalone line on a
+   quote that already has a root line passes [inferred], and removing the root line afterward leaves the line standalone, since the trigger runs only when the add-on is inserted [inferred], and amendment and renewal paths
+   were not measured; a quote line validation rule can't see the parent line
    (`product-catalog-modeling` → `selling-models-and-lifecycle.md`).
 8. **Gate a custom computation on every quote structure the plan creates.** A value
    that counts terms or dates (contract value, cost over the term) runs on plain quotes,

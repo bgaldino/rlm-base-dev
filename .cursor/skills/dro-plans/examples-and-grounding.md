@@ -96,8 +96,16 @@ target, and treat a person's sign-off as a manual task unless a run shows otherw
 [inferred]. In the recheck, activation created the assets and billing schedules before any
 step ran, and the smoke's activation, billing and asset checks passed while its plan stayed
 open, so plan the installed base and billing from activation, not from a step
-[inferred]. For marking an event billing milestone, see
-[billing-setup](../billing-setup/SKILL.md).
+[inferred]. A source step that "starts billing" therefore starts nothing; make it a
+marking step if the source ties event milestones to it; otherwise drop it, or keep it as a
+no-op step to match the source's step count, and record which as a decision. Marking was
+measured as an AutoTask whose flow calls an Apex action: on a current-dated order it marked
+the next event item of each of the step's lines (chosen by item name; name items in event order) [Measured: 2026-11-17, 264, scratch, two
+orgs]. The platform refuses the mark before the billing schedule starts [Measured: 2026-11-16 and
+2026-11-17, 264, scratch, two orgs], and on a future-dated order the action deferred and
+nothing was marked [Measured: 2026-11-18, 264, scratch, one org]; a later run is needed
+[inferred]. See
+[billing-setup](../billing-setup/SKILL.md) → *Marking an event milestone done*.
 
 #### Recheck
 

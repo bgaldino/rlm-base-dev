@@ -236,7 +236,15 @@ rule doesn't explain that [Measured: 2026-11-12, 264, scratch; one quote].
    status in progress or failed, unmet required-to-enter lines, an invalid configuration, the
    maximum orders per quote, bundle/ramp/usage/group integrity checks, the large-transaction
    restriction). A declarative flow or validation rule on Quote or Order, or an approval you
-   wired, can still stop it.
+   wired, can still stop it. A Quote validation rule refusing `Quote.Status` Presented or Accepted while
+   `RLM_Approval_Level__c` is above 0 and `RLM_Approval_Status__c` isn't Approved refused an unapproved quote
+   [Measured: 2026-11-17, 264, scratch, one org]. It covers presenting and accepting; ordering isn't a status change, so it
+   doesn't stop an order [inferred; create order not run against it]. It reads the current
+   status, so a quote approved and then repriced higher still passes ([`advanced-approvals`](../advanced-approvals/matrix-modeling.md) →
+   *Freshness*). A guard on ordering itself needs its own rule or flow on Quote or Order,
+   or a recorded decision: an Order validation rule on a Quote flag made `createOrdersFromQuote`
+   return the rule's message with no order created ([`internal-round.md`](internal-round.md))
+   [Measured: 2026-11-17, 264, scratch]; the same shape on the approval status was not run [inferred].
 3. Close out the other rounds: recall open submissions; set customer-facing rounds that
    lost to Denied if your process tracks that.
 

@@ -138,8 +138,12 @@ lines to fill an empty UI panel.
    condition skips it [inferred from the schema]. Give each technical item its own group of
    steps; a step that several items need with different predecessors needs one definition
    in each item's group. The same holds for one item fed by several source products whose
-   work waits on different predecessors: one definition per case with a condition on the
-   source product, or a separate technical item [inferred].
+   work waits on different predecessors: a separate technical item, or one definition per
+   case with a condition on the source product [inferred]. A shared step definition's
+   dependency applies to every line the item carries, so it can't make one product's steps
+   wait on a step only another product has [inferred]. A build moved that product to its own item so its steps could wait on
+   that other product's step [Measured: 2026-11-17, 264, scratch, one org]; a per-product
+   definition with its own condition and dependency is untested.
    Count groups and step definitions before step instances.
 5. If two outputs have separate groups, design dependencies between their actual
    instances. Do not copy a per-line dependency and assume it pairs different
