@@ -140,14 +140,14 @@ live to the engine.
 
 Measured on a fresh 264 build, 40 tables:
 - **17** are refreshed at runtime by flows: contract activation, the asset Platform Event flow,
-  Account reset and Commerce. Each refresh queues only when its running user has Modify All
-  Data and Customize Application (SKILL.md rule 1). Account reset run by a non-admin queues
+  Account reset and Commerce. Called directly or from a flow the user runs, the refresh action queues only for a user with
+  Modify All Data and Customize Application (SKILL.md rule 1). Account reset run by a non-admin queues
   none: it goes through the same bulk flow measured refusing the salesrep on 264 (not yet run as a
-  reset). Contract activation by a non-admin is unverified. The Platform Event flow's start element
-  sets `flowRunAsUser` TriggeringUser [Repo]; which user that resolves to for this
-  platform-published event is unverified. [Open: activate a contract as a
-  non-admin, activate an order as a non-admin, and run Account reset as a non-admin, then check
-  whether the tables each flow names queue a refresh]
+  reset). Contract activation by a non-admin is unverified. The asset Platform Event flow ran as
+  the activating user, and its refreshes ran when a sales rep without either admin permission
+  activated an order [Measured: 2026-11-18, 264, scratch, one org; SKILL.md rule 1]. [Open:
+  activate a contract as a non-admin and run Account reset as a non-admin, then check whether
+  the tables each flow names queue a refresh]
 - **9** more are covered only by Sync Pricing Data (Setup → Salesforce Pricing Setup). It
   refreshes all 11 DefaultPricing and 2 PricingDiscovery tables, so some of its 13 overlap the 17.
 - **14** are refreshed by nothing after the build:

@@ -62,7 +62,7 @@ Element lookups show only tables linked to the **default recipe of the procedure
   Decision Tables > Last Refreshed. Permissions, with Help's purposes: Manage Flow to create and
   activate the flow, Salesforce Pricing Design Time to enable data sync, Assetize Order for a
   complete sync of decision tables. The action has its own gate:
-  [decision-tables](../decision-tables/SKILL.md) (the refresh flow action is admin-only and the Connect refresh route has a different gate; both in rule 1).
+  [decision-tables](../decision-tables/SKILL.md) (the refresh flow action is admin-only except, measured once, in the repo's order-activation Platform Event flow, and the Connect refresh route has a different gate; all in rule 1).
 
 ## Verify
 
