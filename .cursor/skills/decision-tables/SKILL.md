@@ -61,15 +61,24 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    the admin who deployed and scheduled it, not as Automated Process, and its refresh queued
    [Measured: 2026-11-18, 264, scratch, one org]. Whether a later edit or activation by another user
    changes the running user was not tested.
-   A Connect API refresh resource is open to users with Business Rules Engine advanced designer or
-   admin access [Platform behaviour, traced]. Its path is not established, and the 264 Help and
-   developer guide document none. On an admin's Setup page, Refresh calls an Aura action, not the
-   flow action or a Connect resource; whether it applies the same check is not established. With only
-   the three permission sets, a user saw a pricing table in Setup without Refresh or Deactivate.
-   Rule Engine Designer's System Permissions page lists three entries, none labelled Business Rules
-   Engine advanced designer [Measured: 2026-11-18, 264, scratch, one org]. [Open: find the Connect
-   resource's path and give the user Business Rules Engine advanced designer access (or confirm a set
-   carries it), then refresh through it as that user; either needs an API session for the user]
+   A Connect resource has a different gate: `POST /services/data/v68.0/connect/decision-table/refresh`
+   with `{"decisionTableId": "<Id>"}` returned 201 `Queued` for a user with Rule Engine Designer alone,
+   for one with Salesforce Pricing Design Time User alone, for one with Modify All Data and Customize
+   Application together and no designer set, and for the three-set user the action refused; a user with
+   none of these, or with either admin permission alone, got 403 `FUNCTIONALITY_NOT_ENABLED`
+   [Measured: 2026-11-18, 264, scratch, one org]. The 264 Help and developer guide document no such
+   resource, so use the action in build code, flows and tasks, and the route only for an ad-hoc API
+   refresh by a designer or Design Time user without both admin permissions. A second request while a
+   refresh of the same table was pending returned 201 with `status` `Failed` and no `errorMessage`
+   [Measured: 2026-11-18, 264, scratch, one org]. Don't resend: poll freshness. Whether the hourly
+   refresh limit returns the same shape is not established. Refreshes queued through the route moved
+   `LastIncrementalSyncDate`, not `LastSyncDate` [Measured: 2026-11-18, 264, scratch, one org]; the
+   request had no refresh-type field, and the type is chosen by the platform (*Release 264 chooses the
+   refresh type* in `lifecycle-and-refresh.md`). Versioned CSV tables were not tried.
+   On an admin's Setup page, Refresh calls an Aura action, not the flow action or the Connect
+   resource; which check it applies is not established. With only the three permission sets, a user
+   saw a pricing table in Setup without Refresh or Deactivate [Measured: 2026-11-18, 264, scratch, one
+   org]. [Open: the check behind Setup's Refresh button]
    The Manager shows freshness to any user with `RLM_DecisionTableManager` but disables Refresh unless the user has both Modify All
    Data and Customize Application [Repo: `RLM_DecisionTableManagerController.canRefreshTables`].
 2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.

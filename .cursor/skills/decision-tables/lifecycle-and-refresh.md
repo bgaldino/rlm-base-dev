@@ -130,6 +130,11 @@ live to the engine.
 - The response carries `outputValues.Status = "Queued"` and no tracker id. Poll
   the later of the two timestamps rather than treating the response as
   completion: in Release 264 the request does not decide which one moves.
+- **Connect route.** `POST /services/data/v68.0/connect/decision-table/refresh` with
+  `{"decisionTableId": "<Id>"}` queues a refresh under a different permission gate (SKILL.md
+  rule 1). Its response is top-level `status` and `errorMessage`, not `outputValues`: HTTP 201 with
+  `Queued`, or `Failed` with no message for a request while one was pending [Measured: 2026-11-18,
+  264, scratch, one org]. The headless tasks here use the action, not this route.
 
 ### After editing setup data — what refreshes what
 

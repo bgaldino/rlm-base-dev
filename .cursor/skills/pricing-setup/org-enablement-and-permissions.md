@@ -153,7 +153,9 @@ analyst persona.
   saving a procedure (Expression Set create/edit/delete) on Expression Set admin access instead:
   `InteractionCalcAdminPerm`, or Customize Application / Modify All Data; Design Time gates the
   pricing setup records and actions. Whether the Design Time permission set carries
-  `InteractionCalcAdminPerm` is not verified. [Core]
+  `InteractionCalcAdminPerm` is not verified. [Core] A user holding only Salesforce Pricing Design
+  Time User queued a decision-table refresh through the Connect refresh resource
+  ([decision-tables](../decision-tables/SKILL.md) rule 1) [Measured: 2026-11-18, 264, scratch, one org].
 - Product Selling Model on the price book entry is what list-price decision tables key on; see
   [list-price](../pricing-procedures/elements/list-price.md).
 
