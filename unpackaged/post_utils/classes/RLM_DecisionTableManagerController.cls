@@ -2098,11 +2098,11 @@ public with sharing class RLM_DecisionTableManagerController {
      * Whether the running user can refresh a decision table through the refreshDecisionTable
      * action, the route this class and its flows use.
      *
-     * Salesforce gates the refreshDecisionTable action on Modify All Data AND Customize
-     * Application, and nothing narrower satisfies it: no BRE permission,
-     * DecisionTableExecUserAccess or RunFlow (Core InvocableRefreshDecisionTable.hasAccess;
-     * measured on 264, a salesrep with RunFlow is refused). So the component's freshness view
-     * is for everyone with the permission set, and its Refresh is for admins.
+     * Called directly or from a flow the user starts, the refreshDecisionTable action queues only
+     * for a user with Modify All Data AND Customize Application: no BRE permission set or
+     * RunFlow satisfies it (measured on 264: a salesrep with RunFlow is refused). So the
+     * component's freshness view is for everyone with the permission set, and its Refresh is
+     * for admins. (The order-activation Platform Event flow is the one measured exception.)
      */
     @AuraEnabled(cacheable=false)
     public static Boolean canRefreshTables() {
