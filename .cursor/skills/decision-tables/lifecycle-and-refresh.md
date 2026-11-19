@@ -143,14 +143,19 @@ live to the engine.
 
 Measured on a fresh 264 build, 40 tables:
 - **17** are refreshed at runtime by flows: contract activation, the asset Platform Event flow,
-  Account reset and Commerce. Called directly or from a flow the user runs, the refresh action queues only for a user with
-  Modify All Data and Customize Application (SKILL.md rule 1). Account reset run by a non-admin queues
-  none: it goes through the same bulk flow measured refusing the salesrep on 264 (not yet run as a
-  reset). Contract activation by a non-admin is unverified. The asset Platform Event flow ran as
-  the activating user, and its refreshes ran when a sales rep without either admin permission
-  activated an order [Measured: 2026-11-18, 264, scratch, one org; SKILL.md rule 1]. [Open:
-  activate a contract as a non-admin and run Account reset as a non-admin, then check whether
-  the tables each flow names queue a refresh]
+  Account reset and Commerce. The refresh action is admin-only, with measured exceptions that
+  include the repo's contract- and order-activation flows (SKILL.md rule 1). Account reset is a
+  screen flow that sets no run mode. Its refresh subflow, invoked directly over REST with the
+  reset's input (PricingDiscovery) by a sales rep without either admin permission, finished but
+  moved neither PricingDiscovery table's stamps, while an admin's run refreshed both
+  [Measured: 2026-11-19, 264, scratch, one org]. A screen flow with no run mode runs in the user's
+  context and its subflow inherits that (inferred), so a non-admin's reset is expected to refresh
+  nothing; the subflow still finished because the bulk flow's fault path counts the error instead
+  of raising it [Repo: `RLM_Refresh_Decision_Tables_Bulk`]. [Open: run the reset itself as a
+  non-admin and check whether its screen reports it, and the stamps]
+  Activating a contract or an order as that sales rep refreshed every table its activation flow
+  names [Measured: 2026-11-18 (order) and 2026-11-19 (contract), 264, scratch, one org;
+  SKILL.md rule 1].
 - **9** more are covered only by Sync Pricing Data (Setup → Salesforce Pricing Setup). It
   refreshes all 11 DefaultPricing and 2 PricingDiscovery tables, so some of its 13 overlap the 17.
 - **14** are refreshed by nothing after the build:
