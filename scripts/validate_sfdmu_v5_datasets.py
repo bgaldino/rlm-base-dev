@@ -25,6 +25,7 @@ import argparse
 import csv
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -586,7 +587,7 @@ class SFDMUValidator:
                 for obj_config in writable_cfgs:
                     self._validate_per_pass_csv(csv_path, obj_name, pass_index, obj_config, result)
 
-        # A tracked CSV at the plan root that no pass declares is never loaded (todo 386).
+        # A tracked CSV at the plan root that no pass declares (todo 386).
         self._check_unreferenced_root_csvs(dataset_path, object_configs, result)
 
         self.log(f"\nValidation complete for {dataset_name}")
@@ -601,15 +602,23 @@ class SFDMUValidator:
 
         Tracked only: SFDMU's untracked runtime output (`source/`, `target/`, reports) must not
         drown the signal, and a stray untracked file is the author's working state, not the repo's.
-        Subdirectories (`objectset_source/`) are left to the per-pass override check.
+        Subdirectories (`objectset_source/`) are left to the per-pass override check, and a file
+        deleted from the working tree but not yet staged is skipped (there is nothing to read).
+
+        Git's repository variables are dropped so discovery starts from the plan folder: a hook
+        exports a relative `GIT_DIR` that `-C` would resolve against the wrong directory, silently
+        turning the check off for exactly the runs (pre-commit, pre-push) it should gate.
         """
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+                            "GIT_PREFIX", "GIT_OBJECT_DIRECTORY", "GIT_NAMESPACE")}
         try:
             listing = subprocess.run(["git", "-C", str(dataset_path), "ls-files", "-z", "--", "."],
-                                     capture_output=True, text=True, check=True).stdout
+                                     capture_output=True, text=True, check=True, env=env).stdout
         except (OSError, subprocess.CalledProcessError):
             return None
         return sorted(dataset_path / name for name in listing.split("\0")
-                      if name.endswith(".csv") and "/" not in name)
+                      if name.endswith(".csv") and "/" not in name and (dataset_path / name).is_file())
 
     def _check_unreferenced_root_csvs(self, dataset_path: Path, object_configs: Dict[str, dict],
                                       result: ValidationResult) -> None:
