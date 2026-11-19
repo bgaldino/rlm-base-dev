@@ -76,7 +76,9 @@ consumption quietly drains the anchor's grant at the anchor's undiscounted rate.
 > `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info` handles by refreshing
 > the rate decision tables — `Commitment_based_Rate_Adjustment` among them since
 > **2026-07-26**, on both the 262 and 264 lines. A live check shows it refreshing within
-> seconds of the asset rows being created — 3 on a 264 run.
+> seconds of the asset rows being created — 3 on a 264 run. The refresh queues only when the
+> flow's running user has Modify All Data and Customize Application; whether a non-admin
+> activation passes, and which user the flow runs as, is unverified (decision-tables skill, rule 1).
 >
 > **On an org built before that date**, nothing re-syncs it and a commitment sold after the
 > build is invisible to the commitment-rate lookup — consumption rates at the undiscounted

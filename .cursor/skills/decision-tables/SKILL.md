@@ -38,8 +38,9 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    The exception is the tables named in the order-activation flow
    `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info` (the asset and
    binding-object tables and `Commitment_based_Rate_Adjustment`), which that flow queues
-   for refresh on order activation; whether the Automated Process user that runs that flow
-   passes the admin-only check below is unverified (see `usage-consumption/SKILL.md`).
+   for refresh on order activation. Its start element sets `flowRunAsUser` TriggeringUser
+   [Repo]; which user that resolves to for this platform-published event, and so whether
+   the admin-only check below passes, is unverified (see `usage-consumption/SKILL.md`).
    *Asset Action Source Entries V2*, which that flow names, still read Stale six minutes
    after one activation and an amendment priced in that window was wrong [Measured:
    2026-11-16, 264, scratch]: refresh once (*Refreshing*), then poll until Fresh and don't

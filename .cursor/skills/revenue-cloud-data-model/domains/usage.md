@@ -248,7 +248,9 @@ The corresponding *rules* (stated positively, with worked arithmetic) are in
    chain (`RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info`) —
    every sibling rate table on the same source objects was in it, so only the
    commitment lookup went stale. Fixed by adding it to the chain; it now refreshes
-   on order activation, measured at ~6s after the rows are created.
+   on order activation, measured at ~6s after the rows are created. The refresh queues only
+   when the flow's running user has Modify All Data and Customize Application; whether a
+   non-admin activation passes, and which user the flow runs as, is unverified (decision-tables skill, rule 1).
    → *On an org built BEFORE that fix, refresh by hand before recording usage, and
    confirm `DecisionTable.LastSyncDate` is later than the newest
    `AssetRateAdjustment.CreatedDate`.*
