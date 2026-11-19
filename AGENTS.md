@@ -308,6 +308,10 @@ Read it rather than guessing flags:
 | `tasks/rlm_cml.py` | `constraint-models` |
 | `scripts/ux/*` | `repo-integration` |
 | `scripts/renewal_assets/*` | `renewal-asset-creation` |
+| `scripts/decision_tables/*` | `decision-tables` |
+| `scripts/mcp/*` | `mcp-integration` |
+| `scripts/txn_data_harness/*` | `txn-data-harness` |
+| `scripts/recycle_bin/*` | `cci-orchestration` → `custom-task-authoring.md` |
 | `.cursor/skills/implementation-planning/scripts/*` | `implementation-planning` |
 | `scripts/df_workshop/*` | `df-workshop-setup` |
 | `scripts/ai/query_erd.py` | `revenue-cloud-data-model` |
