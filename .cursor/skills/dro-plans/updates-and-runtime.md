@@ -137,8 +137,13 @@ introduce a blanket extra approval for ordinary configuration updates.
   with it [Help: `ind.dro_point_of_no_return_state_propagation`]. Items in the same order
   but outside the bundle stay changeable [Help:
   `ind.dro_considerations_for_changing_in_flight_orders`], which matches the measured
-  freeze scope below. So a source rule "no changes once step X is done" means marking the
-  step after X, which reaches In Progress only when X is complete [inferred from Help].
+  freeze scope below. So the flag applies when the flagged step starts. A source rule "no
+  changes once step X is done" is met by flagging the step after X, which reaches In
+  Progress only when X is complete [inferred from Help]. A build instead flagged each step
+  its source rule named, X itself, and the freeze output then denied changes on those
+  items [Measured: 2026-11-17, 264, scratch, one org]. By Help's rule that lock starts when X
+  starts, not when it completes [inferred]. Choose by when the source wants the lock to
+  start, and record the choice as a decision.
   The submission action documents an override, but it is never an automatic
   workaround for an invalid change. Help says an order past PONR can't be cancelled or
   amended [Help: `ind.dro_point_of_no_return_state_propagation`], but a later amendment of the
@@ -156,7 +161,7 @@ introduce a blanket extra approval for ordinary configuration updates.
   A flagged Milestone with no unmet dependency therefore closes its line from plan start; one
   that depends on X would close it when X completes, since a blocked Milestone completed about
   a second after its predecessor ([examples-and-grounding.md](examples-and-grounding.md))
-  [inferred]. Put the flag on a step of the same technical item as X, after X; a flag on a step
+  [inferred]. If you flag the step after X, put it on X's technical item; a flag on a step
   of another item locks that item's commercial lines instead [inferred from Help's propagation].
   Where the items come from components of one bundle, a flagged step In Progress denied every
   line of the bundle in the freeze output [Measured: 2026-11-13, 264, scratch, one org], so a

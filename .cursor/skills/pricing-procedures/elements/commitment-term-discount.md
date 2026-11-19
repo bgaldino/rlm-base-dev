@@ -9,7 +9,8 @@
 > `ind.pricing_add_the_price_adjustment_matrix_element.htm`; dev guide
 > `actions_obj_run_salesforce_headless_pricing.htm`; shipped `RLM_DefaultPricingProcedure`; a live
 > run on a 264 scratch org (QuantumBit build) on 2026-11-10; real quotes and headless runs on a
-> fresh 264 `ent-sb0` scratch org on 2026-11-11.
+> fresh 264 `ent-sb0` scratch org on 2026-11-11; a build on a 264 scratch org on 2026-11-16 (tagged
+> `[Measured: 2026-11-16, 264, scratch, one org]`).
 >
 > Tags: `[Help: …]`, `[Dev guide: …]`, `[Repo: …]`, and `[Measured: 2026-11-10, 264]` for a
 > result observed live on that org: a headless pricing run (request and response shapes in
@@ -179,9 +180,15 @@ pricing groups**: in the shipped default, between `Filterlineswithlasttransactio
 phases 9 and 10].
 
 - After phase 7 (attribute, bundle, volume, manual and amount/percentage discounts), so the 6% is
-  taken from the already discounted net, as the rule requires.
+  taken from the already discounted net, as the rule requires. Measured headless at this position (*Measured
+  result*, below), where the discount before it was a flat input percentage; not measured against negotiated discounts
+  applied after it. Use it when the source says the term discount comes last, and read the other position below before choosing.
 - **Other position, for a source that applies negotiated discounts on top of programs:** after volume and before
-  Manual Discount. The term discount is then taken before the negotiated one. Not measured. Percentage
+  Manual Discount. The term discount is then taken before the negotiated one. Placed after the
+  Rounding Values step (*Rounding before a negotiated discount*, below) and before Manual Discount,
+  with the group switched on and off, the lines priced as the build's expected values
+  [Measured: 2026-11-16, 264, scratch, one org]. Which negotiated discount types the lines carried isn't
+  recorded here, so check an amount discount before relying on the order. Percentage
   negotiated discounts only change cent rounding, but an amount discount differs by more (illustrative: a
   10.00 amount off a 100.00 line with a 6% term discount nets 84.00 when the term discount comes first and 84.60
   when it comes second). Record which order the source means.
