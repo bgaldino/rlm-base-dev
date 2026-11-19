@@ -44,9 +44,12 @@ Prerequisites ("get ready") [Help `ind.pricing_get_ready_to_create_pricing_actio
 2. Name the action; choose context definition, context mapping and pricing procedure on the component (no parameter record). Save.
 
 Help is inconsistent on supported objects: the layout steps list five objects, the run article also
-lists Sales Agreement and Work Order. The dev guide's `objectName` values include all seven. Check
-the layout in the org. [Help, Dev guide] [Open: create a pricing action parameter in Setup and see
-whether Sales Agreement and Work Order are offered]
+lists Sales Agreement and Work Order. The dev guide's `objectName` values include all seven. [Help,
+Dev guide] The New dialog under Pricing Action Parameters (titled Create Pricing Parameter) offers five (Quote, Order, Contract, Case,
+Opportunity), not Sales Agreement or Work Order; Work Order exists in the org and Sales Agreement
+isn't enabled there. A describe of `PricingActionParameters.ObjectName` lists all seven [Measured:
+2026-11-18, 264, scratch, one org]. [Open: why the dialog omits Work Order, and whether a Work
+Order parameter created through the API works]
 
 ## Fields and rules
 
@@ -57,7 +60,7 @@ Design Time User, Pricing Manager or Pricing Admin. [Core]
 
 | UI label | API name | Rules |
 |---|---|---|
-| Object | `objectName` | `Case`, `Contract`, `Opportunity`, `Order`, `Quote`, `SalesAgreement`, `WorkOrder` [Dev guide]. Help's setup list omits the last two |
+| Object | `objectName` | `Case`, `Contract`, `Opportunity`, `Order`, `Quote`, `SalesAgreement`, `WorkOrder` [Dev guide]. Help's setup list omits the last two; the Setup dialog omits Work Order too (see above) |
 | Context definition | `contextDefinition` | Required. Must be extended, with nodes, attributes, tags [Help] |
 | Context mapping | `contextMapping` | Required. Must match the target object type or pricing errors [Help] |
 | Pricing procedure | `pricingProcedure` | Text (name or id), not a lookup; optional. Blank: see below [Core] |
@@ -130,6 +133,5 @@ its context definition
 
 ## Open questions
 
-- Whether the Help setup UI offers Sales Agreement and Work Order as the dev guide's `objectName` values do.
 - The full Tooling query above has not been run on a live org; only `Id`, `DeveloperName` and
   `ObjectName` were (see Data and automation).

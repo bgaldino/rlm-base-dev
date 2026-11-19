@@ -46,21 +46,31 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    re-trigger before the next change (`asset-lifecycle-changes/verification.md` step 7).
    [Open: whether the flow's refresh of that table ran late or not at all] See
    `lifecycle-and-refresh.md` → *After editing setup data*.
-   **The Refresh Decision Table flow action is admin-only.** Salesforce gates it on Modify All
-   Data *and* Customize Application, and no narrower permission (BRE, RunFlow,
-   `DecisionTableExecUserAccess`) grants it [Platform behaviour, traced]. The Connect API
-   refresh resource is checked separately and is open to users with Business Rules Engine
-   advanced designer or admin access [Platform behaviour, traced]. A live check of both paths
-   as a non-admin designer could not get a headless session for that user [Measured:
-   2026-11-13, 264, scratch, one org]. [Open: sign in through the UI as a non-admin holding
-   Rule Engine Designer (confirm it carries Business Rules Engine advanced designer access),
-   Salesforce Pricing Design Time User and `RLM_DecisionTableManager`, then refresh through the
-   flow action and through the Connect API resource] Which user a scheduled flow runs as for
-   the action's check is not established. [Open: run the action from a scheduled flow and
-   read which user queued the refresh] For a user who passes neither check, expect the Manager
-   to show freshness but disable Refresh; which check it applies is not traced. [Open: as a
-   user who passes only one of the two checks, open the Manager and see whether Refresh is
-   enabled]
+   **The Refresh Decision Table action is admin-only.** It queued only for a user with Modify All
+   Data *and* Customize Application, whether run by the flow action or by `POST
+   /services/data/v68.0/actions/standard/refreshDecisionTable` [Measured: 2026-11-18, 264, scratch,
+   one org]. Modify All Data alone, Customize Application alone, each of Rule Engine Designer,
+   Salesforce Pricing Design Time User and `RLM_DecisionTableManager` alone, and all three sets
+   together, were refused. REST
+   returned HTTP 400 `INSUFFICIENT_ACCESS_OR_READONLY` ("Unsupported action type:
+   REFRESH_DECISION_TABLE"). A flow took its fault path: "We couldn't execute the ... action element
+   of the refreshDecisionTable type. Review your action name and version and try again.", which
+   names no permission, so check both permissions on the running user. Two-of-three subsets of the
+   sets were not run [Measured: 2026-11-18, 264, scratch, one org]. A schedule-triggered flow ran as
+   the admin who deployed and scheduled it, not as Automated Process, and its refresh queued
+   [Measured: 2026-11-18, 264, scratch, one org]. Whether a later edit or activation by another user
+   changes the running user was not tested.
+   A Connect API refresh resource is open to users with Business Rules Engine advanced designer or
+   admin access [Platform behaviour, traced]. Its path is not established, and the 264 Help and
+   developer guide document none. On an admin's Setup page, Refresh calls an Aura action, not the
+   flow action or a Connect resource; whether it applies the same check is not established. With only
+   the three permission sets, a user saw a pricing table in Setup without Refresh or Deactivate.
+   Rule Engine Designer's System Permissions page lists three entries, none labelled Business Rules
+   Engine advanced designer [Measured: 2026-11-18, 264, scratch, one org]. [Open: find the Connect
+   resource's path and give the user Business Rules Engine advanced designer access (or confirm a set
+   carries it), then refresh through it as that user; either needs an API session for the user]
+   The Manager shows freshness to any user with `RLM_DecisionTableManager` but disables Refresh unless the user has both Modify All
+   Data and Customize Application [Repo: `RLM_DecisionTableManagerController.canRefreshTables`].
 2. **Check freshness headlessly** — `cci task run check_decision_table_freshness --org "your-cci-alias"`.
    Add `-o param1 strict` to fail a build on any stale table, or `-o param1 json` for the
    dependency map as JSON (Examples). Without `strict` the task exits 0 even when tables
@@ -350,6 +360,7 @@ triggering DML. A refresh that fails must not take the contract with it.
 |---|---|
 | `DecisionTable` is a setup object | Apex DML on it is rejected **at compile time**, so the class will not deploy at all; in-memory test fixtures need `JSON.deserialize`. |
 | `refreshDecisionTable` is Flow/REST-invocable only | Apex bridges through a flow. |
+| The flow action's refusal of a non-admin is a generic fault | It names no permission: see Quick Rule 1. |
 | `MasterLabel` is a constant | Never a table identifier. |
 | A parent edit does not touch the child's `LastModifiedDate` | Criteria that traverse a lookup cannot be verified from child timestamps alone. |
 | `SourceConditionLogic` is a non-filterable textarea | Cannot be used in a `WHERE`; read it and inspect. It is populated on every table with criteria (the platform writes `"1"`, `"1 AND 2"`), so "not blank" does **not** mean custom logic. |

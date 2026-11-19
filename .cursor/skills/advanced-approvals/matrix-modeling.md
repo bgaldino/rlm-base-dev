@@ -355,11 +355,9 @@ computes reach the level after it runs (§1, amendments).
       [Help: `ind.approvals_smart_or_rule_based_approvals`].
     - A source that says "a resubmission restarts the chain" wants every approver to review
       again: turn Smart Approval off on that chain's steps. Left on, it can skip approvers on a
-      rejected or recalled resubmission (only where the direction rule holds). With `ActionInput__CanUseSmartApproval` `false` on
-      every step, a resubmission after the second step rejected (the first approved) opened
-      a new first-step work item, `Assigned`, `IsEligibleForSmartApproval` false
-      [Measured: 2026-11-12, 264]. With it `true`, the direction rule for which resubmissions
-      auto-approve is in [limitations.md](limitations.md) → Smart Approvals.
+      rejected or recalled resubmission (only where the direction rule holds). What a resubmission does
+      with the step's Use Smart Approval off or on, and the direction rule for which resubmissions
+      auto-approve, are in [limitations.md](limitations.md) → Smart Approvals.
     - After a full approval, any later submission is a new request, so the chain restarts
       whatever the setting [Help: `ind.approvals_smart_or_rule_based_approvals`].
 
