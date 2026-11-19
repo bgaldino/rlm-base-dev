@@ -24,8 +24,10 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 import pathlib
 import re
+import subprocess
 import sys
 import tempfile
 
@@ -2197,6 +2199,72 @@ _site_drift = sorted(
     f"{f}: {_observed_sites.get(f, 0)} site(s), pinned {_EXPECTED_BASELINE_SITES.get(f, 0)}"
     for f in set(_observed_sites) | set(_EXPECTED_BASELINE_SITES)
     if _observed_sites.get(f, 0) != _EXPECTED_BASELINE_SITES.get(f, 0))
+def tracked_root_csv_issues(passes, root_files, untracked=(), severity=None, per_pass_files=None):
+    """The unreferenced-root-CSV findings (todo 386) for a synthetic plan inside a Git checkout.
+
+    `issues()` builds its plan outside any repository, where the check skips itself, so this helper
+    `git init`s the temp dir and stages every root file except those named in `untracked`. Git's
+    hook variables are dropped for the duration so a run from inside a hook can't aim the fixture,
+    or the validator's own `git -C`, at the developer's repository (the hazard todo 237 recorded).
+    """
+    saved = {k: os.environ.pop(k) for k in list(os.environ) if k.startswith("GIT_")}
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            plan = _write_plan(td, {"objectSets": [{"objects": p} for p in passes]}, root_files,
+                               per_pass_files)
+            subprocess.run(["git", "-C", td, "init", "-q"], check=True)
+            staged = [f"plan/{n}" for n in root_files if n not in untracked]
+            for d in (per_pass_files or {}):
+                staged.append(f"plan/objectset_source/object-set-{d}")
+            if staged:
+                subprocess.run(["git", "-C", td, "add", "--", *staged], check=True)
+            result = V.SFDMUValidator(base_dir=str(plan.parent), verbose=False).validate_dataset(plan)
+            return [f"{i.severity.value}/{i.object_name}: {i.message}" for i in result.issues
+                    if "names no object" in i.message and (severity is None or i.severity == severity)]
+    finally:
+        os.environ.update(saved)
+
+
+UNREFERENCED_ROOT_CSV = [
+    # A tracked root CSV no pass declares is never read as that object's data: an empty one holds
+    # nothing either way, so it is Medium (delete it); a non-empty one may be the source SFDMU reads
+    # for a lookup parent it auto-adds, so it is Info, a pointer to check.
+    ("an empty tracked root CSV for an undeclared object is Medium",
+     True, tracked_root_csv_issues([[UPSERT]], {"Widget__c.csv": HEADER, "Orphan__c.csv": ""},
+                                   severity=V.Severity.MEDIUM)),
+    ("a non-empty tracked root CSV for an undeclared object is Info",
+     True, tracked_root_csv_issues([[UPSERT]], {"Widget__c.csv": HEADER, "Parent__c.csv": HEADER},
+                                   severity=V.Severity.INFO)),
+    ("...and not Medium, since SFDMU may read it for an auto-added lookup parent",
+     False, tracked_root_csv_issues([[UPSERT]], {"Widget__c.csv": HEADER, "Parent__c.csv": HEADER},
+                                    severity=V.Severity.MEDIUM)),
+    # Owner decision on todo 386: an `excluded: true` declaration references its placeholder CSV.
+    ("a CSV for an object declared excluded: true counts as referenced",
+     False, tracked_root_csv_issues([[UPSERT, dict(READONLY, excluded=True)]],
+                                    {"Widget__c.csv": HEADER, "Gadget__c.csv": ""})),
+    ("a CSV for an object declared only in a later pass counts as referenced",
+     False, tracked_root_csv_issues([[UPSERT], [READONLY]],
+                                    {"Widget__c.csv": HEADER, "Gadget__c.csv": HEADER})),
+    ("an untracked root CSV is runtime or working state, not reported",
+     False, tracked_root_csv_issues([[UPSERT]], {"Widget__c.csv": HEADER, "Stray__c.csv": ""},
+                                    untracked=("Stray__c.csv",))),
+    ("SFDMU's fixed-name files (UserAndGroup, ValueMapping, FieldMapping) name no object and are "
+     "not reported",
+     False, tracked_root_csv_issues([[UPSERT]], {"Widget__c.csv": HEADER, "UserAndGroup.csv": HEADER,
+                                                 "ValueMapping.csv": HEADER, "FieldMapping.csv": HEADER})),
+    # SFDMU reads `<plan>/<FROM name>.csv` by exact casing, so a differently-cased file is not the
+    # declared object's (the identity rule of todo pack 163).
+    ("a root CSV matching a declaration only case-insensitively is reported",
+     True, tracked_root_csv_issues([[UPSERT]], {"widget__c.csv": HEADER})),
+    ("a per-pass override CSV is left to the per-pass check, not reported here",
+     False, tracked_root_csv_issues([[UPSERT], [UPSERT]], {"Widget__c.csv": HEADER},
+                                    per_pass_files={2: {"Other__c.csv": ""}})),
+    ("outside a Git checkout the check skips itself",
+     False, [i for i in issues([[UPSERT]], {"Widget__c.csv": HEADER, "Orphan__c.csv": ""})
+             if "names no object" in i]),
+]
+
+
 BASELINE = [
     ("the live tree has 0 Critical findings — the two pack 123 fixed were false positives",
      False, [f"{k}={v}" for k, v in _sev.items() if k == V.Severity.CRITICAL.value]),
@@ -2303,6 +2371,8 @@ def main() -> int:
                   TRAILING_SEMICOLON_COMPOSITE_KEY),
                  ("the fixer's $$ value drops empty parts, as SFDMU does on the target",
                   COMPOSITE_VALUE_DROPS_EMPTY_PARTS),
+                 ("a tracked root CSV no pass declares is reported: Medium when empty, Info otherwise",
+                  UNREFERENCED_ROOT_CSV),
                  ("the documented live baseline still holds", BASELINE)]
     # +1 for the self-count check appended below, which needs the total it asserts against.
     total = sum(len(c) for _, c in all_cases) + 1
