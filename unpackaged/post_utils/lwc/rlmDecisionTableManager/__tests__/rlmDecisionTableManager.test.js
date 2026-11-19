@@ -345,6 +345,8 @@ describe('c-rlm-decision-table-manager', () => {
                 .find((i) => i.label === 'Incremental refresh')
             expect(toggle.disabled).toBe(true)
             expect(denialNote(element).textContent).toContain('Modify All Data and Customize Application')
+            // Scoped to the action the page runs, not to refresh in general.
+            expect(denialNote(element).textContent).toContain('Refresh Decision Table action')
             // The freshness view itself is still there.
             expect(element.shadowRoot.querySelector('lightning-datatable').data).toHaveLength(1)
         })

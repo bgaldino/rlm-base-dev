@@ -135,10 +135,9 @@ public with sharing class RLM_DecisionTableManagerController {
 
     @TestVisible private static final String BULK_REFRESH_FLOW = 'RLM_Refresh_Decision_Tables_Bulk';
     @TestVisible private static final String REFRESH_ACCESS_MESSAGE =
-        'Refreshing a decision table needs both Modify All Data and Customize Application. '
-        + 'Salesforce requires both for the Refresh Decision Table action, and no narrower '
-        + 'permission grants it. Ask an admin to refresh, or run '
-        + 'cci flow run refresh_all_decision_tables.';
+        'The Refresh Decision Table action this page runs needs both Modify All Data and '
+        + 'Customize Application, and no narrower permission grants it. Ask an admin to '
+        + 'refresh, or run cci flow run refresh_all_decision_tables.';
 
     // Staleness verdicts. Anything that is not a positive, computed comparison is
     // one of the two non-committal values — never FRESH by default.
@@ -2096,7 +2095,8 @@ public with sharing class RLM_DecisionTableManagerController {
     }
 
     /**
-     * Whether the running user can refresh a decision table at all.
+     * Whether the running user can refresh a decision table through the refreshDecisionTable
+     * action, the route this class and its flows use.
      *
      * Salesforce gates the refreshDecisionTable action on Modify All Data AND Customize
      * Application, and nothing narrower satisfies it: no BRE permission,
