@@ -752,7 +752,8 @@ CHECKS = [
              "tests/test_doc_snapshot_presets.py",
              "tests/test_workflow_policy.py",
              "tests/test_docker_publish.py",
-             "tests/test_deploy_with_fragments.py"],  # run in sequence
+             "tests/test_deploy_with_fragments.py",
+             "tests/test_rlm_stamp_commit.py"],  # run in sequence
         # qb-dro because test_fulfillment_scope_tolerance.py reads its Product2.csv and
         # FulfillmentStepDefinition.csv and asserts the banner's count matches them — adding a
         # usage product to that dataset invalidates the assertion, so it has to select this.
@@ -768,6 +769,9 @@ CHECKS = [
                   "tests/test_fulfillment_scope_tolerance.py",
                   "tests/test_skill_manifest_audit.py",
                   "tests/test_prepare_constraints_validation.py",
+                  # tasks/rlm_stamp_commit.py imports PyYAML at module level, so its suite
+                  # lives here rather than in STDLIB_SUITES; the module is covered by tasks/.
+                  "tests/test_rlm_stamp_commit.py",
                   # The doc snapshot CLI reads presets.yaml through PyYAML; its offline
                   # suite lives here rather than in STDLIB_SUITES for that reason.
                   "scripts/doc_snapshot/", "tests/test_doc_snapshot_presets.py",
@@ -957,6 +961,7 @@ STDLIB_SUITES = [
     "tests/test_qb_multicurrency_data.py",
     "tests/test_renewal_bucket_planner.py",
     "tests/test_rlm_apex_file.py",
+    "tests/test_rlm_configure_search_index.py",
     "tests/test_rlm_enable_change_data_capture.py",
     "tests/test_robot_salesforce_api_auth.py",
     "tests/test_search_index_readiness.py",
