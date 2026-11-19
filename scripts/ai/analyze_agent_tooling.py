@@ -968,6 +968,69 @@ def check_skill_index_parity(root: Path) -> CheckResult:
                        if expected else "no skills found")
 
 
+SCRIPT_REFERENCE_HEADING_RE = re.compile(r"^### Script Reference[ \t]*$", re.MULTILINE)
+# scripts/<dir>/ folders with a tracked README.md that need no Script Reference row, each with
+# the reason. Empty today; add an entry here rather than weakening the check.
+SCRIPT_REFERENCE_EXEMPT: dict[str, str] = {}
+
+
+def script_reference_tokens(agents_text: str) -> list[str] | None:
+    """Code spans in the AGENTS.md Script Reference table rows, or None when the section is missing.
+
+    Only table rows (lines starting with `|`) before the next heading of any level count, so
+    a folder named in prose or in a later section is not listed.
+    """
+    text = strip_fenced_code(agents_text)
+    heading = SCRIPT_REFERENCE_HEADING_RE.search(text)
+    if heading is None:
+        return None
+    body = text[heading.end():]
+    next_heading = re.search(r"^#{1,6}\s", body, re.MULTILINE)
+    section = body[:next_heading.start()] if next_heading else body
+    rows = [line for line in section.splitlines() if line.lstrip().startswith("|")]
+    return [token.strip() for token in re.findall(r"`([^`\n]+)`", "\n".join(rows))]
+
+
+def check_script_reference_parity(root: Path) -> CheckResult:
+    """Every scripts/<dir>/ with a tracked README.md has an AGENTS.md Script Reference row.
+
+    The Script Reference routes an agent from a script folder to the skill that documents its
+    flags; a folder missing from it sends the agent to guess. A row naming a scripts/<dir>/
+    that no longer exists is stale.
+    """
+    name = "script reference parity"
+    try:
+        result = subprocess.run(["git", "-C", str(root), "ls-files", "-z", "--", "scripts"],
+                                capture_output=True, text=True, check=True)
+        tokens = script_reference_tokens((root / AGENTS_PATH).read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, subprocess.CalledProcessError) as exc:
+        return CheckResult(name, False, f"cannot read the Script Reference or the Git index: {exc}")
+    folders = set()
+    for path in result.stdout.split("\0"):
+        parts = path.split("/")
+        if len(parts) == 3 and parts[2] == "README.md":
+            folders.add(parts[1])
+    if tokens is None:
+        return CheckResult(name, False, f"{AGENTS_PATH}: no '### Script Reference' section")
+    # `scripts/ux/*` and `scripts/ai/query_erd.py` name folders; `scripts/validate_x.py` names a file.
+    named = {token.split("/")[1].rstrip("*") for token in tokens if token.startswith("scripts/")} - {""}
+    failures = []
+    missing = sorted(folders - named - set(SCRIPT_REFERENCE_EXEMPT))
+    if missing:
+        failures.append(f"{AGENTS_PATH} Script Reference is missing "
+                        f"{[f'scripts/{m}/' for m in missing]} (add a row, or an exemption with its reason)")
+    stale = sorted(n for n in named if "." not in n and not (root / "scripts" / n).is_dir())
+    if stale:
+        failures.append(f"{AGENTS_PATH} Script Reference names missing folders {[f'scripts/{s}/' for s in stale]}")
+    exempt_listed = sorted(set(SCRIPT_REFERENCE_EXEMPT) & named)
+    if exempt_listed:
+        failures.append(f"exempt but also listed: {exempt_listed}; drop the exemption")
+    return CheckResult(name, bool(folders) and not failures,
+                       "; ".join(failures) if failures
+                       else f"{len(folders)} script folders with a README are in the Script Reference"
+                       if folders else "no scripts/<dir>/README.md found")
+
+
 def check_native_skill_links(root: Path) -> CheckResult:
     expected = {p.name for p in _skill_dirs(root)}
     failures = []
@@ -1214,6 +1277,7 @@ def run_baseline_checks(root: Path) -> list[CheckResult]:
         check_skill_discovery_metadata(root),
         check_native_skill_links(root),
         check_skill_index_parity(root),
+        check_script_reference_parity(root),
         check_instruction_budget(root),
         check_skill_navigation_links(root),
     ]

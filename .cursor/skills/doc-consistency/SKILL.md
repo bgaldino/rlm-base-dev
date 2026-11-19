@@ -50,6 +50,7 @@ The core lookup: **when X changes, verify Y**.
 | `scripts/apex/*.apex` | `troubleshooting/SKILL.md` if it references the script |
 | `.forceignore` | No doc update, but verify retrieve/deploy intent is consistent |
 | `scripts/ai/*.py` | The skill that owns the script (see `AGENTS.md` **Script Reference** for the owner). Only a brand-new script *directory* earns an `AGENTS.md` row |
+| **New** `scripts/<dir>/` with a `README.md` | An `AGENTS.md` **Script Reference** row naming its owning skill, or an entry with its reason in `SCRIPT_REFERENCE_EXEMPT` (`scripts/ai/analyze_agent_tooling.py`). `analyze_agent_tooling.py check` fails on a missing row |
 | **New** `scripts/*.py` (top level) | `AGENTS.md` Repository Layout — top-level utilities are easy to add and never document |
 | **New** `scripts/apex/*.apex` | `troubleshooting/SKILL.md` (if it diagnoses a failure) and `.cursor/rules/apex-scripts.mdc` (if it establishes a pattern) |
 | **New** `docs/guides/*.md` | Guide tables in `docs/index.md` (linked from `README.md`) — an unindexed guide is invisible |

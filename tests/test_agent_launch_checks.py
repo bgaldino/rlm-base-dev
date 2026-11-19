@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -49,7 +50,9 @@ class LaunchChecks(unittest.TestCase):
         self.skill.write_text(self.metadata + "\n".join(refs))
         self.write(".cursor/rules/example.mdc", "# Rule\n")
         self.write(".cursor/skills/README.md", "## Skill Router\n\n| I need to... | Skill | Entry Point |\n|---|---|---|\n| Run tasks | CCI | [cci-orchestration/SKILL.md](cci-orchestration/SKILL.md) |\n\n## File-Specific Rules\n\n| Rule | Triggers On | Equivalent Skill |\n|---|---|---|\n| `example.mdc` | `*.py` | `cci-orchestration/SKILL.md` |\n")
-        self.write("AGENTS.md", "# Guide\n\n## AI Agent Skill Index\n\n- **Builds:** `cci-orchestration`\n\n## Next\n")
+        self.write("AGENTS.md", "# Guide\n\n## AI Agent Skill Index\n\n- **Builds:** `cci-orchestration`\n\n"
+                   "### Script Reference\n\n| Scripts | Owning skill |\n|---|---|\n| `scripts/ai/*` | `cci-orchestration` |\n\n"
+                   "## Next\n")
         for folder in (".agents/skills", ".claude/skills"):
             (self.root / folder).mkdir(parents=True)
             (self.root / folder / "cci-orchestration").symlink_to("../../.cursor/skills/cci-orchestration", target_is_directory=True)
@@ -74,8 +77,8 @@ class LaunchChecks(unittest.TestCase):
     def test_clean_baseline_without_site_packages(self):
         result = self.cli()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        for label in ("skill discovery metadata", "native skill links", "skill index parity", "root instruction budget",
-                      "skill navigation links"):
+        for label in ("skill discovery metadata", "native skill links", "skill index parity", "script reference parity",
+                      "root instruction budget", "skill navigation links"):
             self.assertIn("[PASS] " + label, result.stdout)
 
     def test_missing_and_invalid_metadata(self):
@@ -252,6 +255,54 @@ class LaunchChecks(unittest.TestCase):
         (empty / "AGENTS.md").write_text("## AI Agent Skill Index\n")
         (empty / ".cursor/skills/README.md").write_text("")
         self.assertFalse(analyzer.check_skill_index_parity(empty).ok)
+
+    def test_script_reference_parity(self):
+        check = analyzer.check_script_reference_parity
+        agents = self.root / "AGENTS.md"
+        base = agents.read_text()
+        row = "| `scripts/ai/*` | `cci-orchestration` |\n"
+        self.assertTrue(check(self.root).ok, check(self.root).detail)
+        # A tracked scripts/<dir>/README.md with no row fails; untracked and nested READMEs don't count.
+        self.write("scripts/newtool/README.md", "# New\n")
+        self.write("scripts/newtool/sub/README.md", "# Nested\n")
+        self.git("add", "scripts/newtool")
+        self.write("scripts/scratch/README.md", "# Untracked\n")
+        result = check(self.root)
+        self.assertFalse(result.ok)
+        self.assertIn("missing ['scripts/newtool/']", result.detail)
+        self.assertNotIn("scratch", result.detail)
+        # A row naming the folder, a glob in it or a file in it covers the folder.
+        for cell in ("`scripts/newtool/*`", "`scripts/newtool/run.py`", "`scripts/newtool/`"):
+            agents.write_text(base.replace(row, row + f"| {cell} | `cci-orchestration` |\n"))
+            self.assertTrue(check(self.root).ok, cell)
+        # Prose in the section, or a row under a later heading, is not a row.
+        for text in (base.replace(row, row + "\nSee `scripts/newtool/*`.\n"),
+                     base.replace("## Next\n", "## Next\n\n| `scripts/newtool/*` | `cci-orchestration` |\n"),
+                     base.replace(row, row + "\n```\n| `scripts/newtool/*` | x |\n```\n")):
+            agents.write_text(text)
+            self.assertIn("missing ['scripts/newtool/']", check(self.root).detail, text)
+        # An exemption covers it, and an exemption for a listed folder is stale.
+        agents.write_text(base)
+        with mock.patch.dict(analyzer.SCRIPT_REFERENCE_EXEMPT, {"newtool": "internal fixture"}):
+            self.assertTrue(check(self.root).ok)
+            agents.write_text(base.replace(row, row + "| `scripts/newtool/*` | x |\n"))
+            self.assertIn("exempt but also listed: ['newtool']", check(self.root).detail)
+        # A row naming a folder that does not exist is stale; a top-level script file is not a folder.
+        agents.write_text(base.replace(row, row + "| `scripts/newtool/*` | x |\n| `scripts/gone/*` | x |\n"
+                                       "| `scripts/validate.py` | x |\n"))
+        result = check(self.root)
+        self.assertFalse(result.ok)
+        self.assertIn("names missing folders ['scripts/gone/']", result.detail)
+        self.assertNotIn("validate", result.detail)
+        agents.write_text("# Guide\n")
+        self.assertIn("no '### Script Reference' section", check(self.root).detail)
+
+    def test_script_reference_parity_empty_inventory_is_not_success(self):
+        empty = self.root / "empty"
+        empty.mkdir()
+        subprocess.run(["git", "-C", str(empty), "init", "-q"], check=True)
+        (empty / "AGENTS.md").write_text("### Script Reference\n\n| Scripts | Owner |\n")
+        self.assertFalse(analyzer.check_script_reference_parity(empty).ok)
 
     def test_native_extra_and_root_adapter(self):
         p = self.root / ".claude/skills/unexpected"
@@ -473,6 +524,8 @@ class LaunchChecks(unittest.TestCase):
         for path, content, label in [(self.skill, "# no metadata", "skill discovery metadata"),
                                      (p, "[bad](missing.md)", "skill navigation links"),
                                      (self.root / "AGENTS.md", "## AI Agent Skill Index\n\n- none\n", "skill index parity"),
+                                     (self.root / "AGENTS.md", "## AI Agent Skill Index\n\n- `cci-orchestration`\n",
+                                      "script reference parity"),
                                      (self.root / "AGENTS.md", "x" * 25001, "root instruction budget")]:
             before = path.read_text()
             path.write_text(content)
