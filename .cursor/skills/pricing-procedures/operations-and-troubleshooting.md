@@ -172,7 +172,7 @@ plausibly with no error. Refresh paths: Pricing Recipes > Sync (one recipe); Sal
 Setup > Sync Pricing Data; a schedule-triggered Flow calling the **Refresh Decision Table**
 action (one action per table, off-peak, add a fault path, pause during bulk loads, hourly
 refresh limit exists; Help gives Manage Flow to create and activate the flow, Salesforce
-Pricing Design Time to enable data sync and Assetize Order for a complete sync; the action
+Pricing Design Time to enable data sync (measured on one 264 org, the Setup page also needed Customize Application; [pricing-setup](../pricing-setup/import-export-and-bulk-data.md#sync-pricing-data)) and Assetize Order for a complete sync; the action
 itself is admin-only except, measured once, in the repo's order-activation Platform Event flow; the Connect refresh route has a different gate; see
 [decision-tables](../decision-tables/SKILL.md)).
 Verify with the Last Refreshed timestamp, or `cci task run

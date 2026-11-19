@@ -60,8 +60,9 @@ Element lookups show only tables linked to the **default recipe of the procedure
   deactivate during bulk loads and run a manual sync after; add a fault path or enable flow error
   emails (failures are silent otherwise, e.g. deactivated table or hourly limit); confirm via
   Decision Tables > Last Refreshed. Permissions, with Help's purposes: Manage Flow to create and
-  activate the flow, Salesforce Pricing Design Time to enable data sync, Assetize Order for a
-  complete sync of decision tables. The action has its own gate:
+  activate the flow, Salesforce Pricing Design Time to enable data sync (measured on one 264 org, the
+  Setup page also needed Customize Application: [import-export](import-export-and-bulk-data.md#sync-pricing-data)),
+  Assetize Order for a complete sync of decision tables. The action has its own gate:
   [decision-tables](../decision-tables/SKILL.md) (the refresh flow action is admin-only except, measured once, in the repo's order-activation Platform Event flow, and the Connect refresh route has a different gate; all in rule 1).
 
 ## Verify

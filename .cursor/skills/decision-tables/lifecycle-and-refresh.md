@@ -134,7 +134,10 @@ live to the engine.
   `{"decisionTableId": "<Id>"}` queues a refresh under a different permission gate (SKILL.md
   rule 1). Its response is top-level `status` and `errorMessage`, not `outputValues`: HTTP 201 with
   `Queued`, or `Failed` with no message for a request while one was pending [Measured: 2026-11-18,
-  264, scratch, one org]. The headless tasks here use the action, not this route.
+  264, scratch, one org]. The headless tasks here use the action, not this route. On an Active
+  table, Setup's Refresh button shows for Customize Application or Modify All Data when the user
+  can read the table's source object, and its click admitted the same users as this route
+  (SKILL.md rule 1).
 
 ### After editing setup data — what refreshes what
 
