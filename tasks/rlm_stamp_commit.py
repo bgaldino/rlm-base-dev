@@ -181,18 +181,24 @@ class StampGitCommit(SFDXBaseTask):
         Excludes known build-output paths (e.g. unpackaged/post_ux/) that are
         regenerated during the flow and would otherwise always flag dirty in CI.
         """
-        # Unstripped: porcelain lines are `XY <path>`, and an unstaged change has a blank index
-        # column (" M path"). Stripping removed that space from the first line only, so
-        # `line[3:]` cut the path's first character and a lone regenerated post_ux change read
-        # as dirty (todo 396).
-        output = self._git("status", "--porcelain", strip=False)
-        for line in output.splitlines():
-            if not line.strip():
+        # `--porcelain -z` (todo 396): entries are `XY <path>` separated by NUL, never C-quoted,
+        # and a rename or copy is followed by its source path as a separate entry. The text form
+        # broke the exclusion two ways: a path with a space (every post_ux layout) is printed in
+        # double quotes, and stripping stdout removed the first entry's blank index column
+        # (" M path") so `entry[3:]` cut the path. So the output is read raw (strip=False).
+        entries = self._git("status", "--porcelain", "-z", strip=False).split("\0")
+        index = 0
+        while index < len(entries):
+            entry = entries[index]
+            index += 1
+            if not entry.strip():
                 continue
-            # porcelain format: XY <path> or XY <old path> -> <new path>
-            # Check both sides of a rename: a rename from a build-output path
-            # to a non-build-output path (or vice versa) must still count as dirty.
-            paths = [p.strip() for p in line[3:].split(" -> ")]
+            status, paths = entry[:2], [entry[3:]]
+            if "R" in status or "C" in status:
+                # A rename across the build-output boundary, either way, must still count.
+                if index < len(entries):
+                    paths.append(entries[index])
+                index += 1
             for path in paths:
                 if path and not any(path.startswith(bp) for bp in self.BUILD_OUTPUT_PATHS):
                     return True

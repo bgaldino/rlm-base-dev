@@ -68,7 +68,7 @@ class FakeRunner:
             ("rev-parse", "--short", "HEAD"): SHORT,
             ("rev-parse", "HEAD"): FULL,
             ("rev-parse", "--abbrev-ref", "HEAD"): "main",
-            ("status", "--porcelain"): "",
+            ("status", "--porcelain", "-z"): "",
         }
         self.git.update(git or {})
         self.git_exc = git_exc or {}
@@ -265,7 +265,7 @@ class RunTask(unittest.TestCase):
                 self.assertEqual(values["RLM_CCI_Flow__c"][1], "manual")
 
     def test_dirty_tree_is_stamped_and_labelled(self):
-        runner = FakeRunner(git={("status", "--porcelain"): "?? new_file.py"})
+        runner = FakeRunner(git={("status", "--porcelain", "-z"): "?? new_file.py\0"})
         logs = self.run_task(make_task(), runner)
         _, values = cmdt_values(runner.deployed_files[CMDT_RELPATH])
         self.assertEqual(values["RLM_Dirty_Tree__c"], ("xsd:boolean", "true"))
@@ -340,51 +340,62 @@ class GitHelpers(unittest.TestCase):
         )
         self.assertEqual(self.git_task(runner)._resolve_branch(SHORT), f"detached@{SHORT}")
 
-    def dirty(self, porcelain):
-        runner = FakeRunner(git={("status", "--porcelain"): porcelain})
+    def dirty(self, *entries):
+        """`_is_dirty_tree` for `git status --porcelain -z` entries (each NUL-terminated, as git
+        prints them; a rename or copy is `XY <new>` followed by `<old>`)."""
+        runner = FakeRunner(git={("status", "--porcelain", "-z"): "".join(e + "\0" for e in entries)})
         return self.git_task(runner)._is_dirty_tree()
 
     def test_clean_tree(self):
-        self.assertIs(self.dirty(""), False)
+        self.assertIs(self.dirty(), False)
 
     def test_any_change_outside_build_output_is_dirty(self):
-        for porcelain in ("?? scratch.txt", "M  tasks/rlm_x.py", "A  docs/new.md\n?? unpackaged/post_ux/x"):
-            with self.subTest(porcelain=porcelain):
-                self.assertIs(self.dirty(porcelain), True)
+        for entries in (["?? scratch.txt"], ["M  tasks/rlm_x.py"], ["A  docs/new.md", "?? unpackaged/post_ux/x"]):
+            with self.subTest(entries=entries):
+                self.assertIs(self.dirty(*entries), True)
 
     def test_only_build_output_changes_are_clean(self):
-        porcelain = (
-            "M  unpackaged/post_ux/assembly_manifest.json\n"
-            " M unpackaged/post_ux/objects/Quote.object-meta.xml\n"
-            "?? unpackaged/post_ux/layouts/"
-        )
-        self.assertIs(self.dirty(porcelain), False)
+        self.assertIs(self.dirty("M  unpackaged/post_ux/assembly_manifest.json",
+                                 " M unpackaged/post_ux/objects/Quote.object-meta.xml",
+                                 "?? unpackaged/post_ux/layouts/"), False)
 
     def test_a_rename_across_the_build_output_boundary_is_dirty_either_way(self):
-        self.assertIs(self.dirty("R  unpackaged/post_ux/a.xml -> force-app/a.xml"), True)
-        self.assertIs(self.dirty("R  force-app/a.xml -> unpackaged/post_ux/a.xml"), True)
-        self.assertIs(self.dirty("R  unpackaged/post_ux/a.xml -> unpackaged/post_ux/b.xml"), False)
+        self.assertIs(self.dirty("R  force-app/a.xml", "unpackaged/post_ux/a.xml"), True)
+        self.assertIs(self.dirty("R  unpackaged/post_ux/a.xml", "force-app/a.xml"), True)
+        self.assertIs(self.dirty("R  unpackaged/post_ux/b.xml", "unpackaged/post_ux/a.xml"), False)
+        # A copy also names its source, and the source is not read as a status entry.
+        self.assertIs(self.dirty("C  unpackaged/post_ux/b.xml", "force-app/a.xml"), True)
+        self.assertIs(self.dirty("RM unpackaged/post_ux/b.xml", "unpackaged/post_ux/a.xml",
+                                 " M unpackaged/post_ux/c.xml"), False)
 
-    def test_a_first_line_unstaged_build_output_change_is_clean(self):
+    def test_a_first_entry_unstaged_build_output_change_is_clean(self):
         # Todo 396: `_git` strips by default, which removed the blank index column of the first
-        # porcelain line (" M path"), so `line[3:]` cut the path to "npackaged/post_ux/..." and
-        # the exclusion missed. `git status --porcelain` is now read unstripped.
-        self.assertIs(self.dirty(" M unpackaged/post_ux/assembly_manifest.json\n"), False)
+        # entry (" M path"), so `entry[3:]` cut the path to "npackaged/post_ux/..." and the
+        # exclusion missed. The status is now read unstripped.
         self.assertIs(self.dirty(" M unpackaged/post_ux/assembly_manifest.json"), False)
-        self.assertIs(
-            self.dirty("M  unpackaged/post_ux/a.json\n M unpackaged/post_ux/assembly_manifest.json\n"),
-            False,
-        )
-        # A real change in first position, unstaged, still reads dirty: the fix must not just
-        # skip the first line.
-        self.assertIs(self.dirty(" M tasks/rlm_x.py\n M unpackaged/post_ux/a.json\n"), True)
+        self.assertIs(self.dirty("M  unpackaged/post_ux/a.json", " M unpackaged/post_ux/assembly_manifest.json"),
+                      False)
+        # A real change in first position, unstaged, still reads dirty.
+        self.assertIs(self.dirty(" M tasks/rlm_x.py", " M unpackaged/post_ux/a.json"), True)
 
-    def test_status_is_read_unstripped(self):
-        # FakeRunner ends git output with a newline, as git does.
-        runner = FakeRunner(git={("status", "--porcelain"): " M unpackaged/post_ux/x.json"})
+    def test_build_output_paths_with_spaces_are_clean(self):
+        # Todo 396: the text form C-quotes a path with a space, and every post_ux layout has one
+        # ("Account-RLM Account Layout..."), so the quoted path missed the exclusion. -z never quotes.
+        self.assertIs(self.dirty(" M unpackaged/post_ux/layouts/Account-RLM Account Layout.layout-meta.xml"), False)
+        self.assertIs(self.dirty("RM unpackaged/post_ux/layouts/Q B.xml",
+                                 "unpackaged/post_ux/layouts/Quote-Quote Layout.layout-meta.xml"), False)
+        # A literal " -> " in a file name is just part of the path under -z.
+        self.assertIs(self.dirty("?? unpackaged/post_ux/a -> b.xml"), False)
+        self.assertIs(self.dirty("?? docs/a b.md"), True)
+
+    def test_status_is_read_raw_with_z(self):
+        runner = FakeRunner(git={("status", "--porcelain", "-z"): " M unpackaged/post_ux/x.json\0"})
         task = self.git_task(runner)
-        self.assertEqual(task._git("status", "--porcelain", strip=False), " M unpackaged/post_ux/x.json\n")
-        self.assertEqual(task._git("status", "--porcelain"), "M unpackaged/post_ux/x.json")
+        self.assertIs(task._is_dirty_tree(), False)
+        self.assertEqual(runner.calls[-1][0], ["git", "status", "--porcelain", "-z"])
+        # FakeRunner ends git output with a newline, as git does for text output.
+        self.assertEqual(task._git("status", "--porcelain", "-z", strip=False), " M unpackaged/post_ux/x.json\0\n")
+        self.assertEqual(task._git("status", "--porcelain", "-z"), "M unpackaged/post_ux/x.json\0")
 
 
 class OrgDefinition(unittest.TestCase):
