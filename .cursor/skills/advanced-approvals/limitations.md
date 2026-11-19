@@ -11,9 +11,19 @@ before telling anyone how approvals behave where the docs are unclear. Parent:
   Notifications [Help: `ind.approvals_set_up_advanced_approvals`], and the Slack toggles
   [Help: `ind.approvals_turn_on_slack_notifs`]. Email replies are a separate setting, under
   Process Automation Settings [Help: `ind.approvals_set_up_advanced_approvals`].
-- **Repo coverage:** the repo ships no settings metadata for these toggles. On a
-  QuantumBit build the shipped approval ran end to end with whatever the scratch org
-  defaults to [Measured: 2026-11-10, 264].
+- **Repo coverage:** the repo ships no settings metadata for these toggles, and the Metadata
+  API has none to ship: no Settings type carries an approval or Smart Approval setting, and the
+  only approval metadata type is the classic approval process [Measured: 2026-11-18, 264,
+  scratch, one org]. On a QuantumBit build the shipped approval ran end to end with whatever the
+  scratch org defaults to [Measured: 2026-11-10, 264]. On a built org the page's labels and
+  states were: Use Flow Approval Processes on; Use Advanced Approvals on; Advanced Approval
+  Delegation off; Send Approval Work Item Assignment Emails to Approvers and Send Approval
+  Submission Status Email Notifications to Submitters both Send; Use Dynamic Approval
+  Notifications off; Notify Approvers in Slack and Notify Submitters in Slack both Don't Send;
+  Send approval work item emails only to queue members off. Its setup audit trail's only
+  approval-setting entry was Use Advanced Approvals switched on at org creation, before any build
+  step [Measured: 2026-11-18, 264, scratch, one org], so these read as the provisioned states
+  [inferred].
 - **Personas:**
     - Designer: Manage Flow, Approval Designer, Read on Approval Submission.
     - Submitter, reviewer, delegate: Run Flows plus Read on Approval Submission.
@@ -39,14 +49,33 @@ A step is eligible only if all of these hold [Help: `ind.approvals_smart_approva
 `ind.approvals_smart_approvals`, `ind.approvals_smart_or_rule_based_approvals`]:
 - conditions are Number or Text, with at most 30 per step and no NOT operator (the
   traced allow-list is wider, see below);
-- no evaluation-flow entry or exit condition (that makes the whole flow ineligible);
-- no Decision before a stage whose steps start "when the stage starts";
+- no evaluation-flow entry or exit condition (that makes the whole flow ineligible)
+  [Platform behaviour, traced];
+- no Decision before a stage whose steps start "when the stage starts"; a Decision path leading
+  to an approval step without entry conditions makes the whole flow ineligible [Platform
+  behaviour, traced];
 - the earlier submission was Rejected or Recalled, reached at least 2 steps, and had at
   least 1 approved;
 - the active flow version hasn't changed since;
 - no work item was reassigned during the original submission.
 
 After a full approval, the next submission is a new request, not a resubmission.
+
+Smart Approval is switched on per approval step by its Use Smart Approval checkbox, which writes
+`ActionInput__CanUseSmartApproval`; Flow Builder shows a Smart Approval Skip Conditions field once it
+is ticked. Setup > Approval Settings has no organization-wide Smart Approvals control
+[Measured: 2026-11-18, 264, scratch, one org]; Help's "Turn On Smart Approvals" is that checkbox
+[Help: `ind.approvals_turn_on_smart_approvals`]. With
+the input `false` on every step, a resubmission after a rejection at the second step (the first
+approved) opened a new first-step work item, `Assigned`, `IsEligibleForSmartApproval` false
+[Measured: 2026-11-12, 264]. With it `true` (as the shipped steps set it), resubmissions
+auto-approved a step that was approved in the earlier submission and whose range still held, and the
+step rejected there went to review again [Measured: 2026-11-12, 264, scratch]. With it ticked on the
+first step only, a quote was fully approved at one level, then revised to need two; submitted
+again, it was approved at the first step and rejected at the second. On resubmission its first
+step's work item was created Approved (Eligible for Smart Approval true) and the second's Assigned
+(false) [Measured: 2026-11-18, 264,
+scratch, one org].
 
 The Help limitations article says Number or Text only. The allow-list traced in the
 platform source is wider (datatypes and operators below); treat Number and Text as the
@@ -85,7 +114,7 @@ How it decides [Platform behaviour, traced]:
   and goes to review when it is higher; with "value < limit", it auto-approves when the new
   value is higher or equal and goes to review when it is lower. Equal auto-approved in both runs.
   Limits of the measurement: Number conditions only; an admin acted on every item; Smart
-  Approval was on through the shipped flow's step input, and the Setup page was not read.
+  Approval was on through the shipped flow's step input.
   Other types and operators are still unmeasured.
 - A step Smart Approval auto-approves completes as Approved, so a later step reading its
   outcome sees Approved: the auto-reviewed item posts an Approve decision [Platform behaviour, traced]. A later step whose entry
@@ -149,37 +178,13 @@ edits the flow [Repo: `docs/features/composable-quote-approvals.md`].
   reject from the Review button and approve through `reviewApprovalWorkItem`; and grant Read
   on Approval Submission alone, without Approval Work Item, to see whether the personas
   table's grant is enough]
-- Which Approval Settings a fresh scratch org has on, and whether Metadata API can set them. In
-  the one org checked, the Metadata API exposed no Approval or Smart Approval setting: no
-  Settings type carried one, and the only approval metadata type was the classic approval
-  process [Measured: 2026-11-13, 264, scratch, one org]. [Open: read Setup > Approval Settings on
-  a newly created scratch org, before any build step runs, and list its metadata types for an
-  approval setting]
+- Which Approval Settings a fresh scratch org has on. [Open: read Setup > Approval Settings on a
+  fresh org, before any build step, and compare with the built-org states under *Setup*]
 - Whether a Resource-type approver works at runtime, and whether there is a
   manager-hierarchy approver.
 - Whether a roll-up summary or Percent condition passes the Smart Approvals type check
   [inferred: the flow resolves it to Number or Currency; not verified].
 - Whether `ApprovalDelegation` appears once delegation is turned on.
-- Whether `ActionInput__CanUseSmartApproval` is the Use Smart Approval setting; the docs don't
-  name the input. With it `false` on
-  every step, a resubmission after a rejection at the second step (the first approved)
-  opened a new first-step work item, `Assigned`, `IsEligibleForSmartApproval` false
-  [Measured: 2026-11-12, 264], as expected if it is the Use Smart Approval setting. With it
-  `true` (as the shipped steps set it), resubmissions auto-approved a step that was approved in the earlier submission and whose
-  range still held, and the step rejected there went to review again
-  [Measured: 2026-11-12, 264, scratch]; the Approval Settings page was not read.
-  Traced: Smart Approval is switched on per approval step by its Use Smart Approval input
-  (stored on the work item as Eligible for Smart Approval). The trace also confirms the
-  Decision and evaluation-flow rules above (other traced rules: *How it decides*): Smart
-  Approval does not apply when the flow has a Decision path leading to an approval step
-  without entry conditions, or an evaluation-flow entry or exit determination [Platform
-  behaviour, traced; Help: `ind.approvals_smart_approval_limitations`]. Help's "Turn On
-  Smart Approvals" step is not mapped to this input: not established whether an
-  organization-wide setting also gates it. [Open: read Setup > Approval Settings for an
-  organization-wide Smart Approvals control; if there is one, turn it off, resubmit a quote
-  rejected at the second step after the first was approved, and see whether the first step
-  still auto-approves; and in Flow Builder, confirm that a step's Use Smart Approval checkbox
-  writes `ActionInput__CanUseSmartApproval`]
 - Whether a line's margin values reflect a header discount that `DiscountDistributionService`
   spreads to lines; the shipped procedure computes margin before the header discount steps.
 - `ApprovalWorkItem` standard fields and sObject `update()`: the Help says they can't be

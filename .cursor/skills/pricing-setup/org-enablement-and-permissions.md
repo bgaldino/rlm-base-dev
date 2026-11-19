@@ -117,8 +117,10 @@ The runtime row's Run Decision Matrices and Run Expression Sets grants are Help'
 only the partner community permission set and profile enable either one in their own metadata
 [Repo: `unpackaged/post_prm/`]. The sales representative, sales operations and product and
 pricing admin persona groups include Salesforce Pricing Run Time User and other managed sets
-[Repo: `unpackaged/post_personas/`], so whether they carry both depends on all of those sets.
-[Open: read the system permissions each of those persona groups resolves to in an org]
+[Repo: `unpackaged/post_personas/`]. In one org, the Salesforce Pricing Run Time User, Design
+Time User, Admin and Manager permission sets each had both on, and each of the three groups
+resolved to Run Decision Matrices on, Run Expression Sets on and Run Decision Tables off
+[Measured: 2026-11-18, 264, scratch, one org].
 
 ### Record sharing
 
@@ -228,5 +230,3 @@ Simulate or a quote reprice (see [operations-and-troubleshooting](../pricing-pro
   inferred from the repo's group composition. The designer row's permission-set cell is blank in
   Help; the label above is inferred from the persona name and from the admin row, which lists
   Salesforce Pricing Design Time User.
-- Help's note that Run Time users have Run Decision Matrices / Run Expression Sets "by default"
-  was not checked against the shipped permission set contents.
