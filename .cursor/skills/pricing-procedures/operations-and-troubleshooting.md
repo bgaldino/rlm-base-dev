@@ -173,7 +173,7 @@ Setup > Sync Pricing Data; a schedule-triggered Flow calling the **Refresh Decis
 action (one action per table, off-peak, add a fault path, pause during bulk loads, hourly
 refresh limit exists; Help gives Manage Flow to create and activate the flow, Salesforce
 Pricing Design Time to enable data sync and Assetize Order for a complete sync; the action
-itself is admin-only, see
+itself is admin-only, the Connect refresh route has a different gate, see
 [decision-tables](../decision-tables/SKILL.md)).
 Verify with the Last Refreshed timestamp, or `cci task run
 check_decision_table_freshness --org <cci_alias>`. Authoring and refresh: [`../decision-tables/SKILL.md`](../decision-tables/SKILL.md).

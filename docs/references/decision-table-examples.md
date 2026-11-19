@@ -450,7 +450,8 @@ tables even when the Commerce feature is not configured.
 
 Interactive refresh uses the **Decision Table Manager** component on the Revenue
 Cloud Home page. Refreshing from it needs Modify All Data and Customize Application,
-Salesforce's own gate on the refresh action; other users get the freshness view only. The remaining `post_utils` refresh flows are autolaunched.
+Salesforce's own gate on the refresh action (the Connect refresh route has a different gate:
+decision-tables skill, rule 1); other users get the freshness view only. The remaining `post_utils` refresh flows are autolaunched.
 
 | Entry point | Location | Type | Use |
 |---|---|---|---|
