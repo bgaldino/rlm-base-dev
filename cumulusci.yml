@@ -5087,8 +5087,10 @@ flows:
       2:
         task: test_qb_pricing_idempotency
       3:
-        # qb-price-revision loads in prepare_pricing_data right after the qb pricing plan,
-        # under the same qb guard, so it is tested right after the pricing step (todo 385).
+        # qb-price-revision loads in prepare_pricing_data right after the qb pricing plan, so
+        # it is tested right after the pricing step (todo 385). Ungated like steps 1-10: the
+        # flow is QB-only. On an org that lacked the data the first load inserts IndexRate
+        # rows; run refresh_dt_default_pricing afterwards (qb-price-revision README).
         task: test_qb_price_revision_idempotency
       4:
         task: test_qb_dro_idempotency
