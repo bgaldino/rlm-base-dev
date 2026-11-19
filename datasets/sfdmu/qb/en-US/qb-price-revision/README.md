@@ -18,7 +18,7 @@ default-pricing and the rating refresh lists). After loading outside a full buil
 cci task run refresh_dt_default_pricing --org <alias>
 ```
 
-**Other tasks:** `test_qb_price_revision_idempotency` and `extract_qb_price_revision_data`.
+**Other tasks:** `test_qb_price_revision_idempotency` (step 3 of `run_qb_idempotency_tests`) and `extract_qb_price_revision_data`.
 
 ## Records
 

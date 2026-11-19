@@ -59,18 +59,19 @@ Run all QB data idempotency tests (load twice, assert no new records). Use --org
 
 1. **task** `test_qb_pcm_idempotency`
 2. **task** `test_qb_pricing_idempotency`
-3. **task** `test_qb_dro_idempotency`
-4. **task** `test_qb_clm_idempotency`
-5. **task** `test_qb_rating_idempotency`
-6. **task** `test_qb_rating_entitlements_idempotency`
-7. **task** `test_qb_rates_idempotency`
-8. **task** `test_qb_transactionprocessingtypes_idempotency`
-9. **task** `test_qb_guidedselling_products_idempotency`
-10. **task** `test_qb_tax_idempotency`  `when: project_config.project__custom__tax and project_config.project__custom__qb`
-11. **task** `test_qb_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__qb`
-12. **task** `test_qb_prm_idempotency`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
-13. **task** `test_qb_approvals_idempotency`  `when: project_config.project__custom__qb and project_config.project__custom__approvals`
-14. **task** `test_qb_prm_pricing_idempotency`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb`
+3. **task** `test_qb_price_revision_idempotency`
+4. **task** `test_qb_dro_idempotency`
+5. **task** `test_qb_clm_idempotency`
+6. **task** `test_qb_rating_idempotency`
+7. **task** `test_qb_rating_entitlements_idempotency`
+8. **task** `test_qb_rates_idempotency`
+9. **task** `test_qb_transactionprocessingtypes_idempotency`
+10. **task** `test_qb_guidedselling_products_idempotency`
+11. **task** `test_qb_tax_idempotency`  `when: project_config.project__custom__tax and project_config.project__custom__qb`
+12. **task** `test_qb_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__qb`
+13. **task** `test_qb_prm_idempotency`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
+14. **task** `test_qb_approvals_idempotency`  `when: project_config.project__custom__qb and project_config.project__custom__approvals`
+15. **task** `test_qb_prm_pricing_idempotency`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb`
 
 ---
 
