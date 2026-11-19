@@ -39,13 +39,19 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info` (the asset and
    binding-object tables and `Commitment_based_Rate_Adjustment`), which that flow queues
    for refresh on order activation. Its start element sets `flowRunAsUser` TriggeringUser
-   [Repo]; which user that resolves to for this platform-published event, and so whether
-   the admin-only check below passes, is unverified (see `usage-consumption/SKILL.md`).
-   *Asset Action Source Entries V2*, which that flow names, still read Stale six minutes
-   after one activation and an amendment priced in that window was wrong [Measured:
-   2026-11-16, 264, scratch]: refresh once (*Refreshing*), then poll until Fresh and don't
-   re-trigger before the next change (`asset-lifecycle-changes/verification.md` step 7).
-   [Open: whether the flow's refresh of that table ran late or not at all] See
+   [Repo], and the flow ran as the user who activated the order: debug logs showed the event
+   process switch from Automated Process to that user before the flow ran, for an admin and
+   for a sales rep [Measured: 2026-11-18, 264, scratch, one org]. When the sales rep, without
+   Modify All Data or Customize Application, activated an order with the refresh queue empty,
+   every table the flow names refreshed within about four minutes (*Asset Action Source Entries
+   V2* moved `LastIncrementalSyncDate`, the other 13 `LastSyncDate`) [Measured: 2026-11-18, 264,
+   scratch, one org], so the admin-only check below didn't stop this flow. Why it differs from a
+   direct call is not traced.
+   *Asset Action Source Entries V2* still read Stale six minutes after one activation and an
+   amendment priced in that window was wrong [Measured: 2026-11-16, 264, scratch]: refresh once
+   (*Refreshing*), then poll until Fresh and don't re-trigger before the next change
+   (`asset-lifecycle-changes/verification.md` step 7). [Open: whether a busy refresh queue
+   explains that delay] See
    `lifecycle-and-refresh.md` → *After editing setup data*.
    **The Refresh Decision Table action is admin-only.** It queued only for a user with Modify All
    Data *and* Customize Application, whether run by the flow action or by `POST
@@ -60,7 +66,8 @@ lifecycle work through the standalone `scripts/decision_tables/` toolkit. Read
    sets were not run [Measured: 2026-11-18, 264, scratch, one org]. A schedule-triggered flow ran as
    the admin who deployed and scheduled it, not as Automated Process, and its refresh queued
    [Measured: 2026-11-18, 264, scratch, one org]. Whether a later edit or activation by another user
-   changes the running user was not tested.
+   changes the running user was not tested. The order-activation flow above is the one measured
+   case where the Refresh Decision Table action queued a refresh for a non-admin.
    A Connect resource has a different gate: `POST /services/data/v68.0/connect/decision-table/refresh`
    with `{"decisionTableId": "<Id>"}` returned 201 `Queued` for a user with Rule Engine Designer alone,
    for one with Salesforce Pricing Design Time User alone, for one with Modify All Data and Customize

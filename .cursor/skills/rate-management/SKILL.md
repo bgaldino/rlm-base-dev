@@ -220,8 +220,8 @@ In this repo the lists are `dt_rating_decision_tables` and
 the tables named in `RLM_Platform_Event_CreateAssetOrderEvent_Stamp_Asset_Renewal_Info`: the
 asset and binding-object tables and `Commitment_based_Rate_Adjustment` (see
 [usage-consumption](../usage-consumption/SKILL.md) DO NOT). The flow's start element sets
-`flowRunAsUser` TriggeringUser [Repo]; which user that resolves to, and so whether it passes the
-refresh permission check, is unverified ([decision-tables](../decision-tables/SKILL.md) rule 1). At build
+`flowRunAsUser` TriggeringUser [Repo]. It ran as the activating user, and its refreshes ran for a
+non-admin [Measured: 2026-11-18, 264, scratch, one org] ([decision-tables](../decision-tables/SKILL.md) rule 1). At build
 time the `refresh_all_decision_tables` flow (run by
 `prepare_rlm_org`) refreshes the listed tables via `refresh_dt_rating` and
 `refresh_dt_rating_discovery` when the `rating` flag is on (the flow runs
