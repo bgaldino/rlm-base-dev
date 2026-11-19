@@ -883,6 +883,21 @@ SKILL_ROUTER_PATH = f"{SKILLS_ROOT}/README.md"
 LIST_ITEM_RE = re.compile(r"[ \t]*[-*+][ \t]")
 
 
+def markdown_section(text: str, heading_re: re.Pattern) -> str | None:
+    """The body under the heading heading_re matches, up to the next heading of any level.
+
+    Fenced code is stripped first, so a heading or listing inside a fence never counts.
+    None when the heading is missing.
+    """
+    text = strip_fenced_code(text)
+    heading = heading_re.search(text)
+    if heading is None:
+        return None
+    body = text[heading.end():]
+    next_heading = re.search(r"^#{1,6}\s", body, re.MULTILINE)
+    return body[:next_heading.start()] if next_heading else body
+
+
 def agents_index_tokens(agents_text: str) -> list[str] | None:
     """Code spans in the AGENTS.md index list, or None when the section is missing.
 
@@ -892,13 +907,9 @@ def agents_index_tokens(agents_text: str) -> list[str] | None:
     before the next heading of any level are read, so a name that appears only in prose
     or in a following subsection (the Script Reference owner column, say) is not listed.
     """
-    text = strip_fenced_code(agents_text)
-    heading = AGENTS_INDEX_HEADING_RE.search(text)
-    if heading is None:
+    section = markdown_section(agents_text, AGENTS_INDEX_HEADING_RE)
+    if section is None:
         return None
-    body = text[heading.end():]
-    next_heading = re.search(r"^#{1,6}\s", body, re.MULTILINE)
-    section = body[:next_heading.start()] if next_heading else body
     items, in_item = [], False
     for line in section.splitlines():
         if LIST_ITEM_RE.match(line):
@@ -980,13 +991,9 @@ def script_reference_tokens(agents_text: str) -> list[str] | None:
     Only table rows (lines starting with `|`) before the next heading of any level count, so
     a folder named in prose or in a later section is not listed.
     """
-    text = strip_fenced_code(agents_text)
-    heading = SCRIPT_REFERENCE_HEADING_RE.search(text)
-    if heading is None:
+    section = markdown_section(agents_text, SCRIPT_REFERENCE_HEADING_RE)
+    if section is None:
         return None
-    body = text[heading.end():]
-    next_heading = re.search(r"^#{1,6}\s", body, re.MULTILINE)
-    section = body[:next_heading.start()] if next_heading else body
     rows = [line for line in section.splitlines() if line.lstrip().startswith("|")]
     return [token.strip() for token in re.findall(r"`([^`\n]+)`", "\n".join(rows))]
 
@@ -995,8 +1002,8 @@ def check_script_reference_parity(root: Path) -> CheckResult:
     """Every scripts/<dir>/ with a tracked README.md has an AGENTS.md Script Reference row.
 
     The Script Reference routes an agent from a script folder to the skill that documents its
-    flags; a folder missing from it sends the agent to guess. A row naming a scripts/<dir>/
-    that no longer exists is stale.
+    flags; a folder missing from it sends the agent to guess. A row naming a path under
+    scripts/ that Git does not track is stale, even if it exists in the working tree.
     """
     name = "script reference parity"
     try:
@@ -1005,23 +1012,25 @@ def check_script_reference_parity(root: Path) -> CheckResult:
         tokens = script_reference_tokens((root / AGENTS_PATH).read_text(encoding="utf-8"))
     except (OSError, UnicodeError, subprocess.CalledProcessError) as exc:
         return CheckResult(name, False, f"cannot read the Script Reference or the Git index: {exc}")
-    folders = set()
+    folders, tracked = set(), set()
     for path in result.stdout.split("\0"):
         parts = path.split("/")
+        if len(parts) >= 2:
+            tracked.add(parts[1])  # a tracked file or folder directly under scripts/
         if len(parts) == 3 and parts[2] == "README.md":
             folders.add(parts[1])
     if tokens is None:
         return CheckResult(name, False, f"{AGENTS_PATH}: no '### Script Reference' section")
-    # `scripts/ux/*` and `scripts/ai/query_erd.py` name folders; `scripts/validate_x.py` names a file.
+    # `scripts/ux/*` and `scripts/ai/query_erd.py` name a folder, `scripts/validate_x.py` a file.
     named = {token.split("/")[1].rstrip("*") for token in tokens if token.startswith("scripts/")} - {""}
     failures = []
     missing = sorted(folders - named - set(SCRIPT_REFERENCE_EXEMPT))
     if missing:
         failures.append(f"{AGENTS_PATH} Script Reference is missing "
                         f"{[f'scripts/{m}/' for m in missing]} (add a row, or an exemption with its reason)")
-    stale = sorted(n for n in named if "." not in n and not (root / "scripts" / n).is_dir())
+    stale = sorted(named - tracked)
     if stale:
-        failures.append(f"{AGENTS_PATH} Script Reference names missing folders {[f'scripts/{s}/' for s in stale]}")
+        failures.append(f"{AGENTS_PATH} Script Reference names untracked paths {[f'scripts/{s}' for s in stale]}")
     exempt_listed = sorted(set(SCRIPT_REFERENCE_EXEMPT) & named)
     if exempt_listed:
         failures.append(f"exempt but also listed: {exempt_listed}; drop the exemption")

@@ -142,7 +142,7 @@ Two check modes:
   when a `scripts/<dir>/` with a tracked `README.md` has no row in the `AGENTS.md`
   `### Script Reference` table (code spans in table rows, outside fenced code) and no
   entry, with its reason, in `SCRIPT_REFERENCE_EXEMPT`, or when a row names a
-  `scripts/<dir>/` that does not exist. Stage
+  path under `scripts/` that Git does not track. Stage
   new adapter links before running the check. Symlink-less copies can use the
   documented plain-file consumption fallback, but cannot pass native-link validation.
 

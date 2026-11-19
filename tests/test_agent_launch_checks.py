@@ -287,13 +287,18 @@ class LaunchChecks(unittest.TestCase):
             self.assertTrue(check(self.root).ok)
             agents.write_text(base.replace(row, row + "| `scripts/newtool/*` | x |\n"))
             self.assertIn("exempt but also listed: ['newtool']", check(self.root).detail)
-        # A row naming a folder that does not exist is stale; a top-level script file is not a folder.
+        # A row naming a path not tracked under scripts/ is stale, even if it exists locally; tracked
+        # files, with or without an extension, are fine.
+        self.write("scripts/validate.py", "")
+        self.write("scripts/run_all", "")
+        self.git("add", "scripts/validate.py", "scripts/run_all")
+        (self.root / "scripts/localonly").mkdir()
         agents.write_text(base.replace(row, row + "| `scripts/newtool/*` | x |\n| `scripts/gone/*` | x |\n"
-                                       "| `scripts/validate.py` | x |\n"))
+                                       "| `scripts/localonly/` | x |\n| `scripts/validate.py` | x |\n"
+                                       "| `scripts/run_all` | x |\n"))
         result = check(self.root)
         self.assertFalse(result.ok)
-        self.assertIn("names missing folders ['scripts/gone/']", result.detail)
-        self.assertNotIn("validate", result.detail)
+        self.assertIn("names untracked paths ['scripts/gone', 'scripts/localonly']", result.detail)
         agents.write_text("# Guide\n")
         self.assertIn("no '### Script Reference' section", check(self.root).detail)
 
