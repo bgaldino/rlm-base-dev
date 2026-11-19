@@ -441,6 +441,14 @@ header row with fields from query") is only one of them. Pick by *why* the file 
 | The object should load, but the CSV lost its header | Add the header row — the validator's advice, and the only one that preserves intent |
 | The object genuinely has no data for this dataset, in a **wired** plan | `excluded: true` — prevents a destructive wipe on a `deleteOldData` plan, and is why rule 4 exists |
 | The whole plan is unwired and unmaintained | Delete the plan — `excluded: true` would make a checker green while leaving a plan nobody loads |
+| The CSV names an object **no pass declares** (validator Medium "Empty tracked CSV names no object…") | Delete the file. An empty file and a missing one both read as zero rows (`Common.readCsvFileAsync` returns `[]` for a missing path), so nothing changes at runtime (todo 386) |
+
+A **non-empty** CSV for an undeclared object is only Info. SFDMU adds any lookup parent the plan
+doesn't declare to the job by itself (`MigrationJob._collectMissingParentLookupObjects`), so the file
+may be the source rows for that parent; the validator can't tell without an org describe. Keep it if
+a declared object looks up that parent; otherwise it's dead weight. A CSV for an `excluded: true`
+object counts as declared, and SFDMU's fixed-name files (`UserAndGroup.csv`, `ValueMapping.csv`,
+`FieldMapping.csv`) are never reported.
 
 The third row's precedent is `q3-multicurrency`, an unwired plan with zero-byte `CostBook`/
 `CostBookEntry` CSVs, resolved by removal in `dab545ab`. `mfg/en-US/mfg-multicurrency` carried the

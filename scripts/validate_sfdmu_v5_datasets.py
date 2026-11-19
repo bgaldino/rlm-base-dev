@@ -25,7 +25,9 @@ import argparse
 import csv
 import json
 import math
+import os
 import re
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from enum import Enum
@@ -149,6 +151,11 @@ class SFDMUValidator:
         "ProductComponentGrpOverride",
         "ProductRelComponentOverride",
     }
+
+    # Plan-root CSVs SFDMU reads by fixed name rather than per object (its `VALUE_MAPPING_CSV_FILENAME`,
+    # `FIELD_MAPPING_FILENAME` and `USER_AND_GROUP_FILENAME` constants), so they name no object and
+    # are not unreferenced (todo 386).
+    SFDMU_FIXED_NAME_CSVS = {"ValueMapping.csv", "FieldMapping.csv", "UserAndGroup.csv"}
 
     # Objects with known empty CSVs (0 records placeholders). Pruned of objects no plan ships
     # empty any more on 2026-11-05 (todo 216).
@@ -580,11 +587,75 @@ class SFDMUValidator:
                 for obj_config in writable_cfgs:
                     self._validate_per_pass_csv(csv_path, obj_name, pass_index, obj_config, result)
 
+        # A tracked CSV at the plan root that no pass declares (todo 386).
+        self._check_unreferenced_root_csvs(dataset_path, object_configs, result)
+
         self.log(f"\nValidation complete for {dataset_name}")
         self.log(f"Objects validated: {result.objects_validated}")
         self.log(f"Issues found: {len(result.issues)}")
 
         return result
+
+    @staticmethod
+    def _tracked_root_csvs(dataset_path: Path) -> Optional[List[Path]]:
+        """The tracked `*.csv` files directly in the plan root, or None outside a Git checkout.
+
+        Tracked only: SFDMU's untracked runtime output (`source/`, `target/`, reports) must not
+        drown the signal, and a stray untracked file is the author's working state, not the repo's.
+        Subdirectories (`objectset_source/`) are left to the per-pass override check, and a file
+        deleted from the working tree but not yet staged is skipped (there is nothing to read).
+
+        Git's repository variables are dropped so discovery starts from the plan folder: a hook
+        exports a relative `GIT_DIR` that `-C` would resolve against the wrong directory, silently
+        turning the check off for exactly the runs (pre-commit, pre-push) it should gate.
+        """
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+                            "GIT_PREFIX", "GIT_OBJECT_DIRECTORY", "GIT_NAMESPACE")}
+        try:
+            listing = subprocess.run(["git", "-C", str(dataset_path), "ls-files", "-z", "--", "."],
+                                     capture_output=True, text=True, check=True, env=env).stdout
+        except (OSError, subprocess.CalledProcessError):
+            return None
+        return sorted(dataset_path / name for name in listing.split("\0")
+                      if name.endswith(".csv") and "/" not in name and (dataset_path / name).is_file())
+
+    def _check_unreferenced_root_csvs(self, dataset_path: Path, object_configs: Dict[str, dict],
+                                      result: ValidationResult) -> None:
+        """Flag tracked root CSVs whose object no pass of export.json declares (todo 386).
+
+        Every other check walks from a declaration to its CSV, so a CSV with no declaration was
+        invisible behind a green run. A CSV for an object declared `excluded: true` counts as
+        referenced (owner decision on todo 386): it is a placeholder that lets the object be
+        re-enabled without a new file. Names match by exact casing, as SFDMU's path does.
+
+        An undeclared object is not always unread: SFDMU adds a missing lookup parent to the job
+        itself (`MigrationJob._collectMissingParentLookupObjects`), and this validator cannot see
+        lookup targets without an org describe. So a non-empty file is Info, a pointer to check,
+        and only an empty one, which holds no data either way, is Medium (it fails the dataset's
+        own result but not a default, non-strict run).
+        """
+        tracked = self._tracked_root_csvs(dataset_path)
+        if tracked is None:
+            self.log("  Skipping unreferenced-CSV check: not a Git checkout", level="DEBUG")
+            return
+        for csv_path in tracked:
+            if csv_path.stem in object_configs or csv_path.name in self.SFDMU_FIXED_NAME_CSVS:
+                continue
+            if csv_path.stat().st_size == 0:
+                severity = Severity.MEDIUM
+                message = ("Empty tracked CSV names no object any pass of export.json declares: it holds "
+                           "no data, so delete it (or declare the object)")
+            else:
+                severity = Severity.INFO
+                message = ("Tracked CSV names no object any pass of export.json declares: SFDMU reads it "
+                           "only if it auto-adds the object as a missing lookup parent, so check it is one")
+            result.add_issue(Issue(
+                severity=severity,
+                object_name=csv_path.stem,
+                message=message,
+                file_path=self._make_relative_path(csv_path)
+            ))
 
     @staticmethod
     def _reject_non_finite_json_constant(token: str):
