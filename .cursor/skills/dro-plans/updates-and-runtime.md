@@ -140,10 +140,11 @@ introduce a blanket extra approval for ordinary configuration updates.
   freeze scope below. So the flag applies when the flagged step starts. A source rule "no
   changes once step X is done" is met by flagging the step after X, which reaches In
   Progress only when X is complete [inferred from Help]. A build instead flagged each step
-  its source rule named, X itself, and the freeze output then denied changes on those
-  items [Measured: 2026-11-17, 264, scratch, one org]. By Help's rule that lock starts when X
-  starts, not when it completes [inferred]. Choose by when the source wants the lock to
-  start, and record the choice as a decision.
+  its source rule named, X itself: the step definitions read back with `PointOfNoReturn`
+  "Changes Denied" [Measured: 2026-11-18, 264, scratch, one org]; that build didn't read the
+  freeze output. By Help's rule, flagging X locks the items when X starts, not when it
+  completes [inferred]. Choose by when the source wants the lock to start, and record the
+  choice as a decision.
   The submission action documents an override, but it is never an automatic
   workaround for an invalid change. Help says an order past PONR can't be cancelled or
   amended [Help: `ind.dro_point_of_no_return_state_propagation`], but a later amendment of the
