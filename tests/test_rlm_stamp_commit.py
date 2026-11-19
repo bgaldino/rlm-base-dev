@@ -365,19 +365,26 @@ class GitHelpers(unittest.TestCase):
         self.assertIs(self.dirty("R  force-app/a.xml -> unpackaged/post_ux/a.xml"), True)
         self.assertIs(self.dirty("R  unpackaged/post_ux/a.xml -> unpackaged/post_ux/b.xml"), False)
 
-    def test_pins_suspected_bug_first_unstaged_build_output_line_reads_dirty(self):
-        # PINS A SUSPECTED BUG. `_git` strips stdout, which removes the leading space of the
-        # first porcelain line when its index column is blank (" M path"). `line[3:]` then
-        # drops the path's first character ("npackaged/post_ux/..."), so the exclusion
-        # misses and an unstaged, regenerated post_ux file - the state every build leaves -
-        # stamps the tree dirty. The same line in second position is excluded correctly.
-        # Tracked as todo 396. If this assertion starts failing, the bug was fixed: flip it to
-        # False and close 396.
-        self.assertIs(self.dirty(" M unpackaged/post_ux/assembly_manifest.json"), True)
+    def test_a_first_line_unstaged_build_output_change_is_clean(self):
+        # Todo 396: `_git` strips by default, which removed the blank index column of the first
+        # porcelain line (" M path"), so `line[3:]` cut the path to "npackaged/post_ux/..." and
+        # the exclusion missed. `git status --porcelain` is now read unstripped.
+        self.assertIs(self.dirty(" M unpackaged/post_ux/assembly_manifest.json\n"), False)
+        self.assertIs(self.dirty(" M unpackaged/post_ux/assembly_manifest.json"), False)
         self.assertIs(
-            self.dirty("M  unpackaged/post_ux/a.json\n M unpackaged/post_ux/assembly_manifest.json"),
+            self.dirty("M  unpackaged/post_ux/a.json\n M unpackaged/post_ux/assembly_manifest.json\n"),
             False,
         )
+        # A real change in first position, unstaged, still reads dirty: the fix must not just
+        # skip the first line.
+        self.assertIs(self.dirty(" M tasks/rlm_x.py\n M unpackaged/post_ux/a.json\n"), True)
+
+    def test_status_is_read_unstripped(self):
+        # FakeRunner ends git output with a newline, as git does.
+        runner = FakeRunner(git={("status", "--porcelain"): " M unpackaged/post_ux/x.json"})
+        task = self.git_task(runner)
+        self.assertEqual(task._git("status", "--porcelain", strip=False), " M unpackaged/post_ux/x.json\n")
+        self.assertEqual(task._git("status", "--porcelain"), "M unpackaged/post_ux/x.json")
 
 
 class OrgDefinition(unittest.TestCase):

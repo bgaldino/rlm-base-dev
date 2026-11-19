@@ -130,8 +130,12 @@ class StampGitCommit(SFDXBaseTask):
     # Git helpers
     # ------------------------------------------------------------------
 
-    def _git(self, *args):
-        """Run a git command and return stripped stdout."""
+    def _git(self, *args, strip=True):
+        """Run a git command and return its stdout, stripped unless strip=False.
+
+        Pass strip=False for column-sensitive output such as `status --porcelain`, whose
+        first line can begin with a meaningful space (todo 396).
+        """
         command = ["git"] + list(args)
         try:
             result = subprocess.run(
@@ -141,7 +145,7 @@ class StampGitCommit(SFDXBaseTask):
                 check=True,
                 timeout=10,
             )
-            return result.stdout.strip()
+            return result.stdout.strip() if strip else result.stdout
         except subprocess.CalledProcessError as e:
             raise CommandException(
                 f"git command failed: {shlex.join(command)}\n{e.stderr}"
@@ -177,10 +181,14 @@ class StampGitCommit(SFDXBaseTask):
         Excludes known build-output paths (e.g. unpackaged/post_ux/) that are
         regenerated during the flow and would otherwise always flag dirty in CI.
         """
-        output = self._git("status", "--porcelain")
-        if not output:
-            return False
+        # Unstripped: porcelain lines are `XY <path>`, and an unstaged change has a blank index
+        # column (" M path"). Stripping removed that space from the first line only, so
+        # `line[3:]` cut the path's first character and a lone regenerated post_ux change read
+        # as dirty (todo 396).
+        output = self._git("status", "--porcelain", strip=False)
         for line in output.splitlines():
+            if not line.strip():
+                continue
             # porcelain format: XY <path> or XY <old path> -> <new path>
             # Check both sides of a rename: a rename from a build-output path
             # to a non-build-output path (or vice versa) must still count as dirty.
