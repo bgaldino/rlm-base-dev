@@ -260,12 +260,12 @@ def probe_org(
     token refresh), `sf org list --all --skip-connection-status` is consulted. That list
     is not network-free (it reads each scratch org's status from the dev hub), so it can
     cost a second timeout. Only positive evidence gives `missing`: display reporting an
-    unknown alias, or a list record that is Expired/Deleted. An alias absent from the
+    unknown alias, or a list record that is Expired, Deleted or `isExpired`. An alias absent from the
     list, or an unreadable list, leaves the state `error` (unknown).
 
     Returns {"state": ..., "detail": ...} where state is one of:
-      present - the org is authenticated and `sf` does not report it Expired or Deleted
-      missing - no authorization for the alias, or `sf` reports the org Expired or Deleted
+      present - the org is authenticated and `sf` does not report it Expired, Deleted or `isExpired`
+      missing - no authorization for the alias, or `sf` reports the org Expired, Deleted or `isExpired`
                 (never decided from `expirationDate` and today's date)
       timeout - the probe did not finish in time; the org's state is unknown
       error   - the probe could not run or its output was unreadable; state unknown
