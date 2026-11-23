@@ -41,8 +41,8 @@ Enable Document Templates Export On General Settings
     ...    The page is reopened so Salesforce reflects the updated prerequisite state before the click.
     ...    Note: this toggle is a plain input[type="checkbox"] (data-name="MetadataPreference") inside
     ...    an LWC shadow root (setup_industries_docgen-preference-toggle). Enable Toggle By Label
-    ...    cannot reach it because document.createTreeWalker and querySelectorAll do not pierce
-    ...    shadow roots. Instead, we use findEl (recursive shadow-DOM traversal) to click directly —
+    ...    cannot reach it because its label text-walker (document.createTreeWalker) does not search
+    ...    inside shadow roots, and this toggle's label is inside one. Instead, we use findEl (recursive shadow-DOM traversal) to click directly —
     ...    the same approach used in configure_core_pricing_setup and configure_product_discovery.
     ...    Sleep 5s ensures the save handler is wired before the click fires. After clicking,
     ...    the page is reloaded to confirm server-side persistence before the suite exits.
@@ -99,7 +99,7 @@ _Read Document Templates Export State
 _Click Document Templates Export Toggle
     [Documentation]    Directly clicks input[data-name="MetadataPreference"] inside
     ...    setup_industries_docgen-preference-toggle's shadow root, bypassing Enable Toggle By Label
-    ...    which uses querySelectorAll / createTreeWalker (neither pierce shadow DOM). Returns
+    ...    which finds its label with a light-DOM text walker (it cannot see into shadow DOM). Returns
     ...    'clicked', 'already_on', or fails with 'not_found' to trigger Wait Until Keyword Succeeds retry.
     ...    Targets the wrapping label when present (consistent with the SetupToggles.robot pattern
     ...    introduced in PR #139 for lightning-input toggles, where label clicks fire the LWC save
