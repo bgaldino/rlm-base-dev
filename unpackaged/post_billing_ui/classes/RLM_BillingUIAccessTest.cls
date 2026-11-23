@@ -17,9 +17,11 @@
  *
  * READS lists what the controllers select or filter on, per object. Keep it in step with
  * the controllers: a new USER_MODE field there belongs here, and in the permission set.
- * Also listed are fields that only a record page shows (CollectionPlan.InitialDueAmount, from
- * the RLM_Collection_Plan_Record_Page flexipage): no controller selects them, but the page
- * needs read access to render them.
+ * COLLECTIONS_READS also lists the CollectionPlan fields that only the record page shows
+ * (RLM_Collection_Plan_Record_Page): no controller selects them, but the page needs read
+ * access to render them. Measured on a 264 org: none of the managed role sets (nor
+ * BillingCollectionsAndRecoverySpecialist) grants any of these fields, so RLM_BillingUI has
+ * to grant them. The role sets are still part of the user because CollectionPlan reads as "not supported" without them.
  * Left out on purpose: Task (access follows the related record; no object permission
  * exists), DatedConversionRate (advanced currency management only), InvoiceBatchRun (the
  * batch monitor's page, which the role grants), and DisputeItem (the write check covers it).
@@ -139,7 +141,11 @@ private class RLM_BillingUIAccessTest {
         'PaymentSchedule' => new List<String>{ 'CollectionPlanItemId' },
         'CollectionPlan' => new List<String>{
             'Name', 'AccountId', 'Duedate', 'TotalInvoiceBalance', 'OwnerId', 'ClosedDate',
-            'CreatedDate', 'DaysPastDue', 'InitialDueAmount'
+            'CreatedDate', 'DaysPastDue',
+            // The other fields of the RLM_Collection_Plan_Record_Page flexipage.
+            'BillingAccountId', 'CollectionPlanReasonId', 'CollectionPlanSegment', 'ContactId',
+            'FirstCallDateTime', 'FirstEmailDateTime', 'FirstSmsDateTime', 'InitialDueAmount',
+            'IsClosed', 'PromiseToPayCount', 'RiskScore', 'Status', 'TotalTaxAmount', 'UsageType'
         },
         'CollectionPlanItem' => new List<String>{ 'InvoiceId', 'CollectionPlanId' }
     };

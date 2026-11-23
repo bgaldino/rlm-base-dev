@@ -9,7 +9,7 @@ the 264 Help snapshot it is grounded in.
 
 | Area | Not provisioned by the build | Grounding |
 |---|---|---|
-| [Approvals](#approvals-delegation-slack-and-the-approval-agent) | Delegation, Slack notifications, the Slack connection the Approval Agent needs | 264 Help snapshot, `unpackaged/post_agents/README.md` |
+| [Approvals](#approvals-delegation-slack-and-the-approval-agent) | Delegation, Slack notifications, the Slack connection the Approval Agent needs | 264 Help snapshot (agent presence: `unpackaged/post_agents/README.md`) |
 | [Tax](#revenue-standard-tax-engine) | Revenue Standard tax engine extension | `unpackaged/pre/4_tax/`, 264 Help snapshot |
 | [Payments](#payment-gateways) | Payment gateway, merchant account, payment method | `datasets/sfdmu/qb/en-US/qb-billing/README.md`, demo script |
 | [Billing Forecast and Lockbox](#billing-forecast-console-and-lockbox) | Forecast Console, Lockbox reconciliation (Data 360) | 264 Help and release-note snapshots |
@@ -57,7 +57,7 @@ loads is the payment retry rules (`datasets/sfdmu/qb/en-US/qb-billing/README.md`
 payment methods available in the Self-Service Billing Portal depend on the gateway you configure
 ([Help](../salesforce/264/help/articles/ind.billing_supported_payment_methods_for_the_self_service_billing_portal.htm.md)).
 Flows that need a gateway (collecting a payment through a gateway, refunds issued to a gateway,
-saved wallets) are not exercised by a default build. The build does deploy `unpackaged/post_payments_ext` (`RLM_RefundController`, the `rlmRefundButton`
+saved wallets) are not exercised by a default build. When the `payments` flag is on, the build deploys `unpackaged/post_payments_ext` (`RLM_RefundController`, the `rlmRefundButton`
 component), which issues refunds through the payment's gateway, so the Issue Refund button is present
 but needs a gateway to work. Configure a gateway sandbox in the org yourself;
 never commit gateway keys to this repository.
@@ -73,8 +73,8 @@ that creating and managing forecast schedules needs the Billing Operations User 
 It does not provision what the rest needs:
 
 - **Billing Forecast Console.** Help says it uses Tableau Next, needs the Tableau Next Consumer license
-  to view it, and requires Data 360 to be enabled and connected, with the Billing Forecast added to
-  the Advanced Billing Bundle
+  to view it, and requires Data 360 to be enabled and connected, with the Billing Forecast added to,
+  or deployed with, the Advanced Billing Bundle
   ([console](../salesforce/264/help/articles/ind.billing_forecast_console.htm.md),
   [Data 360](../salesforce/264/help/articles/ind.billing_forecast_data_360.htm.md)).
 - **Lockbox reconciliation.** The 264 release notes say it uses Document AI and requires the Billing
@@ -82,4 +82,5 @@ It does not provision what the rest needs:
   ([release note](../salesforce/264/release-notes/articles/release-notes.rn_billing_lockbox_reconciliation.htm.md)).
   The repository contains no Lockbox configuration.
 
-The build does not provision Data 360.
+A default build does not provision Data 360; the opt-in `ent-datacloud` org shape enables it
+(`orgs/README.md`), but nothing configures the Billing bundles.
