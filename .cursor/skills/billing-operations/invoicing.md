@@ -1,7 +1,8 @@
 # Billing Operations — Schedules and Invoicing
 
 Read this when choosing how invoices are produced or setting a run's dates. Parent:
-[SKILL.md](SKILL.md). Everything here is a read of Help and is not measured in this repo.
+[SKILL.md](SKILL.md). A read of Help, except the dated live observation under *Invoice
+documents and delivery*.
 
 ## Where billing schedules come from
 
@@ -147,6 +148,20 @@ objects and make them asynchronous; recovery of stranded invoices is in the same
   [Help: `ind.billing_invoice_pdf_document_delivery_through_email`,
   `ind.billing_invoices_email_prerequisites`].
 - Template authoring: `document-generation`.
+- **Fetching an invoice PDF through the API.** [Measured: 2026-10-15, 264, harness build, API 68.0]
+  Re-measure on the release patch in hand; the endpoint and field names are those of that
+  build.
+  - Posting an invoice attached no PDF, even with invoice PDF generation enabled; generate it.
+  - Generate: `POST /services/data/v68.0/revenue/billing/document/actions/generate` with
+    `recordId` (the invoice) and `shouldForceRegenerate`. The template resolved on its own. The
+    response carried the `InvoiceDocument` id and the `DocumentGenerationProcess` id.
+  - Poll `DocumentGenerationProcess.Status` until `Success`, then read
+    `InvoiceDocument.ContentDocumentId` for the file.
+  - Download the `ContentVersion` `VersionData` with
+    `sf api request rest <path> --stream-to-file <file>`. Without `--stream-to-file` the bytes were
+    re-encoded and the file came out larger than the real PDF.
+  - Check the result: PDF magic bytes, size equal to `ContentSize`, title equal to the invoice's
+    document number.
 
 ## Correcting an invoice
 

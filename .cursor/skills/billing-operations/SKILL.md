@@ -18,8 +18,12 @@ Use this skill after billing is set up (see [billing-setup](../billing-setup/SKI
 you must decide, run or check what happens next: schedules, invoices, tax, cash, credits,
 the ledger. Every product claim comes from the 264 Help snapshot or the dev guide and is
 tagged `[Help: <article_id>]` (id without `.htm.md`), `[Dev guide: <page>]`,
-`[Repo: <path>]` or `[inferred]`. **Nothing in this skill was measured by this repo**: it is
-a read of Help. Where billing-setup holds a measurement, link it instead of restating it.
+`[Repo: <path>]` or `[inferred]`. **This skill is a read of Help, plus a few facts measured
+live**, each tagged `[Measured: <date>, <release>, <org shape>]` (Line Level application in
+[payments-and-credits.md](payments-and-credits.md), the invoice PDF recipe in
+[invoicing.md](invoicing.md)). A measured fact is one observation on one build: re-measure it on
+the release patch in hand before relying on it or repeating it. Where billing-setup holds a
+measurement, link it instead of restating it.
 Object and field names are in `revenue-cloud-data-model` → `domains/billing.md`.
 
 ## Quick Rules
@@ -79,8 +83,9 @@ Object and field names are in `revenue-cloud-data-model` → `domains/billing.md
   and might round, at line level [Help: `ind.billing_standard_tax_rate`].
 - **DO NOT** write off, void or delete as a shortcut for a wrong amount. Each has its own
   effect on credits, tax and journals ([payments-and-credits.md](payments-and-credits.md)).
-- **DO NOT** state a number, amount, count or elapsed time for any stage as fact; this repo
-  has not measured them. Say "not measured".
+- **DO NOT** state a number, amount, count or elapsed time for any stage as fact unless a
+  `[Measured: ...]` tag covers it, and then quote its date and release. Otherwise say "not
+  measured".
 - **DO NOT** promise revenue recognition. The 264 Help area for Billing documents accounting
   periods, ledger accounts and transaction journals, and no revenue recognition schedules
   [inferred from Help's silence; see [accounting.md](accounting.md)].
@@ -106,12 +111,14 @@ Read the sub-file for the stage; for anything else, go to the neighbor:
 
 - [invoicing.md](invoicing.md): read when choosing how invoices are produced (batch,
   on-demand, preview, standalone ingestion), setting a run's dates, grouping or splitting
-  invoices, suspending billing, or generating invoice documents.
+  invoices, suspending billing, or generating invoice documents (including fetching an
+  invoice PDF through the API).
 - [tax.md](tax.md): read when choosing a tax engine, building tax policies and treatments,
   explaining estimated vs actual tax, or importing external tax.
 - [payments-and-credits.md](payments-and-credits.md): read when configuring payment
   collection, retries and application rules, issuing refunds, creating credit or debit
-  memos, writing off, or running collections.
+  memos, writing off, or running collections, or applying a payment or credit through the
+  API at Line Level.
 - [accounting.md](accounting.md): read when setting up legal entities, accounting periods,
   ledger accounts and journal rules, or closing a period.
 
@@ -132,7 +139,10 @@ A snapshot; the files are the source [Repo]:
   Payments metadata: `deploy_post_payments`.
 - Backdated billing check: `scripts/backdated_arc/verify_backdated_billing.py`.
 
-Whether any of these has been run end to end for a given stage here: not measured.
+Whether any of these has been run end to end for a given stage here: not measured, except the
+Line Level application and the invoice PDF fetch (*Measured: Line Level application* in
+[payments-and-credits.md](payments-and-credits.md); *Fetching an invoice PDF through the API* in
+[invoicing.md](invoicing.md)).
 
 ## Discovery
 

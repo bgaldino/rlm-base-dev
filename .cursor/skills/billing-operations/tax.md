@@ -30,7 +30,7 @@ under Billing Defaults [Help: `ind.billing_setup_default_records`].
   [Help: `ind.billing_tax_calculation_results`].
 - Invoice lines carry a Tax Processing Status; ingested lines with Pending or Estimated use
   the Invoice Estimated Tax Calculation API (dev guide resource
-  `/commerce/invoicing/invoices/collection/actions/calculate-estimated-tax`)
+  `/services/data/v68.0/commerce/invoicing/invoices/collection/actions/calculate-estimated-tax`)
   [Help: `ind.billing_invoice_creation`] [Dev guide: `connect_resources_calculate_estimated_tax`].
 - Posted invoices call the engine for actual tax; the result lands on Invoice Line Tax
   records (amount, code, rate, name, document and transaction numbers, effective date,
