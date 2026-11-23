@@ -357,26 +357,26 @@ def test_verify_project_flags_passes_on_the_real_project_custom(workspace, monke
     # CumulusCI loading the repo defaults instead (another project root) is reported.
     _fake_cci_project_info(monkeypatch, output=_project_info(defaults))
     message = verify_project_flags(workspace, effective)
-    assert message is not None and "inapp" in message and "mcp" in message
+    assert message is not None and "inapp" in message.message and "mcp" in message.message
 
 
 def test_verify_project_flags_reports_flags_cci_reads_from_another_root(workspace, monkeypatch) -> None:
     _fake_cci_project_info(monkeypatch, output=_project_info({"inapp": False, "mcp": False, "clm": False}))
     message = verify_project_flags(workspace, {"inapp": True, "mcp": True, "clm": False})
-    assert "inapp: scenario True, CumulusCI loaded 'False'" in message
-    assert "mcp: scenario True" in message
-    assert "clm" not in message
-    assert "git worktree" in message
+    assert "inapp: scenario True, CumulusCI loaded 'False'" in message.message
+    assert "mcp: scenario True" in message.message
+    assert "clm" not in message.message
+    assert "git worktree" in message.message
 
 
 def test_verify_project_flags_compares_exactly_not_case_insensitively(workspace, monkeypatch) -> None:
     _fake_cci_project_info(monkeypatch, output=_project_info({"inapp": "true"}))
-    assert "inapp" in verify_project_flags(workspace, {"inapp": True})
+    assert "inapp" in verify_project_flags(workspace, {"inapp": True}).message
 
 
 def test_verify_project_flags_reports_a_flag_absent_from_the_output(workspace, monkeypatch) -> None:
     _fake_cci_project_info(monkeypatch, output=_project_info({"other": True}))
-    assert "inapp: scenario True, absent" in verify_project_flags(workspace, {"inapp": True})
+    assert "inapp: scenario True, absent" in verify_project_flags(workspace, {"inapp": True}).message
 
 
 def test_verify_project_flags_ignores_non_boolean_values_and_none(workspace, monkeypatch) -> None:
@@ -385,21 +385,21 @@ def test_verify_project_flags_ignores_non_boolean_values_and_none(workspace, mon
     _fake_cci_project_info(monkeypatch, output=_project_info({"inapp": True}))
     assert verify_project_flags(workspace, {"inapp": True, "unset": None}) is None
     message = verify_project_flags(workspace, {"unset": None, "names": ["a"]})
-    assert message is not None and "no boolean flags" in message
+    assert message is not None and "no boolean flags" in message.message
 
 
 def test_verify_project_flags_fails_without_a_custom_block(workspace, monkeypatch) -> None:
     _fake_cci_project_info(monkeypatch, output="name: rlm-base\ngit:\n    prefix: x\n")
-    assert "no `custom:` block" in verify_project_flags(workspace, {"inapp": True})
+    assert "no `custom:` block" in verify_project_flags(workspace, {"inapp": True}).message
 
 
 def test_verify_project_flags_fails_when_cci_cannot_report(workspace, monkeypatch) -> None:
     _fake_cci_project_info(monkeypatch, returncode=1)
-    assert "cci project info" in verify_project_flags(workspace, {"inapp": True})
+    assert "cci project info" in verify_project_flags(workspace, {"inapp": True}).message
     _fake_cci_project_info(monkeypatch, raises=FileNotFoundError())
-    assert "cci project info" in verify_project_flags(workspace, {"inapp": True})
+    assert "cci project info" in verify_project_flags(workspace, {"inapp": True}).message
     _fake_cci_project_info(monkeypatch, raises=subprocess.TimeoutExpired(cmd=["cci"], timeout=60))
-    assert "cci project info" in verify_project_flags(workspace, {"inapp": True})
+    assert "cci project info" in verify_project_flags(workspace, {"inapp": True}).message
 
 
 def test_parse_project_info_custom_reads_flags_and_blanks_list_keys() -> None:
@@ -431,7 +431,10 @@ def test_parse_project_info_custom_ignores_multiline_string_continuations() -> N
     )
     parsed = _parse_project_info_custom(output)
     assert parsed["inapp"] == "True" and parsed["clm"] == "False"
-    assert "continued text with" not in parsed
+    assert "continued text with" not in parsed  # not shaped like `key: value`
+    # A continuation shaped like `key: value` is indistinguishable from a flag and is
+    # read as one; this is the parser's limit (only checked boolean names matter).
+    assert parsed["URL"] == "https://example.test/x"
 
 
 def test_parse_project_info_custom_reads_real_cci_output_fixture() -> None:
@@ -448,7 +451,7 @@ def test_verify_project_flags_accepts_real_cci_output_fixture(workspace, monkeyp
     _fake_cci_project_info(monkeypatch, output=fixture.read_text(encoding="utf-8"))
     assert verify_project_flags(workspace, {"billing": True, "inapp": False, "list_flag": ["x"]}) is None
     message = verify_project_flags(workspace, {"inapp": True})
-    assert message is not None and "inapp: scenario True, CumulusCI loaded 'False'" in message
+    assert message is not None and "inapp: scenario True, CumulusCI loaded 'False'" in message.message
 
 
 def test_verify_project_flags_fails_in_a_worktree_even_when_flags_match(tmp_path, monkeypatch) -> None:
@@ -457,7 +460,7 @@ def test_verify_project_flags_fails_in_a_worktree_even_when_flags_match(tmp_path
     (tmp_path / ".git").write_text("gitdir: /elsewhere/.git/worktrees/w\n", encoding="utf-8")
     calls = _fake_cci_project_info(monkeypatch, output=_project_info({"inapp": True}))
     message = verify_project_flags(tmp_path, {"inapp": True})
-    assert message is not None and ".git" in message and "worktree" in message
+    assert message is not None and ".git" in message.message and "worktree" in message.message
     assert message.failure_class == "deterministic"
     assert calls == [], "the git check must come before running cci"
 

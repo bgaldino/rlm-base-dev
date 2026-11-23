@@ -6,6 +6,7 @@ import re
 import subprocess
 import time
 from collections import deque
+from dataclasses import dataclass
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Event, Thread
@@ -322,15 +323,15 @@ def probe_org(
 _CUSTOM_KEY_LINE = re.compile(r"^([A-Za-z_][\w.-]*):(?:\s+(.*))?$")
 
 
-class PreflightFailure(str):
-    """A preflight failure message that also carries its failure class."""
+@dataclass(frozen=True)
+class PreflightFailure:
+    """Why the workspace preflight failed, and whether a retry could change it."""
 
+    message: str
     failure_class: str
 
-    def __new__(cls, message: str, failure_class: str) -> "PreflightFailure":
-        obj = super().__new__(cls, message)
-        obj.failure_class = failure_class
-        return obj
+    def __str__(self) -> str:
+        return self.message
 
 
 def _parse_project_info_custom(output: str) -> Dict[str, str]:
@@ -401,8 +402,8 @@ def verify_project_flags(
        project root that resolves to some other checkout with other defaults, however
        it came about.
 
-    Returns None when both pass, otherwise a ``PreflightFailure`` (a ``str`` that also
-    carries ``failure_class``): ``deterministic`` for what is wrong with the setup,
+    Returns None when both pass, otherwise a ``PreflightFailure`` (``message`` and
+    ``failure_class``): ``deterministic`` for what is wrong with the setup,
     ``transient`` for a timeout, ``unknown`` when ``cci`` could not run or report.
     """
     if not (project_root / ".git").is_dir():

@@ -56,8 +56,10 @@ target `project_root_flags` if either fails:
 - `cci project info` must print the scenario's boolean flags exactly. This catches a
   project root that resolves to another checkout with different flag defaults.
 
-On `resume` the failure is `resume_blocked` (exit 30); on `run` it is a failed scenario; the
-TUI exits 20.
+On `resume` the failure is `resume_blocked` (exit 30); a `cci` timeout or a `cci` that
+cannot run keeps resume recommended, while a wrong setup does not. On `run` it is a failed
+scenario. For the TUI, `run_build` returns 20 and emits `run_failed`; the TUI app does not
+use that return value.
 
 The workspace (`scenarios/<scenario_id>/cci_project/`) links most repo entries
 to the repo and copies `scripts/` and `robot/`. Robot output
@@ -278,7 +280,7 @@ Each run writes:
 
 - `0` - success
 - `10` - scenario/build failure
-- `20` - harness configuration/validation error (the TUI also exits 20 when the flag check fails)
+- `20` - harness configuration/validation error (`run_build` returns 20 for a failed flag check; the TUI app ignores the return value)
 - `30` - resume blocked (missing run/checkpoint/org, the org probe could not confirm the org, or the `project_root_flags` check failed)
 
 ## Agent Policy

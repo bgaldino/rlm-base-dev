@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 
 import yaml
 
+from scripts.build_harness.harness.execution import PreflightFailure
 from scripts.build_harness.tui import runner
 from scripts.build_harness.tui.state import BuildConfig, RunEvent
 
@@ -417,7 +418,7 @@ def test_run_build_fails_loudly_when_cci_ignores_the_overrides(tmp_path, monkeyp
     base_cci = {"project": {"custom": {"inapp": False}}, "flows": {"prepare_rlm_org": {"steps": {}}}, "orgs": {"scratch": {"ent": {"config_file": "orgs/ent.json", "days": 30}}}}
     monkeypatch.setattr(runner, "load_cci", lambda _: base_cci)
     monkeypatch.setattr(runner, "load_prepare_steps", lambda _: [])
-    monkeypatch.setattr(runner, "verify_project_flags", lambda _root, _flags: "CCI read inapp=False")
+    monkeypatch.setattr(runner, "verify_project_flags", lambda _root, _flags: PreflightFailure("CCI read inapp=False", "deterministic"))
     commands: List[Any] = []
     monkeypatch.setattr(
         runner,

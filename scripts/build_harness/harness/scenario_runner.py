@@ -158,7 +158,7 @@ def run_single_scenario(
         flags_error = verify_project_flags(project_root, flags)
         if flags_error is not None:
             cleanup_workspace = False
-            flags_failure_class = getattr(flags_error, "failure_class", "deterministic")
+            flags_failure_class = flags_error.failure_class
             record_event(
                 {
                     "phase": "preflight",
@@ -168,7 +168,7 @@ def run_single_scenario(
                     "status": "failed",
                     "duration_seconds": 0.0,
                     "exit_code": 1,
-                    "failure_signature": str(flags_error),
+                    "failure_signature": flags_error.message,
                     "failure_class": flags_failure_class,
                     "retries_used": 0,
                 }
@@ -178,10 +178,12 @@ def run_single_scenario(
                 failed_step=resume_from_step if is_resume else 0,
                 failed_target="project_root_flags",
                 failure_phase="preflight",
-                failure_signature=str(flags_error),
+                failure_signature=flags_error.message,
                 failure_class=flags_failure_class,
                 retry_count=0,
-                can_resume=False,
+                # On resume the checkpoint and org are untouched, so a transient or unknown
+                # failure (a cci timeout) keeps resume recommended; a wrong setup does not.
+                can_resume=is_resume and flags_failure_class != "deterministic",
             )
 
         if not skip_validate and not is_resume:
