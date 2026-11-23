@@ -17,6 +17,7 @@ protection off in the copy and require the scanner to find the leak, so a green 
 
 Run:  python tests/test_robot_session_url_logging.py     (needs robotframework)
 """
+import ast
 import base64
 import importlib.util
 import json
@@ -410,9 +411,11 @@ class RedactionTest(unittest.TestCase):
             self.assertEqual(guard.redact_session_urls(f"bad {encoded}"), guard.WITHHELD)
         # No left anchor: any prefix still matches (single or double percent-encoding, JS/JSON escapes,
         # a word character).
-        for encoded in ["x%3D00D000000000000%21" + "A" * 24, "%22sessionId%22%3A%2200D000000000000%21" + "A" * 24,
-                        "a%2C00D000000000000%2521" + "A" * 24, "%253D00D000000000000%2521" + "A" * 24, "%2522%253A%252200D000000000000%2521" + "A" * 24,
-                        "\\x3d00D000000000000!" + "A" * 24, "x100D000000000000%21" + "A" * 24]:
+        tail = "A" * 24
+        for encoded in ["x%3D00D000000000000%21" + tail, "%22sessionId%22%3A%2200D000000000000%21" + tail,
+                        "a%2C00D000000000000%2521" + tail, "%253D00D000000000000%2521" + tail,
+                        "%2522%253A%252200D000000000000%2521" + tail, "\\x3d00D000000000000!" + tail,
+                        "x100D000000000000%21" + tail]:
             self.assertTrue(guard.SESSION_URL_PATTERN.search(encoded), encoded)
             self.assertTrue(scanner.SESSION_URL_PATTERN.search(encoded), encoded)
             self.assertEqual(guard.redact_session_urls(f"bad {encoded}"), guard.WITHHELD)
@@ -590,20 +593,81 @@ class RobotTreeSweepTest(unittest.TestCase):
         r"|\bdocument\.(?:URL|documentURI|baseURI|referrer)\b",
         re.IGNORECASE)
     # A failed ``*Should Contain*`` keyword logs the page source at its ``loglevel`` (TRACE by default),
-    # so any other level (including WARN/ERROR, which every run records) leaks it. Flags any
-    # ``loglevel=`` whose value is not TRACE or NONE, so a ``...`` continuation line is caught too.
-    LOGLEVEL = re.compile(r"\bloglevel\s*=\s*(?![\"']?(?:TRACE|NONE)\b)\S", re.IGNORECASE)
+    # so any other level (WARN/ERROR are recorded by every run) leaks it. Named form: a Robot
+    # ``loglevel=X`` argument (after two or more spaces or a tab, no spaces around ``=``), a Python
+    # ``f(..., loglevel=X)`` keyword, or a ``"loglevel": X`` dict entry; ``==``, ``--loglevel=`` and a
+    # plain ``loglevel = X`` assignment are not arguments. The value must be TRACE or NONE.
+    LOGLEVEL = re.compile(
+        r"(?:(?:\s{2,}|\t)loglevel=(?!=)|[(,]\s*loglevel\s*=(?!=)|[\"']loglevel[\"']\s*:)"
+        r"\s*(?![\"']?(?:TRACE|NONE)\b)\S", re.IGNORECASE)
+    # Positional form: 1-based position of ``loglevel`` in each keyword's installed signature.
+    LOGLEVEL_POS = {
+        "page_should_contain": 2, "page_should_not_contain": 2, "current_frame_should_contain": 2,
+        "current_frame_should_not_contain": 2, "frame_should_contain": 3, "table_cell_should_contain": 5,
+        "table_column_should_contain": 4, "table_footer_should_contain": 4, "table_header_should_contain": 4,
+        "table_row_should_contain": 4, "table_should_contain": 3, "assert_page_contains": 4,
+        "assert_page_not_contains": 4,
+        **{f"page_should_{neg}contain_{kind}": 3 for neg in ("", "not_")
+           for kind in ("element", "checkbox", "radio_button", "textfield", "button", "link", "image", "list")},
+    }
+    LOGLEVEL_OK = {"TRACE", "NONE"}
+    ROBOT_NAMED = re.compile(r"(?:loglevel|message|text|locator|expected|row|column|index)=", re.IGNORECASE)
+
+    def robot_positional_levels(self, text):
+        """Offending positional levels in Robot text (``...`` continuation lines are joined)."""
+        logical = []
+        for number, line in enumerate(text.splitlines(), 1):
+            if re.match(r"\s*\.\.\.(?:\s{2,}|\t|$)", line) and logical:
+                logical[-1][1] += "    " + line.strip()[3:].strip()
+            else:
+                logical.append([number, line])
+        squashed = {k.replace("_", ""): v for k, v in self.LOGLEVEL_POS.items()}
+        found = []
+        for number, line in logical:
+            if self.DOC_LINE.match(line):
+                continue
+            tokens = re.split(r"\s{2,}|\t", line.strip())
+            for index, token in enumerate(tokens):
+                position = squashed.get(re.sub(r"[ _]", "", token).lower())
+                if position is None:
+                    continue
+                args = [t for t in tokens[index + 1:] if not self.ROBOT_NAMED.match(t)]
+                if len(args) >= position and args[position - 1].upper() not in self.LOGLEVEL_OK:
+                    found.append(number)
+        return found
+
+    def python_positional_levels(self, text):
+        """Line numbers of calls whose positional ``loglevel`` is not the constant TRACE or NONE."""
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            return []
+        found = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            name = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
+            position = self.LOGLEVEL_POS.get(name.lower())
+            if position is None or len(node.args) < position or any(
+                    isinstance(a, ast.Starred) for a in node.args[:position]):
+                continue
+            arg = node.args[position - 1]
+            if not (isinstance(arg, ast.Constant) and str(arg.value).upper() in self.LOGLEVEL_OK):
+                found.append(node.lineno)
+        return found
+
     ORG_OPEN = re.compile(r"org\s+open\b.*(?:--url-only|\s-r\b)|[\"']org[\"'],\s*[\"']open[\"']|\burl-only\b")
     # Python files: prose (docstrings) may name the command; only code that runs it counts.
     ORG_OPEN_PY = re.compile(
         r"[\"']org[\"'],\s*[\"']open[\"']|[\"']sf org open|(?:run|Popen|check_output|check_call|call|shlex\.split)\(.*org\s+open")
     DOC_LINE = re.compile(r"\s*(?:#|\.\.\.|\[Documentation\]|Documentation\b)")
 
-    def files(self, *roots):
+    def files(self, *roots, include_guard=False):
         found = []
         for root in roots:
-            found += [p for p in sorted((REPO / root).rglob("*")) if p.suffix in {".robot", ".py"}
-                      and "results" not in p.parts and p.name != "SessionUrlGuard.py"]
+            found += [p for p in sorted((REPO / root).rglob("*")) if p.suffix in {".robot", ".resource", ".py"}
+                      and "results" not in p.parts and (include_guard or p.name != "SessionUrlGuard.py")]
+        self.assertTrue(found, f"no files found under {roots}: a tree sweep would pass vacuously")
         return found
 
     def hits(self, pattern, files, skip_docs=False):
@@ -640,22 +704,60 @@ class RobotTreeSweepTest(unittest.TestCase):
                      "    Textarea Should Contain    x    y", "    Radio Button Should Be Set To    g    v"]:
             self.assertFalse(self.FORBIDDEN.search(line), line)
 
-    def test_loglevel_pattern_flags_any_level_but_trace_or_none(self):
+    def test_loglevel_pattern_flags_any_named_level_but_trace_or_none(self):
         for line in ["    Page Should Contain    x    loglevel=WARN", "    Page Should Not Contain    x    loglevel=ERROR",
                      "    Table Cell Should Contain    t    1    1    x    loglevel=INFO", "    ...    loglevel=DEBUG",
                      "    Page Should Contain    x    loglevel=${LEVEL}", "    Page Should Contain    x    LogLevel=warn",
                      '        s.assert_page_contains(loc, "text field", None, loglevel="INFO")',
-                     "    Page Should Contain    x    loglevel = HTML", "    Page Should Contain    x    loglevel=TRACEX"]:
+                     "        s.page_should_contain('x', loglevel = 'HTML')", '    opts = {"loglevel": "WARN"}',
+                     "    Page Should Contain    x    loglevel=TRACEX"]:
             self.assertTrue(self.LOGLEVEL.search(line), line)
         for line in ["    Page Should Contain    x", "    Page Should Contain    x    loglevel=TRACE",
                      "    Page Should Contain    x    loglevel=none", "    ...    loglevel=NONE",
                      '        s.assert_page_contains(loc, "text field", None, loglevel="TRACE")',
-                     "    Page Should Contain    x    loglevel=trace"]:
+                     "    Page Should Contain    x    loglevel=trace", '    opts = {"loglevel": "none"}',
+                     "    if loglevel==WARN:", "    Run    robot --loglevel=DEBUG suite", '    cmd = ["--loglevel=DEBUG"]',
+                     "        loglevel = logging.INFO"]:
             self.assertFalse(self.LOGLEVEL.search(line), line)
 
+    def test_positional_loglevel_is_flagged_in_robot_and_python(self):
+        robot_bad = [
+            "    Page Should Contain    x    WARN", "    Page Should Not Contain    x    ${LEVEL}",
+            "    Page Should Contain Element    css:x    msg    WARN", "    Table Cell Should Contain    t    1    1    x    WARN",
+            "    Table Row Should Contain    t    1    x    INFO", "    Frame Should Contain    f    x    WARN",
+            "    Current Frame Should Contain    x    DEBUG", "    Page_Should_Contain_Checkbox    c    m    HTML",
+            "    Page Should Contain    x\n    ...    WARN", "    pageshouldcontain    x    WARN", "    Wait Until Keyword Succeeds    5x    1s    Page Should Contain    x    ERROR",
+        ]
+        for text in robot_bad:
+            self.assertTrue(self.robot_positional_levels("*** Keywords ***\nK\n" + text), text)
+        robot_ok = [
+            "    Page Should Contain    x", "    Page Should Contain    x    TRACE", "    Page Should Contain    x    none",
+            "    Page Should Contain Element    css:x    WARN", "    Page Should Contain Element    css:x    msg    TRACE",
+            "    Table Cell Should Contain    t    1    1    WARN", "    Page Should Contain    x    loglevel=TRACE",
+            "    Page Should Contain Element    id=x    msg    NONE", "    Log    WARN", "    Page Should Contain    x\n    ...    TRACE",
+            "    [Documentation]    Page Should Contain    x    WARN",
+        ]
+        for text in robot_ok:
+            self.assertFalse(self.robot_positional_levels("*** Keywords ***\nK\n" + text), text)
+        for code in ['s.page_should_contain("x", "WARN")', 's.page_should_not_contain("x", level)',
+                     's.page_should_contain_element("css:x", "m", "INFO")', 's.table_cell_should_contain("t", 1, 1, "x", "WARN")',
+                     's.assert_page_contains("l", "button", None, "DEBUG")', 's.frame_should_contain("f", "x", "ERROR")']:
+            self.assertTrue(self.python_positional_levels(code), code)
+        for code in ['s.page_should_contain("x")', 's.page_should_contain("x", "TRACE")', 's.page_should_contain("x", "none")',
+                     's.page_should_contain_element("css:x", "WARN")', 's.page_should_contain(*args)', 'log("x", "WARN")']:
+            self.assertFalse(self.python_positional_levels(code), code)
+
     def test_no_loglevel_other_than_trace_or_none_in_the_tree(self):
-        self.assertEqual(self.hits(self.LOGLEVEL, self.files("robot", "tasks")), [],
+        files = self.files("robot", "tasks", include_guard=True)
+        self.assertEqual(self.hits(self.LOGLEVEL, files), [],
                          "a failed Should Contain keyword would log the page source at that level")
+        positional = []
+        for path in files:
+            text = path.read_text(encoding="utf-8")
+            lines = (self.python_positional_levels(text) if path.suffix == ".py"
+                     else self.robot_positional_levels(text))
+            positional += [f"{path.relative_to(REPO)}:{n}" for n in lines]
+        self.assertEqual(positional, [], "positional loglevel other than TRACE or NONE")
 
     def test_no_unguarded_url_or_source_reads(self):
         self.assertEqual(self.hits(self.FORBIDDEN, self.files("robot", "tasks")), [],
