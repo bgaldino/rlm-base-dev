@@ -16,7 +16,7 @@ End-to-end workflow for keeping `docs/erds/erd-data.json` aligned to canonical R
 
 1. **The ERD reflects PLATFORM schema only.** Custom fields (any `__c` suffix, including project `RLM_*__c` and managed-package fields) are excluded by every validator and extraction script. Don't override this.
 2. **Always cross-validate against TWO orgs** when classifying orphan fields — a field present in one org but absent in another is feature-gated, not removed. Hold the **release** constant and let the **shapes differ**: `find_orphans` keeps a field present in *any* queried org, so a second org can only rescue fields from deletion, never accuse one. That makes complementary shapes (`ent` + `pde`, feature on + off) the only pairing that can actually disprove an orphan, and a same-shape pair worthless — it cannot disagree, so "two orgs agreed" is not corroboration. Absence is never positive evidence of removal either way; see DO NOT #1.
-3. **Verify against Core source** before bulk-removing fields. The validators surface candidates; codesearch confirms ground truth. For a pre-GA release there may be no Core UDD branch yet (264 had none), in which case a live org is the only ground truth and the previous release's UDD verification carries forward unchanged rather than being re-run.
+3. **Verify against Core source** before bulk-removing fields. The validators surface candidates; codesearch confirms ground truth. For a pre-GA release there may be no Core UDD branch yet (264 had none at its 2026-08 refresh; `core-264-public` `p4/264-patch` exists now, and its verification pass has not been run), in which case a live org is the only ground truth and the previous release's UDD verification carries forward unchanged rather than being re-run.
 4. **Use `prepare_rlm_org`-built scratch orgs.** The 264 refresh used two of them — `rlm-base__264merged` and `rlm-base__264fresh` — and diffed against the *committed* `scripts/erd/schema_diff/262-schema.json` rather than a live 262 org, so the baseline is byte-identical to what the previous refresh was built from.
 5. **All schema diff scripts default to skipping custom fields**. Pass `--include-custom` only for project-internal tooling that needs to see deployed `RLM_*__c` fields.
 
@@ -219,22 +219,22 @@ When you need to know whether a field is real RC, real other-cloud, or a PDF art
 ```python
 # 1. Find the entity's canonical XML in codesearch:
 mcp__plugin_codesearch_codesearch__search(
-    query='file:"<EntityName>.entity.xml" repo:"core-262-public" branch:"262-patch"'
+    query='file:"<EntityName>.entity.xml" repo:"core-<release>-public" branch:"<release>-patch"'
 )
 
 # 2. Read the entity XML:
 mcp__plugin_codesearch_codesearch__blob(
     code_host="gitcore.soma.salesforce.com",
     org="core-2206",
-    repo="core-262-public",
-    ref="p4/262-patch",
+    repo="core-<release>-public",   # e.g. core-264-public
+    ref="p4/<release>-patch",
     file_path="core/<module>-udd/java/resources/udd/<EntityName>.entity.xml"
 )
 
 # 3. Look for <flexField name="..."> elements with apiAccess/orgAccess gates
 ```
 
-The 262-patch source is the canonical truth for what fields exist on a Revenue Cloud entity.
+The release's `-patch` source (for example `p4/264-patch` in `core-264-public`) is the canonical truth for what fields exist on a Revenue Cloud entity.
 
 ### C. Batch-process a long orphan list
 
