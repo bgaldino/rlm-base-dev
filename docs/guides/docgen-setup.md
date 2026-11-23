@@ -317,7 +317,7 @@ The Quote Proposal generation flow (`unpackaged/post_docgen/flows/RLM_Quote_Doc_
 
 ### Errors in the flow
 
-The three docgen Apex invocables run as the signed-in user (`with sharing`, `WITH USER_MODE`, `insert as user`), so a missing permission or an unreadable file surfaces as an exception. `RLM_ReturnPDFDocument` throws `PdfNotFoundException` when it was given content ids but none is a PDF the user can read. Every docgen action, the proposal delete and the three file lookups in the flow have a fault connector to the `Document_Generation_Error` screen, which shows `{!$Flow.FaultMessage}` instead of the unhandled-fault page. A response with no ids at all still returns an empty output and is not an error.
+The three docgen Apex invocables run as the signed-in user (`with sharing`, `WITH USER_MODE`, `insert as user`), so a missing permission or an unreadable file surfaces as an exception. `RLM_ReturnPDFDocument` throws `PdfNotFoundException` when it was given content ids but none is a PDF the user can read. Every docgen action, the proposal delete and the three file lookups in the flow have a fault connector to the `Document_Generation_Error` screen, which shows the fault message instead of the unhandled-fault page. The two status checks (`Status_Check_Single` and `Merge_Doc_Status`) route their "Not Successful" outcome to the same screen, so a generation that ends in any status other than Success shows "The document generation process ended with status <status>." rather than dead-ending. The screen reads the formula `forT_ErrorDetail`, which is the fault message when there is one and that status sentence otherwise. A response with no ids at all still returns an empty output and is not an error.
 
 ### Preview Height Fix
 

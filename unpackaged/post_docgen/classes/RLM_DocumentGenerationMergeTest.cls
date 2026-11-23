@@ -98,6 +98,37 @@ private class RLM_DocumentGenerationMergeTest {
             'A rejected request must not create a merge process.');
     }
 
+    // A null request in the list is rejected by name, not with a NullPointerException.
+    @IsTest
+    static void mergeRejectsANullRequest() {
+        assertRejected(new List<RLM_DocumentGenerationMerge.Request>{ null }, 'request 0 is required');
+    }
+
+    // The whole batch is one DML statement, however many requests it carries.
+    @IsTest
+    static void mergeUsesOneDmlStatementForTheWholeBatch() {
+        Quote quote = createQuote();
+        ContentVersion pdf = newPdf('Batch.pdf');
+        insert pdf;
+        List<RLM_DocumentGenerationMerge.Request> requests = new List<RLM_DocumentGenerationMerge.Request>();
+        for (Integer i = 0; i < 5; i++) {
+            RLM_DocumentGenerationMerge.Request request = new RLM_DocumentGenerationMerge.Request();
+            request.CurrentRecordId = quote.Id;
+            request.recordIds = new List<Id>{ pdf.Id };
+            requests.add(request);
+        }
+
+        Test.startTest();
+        // Limits reset on entry to the block and are restored on exit, so read them inside it.
+        Integer before = Limits.getDmlStatements();
+        List<RLM_DocumentGenerationMerge.Response> responses = RLM_DocumentGenerationMerge.MergeDocuments(requests);
+        Integer used = Limits.getDmlStatements() - before;
+        Test.stopTest();
+
+        Assert.areEqual(5, responses.size(), 'One response per request.');
+        Assert.areEqual(1, used, 'One insert for all five requests.');
+    }
+
     private static ContentVersion newPdf(String pathOnClient) {
         return new ContentVersion(
             Title = pathOnClient,

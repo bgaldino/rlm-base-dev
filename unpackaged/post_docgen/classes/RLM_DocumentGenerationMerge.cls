@@ -6,7 +6,11 @@ public with sharing class RLM_DocumentGenerationMerge {
         }
         List<Response> responses = new List<Response>();
         List<DocumentGenerationProcess> processes = new List<DocumentGenerationProcess>();
-        for (Request req : requests) {
+        for (Integer index = 0; index < requests.size(); index++) {
+            Request req = requests[index];
+            if (req == null) {
+                throw new IllegalArgumentException('RLM_DocumentGenerationMerge: request ' + index + ' is required.');
+            }
             List<String> idStrings = new List<String>();
 
             if (req.recordIds != null) {

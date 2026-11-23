@@ -16,6 +16,8 @@ public with sharing class RLM_DocumentGenerationCreate {
             templateIds.add(request.DocTemplateId);
         }
 
+        // USER_MODE: TokenMappingMethodType is field-level-security controlled (measured on a 264
+        // org: it is permissionable, and RLM_QuantumBit_Sales_Representative grants it read).
         Map<Id, DocumentTemplate> templateMap = new Map<Id, DocumentTemplate>(
             [SELECT Id, TokenMappingMethodType FROM DocumentTemplate WHERE Id IN :templateIds WITH USER_MODE]
         );
@@ -26,8 +28,9 @@ public with sharing class RLM_DocumentGenerationCreate {
         }
 
         List<DocumentGenerationProcess> processes = buildProcesses(requests, templateMap);
-        // As the running user. The user needs create on DocumentGenerationProcess (granted by the
-        // docgen permission sets and RLM_QuantumBit_Sales_Representative). Of the fields set here,
+        // As the running user. The user needs create on DocumentGenerationProcess; in this repo only
+        // RLM_QuantumBit_Sales_Representative grants it, so any other persona that generates
+        // documents needs it from its own permission set. Of the fields set here,
         // only ReferenceObject and RequestText are field-level-security controlled, and the Sales
         // Representative set grants both; Type, DocumentTemplateId, DocGenApiVersionType,
         // DocumentInputType, DocGenAdditionalInputType, DocGenAdditionalInput and DataRaptorInput are
