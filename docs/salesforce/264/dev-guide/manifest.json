@@ -4420,7 +4420,7 @@
       "section": "Billing",
       "parent_page": "billing_business_apis_requests.htm",
       "status": "captured",
-      "body_length": 1715,
+      "body_length": 8415,
       "file": "articles/connect_requests_invoice_ingestion_input.htm.md"
     },
     {
@@ -13252,6 +13252,6 @@
     "captured": 1409,
     "pending": 0,
     "errored": 56,
-    "total_captured_body_chars": 4878736
+    "total_captured_body_chars": 4885436
   }
 }

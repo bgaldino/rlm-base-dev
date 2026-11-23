@@ -1,25 +1,22 @@
 ---
 article_id: release-notes.rn_salesforce_contracts_govcloud_support.htm
-title: We couldn't find the page you're looking for.
+title: Author Contracts in Government Cloud
 source_url: https://help.salesforce.com/s/articleView?id=release-notes.rn_salesforce_contracts_govcloud_support.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_salesforce_contracts.htm
-fetched_at: 2026-11-23
+fetched_at: 2026-09-30
 ---
 
-# We couldn't find the page you're looking for.
+# Author Contracts in Government Cloud
 
-We couldn't find the page you're looking for.
+Government agencies and public sector organizations can now author, route, and generate contracts in Salesforce environments using Salesforce Contracts. Before enabling, work with your Salesforce account executive to confirm that the Context Service and Document Processing Engine are onboarded in your Salesforce org.
 
-Searching for something? Agentforce can help.
+Where: This change applies to Lightning Experience in Enterprise, Performance, Unlimited, and Developer editions of Agentforce Revenue Management, formerly Revenue Cloud, with the Revenue Cloud Advanced or Salesforce Contracts license.
 
-May we also suggest
-Public Sector Features Released by Month
-(opens in a new tab)
-New Products and Features Available in Government Cloud Defense
-(opens in a new tab)
+SEE ALSO
+Salesforce Help: Government Cloud Available Products and Features
 
 ---
 

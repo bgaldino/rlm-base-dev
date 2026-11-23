@@ -12,7 +12,7 @@
 | Captured | 1409 |
 | Pending | 0 |
 | Errored | 56 |
-| Total captured body chars | 4,878,736 |
+| Total captured body chars | 4,885,436 |
 
 ## Advanced Approvals (23)
 
@@ -220,7 +220,7 @@
 | [Frequency Cadence Options](./articles/connect_requests_frequency_cadence_options.htm.md) | `connect_requests_frequency_cadence_options.htm` | 2,761 |
 | [Graph Record for Invoice Ingestion](./articles/connect_requests_graph_record_input.htm.md) | `connect_requests_graph_record_input.htm` | 18,344 |
 | [Invoice Estimated Tax Calculation Input](./articles/connect_requests_invoice_estimated_tax_calculation_input.htm.md) | `connect_requests_invoice_estimated_tax_calculation_input.htm` | 765 |
-| [Invoice Ingestion Input](./articles/connect_requests_invoice_ingestion_input.htm.md) | `connect_requests_invoice_ingestion_input.htm` | 1,715 |
+| [Invoice Ingestion Input](./articles/connect_requests_invoice_ingestion_input.htm.md) | `connect_requests_invoice_ingestion_input.htm` | 8,415 |
 | [Invoice Input](./articles/connect_requests_invoice_input.htm.md) | `connect_requests_invoice_input.htm` | 1,583 |
 | [Invoice Input for Ingestion](./articles/connect_requests_invoice_input_for_ingestion.htm.md) | `connect_requests_invoice_input_for_ingestion.htm` | 19,787 |
 | [Invoice Preview Input](./articles/connect_requests_invoice_preview_input.htm.md) | `connect_requests_invoice_preview_input.htm` | 1,042 |

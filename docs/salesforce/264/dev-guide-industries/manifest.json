@@ -1437,7 +1437,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis_resources.htm",
       "status": "captured",
-      "body_length": 420,
+      "body_length": 3368,
       "file": "articles/connect_resources_data_mapper_execution.htm.md"
     },
     {
@@ -1509,7 +1509,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_table_resources.htm",
       "status": "captured",
-      "body_length": 427,
+      "body_length": 14434,
       "file": "articles/connect_resources_decision_table_definition_details_patch.htm.md"
     },
     {
@@ -1518,7 +1518,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_table_resources.htm",
       "status": "captured",
-      "body_length": 447,
+      "body_length": 16635,
       "file": "articles/connect_resources_decision_table_definition_details_post.htm.md"
     },
     {
@@ -1581,7 +1581,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis_resources.htm",
       "status": "captured",
-      "body_length": 410,
+      "body_length": 4037,
       "file": "articles/connect_resources_integration_procedure.htm.md"
     },
     {
@@ -3472,7 +3472,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework.htm",
       "status": "captured",
-      "body_length": 406,
+      "body_length": 4780,
       "file": "articles/discovery_framework_standard_objects.htm.md"
     },
     {
@@ -5155,6 +5155,6 @@
     "captured": 550,
     "pending": 0,
     "errored": 19,
-    "total_captured_body_chars": 1178847
+    "total_captured_body_chars": 1219991
   }
 }

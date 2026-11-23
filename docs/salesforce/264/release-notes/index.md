@@ -11,7 +11,7 @@
 | Captured | 146 |
 | Pending | 0 |
 | Errored | 0 |
-| Total captured body chars | 180,946 |
+| Total captured body chars | 182,305 |
 
 ## Captured
 
@@ -104,7 +104,7 @@
 | [Reuse Existing Simple Products as Bundles](./articles/release-notes.rn_product_catalog_reuse_existing_simple_products_as_bundles.htm.md) | `release-notes.rn_product_catalog_reuse_existing_simple_products_as_bundles.htm` | 465 |
 | [See Instant Updates in Product Discovery While Building Quotes](./articles/release-notes.rn_product_catalog_see_instant_updates_in_product_discovery_while_building_quotes.htm.md) | `release-notes.rn_product_catalog_see_instant_updates_in_product_discovery_while_building_quotes.htm` | 744 |
 | [Product Configurator](./articles/release-notes.rn_product_configurator.htm.md) | `release-notes.rn_product_configurator.htm` | 2,104 |
-| [We couldn't find the page you're looking for.](./articles/release-notes.rn_product_configurator_allowQuantityChange.htm.md) | `release-notes.rn_product_configurator_allowQuantityChange.htm` | 155 |
+| [Let Constraint Rules Assign Child Product Quantities in Bundles](./articles/release-notes.rn_product_configurator_allowQuantityChange.htm.md) | `release-notes.rn_product_configurator_allowQuantityChange.htm` | 1,143 |
 | [Changed Connect REST API in Product Configurator](./articles/release-notes.rn_product_configurator_changed_connect_rest_api_request_body.htm.md) | `release-notes.rn_product_configurator_changed_connect_rest_api_request_body.htm` | 465 |
 | [Changed Object in Product Configurator](./articles/release-notes.rn_product_configurator_changed_object.htm.md) | `release-notes.rn_product_configurator_changed_object.htm` | 378 |
 | [Updates in Default Product Configurator Flow](./articles/release-notes.rn_product_configurator_flow_updates.htm.md) | `release-notes.rn_product_configurator_flow_updates.htm` | 1,970 |
@@ -124,7 +124,7 @@
 | [runtime_industries_cpq Namespace](./articles/release-notes.rn_runtime_industries_cpq_namespace.htm.md) | `release-notes.rn_runtime_industries_cpq_namespace.htm` | 2,582 |
 | [Salesforce Contracts](./articles/release-notes.rn_salesforce_contracts.htm.md) | `release-notes.rn_salesforce_contracts.htm` | 3,640 |
 | [Add Clauses to Quotes from Your Clause Library](./articles/release-notes.rn_salesforce_contracts_add_clauses_to_quotes.htm.md) | `release-notes.rn_salesforce_contracts_add_clauses_to_quotes.htm` | 699 |
-| [We couldn't find the page you're looking for.](./articles/release-notes.rn_salesforce_contracts_govcloud_support.htm.md) | `release-notes.rn_salesforce_contracts_govcloud_support.htm` | 260 |
+| [Author Contracts in Government Cloud](./articles/release-notes.rn_salesforce_contracts_govcloud_support.htm.md) | `release-notes.rn_salesforce_contracts_govcloud_support.htm` | 631 |
 | [New and Changed Objects in Document Generation and Contracts](./articles/release-notes.rn_salesforce_contracts_newandchanged_objects.htm.md) | `release-notes.rn_salesforce_contracts_newandchanged_objects.htm` | 2,138 |
 | [Track Recipient Signing Progress for Document Envelopes](./articles/release-notes.rn_salesforce_contracts_track_recipient_signing_progress.htm.md) | `release-notes.rn_salesforce_contracts_track_recipient_signing_progress.htm` | 624 |
 | [Review and Complete Actions for Salesforce CPQ and Advanced Approvals Managed Package Security Enhancements](./articles/release-notes.rn_salesforce_cpq_and_advanced_approvals_managed_package.htm.md) | `release-notes.rn_salesforce_cpq_and_advanced_approvals_managed_package.htm` | 858 |

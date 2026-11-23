@@ -38,7 +38,7 @@
         "captured": 221,
         "pending": 0,
         "errored": 0,
-        "total_captured_body_chars": 571255
+        "total_captured_body_chars": 572457
       },
       "snapshot_started": "2026-09-04",
       "last_run_discovered": {
@@ -114,7 +114,7 @@
         "captured": 158,
         "pending": 0,
         "errored": 0,
-        "total_captured_body_chars": 416684
+        "total_captured_body_chars": 418098
       },
       "snapshot_started": "2026-09-07",
       "last_run_discovered": {
@@ -5888,11 +5888,11 @@
     },
     {
       "article_id": "ind.pricing_price_books_salesforce_pricing.htm",
-      "title": "We couldn't find the page you're looking for.",
+      "title": "Cost Books and Price Books",
       "status": "captured",
       "area": "pricing",
       "parent_article": "ind.pricing_salesforce_pricing.htm",
-      "body_length": 259,
+      "body_length": 1673,
       "file": "articles/ind.pricing_price_books_salesforce_pricing.htm.md"
     },
     {
@@ -9079,11 +9079,11 @@
     },
     {
       "article_id": "ind.qocal_create_documents_from_quotes.htm",
-      "title": "We couldn't find the page you're looking for.",
+      "title": "Create a Document from a Quote",
       "status": "captured",
       "area": "transaction_mgmt",
       "parent_article": "ind.qocal_document_builder_for_quotes.htm",
-      "body_length": 92,
+      "body_length": 1294,
       "file": "articles/ind.qocal_create_documents_from_quotes.htm.md"
     },
     {
@@ -15546,6 +15546,6 @@
     "captured": 1703,
     "pending": 0,
     "errored": 0,
-    "total_captured_body_chars": 3903355
+    "total_captured_body_chars": 3905971
   }
 }

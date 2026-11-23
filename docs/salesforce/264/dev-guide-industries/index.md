@@ -12,7 +12,7 @@
 | Captured | 550 |
 | Pending | 0 |
 | Errored | 19 |
-| Total captured body chars | 1,178,847 |
+| Total captured body chars | 1,219,991 |
 
 ## Action Launcher (3)
 
@@ -80,8 +80,8 @@
 | [Decision Table Invocation (POST)](./articles/connect_resources_decisionTableId.htm.md) | `connect_resources_decisionTableId.htm` | 1,964 |
 | [CSV Based Decision Table (GET)](./articles/connect_resources_decision_table_csv_based_dt.htm.md) | `connect_resources_decision_table_csv_based_dt.htm` | 2,385 |
 | [Decision Table Definitions (DELETE, GET)](./articles/connect_resources_decision_table_definition_details.htm.md) | `connect_resources_decision_table_definition_details.htm` | 483 |
-| [Decision Table Definitions (PATCH)](./articles/connect_resources_decision_table_definition_details_patch.htm.md) | `connect_resources_decision_table_definition_details_patch.htm` | 427 |
-| [Decision Table Definitions (POST)](./articles/connect_resources_decision_table_definition_details_post.htm.md) | `connect_resources_decision_table_definition_details_post.htm` | 447 |
+| [Decision Table Definitions (PATCH)](./articles/connect_resources_decision_table_definition_details_patch.htm.md) | `connect_resources_decision_table_definition_details_patch.htm` | 14,434 |
+| [Decision Table Definitions (POST)](./articles/connect_resources_decision_table_definition_details_post.htm.md) | `connect_resources_decision_table_definition_details_post.htm` | 16,635 |
 | [Decision Table Execution](./articles/connect_resources_decision_table_execution.htm.md) | `connect_resources_decision_table_execution.htm` | 1,854 |
 | [Expression Set Version Dependencies (GET)](./articles/connect_resources_expression_set_dependencies.htm.md) | `connect_resources_expression_set_dependencies.htm` | 636 |
 | [Explainability Logs (GET)](./articles/connect_resources_rules_engine_explainability_logs.htm.md) | `connect_resources_rules_engine_explainability_logs.htm` | 2,149 |
@@ -450,7 +450,7 @@
 | [Supported Metadata Channels](./articles/discovery_framework_channels.htm.md) | `discovery_framework_channels.htm` | 5,676 |
 | [Flow for Discovery Framework](./articles/discovery_framework_flow_metadata_api.htm.md) | `discovery_framework_flow_metadata_api.htm` | 958 |
 | [Discovery Framework Metadata API Types](./articles/discovery_framework_metadata_api_parent.htm.md) | `discovery_framework_metadata_api_parent.htm` | 3,104 |
-| [Discovery Framework Standard Objects](./articles/discovery_framework_standard_objects.htm.md) | `discovery_framework_standard_objects.htm` | 406 |
+| [Discovery Framework Standard Objects](./articles/discovery_framework_standard_objects.htm.md) | `discovery_framework_standard_objects.htm` | 4,780 |
 | [Discovery Framework Tooling API Objects](./articles/discovery_framework_tooling_api_objects.htm.md) | `discovery_framework_tooling_api_objects.htm` | 1,170 |
 | [DiscoveryFramework_Prefill Integration Procedure](./articles/discoveryframework_prefill_integration_procedure.htm.md) | `discoveryframework_prefill_integration_procedure.htm` | 4,516 |
 | [Assessment](./articles/sforce_api_objects_assessment.htm.md) | `sforce_api_objects_assessment.htm` | 11,787 |
@@ -504,13 +504,13 @@
 | [Calculation Procedure](./articles/connect_resources_calculation_procedure.htm.md) | `connect_resources_calculation_procedure.htm` | 932 |
 | [Calculation Procedures](./articles/connect_resources_calculation_procedures.htm.md) | `connect_resources_calculation_procedures.htm` | 896 |
 | [Data Mapper Clear Cache (POST)](./articles/connect_resources_data_mapper_clear_cache.htm.md) | `connect_resources_data_mapper_clear_cache.htm` | 1,712 |
-| [Data Mapper Execution (POST)](./articles/connect_resources_data_mapper_execution.htm.md) | `connect_resources_data_mapper_execution.htm` | 420 |
+| [Data Mapper Execution (POST)](./articles/connect_resources_data_mapper_execution.htm.md) | `connect_resources_data_mapper_execution.htm` | 3,368 |
 | [Decision Matrices](./articles/connect_resources_decision_matrices.htm.md) | `connect_resources_decision_matrices.htm` | 867 |
 | [Decision Matrix](./articles/connect_resources_decision_matrix.htm.md) | `connect_resources_decision_matrix.htm` | 518 |
 | [Decision Matrix Columns](./articles/connect_resources_decision_matrix_columns.htm.md) | `connect_resources_decision_matrix_columns.htm` | 1,973 |
 | [Decision Matrix Version Rows](./articles/connect_resources_decision_matrix_version_rows.htm.md) | `connect_resources_decision_matrix_version_rows.htm` | 3,037 |
 | [Calculation Procedure Version Definition (Activate, Get)](./articles/connect_resources_get_activate_calc_procedure_version.htm.md) | `connect_resources_get_activate_calc_procedure_version.htm` | 930 |
-| [Integration Procedure Execution (POST)](./articles/connect_resources_integration_procedure.htm.md) | `connect_resources_integration_procedure.htm` | 410 |
+| [Integration Procedure Execution (POST)](./articles/connect_resources_integration_procedure.htm.md) | `connect_resources_integration_procedure.htm` | 4,037 |
 | [Integration Procedure Clear Cache (POST)](./articles/connect_resources_integration_procedure_clear_cache.htm.md) | `connect_resources_integration_procedure_clear_cache.htm` | 2,182 |
 | [Calculation Procedure Version Definition (Save As, Update)](./articles/connect_resources_save_update_calc_procedure_version.htm.md) | `connect_resources_save_update_calc_procedure_version.htm` | 5,091 |
 | [Simulations](./articles/connect_resources_simulations.htm.md) | `connect_resources_simulations.htm` | 3,366 |

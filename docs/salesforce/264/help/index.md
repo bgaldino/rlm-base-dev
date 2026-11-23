@@ -13,7 +13,7 @@ Captures **12 functional areas** of Revenue Cloud Help: agents, approvals, billi
 | Captured | 1703 |
 | Pending | 0 |
 | Errored | 0 |
-| Total captured body chars | 3,903,355 |
+| Total captured body chars | 3,905,971 |
 
 ## Per-Area Coverage
 
@@ -943,7 +943,7 @@ Captures **12 functional areas** of Revenue Cloud Help: agents, approvals, billi
 | [Salesforce Pricing Editions, Permission Sets, and Personas](./articles/ind.pricing_permissions_salesforce_pricing.htm.md) | `ind.pricing_permissions_salesforce_pricing.htm` | 2,841 |
 | [Explore Price Adjustment Schedules](./articles/ind.pricing_price_adjustment_schedules_salesforce_pricing.htm.md) | `ind.pricing_price_adjustment_schedules_salesforce_pricing.htm` | 2,149 |
 | [Price Books and Cost Books](./articles/ind.pricing_price_books_and_cost_books.htm.md) | `ind.pricing_price_books_and_cost_books.htm` | 1,643 |
-| [We couldn't find the page you're looking for.](./articles/ind.pricing_price_books_salesforce_pricing.htm.md) | `ind.pricing_price_books_salesforce_pricing.htm` | 259 |
+| [Cost Books and Price Books](./articles/ind.pricing_price_books_salesforce_pricing.htm.md) | `ind.pricing_price_books_salesforce_pricing.htm` | 1,673 |
 | [Price Propagation](./articles/ind.pricing_price_propagation.htm.md) | `ind.pricing_price_propagation.htm` | 3,232 |
 | [Price Propagation Limits](./articles/ind.pricing_price_propagation_limits.htm.md) | `ind.pricing_price_propagation_limits.htm` | 1,172 |
 | [Track Price Ranges for Products](./articles/ind.pricing_price_tracking.htm.md) | `ind.pricing_price_tracking.htm` | 1,717 |
@@ -1584,7 +1584,7 @@ Captures **12 functional areas** of Revenue Cloud Help: agents, approvals, billi
 | [Add a New Contract Button](./articles/ind.qocal_create_contracts_from_a_quote_or_order.htm.md) | `ind.qocal_create_contracts_from_a_quote_or_order.htm` | 1,630 |
 | [Automate Contract Creation from Quotes and Orders](./articles/ind.qocal_create_contracts_using_a_flow.htm.md) | `ind.qocal_create_contracts_using_a_flow.htm` | 1,573 |
 | [Create Custom Fields and Add Custom Attributes](./articles/ind.qocal_create_custom_fields.htm.md) | `ind.qocal_create_custom_fields.htm` | 412 |
-| [We couldn't find the page you're looking for.](./articles/ind.qocal_create_documents_from_quotes.htm.md) | `ind.qocal_create_documents_from_quotes.htm` | 92 |
+| [Create a Document from a Quote](./articles/ind.qocal_create_documents_from_quotes.htm.md) | `ind.qocal_create_documents_from_quotes.htm` | 1,294 |
 | [Implement an Object State Definition for Order Lifecycle Management](./articles/ind.qocal_create_object_state_definition.htm.md) | `ind.qocal_create_object_state_definition.htm` | 1,393 |
 | [Create Object State Transitions for Order Lifecycle Management](./articles/ind.qocal_create_object_state_transitions.htm.md) | `ind.qocal_create_object_state_transitions.htm` | 937 |
 | [Create Object State Values for Order Lifecycle Management](./articles/ind.qocal_create_object_state_values.htm.md) | `ind.qocal_create_object_state_values.htm` | 1,392 |
