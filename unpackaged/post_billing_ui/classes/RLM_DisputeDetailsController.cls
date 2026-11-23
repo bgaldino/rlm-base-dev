@@ -115,9 +115,19 @@ public with sharing class RLM_DisputeDetailsController {
         }
 
         // Query and update using the discovered field name
+        List<SObject> records;
         try {
             String query = 'SELECT Id, ' + approvedFieldApi + ' FROM DisputeItem WHERE Id IN :itemIds';
-            List<SObject> records = Database.query(query, AccessLevel.USER_MODE);
+            records = Database.query(query, AccessLevel.USER_MODE);
+        } catch (Exception e) {
+            throw new AuraHandledException('Save failed (field: ' + approvedFieldApi + '): ' + e.getMessage());
+        }
+        // Report ids that did not resolve (missing, deleted or not visible) instead of
+        // silently saving a subset. Nothing is updated in that case.
+        if (records.size() != amountMap.size()) {
+            throw new AuraHandledException('Some dispute items were not found or are not accessible; nothing was saved.');
+        }
+        try {
             for (SObject rec : records) {
                 rec.put(approvedFieldApi, amountMap.get(rec.Id));
             }

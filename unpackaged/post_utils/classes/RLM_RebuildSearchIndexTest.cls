@@ -5,11 +5,10 @@
  * success body is tested on the LWC path only; the invocable reports it through the same
  * catch as a transport failure, which is tested.
  *
- * Known gap: the invocable sends one identical FULL deploy per request, not one per batch.
- * One callout per request also means a batch of more than 100 requests fails with an
- * uncatchable LimitException instead of returning per-request results.
- * Known gap: the buildType and activationType inputs are not forwarded; FULL/IMMEDIATE is
- * always sent.
+ * The invocable sends one deploy per distinct buildType/activationType pair (not one per
+ * request), so a batch of identical requests makes one callout and gets one result each. The
+ * request's buildType and activationType are forwarded; a blank value falls back to
+ * FULL / IMMEDIATE.
  *
  * Not covered: getApiSessionId's non-test path (Page.RLM_SessionId.getContent()), which
  * Test.isRunningTest() makes unreachable.
@@ -241,7 +240,7 @@ private with sharing class RLM_RebuildSearchIndexTest {
         Test.stopTest();
 
         Assert.areEqual(2, results.size(), 'One result per request');
-        Assert.areEqual(2, mock.received.size(), 'Known gap: one identical FULL deploy per request; update this test when the invocable sends one per batch');
+        Assert.areEqual(1, mock.received.size(), 'Identical requests share one deploy callout');
         for (RLM_RebuildSearchIndex.PCMDeployResult r : results) {
             Assert.areEqual(true, r.isSuccess, 'Each request succeeds');
             Assert.areEqual('201', r.statusCode, 'Status code is mapped');
@@ -256,19 +255,34 @@ private with sharing class RLM_RebuildSearchIndexTest {
         }
     }
 
-    /**
-     * Records CURRENT behaviour, not the intended contract. PCMDeployRequest exposes Build Type
-     * and Activation Type as invocable inputs, but callPcmDeploy always sends FULL / IMMEDIATE,
-     * so the inputs are a known gap. When they are wired through, change this test to expect
-     * the request's values in the callout body.
-     */
+    // activationType has one documented value (IMMEDIATE), so forwarding it cannot be told apart
+    // from the fallback; only the build type is proven here.
     @IsTest
-    static void deployPcmIndexDoesNotYetForwardRequestBuildAndActivationType() {
+    static void deployPcmIndexForwardsRequestBuildType() {
         PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
         Test.setMock(HttpCalloutMock.class, mock);
 
         RLM_RebuildSearchIndex.PCMDeployRequest request = new RLM_RebuildSearchIndex.PCMDeployRequest();
-        request.buildType = 'INCREMENTAL';
+        request.buildType = ' incremental ';
+
+        Test.startTest();
+        RLM_RebuildSearchIndex.deployPCMIndex(new List<RLM_RebuildSearchIndex.PCMDeployRequest>{ request });
+        Test.stopTest();
+
+        Assert.areEqual(1, mock.received.size(), 'One callout for one request');
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.received[0].getBody());
+        Assert.areEqual('INCREMENTAL', body.get('buildType'), 'The request\'s buildType is trimmed and upper-cased before it is sent');
+    }
+
+    // Values outside the documented set (buildType FULL|INCREMENTAL, activationType IMMEDIATE)
+    // are not forwarded; they fall back to FULL/IMMEDIATE.
+    @IsTest
+    static void deployPcmIndexFallsBackForUndocumentedValues() {
+        PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        RLM_RebuildSearchIndex.PCMDeployRequest request = new RLM_RebuildSearchIndex.PCMDeployRequest();
+        request.buildType = 'PARTIAL';
         request.activationType = 'DEFERRED';
 
         Test.startTest();
@@ -277,16 +291,50 @@ private with sharing class RLM_RebuildSearchIndexTest {
 
         Assert.areEqual(1, mock.received.size(), 'One callout for one request');
         Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.received[0].getBody());
-        Assert.areEqual(
-            'FULL',
-            body.get('buildType'),
-            'Known gap: the request\'s buildType is not forwarded yet; update this test when it is fixed'
+        Assert.areEqual('FULL', body.get('buildType'), 'An undocumented buildType falls back to FULL');
+        Assert.areEqual('IMMEDIATE', ((Map<String, Object>) body.get('snapshot')).get('activationType'),
+            'An undocumented activationType falls back to IMMEDIATE');
+    }
+
+    @IsTest
+    static void deployPcmIndexDefaultsBlankBuildAndActivationType() {
+        PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        RLM_RebuildSearchIndex.PCMDeployRequest request = new RLM_RebuildSearchIndex.PCMDeployRequest();
+        request.buildType = null;
+        request.activationType = '  ';
+
+        Test.startTest();
+        RLM_RebuildSearchIndex.deployPCMIndex(new List<RLM_RebuildSearchIndex.PCMDeployRequest>{ request });
+        Test.stopTest();
+
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.received[0].getBody());
+        Assert.areEqual('FULL', body.get('buildType'), 'A blank buildType falls back to FULL');
+        Assert.areEqual('IMMEDIATE', ((Map<String, Object>) body.get('snapshot')).get('activationType'),
+            'A blank activationType falls back to IMMEDIATE');
+    }
+
+    @IsTest
+    static void deployPcmIndexMakesOneCalloutPerDistinctBuildAndActivationType() {
+        PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        RLM_RebuildSearchIndex.PCMDeployRequest incremental = new RLM_RebuildSearchIndex.PCMDeployRequest();
+        incremental.buildType = 'INCREMENTAL';
+
+        Test.startTest();
+        List<RLM_RebuildSearchIndex.PCMDeployResult> results = RLM_RebuildSearchIndex.deployPCMIndex(
+            new List<RLM_RebuildSearchIndex.PCMDeployRequest>{
+                new RLM_RebuildSearchIndex.PCMDeployRequest(),
+                incremental,
+                new RLM_RebuildSearchIndex.PCMDeployRequest()
+            }
         );
-        Assert.areEqual(
-            'IMMEDIATE',
-            ((Map<String, Object>) body.get('snapshot')).get('activationType'),
-            'Known gap: the request\'s activationType is not forwarded yet; update this test when it is fixed'
-        );
+        Test.stopTest();
+
+        Assert.areEqual(3, results.size(), 'One result per request');
+        Assert.areEqual(2, mock.received.size(), 'FULL/IMMEDIATE (twice) and INCREMENTAL/IMMEDIATE: two callouts');
     }
 
     @IsTest

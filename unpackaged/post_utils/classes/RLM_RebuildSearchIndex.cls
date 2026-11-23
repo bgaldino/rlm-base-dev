@@ -1,11 +1,13 @@
 public with sharing class RLM_RebuildSearchIndex {
 
     private static final String PCM_INDEX_PATH = '/services/data/v68.0/connect/pcm/index/deploy';
+    private static final String DEFAULT_BUILD_TYPE = 'FULL';
+    private static final String DEFAULT_ACTIVATION_TYPE = 'IMMEDIATE';
 
     @AuraEnabled
     public static Map<String, Object> deployIndex() {
         try {
-            HttpResponse httpRes = callPcmDeploy();
+            HttpResponse httpRes = callPcmDeploy(DEFAULT_BUILD_TYPE, DEFAULT_ACTIVATION_TYPE);
             return buildResultMap(httpRes);
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
@@ -16,13 +18,31 @@ public with sharing class RLM_RebuildSearchIndex {
     public static List<PCMDeployResult> deployPCMIndex(List<PCMDeployRequest> requests) {
         List<PCMDeployResult> results = new List<PCMDeployResult>();
 
+        // One deploy per distinct buildType/activationType, not one per request: identical
+        // requests share a single callout (a batch of 100+ would otherwise exceed the callout
+        // limit), and each request gets its own result copy.
+        Map<String, Map<String, Object>> parsedByKey = new Map<String, Map<String, Object>>();
+        Map<String, String> failureByKey = new Map<String, String>();
+
         for (PCMDeployRequest request : requests) {
+            String buildType = normalizeBuildType(request.buildType);
+            String activationType = normalizeActivationType(request.activationType);
+            String key = buildType + '|' + activationType;
+
+            if (!parsedByKey.containsKey(key) && !failureByKey.containsKey(key)) {
+                try {
+                    parsedByKey.put(key, buildResultMap(callPcmDeploy(buildType, activationType)));
+                } catch (Exception e) {
+                    failureByKey.put(key, e.getMessage());
+                }
+            }
+
             PCMDeployResult result = new PCMDeployResult();
-
-            try {
-                HttpResponse httpRes = callPcmDeploy();
-                Map<String, Object> parsed = buildResultMap(httpRes);
-
+            if (failureByKey.containsKey(key)) {
+                result.isSuccess = false;
+                result.message = 'Exception occurred: ' + failureByKey.get(key);
+            } else {
+                Map<String, Object> parsed = parsedByKey.get(key);
                 result.isSuccess      = (Boolean) parsed.get('isSuccess');
                 result.message        = (String)  parsed.get('message');
                 result.statusCode     = (String)  parsed.get('statusCode');
@@ -33,19 +53,27 @@ public with sharing class RLM_RebuildSearchIndex {
                 result.indexBuildType = (String)  parsed.get('indexBuildType');
                 result.indexType      = (String)  parsed.get('indexType');
                 result.lastBuildStatus = (String) parsed.get('lastBuildStatus');
-
-            } catch (Exception e) {
-                result.isSuccess = false;
-                result.message = 'Exception occurred: ' + e.getMessage();
             }
-
             results.add(result);
         }
 
         return results;
     }
 
-    private static HttpResponse callPcmDeploy() {
+    // Documented build types are FULL and INCREMENTAL; a blank or any other value falls back to FULL.
+    private static String normalizeBuildType(String value) {
+        String candidate = String.isBlank(value) ? '' : value.trim().toUpperCase();
+        return (candidate == 'FULL' || candidate == 'INCREMENTAL') ? candidate : DEFAULT_BUILD_TYPE;
+    }
+
+    // IMMEDIATE is the only documented activation type, so every input maps to it today. The
+    // method is kept so a second documented value is a one-line change.
+    private static String normalizeActivationType(String value) {
+        String candidate = String.isBlank(value) ? '' : value.trim().toUpperCase();
+        return candidate == 'IMMEDIATE' ? candidate : DEFAULT_ACTIVATION_TYPE;
+    }
+
+    private static HttpResponse callPcmDeploy(String buildType, String activationType) {
         HttpRequest httpReq = new HttpRequest();
         httpReq.setEndpoint(URL.getOrgDomainUrl().toExternalForm() + PCM_INDEX_PATH);
         httpReq.setMethod('POST');
@@ -53,8 +81,8 @@ public with sharing class RLM_RebuildSearchIndex {
         httpReq.setHeader('Authorization', 'Bearer ' + getApiSessionId());
 
         Map<String, Object> requestBody = new Map<String, Object>{
-            'snapshot' => new Map<String, Object>{ 'activationType' => 'IMMEDIATE' },
-            'buildType' => 'FULL'
+            'snapshot' => new Map<String, Object>{ 'activationType' => activationType },
+            'buildType' => buildType
         };
         httpReq.setBody(JSON.serialize(requestBody));
 

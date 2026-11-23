@@ -396,7 +396,7 @@ public with sharing class RLM_BSGContextController {
         ]);
 
         appendComponentsDfs(mainBsgId, currentRecordId, startDepth, parentToChildren,
-                            subBundleIds, bsgById, result, new Set<Id>());
+                            subBundleIds, bsgById, result, new Set<Id>{ mainBsgId });
     }
 
     @TestVisible

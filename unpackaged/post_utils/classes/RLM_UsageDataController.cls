@@ -106,6 +106,11 @@ public with sharing class RLM_UsageDataController {
         if (allowedFilterFields == null || !allowedFilterFields.contains(filterField)) {
             throw new AuraHandledException('Unsupported filter field: ' + filterField + ' on ' + objectApiName);
         }
+        // A null recordId would run "<filterField> = null": on UsageSummary and
+        // UsageBillingPeriodItem that returns asset-less rows across accounts.
+        if (recordId == null) {
+            throw new AuraHandledException('A record Id is required.');
+        }
 
         for (Schema.FieldSetMember fsm : fs.getFields()) {
             String fieldApiName = fsm.getFieldPath();

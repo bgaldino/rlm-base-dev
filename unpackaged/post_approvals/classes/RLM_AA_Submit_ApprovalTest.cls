@@ -52,14 +52,11 @@ private class RLM_AA_Submit_ApprovalTest {
         Test.stopTest();
     }
 
-    // Known gap: the invocable reads only svcParameters[0]. A batch whose second
-    // request names a flow that does not exist succeeds today, because the
-    // second request is never tried. The pin detects a fix that starts every
-    // request and lets a failure propagate: the missing flow's TypeException
-    // then trips the assertion below. A fix that loops but swallows each
-    // request's failure would not trip it.
+    // Every request in the batch is started: a second request naming a flow that does not
+    // exist fails the batch with the platform's TypeException naming that flow, proving the
+    // second request was tried (the first request's flow is active, so it started).
     @IsTest
-    static void knownGap_callFlowIgnoresRequestsAfterTheFirst_whenTheFlowIsActive() {
+    static void callFlowStartsEveryRequestInTheBatch_whenTheFlowIsActive() {
         if (!activeFlowAvailable()) {
             return;
         }
@@ -75,38 +72,20 @@ private class RLM_AA_Submit_ApprovalTest {
         }
         Test.stopTest();
 
-        // Any exception naming the missing flow, whatever its type, means the
-        // second request was tried: the fix. Matches only the flow API name the
-        // platform passes through, never its translated wording.
-        if (thrown != null && thrown.getMessage() != null && thrown.getMessage().contains(MISSING_FLOW)) {
-            Assert.fail('Known gap: only the first request was started; it now started the second request ('
-                + thrown.getTypeName() + '). Update this test.');
-        }
-        Assert.isNull(thrown, 'Unexpected exception starting the batch (not the known gap): '
-            + (thrown == null ? '' : thrown.getTypeName() + ': ' + thrown.getMessage()));
+        // Matches only the flow API name the platform passes through, never its
+        // translated wording.
+        Assert.isNotNull(thrown, 'The second request must be tried, so the missing flow fails the batch.');
+        Assert.isTrue(thrown.getMessage() != null && thrown.getMessage().contains(MISSING_FLOW),
+            'The failure names the second request\'s flow: ' + thrown.getTypeName() + ': ' + thrown.getMessage());
     }
 
-    // Known gap: with no guard on the list, an empty request list fails reading
-    // request 0. No flow is started.
+    // Proves only that an empty request list does not throw; it does not assert that no flow starts.
     @IsTest
-    static void knownGap_callFlowThrowsOnAnEmptyRequestList() {
-        Exception thrown = null;
+    static void callFlowDoesNotThrowForAnEmptyRequestList() {
         Test.startTest();
-        try {
-            RLM_AA_Submit_Approval.callFlow(new List<RLM_AA_Submit_Approval.svcParameter>());
-        } catch (Exception caught) {
-            thrown = caught;
-        }
+        RLM_AA_Submit_Approval.callFlow(new List<RLM_AA_Submit_Approval.svcParameter>());
         Test.stopTest();
-
-        // Any outcome other than a raw ListException counts as the fix (for
-        // example an IllegalArgumentException, as the docgen invocables throw).
-        // Type only: platform exception text is translated into the running
-        // user's language, so it is not checked.
-        if (!(thrown instanceof ListException)) {
-            Assert.fail('Known gap: an empty request list throws a raw ListException; it now '
-                + (thrown == null ? 'returns' : 'throws ' + thrown.getTypeName()) + '. Update this test.');
-        }
+        // Reaching this line is the check: an uncaught exception above would fail the test.
     }
 
     // An unknown flow name cannot be started: the platform's TypeException
