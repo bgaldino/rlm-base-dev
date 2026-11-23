@@ -214,7 +214,7 @@ def test_run_single_scenario_uses_failed_step_retry_count_for_policy(tmp_path, m
     monkeypatch.setattr(scenario_runner, "cleanup_scenario_project_root", lambda _root: None)
     monkeypatch.setattr(scenario_runner, "write_build_provenance", lambda **_kwargs: None)
     monkeypatch.setattr(scenario_runner, "evaluate_when", lambda *_args, **_kwargs: True)
-    monkeypatch.setattr(scenario_runner, "org_exists", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(scenario_runner, "probe_org", lambda *_args, **_kwargs: {"state": "present", "detail": ""})
 
     steps = [
         Step(step_number=1, target_type="task", target_name="first", when=None),
@@ -344,3 +344,100 @@ def test_run_single_scenario_accumulates_duration_across_retries(tmp_path, monke
     prepare_row = next(row for row in rows if row["phase"] == "prepare_step")
     assert prepare_row["status"] == "success"
     assert prepare_row["duration_seconds"] == pytest.approx(5.5)
+
+
+def _resume_blocked_result(tmp_path, monkeypatch, probe):
+    run_dir = tmp_path / "runs" / "run-9"
+    run_dir.mkdir(parents=True)
+    project_root = run_dir / "scenarios" / "ent-default" / "cci_project"
+    seen = []
+    monkeypatch.setattr(scenario_runner, "compose_flags", lambda _d, _o: {"demo": True})
+    monkeypatch.setattr(scenario_runner, "prepare_scenario_project_root", lambda **_k: project_root)
+    monkeypatch.setattr(scenario_runner, "cleanup_scenario_project_root", lambda _r: None)
+    monkeypatch.setattr(scenario_runner, "write_build_provenance", lambda **_k: None)
+
+    def _probe(_root, sf_alias, **_kwargs):
+        seen.append(sf_alias)
+        return probe
+
+    monkeypatch.setattr(scenario_runner, "probe_org", _probe)
+    result = scenario_runner.run_single_scenario(
+        root=tmp_path,
+        scenario=_base_scenario(),
+        run_dir=run_dir,
+        prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
+        default_flags={"demo": True},
+        base_cci={"project": {"name": "proj"}},
+        skip_validate=True,
+        keep_orgs=True,
+        is_resume=True,
+        resume_from_step=1,
+        existing_alias="demo-org",
+    )
+    return result, seen
+
+
+@pytest.mark.parametrize(
+    "probe,target,failure_class",
+    [
+        ({"state": "missing", "detail": "gone"}, "org_missing", "deterministic"),
+        ({"state": "timeout", "detail": "slow"}, "org_probe_timeout", "transient"),
+        ({"state": "error", "detail": "boom"}, "org_probe_failed", "unknown"),
+    ],
+)
+def test_resume_reports_probe_outcome_distinctly(tmp_path, monkeypatch, probe, target, failure_class) -> None:
+    result, seen = _resume_blocked_result(tmp_path, monkeypatch, probe)
+    assert seen == ["proj__demo-org"]
+    assert result["status"] == "resume_blocked"
+    assert result["failed_target"] == target
+    assert result["failure_class"] == failure_class
+    if target != "org_missing":
+        assert "does not exist" not in result["failure_signature"]
+        assert "sf org list --all" in result["failure_signature"]
+        assert result["can_resume"] is True
+        assert result["policy"]["recommended_action"] == "resume"
+    else:
+        assert result["can_resume"] is False
+        assert result["policy"]["recommended_action"] != "resume"
+
+
+@pytest.mark.parametrize(
+    "state,expected",
+    [("missing", False), ("timeout", True), ("error", True), ("present", True)],
+)
+def test_end_of_run_can_resume_follows_probe_state(tmp_path, monkeypatch, state, expected) -> None:
+    run_dir = tmp_path / "runs" / "run-11"
+    run_dir.mkdir(parents=True)
+    project_root = run_dir / "scenarios" / "ent-default" / "cci_project"
+    monkeypatch.setattr(scenario_runner, "compose_flags", lambda _d, _o: {"demo": True})
+    monkeypatch.setattr(scenario_runner, "prepare_scenario_project_root", lambda **_k: project_root)
+    monkeypatch.setattr(scenario_runner, "cleanup_scenario_project_root", lambda _r: None)
+    monkeypatch.setattr(scenario_runner, "write_build_provenance", lambda **_k: None)
+    monkeypatch.setattr(scenario_runner, "evaluate_when", lambda *_a, **_k: True)
+    monkeypatch.setattr(scenario_runner.time, "sleep", lambda _s: None)
+    monkeypatch.setattr(scenario_runner, "probe_org", lambda *_a, **_k: {"state": state, "detail": ""})
+
+    def _run_command(_root, command, *_a, **_k):
+        failed = command[:3] == ["cci", "task", "run"]
+        return {
+            "duration_seconds": 0.1,
+            "exit_code": 2 if failed else 0,
+            "failure_signature": "boom" if failed else "",
+            "failure_class": "deterministic" if failed else "none",
+            "tail": [],
+        }
+
+    monkeypatch.setattr(scenario_runner, "run_command", _run_command)
+    result = scenario_runner.run_single_scenario(
+        root=tmp_path,
+        scenario=_base_scenario(),
+        run_dir=run_dir,
+        prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
+        default_flags={"demo": True},
+        base_cci={},
+        skip_validate=True,
+        keep_orgs=True,
+        is_resume=False,
+    )
+    assert result["status"] == "failed"
+    assert result["can_resume"] is expected

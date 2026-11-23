@@ -12,7 +12,7 @@ from scripts.build_harness.harness.config import (
     evaluate_when,
     prepare_scenario_project_root,
 )
-from scripts.build_harness.harness.execution import org_exists, run_command
+from scripts.build_harness.harness.execution import probe_org, run_command, sf_alias_for
 from scripts.build_harness.harness.io import append_jsonl, now_utc, write_json
 from scripts.build_harness.harness.provenance import write_build_provenance
 
@@ -87,6 +87,7 @@ def run_single_scenario(
     )
     org_alias = existing_alias or alias_for_scenario(scenario, run_dir.name)
     org_shape = scenario["org_shape"]
+    project_name = str((base_cci.get("project") or {}).get("name") or "rlm-base")
     days = int(scenario.get("days", 1))
 
     write_json(
@@ -262,17 +263,30 @@ def run_single_scenario(
                     can_resume=False,
                 )
         else:
-            if not org_exists(root, org_alias):
+            probe = probe_org(root, sf_alias_for(project_name, org_alias))
+            if probe["state"] != "present":
                 cleanup_workspace = False
+                if probe["state"] == "missing":
+                    target = "org_missing"
+                    signature = f"Org alias `{org_alias}` does not exist. {probe['detail']}".strip()
+                    failure_class = "deterministic"
+                else:
+                    target = "org_probe_timeout" if probe["state"] == "timeout" else "org_probe_failed"
+                    signature = (
+                        f"Could not confirm org alias `{org_alias}` exists (the org may be present): "
+                        f"{probe['detail']} Re-run resume; if this repeats, check `sf org list --all`."
+                    )
+                    failure_class = "transient" if probe["state"] == "timeout" else "unknown"
                 return build_failure_result(
                     status="resume_blocked",
                     failed_step=resume_from_step,
-                    failed_target="org_missing",
+                    failed_target=target,
                     failure_phase="resume",
-                    failure_signature=f"Org alias `{org_alias}` does not exist.",
-                    failure_class="deterministic",
+                    failure_signature=signature,
+                    failure_class=failure_class,
                     retry_count=0,
-                    can_resume=False,
+                    # An unconfirmed org may still exist: keep resume recommended.
+                    can_resume=probe["state"] != "missing",
                 )
 
         last_completed_step = 0
@@ -406,7 +420,10 @@ def run_single_scenario(
                 }
             )
 
-        can_resume = scenario_status == "failed" and org_exists(root, org_alias)
+        can_resume = (
+            scenario_status == "failed"
+            and probe_org(root, sf_alias_for(project_name, org_alias))["state"] != "missing"
+        )
         policy = summarize_policy(
             status=scenario_status,
             can_resume=can_resume,

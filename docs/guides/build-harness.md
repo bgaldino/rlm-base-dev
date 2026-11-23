@@ -206,6 +206,26 @@ Resume safety guard:
 
 - resume is blocked when current scenario effective flags do not match checkpoint `effective_flags`
 
+Before resuming, the harness probes the kept org with `sf org display` (45-second
+timeout), never with CumulusCI. The probe has four outcomes:
+
+- `present`: resume continues.
+- `missing` (no authorization, or the org is Expired or Deleted): resume is blocked with
+  target `org_missing`, and the run cannot be resumed.
+- `timeout` (`org_probe_timeout`) and `error` (`org_probe_failed`): the org may still
+  exist, so resume is blocked but still recommended. Re-run `resume`; if it repeats,
+  check `sf org list --all`.
+
+When `sf org display` fails for a reason other than an unknown alias, the probe also runs
+`sf org list --all --skip-connection-status --json`. That list is not network-free: the
+Salesforce CLI reads each scratch org's status from the dev hub, so the worst case is two
+45-second waits per probe, and the probe runs at resume and again at the end of a failed
+run. An alias missing from that list is not treated as a deleted org.
+
+Do not check an org by hand with `cci org info`: for an expired scratch org CumulusCI
+recreates the org under the same alias, which gives a new, unbuilt org. Use
+`sf org display --target-org rlm-base__<alias> --json` instead.
+
 Phase-1 resume scope is top-level `prepare_rlm_org` steps only. Nested sub-flow task-level resume is intentionally out of scope.
 
 ## Output Artifacts
@@ -247,7 +267,7 @@ Each run writes:
 - `0` - success
 - `10` - scenario/build failure
 - `20` - harness configuration/validation error
-- `30` - resume blocked (missing run/checkpoint/org)
+- `30` - resume blocked (missing run/checkpoint/org, or the org probe could not confirm the org)
 
 ## Agent Policy
 

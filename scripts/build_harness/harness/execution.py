@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import subprocess
 import time
 from collections import deque
@@ -175,15 +176,143 @@ def run_command(
     }
 
 
-def org_exists(root: Path, alias: str) -> bool:
+ORG_PROBE_TIMEOUT_SECONDS = 45
+
+_GONE_ORG_STATUSES = {"expired", "deleted"}
+
+
+def sf_alias_for(project_name: str, alias: str) -> str:
+    """The Salesforce CLI alias CumulusCI gives a scratch org (`<project>__<alias>`)."""
+    return f"{project_name}__{alias}"
+
+
+def _gone_detail(org: Dict[str, Any], sf_alias: str) -> Optional[str]:
+    """Why an `sf` org record is no longer usable, or None when it still is.
+
+    Trusts only the status that `sf` itself reports (Expired or Deleted, or
+    `isExpired`). `expirationDate` is deliberately not compared with today's date:
+    ScratchOrgInfo.ExpirationDate carries no time zone, and a live org must never be
+    declared gone on its last day (`missing` blocks resume).
+    """
+    status = str(org.get("status") or "")
+    if status.lower() in _GONE_ORG_STATUSES:
+        return f"Org `{sf_alias}` has status {status}."
+    if org.get("isExpired") is True:
+        return f"Org `{sf_alias}` is expired."
+    return None
+
+
+def _local_org_record(root: Path, sf_alias: str, timeout: float) -> Optional[Dict[str, Any]]:
+    """Find the org in `sf org list --all --skip-connection-status --json`.
+
+    Matches the alias, any entry of an `aliases` list, or the username. Not
+    local-only: `--skip-connection-status` skips only the per-org connection check of
+    non-scratch orgs. plugin-org's `processScratchOrgs` still queries ScratchOrgInfo on
+    the dev hub for every scratch org (read from plugin-org 7.0.13 `orgListUtil.js`),
+    and that query is what supplies `status`, `isExpired` and `expirationDate`. When
+    the hub cannot be queried, scratch orgs are dropped from the list, so an absent org
+    is not evidence that the org is gone. Needs no CumulusCI.
+
+    Returns the org record, `{}` when the list was read and no entry matches, or
+    None when the list could not be read.
+    """
     try:
         result = subprocess.run(
-            ["cci", "org", "info", alias],
+            ["sf", "org", "list", "--all", "--skip-connection-status", "--json"],
             cwd=str(root),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        payload = json.loads(result.stdout or "")
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError, ValueError):
+        return None
+    org_result = payload.get("result") if isinstance(payload, dict) else None
+    if result.returncode != 0 or not isinstance(org_result, dict):
+        return None
+    for group in org_result.values():
+        if not isinstance(group, list):
+            continue
+        for org in group:
+            if not isinstance(org, dict):
+                continue
+            names = {org.get("alias"), org.get("username")}
+            aliases = org.get("aliases")
+            if isinstance(aliases, list):
+                names.update(a for a in aliases if isinstance(a, str))
+            if sf_alias in names:
+                return org
+    return {}
+
+
+def probe_org(
+    root: Path,
+    sf_alias: str,
+    *,
+    timeout: float = ORG_PROBE_TIMEOUT_SECONDS,
+) -> Dict[str, str]:
+    """Check that a scratch org is still usable, without any CumulusCI call.
+
+    Runs `sf org display --target-org <sf_alias> --json`. Unlike `cci org info`, it
+    cannot reach CumulusCI's expired-org recreation (`check_org_expired`), and it took
+    1-3 seconds where `cci org info` took 9-27 seconds on the same org. When display
+    fails for any reason other than an unknown alias (an expired org can fail on its
+    token refresh), `sf org list --all --skip-connection-status` is consulted. That list
+    is not network-free (it reads each scratch org's status from the dev hub), so it can
+    cost a second timeout. Only positive evidence gives `missing`: display reporting an
+    unknown alias, or a list record that is Expired, Deleted or `isExpired`. An alias absent from the
+    list, or an unreadable list, leaves the state `error` (unknown).
+
+    Returns {"state": ..., "detail": ...} where state is one of:
+      present - the org is authenticated and `sf` does not report it Expired, Deleted or `isExpired`
+      missing - no authorization for the alias, or `sf` reports the org Expired, Deleted or `isExpired`
+                (never decided from `expirationDate` and today's date)
+      timeout - the probe did not finish in time; the org's state is unknown
+      error   - the probe could not run or its output was unreadable; state unknown
+    """
+    if not root.is_dir():
+        return {"state": "error", "detail": f"Working directory does not exist: {root}"}
+    try:
+        result = subprocess.run(
+            ["sf", "org", "display", "--target-org", sf_alias, "--json"],
+            cwd=str(root),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
     except subprocess.TimeoutExpired:
-        return False
-    return result.returncode == 0
+        return {"state": "timeout", "detail": f"`sf org display` for `{sf_alias}` did not finish within {timeout:g}s."}
+    except FileNotFoundError:
+        return {"state": "error", "detail": "Command not found: sf"}
+    except (OSError, ValueError) as exc:  # ValueError includes UnicodeDecodeError
+        return {"state": "error", "detail": f"`sf org display` could not run or be read: {exc!r}"}
+
+    try:
+        payload = json.loads(result.stdout or "")
+    except ValueError:
+        payload = None
+    if not isinstance(payload, dict):
+        tail = (result.stderr or result.stdout or "").strip().splitlines()[-1:] or [""]
+        failure = f"`sf org display` exited {result.returncode} without JSON output. {tail[0]}".strip()
+    elif result.returncode == 0:
+        org = payload.get("result")
+        if not isinstance(org, dict):
+            return {"state": "error", "detail": "`sf org display` returned no org record."}
+        gone = _gone_detail(org, sf_alias)
+        if gone:
+            return {"state": "missing", "detail": gone}
+        return {"state": "present", "detail": ""}
+    elif payload.get("name") == "NamedOrgNotFoundError":
+        return {"state": "missing", "detail": f"No authorization found for `{sf_alias}`."}
+    else:
+        message = str(payload.get("message") or "").strip().replace("\n", " ")
+        failure = f"`sf org display` failed: {payload.get('name') or result.returncode}: {message}"
+
+    local = _local_org_record(root, sf_alias, timeout)
+    if local is not None:
+        if not local:
+            return {"state": "error", "detail": f"`{sf_alias}` is not in `sf org list` (the dev hub may be unreachable). {failure}"}
+        gone = _gone_detail(local, sf_alias)
+        if gone:
+            return {"state": "missing", "detail": f"{gone} {failure}"}
+    return {"state": "error", "detail": failure}
