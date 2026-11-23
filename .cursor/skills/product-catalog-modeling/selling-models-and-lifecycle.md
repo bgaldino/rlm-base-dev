@@ -1,7 +1,7 @@
 # Selling Models and Lifecycle Flags
 
 > Sub-file of [`SKILL.md`](SKILL.md). Release 264. Read when choosing how a product is
-> sold over time and which lifecycle flags it carries. Proration *setup* is in
+> sold over time and which lifecycle flags it carries, and for product images (`DisplayUrl`). Proration *setup* is in
 > [`../pricing-setup/proration-and-selling-models.md`](../pricing-setup/proration-and-selling-models.md);
 > this file covers the modeling choice. Source tags follow the parent skill's convention.
 
@@ -85,7 +85,7 @@ tried. [Measured: 2026-11-10, 264, existing org]
 **Existing org, fresh-build check pending**: the run used an org that had been built earlier,
 not a fresh harness build, so settings and schema carried over from its history may differ from
 a fresh build. The configurable-bundle refusal was also seen on a scratch load
-([`bundles-and-cardinality.md`](bundles-and-cardinality.md)); whether a fresh build gives the
+([`bundles-and-cardinality.md`](bundles-and-cardinality.md#quantity-scaling-and-lifecycle)); whether a fresh build gives the
 static-bundle results is **Open — needs live verification** (repeat these inserts on a fresh
 harness build and record the outputs).
 
@@ -101,8 +101,8 @@ harness build and record the outputs).
 | Static bundle | Both blank | Accepted. |
 
 - **No type-compatibility check on insert.** An Evergreen parent with a One Time child, and an
-  Evergreen parent with a Term Defined child, were accepted once both options existed, as were
-  Evergreen with Evergreen and blank with blank. Accepted on insert does not make the pair
+  Evergreen parent with a Term Defined child, were accepted once both options existed, as was
+  Evergreen with Evergreen; blank with blank needs no options. Accepted on insert does not make the pair
   valid. The traced configurator rule [above](#selling-models-inside-bundles) compares quote
   lines, not component rows, and a static bundle is not configured at run time, so whether it
   applies here is not known. How pricing and the configurator treat such a pair is **Open —

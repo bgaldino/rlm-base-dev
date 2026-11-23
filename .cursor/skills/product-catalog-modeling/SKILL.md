@@ -68,7 +68,8 @@ drop the `.md` suffix of the snapshot file name.
   under a new static bundle, a parent selling model other than None or any component selling
   model. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
   An insert was rejected for the configurable case (also seen on a scratch load) and, on an
-  existing org (fresh-build check pending), accepted for an inactive static test bundle, so Help's static rule looks like guidance, not a guard
+  existing org (fresh-build check pending), accepted for an inactive static test bundle (active
+  bundle untested), so Help's static rule looks like guidance, not a guard
   ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
 - **DO NOT** override a price-impacting attribute in a bundle context. The attribute-based
   adjustment stops applying. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
