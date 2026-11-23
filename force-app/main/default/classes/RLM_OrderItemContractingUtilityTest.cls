@@ -253,9 +253,10 @@ private class RLM_OrderItemContractingUtilityTest {
             // picklist that has Order but neither OrderItem nor OrderAction, and no ObjectPermissions row
             // in the org names either, so the only object grant possible here is Order. OrderAction.Type
             // is not permissionable, and FieldPermissions.SobjectType lists OrderItem with rows for
-            // OrderItem.ServiceDate, so only the two OrderItem fields are granted.
+            // OrderItem.ServiceDate.
             // Not run yet (inferred): that Order.EffectiveDate is not permissionable, that
-            // OrderItem.EndDate is, and that Order Read alone makes OrderItem and OrderAction readable.
+            // OrderItem.EndDate is (so the test grants only the two OrderItem fields), and that Order
+            // Read alone makes OrderItem and OrderAction readable.
             // The preconditions below assert the outcome, so a wrong inference fails the test instead
             // of passing it.
             insert new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'Order', PermissionsRead = true);
