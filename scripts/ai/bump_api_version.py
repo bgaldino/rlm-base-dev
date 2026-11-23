@@ -131,8 +131,11 @@ PROVENANCE_LINE_RE = re.compile(
     r"|\bverified (?:live|on|in|against|by|via|payload)\b"
     # Word-bounded: bare "as of" also sits inside "alias offset" and "has offered", and a bare
     # MIN_API_VERSION anywhere on a line would spare a live pin sharing that line. Only the
-    # assignment spelling (the floor's definition) is a floor line.
-    r"|\bas[- ]of\b|\bobserved (?:on|at)\b|\bMIN_API_VERSION\s*=",
+    # assignment spelling, plain or typed (`MIN_API_VERSION: str = ...`), is a floor line; `==`
+    # is a comparison, not a definition. The `verified (...)` forms end at a word boundary, so
+    # "verified payloads"/"verified inside"/"verified online" are NOT spared; no tracked line
+    # uses them beside a version (swept 2026-11-24), so add a form here if one ever does.
+    r"|\bas[- ]of\b|\bobserved (?:on|at)\b|\bMIN_API_VERSION\b\s*(?::[^=\n]*)?=(?!=)",
     re.IGNORECASE,
 )
 

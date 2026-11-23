@@ -56,7 +56,7 @@ FLOOR_FILES = {
     "unpackaged/post_mcp_custom/classes/RLM_CloneSalesTransactionTest.cls": ["async-capable ("],
 }
 UNGUARDED_WORDINGS = ("baseline", "introduced in", "pinned to", "at least", "floor", "only from",
-                      "minimum")
+                      "minimum", "since", "gone in", "min_api_version")
 
 print("position-keyed exclusions")
 check("EXCLUDED_LINES table is gone", not hasattr(bump, "EXCLUDED_LINES"))
@@ -78,9 +78,11 @@ check("every rule matches its probe",
 print("provenance regex is word-bounded")
 for text in ("alias offset v68.0", "it has offered v68.0", "unobserved at v68.0",
              "unverified on v68.0", "xlive-verified v68.0",
-             "foo(MIN_API_VERSION, 'v68.0')", "see MIN_API_VERSION for v68.0"):
+             "foo(MIN_API_VERSION, 'v68.0')", "see MIN_API_VERSION for v68.0",
+             'if MIN_API_VERSION == "v68.0":'):
     check(f"does not spare a live pin on {text!r}", not bump.PROVENANCE_LINE_RE.search(text))
 for text in ("as of v67.0", "as-of v67.0", "observed at v67.0", "MIN_API_VERSION = \"65.0\"",
+             'MIN_API_VERSION: str = "65.0"', "MIN_API_VERSION:str=\"65.0\"",
              "live-verified v67.0", "verified on 262 / v67.0"):
     check(f"spares {text!r}", bool(bump.PROVENANCE_LINE_RE.search(text)))
 
