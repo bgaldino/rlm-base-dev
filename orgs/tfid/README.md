@@ -24,9 +24,9 @@ Each file is wired to a CCI org alias under `orgs:` in `cumulusci.yml` (e.g.
 | `tfid-cdo-rlm` (`tfid-cdo-rlm.json`) | `0TTEE000000A3vt` | USA1000 | **`tso=true` baseline (input)** | `tfid-cdo` **plus** minor "black tab" (internal) license and org value/permission adjustments for RLM. **This is the current starting shape that `prepare_rlm_org` builds *onto* when `tso: true`.** |
 | `tfid-pde` (`tfid-pde.json`) | `0TTe60000001Zzp` | USA1016 | **Partner Developer Edition (PDE) baseline (input)** | TFID snapshot for **Partner Developer Edition** builds (`pde: true`). This is the **PDE license base in R1**. Unlike the external `dev-r1` baseline (a standard DE scratch config), this is the TFID-snapshot path for PDE. |
 | `tfid-qb-tso` (`tfid-qb-tso.json`) | `0TTWs000001kiiD` | USA1000 | **`tso=true` output** | TFID of the **fully built QuantumBit (QB) org we release** — captured by cloning an org that `prepare_rlm_org` (tso=true) built successfully and logging that template ID here. *Not* a build input; used for testing and idempotency work (re-running the build against an already-built org). |
-| `tfid` (`tfid.json`) | `0TTWs000001w7YP` | USA1000 | _TBD_ | _TBD — to be documented._ |
-| `tfid-sdo` (`tfid-sdo.json`) | `0TTKX000001ZdQX` | USA1000 | _TBD_ | _TBD — to be documented._ |
-| `tfid-sdo-lite` (`tfid-sdo-lite.json`) | `0TTKX000001D4RL` | USA1000 | _TBD_ | _TBD — to be documented._ Note: present as a file but **not** wired as a CCI org config in `cumulusci.yml`. |
+| `tfid` (`tfid.json`) | `0TTWs000001w7YP` | USA1000 | Not documented | Wired as a CCI org config in `cumulusci.yml`; no task, flow or build flag in this repo references it, and the template's contents are not recorded here. |
+| `tfid-sdo` (`tfid-sdo.json`) | `0TTKX000001ZdQX` | USA1000 | Not documented | Wired as a CCI org config in `cumulusci.yml`; no task, flow or build flag in this repo references it, and the template's contents are not recorded here. |
+| `tfid-sdo-lite` (`tfid-sdo-lite.json`) | `0TTKX000001D4RL` | USA1000 | Not documented | Present as a file only: **not** wired as a CCI org config in `cumulusci.yml`, and nothing in this repo references it. |
 
 ### External (non-TFID) build baselines
 

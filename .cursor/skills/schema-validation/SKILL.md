@@ -40,7 +40,7 @@ End-to-end workflow for keeping `docs/erds/erd-data.json` aligned to canonical R
 |---|---|---|
 | `scripts/erd/validate_erd_against_org.py` | Diff ERD against a single org (find missing fields/relationships, find orphans) | `docs/erds/validation-report.md` |
 | `scripts/erd/schema_diff/extract_schema.py` | Extract full schema from one org as JSON | `scripts/erd/schema_diff/<release>-schema.json` |
-| `scripts/erd/schema_diff/diff_schemas.py` | Diff two schema JSONs (260 vs 262) with optional SFDMU plan impact analysis | `scripts/erd/schema_diff/260-vs-262-diff.md` |
+| `scripts/erd/schema_diff/diff_schemas.py` | Diff two schema JSONs (one release against the next) with optional SFDMU plan impact analysis; reports carry an auto-generated banner, so regenerate rather than hand-edit them. Exception: `262-vs-264-diff.md` carries manual corrections that regeneration destroys; re-apply them from git history (see its caveat) | `scripts/erd/schema_diff/<old>-vs-<new>-diff.md` |
 | `scripts/erd/cleanup_orphan_erd_fields.py` | Classify orphans (pdf_artifact / documented / documented_rel) and optionally remove | `docs/erds/orphan-candidates*.md` |
 | `scripts/erd/cleanup_erd_data.py` | Fix data-quality issues in ERD (typos, wrong types, missing domainShort) | In-place patch |
 | `scripts/erd/build_erds.py` | Regenerate interactive HTML from `erd-data.json` | `docs/erds/revenue-cloud-erd.html` |

@@ -266,6 +266,20 @@ try:
 finally:
     ds.REPO_ROOT = _saved_root
 
+# --- diff_schemas.generate_markdown_report (generated-file banner) -----------
+# The banner tells a reader the report is generated, so hand edits (262-vs-264
+# carries some) are lost on regeneration.
+print("-- diff_schemas.generate_markdown_report puts the generated-file banner under the title")
+_report = ds.generate_markdown_report({
+    "baseline": {}, "target": {},
+    "summary": {k: 0 for k in ("objects_added", "objects_removed", "objects_changed",
+                               "objects_unchanged", "total_fields_added",
+                               "total_fields_removed", "total_type_changes")},
+    "objects_added": [], "objects_removed": [], "object_diffs": {},
+})
+check("the banner directly follows the title",
+      _report.startswith("# Schema Diff Report\n\n" + ds.AUTO_GENERATED_BANNER + "\n"))
+
 
 print("=" * 100)
 if _failures:
