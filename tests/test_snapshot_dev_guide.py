@@ -159,6 +159,26 @@ def main():
           all(t3._may_record_doc_version(captured_manifest, "262.0", m)
               for m in ("capture", "all", "refresh")))
 
+    # Per-page source attribution: every rendered page ends with the note
+    # naming its own source URL, after the body.
+    from scripts.doc_snapshot._core import attribution_note
+    from scripts.doc_snapshot.dev_guide import render_page_markdown
+
+    url = "https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/example.htm"
+    md = render_page_markdown(
+        page_id="example.htm", title="Example", body_md="# Example\n\nBody text.\n",
+        source_url=url, release_version="264", release_name="Winter '27",
+        deliverable="revenue_lifecycle_management_dev_guide", section=None,
+        parent_page_id=None, fetched_at="2026-11-23",
+    )
+    check("page ends with the attribution note and a newline",
+          md.endswith(attribution_note(url, "Salesforce developer documentation") + "\n"))
+    check("attribution links the page's own source URL", f"([source]({url}))" in md)
+    check("body precedes the attribution note",
+          md.index("Body text.") < md.index("Source attribution"))
+    check("a blank line separates the body from the note's rule",
+          "Body text.\n\n---\n\n> **Source attribution" in md)
+
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1
 

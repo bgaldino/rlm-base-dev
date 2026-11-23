@@ -39,7 +39,9 @@ Every corpus holds the same three things:
 
 - `articles/<id>.md`: one file per article, with YAML frontmatter (id, title,
   source URL, release, area or section, fetch date) followed by the article
-  body.
+  body and a source-attribution note that links the source URL. Files
+  captured before the note was added lack it until they are recaptured with
+  `--mode refresh` (the other modes skip captured articles).
 - `manifest.json`: the machine-readable index described above.
 - `index.md`: a human-readable index generated from the manifest.
 
