@@ -14,17 +14,18 @@
 > **Grounded on:**
 > - `docs/enablement/master/qb-scenario-reference.md` (canonical demo data — Infinitech / Global Media accounts, QB-COMPLETE / QB-QRack-750 SKUs, QB Q-Rack 750 / QB Complete Solution / QB Services Project bundles)
 > - Prior-release (260) Slack canvas, held in a private maintainer notes repo (source of the 6 persona names + bios; personas are stable release-to-release and **not yet** in `qb-scenario-reference.md` — migration tracked separately so future regenerations don't depend on that private source)
-> - `docs/salesforce/262/feature-index.md` (262 feature inventory)
-> - `docs/salesforce/262/help/articles/` (935-article Help portal mirror; 262 draft grounding)
+> - `docs/salesforce/264/help/articles/` (1,703-article Help portal mirror; current grounding for 264 checks)
+> - `docs/salesforce/262/feature-index.md` (262 feature inventory; 262 draft provenance)
+> - `docs/salesforce/262/help/articles/` (935-article Help portal mirror; 262 draft grounding, provenance)
 > - `cumulusci.yml` `project.custom` (39 active feature flags)
 
 ### How do I get my own copy of QuantumBit?
 
 Jump over to your Solutions contact or [Solutions Workspace](https://www.solutionswork.space/), find the Demos tab and search for **Revenue Cloud - QuantumBit (CDO).** Click the '**Spin Up**' button and fill out the information. Don't forget to run through the [Demo Setup](#demo-setup-required) steps and [Known Bugs & Areas to Avoid](#known-bugs--issues-to-avoid) before diving in!
 
-Latest TFID (Prod) 262.x.x : **TBD** *(populate when 262 TFID is published)*
+Latest TFID (Prod): **TBD** *(264 TFID not recorded in this repo; populate when published. The 262.x.x placeholder is retired.)*
 
-**For T&P - 260 & 262 DOT files:** populate Drive folder URL once 262 deploy is staged.
+**For T&P - DOT files:** populate the Drive folder URL once the 264 deploy is staged *(260 and 262 DOT files are prior-release carry-over)*.
 
 Please provide feedback on demo errors, issues, and missing functionality in the workflow below.
 
@@ -184,8 +185,7 @@ In search, enter "agentforce for revenue" → select Set Up → select Turn On.
 ::: {.layout}
 ::: {.column}
 ### Slack Approvals Setup (NEW in 262)
-For the Slack Accelerated Deal Approvals feature: Navigate to Setup → Approvals → Slack Integration → Configure. *(Click path not verified for 264; needs an SME or live-org check.)*
-Pair an Approval Process with a Slack workspace channel.
+For the Slack Accelerated Deal Approvals feature (per the 264 Help snapshot): first connect the org to your Slack workspace, then from Setup open **Approval Settings** and turn on **Notify Reviewers on Slack** and **Notify Submitters on Slack**. To post to a shared channel, set the channel on the individual approval **step** (Advanced Approvals only): in the flow, open the step, set Approver Type to Group or Queue, select **Send Approval Notification to Slack Channel** and enter the channel ID. *(SME to confirm in a live 264 org; these steps come from the Help articles, not a click-through.)*
 **Required for the Approvals demo flow.** Verify against 264 Help: `docs/salesforce/264/help/articles/ind.approvals_slack.htm.md` (related: `ind.approvals_slack_considerations.htm.md`, `ind.approvals_slack_channel_notifications.htm.md`, `ind.approvals_turn_on_slack_notifs.htm.md`).
 ![placeholder][img-PLACEHOLDER-slack-approvals-setup]
 :::
@@ -380,7 +380,7 @@ Jean Claude manages billing processes to ensure accurate invoicing, revenue reco
 |- Notice the ability '**Preview**' on the **Approvals** tab. **NEW in 262:** the Preview UX is enhanced — multi-stakeholder serial approvals are visualized.||![placeholder][img-PLACEHOLDER-approvals-preview-ux]|
 |- Click **Preview** to understand where the approvals must route.||![placeholder][img-PLACEHOLDER-approvals-preview]|
 |- Navigate to down carrot in top right corner and select **Submit for Approval** → **Submit**|I can see the discount changes I've made have triggered a need for an approval before I can send this quote off to my customer.|![placeholder][img-PLACEHOLDER-approvals-submit]|
-|**262 NEW: Slack Approval Routing.** Switch to the connected Slack workspace channel for the Approval Process. Approve directly from the Slack message. **Required setup:** see "Slack Approvals Setup" in Demo Setup section above.|This is the **Accelerated Deal Approvals in Slack** feature new in 262. Approvers don't need to log into Salesforce to approve — the approval card is delivered to Slack with full context and inline approve/reject.|![placeholder][img-PLACEHOLDER-approvals-slack]|
+|**262 NEW: Slack Approval Routing.** Switch to the Slack channel set on the approval step (or the reviewer's Slack direct message). Approve directly from the Slack message. **Required setup:** see "Slack Approvals Setup" in Demo Setup section above.|This is the **Accelerated Deal Approvals in Slack** feature new in 262. Approvers don't need to log into Salesforce to approve — the approval card is delivered to Slack with full context and inline approve/reject.|![placeholder][img-PLACEHOLDER-approvals-slack]|
 |- Navigate to **App Manager** and search & select **Approvals** app<br><br>- Select **Review Pending Approvals**|For the in-Salesforce flow: switching hats to an admin/approver role, in the Approvals app I'm able to see a list view of all the requests that need my attention.|![placeholder][img-PLACEHOLDER-approvals-pending]|
 |- Navigate to the down carrot on the line of the approval request<br>- Select **Review**||![placeholder][img-PLACEHOLDER-approvals-review]|
 |- Select as **Approved** or **Rejected** → **Confirm** → Refresh browser||![placeholder][img-PLACEHOLDER-approvals-decision]|
@@ -689,7 +689,7 @@ img-PLACEHOLDER-contracts-advanced-approvals
 - DOT files Drive folder URL (pending 262 deploy)
 - Setup UI screenshots (Salesforce Go is heavily updated in 262)
 - Known Bugs list (carry-over verification + populate net-new from `salesforce-release-notes-summer-26-2026-05-07.pdf` p. 720+)
-- Slack Approvals exact Setup navigation (verify against published 262 Help)
+- Slack Approvals setup: steps now follow the 264 Help articles; live-org confirmation still pending
 - Product Discovery Constraint Rules toggle label (verify against published 262 Setup UI)
 - DRO Templates Beta enablement (verify Beta is gated correctly in demo org)
 - DRO & OMS Interop Beta enablement (verify both apps available)

@@ -142,7 +142,7 @@ RC_262_RELNOTES = "https://help.salesforce.com/s/articleView?id=release-notes.rn
 # 48 Help article IDs renamed/reorganized in 262 -> verified 262 equivalents.
 # Where 262 reorganized deep articles into a consolidated area, the link lands on the
 # capability's 262 page (e.g. Contracts -> ind.qocal_*; precise article kept when the
-# 262 match is unambiguous). All values confirmed present in docs/salesforce/262/help/.
+# 262 match is unambiguous). All 23 distinct targets confirmed present in docs/salesforce/264/help/articles/ (and in 262).
 HELP_ID_REMAP = {
     # DRO
     "ind.dro_design_time_administration.htm": "ind.dro_dynamic_revenue_orchestrator.htm",
