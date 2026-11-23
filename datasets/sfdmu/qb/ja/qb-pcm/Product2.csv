@@ -6,7 +6,7 @@ BasedOn.Code,CanRamp,ConfigureDuringSale,Description,DisplayUrl,Family,IsActive,
 ,false,Allowed,,/resource/RLM_quantumBit_logo_sq,Software,true,true,false,AEH オブジェクトストア - 制限付き使用,QB-AEH-OBJ,,,QB-AEH-OBJ,,
 ,false,Allowed,,/resource/RLM_quantumBit_logo_sq,Software,true,true,false,注文処理,QB-AEH-OR,,,QB-AEH-OR,,
 PC-QB-API,true,Allowed,,/resource/add_api,Software,true,true,false,追加 API,QB-API,,,QB-API,,
-,false,,,/resource/RLM_quantumBit_logo_sq,None,true,true,false,API コール,QB-API-CALLS,Each,,QB-API-CALLS,,
+,false,,,/resource/RLM_quantumBit_logo_sq,,true,true,false,API コール,QB-API-CALLS,Each,,QB-API-CALLS,,
 ,false,,APIインスタンスは削除されるまで管理下に置かれます。API Managerのインスタンスは最大同時接続モデルを使用して集計されます。月間使用量は、その月における単一時間内のAPI管理数の上限値です。,/resource/api_flex,Software,true,true,false,追加 API フレックス (100M),QB-API-FLEX,,,QB-API-FLEX,,
 ,false,,APIインスタンスは削除されるまで管理下に置かれます。API Managerのインスタンスは最大同時接続モデルで集計されます。月間使用量は、その月における単一時間枠で管理されたAPIの最大数を指します。,/resource/api_govt,Software,true,true,false,追加 API 政府向け,QB-API-GOVT,,,QB-API-GOVT,,
 ,false,,すべてのAPIとマイクロサービスを1か所で管理し、生産性を向上させます。,/resource/RLM_quantumBit_logo_sq,Software,true,true,false,QB API管理ソリューション,QB-API-MGMT,,,QB-API-MGMT,,
@@ -46,13 +46,13 @@ PC-QB-CABLES,false,Allowed,本電源コードは、機器への理想的な電�
 ,false,,QuantumBit Database (トークンコミット - フラット) - 全リソース共通 - フラット,/resource/database,Software,true,true,false,QuantumBit データベース（トークンコミット - Flat）,QB-CMT-TKN-FLAT,Each,,QB-CMT-TKN-FLAT,,
 ,false,Allowed,QuantumBit Database (トークンコミット - ティア) - 全リソース共通 - ティア,/resource/database,Software,true,true,false,QuantumBit データベース（トークンコミット - TIer）,QB-CMT-TKN-TIER,Each,,QB-CMT-TKN-TIER,,
 PC-QB-COMPLETE,false,Allowed,QuantumBit コンプリートソリューション,/resource/complete_solution,Bundle,true,true,false,QuantumBit コンプリートソリューション,QB-COMPLETE,,,QB-COMPLETE,Bundle,
-,false,,これは使用定義商品です。カタログに掲載すべきではありません。,/resource/RLM_quantumBit_logo_sq,None,true,true,false,コンピューティング時間,QB-CPU-BLNG,Each,,QB-CPU-BLNG,,m
+,false,,これは使用定義商品です。カタログに掲載すべきではありません。,/resource/RLM_quantumBit_logo_sq,,true,true,false,コンピューティング時間,QB-CPU-BLNG,Each,,QB-CPU-BLNG,,m
 ,false,Allowed,冷却用CPUヒートシンク,/resource/cpuheatsink,Hardware,true,true,false,QB CPUヒートシンク,QB-CPU-HEATSINK,,,QB-CPU-HEATSINK,,
 ,false,Allowed,,/resource/collab_suite,Software,true,false,false,QuantumBit コラボレーションスイート,QB-CS,,,QB-CS,,
 ,false,,QuantumBit DataGraphを使用すると、単一のリクエストで複数のAPIを再利用できます。エンタープライズアーキテクトは、追加のコードを記述することなく、APIを1つのデータサービスに簡単に統合できます。開発者は、単一のGraphQLリクエストでデータサービスから複数のAPIを消費できます。,/resource/add_data_graph,Software,true,true,false,追加 QB データグラフ (500M),QB-DAT-GRPH,,,QB-DAT-GRPH,,
 ,false,,データスループットは、デプロイされたアプリケーションがビジネスロジックを実行するためにデータを転送する際にカウントされます。これには、監視、ログ、ヘルスチェックのための内部運用ネットワークトラフィックなどが含まれますが、これらに限定されません。データスループットは、1か月間の全バイト数の合計として集計されます。,/resource/RLM_quantumBit_logo_sq,Software,true,true,false,追加データスループット,QB-DAT-THPT,Each,,QB-DAT-THPT,,
-,false,,これは使用定義商品です。カタログ掲載不可。,/resource/RLM_quantumBit_logo_sq,None,true,true,false,データストレージ,QB-DATA-STORAGE-BLNG,Each,,QB-DATA-STORAGE-BLNG,,GB
-,false,,これは使用定義商品です。カタログ掲載不可。,/resource/RLM_quantumBit_logo_sq,None,true,true,false,データスループット,QB-DATA-THPT-BLNG,Each,,QB-DATA-THPT-BLNG,,GB
+,false,,これは使用定義商品です。カタログ掲載不可。,/resource/RLM_quantumBit_logo_sq,,true,true,false,データストレージ,QB-DATA-STORAGE-BLNG,Each,,QB-DATA-STORAGE-BLNG,,GB
+,false,,これは使用定義商品です。カタログ掲載不可。,/resource/RLM_quantumBit_logo_sq,,true,true,false,データスループット,QB-DATA-THPT-BLNG,Each,,QB-DATA-THPT-BLNG,,GB
 ,false,,QuantumBit Database は使用量ベースのデータベースオプションです。本商品 SKU には、各種消費オプションと対応する料金プランがすべて含まれます。,/resource/database,Software,true,true,false,QuantumBit データベース,QB-DB,Each,,QB-DB,,
 ,false,,QuantumBit Databaseは使用量ベースのデータベースオプションです。本商品SKUには、各種消費オプションと対応する料金プランが全て含まれます。,/resource/database,Software,true,true,false,QuantumBit データベース（トークンベース）,QB-DB-TOKEN,,,QB-DB-TOKEN,,
 ,false,Allowed,,/resource/RLM_quantumBit_logo_sq,Software,true,true,false,追加フロー - プロビジョニングおよびアクティベーションサービス,QB-DRO-AACR,,,QB-DRO-AACR,,
@@ -121,7 +121,7 @@ PCIe PC,false,Allowed,QB-NetLink 100G Ultra – ハイパフォーマンスコ�
 PCIe PC,false,Allowed,QB-NetLink 10G – 標準的なエンタープライズネットワーキング向けの信頼性の高いデュアルポート10GbEアダプター。,/resource/intel_x710_dp,Hardware,true,true,false,QB-NetLink 10G,QB-NET-10G,Each,,QB-NET-10G,,
 PCIe PC,false,Allowed,QB-NetLink 25G – データ集約型仮想化およびストレージネットワーク向けに設計された高速25GbE接続。,/resource/intel_x710_dp,Hardware,true,true,false,QB-NetLink 25G,QB-NET-25G,Each,,QB-NET-25G,,
 PCIe PC,false,Allowed,QB-NetSecure – セキュアなワークロード向けに暗号化とファイアウォールアクセラレーションを内蔵した10GbEアダプター。,/resource/intel_x710_dp,Hardware,true,true,false,QB-NetSecure 10G,QB-NETSECURE-10G,Each,,QB-NETSECURE-10G,,
-,false,,オペレーティングシステムなし,/resource/RLM_quantumBit_logo_sq,None,true,true,false,オペレーティングシステムなし,QB-NO-OSYS,,,QB-NO-OSYS,,
+,false,,オペレーティングシステムなし,/resource/RLM_quantumBit_logo_sq,,true,true,false,オペレーティングシステムなし,QB-NO-OSYS,,,QB-NO-OSYS,,
 PCIe PC,false,Allowed,QB-Accel NovaX150 – VDI、レンダリング、混合ワークロード向けに最適化された、可視化およびコンピューティング用GPU。,/resource/intel_e52609,Hardware,true,true,false,QB-Accel NovaX150,QB-NovaX150,,,QB-NovaX150,,
 PCIe PC,false,Allowed,QB-NVExpand 200 – ストレージのスケーラビリティを最大化するため、追加のNVMeドライブ容量を追加するPCIe拡張カード。,/resource/nvexpand,Hardware,true,true,false,QB-NVExpand 200,QB-NVExpand-200,,,QB-NVExpand-200,,
 ,false,,ラックPDU 20A、120V L5-20入力 5-20出力 - ベーシックラック配電ユニットにより、ラックマウント機器に電源コンセントを分配できます。,/resource/RLM_quantumBit_logo_sq,Hardware,true,true,false,ラック PDU 20A、120V L5-20,QB-PDU-2022,,,QB-PDU-2022,,

@@ -3,7 +3,7 @@ BasedOn.Code,CanRamp,ConfigureDuringSale,Description,DisplayUrl,Family,IsActive,
 ,false,Allowed,,/resource/RLM_quantumBit_logo_sq,Software,true,true,false,AEH Environment Runtime,QB-AEH-ENV,,,QB-AEH-ENV,,
 ,false,Allowed,,/resource/RLM_quantumBit_logo_sq,Software,true,true,false,AEH Object Store - Restricted Use,QB-AEH-OBJ,,,QB-AEH-OBJ,,
 PC-QB-API,true,Allowed,,/resource/add_api,Software,true,true,false,Additional API,QB-API,,,QB-API,,
-,false,,,/resource/RLM_quantumBit_logo_sq,None,true,true,false,API Calls,QB-API-CALLS,Each,,QB-API-CALLS,,
+,false,,,/resource/RLM_quantumBit_logo_sq,,true,true,false,API Calls,QB-API-CALLS,Each,,QB-API-CALLS,,
 ,false,,API instances remain under management until they are deleted. Instances of API Manager are aggregated using a Max Concurrent model. The usage for a month is the highest number of APIs Managed in a single given hour during a month.,/resource/api_flex,Software,true,true,false,Additional API Flex (100M),QB-API-FLEX,,,QB-API-FLEX,,
 ,false,,API instances remain under management until they are deleted. Instances of API Manager are aggregated using a Max Concurrent model. The usage for a month is the highest number of APIs Managed in a single given hour during a month.,/resource/api_govt,Software,true,true,false,Additional API Gov,QB-API-GOVT,,,QB-API-GOVT,,
 ,false,,Increase productivity by managing all your APIs and microservices from one place.,/resource/RLM_quantumBit_logo_sq,Software,true,true,false,QB API Management Solution,QB-API-MGMT,,,QB-API-MGMT,,
@@ -44,13 +44,13 @@ PC-QB-DB,false,,QuantumBit Database (Token Commit -Flat) - Common For All - Flat
 PC-QB-DB,false,,"QuantumBit Database (Token Commit - Bounded) - Common For All - Bounded: the commitment discount stops at the committed amount, so overage reverts to the standard anchor rate",/resource/database,Software,true,true,false,QuantumBit Database (Token Commit - Bounded),QB-CMT-TKN-BND,Each,,QB-CMT-TKN-BND,,
 PC-QB-DB,false,,QuantumBit Database (Token Commit -Tier) - Common For All - Tier,/resource/database,Software,true,true,false,QuantumBit Database (Token Commit - Tier),QB-CMT-TKN-TIER,Each,,QB-CMT-TKN-TIER,,
 PC-QB-COMPLETE,false,Allowed,QuantumBit Complete Solution,/resource/complete_solution,Bundle,true,true,false,QuantumBit Complete Solution,QB-COMPLETE,,,QB-COMPLETE,Bundle,
-,false,,This is Usage definition product. Should not come in Catalog.,/resource/RLM_quantumBit_logo_sq,None,true,true,false,Compute Time,QB-CPU-BLNG,Each,,QB-CPU-BLNG,,m
+,false,,This is Usage definition product. Should not come in Catalog.,/resource/RLM_quantumBit_logo_sq,,true,true,false,Compute Time,QB-CPU-BLNG,Each,,QB-CPU-BLNG,,m
 ,false,Allowed,CPU Heat Sink for Cooling,/resource/cpuheatsink,Hardware,true,true,false,QB CPU Heat Sink,QB-CPU-HEATSINK,,,QB-CPU-HEATSINK,,
 ,false,Allowed,,/resource/collab_suite,Software,true,false,false,QuantumBit Collaboration Suite,QB-CS,,,QB-CS,,
 ,false,,"With QuantumBit DataGraph, you can reuse multiple APIs in a single request. Enterprise architects can easily unify APIs into one data service — all without writing more code. Developers can consume multiple APIs from the data service in a single GraphQL request.",/resource/add_data_graph,Software,true,true,false,Additional QB DataGraph (500M),QB-DAT-GRPH,,,QB-DAT-GRPH,,
 ,false,,"Data throughput counts when the deployed application transfers data to execute its business logic, including but not limited to internal operational network traffic for monitoring, logs, and health checks. Data throughput is aggregated as a sum of all bytes during a month.",/resource/RLM_quantumBit_logo_sq,Software,true,true,false,Additional Data Throughput,QB-DAT-THPT,Each,,QB-DAT-THPT,,
-,false,,This is Usage definition product. Should not come in Catalog.,/resource/RLM_quantumBit_logo_sq,None,true,true,false,Data Storage,QB-DATA-STORAGE-BLNG,Each,,QB-DATA-STORAGE-BLNG,,GB
-,false,,This is Usage definition product. Should not come in Catalog.,/resource/RLM_quantumBit_logo_sq,None,true,true,false,Data Throughput,QB-DATA-THPT-BLNG,Each,,QB-DATA-THPT-BLNG,,GB
+,false,,This is Usage definition product. Should not come in Catalog.,/resource/RLM_quantumBit_logo_sq,,true,true,false,Data Storage,QB-DATA-STORAGE-BLNG,Each,,QB-DATA-STORAGE-BLNG,,GB
+,false,,This is Usage definition product. Should not come in Catalog.,/resource/RLM_quantumBit_logo_sq,,true,true,false,Data Throughput,QB-DATA-THPT-BLNG,Each,,QB-DATA-THPT-BLNG,,GB
 PC-QB-DB,false,,QuantumBit Database is a usage based database option.  This product SKU includes all of the various consumption options and their corresponding rate charge plans.,/resource/database,Software,true,true,false,QuantumBit Database,QB-DB,Each,,QB-DB,,
 PC-QB-DB,true,,QuantumBit Database is a usage based database option. This product SKU includes all of the various consumption options and their corresponding rate charge plans.,/resource/database,Software,true,true,false,QuantumBit Database (Token Based),QB-DB-TOKEN,,,QB-DB-TOKEN,,
 ,false,Allowed,,/resource/RLM_quantumBit_logo_sq,Software,true,true,false,Additional Flows - Provisioning & Activation Service,QB-DRO-AACR,,,QB-DRO-AACR,,
@@ -119,7 +119,7 @@ PCIe PC,false,Allowed,QB-NetLink 100G Ultra – ultra-performance 100GbE adapter
 PCIe PC,false,Allowed,QB-NetLink 10G – a reliable dual-port 10GbE adapter for standard enterprise networking.,/resource/intel_x710_dp,Hardware,true,true,false,QB-NetLink 10G,QB-NET-10G,Each,,QB-NET-10G,,
 PCIe PC,false,Allowed,QB-NetLink 25G – high-speed 25GbE connectivity designed for data-heavy virtualization and storage networks.,/resource/intel_x710_dp,Hardware,true,true,false,QB-NetLink 25G,QB-NET-25G,Each,,QB-NET-25G,,
 PCIe PC,false,Allowed,QB-NetSecure – a 10GbE adapter with built-in encryption and firewall acceleration for secure workloads.,/resource/intel_x710_dp,Hardware,true,true,false,QB-NetSecure 10G,QB-NETSECURE-10G,Each,,QB-NETSECURE-10G,,
-,false,,No Operating System,/resource/RLM_quantumBit_logo_sq,None,true,true,false,No Operating System,QB-NO-OSYS,,,QB-NO-OSYS,,
+,false,,No Operating System,/resource/RLM_quantumBit_logo_sq,,true,true,false,No Operating System,QB-NO-OSYS,,,QB-NO-OSYS,,
 PCIe PC,false,Allowed,QB-NVExpand 200 – a PCIe expansion card that adds capacity for additional NVMe drives to maximize storage scalability.,/resource/nvexpand,Hardware,true,true,false,QB-NVExpand 200,QB-NVExpand-200,,,QB-NVExpand-200,,
 PCIe PC,false,Allowed,"QB-Accel NovaX150 – a visualization and compute GPU, optimized for VDI, rendering, and mixed workloads.",/resource/intel_e52609,Hardware,true,true,false,QB-Accel NovaX150,QB-NovaX150,,,QB-NovaX150,,
 ,false,,"Rack PDU 20A, 120V L5-20 input 5-20 output - Basic Rack Power Distribution Unit allows users to distribute power outlets to rack-mount equipment.",/resource/RLM_quantumBit_logo_sq,Hardware,true,true,false,"Rack PDU 20A, 120V L5-20",QB-PDU-2022,,,QB-PDU-2022,,
