@@ -22,7 +22,7 @@ decisions; loading the result is `sfdmu-data-plans`, the field-level schema is
 Every product claim carries its source: `[Help: <article>]` (the 264 Help snapshot under
 `docs/salesforce/264/help/articles/`), `[Dev guide: <article>]` (`docs/salesforce/264/dev-guide/articles/`),
 `[Repo: <file>]`, or `[Measured: <date>, 264]` (a live 264 build; `[Measured: <date>, fresh 264 ent-sb0 scratch org]`
-names the org: a newly built scratch org of the repo's `ent-sb0` shape), `[Platform behaviour, traced]` (a platform mechanism read in source), or `[Platform behaviour, traced in part]` (mechanism read in source, but scope, path or consequence not established). A claim only a live
+names the org: a newly built scratch org of the repo's `ent-sb0` shape; `[Measured: <date>, 264, existing org]` is an org built earlier, not evidence about fresh builds; `[Measured: <date>, 264, scratch]` is a scratch org whose build history was not recorded), `[Platform behaviour, traced]` (a platform mechanism read in source), or `[Platform behaviour, traced in part]` (mechanism read in source, but scope, path or consequence not established). A claim only a live
 org could settle is marked **Open — needs live verification**. Help article ids below
 drop the `.md` suffix of the snapshot file name.
 
@@ -67,6 +67,10 @@ drop the `.md` suffix of the snapshot file name.
 - **DO NOT** set a component selling model on a configurable bundle's components, or,
   under a new static bundle, a parent selling model other than None or any component selling
   model. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
+  An insert was rejected for the configurable case (also seen on a scratch load) and, on an
+  existing org (fresh-build check pending), accepted for an inactive static test bundle (active
+  bundle untested), so Help's static rule looks like guidance, not a guard
+  ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
 - **DO NOT** override a price-impacting attribute in a bundle context. The attribute-based
   adjustment stops applying. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
 - **DO NOT** rename a `Family` value or a category/classification code that is already in
@@ -218,7 +222,8 @@ Read the one your decision needs:
   where a value can be set, and what pricing and CML need from them.
 - [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md) — read when choosing
   selling models and options, component selling models, `IsAssetizable`,
-  `IsSoldOnlyWithOtherProds`, ramps and their lifecycle effects.
+  `IsSoldOnlyWithOtherProds`, ramps and their lifecycle effects, and product images
+  (`DisplayUrl`).
 - [`catalogs-and-loading.md`](catalogs-and-loading.md) — read when organizing catalogs and
   categories, coding them, using `Family`, or turning the model into a plan.
 
@@ -339,12 +344,21 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **Bundle-based adjustments under a new static bundle**, whose component rows carry
   parent selling model None. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-model-of-the-bundle-root).
-- **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message, which conflicts with the traced rule; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
+- **Selling-model message on mixed bundles.** One measured Term Defined root with Term Defined, Evergreen and One Time children drew no message, which conflicts with the traced rule; whether the message blocks save or Place is also open; see [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md).
 - **One-pass QuantumBit build.** Whether any classification attribute is left at its definition's value
   where that differs from its CSV (inferred from the traced copy: `AttributeNameOverride` and `IsRequired` already match their definitions, so probably not; not measured). See [Loading the model](#loading-the-model).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
-  sets them; Help forbids them under a *new* static bundle. See
+  sets them; Help's rule is written for a *new* static bundle. Under a new test bundle in an
+  existing org, an insert of rows of that shape was accepted (not `CERT007`'s own rows); pricing
+  and configurator behaviour are still open. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
+- **Component selling-model rules on a fresh build.** The static-bundle inserts were measured
+  only on an existing org (the configurable refusal was also seen on a scratch load); repeat them
+  on a fresh harness build, and on an active static bundle. How pricing and the configurator
+  treat a mismatched parent and child model that insert accepted is also open. See
+  [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#measured-component-selling-model-rules).
+- **An external `https` `DisplayUrl`.** Whether this repo's UI renders one without a trusted-site
+  entry; the q3 plan already loads such addresses, so a q3 product is the test case. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#product-images).
 - **A `Readonly` anchor behind a `$$` lookup.** Fact (b) saw its lookups fail without a CSV;
   `sfdmu-data-plans` verified a single-field traversal without one. The open check and its owner are in
   `sfdmu-data-plans` -> *Where a plan's CSVs live*; until it runs, keep the CSV.

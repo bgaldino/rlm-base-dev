@@ -1,7 +1,7 @@
 # Selling Models and Lifecycle Flags
 
 > Sub-file of [`SKILL.md`](SKILL.md). Release 264. Read when choosing how a product is
-> sold over time and which lifecycle flags it carries. Proration *setup* is in
+> sold over time and which lifecycle flags it carries, and for product images (`DisplayUrl`). Proration *setup* is in
 > [`../pricing-setup/proration-and-selling-models.md`](../pricing-setup/proration-and-selling-models.md);
 > this file covers the modeling choice. Source tags follow the parent skill's convention.
 
@@ -52,8 +52,13 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
 - **New static bundle:** parent selling model None, and no component selling model. [Help: `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
   The shipped q3 plan's static bundle `CERT007` sets Term Annual as both parent and component
   selling model on its two children. [Repo: `datasets/sfdmu/q3/en-US/q3-pcm/ProductRelatedComponent.csv`]
-  Whether Help's rule, written for a *new* static bundle, makes such rows invalid is **Open —
-  needs live verification**; do not copy the pattern into a new model.
+  On an existing org (fresh-build check pending), an insert of rows of that shape (static
+  parent, both selling models set) was accepted when both products had their selling model
+  options, so Help's rule, written for a *new* static bundle, looks like guidance (see
+  [Measured component rules](#measured-component-selling-model-rules)); `CERT007`'s own rows were
+  not the ones inserted. Whether pricing and the
+  configurator treat them correctly is **Open — needs live verification**; do not copy the
+  pattern into a new model.
 - **Bundle-based adjustments** need three selling models: the product's, its parent
   product's and its root bundle's. Help lists all three as prerequisites, and all three
   products must be in a price book. [Help: `ind.pricing_create_bundle_based_adjustments.htm`]
@@ -67,6 +72,52 @@ Starter bundle the root is One-Time while a maintenance child is Term Annual.
 renews is **Open — needs live verification** beyond the one-time rule above and the one
 measured shape ([below](#selling-model-of-the-bundle-root)); how it co-terminates is open for
 every shape.
+
+### Measured component selling-model rules
+
+What an insert of a `ProductRelatedComponent` row did with `ParentSellingModelId` and
+`ChildSellingModelId`, through the standard record API. Help only says not to select them
+(above); this is what the platform enforced on one existing org, through API 68.0, with the
+Bundle to Bundle Component Relationship type. The configurable parent was a shipped QuantumBit
+bundle; the static parent was a new, inactive test bundle created for the run, so the static
+rows are the new-static-bundle case Help's rule describes; an active static bundle was not
+tried. [Measured: 2026-11-10, 264, existing org]
+**Existing org, fresh-build check pending**: the run used an org that had been built earlier,
+not a fresh harness build, so settings and schema carried over from its history may differ from
+a fresh build. The configurable-bundle refusal was also seen on a scratch load
+([`bundles-and-cardinality.md`](bundles-and-cardinality.md#quantity-scaling-and-lifecycle)); whether a fresh build gives the
+static-bundle results is **Open — needs live verification** (repeat these inserts on a fresh
+harness build and record the outputs).
+
+| Parent product | Insert | Result |
+|---|---|---|
+| Configurable bundle (`ConfigureDuringSale` Allowed) | A parent selling model | Rejected, INVALID_INPUT: the parent selling model is unsupported for configurable product bundles. |
+| Configurable bundle | A component selling model | Rejected, INVALID_INPUT: the component selling model is unsupported for configurable product bundles. |
+| Configurable bundle | Any row | Needs a component group ("Group is mandatory for configurable parent product"). |
+| Static bundle (`ConfigureDuringSale` Not Allowed) | `IsDefaultComponent` false | Rejected: the child must be added by default for a static parent. |
+| Static bundle | One selling model set, the other blank | Rejected: both must have values or both be empty. |
+| Static bundle | Both set, a selling model option missing on either product | Rejected: first add a selling model option to the related product and selling model. |
+| Static bundle | Both set, each product has the option | Accepted. |
+| Static bundle | Both blank | Accepted. |
+
+- **No type-compatibility check on insert.** An Evergreen parent with a One Time, a Term
+  Defined or an Evergreen child was accepted once each product had the selling model option. A
+  row with both models blank was also accepted. Being accepted on insert does not show that a
+  mismatched pair is valid. The traced configurator rule [above](#selling-models-inside-bundles) compares quote
+  lines, not component rows, and a static bundle is not configured at run time, so whether it
+  applies here is not known. How pricing and the configurator treat such a pair is **Open —
+  needs live verification**.
+- **Duplicates are allowed.** Several rows for one parent and child pair coexisted.
+- **The bulk product view repeats a child once per row.** `/connect/pcm/products/bulk` for the
+  parent listed the child once for each row, and each entry's `productRelatedComponent` carried
+  `parentSellingModelId` and `childSellingModelId` (omitted when blank). Its
+  `productSellingModelOptions` lists the product's own options, not the component's model. So a
+  duplicate row shows up as a duplicate child in the view.
+
+Do not add component selling models to a new model (see the DO NOT in SKILL.md). If an
+existing plan already carries them, as `CERT007` does, load both selling model options before
+the component row, and set both models or neither. Under a configurable
+bundle, leave both blank and put the choice on the child's own options.
 
 ### Selling model of the bundle root
 
@@ -172,3 +223,40 @@ the order availability <= discontinued <= end of life, but no date was found tha
 browsing, adding to a quote, ordering, amending or renewing. Treat them as informational and
 use `IsActive` or a rule if a product must be blocked [Platform behaviour, traced in part].
 Not run live.
+
+### Product images
+
+`Product2.DisplayUrl` holds the image shown for a product, and Connect product responses return it
+as `displayUrl`. [Dev guide: `connect_responses_recommended_products_output.htm`,
+`connect_responses_guided_selection_output.htm`, `connect_responses_configurator_product_catalog_output.htm`]
+In this repo:
+
+- **QuantumBit uses static-resource paths.** The qb plan stores `/resource/<name>`,
+  with the files shipped as static resources in two places: most in
+  `unpackaged/post_quantumbit/staticresources/`, and six (`powersupply`, `liquidcooler`,
+  `nvexpand`, `RAIDController`, `cacheboost`, `cpuheatsink`) in
+  `force-app/main/default/staticresources/`. A product with no art of its own points at one
+  shared logo, and most do. **Known gap:** `/resource/omniserver` (product `PROD-455868158`)
+  has no resource in either location, so that image does not resolve. [Repo:
+  `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`; `unpackaged/post_quantumbit/staticresources/`;
+  `force-app/main/default/staticresources/`]
+- **Keep `DisplayUrl` in the product plan's own `Product2.csv`.** An image-only plan that ran
+  after the product plan blanked the images whenever the product plan was reloaded alone; the
+  URLs now live in the product CSV. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/README.md`]
+- **Deploy the resource before the plan that points at it.** `prepare_rlm_org` deploys
+  `force-app` (`deploy_full`, step 5) and the QuantumBit metadata (`prepare_quantumbit`, step 7)
+  before the product plan (`prepare_product_data`, step 8), so the paths resolve when the first
+  quote opens. Both flags default on, but the `post_quantumbit` resources (all but the six in
+  `force-app`) deploy only when `quantumbit` is on, while the qb product plan loads when `qb` is on;
+  a build with `qb` on and `quantumbit` off loads paths whose resources were never deployed. A new image is two changes in one PR: the resource,
+  and the CSV row. [Repo: `cumulusci.yml`, `prepare_rlm_org` steps 5, 7 and 8]
+- **Decide the fallback on purpose.** Choose a shared placeholder for products without art,
+  or accept a blank; do not leave the choice to whichever rows were filled in.
+- **The q3 plan uses external `https` addresses.** 39 rows of
+  `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv` point at third-party image hosts (`CERT007`
+  among them), as does the dev guide's example response. Whether this repo's UI renders such an
+  address without a trusted-site entry is **Open — needs live verification** (open a q3 product
+  such as `CERT007` in the configurator and on the product page).
+
+In the qb plan, all but one of the 314 products carry a `DisplayUrl`, in 54 distinct values,
+and one logo covers 220 of them. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
