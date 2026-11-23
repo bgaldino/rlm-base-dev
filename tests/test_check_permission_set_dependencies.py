@@ -30,10 +30,10 @@ def perm(obj, **flags):
     return f"<objectPermissions>{body}<object>{obj}</object></objectPermissions>"
 
 
-def check(*blocks):
+def check(*blocks, no_label=False):
     xml = ('<?xml version="1.0" encoding="UTF-8"?>'
            '<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">'
-           + "".join(blocks) + "</PermissionSet>")
+           + "".join(blocks) + ("" if no_label else "<label>Fixture</label>") + "</PermissionSet>")
     with tempfile.NamedTemporaryFile("w", suffix=cpd.SUFFIX, delete=False) as fh:
         fh.write(xml)
     try:
@@ -60,6 +60,12 @@ class PermissionSetDependencies(unittest.TestCase):
         self.assertEqual(check(perm("Account", allowRead=True),
                                perm("Contact", allowRead=False, viewAllRecords=True)), [])
 
+    def test_missing_label_fails(self):
+        self.assertEqual(len(check(perm("Opportunity", allowRead=True), no_label=True)), 1)
+
+    def test_blank_label_fails(self):
+        self.assertEqual(len(check("<label> </label>", no_label=True)), 1)
+
     def test_no_account_passes(self):
         self.assertEqual(check(perm("Opportunity", allowRead=True)), [])
 
@@ -71,12 +77,14 @@ class PermissionSetDependencies(unittest.TestCase):
                 subprocess.run(["git", *cmd], cwd=d, check=True)
             for name in ("gone", "kept"):
                 with open(os.path.join(d, name + "." + ps), "w") as fh:
-                    fh.write("<PermissionSet/>")
+                    fh.write('<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">'
+                             "<label>Fixture</label></PermissionSet>")
             subprocess.run(["git", "add", "."], cwd=d, check=True)
             subprocess.run(["git", "commit", "-qm", "x"], cwd=d, check=True)
             os.remove(os.path.join(d, "gone." + ps))
             with open(os.path.join(d, "new." + ps), "w") as fh:
-                fh.write("<PermissionSet/>")
+                fh.write('<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">'
+                             "<label>Fixture</label></PermissionSet>")
             saved, cpd.REPO_ROOT = cpd.REPO_ROOT, d
             try:
                 names = sorted(os.path.basename(p) for p in cpd.tracked_permission_sets())
