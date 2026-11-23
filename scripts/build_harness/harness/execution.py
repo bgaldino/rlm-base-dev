@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 import subprocess
 import time
 from collections import deque
@@ -175,15 +176,72 @@ def run_command(
     }
 
 
-def org_exists(root: Path, alias: str) -> bool:
+ORG_PROBE_TIMEOUT_SECONDS = 120
+
+_GONE_ORG_STATUSES = {"expired", "deleted"}
+
+
+def sf_alias_for(project_name: str, alias: str) -> str:
+    """The Salesforce CLI alias CumulusCI gives a scratch org (`<project>__<alias>`)."""
+    return f"{project_name}__{alias}"
+
+
+def probe_org(
+    root: Path,
+    sf_alias: str,
+    *,
+    timeout: float = ORG_PROBE_TIMEOUT_SECONDS,
+    today: Optional[dt.date] = None,
+) -> Dict[str, str]:
+    """Check that a scratch org is still usable, without any CumulusCI call.
+
+    Runs `sf org display --target-org <sf_alias> --json`. Unlike `cci org info`, it
+    cannot reach CumulusCI's expired-org recreation (`check_org_expired`), and it took
+    1-3 seconds where `cci org info` took 9-27 seconds on the same org.
+
+    Returns {"state": ..., "detail": ...} where state is one of:
+      present - the org is authenticated and not expired
+      missing - no authorization for the alias, or the org is expired or deleted
+      timeout - the probe did not finish in time; the org's state is unknown
+      error   - the probe could not run or its output was unreadable; state unknown
+    """
     try:
         result = subprocess.run(
-            ["cci", "org", "info", alias],
+            ["sf", "org", "display", "--target-org", sf_alias, "--json"],
             cwd=str(root),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
     except subprocess.TimeoutExpired:
-        return False
-    return result.returncode == 0
+        return {"state": "timeout", "detail": f"`sf org display` for `{sf_alias}` did not finish within {timeout:g}s."}
+    except FileNotFoundError:
+        return {"state": "error", "detail": "Command not found: sf"}
+
+    try:
+        payload = json.loads(result.stdout or "")
+    except ValueError:
+        payload = None
+    if not isinstance(payload, dict):
+        tail = (result.stderr or result.stdout or "").strip().splitlines()[-1:] or [""]
+        return {"state": "error", "detail": f"`sf org display` exited {result.returncode} without JSON output. {tail[0]}".strip()}
+
+    if result.returncode == 0:
+        org = payload.get("result") or {}
+        status = str(org.get("status") or "")
+        if status.lower() in _GONE_ORG_STATUSES:
+            return {"state": "missing", "detail": f"Org `{sf_alias}` has status {status}."}
+        expiration = org.get("expirationDate")
+        if expiration:
+            try:
+                expires = dt.date.fromisoformat(str(expiration)[:10])
+            except ValueError:
+                expires = None
+            if expires is not None and expires < (today or dt.date.today()):
+                return {"state": "missing", "detail": f"Org `{sf_alias}` expired on {expiration}."}
+        return {"state": "present", "detail": ""}
+
+    if payload.get("name") == "NamedOrgNotFoundError":
+        return {"state": "missing", "detail": f"No authorization found for `{sf_alias}`."}
+    message = str(payload.get("message") or "").strip().replace("\n", " ")
+    return {"state": "error", "detail": f"`sf org display` failed: {payload.get('name') or result.returncode}: {message}"}

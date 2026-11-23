@@ -2,12 +2,23 @@
 
 from __future__ import annotations
 
+import datetime as dt
+import json
 import re
 import subprocess
 import sys
 from threading import Event
 
-from scripts.build_harness.harness.execution import make_run_id, org_exists, run_command, run_command_stream
+import pytest
+
+from scripts.build_harness.harness.execution import (
+    ORG_PROBE_TIMEOUT_SECONDS,
+    make_run_id,
+    probe_org,
+    run_command,
+    run_command_stream,
+    sf_alias_for,
+)
 
 
 class TestMakeRunId:
@@ -80,20 +91,78 @@ def test_run_command_can_suppress_stdout(tmp_path, capsys) -> None:
     assert "hidden-line" in log_path.read_text(encoding="utf-8")
 
 
-def test_org_exists_returns_false_on_timeout(tmp_path, monkeypatch) -> None:
-    def _timeout(*_args, **_kwargs):
-        raise subprocess.TimeoutExpired(cmd=["cci", "org", "info", "demo"], timeout=30)
+def _fake_sf(monkeypatch, *, stdout="", returncode=0, stderr="", raises=None):
+    calls = []
 
-    monkeypatch.setattr("scripts.build_harness.harness.execution.subprocess.run", _timeout)
-    assert org_exists(tmp_path, "demo") is False
-
-
-def test_org_exists_returns_true_on_zero_exit(tmp_path, monkeypatch) -> None:
     class _Result:
-        returncode = 0
+        pass
 
-    monkeypatch.setattr(
-        "scripts.build_harness.harness.execution.subprocess.run",
-        lambda *_args, **_kwargs: _Result(),
-    )
-    assert org_exists(tmp_path, "demo") is True
+    def _run(command, **kwargs):
+        calls.append((command, kwargs))
+        if raises is not None:
+            raise raises
+        result = _Result()
+        result.stdout, result.returncode, result.stderr = stdout, returncode, stderr
+        return result
+
+    monkeypatch.setattr("scripts.build_harness.harness.execution.subprocess.run", _run)
+    return calls
+
+
+def test_sf_alias_for_joins_project_and_alias() -> None:
+    assert sf_alias_for("rlm-base", "demo") == "rlm-base__demo"
+
+
+def test_probe_org_present_uses_sf_not_cci(tmp_path, monkeypatch) -> None:
+    payload = json.dumps({"status": 0, "result": {"status": "Active", "expirationDate": "2026-11-30"}})
+    calls = _fake_sf(monkeypatch, stdout=payload)
+    result = probe_org(tmp_path, "rlm-base__demo", today=dt.date(2026, 11, 24))
+    assert result["state"] == "present"
+    command, kwargs = calls[0]
+    assert command[:3] == ["sf", "org", "display"]
+    assert "cci" not in command
+    assert kwargs["timeout"] == ORG_PROBE_TIMEOUT_SECONDS > 30
+
+
+def test_probe_org_timeout_is_not_missing(tmp_path, monkeypatch) -> None:
+    _fake_sf(monkeypatch, raises=subprocess.TimeoutExpired(cmd=["sf"], timeout=120))
+    result = probe_org(tmp_path, "rlm-base__demo")
+    assert result["state"] == "timeout"
+    assert "120" in result["detail"]
+
+
+def test_probe_org_not_found_is_missing(tmp_path, monkeypatch) -> None:
+    payload = json.dumps({"status": 2, "name": "NamedOrgNotFoundError", "message": "No authorization"})
+    _fake_sf(monkeypatch, stdout=payload, returncode=2)
+    assert probe_org(tmp_path, "rlm-base__demo")["state"] == "missing"
+
+
+@pytest.mark.parametrize("status", ["Expired", "Deleted"])
+def test_probe_org_expired_or_deleted_status_is_missing(tmp_path, monkeypatch, status) -> None:
+    _fake_sf(monkeypatch, stdout=json.dumps({"status": 0, "result": {"status": status}}))
+    assert probe_org(tmp_path, "rlm-base__demo")["state"] == "missing"
+
+
+def test_probe_org_past_expiration_date_is_missing(tmp_path, monkeypatch) -> None:
+    payload = json.dumps({"status": 0, "result": {"status": "Active", "expirationDate": "2026-11-20"}})
+    _fake_sf(monkeypatch, stdout=payload)
+    result = probe_org(tmp_path, "rlm-base__demo", today=dt.date(2026, 11, 24))
+    assert result["state"] == "missing"
+
+
+def test_probe_org_other_failure_is_error_not_missing(tmp_path, monkeypatch) -> None:
+    payload = json.dumps({"status": 1, "name": "GenericTimeoutError", "message": "socket hang up"})
+    _fake_sf(monkeypatch, stdout=payload, returncode=1)
+    result = probe_org(tmp_path, "rlm-base__demo")
+    assert result["state"] == "error"
+    assert "GenericTimeoutError" in result["detail"]
+
+
+def test_probe_org_unparseable_output_is_error(tmp_path, monkeypatch) -> None:
+    _fake_sf(monkeypatch, stdout="not json", stderr="boom", returncode=1)
+    assert probe_org(tmp_path, "rlm-base__demo")["state"] == "error"
+
+
+def test_probe_org_missing_sf_binary_is_error(tmp_path, monkeypatch) -> None:
+    _fake_sf(monkeypatch, raises=FileNotFoundError())
+    assert probe_org(tmp_path, "rlm-base__demo")["state"] == "error"
