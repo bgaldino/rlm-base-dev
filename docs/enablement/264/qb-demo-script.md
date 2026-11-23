@@ -1,7 +1,7 @@
 # :quantumbit: FY27 Revenue Cloud QuantumBit Script — Winter '27 (Release 264)
 
 > **Generated:** 2026-05-24 by `.cursor/skills/qb-demo-script/SKILL.md`
-> **Source canvas (260):** [F09Q04HEC8Y](https://salesforce.enterprise.slack.com/docs/T45GK97GB/F09Q04HEC8Y)
+> **Source canvas (260):** prior-release Slack canvas (not linked here)
 > **Salesforce Release:** 264 (Winter '27) · API v68.0
 > **Relabeled to 264 (2026-10-29):** 262 orgs no longer exist, so this is the current script. It was generated as
 > the 262 draft. On a fresh 264 org on 2026-10-29 these steps were clicked through and match 264: New Opportunity,
@@ -13,14 +13,14 @@
 > **Status:** DRAFT. Requires SME pass for Setup-UI verification, Known-Bugs population, image capture, and Slack canvas publish.
 > **Grounded on:**
 > - `docs/enablement/master/qb-scenario-reference.md` (canonical demo data — Infinitech / Global Media accounts, QB-COMPLETE / QB-QRack-750 SKUs, QB Q-Rack 750 / QB Complete Solution / QB Services Project bundles)
-> - `.agents/artifacts/topics/qb-demo-script/qb-canvas-260-source.md` (prior-release Slack canvas — source of the 6 persona names + bios; personas are stable release-to-release and **not yet** in `qb-scenario-reference.md` — migration tracked separately so future regenerations don't depend on the local-only canvas source)
+> - Prior-release (260) Slack canvas, held in a private maintainer notes repo (source of the 6 persona names + bios; personas are stable release-to-release and **not yet** in `qb-scenario-reference.md` — migration tracked separately so future regenerations don't depend on that private source)
 > - `docs/salesforce/262/feature-index.md` (262 feature inventory)
 > - `docs/salesforce/262/help/articles/` (935-article Help portal mirror; 262 draft grounding)
 > - `cumulusci.yml` `project.custom` (39 active feature flags)
 
 ### How do I get my own copy of QuantumBit?
 
-Jump over to <@U03S5J7DVRD> or [Solutions Workspace](https://www.solutionswork.space/), find the Demos tab and search for **Revenue Cloud - QuantumBit (CDO).** Click the '**Spin Up**' button and fill out the information. Don't forget to run through the [Demo Setup](#demo-setup-required) steps and [Known Bugs & Areas to Avoid](#known-bugs--issues-to-avoid) before diving in!
+Jump over to your Solutions contact or [Solutions Workspace](https://www.solutionswork.space/), find the Demos tab and search for **Revenue Cloud - QuantumBit (CDO).** Click the '**Spin Up**' button and fill out the information. Don't forget to run through the [Demo Setup](#demo-setup-required) steps and [Known Bugs & Areas to Avoid](#known-bugs--issues-to-avoid) before diving in!
 
 Latest TFID (Prod) 262.x.x : **TBD** *(populate when 262 TFID is published)*
 
@@ -184,9 +184,9 @@ In search, enter "agentforce for revenue" → select Set Up → select Turn On.
 ::: {.layout}
 ::: {.column}
 ### Slack Approvals Setup (NEW in 262)
-For the Slack Accelerated Deal Approvals feature: Navigate to Setup → Approvals → Slack Integration → Configure.
+For the Slack Accelerated Deal Approvals feature: Navigate to Setup → Approvals → Slack Integration → Configure. *(Click path not verified for 264; needs an SME or live-org check.)*
 Pair an Approval Process with a Slack workspace channel.
-**Required for the Approvals demo flow.** Verify against 264 Help: search `docs/salesforce/264/help/articles/` for "Slack Approvals" — published article should be present.
+**Required for the Approvals demo flow.** Verify against 264 Help: `docs/salesforce/264/help/articles/ind.approvals_slack.htm.md` (related: `ind.approvals_slack_considerations.htm.md`, `ind.approvals_slack_channel_notifications.htm.md`, `ind.approvals_turn_on_slack_notifs.htm.md`).
 ![placeholder][img-PLACEHOLDER-slack-approvals-setup]
 :::
 ::: {.column}
@@ -265,7 +265,7 @@ Select 'Quick Quote'.
 
 ## Demo Personas
 
-> Sourced verbatim from the prior-release canvas at `.agents/artifacts/topics/qb-demo-script/qb-canvas-260-source.md` (lines 199–225). Personas are stable across releases. Migration of the persona inventory into `docs/enablement/master/qb-scenario-reference.md` is tracked as a follow-up so future regenerations don't depend on a local-only artifact.
+> Sourced verbatim from the prior-release (260) Slack canvas, held in a private maintainer notes repo. Personas are stable across releases. Migration of the persona inventory into `docs/enablement/master/qb-scenario-reference.md` is tracked as a follow-up so future regenerations don't depend on a local-only artifact.
 
 ::: {.layout}
 ::: {.column}
@@ -665,7 +665,7 @@ img-PLACEHOLDER-contracts-advanced-approvals
 
 ## Generation Notes
 
-**Source canvas:** Slack canvas `F09Q04HEC8Y` ("FY27 Revenue Cloud QuantumBit Script", 260 / Spring '26 / v66.0). Saved verbatim source at `.agents/artifacts/topics/qb-demo-script/qb-canvas-260-source.md` (650 lines) as the structural template.
+**Source canvas:** prior-release Slack canvas ("FY27 Revenue Cloud QuantumBit Script", 260 / Spring '26 / v66.0), used as the structural template; saved verbatim in a private maintainer notes repo (650 lines).
 
 **262 deltas applied:**
 - Updated release identifier in title and "How do I get my own copy" section (TFID placeholder pending)
