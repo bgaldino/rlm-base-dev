@@ -2,6 +2,8 @@
  * Not covered: the fulfillment-line success path (FulfillmentLineSourceRel to its order item, then
  * the tenant callout). It needs a fulfillment order, its lines and their source relations, which is
  * too heavy a fixture for a unit test; only the missing-relation failure is tested here.
+ * The failure responses carry a response code and message, but the response type has no public getter
+ * for them that these tests rely on; they assert isSuccess() only.
  */
 @IsTest
 private class RLM_DFOTenantProvisioningCalloutTest {
@@ -50,6 +52,12 @@ private class RLM_DFOTenantProvisioningCalloutTest {
         );
     }
 
+    private class ThrowingMock implements HttpCalloutMock {
+        public HttpResponse respond(HttpRequest request) {
+            throw new CalloutException('Unable to tunnel through proxy');
+        }
+    }
+
     private static OrderItem orderItem() {
         return [SELECT Id, OrderId FROM OrderItem LIMIT 1];
     }
@@ -78,7 +86,7 @@ private class RLM_DFOTenantProvisioningCalloutTest {
     }
 
     @IsTest
-    static void httpErrorStillReportsSuccess() {
+    static void httpErrorReportsFailure() {
         OrderItem oi = orderItem();
         TenantMock mock = new TenantMock(500, 'Service Unavailable');
         Test.setMock(HttpCalloutMock.class, mock);
@@ -89,14 +97,25 @@ private class RLM_DFOTenantProvisioningCalloutTest {
         Test.stopTest();
 
         Assert.areEqual(1, mock.callCount, 'The callout was attempted once');
-        Assert.isTrue(
-            result.isSuccess(),
-            'Known gap: success is reported whatever the HTTP status; update this test when it is fixed'
-        );
+        Assert.isFalse(result.isSuccess(), 'A non-2xx answer from the tenant service is a failure');
     }
 
     @IsTest
-    static void unsupportedSourceTypeMakesNoCallout() {
+    static void anyTwoHundredSeriesStatusIsSuccess() {
+        OrderItem oi = orderItem();
+        TenantMock mock = new TenantMock(201, '{"tenantId":"T-2"}');
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        industriesintegrationfwk.IntegrationCalloutResponse result =
+            RLM_DFOTenantProvisioningCallout.executeCallout('guid-2b', oi.Id, '', new Map<String, Object>());
+        Test.stopTest();
+
+        Assert.isTrue(result.isSuccess(), 'A 2xx answer is a success');
+    }
+
+    @IsTest
+    static void unsupportedSourceTypeReportsFailureWithoutCallout() {
         TenantMock mock = new TenantMock(200, '{}');
         Test.setMock(HttpCalloutMock.class, mock);
 
@@ -107,36 +126,70 @@ private class RLM_DFOTenantProvisioningCalloutTest {
             );
         Test.stopTest();
 
-        Assert.isTrue(
-            result.isSuccess(),
-            'Known gap: an unsupported source type reports success without calling out; '
-                + 'update this test when it is fixed'
-        );
+        Assert.isFalse(result.isSuccess(), 'An unsupported source type is a failure, not a silent success');
         Assert.areEqual(0, mock.callCount, 'Only order items and fulfillment lines trigger a callout');
     }
 
     @IsTest
-    static void fulfillmentLineWithoutOrderItemSourceFails() {
+    static void fulfillmentLineWithoutOrderItemSourceReportsFailure() {
         TenantMock mock = new TenantMock(200, '{}');
         Test.setMock(HttpCalloutMock.class, mock);
 
         Test.startTest();
-        try {
+        industriesintegrationfwk.IntegrationCalloutResponse result =
             RLM_DFOTenantProvisioningCallout.executeCallout(
                 'guid-4', fakeId(FulfillmentOrderLineItem.SObjectType), '', new Map<String, Object>()
             );
-            Assert.fail(
-                'Known gap: a fulfillment line without an order item source throws a raw QueryException; '
-                    + 'update this test when it is fixed'
-            );
-        } catch (Exception e) {
-            Assert.isInstanceOfType(
-                e, QueryException.class,
-                'Known gap: a fulfillment line without an order item source throws a raw QueryException; '
-                    + 'update this test when it is fixed. Got: ' + e
-            );
-        }
         Test.stopTest();
+
+        Assert.isFalse(result.isSuccess(), 'A fulfillment line without an order item source is a failure');
+        Assert.areEqual(0, mock.callCount, 'No callout without an order');
+    }
+
+    @IsTest
+    static void missingOrMalformedRecordIdReportsFailure() {
+        TenantMock mock = new TenantMock(200, '{}');
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        industriesintegrationfwk.IntegrationCalloutResponse blank =
+            RLM_DFOTenantProvisioningCallout.executeCallout('guid-5', null, '', new Map<String, Object>());
+        industriesintegrationfwk.IntegrationCalloutResponse malformed =
+            RLM_DFOTenantProvisioningCallout.executeCallout('guid-6', 'not-an-id', '', new Map<String, Object>());
+        Test.stopTest();
+
+        Assert.isFalse(blank.isSuccess(), 'A missing id is a failure');
+        Assert.isFalse(malformed.isSuccess(), 'A malformed id is a failure');
+        Assert.areEqual(0, mock.callCount, 'No callout without a usable id');
+    }
+
+    @IsTest
+    static void unknownOrderItemReportsFailure() {
+        TenantMock mock = new TenantMock(200, '{}');
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        industriesintegrationfwk.IntegrationCalloutResponse result =
+            RLM_DFOTenantProvisioningCallout.executeCallout(
+                'guid-7', fakeId(OrderItem.SObjectType), '', new Map<String, Object>()
+            );
+        Test.stopTest();
+
+        Assert.isFalse(result.isSuccess(), 'An order item that does not exist is a failure');
+        Assert.areEqual(0, mock.callCount, 'No callout without an order');
+    }
+
+    @IsTest
+    static void calloutExceptionReportsFailure() {
+        OrderItem oi = orderItem();
+        Test.setMock(HttpCalloutMock.class, new ThrowingMock());
+
+        Test.startTest();
+        industriesintegrationfwk.IntegrationCalloutResponse result =
+            RLM_DFOTenantProvisioningCallout.executeCallout('guid-8', oi.Id, '', new Map<String, Object>());
+        Test.stopTest();
+
+        Assert.isFalse(result.isSuccess(), 'A callout that cannot be made is a failure, not an exception');
     }
 
     @IsTest

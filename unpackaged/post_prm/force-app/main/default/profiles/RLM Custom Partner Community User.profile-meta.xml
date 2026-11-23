@@ -3,10 +3,6 @@
     <custom>true</custom>
     <userLicense>Partner Community</userLicense>
     <classAccesses>
-        <apexClass>RLM_AssetInfoUtility</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
         <apexClass>RLM_OrderItemContractingUtility</apexClass>
     </classAccesses>
     <userPermissions>

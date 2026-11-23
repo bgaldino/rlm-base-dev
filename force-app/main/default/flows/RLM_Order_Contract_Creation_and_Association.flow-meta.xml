@@ -42,6 +42,10 @@
             <assignToReference>CountOfSubscriptions</assignToReference>
             <name>subscriptionItemCount</name>
         </outputParameters>
+        <outputParameters>
+            <assignToReference>ContractInfoError</assignToReference>
+            <name>errorMessage</name>
+        </outputParameters>
     </actionCalls>
     <apiVersion>68.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
@@ -147,6 +151,16 @@
             <targetReference>Create_Contract_without_Opp</targetReference>
         </connector>
     </assignments>
+    <customErrors>
+        <name>Stop_Contract_Info_Unavailable</name>
+        <label>Stop - Contract Info Unavailable</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <customErrorMessages>
+            <errorMessage>{!ContractInfoError}</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
     <decisions>
         <name>Check_for_Opportunity_tied_to_Order</name>
         <label>Check for Opportunity tied to Order</label>
@@ -181,6 +195,21 @@
             <targetReference>Get_Order_Items</targetReference>
         </defaultConnector>
         <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Contract_Info_Unavailable</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>ContractInfoError</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Stop_Contract_Info_Unavailable</targetReference>
+            </connector>
+            <label>Contract Info Unavailable</label>
+        </rules>
         <rules>
             <name>If_No_Subscriptions_on_Order</name>
             <conditionLogic>and</conditionLogic>
@@ -461,6 +490,13 @@
     <variables>
         <name>ContractEndDate</name>
         <dataType>Date</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <name>ContractInfoError</name>
+        <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
         <isOutput>true</isOutput>

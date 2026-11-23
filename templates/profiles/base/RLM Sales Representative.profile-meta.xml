@@ -6,10 +6,6 @@
         <visible>true</visible>
     </applicationVisibilities>
     <classAccesses>
-        <apexClass>RLM_AssetInfoUtility</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
         <apexClass>RLM_DetermineDROSourceType</apexClass>
         <enabled>true</enabled>
     </classAccesses>

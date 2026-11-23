@@ -4,12 +4,7 @@
  * price book entry had one (a quote line on the same entry did get it). So the fixtures use plain
  * price book entries, and every line here counts as a subscription line.
  *
- * Documented, not pinned: results come from a map's values with no ORDER BY, so they are not
- * guaranteed to follow input order, and they carry no order id. A flow that maps results back to a
- * bulk batch of orders can stamp one order's term onto another's contract. The order is not
- * deterministic, so no assertion can pin it.
- *
- * Production gaps that can be observed are pinned below with "Known gap:" assertions.
+ * Results are one per input, in input order, and carry the order id they belong to.
  */
 @IsTest
 private class RLM_OrderItemContractingUtilityTest {
@@ -80,12 +75,27 @@ private class RLM_OrderItemContractingUtilityTest {
         Assert.areEqual(Date.newInstance(2026, 12, 31), r.outEndDate, 'The latest end date is used');
         // Jan 1 -> Dec 31 is 11 whole months; the end day (31) is past the start day (1), so it rounds up.
         Assert.areEqual(12, r.outContractTerm, 'A partial final month counts as a month');
-        Assert.areEqual(
-            1, r.subscriptionItemCount,
-            'Known gap: two items, but the LIMIT 1 subquery caps subscriptionItemCount at 1. That LIMIT 1 '
-                + 'also picks the latest end date, so a correct count needs its own aggregate or subquery; '
-                + 'the in-repo caller (which ships as Draft) only checks for zero. Update this test when it is fixed'
-        );
+        Assert.areEqual(2, r.subscriptionItemCount, 'Every subscription item is counted');
+        Assert.areEqual(o.Id, r.orderId, 'The result names its order');
+    }
+
+    @IsTest
+    static void orderWithMoreThanTwoHundredItemsIsCountedWithoutAnAggregateError() {
+        PricebookEntry pbe = standardEntry();
+        Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
+        insert o;
+        List<OrderItem> items = new List<OrderItem>();
+        for (Integer i = 0; i < 201; i++) {
+            items.add(newItem(o.Id, pbe, Date.newInstance(2026, 1, 1), Date.newInstance(2026, 12, 31)));
+        }
+        insert items;
+
+        List<RLM_OrderItemContractingUtility.OrderInfoResults> results = run(new List<Id>{ o.Id });
+
+        Assert.areEqual(1, results.size(), 'One result per order');
+        Assert.isNull(results[0].errorMessage, 'No error');
+        Assert.areEqual(201, results[0].subscriptionItemCount, 'Every subscription item is counted');
+        Assert.areEqual(Date.newInstance(2026, 12, 31), results[0].outEndDate, 'The latest end date is used');
     }
 
     @IsTest
@@ -108,21 +118,12 @@ private class RLM_OrderItemContractingUtilityTest {
         Test.stopTest();
 
         Assert.areEqual(3, results.size(), 'One result per order');
-        // Known gap (documented in the header): results carry no order id and are not guaranteed to
-        // follow input order, so this test can only match them to orders by end date.
-        Map<Date, Integer> termByEndDate = new Map<Date, Integer>();
-        for (RLM_OrderItemContractingUtility.OrderInfoResults r : results) {
-            termByEndDate.put(r.outEndDate, r.outContractTerm);
-        }
-        Assert.areEqual(
-            12, termByEndDate.get(Date.newInstance(2027, 1, 14)), 'End day 14 before start day 15: no round-up'
-        );
-        Assert.areEqual(
-            12, termByEndDate.get(Date.newInstance(2027, 1, 15)), 'End day equal to start day: no round-up'
-        );
-        Assert.areEqual(
-            13, termByEndDate.get(Date.newInstance(2027, 1, 20)), 'End day 20 past start day 15: rounds up'
-        );
+        Assert.areEqual(before.Id, results[0].orderId, 'Results follow input order (first)');
+        Assert.areEqual(sameDay.Id, results[1].orderId, 'Results follow input order (second)');
+        Assert.areEqual(after.Id, results[2].orderId, 'Results follow input order (third)');
+        Assert.areEqual(12, results[0].outContractTerm, 'End day 14 before start day 15: no round-up');
+        Assert.areEqual(12, results[1].outContractTerm, 'End day equal to start day: no round-up');
+        Assert.areEqual(13, results[2].outContractTerm, 'End day 20 past start day 15: rounds up');
     }
 
     @IsTest
@@ -132,11 +133,25 @@ private class RLM_OrderItemContractingUtilityTest {
 
         List<RLM_OrderItemContractingUtility.OrderInfoResults> results = run(new List<Id>{ o.Id, o.Id });
 
-        Assert.areEqual(
-            1, results.size(),
-            'Known gap: two inputs for the same order return one output, which would fault a calling flow '
-                + '(the in-repo caller ships as Draft); update this test when it is fixed'
-        );
+        Assert.areEqual(2, results.size(), 'Two inputs get two outputs, or a calling flow faults');
+        Assert.areEqual(o.Id, results[0].orderId, 'The first output names the order');
+        Assert.areEqual(o.Id, results[1].orderId, 'The second output names the order');
+    }
+
+    @IsTest
+    static void unknownOrderGetsAnErrorResultInPlace() {
+        Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
+        insert o;
+        Id missing = Order.SObjectType.getDescribe().getKeyPrefix() + '000000000001';
+
+        List<RLM_OrderItemContractingUtility.OrderInfoResults> results = run(new List<Id>{ missing, o.Id });
+
+        Assert.areEqual(2, results.size(), 'One result per input');
+        Assert.areEqual(missing, results[0].orderId, 'The unknown order keeps its place');
+        Assert.isNotNull(results[0].errorMessage, 'The unknown order says why it has no data');
+        Assert.isNull(results[0].subscriptionItemCount, 'An unreadable order has no count, so a flow cannot read it as zero');
+        Assert.areEqual(o.Id, results[1].orderId, 'The next order is unaffected');
+        Assert.isNull(results[1].errorMessage, 'A readable order carries no error');
     }
 
     @IsTest
@@ -179,9 +194,11 @@ private class RLM_OrderItemContractingUtilityTest {
         Integer queriesUsed = Limits.getQueries() - queriesBefore;
         Test.stopTest();
 
-        Assert.areEqual(1, queriesUsed, 'All orders are read in one query');
+        Assert.areEqual(2, queriesUsed, 'All orders are read in two queries: orders, and item counts');
         Assert.areEqual(200, results.size(), 'Every order gets a result');
-        for (RLM_OrderItemContractingUtility.OrderInfoResults r : results) {
+        for (Integer i = 0; i < results.size(); i++) {
+            RLM_OrderItemContractingUtility.OrderInfoResults r = results[i];
+            Assert.areEqual(orderIds[i], r.orderId, 'Results follow input order');
             Assert.areEqual(1, r.outContractTerm, 'Orders without items default to a one-month term');
             Assert.areEqual(0, r.addOrderActionCount, 'No Add actions counted');
             Assert.areEqual(0, r.amendOrderActionCount, 'No Amend actions counted');
@@ -190,16 +207,13 @@ private class RLM_OrderItemContractingUtilityTest {
     }
 
     @IsTest
-    static void userWithoutOrderFieldAccessGetsNoResults() {
+    static void userWithoutOrderFieldAccessGetsAnErrorResult() {
         Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
         insert o;
         Assert.areEqual(
             1, run(new List<Id>{ o.Id }).size(), 'PRECONDITION: the running user gets a result for this order'
         );
         User noAccess = minimumAccessUser();
-        if (noAccess == null) {
-            return; // minimumAccessUser() logged the reason as a SKIPPED warning
-        }
 
         List<RLM_OrderItemContractingUtility.OrderInfoResults> results;
         Integer queriesUsed;
@@ -217,35 +231,26 @@ private class RLM_OrderItemContractingUtilityTest {
 
         // No query ran, so the empty result comes from the field-access check, not record sharing.
         Assert.areEqual(0, queriesUsed, 'The field-access check returns before any query');
-        Assert.isTrue(
-            results.isEmpty(),
-            'Known gap: without access to the order fields the utility returns no output for an input, '
-                + 'which would fault a calling flow (the in-repo caller ships as Draft); '
-                + 'update this test when it is fixed'
-        );
+        Assert.areEqual(1, results.size(), 'The input still gets an output');
+        Assert.areEqual(o.Id, results[0].orderId, 'The output names its order');
+        Assert.isNotNull(results[0].errorMessage, 'The output says why it has no data');
+        Assert.isNull(results[0].subscriptionItemCount, 'An unreadable order has no count, so a flow cannot read it as zero');
     }
 
     /**
-     * A Minimum Access user: no object access to Order, OrderItem or OrderAction. Returns null,
-     * after logging a SKIPPED warning, when no profile has the English name "Minimum Access -
-     * Salesforce" (standard profile names can be translated, so a non-English running user always
-     * skips). It also returns null if the user insert fails on LICENSE_LIMIT_EXCEEDED; that is
-     * defensive only, since seat limits were not enforced on test-created users on a live 264 org.
+     * A Minimum Access user: no object access to Order, OrderItem or OrderAction. The test fails, never
+     * skips, when the precondition cannot be built: standard profile names can be translated, so this
+     * needs the English profile name "Minimum Access - Salesforce" and a free seat for the user insert.
      */
     private static User minimumAccessUser() {
         List<Profile> profiles = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
-        if (profiles.isEmpty()) {
-            System.debug(
-                LoggingLevel.WARN,
-                'SKIPPED: no profile named \'Minimum Access - Salesforce\' (English name; standard profile '
-                    + 'names can be translated) in this org'
-            );
-            return null;
-        }
-        Profile minimal = profiles[0];
+        Assert.areEqual(
+            1, profiles.size(),
+            'PRECONDITION: this test needs the English standard profile "Minimum Access - Salesforce"'
+        );
         String stamp = String.valueOf(Crypto.getRandomInteger()).remove('-');
         User u = new User(
-            ProfileId = minimal.Id,
+            ProfileId = profiles[0].Id,
             LastName = 'ContractInfo',
             Email = 'rlm.contractinfo@example.com',
             Username = 'rlm.contractinfo.' + stamp + '@example.com',
@@ -256,17 +261,8 @@ private class RLM_OrderItemContractingUtilityTest {
             LanguageLocaleKey = 'en_US'
         );
         // Setup-object DML after the orders above needs its own runAs context (mixed DML).
-        try {
-            System.runAs(new User(Id = UserInfo.getUserId())) {
-                insert u;
-            }
-        } catch (DmlException e) {
-            // Defensive: seat limits were not enforced on test-created users on a live 264 org.
-            if (e.getDmlType(0) == StatusCode.LICENSE_LIMIT_EXCEEDED) {
-                System.debug(LoggingLevel.WARN, 'SKIPPED: no free Salesforce seat for a test user in this org');
-                return null;
-            }
-            throw e;
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert u;
         }
         return u;
     }
