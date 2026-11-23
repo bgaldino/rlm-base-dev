@@ -135,12 +135,20 @@ PROVENANCE_LINE_RE = re.compile(
     # is a comparison, not a definition. The name must open the statement (line start, or after
     # `;`, `#` or `//`), and an annotation must be a type expression (a dotted name, optionally
     # quoted and subscripted, joined by `|`), so `log("MIN_API_VERSION: %s", v); api = ...` and
-    # `# MIN_API_VERSION: default api = ...` are not mistaken for one. The `verified (...)`
+    # `# MIN_API_VERSION: default api = ...` are not mistaken for one. Anchoring: the name opens
+    # the line (optionally behind one `#` or `//`), or follows a `;` whose prefix holds no quote,
+    # `#` or `/`; so a trailing comment or a string that merely mentions the name
+    # (a pin followed by `# MIN_API_VERSION = ...`, or `log("x; MIN_API_VERSION = %s"); api = ...`)
+    # does not spare the live pin. By design it still cannot tell prose from a floor when the
+    # annotation is a bare word (`# MIN_API_VERSION: default = <pin>` is spared), and a live pin
+    # BEFORE a `;` floor on one line is bumped along with it. Subscripts allow one nesting level
+    # (`Final[Literal["65.0"]]`) with disjoint alternatives, so a long no-`=` line cannot backtrack. The `verified (...)`
     # forms end at a word boundary, so "verified payloads"/"verified inside"/"verified online"
     # are NOT spared; no tracked line uses them beside a version (swept 2026-11-24), so add a
     # form here if one ever does.
-    r"|\bas[- ]of\b|\bobserved (?:on|at)\b|(?:^|[;#]|//)\s*MIN_API_VERSION\b\s*"
-    r"(?::\s*[\"']?[\w.]+(?:\[[^=\n]*\])?[\"']?(?:\s*\|\s*[\"']?[\w.]+(?:\[[^=\n]*\])?[\"']?)*\s*)?=(?!=)",
+    r"|\bas[- ]of\b|\bobserved (?:on|at)\b|(?:^\s*(?:#|//)?|^[^\"'#/]*;)\s*MIN_API_VERSION\b\s*"
+    r"(?::\s*[\"']?[\w.]+(?:\[(?:[^=\n\[\]]|\[[^=\n\[\]]*\])*\])?[\"']?"
+    r"(?:\s*\|\s*[\"']?[\w.]+(?:\[(?:[^=\n\[\]]|\[[^=\n\[\]]*\])*\])?[\"']?)*\s*)?=(?!=)",
     re.IGNORECASE,
 )
 

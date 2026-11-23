@@ -86,9 +86,17 @@ for text in ("alias offset v68.0", "it has offered v68.0", "unobserved at v68.0"
              "foo(MIN_API_VERSION, 'v68.0')", "see MIN_API_VERSION for v68.0",
              'if MIN_API_VERSION == "v68.0":', 'log("MIN_API_VERSION: %s", v); api = "v68.0"',
              '# MIN_API_VERSION: see above; pin = "v68.0"', 'msg = "MIN_API_VERSION: unset, api = v68.0"',
-             '# MIN_API_VERSION: default api = "v68.0"', 'x = MIN_API_VERSION = "v68.0"'):
+             '# MIN_API_VERSION: default api = "v68.0"', 'x = MIN_API_VERSION = "v68.0"',
+             'api = "v68.0"  # MIN_API_VERSION = 65 is the floor',
+             "apiVersion = '68.0'; // MIN_API_VERSION = 65 is the floor",
+             'log("x; MIN_API_VERSION = %s", v); api = "v68.0"'):
     check(f"does not spare a live pin on {text!r}", not bump.PROVENANCE_LINE_RE.search(text))
-for text in ("as of v67.0", "as-of v67.0", "observed at v67.0", "MIN_API_VERSION = \"65.0\"",
+import time
+_slow = "MIN_API_VERSION: " + "|".join(["a[]"] * 60)
+_t0 = time.monotonic()
+bump.PROVENANCE_LINE_RE.search(_slow)
+check("no catastrophic backtracking on a 60-segment annotation", time.monotonic() - _t0 < 1.0)
+for text in ("# MIN_API_VERSION = v67.0 \u2014 some note", "// MIN_API_VERSION = 65", "as of v67.0", "as-of v67.0", "observed at v67.0", "MIN_API_VERSION = \"65.0\"",
              'MIN_API_VERSION: str = "65.0"', "MIN_API_VERSION:str=\"65.0\"",
              'MIN_API_VERSION: Final[str] = "65.0"', 'MIN_API_VERSION: str | None = "65.0"',
              'MIN_API_VERSION: "str" = "65.0"', 'MIN_API_VERSION: Final[Literal["65.0"]] = "65.0"',
