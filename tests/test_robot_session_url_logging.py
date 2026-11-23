@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Robot results must never contain a Salesforce session URL (todo 418).
+"""Robot results must never contain a Salesforce session URL.
 
 ``sf org open --url-only`` prints ``https://<host>/secur/frontdoor.jsp?sid=...&otp=...``, a live
 login. The setup suites used to pass it through Robot variables, so ``Go To ${target}`` and the
@@ -51,8 +51,7 @@ FRONTDOOR = f"https://example.my.salesforce.com/secur/frontdoor.jsp?sid={SID}&ot
 
 FAKE_SF = f"""#!/bin/sh
 if [ "$FAKE_SF_FAIL" = "1" ]; then
-  echo '{{"status":1,"message":"sf failed near {FRONTDOOR}"}}'
-  echo "sf failed near {FRONTDOOR}" >&2
+  echo '{{"name":"Error","message":"sf failed near {FRONTDOOR}","exitCode":1,"status":1}}' >&2
   exit 1
 fi
 echo '{{"status":0,"result":{{"url":"{FRONTDOOR}"}}}}'
@@ -343,7 +342,16 @@ class MutationTest(RobotRunMixin, unittest.TestCase):
         if rc is not None:
             self.assertEqual(proc.returncode, rc, proc.stdout[-2000:])
         self.assertTrue(emitted, "stub emitted nothing")
-        self.assertTrue(scanner.scan_paths([out]), "scanner missed a deliberate leak")
+        hits = scanner.scan_paths([out])
+        self.assertTrue(hits, "scanner missed a deliberate leak")
+        # The finding is the sentinel session, not an unrelated match: it must be in the decoded text.
+        seen = []
+        for hit in hits:
+            text = hit.read_text(encoding="utf-8", errors="replace")
+            seen.append(text)
+            if hit.suffix in {".html", ".htm", ".js"}:
+                seen.extend(scanner._decoded_strings(text))
+        self.assertTrue(any(SID in t or OTP in t for t in seen), "finding does not contain the sentinel session")
 
     def test_level_not_lowered_leaks_selenium_debug_request(self):
         def mutate(src):
@@ -381,6 +389,32 @@ class RedactionTest(unittest.TestCase):
             self.assertTrue(guard.SESSION_URL_PATTERN.search(text), text)
             self.assertTrue(scanner.SESSION_URL_PATTERN.search(text), text)
 
+    def test_pattern_matches_bare_params_cookies_and_double_encoding(self):
+        for text in [
+            "sid=00D5g000001AbCdE!AQEAQxyz; oid=00D5g000001AbCd",  # cookie string, starts with sid=
+            "Cookie: foo=1; sid=abc", "'sid=abc'", "(otp=abc)", "a,sid=abc",
+            "https%253A%252F%252Fh%252Fp%253Fsid%253Dabc", "a%2526otp%253Dabc", "h/secur%252Ffrontdoor.jsp",
+        ]:
+            self.assertTrue(guard.SESSION_URL_PATTERN.search(text), text)
+            self.assertTrue(scanner.SESSION_URL_PATTERN.search(text), text)
+
+    def test_pattern_matches_a_raw_session_id(self):
+        # Shape inferred from Salesforce session ids: 00D + 12-15 org-id chars, '!', 20+ token chars.
+        for sid in ["00D5g000001AbCdEFG!AQEAQexampleExampleExample1234", "00D5g000001AbCd!AQEAQexample.Example_Token12"]:
+            self.assertTrue(guard.SESSION_URL_PATTERN.search(f"value {sid} end"), sid)
+            self.assertTrue(scanner.SESSION_URL_PATTERN.search(sid), sid)
+            self.assertEqual(guard.redact_session_urls(f"bad {sid}"), guard.WITHHELD)
+        self.assertFalse(guard.SESSION_URL_PATTERN.search("00D5g000001AbCd!short"))
+        self.assertFalse(guard.SESSION_URL_PATTERN.search("record 00D5g000001AbCd is an org id"))
+
+    def test_raw_values_with_plus_are_redacted(self):
+        url = "https://h.my.salesforce.com/secur/frontdoor.jsp?sid=AAAA+BBBB+CCCC&otp=DDDD"
+        out = guard.redact_session_urls("failed with value AAAA+BBBB+CCCC here", url)
+        self.assertNotIn("AAAA+BBBB+CCCC", out)
+
+    def test_bare_sid_message_is_withheld(self):
+        self.assertEqual(guard.redact_session_urls("sid=00D5g000001AbCdE!AQEAQxyz"), guard.WITHHELD)
+
     def test_pattern_leaves_ordinary_text(self):
         for text in ["sid and otp are words", "/lightning/setup/Timeline/home", "https://h/p?side=1&other=2",
                      "residual=1"]:
@@ -410,6 +444,20 @@ class RedactionTest(unittest.TestCase):
         # No scheme, so the URL redaction cannot see it; the pattern still matches.
         self.assertEqual(guard.redact_session_urls("at host/secur/frontdoor.jsp?sid=ZZZ999"), guard.WITHHELD)
         self.assertEqual(guard.redact_session_urls("odd ?otp=ZZZ999 fragment"), guard.WITHHELD)
+
+    def test_sf_error_json_on_stderr_is_parsed(self):
+        class Result:
+            returncode, stdout = 1, ""
+            stderr = '{"name":"Error","message":"no such org","exitCode":1}'
+
+        real_run, real_which = guard.subprocess.run, guard.shutil.which
+        guard.subprocess.run, guard.shutil.which = (lambda *a, **k: Result()), (lambda name: "/bin/sf")
+        try:
+            with self.assertRaises(RuntimeError) as ctx:
+                guard._fetch_url("x", "/p")
+        finally:
+            guard.subprocess.run, guard.shutil.which = real_run, real_which
+        self.assertIn("no such org", str(ctx.exception))
 
     def test_ordinary_messages_pass_through(self):
         self.assertEqual(guard.redact_session_urls("timeout after 120s"), "timeout after 120s")
@@ -482,38 +530,77 @@ class ScannerTest(unittest.TestCase):
 
 
 class RobotTreeSweepTest(unittest.TestCase):
-    """Static guard: no keyword in the robot tree may read, log or navigate to a URL unguarded."""
+    """Static guard: nothing in robot/ or tasks/ may read, log or navigate to a URL unguarded.
+
+    Name based: it flags the keywords and calls below by text. It cannot see a URL reached through a
+    keyword it does not know, so the live-run scan (check_robot_session_urls.py) stays the backstop.
+    The forbidden keywords are exactly those of the installed SeleniumLibrary that read
+    ``driver.current_url`` (which selenium then logs at DEBUG): the location keywords, the window
+    keywords that build window info, ``Log Source``, cookies, and link/image locators (their
+    element-finder reads the base URL).
+    """
 
     FORBIDDEN = re.compile(
-        r"\b(Get Location|Location Should (?:Be|Contain)|Log Location|Get Source|Log Source|get_location|"
-        r"current_url|page_source)\b", re.IGNORECASE)
+        r"\b(?:Get Locations?|Location Should (?:Not )?(?:Be|Contain)|Log Location"
+        r"|Wait Until Location (?:Is|Is Not|Contains|Does Not Contain)"
+        r"|Get Source|Log Source|Get Cookies?|Add Cookie|Delete (?:All )?Cookies?"
+        r"|Switch Window|Close Window|Get Window (?:Titles|Names|Identifiers|Handles)"
+        r"|Click (?:Link|Image)|Mouse Down On (?:Link|Image)|Page Should (?:Not )?Contain (?:Link|Image)"
+        r"|get_location|get_locations|current_url|page_source|window_handles)\b"
+        r"|(?:^|\s{2,}|=)(?:link|image):"
+        r"|(?:window\.|document\.)location\b(?!\.pathname)"
+        r"|\blocation\.(?:href|search|hash|origin|host|hostname|toString)\b"
+        r"|\bdocument\.(?:URL|documentURI|baseURI|referrer)\b",
+        re.IGNORECASE)
+    ORG_OPEN = re.compile(r"org\s+open\b.*(?:--url-only|\s-r\b)|[\"']org[\"'],\s*[\"']open[\"']|\burl-only\b")
+    # Python files: prose (docstrings) may name the command; only code that runs it counts.
+    ORG_OPEN_PY = re.compile(
+        r"[\"']org[\"'],\s*[\"']open[\"']|[\"']sf org open|(?:run|Popen|check_output|check_call|call|shlex\.split)\(.*org\s+open")
+    DOC_LINE = re.compile(r"\s*(?:#|\.\.\.|\[Documentation\]|Documentation\b)")
 
-    def files(self):
-        root = REPO / "robot"
-        return [p for p in sorted(root.rglob("*")) if p.suffix in {".robot", ".py"}
-                and "results" not in p.parts and p.name != "SessionUrlGuard.py"]
+    def files(self, *roots):
+        found = []
+        for root in roots:
+            found += [p for p in sorted((REPO / root).rglob("*")) if p.suffix in {".robot", ".py"}
+                      and "results" not in p.parts and p.name != "SessionUrlGuard.py"]
+        return found
+
+    def hits(self, pattern, files, skip_docs=False):
+        found = []
+        for path in files:
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if skip_docs and self.DOC_LINE.match(line):
+                    continue
+                if pattern.search(line):
+                    found.append(f"{path.relative_to(REPO)}:{number}")
+        return found
+
+    def test_forbidden_pattern_flags_each_reader(self):
+        for line in ["    ${u}=    Get Location", "    Get Locations", "    Location Should Be    x",
+                     "    Wait Until Location Contains    x", "    Log Location", "    Get Cookies",
+                     "    Switch Window    NEW", "    Get Window Titles", "    Log Source", "    Click Link    x",
+                     "    Execute JavaScript    return window.location.href", "    Execute JavaScript    return location.search",
+                     "    Execute JavaScript    return document.URL", "    Execute JavaScript    return window.location",
+                     "    Click Element    link:Home"]:
+            self.assertTrue(self.FORBIDDEN.search(line), line)
+        self.assertFalse(self.FORBIDDEN.search("    ... window.location.pathname ..."))
 
     def test_no_unguarded_url_or_source_reads(self):
-        found = []
-        for path in self.files():
-            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-                if self.FORBIDDEN.search(line):
-                    found.append(f"{path.relative_to(REPO)}:{number}")
-        self.assertEqual(found, [], "use SessionUrlGuard keywords instead")
+        self.assertEqual(self.hits(self.FORBIDDEN, self.files("robot", "tasks")), [],
+                         "use SessionUrlGuard keywords instead")
 
     def test_org_open_only_in_the_guard(self):
-        found = []
-        for path in self.files():
-            text = path.read_text(encoding="utf-8")
-            for number, line in enumerate(text.splitlines(), 1):
-                if re.search(r"\burl-only\b", line) and not re.match(r"\s*(#|\.\.\.|\[Documentation\]|Documentation)", line):
-                    found.append(f"{path.relative_to(REPO)}:{number}")
-        self.assertEqual(found, [], "only SessionUrlGuard.py may call sf org open --url-only")
+        robot_files = [f for f in self.files("robot") if f.suffix == ".robot"]
+        py_files = [f for f in self.files("robot", "tasks") if f.suffix == ".py"]
+        found = self.hits(self.ORG_OPEN, robot_files, skip_docs=True) + self.hits(self.ORG_OPEN_PY, py_files)
+        self.assertEqual(found, [], "only SessionUrlGuard.py may call sf org open --url-only / -r")
+        self.assertTrue(self.ORG_OPEN_PY.search('cmd = ["org", "open", "-r"]'))
+        self.assertTrue(self.ORG_OPEN.search("Run Process    sf org open -o x -r"))
 
     def test_go_to_never_takes_a_session_variable(self):
         allowed = re.compile(r"^\s*Go To\s{2,}(about:blank|\$\{url\})\s*$")
         found = []
-        for path in self.files():
+        for path in self.files("robot"):
             for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
                 if re.match(r"\s*Go To\s{2,}", line) and not allowed.match(line):
                     found.append(f"{path.relative_to(REPO)}:{number}")
@@ -522,9 +609,7 @@ class RobotTreeSweepTest(unittest.TestCase):
     def test_no_committed_org_host_in_robot_tree(self):
         host = re.compile(r"https://[a-z0-9-]+\.(?:scratch\.)?my\.salesforce(?:-setup)?\.com", re.IGNORECASE)
         found = []
-        for path in self.files():
-            if "test" in path.name and path.suffix == ".py":
-                continue
+        for path in self.files("robot"):
             for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
                 if host.search(line) and "your-org" not in line and "example" not in line:
                     found.append(f"{path.relative_to(REPO)}:{number}")

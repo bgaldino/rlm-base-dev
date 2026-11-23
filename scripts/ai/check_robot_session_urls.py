@@ -32,7 +32,10 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 # Keep in step with SESSION_URL_PATTERN in robot/rlm-base/resources/SessionUrlGuard.py.
 SESSION_URL_PATTERN = re.compile(
-    r"secur(?:/|%2F)frontdoor\.jsp|(?:[?&;]|%3F|%26)(?:sid|otp)(?:=|%3D)",
+    r"secur(?:/|%2F|%252F)frontdoor\.jsp"
+    r"|(?:[?&;]|%3F|%26|%25(?:3F|26))(?:sid|otp)(?:=|%3D|%253D)"
+    r"|(?:^|[\s\"';(,])(?:sid|otp)="
+    r"|\b00D[0-9A-Za-z]{12,15}![0-9A-Za-z._]{20,}",
     re.IGNORECASE,
 )
 # log.html appends string tables with ``window.output["strings"].concat([...])`` (other
@@ -52,7 +55,7 @@ def _json_text(text: str) -> str:
 def _decode_array(text: str, start: int):
     """Decode the JSON array at ``text[start:]``; ``None`` when it does not decode."""
     try:
-        value, _ = json.JSONDecoder().raw_decode(_json_text(text[start:]))
+        value, _ = json.JSONDecoder().raw_decode(text, start)
     except ValueError:
         return None
     return value if isinstance(value, list) else None
@@ -75,6 +78,7 @@ def _decoded_strings(text: str):
     An embedded array that cannot be decoded is yielded as ``UNDECODABLE`` so the caller reports
     it: an unreadable chunk is never assumed clean.
     """
+    text = _json_text(text)  # once, over the whole file
     starts = [m.end() for m in _STRINGS_ASSIGN_RE.finditer(text)]
     pos = text.find(_CONCAT)
     while pos != -1:

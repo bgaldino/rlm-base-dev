@@ -34,16 +34,22 @@ from robot.api.deco import keyword, library
 from robot.errors import RobotError
 from robot.libraries.BuiltIn import BuiltIn
 
-# A frontdoor path, or a sid=/otp= parameter, plain or URL-encoded.
+# A frontdoor path, a sid=/otp= parameter (query, cookie or bare, plain / URL-encoded / double
+# encoded), or a raw session id. The session-id shape is `00D` + 12 or 15 more org-id characters,
+# `!`, then a 20+ character token of letters, digits, `.` and `_` (inferred from Salesforce session
+# ids; the token alphabet and length are not measured here).
 SESSION_URL_PATTERN = re.compile(
-    r"secur(?:/|%2F)frontdoor\.jsp|(?:[?&;]|%3F|%26)(?:sid|otp)(?:=|%3D)",
+    r"secur(?:/|%2F|%252F)frontdoor\.jsp"
+    r"|(?:[?&;]|%3F|%26|%25(?:3F|26))(?:sid|otp)(?:=|%3D|%253D)"
+    r"|(?:^|[\s\"';(,])(?:sid|otp)="
+    r"|\b00D[0-9A-Za-z]{12,15}![0-9A-Za-z._]{20,}",
     re.IGNORECASE,
 )
 _URL_RE = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
 REDACTED = "<session-url-redacted>"
 WITHHELD = "<message withheld: it may contain session material>"
 _SF_TIMEOUT_SECONDS = 120
-_RECORD_PATH_RE = re.compile(r"/lightning/r/{sobject}/[a-zA-Z0-9]{{15,18}}")
+_RECORD_PATH_TEMPLATE = "/lightning/r/{sobject}/[a-zA-Z0-9]{{15,18}}"
 
 
 def _secret_values(url):
@@ -51,6 +57,11 @@ def _secret_values(url):
     values = set()
     query = urlsplit(str(url)).query
     for name, value in parse_qsl(query, keep_blank_values=False):
+        if name.lower() in ("sid", "otp") and value:
+            values.add(value)
+    # parse_qsl turns '+' into a space; keep the raw values too.
+    for part in query.replace(";", "&").split("&"):
+        name, _, value = part.partition("=")
         if name.lower() in ("sid", "otp") and value:
             values.add(value)
     for value in list(values):
@@ -77,6 +88,14 @@ def redact_session_urls(text, known_url=None):
     return text
 
 
+def _json_dict(text):
+    try:
+        value = json.loads(text)
+    except (TypeError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
 def _fetch_url(org_alias, setup_path):
     """Return the one-time frontdoor URL for ``setup_path``. Never log the result."""
     sf = shutil.which("sf")
@@ -91,14 +110,12 @@ def _fetch_url(org_alias, setup_path):
         )
     except subprocess.TimeoutExpired:
         raise RuntimeError(f"sf org open timed out after {_SF_TIMEOUT_SECONDS}s") from None
-    try:
-        payload = json.loads(result.stdout)
-    except ValueError:
-        payload = {}
+    payload = _json_dict(result.stdout) or _json_dict(result.stderr)  # sf v2 writes error JSON to stderr
     if result.returncode != 0:
         detail = payload.get("message") or result.stderr.strip() or "no detail"
         raise RuntimeError(f"sf org open failed (exit {result.returncode}): {detail}")
-    url = (payload.get("result") or {}).get("url")
+    inner = payload.get("result")
+    url = inner.get("url") if isinstance(inner, dict) else None
     if not url:
         raise RuntimeError("sf org open --json did not return result.url")
     return url
@@ -158,7 +175,7 @@ class SessionUrlGuard:
     def current_url_should_be_record_page(self, sobject):
         """Fails unless the current page is ``/lightning/r/<sobject>/<id>``. Reports the path only."""
         path = urlsplit(self._current_url()).path
-        if not re.search(_RECORD_PATH_RE.pattern.format(sobject=re.escape(str(sobject))), path):
+        if not re.search(_RECORD_PATH_TEMPLATE.format(sobject=re.escape(str(sobject))), path):
             raise AssertionError(
                 f"Current page is not a {sobject} record page (path: {redact_session_urls(path)})"
             )

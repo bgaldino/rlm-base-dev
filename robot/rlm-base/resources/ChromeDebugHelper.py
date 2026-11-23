@@ -82,12 +82,13 @@ def get_cdp_targets(port=DEFAULT_CDP_PORT):
         port: The remote debugging port Chrome is listening on.
 
     Returns:
-        List of target dictionaries with id, title, url, webSocketDebuggerUrl.
+        List of {id, title} dictionaries. The page URL is deliberately omitted: it can
+        be an authenticated frontdoor URL that must not reach Robot logs.
     """
     try:
         resp = requests.get(f"http://localhost:{port}/json", timeout=5)
         if resp.status_code == 200:
-            return resp.json()
+            return [{"id": t.get("id"), "title": t.get("title")} for t in resp.json()]
     except Exception as e:
         _logger.warning("Could not list CDP targets on port %s: %s", port, e)
     return []

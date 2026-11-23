@@ -790,12 +790,12 @@ CHECKS = [
         deps=["PyYAML"], gating=True,
     ),
     dict(
-        # Robot results must never hold a session URL (todo 418): runs the real setup/E2E navigation
+        # Robot results must never hold a session URL: runs the real setup/E2E navigation
         # keywords in a Robot process against a fake sf and a stub SeleniumLibrary, then scans
         # output.xml/log.html (incl. log.html's compressed strings). No org or browser needed.
         name="robot_session_url_suite",
         cmd=["python", "tests/test_robot_session_url_logging.py"],
-        triggers=["robot/rlm-base/", "scripts/ai/check_robot_session_urls.py", "tests/test_robot_session_url_logging.py"],
+        triggers=["robot/", "tasks/", "scripts/ai/check_robot_session_urls.py", "tests/test_robot_session_url_logging.py"],
         deps=["robotframework"], gating=True,
     ),
     dict(
