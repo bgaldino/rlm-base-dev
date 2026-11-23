@@ -38,6 +38,16 @@ must remain empty. A populated `IntegrationDefinitionName` is rejected for
 from loading. The tenant-provisioning callout remains on
 `Stage New Tenant for Provisioning - Platform`.
 
+That callout (`RLM_DFOTenantProvisioningCallout`) posts to
+`callout:RLM/services/apexrest/QuantumBitTenantEnvironment/createNewTenant`. This repo no
+longer ships either end: the in-org `@RestResource` (`RLM_TenantProvisioningAPI`, with its
+tenant-environment object and flows) was removed in 2025-01 and the self-referencing `RLM`
+named credential in 2026-03 (git history). On a fresh build the step therefore has no
+target. How the step ends (status, error, whether the plan continues) is not yet measured.
+Pack 419 tracks the decision. The step is reached by products decomposed to
+`QB-DRO-APIPLAT` (`QB-API-MGMT` via the `Platform` scenario); `mfg-dro` carries the same
+callout on its tenant-provisioning steps.
+
 `Activate Tokens` uses `LineItem` scope with no custom fulfillment scope.
 Technical products formerly using `Group_Identifier` use `Ramp_Identifier`
 for decomposition. The scope reads `ItemRampIdentifier`; when a line has no

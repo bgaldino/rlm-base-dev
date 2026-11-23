@@ -360,6 +360,20 @@ these conditions; rerun the amendment and cancel checks there.
     fault path. That contract is in Help's Auto Task article `ind.dro_auto_task`, read live; the
     snapshot lacks it. With no matching rule, DRO sets the step Fatally Failed without retrying
     [Help: `ind.dro_fallout_design_and_management`].
+  - Help says DRO retries only errors a flow returns through an Auto Task Fault Path and
+    does not retry unhandled Apex exceptions
+    [Help: `ind.dro_fallout_design_and_management`]. How DRO treats an autolaunched flow
+    that ends normally having done nothing is not documented in the snapshot: it reads as a
+    success [inferred; live check pending]. A decision with no connector on its Default
+    Outcome therefore ends the interview normally. The Custom Error flow element is limited
+    to record-triggered flows (Flow Builder documentation, outside the snapshot), so an
+    autolaunched Auto Task flow reports failure through its output variables instead.
+    `RLM_Assetize_Order_DRO_Fulfillment` does this: its `Check_Source_Data_Type` Default
+    Outcome (a blank or unrecognized source type from `RLM_DetermineDROSourceType`) now
+    sets `isSuccess` false and `fulfillmentStepErrorCode`
+    `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`; `isSuccess` defaults true, so the four recognized
+    paths are unchanged. The step's status, error text and retry behavior for this path are
+    not yet measured [inferred; live check pending].
   - A jeopardy rule with its own flow definition matched a manual task through the step's
     `FlowDefinitionName`. The step showed the rule's threshold and a planned completion of
     start plus the estimated duration. The per-flow rule applied although blank-flow manual
