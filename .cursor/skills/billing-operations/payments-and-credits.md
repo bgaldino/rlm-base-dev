@@ -1,8 +1,8 @@
 # Billing Operations — Payments, Refunds, Memos and Collections
 
 Read this when configuring payment collection, application rules, refunds, credit or debit
-memos, write-offs or collections. Parent: [SKILL.md](SKILL.md). A read of Help; nothing
-here is measured in this repo.
+memos, write-offs or collections. Parent: [SKILL.md](SKILL.md). A read of Help, except
+the section *Measured: Line Level application*, which records dated live observations.
 
 Licensing: Salesforce Payments (native or bring-your-own gateways) is part of the Revenue
 Cloud Billing license with a cost-per-transaction model, and orgs licensed on or before
@@ -74,6 +74,38 @@ open [Help: `ind.billing_setup_credit_memos_payments_application_rules`]:
 Decision: choose Match ID when customers pay with a reference, Match Balance or oldest
 otherwise. Ask what the customer's finance team expects for unreferenced cash
 [inferred from Help].
+
+## Measured: Line Level application
+
+What the APIs did with Credit, Payment and Refund Application Level set to Line Level. Each is
+one observation, so re-measure on the release patch in hand before relying on it; error text
+and object names may change between patches. Header Level was not measured.
+[Measured: 2026-10-15, 264, harness build, API 68.0, Line Level]
+
+- **Apply a payment.** `POST /services/data/v68.0/commerce/billing/payments/{id}/actions/apply` with an invoice id
+  as `appliedToId` failed ("Specify an InvoiceLineId as the appliedToId because the Credit
+  Application Level is Invoice Line"). With an invoice line id it created a
+  `PaymentLineInvoiceLine` (Type Applied) and no `PaymentLineInvoice`.
+- **Credit an invoice.** `POST /services/data/v68.0/commerce/invoicing/invoices/{id}/actions/credit` on a posted
+  invoice, copying from the invoice lines, created a `CreditMemoLineInvoiceLine` and no
+  `CreditMemoInvApplication`.
+- **Balance and test payments.** `Invoice.Balance` rolled up as invoice amount minus applied
+  credits minus applied payments (250 less a 50 credit and a 100 payment left 100). A payment
+  could be created directly as a record (`Amount`, `Status` Processed, `Type` Sale,
+  `ProcessingMode` External, `AccountId`) with no gateway.
+- **Payment Schedule Item.** One could not request more than its payment's balance ("The
+  payment balance can't be less than requested amount").
+- **The shipped Apply Payment flow.** The Apply Payment quick action launches the flow
+  `RLM_Apply_Payments_on_Invoice`, which calls the subflow `RLM_Apply_Payment_To_Invoice_Lines`.
+  The subflow spreads a payment over the invoice's open lines in record Id order, capped at the
+  smaller of the payment's balance and the invoice's balance. Copies ship in the
+  billing, payments and collections bundles. [Repo: `unpackaged/post_billing/`,
+  `unpackaged/post_payments/`, `unpackaged/post_collections/`] On a fresh build it spread a
+  payment over a three-line invoice with no header-level rows.
+
+Read-back after any of these: query the line-level junction (`PaymentLineInvoiceLine`,
+`CreditMemoLineInvoiceLine`) and confirm the header-level one (`PaymentLineInvoice`,
+`CreditMemoInvApplication`) is empty. Rows in the wrong one mean the org is at the other level.
 
 ## Credit memos
 
