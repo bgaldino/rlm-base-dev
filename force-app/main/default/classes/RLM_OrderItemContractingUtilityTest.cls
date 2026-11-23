@@ -239,7 +239,8 @@ private class RLM_OrderItemContractingUtilityTest {
 
     /**
      * Reaches the user-mode query fallback: the user can read the Order, OrderItem and OrderAction fields the
-     * pre-check names, but not ProductSellingModel, which only the query itself reads.
+     * pre-check names, but not ProductSellingModel, which only the query itself reads. The assertions prove the
+     * fallback ran; they do not identify which refused part of the query raised the QueryException.
      */
     @IsTest
     static void userWhoCannotReadTheSellingModelGetsAnErrorResultFromTheQuery() {
@@ -291,9 +292,9 @@ private class RLM_OrderItemContractingUtilityTest {
         Assert.areEqual(1, results.size(), 'The input still gets an output');
         Assert.areEqual(o.Id, results[0].orderId, 'The output names its order');
         Assert.isNotNull(results[0].errorMessage, 'The output says why it has no data');
-        Assert.isTrue(
-            results[0].errorMessage.startsWith('The orders could not be read as the running user'),
-            'The message is the query fallback, not the pre-check: ' + results[0].errorMessage
+        Assert.areEqual(
+            'The order could not be read as the running user.', results[0].errorMessage,
+            'The message is the fixed query-fallback sentence (not the pre-check, no query text)'
         );
         Assert.isNull(results[0].subscriptionItemCount, 'An unreadable order has no count, so a flow cannot read it as zero');
     }

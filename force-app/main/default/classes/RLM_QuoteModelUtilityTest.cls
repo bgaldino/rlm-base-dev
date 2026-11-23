@@ -413,9 +413,9 @@ private class RLM_QuoteModelUtilityTest {
 
         Assert.isNotNull(refusal, 'WITH USER_MODE refuses the read for a user without Quote access');
         Assert.isInstanceOfType(refusal.getCause(), QueryException.class, 'The refusal comes from the user-mode query');
-        Assert.isTrue(
-            refusal.getMessage().contains('running user'),
-            'The message says the read failed for the running user, not that the quote does not exist: ' + refusal.getMessage()
+        Assert.areEqual(
+            'The quote data could not be read as the running user.', refusal.getMessage(),
+            'The message is the fixed access-failure sentence (not "quote not found", no query text)'
         );
     }
 

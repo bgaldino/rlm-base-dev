@@ -63,7 +63,7 @@ public with sharing class RLM_OrderItemContractingUtility {
             // cannot see (for example ProductSellingModel); any other query failure is reported the same way.
             System.debug(LoggingLevel.ERROR, 'RLM_OrderItemContractingUtility could not read the orders as the running user: ' + e.getMessage());
             for (Id orderId : inputOrderIds) {
-                results.add(failedResult(orderId, 'The orders could not be read as the running user.'));
+                results.add(failedResult(orderId, 'The order could not be read as the running user.'));
             }
             return results;
         }

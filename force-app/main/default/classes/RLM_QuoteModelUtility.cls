@@ -221,9 +221,14 @@ public with sharing class RLM_QuoteModelUtility {
         return convertedEndDateTime;
     }
 
-    /** One exception type for callers: a refused or failed read keeps its QueryException as the cause. */
+    /**
+     * One exception type for callers: a refused or failed read keeps its QueryException as the cause. The
+     * message is a fixed sentence, so a caller that shows it does not show object or field names; the
+     * query detail goes to the debug log and stays on the cause.
+     */
     private static QuoteModelException accessFailure(QueryException e){
-        return new QuoteModelException('The quote data could not be read as the running user (a missing object or field permission, or another query error): ' + e.getMessage(), e);
+        System.debug(LoggingLevel.ERROR, 'RLM_QuoteModelUtility could not read the quote data as the running user: ' + e.getMessage());
+        return new QuoteModelException('The quote data could not be read as the running user.', e);
     }
 
     public class QuoteModelException extends Exception {}
