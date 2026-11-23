@@ -32,8 +32,8 @@ public with sharing class RLM_DocumentGenerationCreate {
         // source-controlled here only RLM_QuantumBit_Sales_Representative grants it; a 264 org also
         // has RLM_Sales_Representative, RLM_Sales_Operations, RLM_DOC, RLM_CLM and RLM_RCB granting it
         // (measured), so a persona outside those needs it from its own permission set. Of the fields set here,
-        // only ReferenceObject and RequestText are field-level-security controlled, and the Sales
-        // Representative set grants both; Type, DocumentTemplateId, DocGenApiVersionType,
+        // only ReferenceObject and RequestText are field-level-security controlled, and the
+        // source-controlled RLM_QuantumBit_Sales_Representative set grants both; Type, DocumentTemplateId, DocGenApiVersionType,
         // DocumentInputType, DocGenAdditionalInputType, DocGenAdditionalInput and DataRaptorInput are
         // not permissionable, so insert as user does not check them (measured on a 264 org).
         insert as user processes;
