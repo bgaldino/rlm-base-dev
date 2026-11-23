@@ -249,15 +249,17 @@ private class RLM_OrderItemContractingUtilityTest {
         PermissionSet readOrders = new PermissionSet(Name = 'RLM_Test_Read_Orders_Only', Label = 'RLM test read orders only');
         System.runAs(new User(Id = UserInfo.getUserId())) {
             insert readOrders;
+            // Measured on a 264 describe: OrderAction.OrderId is master-detail (relationshipOrder 0), so
+            // OrderAction access follows Order; OrderItem.OrderId is not (relationshipOrder null), so it needs
+            // its own Read. OrderAction.Type and Order.EffectiveDate are not permissionable (always readable
+            // with the object); OrderItem.ServiceDate and EndDate are, so only those two are granted.
             insert new List<ObjectPermissions>{
                 new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'Order', PermissionsRead = true),
-                new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'OrderAction', PermissionsRead = true)
+                new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'OrderItem', PermissionsRead = true)
             };
-            // OrderItem is detail of Order, so its object access follows Order; only its fields are granted.
             insert new List<FieldPermissions>{
                 new FieldPermissions(ParentId = readOrders.Id, SobjectType = 'OrderItem', Field = 'OrderItem.ServiceDate', PermissionsRead = true),
-                new FieldPermissions(ParentId = readOrders.Id, SobjectType = 'OrderItem', Field = 'OrderItem.EndDate', PermissionsRead = true),
-                new FieldPermissions(ParentId = readOrders.Id, SobjectType = 'OrderAction', Field = 'OrderAction.Type', PermissionsRead = true)
+                new FieldPermissions(ParentId = readOrders.Id, SobjectType = 'OrderItem', Field = 'OrderItem.EndDate', PermissionsRead = true)
             };
             insert new PermissionSetAssignment(AssigneeId = limited.Id, PermissionSetId = readOrders.Id);
         }
