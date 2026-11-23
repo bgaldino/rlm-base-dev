@@ -177,7 +177,7 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
         AccessLevel.USER_MODE
       );
       return rows.isEmpty() ? null : (String) rows[0].get('UrlPathPrefix');
-    } catch (Exception e) {
+    } catch (QueryException e) {
       System.debug(
         LoggingLevel.WARN,
         'RLM_Learning_DynamicLinkHelper: could not read Network.UrlPathPrefix, using the host-only site URL: ' +

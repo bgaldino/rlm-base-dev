@@ -1418,9 +1418,18 @@ private class RLM_Learning_FrameworkTest {
           'the site URL is the part of the login URL before "/s/"' + context
         );
       } else {
-        // No "/s/": the prefix is the Network's, so only the shape is asserted here.
+        // No "/s/": the base is the login URL's host plus the Network's own UrlPathPrefix, read
+        // here as an admin. A regression to a host-only URL fails this when the site has a prefix.
         Url parsed = new Url(loginUrl);
         String hostUrl = parsed.getProtocol() + '://' + parsed.getHost();
+        Id siteId = (Id) site.Id;
+        List<SObject> prefixRows = Database.query('SELECT UrlPathPrefix FROM Network WHERE Id = :siteId');
+        String prefix = (String) prefixRows[0].get('UrlPathPrefix');
+        Assert.areEqual(
+          RLM_Learning_DynamicLinkHelper.siteBaseUrl(loginUrl, prefix),
+          siteUrl,
+          'the site URL is the host plus the Network UrlPathPrefix' + context
+        );
         Assert.isTrue(siteUrl.startsWith(hostUrl), 'the site URL starts with the login URL host' + context);
         Assert.isFalse(siteUrl.endsWith('/'), 'the site URL has no trailing slash' + context);
       }
