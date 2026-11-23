@@ -79,8 +79,8 @@ What an insert of a `ProductRelatedComponent` row did with `ParentSellingModelId
 build, API 68.0, Bundle to Bundle relationship type] **Existing org, fresh-build check pending**:
 the run used an org that had been built earlier, not a fresh harness build, so settings and
 schema carried over from its history may differ from a fresh build. Re-measure on a fresh build
-before relying on it.
-[Open: repeat these inserts on a fresh harness build and record the outputs.]
+before relying on it. Whether a fresh build gives the same results is **Open — needs live
+verification** (repeat these inserts on a fresh harness build and record the outputs).
 
 | Parent product | Insert | Result |
 |---|---|---|
@@ -201,7 +201,6 @@ QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-
 | `UsageModelType` | Anchor (main subscription), Pack (add-on that grants usage), or a commitment type. Help lists one Commit value; the dev guide lists Monetary, Quantity and Token commitments, and `usage-consumption` names the API values. [Help: `ind.product_catalog_create_simple_products.htm`; Dev guide: `usage_management_fields_on_product2.htm`] | `usage-consumption` |
 | `DecompositionScope`, `FulfillmentQtyCalcMethod` | How many fulfillment lines; Always One vs Aggregate. [Help: `ind.product_catalog_create_simple_products.htm`] | `dro-plans` |
 | `AvailabilityDate`, `DiscontinuedDate`, `EndOfLifeDate` | No enforcement found (see note below) | see note below |
-| `DisplayUrl` | The product's image; Connect product responses return it as `displayUrl`. See [Product images](#product-images). [Dev guide: `connect_responses_recommended_products_output.htm`] | this skill |
 
 **Help describes the end dates in opposite ways.** The simple-product article ties
 `DiscontinuedDate` to sale and `EndOfLifeDate` to support; the bundled-product article says
@@ -240,9 +239,8 @@ In this repo:
 - **Decide the fallback on purpose.** Choose a shared placeholder for products without art,
   or accept a blank; do not leave the choice to whichever rows were filled in.
 - **An external `https` address** appears in the dev guide's example response, but whether this
-  repo's UI renders one without a trusted-site entry was not checked.
-  [Open: set an external `DisplayUrl` on a test product and open it in the configurator and the
-  product page.]
+  repo's UI renders one without a trusted-site entry is **Open — needs live verification** (set an
+  external `DisplayUrl` on a test product and open it in the configurator and the product page).
 
 In the shipped plan, all but one of the 314 products carry a `DisplayUrl`, in 54 distinct values,
 and one logo covers 220 of them. [Repo: the CSV above, counted 2026-11-23]

@@ -67,8 +67,8 @@ drop the `.md` suffix of the snapshot file name.
 - **DO NOT** set a component selling model on a configurable bundle's components, or,
   under a new static bundle, a parent selling model other than None or any component selling
   model. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
-  The platform rejects the configurable case on insert; the static case is accepted, so Help's
-  rule there is guidance, not a guard
+  On an existing org (fresh-build check pending), an insert was rejected for the configurable
+  case and accepted for the static case, so Help's static rule looks like guidance, not a guard
   ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
 - **DO NOT** override a price-impacting attribute in a bundle context. The attribute-based
   adjustment stops applying. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
@@ -349,6 +349,11 @@ Every item marked **Open — needs live verification** in this skill and its sub
   sets them; Help's rule is written for a *new* static bundle. An insert of such rows was accepted
   on an existing org; pricing and configurator behaviour are still open. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
+- **Component selling-model rules on a fresh build.** The accepted and rejected inserts were
+  measured on an existing org; repeat them on a fresh harness build. See
+  [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#measured-component-selling-model-rules).
+- **An external `https` `DisplayUrl`.** Whether this repo's UI renders one without a trusted-site
+  entry. See [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#product-images).
 - **A `Readonly` anchor behind a `$$` lookup.** Fact (b) saw its lookups fail without a CSV;
   `sfdmu-data-plans` verified a single-field traversal without one. The open check and its owner are in
   `sfdmu-data-plans` -> *Where a plan's CSVs live*; until it runs, keep the CSV.
