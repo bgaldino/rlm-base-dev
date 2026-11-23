@@ -127,7 +127,7 @@ foundations:
         - scripts/renewal_assets/augment_asset_lifecycle.apex
         - scripts/renewal_assets/reset_augment.apex
         - scripts/build_quote_to_asset.py
-      provenance: ported from eng git.soma.salesforce.com/tsubramaniam/RevAssetCreation; offline (py_compile + dry-run) verified, org behavior needs-live-verification
+      provenance: ported from an internal eng toolkit (the `create-revenue-asset-from-quote` skill); offline (py_compile + dry-run) verified, org behavior needs-live-verification
       caveats:
         - "Accounts must pre-exist — build_quote_to_asset.py resolves by name and does not create them"
         - "The two Apex scripts + end-to-end bucket build write to an org and are not covered by the offline checks; run live before relying on results"
