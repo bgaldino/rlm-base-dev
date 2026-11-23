@@ -389,7 +389,7 @@ these conditions; rerun the amendment and cancel checks there.
     that returns fewer results than inputs usually errors at runtime (a "number of results does
     not match the number of interviews" error), which would make the empty-list case a fault
     rather than the Default Outcome [inferred; not run]. Invoke the flow with both inputs null
-    and with an empty `recordIds` to settle it. The class also reads only the first interview's
+    to settle it (an empty `recordIds` instead exercises the throw described above). The class also reads only the first interview's
     input (`sourceInfoArray.get(0)`), so it returns at most one result for a batch of several
     interviews, which would raise the same error even when every id is valid [inferred; not
     run]; invoke the flow for two or more interviews in one transaction to settle that.
