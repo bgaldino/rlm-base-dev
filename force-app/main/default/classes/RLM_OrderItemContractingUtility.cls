@@ -33,8 +33,8 @@ public with sharing class RLM_OrderItemContractingUtility {
         // (ProductSellingModel.SellingModelType, OrderItem and OrderAction rows), applies to the subqueries,
         // and enforces sharing.
         // The OrderActions subquery has no LIMIT on purpose: the counts are per action type, so a cap would
-        // undercount. An order carries one action per kind of change, not one per line (inferred, not
-        // measured); check an order with several hundred lines on a live run.
+        // undercount. countOrderActions reads o.OrderActions with a for loop, the documented safe way to
+        // read more than 200 child rows.
         Map<Id, Order> ordersMap;
         Map<Id, Integer> itemCountByOrder = new Map<Id, Integer>();
         try {
