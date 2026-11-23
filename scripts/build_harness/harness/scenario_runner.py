@@ -21,30 +21,40 @@ from scripts.build_harness.harness.provenance import write_build_provenance
 _PREFLIGHT_RETRY_LIMIT = 2
 
 
-def _trailing_transient_preflight_failures(step_results_path: Path) -> int:
-    """Consecutive transient `project_root_flags` failures at the end of the step log.
+def _read_step_rows(step_results_path: Path) -> List[Dict[str, Any]]:
+    """Rows of the step log, skipping lines that are unparsable or not objects.
 
-    Any other row after them (a step, another preflight check) ends the run of failures,
-    so a later pass resets the count. Unparsable or non-object lines, such as a last line
-    cut off when the harness was killed mid-append, are skipped.
+    A last line cut off when the harness was killed mid-append, or bytes that are not
+    UTF-8, must not make the preflight failure path raise or hide a spent retry budget.
     """
     try:
-        lines = step_results_path.read_text(encoding="utf-8").splitlines()
-    except (OSError, UnicodeDecodeError):
-        return 0
-    count = 0
-    for line in reversed(lines):
+        text = step_results_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    rows: List[Dict[str, Any]] = []
+    for line in text.splitlines():
         try:
             row = json.loads(line)
         except ValueError:
             continue
-        if not isinstance(row, dict):
-            continue
-        if (
-            row.get("phase") == "preflight"
-            and row.get("target_name") == "project_root_flags"
-            and row.get("failure_class") == "transient"
-        ):
+        if isinstance(row, dict):
+            rows.append(row)
+    return rows
+
+
+def _is_flags_row(row: Dict[str, Any]) -> bool:
+    return row.get("phase") == "preflight" and row.get("target_name") == "project_root_flags"
+
+
+def _trailing_transient_preflight_failures(step_results_path: Path) -> int:
+    """Consecutive transient `project_root_flags` failures at the end of the step log.
+
+    Any other row after them ends the run of failures: a step row, another preflight
+    check, or the `passed` row written when a later attempt passes this check.
+    """
+    count = 0
+    for row in reversed(_read_step_rows(step_results_path)):
+        if _is_flags_row(row) and row.get("failure_class") == "transient":
             count += 1
         else:
             break
@@ -230,6 +240,24 @@ def run_single_scenario(
                 # limit counted from the earlier preflight rows. Anything else would make the
                 # policy recommend resume forever.
                 can_resume=is_resume and flags_failure_class == "transient" and not exhausted,
+            )
+
+        if any(_is_flags_row(row) for row in _read_step_rows(step_results_path)):
+            # An earlier attempt failed this check; record that this one passed, so the
+            # count of consecutive failures resets.
+            record_event(
+                {
+                    "phase": "preflight",
+                    "step_number": 0,
+                    "target_type": "preflight",
+                    "target_name": "project_root_flags",
+                    "status": "success",
+                    "duration_seconds": 0.0,
+                    "exit_code": 0,
+                    "failure_signature": "",
+                    "failure_class": "none",
+                    "retries_used": 0,
+                }
             )
 
         if not skip_validate and not is_resume:

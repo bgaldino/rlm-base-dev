@@ -584,3 +584,48 @@ def test_the_preflight_count_skips_a_truncated_or_non_object_line(tmp_path, monk
     result = _rerun_preflight(tmp_path)
     assert result["status"] == "resume_blocked"
     assert result["retry_count"] == 1
+
+
+def test_a_validate_setup_row_between_transient_rows_resets_the_count(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    _rerun_preflight(tmp_path)
+    log = tmp_path / "runs" / "run-10" / "scenarios" / "ent-default" / "step_results.jsonl"
+    with log.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps({"phase": "preflight", "target_name": "validate_setup", "status": "success"}) + "\n")
+    result = _rerun_preflight(tmp_path)
+    assert result["retry_count"] == 0 and result["can_resume"] is True
+
+
+def test_a_pass_after_a_failure_writes_a_row_that_resets_the_count(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    _rerun_preflight(tmp_path)
+    monkeypatch.setattr(scenario_runner, "verify_project_flags", lambda _root, _flags: None)
+    monkeypatch.setattr(scenario_runner, "probe_org", lambda *_a, **_k: {"state": "missing", "detail": "gone"})
+    _rerun_preflight(tmp_path)  # preflight passes; the resume then stops at the org probe
+    rows = [r for r in _read_step_results(tmp_path) if r.get("target_name") == "project_root_flags"]
+    assert rows[-1]["status"] == "success"
+    monkeypatch.setattr(
+        scenario_runner, "verify_project_flags", lambda _root, _flags: PreflightFailure("cci timed out", "transient")
+    )
+    result = _rerun_preflight(tmp_path)
+    assert result["retry_count"] == 0 and result["can_resume"] is True
+
+
+def test_an_exhausted_budget_is_terminal_on_a_fresh_run_too(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    _rerun_preflight(tmp_path)
+    _rerun_preflight(tmp_path)
+    result = _rerun_preflight(tmp_path, is_resume=False)
+    assert result["status"] == "failed"
+    assert result["failure_class"] == "deterministic"
+    assert result["policy"]["recommended_action"] == "manual_fix_required"
+
+
+def test_the_preflight_count_survives_bytes_that_are_not_utf8(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    log = tmp_path / "runs" / "run-10" / "scenarios" / "ent-default" / "step_results.jsonl"
+    with log.open("ab") as handle:
+        handle.write(b'\xff\xfe{"broken\n')
+    result = _rerun_preflight(tmp_path)
+    assert result["status"] == "resume_blocked"
+    assert result["retry_count"] == 1
