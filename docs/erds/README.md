@@ -106,7 +106,7 @@ object count see the Domain Overview table in
 
 - **contracts-erd-data.json** — Separate Contracts CLM viewer extension (40 new objects, 446 fields, 55 additional relationship edges)
   - Kept separate from the Revenue Cloud baseline so its release-diff history remains comparable
-  - Includes Contracts Developer Guide objects plus related contract status, state-model, and Context Service objects
+  - Includes Salesforce Contracts guide objects plus related contract status, state-model, and Context Service objects
   - `scripts/erd/schema_diff/264-clm-schema.json` records the four-org describe consensus (48 objects, 553 fields) and feature-gated visibility
   - `scripts/erd/schema_diff/clm-object-list.txt` preserves the explicit selection for future release-aligned extracts
   - Four Developer Guide object pages were absent from the primary org's object inventory and failed direct describe in all four prepared orgs; two included generation status-event objects are marked not SOQL-queryable

@@ -155,4 +155,4 @@ For new context definitions (admin setup, not runtime):
 
 ---
 
-*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Salesforce Revenue Cloud Developer Guide v264*
+*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Revenue Management Developer Guide v264*

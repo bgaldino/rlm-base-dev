@@ -1,7 +1,7 @@
 ---
 name: release-enablement
 description: >-
-  Author and maintain Revenue Cloud (Agentforce Revenue Management) Hands-On
+  Author and maintain Revenue Cloud Hands-On
   Enablement Exercises per release. Use when updating exercises for a new
   release (260, 262, …), authoring the journey map index document, indexing
   release-note features per functional area, or implementing the auto-gen

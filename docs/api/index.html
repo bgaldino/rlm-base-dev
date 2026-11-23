@@ -1004,7 +1004,9 @@ const DOMAINS = {
               {name:'contextId',type:'String',req:true,desc:'ID of the context to retrieve data records from.'},
               {name:'queryTags',type:'List&lt;String&gt;',req:false,desc:'List of objects to retrieve from the context (e.g., Quote, QuoteLineItem, Product).'},
               {name:'sobjectFieldMap',type:'Map&lt;String, List&lt;String&gt;&gt;',req:false,desc:'v67.0+. Maps an sObject name to a list of field names to query; an empty list queries all fields on that object.'},
-              {name:'filters',type:'List&lt;Sales Transaction Filter Condition Input&gt;',req:false,desc:'v67.0+. Filter conditions (sObjectName, fieldName, operator, operands) to query the context data.'}
+              {name:'filters',type:'List&lt;Sales Transaction Filter Condition Input&gt;',req:false,desc:'v67.0+. Filter conditions to query the context data. Name the field by sObjectName and fieldName, or by nodeName and attributeName, with an operator and operands. Nest conditions with underlyingFilters and combine them with operatorLogic (AND or OR).'},
+              {name:'batchIndices',type:'List&lt;Integer&gt;',req:false,desc:'v68.0+. Zero-based indices of the batches to fetch. When set, the response returns only those batches.'},
+              {name:'shouldReturnMetadataOnly',type:'Boolean',req:false,desc:'v68.0+. When true, returns only the batch metadata (batchMetadata) without fetching batch data.'}
             ]},
           { method:'POST', path:'/connect/rev/sales-transaction/actions/clone', title:'Clone Sales Transaction', version:'64.0',
             desc:'Create a clone of a sales transaction — a quote or an order. Supports cloning Quote, QuoteLineItem, OrderItem, QuoteLineGroup, Order, and OrderItemGroup records with their related records and configurations. Cloning a quote line group or order item group record clones all items within that group.',
@@ -1344,12 +1346,12 @@ const DOMAINS = {
       {
         id: 'bill-commerce-payments', title: 'Salesforce Commerce Payments API',
         endpoints: [
-          { method:'POST', path:'/commerce/payments/payment-methods', title:'Tokenize Payment Method', desc:'Tokenize a payment method.', note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' },
-          { method:'POST', path:'/commerce/payments/sales', title:'Make Payment Sale', desc:'Make a payment sale.', note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' },
-          { method:'POST', path:'/commerce/payments/payments/{paymentId}/refunds', title:'Create Refund', desc:'Create a refund for a payment.', params:[{name:'paymentId', desc:'URI parameter identifying the payment.'}], note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' },
-          { method:'POST', path:'/commerce/payments/authorizations', title:'Authorize Payment', desc:'Authorize a payment.', note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' },
-          { method:'POST', path:'/commerce/payments/authorizations/{authorizationId}/reversals', title:'Reverse Authorization', desc:'Reverse an authorized payment.', params:[{name:'authorizationId', desc:'URI parameter identifying the authorization.'}], note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' },
-          { method:'POST', path:'/commerce/payments/authorizations/{authorizationId}/captures', title:'Capture Authorization', desc:'Capture an authorized payment.', params:[{name:'authorizationId', desc:'URI parameter identifying the authorization.'}], note:'External Salesforce Commerce Payments API — not part of the 264 RLM dev-guide grounding source.' }
+          { method:'POST', path:'/commerce/payments/payment-methods', title:'Tokenize Payment Method', desc:'Tokenize a payment method.', note:'External Salesforce Commerce Payments API — not part of the 264 Revenue Management Developer Guide grounding source.' },
+          { method:'POST', path:'/commerce/payments/sales', title:'Make Payment Sale', desc:'Make a payment sale.', note:'External Salesforce Commerce Payments API — not part of the 264 Revenue Management Developer Guide grounding source.' },
+          { method:'POST', path:'/commerce/payments/payments/{paymentId}/refunds', title:'Create Refund', desc:'Create a refund for a payment.', params:[{name:'paymentId', desc:'URI parameter identifying the payment.'}], note:'External Salesforce Commerce Payments API — not part of the 264 Revenue Management Developer Guide grounding source.' },
+          { method:'POST', path:'/commerce/payments/authorizations', title:'Authorize Payment', desc:'Authorize a payment.', note:'External Salesforce Commerce Payments API — not part of the 264 Revenue Management Developer Guide grounding source.' },
+          { method:'POST', path:'/commerce/payments/authorizations/{authorizationId}/reversals', title:'Reverse Authorization', desc:'Reverse an authorized payment.', params:[{name:'authorizationId', desc:'URI parameter identifying the authorization.'}], note:'External Salesforce Commerce Payments API — not part of the 264 Revenue Management Developer Guide grounding source.' },
+          { method:'POST', path:'/commerce/payments/authorizations/{authorizationId}/captures', title:'Capture Authorization', desc:'Capture an authorized payment.', params:[{name:'authorizationId', desc:'URI parameter identifying the authorization.'}], note:'External Salesforce Commerce Payments API — not part of the 264 Revenue Management Developer Guide grounding source.' }
         ]
       },
       {
@@ -1555,10 +1557,10 @@ function renderOverview() {
   return `
   <div class="tab-content" id="tab-overview">
     <h1 class="page-title">Revenue Cloud API Reference</h1>
-    <p class="page-subtitle">Revenue Management APIs v68.0 — Winter '27 (Release 264, preview / pre-GA)</p>
+    <p class="page-subtitle">Revenue Management APIs v68.0 — Winter '27 (Release 264)</p>
 
     <div class="info-box">
-      <strong>This viewer</strong> documents 155 endpoints across 9 API domains. Of these, 143 are re-extracted from the Release 264 (v68.0) developer guide; the remaining 12 are retained for continuity rather than fresh 264-guide extractions — six Billing entries are external Salesforce Commerce Payments APIs (documented under <code class="inline">/commerce/payments/</code>, outside the 264 RLM guide), five Context Service endpoints are v59 carryover (the 264 guide has no Context Service Business-API section), and one PCM entry (Product Related Records, v59.0) is a legacy route no longer present in the 264 snapshot. The downloadable Postman collection and its Setup Runner are being regenerated against a live 264 org — until that lands, treat the JSON exports in <code class="inline">postman/</code> as the prior (v66.0) baseline.
+      <strong>This viewer</strong> documents 155 endpoints across 9 API domains. Of these, 143 are re-extracted from the Release 264 (v68.0) developer guide; the remaining 12 are retained for continuity rather than fresh 264-guide extractions — six Billing entries are external Salesforce Commerce Payments APIs (documented under <code class="inline">/commerce/payments/</code>, outside the 264 Revenue Management Developer Guide), five Context Service endpoints are v59 carryover (the 264 guide has no Context Service Business-API section), and one PCM entry (Product Related Records, v59.0) is a legacy route no longer present in the 264 snapshot. The downloadable Postman collection and its Setup Runner are being regenerated against a live 264 org — until that lands, treat the JSON exports in <code class="inline">postman/</code> as the prior (v66.0) baseline.
     </div>
 
     <h2 class="section-heading">Collections</h2>

@@ -21,9 +21,9 @@ steps [Help: `ind.qocal_customize_transaction_line_editor`]:
 5. Save, activate, and pick a form factor.
 
 The editor shows as **Quote Line Items** on a quote and **Order Products** on an order. Users need a
-Revenue Management permission set such as Assetize Order or Price and Tax Calculation for Quoting
+Revenue Cloud permission set such as Assetize Order or Price and Tax Calculation for Quoting
 [Help: `ind.qocal_customize_transaction_line_editor`]. To use it on a quote they need Manage Revenue
-Management, the Create Orders from Quotes permission set and Price and Tax Calculation for Quoting
+Cloud, the Create Orders from Quotes permission set and Price and Tax Calculation for Quoting
 [Help: `ind.qocal_view_and_edit_quotes`]. On an order the profile also needs read access to
 `OrderItem.ValidationResult`, `PriceWaterfallIdentifier`, `ParentOrderItemId`, `OrderActionId` and
 `OrderItemRelationship.AssociatedOrderItemPricing`, `AssociatedQuantScaleMethod`

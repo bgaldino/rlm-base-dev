@@ -120,6 +120,12 @@ node-status rule and trigger ([verification.md](verification.md) → Measured re
    `ind.qocal_amend_assets`, `ind.qocal_renew_assets`, `ind.qocal_cancel_assets`].
    Cancelling or renewing a bundle component alone is refused: "the asset is a bundle
    component. Provide the top-level asset" [Measured: 2026-11-05, 264].
+    - **Usage-based renewals.** To carry negotiated rates and grants into the renewal quote,
+      set the asset's Pricing Source to Last Transaction before renewing; blank or catalog
+      pricing gives active catalog rates and grants [Help: `ind.qocal_renew_assets`]. Early
+      renewal of usage-based assets needs a term-defined selling model (not one-time or
+      evergreen) and the Revenue Cloud Advanced license without Billing
+      [Help: `ind.qocal_renew_usage_based_assets_early`]. Neither was measured here.
     - **Removing a Term Defined component through an amendment of the top-level asset
       works.** Amend the root with `quantityChange` 0, then set the component line's `Quantity` to −n with a
       Place request, rules on. On an amendment quote `Quantity` is the delta, and

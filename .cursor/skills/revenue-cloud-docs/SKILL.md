@@ -19,7 +19,7 @@ description: >-
 
 Use the Salesforce Help portal snapshots at `docs/salesforce/{release}/help/` as the canonical source of truth for product claims about Revenue Cloud — Billing, Pricing, Quoting, Orders, Contracts, Assets, Usage, and the adjacent areas. Every Trailhead module, enablement exercise, internal doc, or SME review response that asserts something about how Revenue Cloud works should ground that assertion against an article in the snapshot before being written or accepted.
 
-For **developer-facing** material — standard object/field reference, Business APIs, Apex, Metadata/Tooling API types, invocable actions, and **Constraint Modeling Language (CML)** — use the companion **Developer Guide snapshot** at `docs/salesforce/{release}/dev-guide/` (the atlas Revenue Cloud Developer Guide). See [Developer Guide snapshot (atlas)](#developer-guide-snapshot-atlas) below. Rule of thumb: **Help = how an admin/seller uses a feature; Dev Guide = the objects, fields, APIs, and CML a developer builds against.**
+For **developer-facing** material — standard object/field reference, Business APIs, Apex, Metadata/Tooling API types, invocable actions, and **Constraint Modeling Language (CML)** — use the companion **Developer Guide snapshot** at `docs/salesforce/{release}/dev-guide/` (the atlas Revenue Management Developer Guide). See [Developer Guide snapshot (atlas)](#developer-guide-snapshot-atlas) below. Rule of thumb: **Help = how an admin/seller uses a feature; Dev Guide = the objects, fields, APIs, and CML a developer builds against.**
 
 **Which releases and areas are captured.** Run `python -m scripts.doc_snapshot list` to see every preset, and open the corpus's `index.md` for what has actually been captured. On the active release, a Help preset with a floor (`min N` in `list`) has been verified and captured; one without a floor hasn't been verified yet, so don't treat its text as current-release content. Pre-GA, Salesforce publishes Help one area at a time, and an area can keep serving the previous release's text after the new release's pages appear.
 
@@ -78,7 +78,7 @@ fetched_at: "2026-05-11"
 
 ## Developer Guide snapshot (atlas)
 
-The **Revenue Cloud Developer Guide** lives in a different documentation system from Help: the "atlas" viewer at `developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta`. The snapshot tool's `dev-guide` subcommand captures it into `docs/salesforce/{release}/dev-guide/`, using the same layout as Help.
+The **Revenue Management Developer Guide** lives in a different documentation system from Help: the "atlas" viewer at `developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta`. The snapshot tool's `dev-guide` subcommand captures it into `docs/salesforce/{release}/dev-guide/`, using the same layout as Help.
 
 | Path | Purpose |
 |---|---|
@@ -94,7 +94,7 @@ python -m scripts.doc_snapshot dev-guide --release {release} --guide rlm
 python -m scripts.doc_snapshot dev-guide --release {release} --guide rlm --section "Constraint Modeling Language"
 ```
 
-### Industries Common Resources dev guide (`dev-guide-industries`)
+### Industries Common Resources Developer Guide (`dev-guide-industries`)
 
 Revenue Cloud builds on shared **Industries platform services** that its own dev guide doesn't document: Business Rules Engine (expression sets, decision tables and matrices), Context Service, OmniStudio, Discovery Framework (guided selling), Data Processing Engine/Batch, Decision Explainer, Collections and Recovery, Action Launcher, and Timeline. They're documented in a second atlas guide, `industries_reference`, which the `industries` preset captures into `docs/salesforce/{release}/dev-guide-industries/` (same layout).
 
@@ -200,15 +200,17 @@ Each functional area in Revenue Cloud has its own root Help article and ID prefi
 | DRO | DRO / Fulfillment | `ind.dro_dynamic_revenue_orchestrator.htm` | `ind.dro` |
 | Usage Management | Usage Management | `ind.um_usage_management.htm` | `ind.um` |
 | Billing | Billing | `ind.billing.htm` | `ind.billing` |
-| **Cross-domain** | **Agentforce for Revenue Management** | `ind.rev_agent_overview.htm` | `ind.rev_agent` |
+| **Cross-domain** | **Agentforce for Revenue Cloud** | `ind.rev_agent_overview.htm` | `ind.rev_agent` |
 | Approvals | Advanced Approvals | `ind.approvals_advanced_approvals.htm` | `ind.approvals` |
-| Collections | Collections and Recovery | `ind.billing_collections.htm` | `ind.billing_collections` |
+| Collections | Collections and Recovery (own preset and area, `collections`) | `ind.collections.htm` | `ind.collections` |
+
+**Two different "collections" topics.** Collections and Recovery (`ind.collections*`, root `ind.collections.htm`, area `collections`) has 97 articles captured under the `ind.collections` prefix for 264 (no discovery-walk floor is set, so completeness is not verified); they cover setup, data model, console app, portal, payment plans, promise to pay, direct debit, outbound dialer, risk scores and call compliance. Its editions page (`ind.collections_editions_permissions.htm`) lists Financial Services Cloud and Automotive Cloud, not Revenue Cloud, so confirm licensing before promising it on a Revenue Cloud org. Billing's own collections workflow (collection plans on overdue invoices, dunning) is a different set of articles in the `billing` area: `ind.billing_collections.htm`, `ind.billing_collections_overview.htm` and the `ind.billing_collections_*` setup articles. Grep both prefixes for a collections claim.
 
 **Manifest structure.** The shared manifest at `docs/salesforce/{release}/help/manifest.json` carries a top-level `areas` array that accumulates per-area run metadata (root, prefix, snapshot dates, per-area stats). Each article entry in `manifest.articles` is tagged with its `area` for filtering. The `index.md` renders an overall stats table + a per-area coverage summary + per-area captured-articles sections when the manifest covers multiple areas, falling back to the original single-area layout when only one area is captured. Use `manifest.areas` (or `grep area:` on per-article frontmatter) to filter by functional area.
 
 ### Agent content is cross-cutting — grep across multiple snapshots
 
-The subagents under **Agentforce for Revenue Management** operate inside specific functional areas, and their how-to documentation lives under each area's prefix — not under `ind.rev_agent_*`. Examples:
+The subagents under **Agentforce for Revenue Cloud** operate inside specific functional areas, and their how-to documentation lives under each area's prefix — not under `ind.rev_agent_*`. Examples:
 
 | Subagent | Topic-reference article (in `ind.rev_agent_*`) | How-to / use-case articles (in functional-area prefix) |
 |---|---|---|

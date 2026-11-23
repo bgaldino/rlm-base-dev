@@ -1,7 +1,7 @@
 # Salesforce Product Configurator APIs - Complete Endpoint Reference
 ## Revenue Lifecycle Management API v68.0 (Winter '27)
 
-This document provides a comprehensive reference of all REST API endpoints for the Salesforce Product Configurator APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
+This document provides a comprehensive reference of all REST API endpoints for the Salesforce Product Configurator APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Management Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
 The Product Configurator APIs enable interactive configuration of complex products — bundles, option groups, and rule-driven selections — within a quoting or eCommerce flow. Configuration state is maintained server-side as a **context** (`contextId`), tied to a transaction (`transactionId`/`transactionLineId`), across multiple API calls — allowing incremental changes (add/update/delete nodes, quantity changes) before the final configuration is committed. The 264 snapshot also includes a Config Rules endpoint (available from API v67.0 / Release 262) under a separate `/revenue/product-configurator/` base path (see below).
 
@@ -248,4 +248,4 @@ Nodes represent individual components within a configuration — products, bundl
 
 ---
 
-*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Salesforce Revenue Cloud Developer Guide v264*
+*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Revenue Management Developer Guide v264*

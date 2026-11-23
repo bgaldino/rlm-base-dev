@@ -1,7 +1,7 @@
 # Salesforce Usage Management APIs - Complete Endpoint Reference
 ## Revenue Lifecycle Management API v68.0 (Winter '27)
 
-This document provides a comprehensive reference of all REST API endpoints for the Salesforce Usage Management APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
+This document provides a comprehensive reference of all REST API endpoints for the Salesforce Usage Management APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Management Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
 The Usage Management APIs provide visibility into metered usage across the Revenue Cloud lifecycle — from assets and orders to quotes and binding objects. Consumption traceability and usage product validation were introduced in v66.0 (Spring '26); usage product activation was introduced in v67.0 (Summer '26).
 
@@ -155,4 +155,4 @@ Usage Management APIs require the following to be configured in the org:
 
 ---
 
-*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Salesforce Revenue Cloud Developer Guide v264*
+*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Revenue Management Developer Guide v264*

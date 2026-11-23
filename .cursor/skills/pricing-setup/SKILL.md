@@ -209,8 +209,8 @@ worktree, `.venv` lives in the main checkout):
   - [`scenarios/pricing-action-button.md`](scenarios/pricing-action-button.md) — Calculate
     Price on an Opportunity.
   - [`scenarios/cost-and-margin.md`](scenarios/cost-and-margin.md) — unit cost, line
-    cost and margin, and a quote total cost, from cost book entries (repo wiring, not a
-    Help example); term-line cost × `PricingTermCount`; `Margin` in percent units.
+    cost and margin, and a quote total cost, from cost book entries (repo wiring; Help has only an
+    illustrative custom-field example); term-line cost × `PricingTermCount`; `Margin` in percent units.
   - [`scenarios/full-term-value.md`](scenarios/full-term-value.md) — a full-term value,
     cost and margin next to the platform's one-period total: per-line fields written by the
     procedure, quote roll-ups and formulas, a fee on a product subset; the months left on

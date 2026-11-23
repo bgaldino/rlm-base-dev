@@ -1,6 +1,6 @@
 # Revenue Cloud Enablement Catalog
 
-Hands-on enablement exercises for Salesforce Revenue Cloud (Agentforce Revenue Management), maintained as part of the `rlm-base-dev` project so the materials stay aligned with the org-build automation.
+Hands-on enablement exercises for Salesforce Revenue Cloud, maintained as part of the `rlm-base-dev` project so the materials stay aligned with the org-build automation.
 
 > **Audience for this README:** colleagues reviewing the enablement catalog. Reading this in full takes ~10 minutes and gives you enough context to start reviewing any individual exercise. If you're an authoring agent (Cursor, Claude, etc.) instead, your entry point is [`.cursor/skills/release-enablement/SKILL.md`](../../.cursor/skills/release-enablement/SKILL.md) — read that, not this.
 
@@ -147,7 +147,7 @@ Your goal: confirm the materials work for customer enablement (or could, after p
 
 - Anything currently in the markdown that should NOT go to customers (internal jargon, preview-only feature claims, branding mismatches)
 - Tone adjustments that would make this customer-ready vs internal-only
-- Whether "Agentforce Revenue Management" branding should propagate to these exercises now, or stay "Revenue Cloud" until product UI catches up
+- Whether the exercises should keep "Revenue Cloud" (the name the 264 Help and release notes use)
 
 ### 🤖 Authoring agent (you don't need this README)
 
@@ -259,7 +259,7 @@ These are decisions that need authoring + PM input before drafts can move from `
 
 1. **Depth of prior-release content in master exercises** — sections referencing 252/254/256/258 features currently summarize behavior in a paragraph and link to the prior PDF. Is that sufficient, or should master sections include full step-by-step walkthroughs (would 3× the file length)?
 2. **Synthesis exercise scope** — each master exercise's capstone is a 4–6 hour comprehensive walkthrough. Should we offer scoped variants (2-hour quick walkthrough vs 6-hour full)?
-3. **Branding** — keep "Revenue Cloud" labels (matches current product UI), switch to "Agentforce Revenue Management" (matches Spring '26 marketing), or use both during transition? Currently we use "Revenue Cloud" throughout.
+3. **Branding** — keep "Revenue Cloud" labels (the name the 264 Help and release notes use) or follow a later rename? Currently we use "Revenue Cloud" throughout.
 
 ### Demo URLs
 

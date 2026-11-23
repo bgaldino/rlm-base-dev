@@ -119,7 +119,7 @@ Please provide feedback on demo errors, issues, and missing functionality in the
 - Collections Agent
 - OOB Dunning Template
 
-**Branding note:** Solution Overview decks for 262 still use "Revenue Cloud Advanced" / "Revenue Cloud Billing". The Spring '26 rebrand to "Agentforce Revenue Management" continues to propagate.
+**Branding note:** Solution Overview decks for 262 still use "Revenue Cloud Advanced" / "Revenue Cloud Billing". The 264 Help and release notes call the product "Revenue Cloud"; use that name.
 
 ---
 

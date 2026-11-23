@@ -1,7 +1,7 @@
 # Salesforce Rate Management APIs - Complete Endpoint Reference
 ## Revenue Lifecycle Management API v68.0 (Winter '27)
 
-This document provides a comprehensive reference of all REST API endpoints for the Salesforce Rate Management APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Cloud Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
+This document provides a comprehensive reference of all REST API endpoints for the Salesforce Rate Management APIs, extracted from the Agentforce Revenue Management APIs Postman collection and the Revenue Management Developer Guide v264. Endpoints are organized by functional area and include HTTP method, URI path, description, and notable request/response fields.
 
 The Rate Management APIs support usage-based billing scenarios by exposing the rating engine's rate plans and waterfall calculation details. Rate plans define how usage is priced (tiers, flat rates, per-unit), and the rating waterfall shows the step-by-step application of rate card rules during billing. These APIs are most relevant in orgs with usage-based products (Platform Usage Resources, PURs).
 
@@ -92,4 +92,4 @@ These APIs require usage-based billing to be configured in the org. Before using
 
 ---
 
-*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Salesforce Revenue Cloud Developer Guide v264*
+*Reference for: Agentforce Revenue Management APIs v68.0 (Winter '27) | Revenue Management Developer Guide v264*

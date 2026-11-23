@@ -1,8 +1,11 @@
 # Scenario: Cost and Margin on Quote Lines
 
 > Sub-file of `.cursor/skills/pricing-setup/SKILL.md`, indexed in [README.md](README.md).
-> Release 264. Unlike the other scenarios this one has no single Help example, because Help
-> calls cost books tracking-only. It assembles the repo's shipped wiring end to end. Sources
+> Release 264. Unlike the other scenarios this one has no Help example of its own wiring: Help
+> calls cost books tracking-only, and its one illustrative example
+> (`ind.pricing_calculate_margin_by_using_a_standard_cost_book.htm`, "not a packaged feature or a
+> supported configuration path") computes margin in custom formula fields, not in the procedure.
+> This file assembles the repo's shipped wiring end to end. Sources
 > are tagged `[Help]`, `[Repo: <path>]`, `[inferred]` and `[Measured]` (measured 2026-11-11 on a
 > fresh 264 `ent-sb0` scratch org, on a clone of `RLM_DefaultPricingProcedure`).
 

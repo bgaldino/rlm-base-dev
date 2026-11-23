@@ -1,7 +1,7 @@
 # Price Books and Price Book Entries
 
 > Sub-file of `.cursor/skills/pricing-setup/SKILL.md`. Release 264 / API v68.0. Sources:
-> `ind.pricing_price_books_salesforce_pricing.htm`, `ind.pricing_define_prices_in_price_books.htm`,
+> `ind.pricing_price_books_and_cost_books.htm`, `ind.pricing_define_prices_in_price_books.htm`,
 > `ind.pricing_add_products_as_price_book_entries.htm`, `ind.pricing_create_or_use_predefined_lookup_tables.htm`;
 > `datasets/sfdmu/qb/en-US/qb-pricing/README.md`. Not live-verified.
 
@@ -11,7 +11,7 @@ Book Entries decision table, so a PBE only prices a line after that table is ref
 
 ## When you need it
 
-- Every org needs at least one price book to price products; a cost book is optional. [Help: `ind.pricing_price_books_salesforce_pricing.htm`]
+- Every org needs at least one price book to price products; a cost book is optional. [Help: `ind.pricing_price_books_and_cost_books.htm`]
 - Separate books for currencies, regions or customer segments. [Help: `ind.pricing_define_prices_in_price_books.htm`]
 - All products in a bundle must be in the same price book as the bundle, or quoting the bundle prices wrongly. [Help]
 
