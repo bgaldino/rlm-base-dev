@@ -368,13 +368,25 @@ these conditions; rerun the amendment and cancel checks there.
     Outcome therefore ends the interview normally, with no error.
   - `RLM_Assetize_Order_DRO_Fulfillment` reports failure through three output variables,
     `isSuccess` (defaults true), `fulfillmentStepErrorCode` and `fulfillmentStepErrorMessage`.
-    The message carries the fault text (`$Flow.FaultMessage`) on the fault path and a fixed
-    sentence naming the unresolved source type on the other; whether DRO reads or surfaces it
-    is not measured. Two failure assignments set
-    `isSuccess` false: `Check_Source_Data_Type`'s Default Outcome (a blank or unrecognized
-    source type) sets `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`; a fault connector from each of
-    the 5 action calls and 6 record lookups sets `RLM_ASSETIZE_FAULT`. The four recognized
-    source types are unchanged. Two connector-less ends read as intended skips, not failures [inferred from the flow's
+    The message carries the fault text (`$Flow.FaultMessage`) on the fault path. On the
+    unresolved-type path it is a text template that names the value
+    `RLM_DetermineDROSourceType` returned (empty when it returned nothing) and lists the four
+    expected values. Whether DRO reads or surfaces the variable is not measured. Two failure
+    assignments set `isSuccess` false: `Check_Source_Data_Type`'s Default Outcome (a source
+    type that matches none of the four rules) sets `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`; a
+    fault connector from each of the 5 action calls and 6 record lookups sets
+    `RLM_ASSETIZE_FAULT`. The four recognized source types are unchanged.
+  - What `RLM_DetermineDROSourceType` does with a blank or malformed id, read from the Apex
+    (the class on `main` when this was written; another change may alter it). With
+    `recordId` set, it casts it to an `Id`, so a non-Id string throws. With only `recordIds`
+    set, it reads the first element, so an empty (non-null) list throws and a non-Id element
+    throws; a valid first Id returns the type name with `s` appended. With both null it
+    returns an empty list without throwing. A throw reaches the flow as a fault on
+    `Determine_DRO_Source_Type`, so it takes `RLM_ASSETIZE_FAULT` [inferred; not run]. What the flow sees from the
+    empty list (a null output, so the Default Outcome and
+    `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`, or a fault) is not measured [inferred]; invoke the
+    flow with both inputs null and with an empty `recordIds` to settle it.
+  - Two connector-less ends read as intended skips, not failures [inferred from the flow's
     structure]:
     `Has_Parent_Id`'s `Parent_Exists` outcome (a component line is assetized through its
     parent) and the `exists` decision's Default Outcome (the source line is not in

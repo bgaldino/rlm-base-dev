@@ -229,7 +229,7 @@
             <assignToReference>fulfillmentStepErrorMessage</assignToReference>
             <operator>Assign</operator>
             <value>
-                <stringValue>The source record type returned by RLM_DetermineDROSourceType is blank or is not OrderItem, FulfillmentOrderLineItem, OrderItems or FulfillmentOrderLineItems, so no assets were created.</stringValue>
+                <elementReference>UnresolvedSourceTypeMessage</elementReference>
             </value>
         </assignmentItems>
     </assignments>
@@ -611,6 +611,11 @@
         </connector>
     </start>
     <status>Draft</status>
+    <textTemplates>
+        <name>UnresolvedSourceTypeMessage</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>RLM_DetermineDROSourceType returned '{!Determine_DRO_Source_Type}', which is not OrderItem, FulfillmentOrderLineItem, OrderItems or FulfillmentOrderLineItems, so no assets were created.</text>
+    </textTemplates>
     <variables>
         <name>currentItem_Collection_Filter_1</name>
         <dataType>SObject</dataType>
