@@ -2,7 +2,7 @@
 """Fail a permission set that has no label, or that grants Account read without Contact read.
 
 A permission set with no `<label>` (or an empty one) fails the deploy with "Required field is
-missing: label"; RLM_CollectionsUI shipped that way until a live deploy caught it.
+missing: label"; RLM_CollectionsUI was written that way until a live deploy caught it.
 
 Salesforce rejects the deploy ("Permission Read Account depends on permission(s): Read
 Contact") when a permission set grants read on Account but not on Contact. It is for the person
