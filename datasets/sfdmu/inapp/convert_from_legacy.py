@@ -63,8 +63,8 @@ SR_DIR = OUT_DIR.parents[2] / "unpackaged" / "post_inapp" / "staticresources" / 
 # --- 258 -> 262 (Summer '26) content updates -----------------------------------
 # Authored and verified against the 262 snapshots (Help 935 articles, dev-guide 1388);
 # the 23 distinct HELP_ID_REMAP targets and the DEVGUIDE_ID_REMAP target were rechecked
-# against the 264 snapshot (Help 1,703 articles, dev-guide 1,464); the rest of the remaps
-# below were confirmed against the 262 snapshot only.
+# against the 264 snapshot (Help 1,703 articles, dev-guide 1,409 captured of 1,465
+# discovered); the rest of the remaps below were confirmed against the 262 snapshot only.
 VERSION_TEXT_REMAPS = {
     "Revenue Cloud Winter'26 Release": "Revenue Cloud Summer '26 Release",
     # 262 capability rename — user-facing label only; app API name standard__PriceManagement unchanged.
