@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_set_up_contract_search_for_contract_ai.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Agentforce for Contract Search
@@ -43,3 +43,7 @@ Customize Prompt Templates for Contract Search
 Tailor prompt templates to improve the accuracy and relevance of contract search results for your business needs. Using Prompt Builder, select standard templates such as Contract Q&A or Summarize Contract, save them as new versions, and then customize as needed.
 Use Case: Customize the Contract Agent Experience
 In this use case, a Salesforce Admin customizes the Contract Agent to help legal and sales teams find and summarize key clauses, then send insights via email. Learn how to tailor prompt templates and agent actions to reflect your internal standards.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_contract_document_overview.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

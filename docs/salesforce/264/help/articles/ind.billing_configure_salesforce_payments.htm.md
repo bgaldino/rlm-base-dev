@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_setup_salesforce_payments_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configure Salesforce Payments
@@ -16,8 +16,8 @@ To use Salesforce Payments for financial transactions, set up an Experience Clou
 REQUIRED EDITIONS
 Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
-The Salesforce Payments feature is available with the Revenue Cloud Billing license, with a cost per transaction model for both native and Bring Your Own payment gateways. Contact your Salesforce account executive for more information.
-If you purchased the Revenue Cloud Billing license on or before July 2025, contact your Salesforce account executive to add the Salesforce Payments feature to your existing license.
+To integrate a native payment gateway, you have two options. Use Salesforce Payments, which runs on Stripe and is available with the the Revenue Cloud Billing license on a cost-per-transaction basis. Or, connect your own Adyen account, contracted directly with Adyen.
+ 
 USER PERMISSIONS NEEDED
 To enable and configure Payments features:	Payment Admin permission set
 Turn On Salesforce Payments
@@ -42,3 +42,7 @@ Assign Permissions to Access Billing Features
 Set Up Merchant Accounts
 Automatic Creation of Payment Schedules and Payment Schedule Items
 Payment Batch Run Overview
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_configure_salesforce_payments.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

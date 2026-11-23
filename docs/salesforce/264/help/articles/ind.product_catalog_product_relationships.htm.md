@@ -1,15 +1,15 @@
 ---
 article_id: ind.product_catalog_product_relationships.htm
-title: Product Relationship Management in Revenue Management
+title: Product Relationship Management in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.product_catalog_product_relationships.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_creation_of_a_bundled_product_structure.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# Product Relationship Management in Revenue Management
+# Product Relationship Management in Revenue Cloud
 
 Bundle products consist of components such as groups, products, and product classifications. These components are related to each other through product relationships.
 
@@ -73,3 +73,7 @@ WARNING
 When the Quantity Scaling Method is Constant or Default, child product quantities are read-only in the runtime cart, even for legacy products where Allow Quantity Changes is selected. To enable edits, change the scaling method to None or Proportional.
 When the Quantity Scaling Method is Proportional and Allow Quantity Changes is enabled, child product quantities are editable only in the configurator during new sales. The quantity field is read-only in the sales transaction line editor because it displays the final calculated quantity stored on the quote line item, not the editable per-parent unit quantity.
 When the Quantity Scaling Method is Proportional and Allow Quantity Changes is enabled, child product quantities are read-only in the configurator during Amend, Renew, or Cancel transactions. The original parent-to-child ratio remains fixed throughout the asset lifecycle. To adjust the child product quantity, change the parent product's quantity instead. The child quantity updates proportionally.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_product_relationships.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

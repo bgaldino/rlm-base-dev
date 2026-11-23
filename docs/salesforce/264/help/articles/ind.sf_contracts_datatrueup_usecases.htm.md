@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_datatrueup_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Use Cases for Data True-Up
@@ -43,3 +43,7 @@ Keep related record information current in contracts
 Contract documents often include fields that originate from objects related to the contract, such as quote or opportunity, which changes independently of contract fields. For example, in manufacturing after negotiation with a customer, a sales coordinator updates the quote to reflect a revised delivery schedule. The coordinator also updates pricing for parts after the contract document generation.
 
 With Data True-Up tokens that use the DT_ prefix and nested references to related objects, you can run Data True-Up to fetch updated related object field values from Salesforce and sync them into the contract document. Ensuring that the quote details such as delivery dates and pricing remain current in the contract document after negotiation. Keeping these related field values in sync reduces discrepancies between document content and Salesforce data and supports consistent planning and execution.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_datatrueup_usecases.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

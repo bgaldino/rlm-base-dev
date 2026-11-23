@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_cnsption_mngmnt_lifecycle.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Orchestrate Usage Management Flow Stages
@@ -34,3 +34,7 @@ Retrieve Net Unit Rates
 Retrieves the applicable net unit rate by using the rating procedure specified in the Generate Ratable Summary flow. Usage Management executes rating daily. The batch job first determines the rating schedule and processes summaries provisionally. By using the selected rating procedure, the process identifies the relevant context definition ID and mapping ID required by the rating service to determine the final net unit rate. This rate, along with the identified IDs, is then stamped on the ratable summary records. Customers can gain immediate insight into provisional balances and overages visible on their summaries before the end of the billing period. After the billing period is complete, a cumulative ratable summary is created with the rates applied to the usage summaries based on consumption from the start of the billing period.
 Generate Liable Summary Records
 Generates the invoice-ready records on a periodic schedule. The process filters the usage summary records that were successfully rated, determines the billing period, calculates the overages and the overage amount, identifies the related liable summary records, and updates these records with the overage amount and quantity.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_usage_orchestration_flow_stages.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

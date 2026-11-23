@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.qocal_order_submission_for_fulfillment.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Assetization Rules for Dynamic Revenue Orchestrator
@@ -15,7 +15,7 @@ Use Asset Lifecycle Management to create and activate multiple asset-based order
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 Fulfillment Integrity and Asset Changes
 
 Run an invocable action or Apex and add it to the order submit flow to apply exactly one change to an asset at a time. This sequential processing avoids failures during the fulfillment process. When an order item or order action applies to an asset after the invocable action runs, the system prevents the assetization of previously created order items for that asset due to outdated data.
@@ -26,3 +26,7 @@ Load the quote line items or order line items to determine the creation date for
 
 Determine if the created date of the quote line item or order item matches the created date of the most recent asset action.
 Determine if the created date of the asset action is more recent than the created date of the quote line item or order item.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_assetization_rules_for_dynamic_revenue_orchestrator.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

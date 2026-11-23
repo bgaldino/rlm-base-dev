@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_frequency_change_flow_impact.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Change Billing Frequency on New and Existing Subscriptions
@@ -54,3 +54,7 @@ Specify BillingFrequencyChange as the action subtype in BillingSubActionType.
 Billing automatically handles complex proration and calculates the correct billing period amounts for the varied pricing and billing frequencies.
 
 IMPORTANT When a billing schedule group is linked to an asset, initiate any new sale, amend, renew, or cancel actions directly from the order or asset. In such cases, use the Order to Billing Schedule flow or Create Billing Schedules for Orders API, and not the Create Standalone Billing Schedules API.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_change_billing_pricing_frequencies.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

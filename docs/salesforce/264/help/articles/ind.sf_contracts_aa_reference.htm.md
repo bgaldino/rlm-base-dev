@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_aa_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Advanced Approvals for Salesforce Contracts Components
@@ -60,3 +60,7 @@ Dynamic Data	Includes contract fields such as ID and pricing in notifications.
 Smart Approval Behavior
 
 Smart approvals skip previously approved steps during resubmission based on configured conditions defined in the approval flow. This behavior reduces redundant approvals and improves processing efficiency.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_aa_reference.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

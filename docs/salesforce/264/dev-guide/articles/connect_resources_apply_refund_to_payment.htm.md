@@ -7,133 +7,42 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Refund Line Apply (POST)
 
 Make a refund transaction against a payment.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /commerce/billing/refunds/refundId/actions/apply
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/commerce/billing/refunds/0cbVc0000000G4nIAE/actions/apply
 ```
 
-          
+## Available Version
 
-        
-        
-          
+64.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 64.0
+POST
 
-        
-        
-          
+## Path Parameter for POST
 
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Path parameter for POST**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `refundId` | String | ID of the refund record. | Required | 64.0 |
 
-          
+## Request Body for POST
 
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-
-**JSON example**
-
-: 
+**JSON Example**
 
 ```
 {
@@ -146,8 +55,6 @@ https://yourInstance.salesforce.com/services/data/v68.0/commerce/billing/refunds
 
 **Properties**
 
-: 
-
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `amount` | Double | Amount to refund. | Required | 64.0 |
@@ -155,14 +62,10 @@ https://yourInstance.salesforce.com/services/data/v68.0/commerce/billing/refunds
 | `comments` | String | Additional details of the refund request. | Optional | 64.0 |
 | `effectiveDate` | String | Date from when the refund is in effect. | Optional | 64.0 |
 
-          
+## Response Body for POST
 
-        
-        
-          
+[Refund Line Apply](./connect_responses_refund_line_apply_output.htm.md "Output representation of the details of an applied refund. This representation includes the properties of a refund line, such as the date when the refund is applied against a payment and ID of the refund line record.")
 
-**Response body for POST**
+---
 
-          
-: [Refund Line
-              Apply](./connect_responses_refund_line_apply_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_apply_refund_to_payment.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

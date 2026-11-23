@@ -7,25 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_cml_best_practices.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # PCG Group Relations: Follow Order in Constraints
 
 Order the Product Component Group (PCG) group relations in the way they appear in the
-    constraints.
-
-    
+constraints.
 
 Order the Product Component Group (PCG) group relations in the way they appear in the
-      constraints. Specify the groups used in the LHS of the constraints first, followed by those
-      in the RHS.
+constraints. Specify the groups used in the LHS of the constraints first, followed by those
+in the RHS.
 
-    
-
-In this example, the order of PCG groups is incorrect as `Test1Group` is part of the LHS and should be declared first. 
-
-    
+In this example, the order of PCG groups is incorrect as `Test1Group` is part of the LHS and should be declared first.
 
 ```
 type TestParent : LineItem {
@@ -38,11 +32,7 @@ type TestParent : LineItem {
 }
 ```
 
-    
-
 This example shows the correct order of PCG groups, where `Test1Group` is declared first because it is part of the LHS.
-
-    
 
 ```
 type Test20260204Parent : LineItem {
@@ -54,3 +44,7 @@ type Test20260204Parent : LineItem {
 
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_best_practice_pcg_group_relations.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

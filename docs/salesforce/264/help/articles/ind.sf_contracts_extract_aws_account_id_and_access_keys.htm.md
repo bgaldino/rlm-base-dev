@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_configure_a_named_credential_and_external_credential_for_contracts_ai.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Extract the AWS Account ID and Access Keys
@@ -51,3 +51,7 @@ You can’t retrieve the access key later.
 Click Show.
 Copy and save the secret access key.
 Click Done.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_extract_aws_account_id_and_access_keys.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

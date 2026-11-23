@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_user_experience_and_customization.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Product Visibility with Filters
@@ -15,11 +15,11 @@ Use predefined and advanced filters to control which quote or order line items a
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To use the Transaction Line Editor or Sales Transaction Line Editor:	
 
-Manage Revenue Management
+Manage Revenue Cloud
 
 AND
 
@@ -54,3 +54,7 @@ The line editor applies the filter and shows only the matching line items.
 To clear the active filter, click Remove Filter. To clear all conditions in the panel, click Remove All.
 Advanced Filter Operators
 Select an operator to define how the system evaluates field values. Available operators vary by the field's data type.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_filter_line_items_with_standard_and_advanced_filters.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

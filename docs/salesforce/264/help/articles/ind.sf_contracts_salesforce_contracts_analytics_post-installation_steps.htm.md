@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_set_up_salesforce_contracts_analytics.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Salesforce Contracts Analytics Post-Installation Steps
@@ -26,3 +26,7 @@ Embed Salesforce Contracts Analytics Dashboards
 Give more users visibility into the insights in Salesforce Contracts Analytics app by embedding its dashboards in Lightning Experience pages.
 Salesforce Contracts Analytics Dashboard Attributes
 Salesforce Contracts Analytics includes dashboards that you can embed and access in Lightning Experience pages.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_salesforce_contracts_analytics_post-installation_steps.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

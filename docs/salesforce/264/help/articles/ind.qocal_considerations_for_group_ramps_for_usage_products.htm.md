@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.setting_up_ramp_deals.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Ramp Deals for Groups
@@ -15,7 +15,7 @@ After prerequisites are complete, here's the end-to-end setup flow.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 Step 1: Complete the Prerequisites
 
 Complete all steps in Prerequisites: Ramp Deals for Groups. Turn on Enable Groups in Quotes and Orders, Clone Quotes and Orders, and Ramp Deals for Groups in Quotes and Orders. Optionally turn on Multiple Ramp Schedules Per Transaction and Trial Segments for Group Ramp Schedules.
@@ -35,3 +35,7 @@ In Setup, find and select Revenue Settings. In Set Up Flow for Creating Ramp Sch
 Step 5: Test
 
 Create a quote or order with ramp deals for groups to verify the setup works as expected.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_considerations_for_group_ramps_for_usage_products.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

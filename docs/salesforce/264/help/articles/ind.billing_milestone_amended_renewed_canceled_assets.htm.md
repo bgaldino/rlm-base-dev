@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_milestone_plans.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Milestone Billing for Amended, Renewed, and Canceled Assets
@@ -37,3 +37,7 @@ All uninvoiced event-based billing milestone plan items are marked as Canceled a
 Billing issues a credit memo for the difference between the original sale amount and the total invoiced billing milestone plan items, providing a partial credit for incomplete milestones.
 
 The generated invoice lines reflect the net amount of the original sale and the canceled amount, similar to standard one-time or subscription cancellations.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_milestone_amended_renewed_canceled_assets.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

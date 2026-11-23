@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_derived_price.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Prerequisites to Build Discovery and Derived Price Pricing Procedures
@@ -15,7 +15,7 @@ Before you begin creating discovery procedures to locate pricing data for your p
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 Since you're gathering data from pricing sources (products, assets, quotes), it's necessary to designate your products as both source products and derived products.
 A source product is the product from which the price is derived. This product must be added as a price book entry with a list price to a price book.
 A derived product is the product for which the price is being calculated. This product must also be added as a price book entry, but its list price must be set to 0. The Derived Price feature will then determine its actual price.
@@ -32,3 +32,7 @@ You can also clone a pricing discovery procedure from the Salesforce Pricing Dis
 When you use the List Price element in a pricing procedure to fetch your products, you must use the Price Book Entries V2 decision table or your custom decision table. This decision table was built primarily for derived pricing scenarios.
 When you use both discovery procedures and a pricing procedure to calculate the derived price of a product, you must add the Assetize Order permission set to refresh all the decision tables used.
 The Derived Price element can't be used in a pricing procedure that includes the Promotion Execution, Price Propagation, or the Discount Distribution Service elements.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_get_ready_to_calculate_the_derived_price.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

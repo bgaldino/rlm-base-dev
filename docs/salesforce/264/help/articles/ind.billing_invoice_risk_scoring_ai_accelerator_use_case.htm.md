@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_risk_scoring.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create Use Case for AI Accelerator (Pilot)
@@ -15,7 +15,7 @@ After configuring the Scoring Framework and creating the Copy Field Enrichment, 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Performance, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
+Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
 USER PERMISSIONS
 NEEDED
 To view enrichments in Setup:	View Setup
@@ -38,3 +38,7 @@ Enter a Prediction Label Template.
 A prediction label template is a display string that tells AI Accelerator how to present the prediction result to users on the Invoice record. It typically combines static text with dynamic field values.
 In the Use Case Model section, select the Invoice Risk Score model created during Scoring Framework setup.
 Save the changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_risk_scoring_ai_accelerator_use_case.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

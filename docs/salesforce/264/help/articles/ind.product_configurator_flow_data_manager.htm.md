@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_flow_screen_components.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Data Manager
@@ -15,7 +15,7 @@ Data Manager is the state management and orchestration component for Product Con
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 Data Manager Responsibilities
 Maintain the transaction context and configuration state
 Invoke the Configurator API and process responses
@@ -41,7 +41,13 @@ isNonBlockingEnabled	Boolean	No	Turn on non-blocking mode. When turned on, this 
 areMessagesFixed	Boolean	No	Whether messages component has a fixed position. When true, the messages component stays fixed at the top of the screen and remains visible while scrolling (sticky positioning). When false, the messages component scrolls with the page content (relative positioning). Useful for keeping validation errors/warnings always visible during configuration
 contextId	String	No	ID of the transaction context specified for Product Configurator
 enableARCValidation	Boolean	No	Indicates whether ARC (Asset Renewal Configuration) validation runs during product configuration
-transactionLineGroupId	String	No	ID of the group that contains the current transaction line being configured. For Quotes, this is the Quote Line Group ID. For Orders, this is the Order Item Group ID.
+transactionLineGroupId	String	No	
+
+ID of the group that contains the current transaction line being configured. For Quotes, this is the Quote Line Group ID. For Orders, this is the Order Item Group ID.
+
+If Ramp Deals for Groups in Quotes and Orders is enabled in your org, set this field to configuratorContext.transactionLineGroupId. Attribute changes to ramped segments rely on this value.
+
+
 explainabilityEnabled	Boolean	No	When Explainability is enabled, Product Configurator provides detailed explanations for why products are hidden, disabled, or recommended. Shows rule execution details and business logic reasoning to help users understand configuration constraints.
 userContext	Object	No	
 
@@ -55,6 +61,8 @@ API name of a flow variable that contains user qualification data. This variable
 
 Select a user context only if you have product qualification rules that depend on user-specific attributes like role, territory, and so on. If all products are available to all users, leave this field empty.
 
+
+instantPricing	Boolean	No	A boolean value that indicates whether instant pricing is turned on by default.
 Data Manager Output Properties
 
 Data Manager writes output properties that customers can read. An internal method generates data, and the FlowAttributeChangeEvent dispatches the data to the relevant property, as shown in this example.
@@ -120,7 +128,7 @@ contextDefinitionChanged	setContextDefinition()	Updates context definition
 saveFavConfiguration	handleSaveConfiguration()	Saves configuration as favorite
 loadFavorite	handleLoadFavorite()	Loads favorite configuration
 
-Wire adapters automatically listen for data changes from Salesforce's platform, and pass the data changes to Data Manager. This table shows the wire adapter events Data Manager listens to.
+Wire adapters automatically listen for data changes from the Salesforce Platform, and pass the data changes to Data Manager. This table shows the wire adapter events Data Manager listens to.
 
 WIRE ADAPTER	SOURCE	WHAT IT LISTENS FOR	HANDLER METHOD	PURPOSE
 MessageContext	lightning/messageService	Message context for LMS	
@@ -153,3 +161,7 @@ EVENT NAME	WHEN IS IT FIRED	PURPOSE
 ShowToastEvent	After loading favorite successfully	Notify user of successful favorite load
 
 Data Manager dispatches FlowAttributeChange events for all reactive properties on every UI update.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_flow_data_manager.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

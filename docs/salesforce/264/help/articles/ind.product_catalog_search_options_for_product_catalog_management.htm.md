@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_product_discovery.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Search Options in Product Catalog Management
@@ -50,3 +50,7 @@ Product Index and Search in Product Catalog Management
 Enable sales reps to find products quickly and easily with an index of all the products available across catalogs. Specify searchable fields and attributes that users can use to search the index for products.
 Semantic Search
 Semantic search reduces “no results found” pages, lowers bounce rates, and improves conversions by interpreting search intent. It matches product names, descriptions, categories, and dynamic attributes based on the words that buyers enter in the search bar.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_search_options_for_product_catalog_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

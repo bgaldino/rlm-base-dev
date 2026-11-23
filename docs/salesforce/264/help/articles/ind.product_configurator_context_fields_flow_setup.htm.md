@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_set_up_flow.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configure Editable Context Fields for Product Option Cards
@@ -15,7 +15,7 @@ Enable sales reps to edit context fields directly from the product option cards 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 USER PERMISSIONS NEEDED
 To create and edit a product configuration flow:	Product Configurator
 
@@ -41,3 +41,7 @@ Select up to 5 context fields from the first Available fields section. These fie
 Additionally, you can select 5 more context fields from the second Available fields section. These fields appear on the second row of the product option card.
 The Name, Quantity, Product Selling Model, and Price fields have fixed positions and always appear on top of the option card, regardless of the Available fields section from which you add them in the flow setup. Name is a mandatory field and is always displayed.
 Save your changes and activate the flow.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_context_fields_flow_setup.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

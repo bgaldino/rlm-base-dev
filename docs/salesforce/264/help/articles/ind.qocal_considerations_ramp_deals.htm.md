@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_ramp_deals_complex_long_term_multiple_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Considerations for Ramp Deals
@@ -15,7 +15,7 @@ Review these known considerations and limitations for the Ramp Deals feature.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 Ramp Deals for Lines
 Transaction Management supports ramp deals for term-defined products. You can't use bundle products.
 You can't renew a ramp deal before its end date.
@@ -98,10 +98,14 @@ On renewal, the compound uplift resets. Year 1 of the new term becomes the new b
 For amendments, the previous segment uplift is used to calculate the applied uplift percentage. The previous segment uplift is the preceding asset state period in chronological order.
 Existing ramped records created before Winter ’27 use standard uplifts. Compound mode applies only when set on new transactions.
 You can't use compound uplift with Consumer Price Index (CPI) uplifts, usage-based products, or derived pricing products.
-The default pricing procedure templates in Revenue Management don't automatically update for compound uplift. Update your pricing procedure's price revision element to support compound uplift. See Salesforce Help for configuration guidance.
-The price revision element is used to apply compound ramp uplift to ramped lines. Refer to the Apply Uplifts to Ramped Subscription Items section in the Revenue Management Default Pricing Procedure Template. Review Build Your Expression Set From a Template.
+The default pricing procedure templates in Revenue Cloud don't automatically update for compound uplift. Update your pricing procedure's price revision element to support compound uplift. See Salesforce Help for configuration guidance.
+The price revision element is used to apply compound ramp uplift to ramped lines. Refer to the Apply Uplifts to Ramped Subscription Items section in the Revenue Cloud Default Pricing Procedure Template. Review Build Your Expression Set From a Template.
 Turning off Advanced Detail Line Pricing after quotes, orders, or assets exist with compound ramp uplift causes pricing calculations, amendments, and renewals to return incorrect prices.
 Dynamic Revenue Orchestrator (DRO) and Ramp Deals
 Turn on the rampDealForQocal setting in your org and make sure that your order line items include ramp and segment identifiers.
 For amend, renew, and cancel orders. DRO applies the same order action to all segments, even if a specific segment hasn't changed. DRO applies order line item actions to fulfillment order lines and processes them.
 DRO skips Staged Assetize steps in ramp order fulfillment plans and assetizes all segments at plan completion.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_considerations_ramp_deals.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

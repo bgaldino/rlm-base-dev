@@ -7,7 +7,7 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # CategoryOutputRepresentation Class
@@ -16,83 +16,39 @@ Contains properties to store details of a category.
 
 ## Namespace
 
-[runtime_industries_cpq](./apex_namespace_runtime_industries_cpq.htm.md)
+[runtime\_industries\_cpq](./apex_namespace_runtime_industries_cpq.htm.md "The runtime_industries_cpq namespace provides classes and methods to search products or to manage products, catalogs, and categories.")
 
-- 
-**[CategoryOutputRepresentation Properties](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_properties)**  
-
-Learn more about the properties available with the CategoryOutputRepresentation     class.
-
-  
+- **[CategoryOutputRepresentation Properties](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_properties)**  
+  Learn more about the properties available with the CategoryOutputRepresentation class.
 
 ## CategoryOutputRepresentation Properties
 
-  
-  
-  
 Learn more about the properties available with the CategoryOutputRepresentation
-    class.
-
-    
-      
+class.
 
 The `CategoryOutputRepresentation` class includes these
-        properties.
+properties.
 
-    
-
-    
-  
-
-- 
-**[catalogId](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_catalogId)**  
-
-Get the ID of the catalog that the category is associated with.
-
-- 
-**[description](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_description)**  
-
-Get the description of a catalog.
-
-- 
-**[hasSubCategories](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_hasSubCategories)**  
-
-Indicates whether the subcategories are available (true) or not (false).
-
-- 
-**[id](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_id)**  
-
-Get the ID of the category.
-
-- 
-**[isNavigational](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_isNavigational)**  
-
-Indicates whether the category node is navigational (true) or not (false).
-
-- 
-**[name](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_name)**  
-
-Get the name of the category. If data translation is set up and specified in the org, the     translated name is available.
-
-- 
-**[parentCategoryId](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_parentCategoryId)**  
-
-Get the ID of the parent category.
-
-- 
-**[qualificationContext](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_ricpq_CategoryOR_qualificationContext)**  
-
-Get the context details of a user, which are used for qualification rules.
-
-- 
-**[sortOrder](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_sortOrder)**  
-
-Get the display order of the product category relative to the siblings with the same     parent category.
-
-- 
-**[childCategories](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_childCategories)**  
-
-Get the list of childcategorie.
+- **[catalogId](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_catalogId)**  
+  Get the ID of the catalog that the category is associated with.
+- **[description](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_description)**  
+  Get the description of a catalog.
+- **[hasSubCategories](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_hasSubCategories)**  
+  Indicates whether the subcategories are available (true) or not (false).
+- **[id](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_id)**  
+  Get the ID of the category.
+- **[isNavigational](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_isNavigational)**  
+  Indicates whether the category node is navigational (true) or not (false).
+- **[name](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_name)**  
+  Get the name of the category. If data translation is set up and specified in the org, the translated name is available.
+- **[parentCategoryId](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_parentCategoryId)**  
+  Get the ID of the parent category.
+- **[qualificationContext](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_ricpq_CategoryOR_qualificationContext)**  
+  Get the context details of a user, which are used for qualification rules.
+- **[sortOrder](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_sortOrder)**  
+  Get the display order of the product category relative to the siblings with the same parent category.
+- **[childCategories](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_runtime_industries_cpq_CategoryOutputRepresentation_childCategories)**  
+  Get the list of childcategorie.
 
 ### catalogId
 
@@ -157,7 +113,7 @@ Type: Boolean
 ### name
 
 Get the name of the category. If data translation is set up and specified in the org, the
-    translated name is available.
+translated name is available.
 
 #### Signature
 
@@ -189,12 +145,12 @@ Get the context details of a user, which are used for qualification rules.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.QualificationContextOutputRepresentation](./apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation)
+Type: [runtime\_industries\_cpq.QualificationContextOutputRepresentation](./apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation "Represents the context information used for product qualification, including account, opportunity, and other relevant context data for determining product eligibility.")
 
 ### sortOrder
 
 Get the display order of the product category relative to the siblings with the same
-    parent category.
+parent category.
 
 #### Signature
 
@@ -214,4 +170,8 @@ Get the list of childcategorie.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.CategoryOutputRepresentation](#apex_class_runtime_industries_cpq_CategoryOutputRepresentation)>
+Type: List<[runtime\_industries\_cpq.CategoryOutputRepresentation](#apex_class_runtime_industries_cpq_CategoryOutputRepresentation "Contains properties to store details of a category.")>
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_set_up_salesforce_pricing.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Pricing Recipes Setup
@@ -15,7 +15,7 @@ Pricing Recipes in Salesforce Pricing enable you to create and manage detailed p
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 How Pricing Recipes Work
 
 A pricing recipe groups decision tables that serve as a data source for your pricing infrastructure. Pricing recipes also provide a one-point configuration for how decision tables are used within procedures.
@@ -30,3 +30,7 @@ Modify Price Adjustment Matrices
 Customize your pricing recipes by associating them with decision tables, allowing you to offer customers discounts based on specific conditions.
 Sync Decision Tables in a Pricing Recipe
 To sync decision tables for a specific pricing recipe:
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_pricing_recipes.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

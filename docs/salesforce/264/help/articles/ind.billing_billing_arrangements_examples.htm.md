@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_billing_arrangements.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Examples: Flexible Invoicing for Complex Business Models
@@ -53,3 +53,7 @@ The billing arrangement “SmartBytes” Split (1) is created for the order (7) 
 Here’s a view of the billing arrangements for each account as seen on the Billing Arrangements tab. The SmartBytes owning account is allocated zero billing percentage but the SmartBytes billing account pays 40%, AT&T billing account pays 30%, and Acme Corp pays 30% of the total order amount.
 
 When the order is activated, the same billing arrangement is applied and stamped on the billing schedule groups. When the invoice is then generated, three separate invoice documents are produced, one for each account. You can view the invoices in the All Invoices tab of the order. The invoice amounts are based on the percentages defined in the billing arrangement.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_billing_arrangements_examples.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

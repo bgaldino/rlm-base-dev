@@ -7,84 +7,32 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: connect_requests_context_aware_standalone_billing_schedule_input.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Canceled Transaction
 
-Cancel an entire billing schedule from a specified date. Specify only the cancellation
-    date and billing schedule group identifier. The API computes the logic to split the cancellation
-    across overlapping billing schedules and creates one cancel transaction per segment.
-
-    
+Cancel an entire billing schedule from a specified date. Specify only the cancellation date and billing schedule group identifier. The API computes the logic to split the cancellation across overlapping billing schedules and creates one cancel transaction per segment.
 
 ## Considerations
 
-      
-      
+Keep these important considerations in mind when you provide the details for canceled transactions.
 
-Keep these important considerations in mind when you provide the details for canceled
-        transactions.
-
-      
-        
-- The `BillingActionType__std` value for any amended
-          transaction must be `Cancel`.
-
-        
-- If you provide a quantity, make sure that it matches the total quantity of the related
-          transaction.
-
-        
-- If there are multiple canceled transactions associated with the same related
-          transaction, specify the same start date for all of these transactions.
-
-        
-- Specify the canceled transaction details for all the billing schedules that are
-          associated with the same billing schedule group.
-
-        
-- If your transaction is for an sObject record, only specify the record ID as the id value
-          in the `transactionDetails` property value. All the
-          other transaction details are automatically fetched from the sObject record if those
-          details are mapped in the context definition.
-
-      
-
-    
-
-    
+- The `BillingActionType__std` value for any amended transaction must be `Cancel`.
+- If you provide a quantity, make sure that it matches the total quantity of the related transaction.
+- If there are multiple canceled transactions associated with the same related transaction, specify the same start date for all of these transactions.
+- Specify the canceled transaction details for all the billing schedules that are associated with the same billing schedule group.
+- If your transaction is for an sObject record, only specify the record ID as the id value in the `transactionDetails` property value. All the other transaction details are automatically fetched from the sObject record if those details are mapped in the context definition.
 
 ## Cancellation Payload Types
 
-      
-      
+The Create Standalone Billing Schedules API accepts two cancellation payload types in `transactionDetails` node. Use the type that matches the level of details you want to provide in the request.
 
-The Create Standalone Billing Schedules API accepts two cancellation payload types in
-          `transactionDetails` node. Use the type that matches
-        the level of details you want to provide in the request.
+**Simplified Cancellation Payload**
 
-      
-        
-          
+Send a single transaction in the `Transaction` array. Set `BillingActionType__std` to `Cancel` and `BillingSubActionType__std` to `SimplifiedCancel`. Identify the source to cancel with `RelatedTransactionId__std` (one billing schedule) or `BillingScheduleGroupId__std` (a billing schedule group), and include `TransactionId__std` and `StartDate__std` for the effective cancellation date.
 
-**Simplified cancellation payload**
-
-          
-: 
-
-Send a single transaction in the `Transaction` array. Set `BillingActionType__std` to `Cancel` and
-                `BillingSubActionType__std` to `SimplifiedCancel`. Identify the source to cancel with
-                `RelatedTransactionId__std` (one billing
-              schedule) or `BillingScheduleGroupId__std` (a
-              billing schedule group), and include `TransactionId__std` and `StartDate__std`
-              for the effective cancellation date.
-
-This sample shows the transaction data with
-                `BillingScheduleGroupId__std` to cancel a billing
-              schedule group.
+This sample shows the transaction data with `BillingScheduleGroupId__std` to cancel a billing schedule group.
 
 ```
 {
@@ -100,8 +48,7 @@ This sample shows the transaction data with
 }
 ```
 
-This sample shows a simplified cancellation
-              request.
+This sample shows a simplified cancellation request.
 
 ```
 {
@@ -115,8 +62,7 @@ This sample shows a simplified cancellation
 }
 ```
 
-This sample shows the transaction data with `RelatedTransactionId__std` to cancel a billing
-              schedule.
+This sample shows the transaction data with `RelatedTransactionId__std` to cancel a billing schedule.
 
 ```
 {
@@ -132,8 +78,7 @@ This sample shows the transaction data with `RelatedTransactionId__std` to cance
 }
 ```
 
-This sample shows a simplified cancellation
-            request.
+This sample shows a simplified cancellation request.
 
 ```
 {
@@ -146,33 +91,13 @@ This sample shows a simplified cancellation
 }
 ```
 
-        
-        
-          
+**Detailed Cancellation Payload**
 
-**Detailed cancellation payload**
+Send one cancel transaction for each positive billing schedule that you want to end. Each transaction uses `BillingActionType__std` set to `Cancel`. You specify `RelatedTransactionId__std` and the financial fields, such as quantity, unit price, and total price, for each line. Use this sample structure when you already computed the cancel lines and amounts yourself.
 
-          
-: 
-            
-
-Send one cancel transaction for each positive billing schedule that you want to end.
-              Each transaction uses `BillingActionType__std` set
-              to `Cancel`. You specify `RelatedTransactionId__std` and the financial fields,
-              such as quantity, unit price, and total price, for each line. Use this sample
-              structure when you already computed the cancel lines and amounts yourself.
-
-            
-
-This sample shows a detailed cancellation for a single billing schedule. It uses a
-              compact set of fields and does not use `SimplifiedCancel` sub-action type. For a detailed cancellation with
-              multiple transactions, see the following sample.
-
-            
+This sample shows a detailed cancellation for a single billing schedule. It uses a compact set of fields and does not use `SimplifiedCancel` sub-action type. For a detailed cancellation with multiple transactions, see the following sample.
 
 This sample includes the transaction data for a cancellation.
-
-            
 
 ```
 {
@@ -191,12 +116,7 @@ This sample includes the transaction data for a cancellation.
 }
 ```
 
-            
-
-This sample shows the request payload to create a billing schedule for a
-              cancellation.
-
-            
+This sample shows the request payload to create a billing schedule for a cancellation.
 
 ```
 {
@@ -210,156 +130,8 @@ This sample shows the request payload to create a billing schedule for a
 }
 ```
 
-          
+When you're creating a billing schedule for a canceled transaction, make sure that you specify the mandatory values in the `transactionDetails` property value.
 
-        
-      
-
-    
-
-    
-      
-
-When you're creating a billing schedule for a canceled transaction, make sure that you
-        specify the mandatory values in the `transactionDetails`
-        property value.
-
-    
-
-    
-
-        
-        
-        
-        
-        
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-        
-
-        
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-        
-
-      
 | Context Tag in the Transaction Node of the StandaloneBillingContext Context Definition | Description | Mapped Field | Required or Optional |
 | --- | --- | --- | --- |
 | `ParentTransactionId__std` | The ID of the parent transaction record. For example, if the transaction is at a level similar to that of an Order Item record, the parent transaction will be at a level similar to that of an Order record. | If the transaction is a child Order or Quote record, the ReferenceEntityId field on the BillingScheduleobject is populated. For other sObject records or external records, the Reference field on the BillingSchedule object is populated. | Optional |
@@ -372,3 +144,7 @@ When you're creating a billing schedule for a canceled transaction, make sure th
 | `UnitPrice__std` | The unit price of the transaction. | UnitPrice field on the BillingSchedule object | Either the UnitPrice or the NetUnitPrice value is required |
 | `TotalPrice__std` | The total price of the transaction. | TotalAmount field on the BillingSchedule object | Required |
 | `NetUnitPrice__std` | The net unit price of the transaction. | NetUnitPrice field on the BillingSchedule object | Either the UnitPrice or the NetUnitPrice value is required |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_billing_schedule_input_for_cancellation.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Map Context Tag Data Using Assignment Element
@@ -15,7 +15,7 @@ Dynamically set or change the values of pricing variables by mapping data betwee
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS
 NEEDED
 To create, update, and delete pricing procedures:	Salesforce Pricing Design Time
@@ -54,3 +54,7 @@ Simulate and activate your pricing procedure.
 The JSON output shows how the variables were modified to fetch the list price for your product based on the quote’s date.
 
 The price waterfall shows the list price generated for the quote’s EffectiveTo date even though the line product’s EffectiveTo date was null.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_assignment.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

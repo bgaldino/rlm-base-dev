@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_ramp_deals_complex_long_term_multiple_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Build Ramp Deals
@@ -15,7 +15,7 @@ Learn how to build structured ramp deals for your groups based on your organizat
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 Create a Ramp Deal for Groups with Single Ramp Schedule Per Transaction
 Turn on only Ramp Deals for Groups in Quotes and Orders to treat the entire transaction automatically as a single implicit ramp schedule.
 Create Ramp Deals for Groups with Multiple Ramp Schedules Per Transaction
@@ -24,3 +24,7 @@ Create Ramp Deals with Standard or Compound Price Uplifts
 Ramp deals break a multi-year contract into segments so that price, quantity, and terms can change over the life of the deal. Standard uplifts apply to the original list price, which works well for predictable contracts. However, many enterprise customers negotiate agreements where the annual increase applies to the prior year's net price rather than the list price. Compound uplifts reflect the growing value of a subscription over time and are common in multi-year contracts.
 Use the Create Ramp Schedule Guided Flow
 The Create Ramp Schedule guided flow generates a full multi-segment deal structure in one step.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_ramp_deals_for_groups_considerations.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

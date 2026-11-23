@@ -7,266 +7,52 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Initiate Renewal Action
 
 Initiate and execute the renewal of an asset.
 
-		
+Specify the IDs of the assets that you want to add to renew by specifying a start date. You can also specify the type of renewal record that you want to create, such as a quote or an order.
 
-Specify the IDs of the assets that you want to add to renew by specifying a start date. You can
-				also specify the type of renewal record that you want to create, such as a quote or
-				an order.
-
-This action is available in API version 60.0 and
-			later.
-
-		
-		
+This action is available in API version 60.0 and later.
 
 ## Supported REST HTTP Methods
 
-			
-			
-				
-					
+**URI:** `/services/data/v68.0/actions/standard/initiateRenewal`
 
-**URI**
+**Formats:** JSON, XML
 
-					
-: `/services/data/v68.0/actions/standard/initiateRenewal`
+**HTTP Methods:** POST
 
-				
-				
-					
-
-**Formats**
-
-					
-: JSON, XML
-
-				
-				
-					
-
-**HTTP Methods**
-
-					
-: POST
-
-				
-				
-					
-
-**Authentication**
-
-					
-: `Authorization: Bearer
-							token`
-
-				
-			
-
-		
-
-		
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Input | Details |
-| --- | --- |
-| rampOptionsDetails | **Type** Apex-defined **Description** An Apex RampOptionInputRepresentation record that contains the details of ramp options. The details include segment type, duration, and segment count. Specify this property if you want to include assets in a group ramp with a ramp schedule. See [RampOptionInputRepresentation](./apex_connectapi_input_ramp_option.htm.md) to refer to the associated properties for ramp options. Available in API version 67.0 and later. |
-| renewAssetIds | **Type** string **Description** Required. The IDs of the assets that you want to renew. |
-| renewContractId | **Type** string **Description** ID of the contract record to sync with the renewal quote. |
-| renewEndDate | **Type** datetime **Description** Effective end date of the renewal. Available in API version 62.0 and later. |
-| renewOpportunityId | **Type** string **Description** ID of the Opportunity record to sync with the renewal quote. |
-| renewOutputType | **Type** string **Description** Required. Type of renewal record to create such as a quote or an order. |
-| renewStartDate | **Type** datetime **Description** Optional Effective start date of the renewal. Required for early asset renewals and renewing expired assets, by using today’s date or a future date. Available in API version 62.0 and later. |
-| skipPricing | **Type** boolean **Description** Indicates whether the pricing procedure must be skipped (`true`) or performed (`false`). Available in API version 64.0 and later. |
-
-		
-
-		
+| Input | Type | Description |
+| --- | --- | --- |
+| rampOptionsDetails | Apex-defined | An Apex RampOptionInputRepresentation record that contains the details of ramp options. The details include segment type, duration, and segment count. Specify this property if you want to include assets in a group ramp with a ramp schedule. See [RampOptionInputRepresentation](./apex_connectapi_input_ramp_option.htm.md "Input representation of the ramp option details during an asset renewal.") to refer to the associated properties for ramp options. Available in API version 67.0 and later. |
+| renewAssetIds | string | Required. The IDs of the assets that you want to renew. |
+| renewContractId | string | ID of the contract record to sync with the renewal quote. |
+| renewEndDate | datetime | Effective end date of the renewal. Available in API version 62.0 and later. |
+| renewOpportunityId | string | ID of the Opportunity record to sync with the renewal quote. |
+| renewOutputType | string | Required. Type of renewal record to create such as a quote or an order. |
+| renewStartDate | datetime | Optional. Effective start date of the renewal. Required for early asset renewals and renewing expired assets, by using today’s date or a future date. Available in API version 62.0 and later. |
+| skipPricing | boolean | Indicates whether the pricing procedure must be skipped (`true`) or performed (`false`). Available in API version 64.0 and later. |
 
 ## Outputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Output | Details |
-| --- | --- |
-| renewRecordId | **Type** string **Description** The ID of the amendment record that’s created. |
-| requestIdentifier | **Type** string **Description** Request ID that’s used to track the async request. |
-
-		
-
-		
+| Output | Type | Description |
+| --- | --- | --- |
+| renewRecordId | string | The ID of the amendment record that’s created. |
+| requestIdentifier | string | Request ID that’s used to track the async request. |
 
 ## Example
 
-			
-			
-				
-					
-
 **POST**
 
-					
-: 
-						
-
 This sample request is for the Initiate Renewal action.
-
-						
 
 ```
 {
@@ -291,11 +77,7 @@ This sample request is for the Initiate Renewal action.
 }
 ```
 
-						
-
 This sample response is for the Initiate Renewal action.
-
-						
 
 ```
 [
@@ -311,3 +93,7 @@ This sample response is for the Initiate Renewal action.
     }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_renew_assets.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

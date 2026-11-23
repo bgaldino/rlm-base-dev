@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: apex_namespace_IssueCreditMemo.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # CreditResponseOutputRepresentations Class
 
@@ -18,39 +16,22 @@ Represents the result of a credit memo operation. Indicates success or failure a
 
 ## Namespace
 
-[IssueCreditMemo](./apex_namespace_IssueCreditMemo.htm.md)
+[IssueCreditMemo](./apex_namespace_IssueCreditMemo.htm.md "Issue credit memos from disputed invoices. Use this namespace to create and apply credit memos against invoices or invoice lines based on dispute adjustments.")
 
 ## Usage
 
 ## Example
 
-- 
-**[CreditResponseOutputRepresentations Constructors](./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md#apex_IssueCreditMemo_CreditResponseOutputRepresentations_constructors)**  
-
-- 
-**[CreditResponseOutputRepresentations Properties](./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md#apex_IssueCreditMemo_CreditResponseOutputRepresentations_properties)**  
-
-  
+- **[CreditResponseOutputRepresentations Constructors](./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md#apex_IssueCreditMemo_CreditResponseOutputRepresentations_constructors)**
+- **[CreditResponseOutputRepresentations Properties](./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md#apex_IssueCreditMemo_CreditResponseOutputRepresentations_properties)**
 
 ## CreditResponseOutputRepresentations Constructors
 
-  
-  
-    
-      
-
 The `CreditResponseOutputRepresentations` class includes
-        these constructors.
+these constructors.
 
-    
-
-    
-  
-
-- 
-**[CreditResponseOutputRepresentations(success, additionalInformation)](./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md#apex_IssueCreditMemo_CreditResponseOutputRepresentations_ctor)**  
-
-Creates a response with the given success flag and additional information.
+- **[CreditResponseOutputRepresentations(success, additionalInformation)](./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md#apex_IssueCreditMemo_CreditResponseOutputRepresentations_ctor)**  
+  Creates a response with the given success flag and additional information.
 
 ### CreditResponseOutputRepresentations(success, additionalInformation)
 
@@ -64,42 +45,25 @@ Creates a response with the given success flag and additional information.
 
 **success**
 
-: Type: Boolean
+Type: Boolean
 
-: Indicates whether the credit memo is issued successfully (`true`) or not (`false`).
+Indicates whether the credit memo is issued successfully (`true`) or not (`false`).
 
 **additionalInformation**
 
-: Type: String
-
-: Additional information or message, such as error details or confirmation.
-
-  
-
-## CreditResponseOutputRepresentations Properties
-
-  
-  
-    
-      
-
-The `CreditResponseOutputRepresentations` class includes
-        these properties.
-
-    
-
-    
-  
-
-- 
-**[additionalInformation](./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md#apex_IssueCreditMemo_CreditResponseORs_additionalInformation)**  
+Type: String
 
 Additional information or message, such as error details or confirmation.
 
-- 
-**[success](./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md#apex_IssueCreditMemo_CreditResponseOutputRepresentations_success)**  
+## CreditResponseOutputRepresentations Properties
 
-Indicates whether the credit memo is issued successfully (true) or not     (false).
+The `CreditResponseOutputRepresentations` class includes
+these properties.
+
+- **[additionalInformation](./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md#apex_IssueCreditMemo_CreditResponseORs_additionalInformation)**  
+  Additional information or message, such as error details or confirmation.
+- **[success](./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md#apex_IssueCreditMemo_CreditResponseOutputRepresentations_success)**  
+  Indicates whether the credit memo is issued successfully (true) or not (false).
 
 ### additionalInformation
 
@@ -116,7 +80,7 @@ Type: String
 ### success
 
 Indicates whether the credit memo is issued successfully (true) or not
-    (false).
+(false).
 
 #### Signature
 
@@ -125,3 +89,7 @@ Indicates whether the credit memo is issued successfully (true) or not
 #### Property Value
 
 Type: Boolean
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

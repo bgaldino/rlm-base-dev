@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Calculate Aggregate Prices for Products
@@ -15,7 +15,7 @@ Determine the aggregate prices of a group of products by defining aggregation at
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 Aggregate pricing summarizes prices at different levels of your sales process, providing a clear understanding of costs for bundles, quotes, or specific quote sections. The Roll-Up feature within Aggregate Price defines how prices consolidate, allowing you to specify fields like list price, discount, or net price for inclusion. By selecting Roll Up Price, you can calculate a group's total cost by first determining each child product's price and then adding that to a parent product.
 
@@ -29,3 +29,7 @@ Use the Aggregate Price Element
 Aggregate and show the price of a group of products based on product categories, product types, or other groups of line items.
 Roll Up Pricing Using the Aggregate Price Element
 Calculate the total price of a group of products using the Roll Up Price option using the Aggregate Price element. When you enable roll up price, the element first determines the price of each child product, and then, adds the total to a parent product.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_add_aggregate_price_element.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

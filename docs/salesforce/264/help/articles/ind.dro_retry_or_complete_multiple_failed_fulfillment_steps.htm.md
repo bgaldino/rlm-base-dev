@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_run_time_administration.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Retry or Complete Multiple Failed Fulfillment Steps
@@ -38,3 +38,7 @@ NOTE You can retry a step if it's in the Failed or Fatally Failed state and the 
 You can complete a step if the plan is in the Freezing state and the step is in the In Progress state, or the plan is in the In Progress state and the step is in either the In Progress, Failed, or Fatally Failed state.
 
 If you select some items that are eligible to be retried or completed, and others that aren't, then only the eligible ones are successful.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_retry_or_complete_multiple_failed_fulfillment_steps.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

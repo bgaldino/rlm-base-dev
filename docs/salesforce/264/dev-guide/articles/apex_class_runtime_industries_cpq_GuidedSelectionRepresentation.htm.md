@@ -7,7 +7,7 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # GuidedSelectionRepresentation Class
@@ -16,227 +16,96 @@ Contains properties to represent a product in a guided selection flow. This clas
 
 ## Namespace
 
-[runtime_industries_cpq](./apex_namespace_runtime_industries_cpq.htm.md)
+[runtime\_industries\_cpq](./apex_namespace_runtime_industries_cpq.htm.md "The runtime_industries_cpq namespace provides classes and methods to search products or to manage products, catalogs, and categories.")
 
-- 
-**[GuidedSelectionRepresentation Properties](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_properties)**  
-
-Contains properties to include details of a product in a guided selection flow.
-
-  
+- **[GuidedSelectionRepresentation Properties](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_properties)**  
+  Contains properties to include details of a product in a guided selection flow.
 
 ## GuidedSelectionRepresentation Properties
 
-  
-  
-  
 Contains properties to include details of a product in a guided selection flow.
 
-    
-      
-
 The `GuidedSelectionRepresentation` class includes these
-        properties.
-
-    
-
-    
-  
-
-- 
-**[additionalFields](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_additionalFields)**  
-
-Get the list of additionalfield.
-
-- 
-**[attributeCategories](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_attributeCategories)**  
-
-Get the list of attributecategorie.
-
-- 
-**[availabilityDate](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_availabilityDate)**  
-
-Get the availability date.
-
-- 
-**[catalogs](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_catalogs)**  
-
-Get the list of catalog.
-
-- 
-**[categories](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_categories)**  
-
-Get the list of categorie.
-
-- 
-**[childProducts](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_childProducts)**  
-
-Get the list of childproduct.
-
-- 
-**[childVariationIds](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_childVariationIds)**  
-
-Get the list of IDs of the child variations of the product.
-
-- 
-**[configureDuringSale](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_configureDuringSale)**  
-
-Get the configureduringsale value.
-
-- 
-**[description](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_description)**  
-
-Get the description of the guidedselection.
-
-- 
-**[discontinuedDate](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_discontinuedDate)**  
-
-Get the discontinued date.
-
-- 
-**[displayUrl](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_displayUrl)**  
-
-Get the displayurl value.
-
-- 
-**[endOfLifeDate](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_endOfLifeDate)**  
-
-Get the endoflife date.
-
-- 
-**[id](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_id)**  
-
-Get the ID of the guidedselection.
-
-- 
-**[isActive](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_isActive)**  
-
-Indicates whether the item is active.
-
-- 
-**[isAssetizable](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_isAssetizable)**  
-
-Indicates whether assetizable is true or false.
-
-- 
-**[isComponentRequired](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_isComponentRequired)**  
-
-Indicates whether componentrequired is true or false.
-
-- 
-**[isDefaultComponent](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_isDefaultComponent)**  
-
-Indicates whether defaultcomponent is true or false.
-
-- 
-**[isQuantityEditable](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_isQuantityEditable)**  
-
-Indicates whether quantityeditable is true or false.
-
-- 
-**[isSoldOnlyWithOtherProds](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_isSoldOnlyWithOtherProds)**  
-
-Indicates whether soldonlywithotherprods is true or false.
-
-- 
-**[name](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_name)**  
-
-Get the name of the guidedselection.
-
-- 
-**[nodeType](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_nodeType)**  
-
-Get the nodetype value.
-
-- 
-**[prices](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_prices)**  
-
-Get the list of price.
-
-- 
-**[productClass](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productClass)**  
-
-Get the class of the product.
-
-- 
-**[productClassification](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productClassification)**  
-
-Get the productclassification value.
-
-- 
-**[productCode](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productCode)**  
-
-Get the productcode value.
-
-- 
-**[productComponentGroups](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productComponentGroups)**  
-
-Get the list of productcomponentgroup.
-
-- 
-**[productInformation](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productInformation)**  
-
-Get the productinformation value.
-
-- 
-**[productPricingInformation](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productPricingInformation)**  
-
-Get the productpricinginformation value.
-
-- 
-**[productQuantity](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productQuantity)**  
-
-Get the productquantity value.
-
-- 
-**[productRelatedComponent](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productRelatedComponent)**  
-
-Get the productrelatedcomponent value.
-
-- 
-**[productSellingModelOptions](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productSellingModelOptions)**  
-
-Get the list of productsellingmodeloption.
-
-- 
-**[productSpecificationType](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productSpecificationType)**  
-
-Get the productspecificationtype value.
-
-- 
-**[productType](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productType)**  
-
-Get the producttype value.
-
-- 
-**[productUnitOfMeasures](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productUnitOfMeasures)**  
-
-Get the list of units of measure for the product.
-
-- 
-**[qualificationContext](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_qualificationContext)**  
-
-Get the qualificationcontext value.
-
-- 
-**[status](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_status)**  
-
-Get the status of the guidedselection.
-
-- 
-**[unitOfMeasure](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_unitOfMeasure)**  
-
-Get the unitofmeasure value.
-
-- 
-**[variationAttributeSet](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_variationAttributeSet)**  
-
-Get the variation attribute set of the product.
-
-- 
-**[variationsCount](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_variationsCount)**  
-
-Get the number of variations of the product.
+properties.
+
+- **[additionalFields](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_additionalFields)**  
+  Get the list of additionalfield.
+- **[attributeCategories](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_attributeCategories)**  
+  Get the list of attributecategorie.
+- **[availabilityDate](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_availabilityDate)**  
+  Get the availability date.
+- **[catalogs](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_catalogs)**  
+  Get the list of catalog.
+- **[categories](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_categories)**  
+  Get the list of categorie.
+- **[childProducts](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_childProducts)**  
+  Get the list of childproduct.
+- **[childVariationIds](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_childVariationIds)**  
+  Get the list of IDs of the child variations of the product.
+- **[configureDuringSale](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_configureDuringSale)**  
+  Get the configureduringsale value.
+- **[description](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_description)**  
+  Get the description of the guidedselection.
+- **[discontinuedDate](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_discontinuedDate)**  
+  Get the discontinued date.
+- **[displayUrl](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_displayUrl)**  
+  Get the displayurl value.
+- **[endOfLifeDate](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_endOfLifeDate)**  
+  Get the endoflife date.
+- **[id](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_id)**  
+  Get the ID of the guidedselection.
+- **[isActive](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_isActive)**  
+  Indicates whether the item is active.
+- **[isAssetizable](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_isAssetizable)**  
+  Indicates whether assetizable is true or false.
+- **[isComponentRequired](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_isComponentRequired)**  
+  Indicates whether componentrequired is true or false.
+- **[isDefaultComponent](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_isDefaultComponent)**  
+  Indicates whether defaultcomponent is true or false.
+- **[isQuantityEditable](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_isQuantityEditable)**  
+  Indicates whether quantityeditable is true or false.
+- **[isSoldOnlyWithOtherProds](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_isSoldOnlyWithOtherProds)**  
+  Indicates whether soldonlywithotherprods is true or false.
+- **[name](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_name)**  
+  Get the name of the guidedselection.
+- **[nodeType](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_nodeType)**  
+  Get the nodetype value.
+- **[prices](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_prices)**  
+  Get the list of price.
+- **[productClass](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productClass)**  
+  Get the class of the product.
+- **[productClassification](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productClassification)**  
+  Get the productclassification value.
+- **[productCode](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productCode)**  
+  Get the productcode value.
+- **[productComponentGroups](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productComponentGroups)**  
+  Get the list of productcomponentgroup.
+- **[productInformation](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productInformation)**  
+  Get the productinformation value.
+- **[productPricingInformation](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productPricingInformation)**  
+  Get the productpricinginformation value.
+- **[productQuantity](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productQuantity)**  
+  Get the productquantity value.
+- **[productRelatedComponent](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productRelatedComponent)**  
+  Get the productrelatedcomponent value.
+- **[productSellingModelOptions](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productSellingModelOptions)**  
+  Get the list of productsellingmodeloption.
+- **[productSpecificationType](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_productSpecificationType)**  
+  Get the productspecificationtype value.
+- **[productType](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productType)**  
+  Get the producttype value.
+- **[productUnitOfMeasures](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_productUnitOfMeasures)**  
+  Get the list of units of measure for the product.
+- **[qualificationContext](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_ricpq_GuidedSelectionR_qualificationContext)**  
+  Get the qualificationcontext value.
+- **[status](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_status)**  
+  Get the status of the guidedselection.
+- **[unitOfMeasure](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_unitOfMeasure)**  
+  Get the unitofmeasure value.
+- **[variationAttributeSet](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_variationAttributeSet)**  
+  Get the variation attribute set of the product.
+- **[variationsCount](./apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm.md#apex_runtime_industries_cpq_GuidedSelectionRepresentation_variationsCount)**  
+  Get the number of variations of the product.
 
 ### additionalFields
 
@@ -248,7 +117,7 @@ Get the list of additionalfield.
 
 #### Property Value
 
-Type: List<runtime_industries_cpq.AdditionalFieldsWrapper>
+Type: List<runtime\_industries\_cpq.AdditionalFieldsWrapper>
 
 ### attributeCategories
 
@@ -260,7 +129,7 @@ Get the list of attributecategorie.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.AttributeCategoryOutputRepresentation](./apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation)>
+Type: List<[runtime\_industries\_cpq.AttributeCategoryOutputRepresentation](./apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation "Stores details of an attribute such as code, description, usage type, and so on.")>
 
 ### availabilityDate
 
@@ -284,7 +153,7 @@ Get the list of catalog.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.CatalogOutputRepresentation](./apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_CatalogOutputRepresentation)>
+Type: List<[runtime\_industries\_cpq.CatalogOutputRepresentation](./apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_CatalogOutputRepresentation "Contains properties to store details of a catalog definition.")>
 
 ### categories
 
@@ -296,7 +165,7 @@ Get the list of categorie.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.CategoryOutputRepresentation](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_CategoryOutputRepresentation)>
+Type: List<[runtime\_industries\_cpq.CategoryOutputRepresentation](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_CategoryOutputRepresentation "Contains properties to store details of a category.")>
 
 ### childProducts
 
@@ -308,7 +177,7 @@ Get the list of childproduct.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.ProductListRepresentation](./apex_class_runtime_industries_cpq_ProductListRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductListRepresentation)>
+Type: List<[runtime\_industries\_cpq.ProductListRepresentation](./apex_class_runtime_industries_cpq_ProductListRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductListRepresentation "Get the list of retrieved products.")>
 
 ### childVariationIds
 
@@ -500,7 +369,7 @@ Get the list of price.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.ProductPricesOutputRepresentation](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation)>
+Type: List<[runtime\_industries\_cpq.ProductPricesOutputRepresentation](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation "Get the price details of a product.")>
 
 ### productClass
 
@@ -524,7 +393,7 @@ Get the productclassification value.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.ProductClassificationOutputRepresentation](./apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation)
+Type: [runtime\_industries\_cpq.ProductClassificationOutputRepresentation](./apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation "Get details of the product classification in a product configuration.")
 
 ### productCode
 
@@ -548,7 +417,7 @@ Get the list of productcomponentgroup.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.ProductComponentGroupOutputRepresentation](./apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation)>
+Type: List<[runtime\_industries\_cpq.ProductComponentGroupOutputRepresentation](./apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation "Get details of the product component group in a product classification.")>
 
 ### productInformation
 
@@ -584,7 +453,7 @@ Get the productquantity value.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.ProductQuantityOutputRepresentation](./apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation)
+Type: [runtime\_industries\_cpq.ProductQuantityOutputRepresentation](./apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation "Represents the quantity constraints and current quantity for a product in the product discovery context.")
 
 ### productRelatedComponent
 
@@ -608,7 +477,7 @@ Get the list of productsellingmodeloption.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.ProductSellingModelOptionOutputRepresentation](./apex_class_ricpq_ProductSellingModelOptionOR.htm.md#apex_class_ricpq_ProductSellingModelOptionOR)>
+Type: List<[runtime\_industries\_cpq.ProductSellingModelOptionOutputRepresentation](./apex_class_ricpq_ProductSellingModelOptionOR.htm.md#apex_class_ricpq_ProductSellingModelOptionOR "Represents a selling model option available for a product, which defines how the product can be sold (such as subscription, one-time, or usage-based).")>
 
 ### productSpecificationType
 
@@ -620,7 +489,7 @@ Get the productspecificationtype value.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.ProductSpecificationTypeOutputRepresentation](./apex_class_ricpq_ProductSpecificationTypeOR.htm.md#apex_class_ricpq_ProductSpecificationTypeOR)
+Type: [runtime\_industries\_cpq.ProductSpecificationTypeOutputRepresentation](./apex_class_ricpq_ProductSpecificationTypeOR.htm.md#apex_class_ricpq_ProductSpecificationTypeOR "Represents a product specification type that defines the structure and attributes available for configuring a product.")
 
 ### productType
 
@@ -644,7 +513,7 @@ Get the list of units of measure for the product.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.ProductUnitOfMeasureOutputRepresentation](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation)>
+Type: List<[runtime\_industries\_cpq.ProductUnitOfMeasureOutputRepresentation](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation "Represents a unit of measure that's available for a product, including whether it's the base or default unit and whether it's orderable.")>
 
 ### qualificationContext
 
@@ -656,7 +525,7 @@ Get the qualificationcontext value.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.QualificationContextOutputRepresentation](./apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation)
+Type: [runtime\_industries\_cpq.QualificationContextOutputRepresentation](./apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation "Represents the context information used for product qualification, including account, opportunity, and other relevant context data for determining product eligibility.")
 
 ### status
 
@@ -680,7 +549,7 @@ Get the unitofmeasure value.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.UnitOfMeasureOutputRepresentation](./apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation)
+Type: [runtime\_industries\_cpq.UnitOfMeasureOutputRepresentation](./apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation "Represents the unit of measure for a product. This class contains information about how product quantities are measured, including the unit code, name, scale, and rounding method.")
 
 ### variationAttributeSet
 
@@ -692,7 +561,7 @@ Get the variation attribute set of the product.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.ProductVariantAttributeSetOutputRepresentation](./apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation)
+Type: [runtime\_industries\_cpq.ProductVariantAttributeSetOutputRepresentation](./apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation "Stores the set of attributes that define the variations of a product.")
 
 ### variationsCount
 
@@ -705,3 +574,7 @@ Get the number of variations of the product.
 #### Property Value
 
 Type: Integer
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_runtime_industries_cpq_GuidedSelectionRepresentation.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

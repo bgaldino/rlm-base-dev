@@ -5,7 +5,7 @@ source_url: https://help.salesforce.com/s/articleView?id=ind.sf_contracts_system
 release: 264
 release_name: Winter '27
 area: salesforce_contracts
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # System Administration and Set Up for ​Salesforce Contracts
@@ -48,3 +48,7 @@ View 'Is Associated With CLM'
 The Is Associated With CLM field is associated with the Contract object. It indicates whether the contract record is created using the Salesforce Contracts application. The Is Associated With CLM field is automatically enabled when you create, import, or check out a contract document version from UI or using APIs.
 Set Up Document Playbook
 Document Playbook gives your legal and contract teams a single reusable source of negotiation guidelines that Salesforce Contracts uses during risk analysis. When a contract author runs risk analysis, Salesforce matches each modified clause against the active playbook version and flags deviations, nonstandard language, fallback positions, and escalation paths so that reviews align with company policy. Set up licenses, Data 360 indexing, and sharing so that designers can create document playbooks and contract authors can use playbook guidance during risk analysis.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_system_administration_for_salesforce_contracts.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

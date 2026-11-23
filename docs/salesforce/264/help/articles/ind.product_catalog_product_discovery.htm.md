@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_introduction.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Product Discovery and Guided Product Selection
@@ -27,3 +27,7 @@ Product Discovery Lightning Components
 Product Discovery provides Product List, Product Details, Product Bundle Details, and Product Attribute Details components that you can add to pages on supported Salesforce Lightning Apps and Experience Cloud sites. To provide easy access to these components, some Salesforce Apps also use a tailored version of these components.
 Product Discovery with Constraint Rules
 The Product Discovery with constraint rules experience helps you build accurate transactions as you browse the product catalog. You see real-time transaction details in the transaction preview, along with constraint rule outcomes such as disabled products, product recommendations, and rule messages. When you add or remove a product, Product Discovery automatically saves the change to the transaction, you don't pause your browsing or wait for the save to complete. While the save is in progress, you can continue going to a category, searching for more products, or reviewing recommendations. This non-blocking experience keeps the catalog fully interactive always.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_product_discovery.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

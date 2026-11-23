@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_time_aware_fulfillment.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Considerations for Backdated Changes in Dynamic Revenue Orchestrator
@@ -44,3 +44,7 @@ For the full list of rollback requirements and limitations, see Transaction Roll
 Swap Orders
 
 DRO decomposes and fulfills swap orders that upgrade or downgrade an asset to a different product. DRO doesn't evaluate constraint rules on swap orders, so swap eligibility that's governed by constraint rules isn't enforced during orchestration.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_considerations_for_backdated_changes_in_dynamic_revenue_orchestrator.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,26 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Rules Application Summary
 
-Output representation of the summary of the application rule. This includes the number of
-    payments and credit memos for the account, the total number of payments and credit memos that's
-    applied to invoices, and whether all invoices for an account are considered (true) or not
-    (false).
+Output representation of the summary of the application rule. This includes the number of payments and credit memos for the account, the total number of payments and credit memos that's applied to invoices, and whether all invoices for an account are considered (true) or not (false).
 
-      
-        
-          
+## JSON Example
 
-**JSON example**
-
-          
-: This example shows the rules application summary.
+This example shows the rules application summary.
 
 ```
 {
@@ -40,9 +30,6 @@ Output representation of the summary of the application rule. This includes the 
 }
 ```
 
-        
-      
-
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `fetched​Payments​Count` | Integer | Total number of payments related to the account. | Big, 66.0 | 66.0 |
@@ -50,3 +37,7 @@ Output representation of the summary of the application rule. This includes the 
 | `totalPayment​Applications` | Integer | Total number of payments that are applied to the invoices or invoice lines. | Big, 66.0 | 66.0 |
 | `totalCredit​Memo​Applications` | Integer | Total number of credit memos that are applied to the invoice or invoice lines. | Big, 66.0 | 66.0 |
 | `areAll​Invoices​Considered` | Boolean | Indicates whether all invoices are considered (`true`) or not (`false`). | Big, 66.0 | 66.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_rules_application_summary_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

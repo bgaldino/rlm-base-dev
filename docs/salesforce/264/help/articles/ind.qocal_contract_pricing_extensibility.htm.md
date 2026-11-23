@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_manage_contract_pricing_in_revenue_lifecycle_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Contract Pricing Extensibility
@@ -15,11 +15,11 @@ Define unique Contract Item Price (CIP) records by using custom fields to bypass
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To set up contract pricing extensibility:	Salesforce admin
 
-By default, Revenue Management provides one negotiated contract price per unique product and Product Selling Model (PSM) combination for a specific date range. This restriction prevents you from defining multiple Contract Item Price (CIP) records for the same product and PSM during overlapping effective dates.
+By default, Revenue Cloud provides one negotiated contract price per unique product and Product Selling Model (PSM) combination for a specific date range. This restriction prevents you from defining multiple Contract Item Price (CIP) records for the same product and PSM during overlapping effective dates.
 
 From Setup, in the Quick Find box, find and select Revenue Settings.
 Turn on Advanced Order Creation From Quote to generate multiple orders from a single quote.
@@ -30,3 +30,7 @@ Add the custom field to the Contract Pricing Entries decision table.
 Update your default pricing procedure to include the new custom field.
 Update context definition mappings for QuoteEntitiesMapping and OrderEntitiesMapping to map STI.ItemCustomFieldId to both QuoteLineItem.CustomFieldId and OrderLineItem.CustomFieldId.
 Save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_contract_pricing_extensibility.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

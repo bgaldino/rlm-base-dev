@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_sample_workflows_to_create_and_customize_contract_object_state_definitions.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Workflow to Create a New Contract Object State Definition and Map it to a New Record Type
@@ -94,3 +94,7 @@ Save your changes.
 Test the new Object State Definition with custom state values and transitions.
 Create a contract and select the record type that you created.
 The contract only has four states that you mapped in the record type: Draft, In Approval Process, Canceled, and Activated.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_workflow_to_create_a_new_contract_object_state_definition_and_map_it_to_a_new_record_type_.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

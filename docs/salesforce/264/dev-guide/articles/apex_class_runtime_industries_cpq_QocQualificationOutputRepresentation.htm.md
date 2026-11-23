@@ -7,34 +7,28 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # QocQualificationOutputRepresentation Class
 
 Represents a quote, order, or contract qualification that determines whether a product
-    can be sold based on specific business rules and conditions.
+can be sold based on specific business rules and conditions.
 
 ## Namespace
 
-[runtime_industries_cpq](./apex_namespace_runtime_industries_cpq.htm.md)
+[runtime\_industries\_cpq](./apex_namespace_runtime_industries_cpq.htm.md "The runtime_industries_cpq namespace provides classes and methods to search products or to manage products, catalogs, and categories.")
 
-- 
-**[QocQualificationOutputRepresentation Constructors](./apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md#apex_ricpq_QocQualificationOR_constructors)**  
-
-- 
-**[QocQualificationOutputRepresentation Properties](./apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md#apex_runtime_industries_cpq_QocQualificationOutputRepresentation_properties)**  
-
-Learn more about the properties available with the QocQualificationOutputRepresentation     class.
+- **[QocQualificationOutputRepresentation Constructors](./apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md#apex_ricpq_QocQualificationOR_constructors)**
+- **[QocQualificationOutputRepresentation Properties](./apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md#apex_runtime_industries_cpq_QocQualificationOutputRepresentation_properties)**  
+  Learn more about the properties available with the QocQualificationOutputRepresentation class.
 
 ## QocQualificationOutputRepresentation Constructors
 
 The following are constructors for `QocQualificationOutputRepresentation`.
 
-- 
-**[QocQualificationOutputRepresentation()](./apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md#apex_runtime_industries_cpq_QocQualificationOutputRepresentation_ctor_2)**  
-
-Constructs an empty QocQualificationOutputRepresentation instance.
+- **[QocQualificationOutputRepresentation()](./apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md#apex_runtime_industries_cpq_QocQualificationOutputRepresentation_ctor_2)**  
+  Constructs an empty QocQualificationOutputRepresentation instance.
 
 ### QocQualificationOutputRepresentation()
 
@@ -44,36 +38,18 @@ Constructs an empty QocQualificationOutputRepresentation instance.
 
 `public QocQualificationOutputRepresentation()`
 
-  
-
 ## QocQualificationOutputRepresentation Properties
 
-  
-  
-  
 Learn more about the properties available with the QocQualificationOutputRepresentation
-    class.
-
-    
-      
+class.
 
 The `QocQualificationOutputRepresentation` class includes
-        these properties.
+these properties.
 
-    
-
-    
-  
-
-- 
-**[productId](./apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md#apex_runtime_industries_cpq_QocQualificationOutputRepresentation_productId)**  
-
-Get or set the identifier of the product being qualified.
-
-- 
-**[qualificationContext](./apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md#apex_ricpq_QocQualificationOR_qualificationContext)**  
-
-Get or set the qualification context that contains the qualification result and reason.
+- **[productId](./apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md#apex_runtime_industries_cpq_QocQualificationOutputRepresentation_productId)**  
+  Get or set the identifier of the product being qualified.
+- **[qualificationContext](./apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm.md#apex_ricpq_QocQualificationOR_qualificationContext)**  
+  Get or set the qualification context that contains the qualification result and reason.
 
 ### productId
 
@@ -97,4 +73,8 @@ Get or set the qualification context that contains the qualification result and 
 
 #### Property Value
 
-Type: runtime_industries_cpq.QualificationContextOutputRepresentation
+Type: runtime\_industries\_cpq.QualificationContextOutputRepresentation
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_runtime_industries_cpq_QocQualificationOutputRepresentation.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

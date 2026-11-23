@@ -1,15 +1,15 @@
 ---
 article_id: ind.product_catalog_qualification_rules.htm
-title: Manage Qualification Rules for Products in Revenue Management
+title: Manage Qualification Rules for Products in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.product_catalog_qualification_rules.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_introduction.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# Manage Qualification Rules for Products in Revenue Management
+# Manage Qualification Rules for Products in Revenue Cloud
 
 Use qualification rules to define the customer eligibility and availability for products, or product categories. Configure qualification rules using criteria such as location, account attributes, purchase history, and more.
 
@@ -62,3 +62,7 @@ Manage Qualification Rule Components
 To fine-tune your qualification rules, modify or deactivate its components.
 Explore a Qualification Rule Example
 Qualification rules can be a complex topic to understand. Let's look at an example to see how the components come together to create a fully functional qualification rule.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_qualification_rules.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

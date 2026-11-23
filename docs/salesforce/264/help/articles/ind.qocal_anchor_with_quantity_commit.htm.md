@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_usage_selling_advanced_concepts.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Anchor Product with Quantity Commitments
@@ -32,3 +32,7 @@ Standard Rate—$1.00 per compute API call
 Commitment Offer—if the customer agrees to the Monthly Compute Saver commitment, where they’re committing to 100 compute API calls per month, they get a $50 flat fee. The commitment rate gives them a discount of $0.50 per call.
 
 If the customer uses calls beyond the committed quantity, the original rate of $1 per call applies. For example, if the customer uses 120 calls, they pay $70. For the first 100 calls, they pay $50 and $20 for the 20 overage calls at the standard$1.00 rate.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_anchor_with_quantity_commit.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

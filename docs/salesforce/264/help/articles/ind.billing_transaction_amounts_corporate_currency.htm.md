@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_financial_accounting.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Capture Transaction Amounts in Multiple Currencies
@@ -15,7 +15,7 @@ Manage multi-currency billing transactions by viewing amounts in transactional c
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions with Revenue Management (formerly Revenue Cloud)
+Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
 
 
 The feature is available for the Invoice and Credit memo records, and their related records with the Revenue Cloud Advanced license or the Revenue Cloud Billing license.
@@ -64,3 +64,7 @@ Refund	Amount	Corporate Currency Converted Amount	Functional Currency Converted 
 Debit Memo	Total Charge Amount	Corporate Currency Converted Total Charge Amount	Functional Currency Converted Total Charge Amount
 Debit Memo Line	Charge Amount	Corporate Currency Converted Charge Amount	Functional Currency Converted Charge Amount
 Debit Memo Line Tax	Tax Amount	Corporate Currency Converted Tax Amount	Functional Currency Converted Tax Amount
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_transaction_amounts_corporate_currency.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

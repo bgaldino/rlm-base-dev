@@ -7,25 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Tax Details
 
 Output representation of the tax details for each line item.
 
-    
-
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -53,150 +42,17 @@ Output representation of the tax details for each line item.
 }
 ```
 
-          
-
-        
-      
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `exemptAmount` | Double | Amount exempted from taxation for the line item. | Big, 62.0 | 62.0 |
 | `exemptReason` | String | Reason for the tax exemption. | Big, 62.0 | 62.0 |
-| `imposition` | [Tax Imposition](./connect_responses_tax_imposition_output.htm.md) | Tax imposition details applicable to the line item. | Big, 62.0 | 62.0 |
-| `jurisdiction` | [Tax Jurisdiction](./connect_responses_tax_jurisdiction_output.htm.md) | Details of the tax jurisdiction. | Big, 62.0 | 62.0 |
+| `imposition` | [Tax Imposition](./connect_responses_tax_imposition_output.htm.md "Output representation of the details of the imposed tax.") | Tax imposition details applicable to the line item. | Big, 62.0 | 62.0 |
+| `jurisdiction` | [Tax Jurisdiction](./connect_responses_tax_jurisdiction_output.htm.md "Output representation of the details of the tax jurisdiction for the tax line.") | Details of the tax jurisdiction. | Big, 62.0 | 62.0 |
 | `rate` | Double | Tax rate applied to the taxable amount to calculate the tax. | Big, 62.0 | 62.0 |
 | `tax` | Double | Actual amount of tax that’s applicable to the line item. | Big, 62.0 | 62.0 |
 | `taxId` | String | Unique identifier such as a code or a number that’s assigned to a specific tax. This value helps users identify which type of tax is applied. | Big, 62.0 | 62.0 |
 | `taxableAmount` | Double | Total amount of the line item that’s eligible for taxation. | Big, 62.0 | 62.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_tax_details_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

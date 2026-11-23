@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_refunds_overview.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Initiate Automated Refunds on Negative and Canceled Invoices
@@ -51,3 +51,7 @@ EXAMPLE
 A customer account has a one-year subscription starting in March 2026, totaling $3,000. The original invoice is generated, activated, and fully settled via a payment method linked to a payment gateway.
 
 However, when an amendment reduces the subscription quantity by five, Billing generates amendment billing schedules, and applies a credit of $825 to the posted invoices. Billing automatically triggers the automated refund process, and the $825 refund amount is settled against the same payment method used in the initial transaction.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_refund_orchestration.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

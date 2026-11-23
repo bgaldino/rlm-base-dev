@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_schedules_and_schedule_groups.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Bill for Multiple Terms in a Billing Period
@@ -23,3 +23,7 @@ Sometimes a customer prefers to be billed for several periods at once, or you wa
 For example, for a monthly billing term unit and a billing term of 3, Billing combines 3 months into one billing period, generates one billing period item that covers all 3 months, and adds a single line to the invoice for that period. The billing period amount equals the unit price multiplied by the quantity and by the number of combined periods.
 
 You can set the billing term on the order product or quote line item. Its default value is 1, which bills each period separately. However, to bill for multiple terms, you can enter a higher value up to 1,200, to combine that number of billing term units into one billing period. For both termed and evergreen products, you can combine multiple terms with weekly, monthly, quarterly, semiannual, and annual billing frequencies. For products that use the one-time selling model, leave the billing term blank or set it to 1.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_multiple_term_billing.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

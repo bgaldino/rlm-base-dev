@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contractscontracts_ai_summer24.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Tailor Your Default and New Field Prompts for Effective Data Extraction with Contracts AI
@@ -28,3 +28,7 @@ Configure Fields for Extraction With Contracts AI
 Extract Contract Details and Clauses with Contracts AI
 
 Einstein Features
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_tailor_and_define_field_prompts_for_extraction_with_contracts_ai.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

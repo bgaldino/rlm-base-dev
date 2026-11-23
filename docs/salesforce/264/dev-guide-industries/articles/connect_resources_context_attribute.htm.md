@@ -7,104 +7,46 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_attribute_management.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Attribute (POST, PATCH)
 
 Create a list of context attributes.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
-/connect/context-nodes/${contextNodeId}/context-attributes
+/connect/context-nodes/contextNodeId/context-attributes
 ```
 
-          
-
-        
-        
-          
-
-**Example for POST**
-
-          
-: 
-            
+## Example for POST
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-nodes/${contextNodeId}/context-attributes
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-nodes/contextNodeId/context-attributes
 ```
 
-          
-
-        
-        
-          
-
-**Example for PATCH**
-
-          
-: 
-            
+## Example for PATCH
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-nodes/${contextNodeId}/context-attributes
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-nodes/contextNodeId/context-attributes
 ```
 
-          
+## Available Version
 
-        
-        
-          
+59.0
 
-**Available version**
+## Requires Chatter
 
-          
-: 59.0
+No
 
-        
-        
-          
+## HTTP Methods
 
-**Requires Chatter**
+POST, PATCH
 
-          
-: No
+## Request Body for POST
 
-        
-        
-          
-
-**HTTP methods**
-
-          
-: POST, PATCH
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-
-**JSON example**
-
-: 
+### JSON Example
 
 ```
 {
@@ -130,9 +72,7 @@ https://yourInstance.salesforce.com/services/data/v59.0/connect/context-nodes/${
 }
 ```
 
-**Properties**
-
-: 
+### Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
@@ -143,38 +83,15 @@ https://yourInstance.salesforce.com/services/data/v59.0/connect/context-nodes/${
 | `isKey` | Boolean | Specifies if it used for transposable feature (`true`) or not (`false`). | Optional | 59.0 |
 | `isValue` | Boolean | Specifies if it used for transposable feature (`true`) or not (`false`). | Optional | 59.0 |
 | `name` | String | Name of the attribute. | Required | 59.0 |
-| `tags` | [Context Tag Input](./connect_requests_context_tag_input.htm.md)[] | List of tags for the attribute. | Optional | 59.0 |
+| `tags` | [Context Tag Input](./connect_requests_context_tag_input.htm.md "Input representation of the context tag.")[] | List of tags for the attribute. | Optional | 59.0 |
 
-          
+## Response Body for POST
 
-        
-        
-          
+[Context Attribute List](./connect_responses_context_attribute_list.htm.md "Output representation of list of context attributes.")
 
-**Response body for POST**
+## Request Body for PATCH
 
-          
-: 
-[Context Attribute List](./connect_responses_context_attribute_list.htm.md)
-          
-
-        
-        
-          
-
-**Request body for PATCH**
-
-          
-: 
-
-              
-                
-
-**JSON example**
-
-                
-: 
-                  
+### JSON Example
 
 ```
 {
@@ -191,17 +108,10 @@ https://yourInstance.salesforce.com/services/data/v59.0/connect/context-nodes/${
 }
 ```
 
-                
+## Response Body for PATCH
 
-              
-            
+[Context Attribute List](./connect_responses_context_attribute_list.htm.md "Output representation of list of context attributes.")
 
-        
-        
-          
+---
 
-**Response body for PATCH**
-
-          
-: 
-[Context Attribute List](./connect_responses_context_attribute_list.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_context_attribute.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

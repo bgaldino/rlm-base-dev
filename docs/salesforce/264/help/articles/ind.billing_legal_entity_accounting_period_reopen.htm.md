@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_legal_entity_accounting_periods_close_and_reopen.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Reopen a Legal Entity Accounting Period
@@ -15,14 +15,14 @@ Reopen legal entity accounting periods to reconcile any previous journal entries
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions with Revenue Management
+Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
 
 
-This feature is available for the Invoice and Credit Memo records, and their related records with the Revenue Management Advanced license or the Revenue Management Billing license.
+This feature is available for the Invoice and Credit Memo records, and their related records with the Revenue Cloud Advanced license or the Revenue Cloud Billing license.
 
-This feature is available for the Payment, Refund, and Debit Memo records, and their related records with the Revenue Management Billing license. Contact your Salesforce account executive for more information.
+This feature is available for the Payment, Refund, and Debit Memo records, and their related records with the Revenue Cloud Billing license. Contact your Salesforce account executive for more information.
 
-The Delete Transaction Journals with Unrealized Foreign Exchange Gains or Losses data processing engines is available only with the Revenue Management Billing license.
+The Delete Transaction Journals with Unrealized Foreign Exchange Gains or Losses data processing engines is available only with the Revenue Cloud Billing license.
 
 USER PERMISSIONS NEEDED
 To reopen legal entity accounting periods:	
@@ -43,3 +43,7 @@ When you click Reopen Legal Entity Accounting Period, the Delete Transaction Jou
 
 SEE ALSO
 Close Legal Entity Accounting Periods
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_legal_entity_accounting_period_reopen.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

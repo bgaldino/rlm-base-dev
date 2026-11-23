@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_setup_additional_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Invoice Risk Scoring to Predict Risk Scores for Invoices (Pilot)
@@ -15,7 +15,7 @@ A risk score for an invoice predicts the likelihood that payment for an open inv
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Performance, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
+Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
 NOTE Invoice Risk Scoring is a pilot or beta service that is subject to the Beta Services Terms at Agreements - Salesforce.com or a written Unified Pilot Agreement if executed by Customer, and applicable terms in the Product Terms Directory. Use of this pilot or beta service is at the Customer's sole discretion.
 
 The risk score helps billing and finance teams identify invoices potentially requiring closer monitoring, and it helps them prioritize collection efforts. A higher risk score indicates a greater likelihood of overdue payments, while a lower score suggests payment is more likely on or before the due date.
@@ -40,3 +40,7 @@ Create a Copy Field Enrichment to Copy Risk Score from Data Model Object (Pilot)
 The Invoice Risk Scoring app computes risk scores in Data 360.
 Create Use Case for AI Accelerator (Pilot)
 After configuring the Scoring Framework and creating the Copy Field Enrichment, create and configure a machine learning use case in AI Accelerator. The AI Accelerator use case connects the trained Invoice Risk Score model to your Salesforce org so that risk predictions are accessible on invoice records.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_risk_scoring.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

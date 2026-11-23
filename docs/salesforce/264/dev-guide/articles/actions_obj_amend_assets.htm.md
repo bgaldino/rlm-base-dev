@@ -7,281 +7,58 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Initiate Amendment Action
 
 Initiate and execute the amendment of an asset.
 
-		
-
-			
-
-Specify the IDs of assets to amend, the amendment start date, and any quantity
-				changes. You can choose whether the action creates an amendment quote or order.
-
-		
-
-		
+Specify the IDs of assets to amend, the amendment start date, and any quantity changes. You can choose whether the action creates an amendment quote or order.
 
 ## Considerations
 
-			
-			
-
-For usage products, creating an order directly by setting `amendOutputType` to `Order` is
-				currently not supported. The direct-to-order flow can create Order Products without
-				required related Rate Card Entry records, which can cause order activation to
-				fail.
-
-			
+For usage products, creating an order directly by setting `amendOutputType` to `Order` is currently not supported. The direct-to-order flow can create Order Products without required related Rate Card Entry records, which can cause order activation to fail.
 
 When you amend usage assets, use a two-step flow.
 
-			
-				
 1. Create an amendment quote by calling `initiateAmendment` with `amendOutputType` set to `Quote`.
-
-				
 2. Create an order from that amendment quote.
-
-			
-
-		
-
-		
-		
 
 ## Supported REST HTTP Methods
 
-			
-			
-				
-					
+**URI:** `/services/data/v68.0/actions/standard/initiateAmendment`
 
-**URI**
+**Formats:** JSON, XML
 
-					
-: `/services/data/v68.0/actions/standard/initiateAmendment`
+**HTTP Methods:** POST
 
-				
-				
-					
-
-**Formats**
-
-					
-: JSON, XML
-
-				
-				
-					
-
-**HTTP Methods**
-
-					
-: POST
-
-				
-				
-					
-
-**Authentication**
-
-					
-: `Authorization: Bearer
-							token`
-
-				
-			
-
-		
-
-		
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Input | Details |
-| --- | --- |
-| amendAssetIds | **Type** string **Description** Required. The IDs of the assets that you want to amend. |
-| amendContractId | **Type** string **Description** The ID of the contract record to be synced with the amendment. |
-| amendStartDate | **Type** datetime **Description** Required. Effective start date of the amendment. |
-| amendOpportunityId | **Type** string **Description** The ID of the Opportunity record to be synced with the amendment quote. |
-| amendOutputType | **Type** string **Description** Required. Type of amendment record to create such as a quote or an order. For usage products, set this value to `Quote`. The usage-related records (`QuoteLineItemUseResourceGrant`, `QuoteLineItemUsageResourcePolicy`, and `QuoteLineRateCardEntry`) are copied in the quote action flow, not in the amend order flow. |
-| quantityChange | **Type** double **Description** Required. Quantity to add to or reduce from the asset's existing quantity. |
-| skipPricing | **Type** boolean **Description** Indicates whether the pricing procedure must be skipped (`true`) or performed (`false`). Available in API version 64.0 and later. |
-
-		
-
-		
+| Input | Type | Description |
+| --- | --- | --- |
+| amendAssetIds | string | Required. The IDs of the assets that you want to amend. |
+| amendContractId | string | The ID of the contract record to be synced with the amendment. |
+| amendStartDate | datetime | Required. Effective start date of the amendment. |
+| amendOpportunityId | string | The ID of the Opportunity record to be synced with the amendment quote. |
+| amendOutputType | string | Required. Type of amendment record to create such as a quote or an order. For usage products, set this value to `Quote`. The usage-related records (`QuoteLineItemUseResourceGrant`, `QuoteLineItemUsageResourcePolicy`, and `QuoteLineRateCardEntry`) are copied in the quote action flow, not in the amend order flow. |
+| quantityChange | double | Required. Quantity to add to or reduce from the asset's existing quantity. |
+| skipPricing | boolean | Indicates whether the pricing procedure must be skipped (`true`) or performed (`false`). Available in API version 64.0 and later. |
 
 ## Outputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Output | Details |
-| --- | --- |
-| amendRecordId | **Type** string **Description** The ID of the amendment record that’s created. |
-| requestIdentifier | **Type** string **Description** Request ID that’s used to track the async request. |
-
-		
-
-		
+| Output | Type | Description |
+| --- | --- | --- |
+| amendRecordId | string | The ID of the amendment record that’s created. |
+| requestIdentifier | string | Request ID that’s used to track the async request. |
 
 ## Example
 
-			
-			
-				
-					
-
 **POST**
 
-					
-: 
-						
-
 This sample request is for the Initiate Amendment action.
-
-						
 
 ```
 {
@@ -299,11 +76,7 @@ This sample request is for the Initiate Amendment action.
 }
 ```
 
-						
-
 This sample response is for the Initiate Amendment action.
-
-						
 
 ```
 [
@@ -319,3 +92,7 @@ This sample response is for the Initiate Amendment action.
     }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_amend_assets.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

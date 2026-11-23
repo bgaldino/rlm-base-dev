@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_debit_memo.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create Debit Memos and Related Records
@@ -93,3 +93,7 @@ Go back to the parent debit memo and change the status to Posted. The invoice ge
 If you manually convert debit memo lines to invoice lines, then post the related invoice and select the Manually Processed check box on the related Debit Memo record. You can also use Invoice Ingestion API to convert them manually.
 
 When you click the Generate Invoices button or schedule an invoice batch run, after all valid billing schedule groups are converted to invoice lines, all valid debit memo lines are converted to invoice lines.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_debit_memo_create.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

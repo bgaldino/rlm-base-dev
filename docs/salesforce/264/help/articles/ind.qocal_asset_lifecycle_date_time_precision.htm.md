@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_manage_assets_in_revenue_lifecycle_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Honor Precise Time Zones in Asset Lifecycle Start and End Dates
@@ -15,13 +15,13 @@ Specify exact time zone precision for asset lifecycle start and end dates to mee
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To specify time precision on quotes:	Create on Quotes
 To specify time precision on orders:	PlaceOrder API permission set
 IMPORTANT Set field-level security for the Start Time, End Time, and Start End Time Zone fields on the Quote Line Item and Order Product objects. You need the ManageAssets or CalmSObject permission set to set field-level security. Set Field-Level Security for a Field on All Profiles.
 
-Standardized asset lifecycle processes honor the order line item (OLI) date and time when setting asset and ASP start and end dates during Order-to-Asset and Order-Product-to-Asset processes. By moving beyond the default 00:00:00 universal time-coordinated (UTC) setting, Revenue Management handles precise moments, such as a 12:00 AM PST start and 11:59 PM PST end.
+Standardized asset lifecycle processes honor the order line item (OLI) date and time when setting asset and ASP start and end dates during Order-to-Asset and Order-Product-to-Asset processes. By moving beyond the default 00:00:00 universal time-coordinated (UTC) setting, Revenue Cloud handles precise moments, such as a 12:00 AM PST start and 11:59 PM PST end.
 
 During assetization, the line item time zone is stored on the ASP. When you amend, renew, or cancel an asset, the stored time zone is used to show the start and end dates and times instead of defaulting to UTC. This behavior keeps amendment and renewal dates aligned with the stored time zone and calculates the correct period boundary day.
 
@@ -63,3 +63,7 @@ The new ASP starts exactly at 2/1/2025 19:00:00 UTC and ends at 12/31/2025 16:59
 Amendment Time Zone Example
 
 A customer buys a yearly subscription with a start date and time of 1/1/2026 12:00 AM PST and an end date and time of 12/31/2026 11:59 PM PST. The time zone is stored on the ASP. When a sales rep initiates an amendment effective 7/1/2026, the amendment line items use the stored time zone instead of UTC. The amendment shows a start date and time of 7/1/2026 12:00 AM PT and an end date and time of 12/31/2026 11:59 PM PST.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_asset_lifecycle_date_time_precision.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_group_cardinality.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Group Cardinality Examples
@@ -130,3 +130,7 @@ At run time, the user can select between two and five products because the group
 The default quantity for Product YY1 is three. However, the user can change the quantity of Product YY1 to a minimum of two and a maximum of four. The user must select between two and four numbers of Product YY1 products because the product classification cardinality allows a minimum of two and a maximum of four products.
 
 The default quantity for Product YY4 is three. However, the user can change the quantity of Product YY4 to a minimum of two and a maximum of four. The user must select between two and four numbers of Product YY4 products because the product classification cardinality allows a minimum of two and a maximum of four products.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_cardinality_examples.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

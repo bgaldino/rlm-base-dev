@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_customize_quote_and_order_capture.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Customize Transaction Summary
@@ -15,7 +15,7 @@ The Transaction Summary component shows a snapshot of key financial details from
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS
 NEEDED
 To customize the Transaction Summary:	Customize Application
@@ -41,3 +41,7 @@ Vertical Positioning: Place the Transaction Summary component in the same tab as
 Rendering Behavior: The component always renders at the bottom of the page in the live view, regardless of where you drop it in the Lightning App Builder.
 Field Limitations: Avoid adding fields with the Address data type, such as Ship To or Bill To, as the component doesn’t support them.
 Component Selection: If other components hide the component box in the Lightning App Builder, confirm your selection by checking for Transaction Summary in the properties panel.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_customize_transaction_summary.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

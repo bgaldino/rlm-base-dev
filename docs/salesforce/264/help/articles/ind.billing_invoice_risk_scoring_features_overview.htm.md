@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_risk_score.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Overview of Features and Assets of Invoice Risk Scoring (Pilot)
@@ -15,7 +15,7 @@ Review key input features and assets involved in the installation and configurat
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Performance, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
+Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
 NOTE Invoice Risk Scoring is a pilot or beta service that is subject to the Beta Services Terms at Agreements - Salesforce.com or a written Unified Pilot Agreement if executed by Customer, and applicable terms in the Product Terms Directory. Use of this pilot or beta service is at the Customer's sole discretion.
 Standard Invoice Fields
 
@@ -62,3 +62,7 @@ Each score includes explainability details showing:
 
 The top 3 factors influencing the score
 Impact value of each factor
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_risk_scoring_features_overview.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

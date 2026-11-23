@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_setup_private_external_review_one.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Create a Private External Review Setting
@@ -29,3 +29,7 @@ See Create a Digital Experience Site for Private Online External Review.
 Click Create.
 
 After you've created a private external review setting, then you've to Enable Private Online External Review
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_setup_private_external_review_three.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

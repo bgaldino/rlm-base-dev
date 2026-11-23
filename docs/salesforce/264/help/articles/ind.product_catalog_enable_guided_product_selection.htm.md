@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_guided_product_selection.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Enable Guided Product Selection
@@ -26,7 +26,7 @@ OmniStudio Admin permission set
 
 Complete the Prerequisites for Guided Product Selection Setup
 Make sure that you have access to Omnistudio.
-NOTE Omnistudio isn’t available with Product Catalog Management by default. Omnistudio is available as a part of other products such as Revenue Management or as a standalone Omnistudio license.
+NOTE Omnistudio isn’t available with Product Catalog Management by default. Omnistudio is available as a part of other products such as Revenue Cloud or as a standalone Omnistudio license.
 The Omniscript for Guided Product Selection can be accessed by using the Omnistudio managed package designer or the Omnistudio standard designer.
 To use the Omnistudio managed package designer, enable the Managed Package Runtime setting, and then enable the Managed Package Designer setting. If needed, enable the Deploy Custom Lightning Web Components setting. See Omnistudio Settings.
 To use the Omnistudio standard designer, disable the Managed Package Runtime setting, and then disable the Managed Package Designer setting. See Omnistudio Standard Designer.
@@ -51,3 +51,7 @@ IMPORTANT Don’t change the ProductGuidedSelectionIntegration omniscript. On t
 Click Activate Version.
 
 To users (sales reps and customers) who use Guided Product Selection, assign the necessary permission sets and provide record access. See Permissions to Access Product Discovery.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_enable_guided_product_selection.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

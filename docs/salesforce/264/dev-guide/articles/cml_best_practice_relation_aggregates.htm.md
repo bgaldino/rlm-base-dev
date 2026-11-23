@@ -7,27 +7,21 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_cml_best_practices.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Relation Aggregates: Stabilize Preferences Using Staged Variables
 
 To improve solver stability and prevent backtracking, stage relation aggregates through
-    local variables and state anchors instead of referencing them directly in
-    preferences.
-
-    
+local variables and state anchors instead of referencing them directly in
+preferences.
 
 To improve solver stability and prevent backtracking, avoid referencing relation aggregates
-      directly within preferences when the preferences also influence the same relation. Instead,
-      stage these aggregates through local variables and state anchors.
-
-    
+directly within preferences when the preferences also influence the same relation. Instead,
+stage these aggregates through local variables and state anchors.
 
 In this example, the preferences and the calculated quantity depend directly on live
-      relation aggregates.
-
-    
+relation aggregates.
 
 ```
 relation ml : ModelTraining {
@@ -39,27 +33,17 @@ preference(ml[ModelTraining] > 0 && ml.subCount > 0 -> ml[ModelTraining] == calc
 constraint(calculatedQuantity == ((ml.totalNumSubscriptions + 99) / 100) * 100);
 ```
 
-    
-
 When the solver evaluates preferences that depend directly on a relation's own aggregates,
-      it creates a tight feedback loop:
-
-    
+it creates a tight feedback loop:
 
 Relation Quantity ⟶ Relation Aggregates ⟶ Preference Guards/Targets ⟶ Relation Quantity
-      (loop repeats)
-
-    
+(loop repeats)
 
 The feedback loop can cause the solver to oscillate or backtrack repeatedly before finding
-      a stable solution.
-
-    
+a stable solution.
 
 This example shows the stabilized pattern. It introduces staged variables that act as
-      anchors to separate the relation aggregates from the preference logic.
-
-    
+anchors to separate the relation aggregates from the preference logic.
 
 ```
 relation ml : ModelTraining {
@@ -84,16 +68,14 @@ preference(ml[ModelTraining] > 0 && hasSub == false -> ml[ModelTraining] == pare
 preference(ml[ModelTraining] > 0 && hasSub == true -> ml[ModelTraining] == calculatedQuantity);
 ```
 
-    
-
 With this pattern, instead of solving everything simultaneously, the solver logic processes
-      a pipeline:
-
-    
+a pipeline:
 
 Relation ⟶ Aggregates ⟶ Anchored State/Local Variables ⟶ Derived Calculations ⟶
-      Preferences
-
-    
+Preferences
 
 This process reduces oscillation and makes the solving path more deterministic.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_best_practice_relation_aggregates.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

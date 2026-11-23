@@ -5,7 +5,7 @@ source_url: https://help.salesforce.com/s/articleView?id=ind.qocal_sales_transac
 release: 264
 release_name: Winter '27
 area: transaction_mgmt
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Quote and Order Lifecycle Actions
@@ -26,3 +26,7 @@ Add Product Variations in Quotes and Orders
 Sales reps can search for and add specific product variations to a quote or order by using Browse Catalog or Quick Add. After adding a variation, such as color or size, the side panel includes its attributes. Sales reps can switch to a different variation by using the change action.
 Differences Between Calculation Status Field and Validation Result Field
 Map the Calculation Status field and Validation Result field to specific tasks within your pricing and orchestration engine to maintain an effective transaction lifecycle and avoid inaccurate business decisions. While both fields track transaction states, each serves a unique purpose based on your business requirements.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_sales_transactions_rev_cloud.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

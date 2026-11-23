@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_design_time_decomposition.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Context Definitions for Dynamic Revenue Orchestrator
@@ -14,7 +14,7 @@ fetched_at: 2026-09-05
 Dynamic Revenue Orchestrator (DRO) context definitions contain the information required to fulfill a sales transaction. A context definition includes the relationship between nodes and their structure, attributes, context tags, and mapping. Context mapping updates the nodes and attributes with the correct input data from Salesforce objects.
 
 REQUIRED EDITIONS
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management where Salesforce Dynamic Revenue Orchestrator is enabled.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Salesforce Dynamic Revenue Orchestrator is enabled.
 Predefined Context Definitions
 
 DRO’s predefined context definitions include:
@@ -34,3 +34,7 @@ Considerations
 When you map a source product tag to a target product tag and if that target product tag is mapped to a reference field in the context definition mapping, enrichment happens only if the outcome of the mapping is compatible with the reference field of the target product tag. We recommend that you avoid selecting such product tags for the target product in the Fields & Attribute Mapping tab.
 
 In the event of an enrichment failure, the Decision Explainer Service (DES) captures the information in the log. See the Explainability Action Logs section on Submit Order Action and Action Logs.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_context_definitions_for_dynamic_revenue_orchestrator.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

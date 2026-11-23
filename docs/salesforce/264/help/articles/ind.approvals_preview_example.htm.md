@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: approvals
 parent_article: ind.approvals_preview_approvals.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Example: How Step Conditions Affect a Preview
@@ -37,3 +37,7 @@ HR 2 and Legal 1 are at the same level because they both depend on HR 1.
 Scenario Two: Account Revenue Is Less Than 1000
 
 If the account’s revenue is less than 1000, the flow moves to stage 3. The preview window shows the same steps as Scenario One and another approval step belonging to stage 3.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.approvals_preview_example.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

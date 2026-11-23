@@ -7,27 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_catalog_management_api_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Product
 
 Output representation of the product definition.
 
-      
-        
-          
+## JSON Example
 
-**JSON example**
-
-          
-: This example shows a sample of the Product List (POST) API response.
-
-          
-: 
-            
+This example shows a sample of the Product List (POST) API response.
 
 ```
 {
@@ -247,14 +236,7 @@ Output representation of the product definition.
 }
 ```
 
-          
-
-          
-: This example shows a sample of the Bulk Product Details (POST) API response.
-
-          
-: 
-            
+This example shows a sample of the Bulk Product Details (POST) API response.
 
 ```
 {
@@ -477,14 +459,7 @@ Output representation of the product definition.
 }
 ```
 
-          
-
-          
-: This example shows a sample of the Product By ID (GET) API response.
-
-          
-: 
-            
+This example shows a sample of the Product By ID (GET) API response.
 
 ```
 {
@@ -1421,348 +1396,17 @@ Output representation of the product definition.
 }
 ```
 
-          
-
-        
-      
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
+## Properties
 
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `additional​Fields` | Map<String, [Additional Fields Input](./connect_requests_product_catalog_additional_fields_input.htm.md)> | Key-value pair of additional standard or custom fields with their values. | Small, 61.0 | 61.0 |
-| `attribute​Category` | [Attribute Category](./connect_responses_attribute_category_output.htm.md)[] | List of categorized attributes related to the product. | Small, 60.0 | 60.0 |
-| `attributes` | [Attribute Definition](./connect_responses_attribute_definition_output.htm.md)[] | List of uncategorized attributes related to the product. | Small, 60.0 | 60.0 |
+| `additional​Fields` | Map<String, [Additional Fields Input](./connect_requests_product_catalog_additional_fields_input.htm.md "Input representation of the additional standard or custom fields to be included in the response.")> | Key-value pair of additional standard or custom fields with their values. | Small, 61.0 | 61.0 |
+| `attribute​Category` | [Attribute Category](./connect_responses_attribute_category_output.htm.md "Output representation of the attribute category.")[] | List of categorized attributes related to the product. | Small, 60.0 | 60.0 |
+| `attributes` | [Attribute Definition](./connect_responses_attribute_definition_output.htm.md "Output representation of the attribute definition.")[] | List of uncategorized attributes related to the product. | Small, 60.0 | 60.0 |
 | `availability​Date` | String | Date when the part is used in the product or is made available for sale. | Small, 60.0 | 60.0 |
-| `catalogs` | [Catalog](./connect_responses_catalog_output.htm.md)[] | List of the associated catalogs returned with the Product List API (POST) response. The Product By ID API (GET) returns an empty catalog list in the response. Returns the `name` and `id` values only. | Small, 61.0 | 61.0 |
-| `categories` | [Category](./connect_responses_category_output.htm.md)[] | List of the associated categories returned with the Product List API (POST) response. The Product By ID API (GET) returns an empty category list in the response. Returns the `name` and `id` values only. | Small, 60.0 | 60.0 |
-| `child​Products` | [Product](#)[] | Hierarchy of the child products. | Small, 60.0 | 60.0 |
+| `catalogs` | [Catalog](./connect_responses_catalog_output.htm.md "Output representation of the catalog definition.")[] | List of the associated catalogs returned with the Product List API (POST) response. The Product By ID API (GET) returns an empty catalog list in the response. Returns the `name` and `id` values only. | Small, 61.0 | 61.0 |
+| `categories` | [Category](./connect_responses_category_output.htm.md "Output representation of the category definition.")[] | List of the associated categories returned with the Product List API (POST) response. The Product By ID API (GET) returns an empty category list in the response. Returns the `name` and `id` values only. | Small, 60.0 | 60.0 |
+| `child​Products` | [Product](# "Output representation of the product definition.")[] | Hierarchy of the child products. | Small, 60.0 | 60.0 |
 | `configure​During​Sale` | String | Determines whether to allow or prevent configuration when a bundle is sold. | Small, 60.0 | 60.0 |
 | `description` | String | Description of the product. If data translation is set up and specified in the org, the translated description is available. | Small, 60.0 | 60.0 |
 | `discontinued​Date` | String | Date from when the part can’t be used in the product or sold. | Small, 60.0 | 60.0 |
@@ -1774,10 +1418,14 @@ Output representation of the product definition.
 | `is​SoldOnly​WithOther​Prods` | Boolean | Indicates whether the product can't be sold separately (`true`) or not (`false`). | Small, 60.0 | 60.0 |
 | `name` | String | Name of the product. If data translation is set up and specified in the org, the translated name is available. | Small, 60.0 | 60.0 |
 | `node​Type` | String | Type of the node, such as a product or bundled product. | Small, 60.0 | 60.0 |
-| `product​Classification` | [Product Classification](./connect_responses_product_classification_output.htm.md) | Details of the product classification that the product is based on. | Small, 60.0 | 60.0 |
+| `product​Classification` | [Product Classification](./connect_responses_product_classification_output.htm.md "Output representation of the product classification details.") | Details of the product classification that the product is based on. | Small, 60.0 | 60.0 |
 | `product​Code` | String | Universal product code that's used to track the part that’s used in the product. | Small, 60.0 | 60.0 |
-| `product​Component​Groups` | [Product Component Group](./connect_responses_product_component_group_output.htm.md)[] | Logical grouping of the component products in a bundle and the group cardinality for ordering the product components. | Small, 60.0 | 60.0 |
-| `product​Related​Component` | [Product Related Component](./connect_responses_product_related_component_output.htm.md) | Details of the related components of a product. | Small, 60.0 | 60.0 |
-| `product​Selling​Model​Options` | [Product Selling Model Option](./connect_responses_product_selling_model_option_output.htm.md)[] | Details of the product selling model options. | Small, 60.0 | 60.0 |
-| `product​Specification​Type` | [Product Specification Type](./connect_responses_product_specification_type_output.htm.md) | Details of the product specification type. | Small, 60.0 | 60.0 |
+| `product​Component​Groups` | [Product Component Group](./connect_responses_product_component_group_output.htm.md "Output representation of the product component group.")[] | Logical grouping of the component products in a bundle and the group cardinality for ordering the product components. | Small, 60.0 | 60.0 |
+| `product​Related​Component` | [Product Related Component](./connect_responses_product_related_component_output.htm.md "Output representation of the product-related component.") | Details of the related components of a product. | Small, 60.0 | 60.0 |
+| `product​Selling​Model​Options` | [Product Selling Model Option](./connect_responses_product_selling_model_option_output.htm.md "Output representation of the definition of the product selling model option.")[] | Details of the product selling model options. | Small, 60.0 | 60.0 |
+| `product​Specification​Type` | [Product Specification Type](./connect_responses_product_specification_type_output.htm.md "Output representation of the product specification type.") | Details of the product specification type. | Small, 60.0 | 60.0 |
 | `quantity​Scale​Method` | String | Method to scale the quantity of the child product in relation to the quantity of the parent. | Small, 60.0 | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_product_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

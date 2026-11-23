@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_payments.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Send Level 2 and Level 3 Payment Data Through Your Payment Gateways
@@ -67,3 +67,7 @@ UnitPrice	 
 NOTE For Stripe, Billing includes Level 3 line data for invoices with up to 200 lines. For an invoice with more than 200 lines, the payment still processes, but Billing sends only Level 2 data and omits the Level 3 line data. Adyen has no such line limit.
 Process a Payment That Includes Level 2 and Level 3 Data
 Send a payment through a native or third-party payment gateways with enhanced data attached, and verify the Level 2 and Level 3 fields in the payment gateway logs.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_send_l2_l3_data.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

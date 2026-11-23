@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_system_administration_for_salesforce_contracts.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Contract Type Config Settings
@@ -112,3 +112,7 @@ Auto Generate Document On Contract Update
 To automatically generate a new contract document version and add it to the object when using the Contract Update action button, you must configure the contract type config settings. You need to set up a few contract type configurations for updating contracts to be successful. The configurations include the default template name, document file name format, and auto-generate doc file type.
 Sample Code To Update Out-of-Sync Contract Type Mapping
 If you delete, add or modify a record type mapping with a contact type, the changes will only apply to the new contracts. To update the out-of-sync contracts, the system admin can run a custom code.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_contract_type_config_settings.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

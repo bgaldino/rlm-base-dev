@@ -7,34 +7,27 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Omnistudio
 parent_page: omnistudio_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Calculation Procedure Version Definition Input
 
 Input representation of the expression set version
-    definition.
+definition.
 
-         
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=industries_reference)
 
 #### Note
 
 This API has been deprecated as of API version 55.0.
-        In API version 55.0 and later, use the new [Business APIs in Business Rules Engine](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/business_rules_engine_connect_apis.htm).
+In API version 55.0 and later, use the new [Business APIs in Business Rules Engine](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/business_rules_engine_connect_apis.htm).
 
-**JSON example**
-
-: 
-                  
+## JSON Example
 
 Specify the version record ID or `CLONE` in
-                     the `versionId` field to either update an
-                     existing expression set version record or save the expression set version
-                     record as a new expression set version record.
-
-                  
+the `versionId` field to either update an
+existing expression set version record or save the expression set version
+record as a new expression set version record.
 
 ```
 {
@@ -105,38 +98,24 @@ Specify the version record ID or `CLONE` in
 }
 ```
 
-               
-
-**Properties**
-
-: 
-
-#### 
-
-                              
-
-                              
-
-                              
-
-                              
-
-                              
-
-                           
+## Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `calculationProcedureId` | String | The ID of the expression-set record that you want to update the definition details for or save as a new version definition record. | Optional | 53.0 |
-| `constants` | [Calculation Procedure Resource](./connect_requests_resource_input.htm.md)[] | The constant values passed in the expression set version record. | Optional | 53.0 |
+| `constants` | [Calculation Procedure Resource](./connect_requests_resource_input.htm.md "Input representation of the expression set resource (variable or constant).")[] | The constant values passed in the expression set version record. | Optional | 53.0 |
 | `description` | String | The description of the expression set version record. | Optional | 53.0 |
-| `enabled` | Boolean | Indicates whether the expression set version record is active (`true`) for execution or not (`false`). The default is `false`. Note This field must be false with the update or save as request. | Optional | 53.0 |
+| `enabled` | Boolean | Indicates whether the expression set version record is active (`true`) for execution or not (`false`). The default is `false`. Note: This field must be false with the update or save as request. | Optional | 53.0 |
 | `endDate` | String | The date and time until when an active expression set version record is in effect. | Optional | 53.0 |
 | `name` | String | The name of the expression set version record. | Optional | 53.0 |
 | `rank` | Integer | The rank of the expression set version record. When multiple records are in effect, the record that’s ranked higher takes precedence. | Optional | 53.0 |
 | `root` | String[] | The first steps defined in the expression set version record. | Optional | 53.0 |
 | `startDate` | String | The start date and time from when an active expression set version record is in effect. | Optional | 53.0 |
-| `step` | Map<String, [Calculation Procedure Step Input](./connect_requests_calculation_procedure_step_input.htm.md)> | The list of steps defined in the expression set version record. | Optional | 53.0 |
-| `variables` | [Calculation Procedure Resource](./connect_requests_resource_input.htm.md)[] | The variable values passed in the expression set version record. | Optional | 53.0 |
+| `step` | Map<String, [Calculation Procedure Step Input](./connect_requests_calculation_procedure_step_input.htm.md "Input representation for the expression set version steps.")> | The list of steps defined in the expression set version record. | Optional | 53.0 |
+| `variables` | [Calculation Procedure Resource](./connect_requests_resource_input.htm.md "Input representation of the expression set resource (variable or constant).")[] | The variable values passed in the expression set version record. | Optional | 53.0 |
 | `versionId` | String | The ID of the expression set version record. | Required | 53.0 |
 | `versionNumber` | Integer | The version number of the expression set record. | Optional | 53.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_requests_calculation_procedure_version_definition_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

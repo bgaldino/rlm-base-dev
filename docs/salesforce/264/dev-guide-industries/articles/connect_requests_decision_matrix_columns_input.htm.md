@@ -7,24 +7,17 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Omnistudio
 parent_page: omnistudio_apis_requests_1.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Decision Matrix Columns Input
 
 Input representation of the information to manage columns in relation
-      to a decision matrix.
+to a decision matrix.
 
-**JSON example**
-
-: 
-            
+## JSON Example
 
 Add a column:
-
-            
 
 ```
 {
@@ -38,15 +31,7 @@ Add a column:
 }
 ```
 
-          
-
-          
-: 
-            
-
 Delete a column:
-
-            
 
 ```
 {
@@ -57,15 +42,7 @@ Delete a column:
 }
 ```
 
-          
-
-          
-: 
-            
-
 Update a column:
-
-            
 
 ```
 {
@@ -78,12 +55,12 @@ Update a column:
 }
 ```
 
-          
-
-**Properties**
-
-: 
+## Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `columns` | [Decision Matrix Column Input](./connect_requests_decision_matrix_column.htm.md)[] | List of columns to be added, updated, or deleted in a decision matrix. | Required | 53.0 |
+| `columns` | [Decision Matrix Column Input](./connect_requests_decision_matrix_column.htm.md "Input representation of the information required to add, update, or delete columns in a decision matrix.")[] | List of columns to be added, updated, or deleted in a decision matrix. | Required | 53.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_requests_decision_matrix_columns_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

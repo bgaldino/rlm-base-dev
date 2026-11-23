@@ -7,120 +7,50 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Invoice Ingestion (POST)
 
-Ingest or generate an invoice from an internal or external billing
-      transaction data.
+Ingest or generate an invoice from an internal or external billing transaction data.
 
-Create invoices from any external or internal transaction. For example, create invoices by using
-        external orders, policies, quotes, or internal data, such as assets or quotes.
+Create invoices from any external or internal transaction. For example, create invoices by using external orders, policies, quotes, or internal data, such as assets or quotes.
 
 You can also perform these additional tasks.
 
-      
-        
-- Ingest invoices from any external system into Billing to manage invoice operations such
-          as issuing credits against an invoice or voiding an invoice.
-
-        
+- Ingest invoices from any external system into Billing to manage invoice operations such as issuing credits against an invoice or voiding an invoice.
 - Generate invoices from debit memos from API version 66.0 and later.
-
-      
 
 Keep these considerations in mind when you use this API.
 
-        
-- If the Convert Negative Invoice Lines to Credit Memo Lines feature isn’t enabled, use
-          the [Negative Invoice Lines to Credit
-            Conversion API](./connect_resources_convert_negative_invoice_lines_to_credit.htm.md) to create a credit memo against an ingested negative invoice
-          line.
-
-        
-- Use the [Apply Credit Action](./actions_obj_run_apply_credit.htm.md) to
-          apply a credit memo to an invoice.
-
-        
+- If the Convert Negative Invoice Lines to Credit Memo Lines feature isn’t enabled, use the [Negative Invoice Lines to Credit Conversion API](./connect_resources_convert_negative_invoice_lines_to_credit.htm.md "HTML (New Window)") to create a credit memo against an ingested negative invoice line.
+- Use the [Apply Credit Action](./actions_obj_run_apply_credit.htm.md "HTML (New Window)") to apply a credit memo to an invoice.
 - To ingest legacy invoices, create at least one invoice line.
+- To generate invoices from debit memos, specify the debit memo ID as the `referenceEntityId` property value in the request body of this API. Make sure that the debit memo is in `Posted` status and is ready for invoice generation. The invoice is generated in `Draft` status.
 
-        
-- To generate invoices from debit memos, specify the debit memo ID as the `referenceEntityId` property value in the request body of
-          this API. Make sure that the debit memo is in `Posted`
-          status and is ready for invoice generation. The invoice is generated in `Draft` status.
-
-      
-
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /commerce/invoicing/invoices/collection/actions/ingest
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/commerce/invoicing/invoices/collection/actions/ingest
 ```
 
-          
+## Available Version
 
-        
-        
-          
+63.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 63.0
+POST
 
-        
-        
-          
+## Request Body for POST
 
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-        
-          
-
-**
-JSON example to ingest a draft invoice with a tax callout**
-
-          
-: 
-            
+**JSON Example to Ingest a Draft Invoice With a Tax Callout**
 
 ```
 {
@@ -315,17 +245,7 @@ JSON example to ingest a draft invoice with a tax callout**
 }
 ```
 
-          
-
-        
-        
-          
-
-**JSON example to ingest a draft invoice without a tax callout**
-
-          
-: 
-            
+**JSON Example to Ingest a Draft Invoice Without a Tax Callout**
 
 ```
 {
@@ -509,17 +429,7 @@ JSON example to ingest a draft invoice with a tax callout**
 }
 ```
 
-          
-
-        
-        
-          
-
-**JSON example to ingest posted invoices**
-
-          
-: 
-            
+**JSON Example to Ingest Posted Invoices**
 
 ```
 {
@@ -684,17 +594,7 @@ JSON example to ingest a draft invoice with a tax callout**
 }
 ```
 
-          
-
-        
-        
-          
-
-**JSON example to generate invoices from debit memos**
-
-          
-: 
-            
+**JSON Example to Generate Invoices From Debit Memos**
 
 ```
 {
@@ -728,73 +628,16 @@ JSON example to ingest a draft invoice with a tax callout**
 }
 ```
 
-          
-
-        
-        
-          
-
 **Properties**
 
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `invoices` | [Invoice Ingestion Input](./connect_requests_invoice_ingestion_input.htm.md)[] | List of invoices to be generated or ingested, enabling the submission and processing of multiple invoices in a single request. This API supports one invoice per request. To send 25 requests at a time, see the [Composite Batch request](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_rest.meta/api_rest/requests_composite_batch.htm). | Required | 63.0 |
+| `invoices` | [Invoice Ingestion Input](./connect_requests_invoice_ingestion_input.htm.md "Input representation of the details of the invoice to be processed. The details include the tax processing status, user preferences for tax callouts, and associated object graph representation.")[] | List of invoices to be generated or ingested, enabling the submission and processing of multiple invoices in a single request. This API supports one invoice per request. To send 25 requests at a time, see the [Composite Batch request](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_rest.meta/api_rest/requests_composite_batch.htm "HTML (New Window)"). | Required | 63.0 |
 
-          
+## Response Body for POST
 
-        
-      
+[Invoice Ingestion](./connect_responses_invoices_ingestion_output.htm.md "Output representation of the details of the generated invoices.")
 
-          
+---
 
-        
-        
-          
-
-**Response body for POST**
-
-          
-: [Invoice
-              Ingestion](./connect_responses_invoices_ingestion_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_invoices_ingestion.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

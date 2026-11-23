@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_apply_policy_driven_price_revisions.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Use the Price Revision Element in a Pricing Procedure
@@ -15,7 +15,7 @@ To maintain profitability on renewals, use the Price Revision element to automat
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS NEEDED
 To create pricing procedures:	Salesforce Pricing Design Time
 NOTE After your Salesforce org updates to Winter ’26, users who have Price Tracking enabled may be unable to use the Price Revision feature because the Index Rate decision table may be deactivated. To activate the Index Rate decision table, from Setup, search for and select Decision Tables. Select the Index Rate decision table and activate it.
@@ -133,3 +133,7 @@ Mix compounding and standard-uplift lines in the same transaction. Standard-upli
 If the pricing procedure uses delta pricing and you enable Compound Uplift, the Price Revision element reprices every line in the ramp group each time it runs, regardless of the delta pricing setting. This behavior applies only to lines that use Compound Uplift. Delta pricing behaves normally for lines that do not use it.
 To use compound uplifts, create a new pricing procedure. Existing pricing procedures do not support this capability.
 When you select Enable Compound Uplift, the Policy Type and Price Revision Formula fields no longer require values.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_use_the_price_revision_element_in_a_pricing_procedure.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

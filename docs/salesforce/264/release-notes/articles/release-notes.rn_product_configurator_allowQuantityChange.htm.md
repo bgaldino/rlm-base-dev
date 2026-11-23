@@ -20,3 +20,7 @@ How: In a CML constraint model, add @(allowQuantityChange = true) to a relations
 SEE ALSO
 Revenue Management Developer Guide: allowQuantityChange Annotation
 Enforce Per-Bundle Product Requirements Regardless of Order Size
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_product_configurator_allowQuantityChange.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

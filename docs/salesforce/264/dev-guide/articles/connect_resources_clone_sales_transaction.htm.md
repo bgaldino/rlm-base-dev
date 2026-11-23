@@ -7,107 +7,49 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_business_apis_rest_references.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Clone Sales Transaction (POST)
 
 Create a clone of a sales transaction, such as a quote or an order. You can also clone a quote line item or an order item record with its related records and configurations.
 
-    
-      
-
 This API supports the cloning of records for these objects.
 
-      
-        
 - Quote
-
-        
 - QuoteLineItem
-
-        
 - OrderItem
-
-        
 - QuoteLineGroup
-
-        
 - Order
-
-        
 - OrderItemGroup
-
-      
-
-      
 
 You can clone all items in a quote line group or order item group when the record to clone is a quote line group or an order item group record.
 
-    
-
-    
-
 ## Resource
-
-      
-      
 
 ```
 /connect/rev/sales-transaction/actions/clone
 ```
 
-    
-
-    
-
 ## Resource Example
-
-      
-      
 
 ```
 https://<varname>yourInstance</varname>.salesforce.com/services/data/v64.0/connect/rev/sales-transaction/actions/clone
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 64.0
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 POST
 
-    
-
-    
-
 ## Request Body for POST
-
-      
-      
 
 **JSON Example**
 
-      
-
 This is a sample request to clone a record within a sales transaction.
-
-      
 
 ```
 {
@@ -116,11 +58,7 @@ This is a sample request to clone a record within a sales transaction.
 }
 ```
 
-      
-
 This is a sample request to clone all line items in a ramped group within a sales transaction.
-
-      
 
 ```
 {
@@ -132,89 +70,18 @@ This is a sample request to clone all line items in a ramped group within a sale
 }
 ```
 
-      
-
 **Properties**
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `recordIds` | String[] | ID of the record to be cloned. You can specify a single record ID only. | Required | 64.0 |
 | `salesTransactionId` | String | ID of the sales transaction related to the record IDs to clone. | Required | 64.0 |
-| `options` | [Clone Options Input](./connect_requests_clone_options_input.htm.md) | Specifies options to clone a ramp segment within a sales transaction. You can clone only the last ramp segment. | Optional | 65.0 |
-
-    
-
-    
+| `options` | [Clone Options Input](./connect_requests_clone_options_input.htm.md "Input representation of the options to clone a sales transaction.") | Specifies options to clone a ramp segment within a sales transaction. You can clone only the last ramp segment. | Optional | 65.0 |
 
 ## Response Body for POST
 
-      
-      
+[Clone Sales Transaction](./connect_responses_clone_sales_transaction_output.htm.md "Output representation for the result of cloning records within a sales transaction.")
 
-[Clone Sales Transaction](./connect_responses_clone_sales_transaction_output.htm.md)
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_clone_sales_transaction.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

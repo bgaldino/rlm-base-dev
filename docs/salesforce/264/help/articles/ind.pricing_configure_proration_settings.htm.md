@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_subscription_pricing_proration.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Configure Proration Settings
@@ -15,7 +15,7 @@ Set custom pricing term values to calculate product prices based on your custome
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER
 PERMISSIONS NEEDED
 To configure proration settings:	Salesforce Pricing Design Time
@@ -30,3 +30,7 @@ FIELD	DESCRIPTION	EXAMPLE
 Evergreen	The default pricing term count for subscriptions with no end date. Because evergreen subscriptions recur indefinitely, this value represents how many billing periods to include in the subscription price calculation.	A value of 1 means the subscription price equals one billing period. For a monthly subscription priced at $50/month, the Subscription element calculates a total price of $50.
 One Time	The default pricing term count for one-time purchases. This value determines how many billing periods the one-time price covers.	A value of 1 means the price covers a single billing period. A value of 12 means the one-time price covers 12 periods.
 NOTE You can only enter numeric values. Leave a field blank to calculate the pricing term count dynamically from the subscription start and end dates during pricing procedure execution.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_configure_proration_settings.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

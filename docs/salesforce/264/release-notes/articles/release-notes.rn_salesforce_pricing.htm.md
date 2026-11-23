@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_revenue.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Salesforce Pricing
@@ -25,3 +25,7 @@ Avoid Integration Parsing Errors from Pricing API Decimal Values
 The Pricing Connect API returns numeric values in standard decimal notation instead of scientific notation. For example, the API returns 10000000 instead of 1E+7.
 New and Changed Connect REST APIs in Salesforce Pricing
 Clone a pricing recipe along with its pricing recipe table mapping records, and optionally assign a different pricing usage subtype to the cloned pricing recipe. Streamline pricing recipe setup by retrieving valid pricing element types for a specific pricing usage subtype in a single API request, which reduces invalid configurations by returning only the elements supported by the selected context. Improve design-time governance and support multi-cloud operations by restricting context definitions and pricing procedures to vertical-specific options.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_salesforce_pricing.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

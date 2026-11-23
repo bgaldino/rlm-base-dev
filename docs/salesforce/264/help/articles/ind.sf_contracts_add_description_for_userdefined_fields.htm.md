@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_configuration_of_fields_for_extraction_from_a_file.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Add Description for User-Defined Fields
@@ -26,3 +26,7 @@ The user-defined fields show up under the Additional Field Mapping tab.
 To modify or add a description, click  next to the custom field.
 Make your edits.
 Save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_add_description_for_userdefined_fields.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

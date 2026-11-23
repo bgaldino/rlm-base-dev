@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_configure_clause_category.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Define Sharing Settings for Clause Sets and Clauses
@@ -30,3 +30,7 @@ In Manage Sharing Settings for, select Document Clause Sets.
 In the Document Clause Set Sharing Rules section, click New.
 Create sharing rules based on a sharing rule type: Owner-Based, Criteria-Based, or Guest User​.
 ​See ​​Create Sharing Rules​​.​​
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_define_sharing_settings_for_clause_sets_and_clauses.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

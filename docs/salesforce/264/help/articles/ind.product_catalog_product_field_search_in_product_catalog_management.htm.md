@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_search_options_for_product_catalog_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Product Field Search in Product Catalog Management
@@ -21,3 +21,7 @@ Product field search doesn’t limit your sales reps to catalogs with over 4 mil
 NOTE Product Field Search doesn’t support faceted search, attribute based search, guided product selection, and search by translated product name.
 Configure Product Field Search
 Give your users the option to quickly search for catalogs having more than 4 million products.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_product_field_search_in_product_catalog_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

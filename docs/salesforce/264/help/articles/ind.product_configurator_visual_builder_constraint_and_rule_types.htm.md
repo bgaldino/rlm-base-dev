@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_create_a_constraint_model.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Constraint and Rule Types in the Visual Builder
@@ -15,7 +15,7 @@ The Visual Builder provides point-and-click tools for you to easily define const
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 
 You add expressions to constraints and rules to define the conditions that they enforce.
 
@@ -55,3 +55,7 @@ Hide/Disable Rule
 Hide or disable a component in a bundle, an attribute, or an attribute value when certain conditions are true, to remove the element from view, or to disable selections for it.
 Preference Rule
 The preference rule applies a constraint when certain conditions are true, but allows the constrainte engine to override the constraint if the user input violates the constraint conditions. For example, use the preference rule to specify that, when laptop display is 2K, the display size should be 15 inch or larger, but allow the configuration to continue without failing if the user selects a smaller display size, and deliver an error message indicating that display size should be 15 inch or larger.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_visual_builder_constraint_and_rule_types.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

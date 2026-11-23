@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_general_procedures.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Cancel Assets with the Managed Asset Viewer
@@ -33,3 +33,7 @@ Select the cancellation date by using the calendar and click Submit.
 The system creates a cancellation quote or order.
 Review your cancellation request and save your changes.
 EXAMPLE
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_cancel_assets.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

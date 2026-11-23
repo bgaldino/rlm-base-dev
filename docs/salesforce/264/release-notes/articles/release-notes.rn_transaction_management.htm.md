@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_revenue.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Transaction Management
@@ -23,6 +23,8 @@ Gain Pricing Flexibility with Price Amendments
 Your sales reps can now use price amendments to update the sales price on quote lines or the unit price on order lines without modifying quantities, attributes, or bundle configurations. Updated prices are reflected throughout the standard order and billing processes.
 Accelerate Transaction Updates with Advanced Filters
 Your sales reps can now use advanced filters to quickly isolate quote and order lines by product name, custom fields, and fields on related records. Focus updates on relevant lines in complex transactions to save time, reduce rework, and improve accuracy when updating pricing and terms.
+Generate Documents for Quotes via CLM
+Generate quote documents that mirror what your reps see on screen, including nested product groups up to 5 levels deep. CLM Document Generation now displays groups, subgroups, and bundles in the same order and structure as your quote, even for quotes with up to 15,000 line items and 1,000 bundles. Configure your quote template to show group hierarchy using indentation, bullets, or color, so proposals are easy for customers to follow
 Edit Accurate Quotes and Orders in Sales Transaction Line Editor with Autorefresh
 Sales Transaction Line Editor (STLE) and Transaction Summary now refresh automatically when a custom flow, Apex trigger, or Agentforce action changes the quote or order your sales reps are viewing. Sales reps see the latest line items without reloading the page manually, so their work on quotes and orders always reflects the most current data. The Refresh tab now reliably reloads the STLE data.
 Organize Sales Transaction Line Editor Actions into Button Groups for Efficient Editing
@@ -35,3 +37,9 @@ Changed Connect REST API in Transaction Management
 Use the enhanced Read Sales Transaction API to discover available batches, then retrieve only the batches that you need in parallel.
 New Invocable Action in Transaction Management
 Keep forecasts up to date by syncing quote line items to opportunity line items so that your sales teams get consistent data with less manual effort. Changes to quote line items update the matching opportunity line items, but not the reverse. To use this action in a flow or other automation, turn on Asynchronous Opportunity Sync in Revenue Settings.
+Stack Renewals on Termed Assets with an Active Future-Dated Renewal
+Renew a termed asset even when it has an active future-dated renewal. Each new renewal quote and order builds on the end date of the most recently created renewal, so you can stack multiple renewals for a single asset. Previously, when a future-dated renewal existed on an asset, sales reps waited for the renewal activation before renewing that asset again.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_transaction_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_initiate_online_external_review_concept.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Initiate Non-Private External Review
@@ -41,3 +41,7 @@ Click Send Email to start the review process.
 An email with the link to the contract document is sent to the reviewers.
 Review a Contract Document in Non-Private External Review Mode
 After the contract author sends the contract for external review, reviewers open the document, make tracked changes and comments, and mark their review as complete. The review status updates in Salesforce, where the contract author checks review status and check the document back in when all reviewers complete their review.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_initiate_online_external_review.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

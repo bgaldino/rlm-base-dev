@@ -7,60 +7,36 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Dynamic Revenue Orchestrator
 parent_page: dynamic_revenue_orchestrator_callouts_overview.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Standard Fulfillment Provider
 
 The Standard Fulfillment Provider or `CalloutIntegrationProvider` is a provider for the order fulfillment usage type. A
-    Fulfillment Designer can configure this provider.
-
-    
+Fulfillment Designer can configure this provider.
 
 The Standard Fulfillment Provider includes these features.
 
-    
-      
 - Predefined payload with sales transaction items and fulfillment items data, including
-        attribute values
-
-      
+  attribute values
 - Fixed integration parameters such as timeouts, credentials, encoding styles, and path. See
-          [Integration Definition for Standard
-          Fulfillment Provider](./dro_integration_definition_for_standard_fulfillment_provider.htm.md) for details about the integration parameters.
-
-      
+  [Integration Definition for Standard
+  Fulfillment Provider](./dro_integration_definition_for_standard_fulfillment_provider.htm.md "Use supported attribute values of an integration definition for a Standard Fulfillment Provider to implement features as per your requirement.") for details about the integration parameters.
 - Modified requests and responses via Omnistudio Integration Procedures
-
-      
-- Asynchronous interaction pattern. See [Asynchronous Interaction Pattern](./dynamic_revenue_orchestrator_async_interaction_pattern.htm.md).
-
-      
+- Asynchronous interaction pattern. See [Asynchronous Interaction Pattern](./dynamic_revenue_orchestrator_async_interaction_pattern.htm.md "To specify an asynchronous request, you must add the callback URI to the integration definition for Standard Fulfillment Provider or Apex Type Provider as an optional attribute.").
 - Request and response logging
-
-      
 - Error handling and retry policies. See [Fallout Design and
-        Management](https://help.salesforce.com/s/articleView?id=ind.dro_fallout_design_and_management.htm&language=en_US).
-
-      
+  Management](https://help.salesforce.com/s/articleView?id=ind.dro_fallout_design_and_management.htm&language=en_US "HTML (New Window)").
 - Request transformation and response handling via integration procedures
 
-    
-
-    
-
-To ‌configure the callout settings for Standard Fulfillment Provider, see [Configuration Steps](./dynamic_revenue_orchestrator_callout_configuration_steps.htm.md).
-
-    
+To ‌configure the callout settings for Standard Fulfillment Provider, see [Configuration Steps](./dynamic_revenue_orchestrator_callout_configuration_steps.htm.md "Before you set up a callout provider, configure the callout settings. The settings include the creation of a named credential and an external credential, the creation of an integration definition, and the configuration of a fulfillment step definition.").
 
 ## Request Payload
 
 This example shows a sample request payload structure
-        with data for sales transaction items and fulfillment transaction items. This data is
-        derived using context definition mappings that are defined through settings. See [Context Definitions in Order
-          Orchestration](https://help.salesforce.com/s/articleView?id=ind.dro_use_context_definitions.htm&language=en_US).
+with data for sales transaction items and fulfillment transaction items. This data is
+derived using context definition mappings that are defined through settings. See [Context Definitions in Order
+Orchestration](https://help.salesforce.com/s/articleView?id=ind.dro_use_context_definitions.htm&language=en_US "HTML (New Window)").
 
 ```
 {
@@ -233,138 +209,66 @@ This example shows a sample request payload structure
 ```
 
 The step source ID of the fulfillment step, which is either a related
-        order or fulfillment item, determines the payload composition with these considerations.
+order or fulfillment item, determines the payload composition with these considerations.
 
-        
 - If the step source ID is an order item, then all order items of the order are included
-          in the payload under the SalesTransactionItems node.
-
-        
+  in the payload under the SalesTransactionItems node.
 - If the step source ID is a fulfillment item, then all fulfillment items of the
-          fulfillment order are included in the payload under the FulfillmentTransactionItems
-          node.
-
-        
+  fulfillment order are included in the payload under the FulfillmentTransactionItems
+  node.
 - If a product attribute doesn't have a defined code, then the attribute is excluded from
-          the payload.
-
-      
-
-    
+  the payload.
 
 ## Considerations
 
-      
-      
-
 Keep these considerations in mind for the request payload.
 
-      
-        
-- The maximum request payload size limit is 12 MB. 
-
-        
+- The maximum request payload size limit is 12 MB.
 - The default timeout period is five seconds, and the maximum timeout period is 120
-          seconds.
-
-        
+  seconds.
 - The encoding style for fulfillment order line items, sales transaction items, and
-          attributes can be configured through the [Integration Definition for Standard
-            Fulfillment Provider](./dro_integration_definition_for_standard_fulfillment_provider.htm.md).
-
-      
-
-    
-
-    
+  attributes can be configured through the [Integration Definition for Standard
+  Fulfillment Provider](./dro_integration_definition_for_standard_fulfillment_provider.htm.md "Use supported attribute values of an integration definition for a Standard Fulfillment Provider to implement features as per your requirement.").
 
 ## Error Handling
 
-      
-      
-
 To verify if the callout request was successful, check the `status` value in the payload. If the status is undefined, then these HTTP codes
-        indicate ‌a successful response.
+indicate ‌a successful response.
 
-      
-        
 - `200`
-
-        
 - `201`
-
-        
 - `202`
-
-        
 - `203`
-
-        
 - `204`
-
-        
 - `205`
-
-        
 - `206`
-
-        
 - `302`
-
-        
 - `304`
-
-      
-
-      
 
 If the request isn't successful, then the fulfillment step state is marked as `Fatally Failed`.
 
-    
-
-    
-
 ## Integration Definition Configurations
-
-      
-      
 
 You can configure these additional features for the integration definition.
 
-      
-        
-- 
-          
-
-Select the
-              **Save
-              the request and response as attachments to the record** checkbox for the
-            integration definition to save request and response payloads as attachments to the
-            Integration Provider Execution record. Content publish limits apply when saving request
-            and response payloads as attachments. Use [Shield
-              Platform Encryption](https://help.salesforce.com/s/articleView?id=xcloud.security_pe_overview.htm&type=5&language=en_US) for secure storage of sensitive information.
-
-        
-
-        
-- 
-[Define Input and Output Processors
-            for the Integration Definition](./dynamic_revenue_orchestrator_input_output_processors.htm.md) for the pre-processing of the standard fulfillment
-          request before you send the request to an external system. See [Omnistudio
-            Integration Procedures](https://help.salesforce.com/s/articleView?id=xcloud.os_omnistudio_integration_procedures_48334.htm&type=5&language=en_US).
-
-      
-
-      
+- Select the
+  **Save
+  the request and response as attachments to the record** checkbox for the
+  integration definition to save request and response payloads as attachments to the
+  Integration Provider Execution record. Content publish limits apply when saving request
+  and response payloads as attachments. Use [Shield
+  Platform Encryption](https://help.salesforce.com/s/articleView?id=xcloud.security_pe_overview.htm&type=5&language=en_US "HTML (New Window)") for secure storage of sensitive information.
+- [Define Input and Output Processors
+  for the Integration Definition](./dynamic_revenue_orchestrator_input_output_processors.htm.md "HTML (New Window)") for the pre-processing of the standard fulfillment
+  request before you send the request to an external system. See [Omnistudio
+  Integration Procedures](https://help.salesforce.com/s/articleView?id=xcloud.os_omnistudio_integration_procedures_48334.htm&type=5&language=en_US "HTML (New Window)").
 
 See [Create an
-          Integration Definition](https://help.salesforce.com/s/articleView?id=ind.consumption_framework_integration_definitions.htm&type=5&language=en_US).
+Integration Definition](https://help.salesforce.com/s/articleView?id=ind.consumption_framework_integration_definitions.htm&type=5&language=en_US "HTML (New Window)").
 
-    
+- **[Integration Definition for Standard Fulfillment Provider](./dro_integration_definition_for_standard_fulfillment_provider.htm.md)**  
+  Use supported attribute values of an integration definition for a Standard Fulfillment Provider to implement features as per your requirement.
 
-  
+---
 
-- 
-**[Integration Definition for Standard Fulfillment Provider](./dro_integration_definition_for_standard_fulfillment_provider.htm.md)**  
-
-Use supported attribute values of an integration definition for a Standard Fulfillment     Provider to implement features as per your requirement.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/dynamic_revenue_orchestrator_default_order_fulfillment_provider.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

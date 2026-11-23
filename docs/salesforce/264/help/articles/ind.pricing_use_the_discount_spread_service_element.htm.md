@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_discount_spread_service.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Use the Discount Distribution Service Element
@@ -84,3 +84,7 @@ Now, let's use the same scenario to learn how floor limits are set and how you c
 Let's simulate this scenario. In your input value, change the HeaderDiscountValue as $900 instead of $300.
 
 Upon simulation, since we've provided floor prices (the Minimum Net Unit Price) for the printer and laptop, after applying discounts equally across the products, you'll see a remainder amount after the system honors their floor prices. This remainder amount value is then written back to the TotalRemainderAmount tag.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_use_the_discount_spread_service_element.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

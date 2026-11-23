@@ -7,204 +7,44 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Run Config Rules Action
 
-Run rules for a specific quote or order based on a context ID or
-            transaction ID, and process other steps that are part of the configuration directly
-            within a Flow. This action decouples rule execution from configurations to enable
-            independent execution of rules and for easier retrieval of responses.
-
-        
-            
+Run rules for a specific quote or order based on a context ID or transaction ID, and process other steps that are part of the configuration directly within a Flow. This action decouples rule execution from configurations to enable independent execution of rules and for easier retrieval of responses.
 
 This action is available in API version 65.0 and later.
 
-        
-
-        
-        
-
 ## Supported REST HTTP Methods
 
-            
-            
-                
-                    
+**URI:** `/services/data/v68.0/actions/standard/runConfigRules` If you’re calling this invocable action from an external website, include the site name in the URI. `<siteName>/services/data/v68.0/actions/standard/runConfigRules`
 
-**URI**
+**Formats:** JSON, XML
 
-                    
-: `/services/data/v68.0/actions/standard/runConfigRules`
+**HTTP Methods:** POST
 
-                    
-: If you’re calling this invocable action from an external website, include
-                        the site name in the URI.
-
-                    
-: `<siteName>/services/data/v68.0/actions/standard/runConfigRules`
-
-                
-                
-                    
-
-**Formats**
-
-                    
-: JSON, XML
-
-                
-                
-                    
-
-**HTTP Methods**
-
-                    
-: POST
-
-                
-                
-                    
-
-**Authentication**
-
-                    
-: `Authorization:
-                            Bearertoken`
-
-                
-            
-
-        
-
-        
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| transactionContextId | **Type** string **Description** Unique identifier for the transaction context. |
-| transactionId | **Type** string **Description** Required. Unique identifier for the transaction. |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| transactionContextId | string | Unique identifier for the transaction context. |
+| transactionId | string | Required. Unique identifier for the transaction. |
 
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Output | Details |
-| --- | --- |
-| configRuleResult | **Type** Apex-defined **Description** An `runtime_industries_cpq.ConfigRuleResult` record that contains the configuration rule execution results including validation messages, product recommendations, visibility rules, and errors from rule processing. |
-| transactionContextId | **Type** string **Description** Unique identifier for the transaction context. |
-
-        
-
-        
-        
+| Output | Type | Description |
+| --- | --- | --- |
+| configRuleResult | Apex-defined | An `runtime_industries_cpq.ConfigRuleResult` record that contains the configuration rule execution results including validation messages, product recommendations, visibility rules, and errors from rule processing. |
+| transactionContextId | string | Unique identifier for the transaction context. |
 
 ## Example
 
-            
-            
-                
-                    
-
 **POST**
 
-                    
-: 
-                        
-
-This example shows a sample request to run rules for the specified quote
-                            based on the transaction context ID and transaction ID.
-
-                        
+This example shows a sample request to run rules for the specified quote based on the transaction context ID and transaction ID.
 
 ```
 {
@@ -217,15 +57,7 @@ This example shows a sample request to run rules for the specified quote
 }
 ```
 
-                    
-
-                    
-: 
-                        
-
 This example shows a sample successful response.
-
-                        
 
 ```
 [
@@ -300,16 +132,7 @@ This example shows a sample successful response.
 ]
 ```
 
-                    
-
-                    
-: 
-                        
-
-Here's a sample input to call this invocable action by using `transactionContextId` property from Apex
-                            code.
-
-                        
+Here's a sample input to call this invocable action by using `transactionContextId` property from Apex code.
 
 ```
 // Create the invocable action with namespace
@@ -331,3 +154,7 @@ List<Invocable.Action.Result> results = action.invoke();
             
 System.debug('Number of results: ' + results.size());
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_run_config_rules.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_design_time_orchestration.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Design Orchestration with the High Tech Order Orchestration Template
@@ -36,3 +36,7 @@ How the Template Runs
 To enable decomposition, create rules that map your commercial products to the technical products in the template. When an order is submitted, Dynamic Revenue Orchestrator decomposes its products into the template's technical products. The product fulfillment scenarios select the corresponding step definition groups and create a plan that preserves their dependencies.
 
 Users complete manual tasks and milestones in the fulfillment plan. Automated tasks invoke flows for billing and invoicing. Staged assetization steps create fulfillment assets at the configured point in the plan. After invoice document generation completes, the final billing task sends the invoice document to the customer.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_hi_tech_order_orchestration_template.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

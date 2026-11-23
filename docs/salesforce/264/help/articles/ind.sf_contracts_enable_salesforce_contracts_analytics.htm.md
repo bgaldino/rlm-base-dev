@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_set_up_salesforce_contracts_analytics.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Enable Salesforce Contracts Analytics
@@ -24,3 +24,7 @@ To update Salesforce Contracts Analytics to the latest version, click Update.
 To assign relevant permissions to the Salesforce admin and users, click Assign Permission Set.
 For users who manage the Salesforce Contracts Analytics dashboard, assign the CRM Analytics Plus Admin and Contracts Analytics Admin permission set.
 For users who need read-only access to the dashboards, assign the CRM Analytics Plus User and Salesforce Contracts Analytics User permission set.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_enable_salesforce_contracts_analytics.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

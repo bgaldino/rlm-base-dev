@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: rating
 parent_article: ind.rm_rate_management.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Rate Management Limits
@@ -39,3 +39,7 @@ Rate Management isn’t supported on mobile devices.
 Rate Management objects don't support the creation of records in Data Cloud.
 Rate Management doesn't support CSV-based decision tables and decision matrices.
 Attribute-based rate cards aren't supported in Usage Selling and Consumption Management. Avoid creating attribute-based rate cards or related customizations.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rm_rate_mngmnt_limits.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

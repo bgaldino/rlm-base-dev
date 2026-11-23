@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_type_config_settings.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Auto Generate Document On Contract Update
@@ -22,3 +22,7 @@ Set the file type in the Auto Generate Doc File Type setting.
 Set the file format in the Document File Name Format setting.
 Enter the template that you want to use for document generation in the Default Template Name setting.
 The template must be available in the org and active. For more information, see Contract Type Config Settings .
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_auto_generate_document_on_contract_update.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

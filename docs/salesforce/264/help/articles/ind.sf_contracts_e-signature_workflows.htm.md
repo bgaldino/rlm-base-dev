@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_e-signature_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # E-Signature Workflows
@@ -19,3 +19,7 @@ PRODUCT ACTION	DESCRIPTION	FROM CONTRACT STATE	TO CONTRACT STATE	WORKFLOW
 Send for Signature	Sends the latest contract document version to DocuSign and notifies recipients to review and sign.	Negotiating	Awaiting Signature	Send Envelope flow
 Update Envelope Status	Queries DocuSign for the latest envelope status. If all recipients signed, the contract moves to Signed. If a recipient declined, the contract moves to Signature Declined.	Awaiting Signature	Signed or Signature Declined	Update envelope status flow
 Revoke Signature	Voids all DocuSign envelopes for the document and terminates the signing process. The document version is unlocked for further editing.	Awaiting Signature	Negotiating	Revoke envelope flow
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_e-signature_workflows.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

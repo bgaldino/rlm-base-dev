@@ -7,88 +7,40 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_node_mapping_management.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Node Relationship (POST)
 
 Configure a relationship node by adding child context nodes to a specific context
-    node.
+node.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /connect/context-nodes/contextNodeId/configurerelationship
 ```
 
-          
+The contextNodeId specifies the ID of the context node to which you
+want to add the context nodes from the request body as child nodes.
 
-          
-: The contextNodeId specifies the ID of the context node to which you
-            want to add the context nodes from the request body as child nodes.
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
-https://yourInstance.salesforce.com/services/data/v67.0/connect/context-nodes/11oxx000001G3dtAAC/configurerelationship
+https://yourInstance.salesforce.com/services/data/v68.0/connect/context-nodes/11oxx000001G3dtAAC/configurerelationship
 ```
 
-          
+## Available Version
 
-        
-        
-          
+61.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 61.0
+POST
 
-        
-        
-          
+## Request Body for POST
 
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+### JSON Example
 
 ```
 {
@@ -99,72 +51,16 @@ https://yourInstance.salesforce.com/services/data/v67.0/connect/context-nodes/11
 }
 ```
 
-          
+### Properties
 
-        
-        
-          
-
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `contextNodeIds` | String | List of context node IDs to create the relationship nodes by adding them as child nodes to the context node that’s specified in the endpoint. | Required | 61.0 |
 
-          
+## Response Body for POST
 
-        
-      
+[Context Node List](./connect_responses_context_node_list.htm.md "Output representation of the list of context nodes.")
 
-          
+---
 
-        
-        
-          
-
-**Response body for POST**
-
-          
-: [Context Node List](./connect_responses_context_node_list.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_configure_relationship_node.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

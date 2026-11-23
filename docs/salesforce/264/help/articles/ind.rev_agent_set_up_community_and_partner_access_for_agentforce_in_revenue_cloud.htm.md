@@ -1,21 +1,21 @@
 ---
 article_id: ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm
-title: Set Up Community and Partner Access for Agentforce in Revenue Management
+title: Set Up Community and Partner Access for Agentforce in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: agents
 parent_article: ind.rev_agent_overview.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
-# Set Up Community and Partner Access for Agentforce in Revenue Management
+# Set Up Community and Partner Access for Agentforce in Revenue Cloud
 
 Make an Agentforce for Revenue agent available to customers or partners by configuring community or partner sites and enabling Embedded Messaging. You can create a community site for the Billing Service Assistance agent and a partner site for the Revenue Quote Management agent.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management with the Revenue Cloud Advanced license with the Agentforce Employee Agent add-on.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Advanced license with the Agentforce Employee Agent add-on.
 USER PERMISSIONS NEEDED
 To create Customer and Partner Community users and profiles:	
 
@@ -50,7 +50,7 @@ To access Experience Cloud site created by using the Self-Service Billing Portal
 
 Billing Experience Cloud User permission set
 
-Before you begin, Set Up Agentforce for Revenue Management.
+Before you begin, Set Up Agentforce for Revenue Cloud.
 
 Prepare Community and Partner Users
 
@@ -150,3 +150,7 @@ Publish the site.
 After publishing, users can open the chat window and interact with the agent from the site.
 
 If you’re setting up the Billing Service Assistance agent for community users, complete Set Up the Billing Service Assistance Agent for Experience Cloud.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

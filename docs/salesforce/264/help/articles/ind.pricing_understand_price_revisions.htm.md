@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_apply_policy_driven_price_revisions.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Understand Price Revisions
@@ -15,7 +15,7 @@ Price revisions are adjustments to the price of goods or services. For a sales r
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 A common economic trigger is the Consumer Price Index (CPI), which gives a sales rep a powerful, objective tool for these discussions. Adjusting prices based on CPI is a primary way for businesses to handle inflation, ensuring their pricing keeps pace with the rising costs of goods and labor. By referencing a shared economic reality like the national CPI, a sales rep can depersonalize the price increase, anchoring the conversation in factual data and turning a potentially difficult negotiation into a transparent discussion about sustainability and fair value.
 
@@ -28,3 +28,7 @@ This policy can be applied at different levels: either granularly to a specific 
 Index Rates. Using an index rate in pricing is a structured way to automatically adjust prices based on an external economic benchmark, most commonly the Consumer Price Index (CPI), which measures inflation. This data-driven approach ensures price changes are accurate and consistent. Its implementation depends on two key factors: using an official data source, like that from a national agency, and setting an update frequency. While annual updates offer predictability, more frequent adjustments, such as monthly, are common in high-inflation economies to keep pace with rising costs.
 
 NOTE Custom profiles may not have access to these entities or its’ associated fields. Contact your Salesforce admin for help.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_understand_price_revisions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

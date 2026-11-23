@@ -7,23 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_catalog_management_api_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Products
 
 Output representation of the list of retrieved products.
 
-      
-        
-          
-
-**JSON example**
-
-          
-: 
+## JSON Example
 
 ```
 {
@@ -181,8 +172,7 @@ Output representation of the list of retrieved products.
 }
 ```
 
-This example shows a sample response with data from Enterprise Product
-            Catalog.
+This example shows a sample response with data from Enterprise Product Catalog.
 
 ```
 {
@@ -261,26 +251,16 @@ This example shows a sample response with data from Enterprise Product
 }
 ```
 
-        
-      
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
+## Properties
 
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `correlation​Id` | String | Unique token to track and associate related events or transactions across different components of the application. If unspecified, a Universally Unique Identifier (UUID) is generated. | Small, 60.0 | 60.0 |
 | `count` | Integer | Total count of the products matching the request query. | Small, 60.0 | 60.0 |
-| `facets` | [Search Facet](./connect_responses_search_facet_output.htm.md) | Details of the faceted search. This property is applicable if the **Use Indexed Data For Product Listing and Search** toggle from the Product Discovery Settings page from Setup is enabled. | Small, 63.0 | 63.0 |
-| `products` | [Product](./connect_responses_product_output.htm.md)[] | List of products matching the request query. | Small, 60.0 | 60.0 |
-| `status` | [Status](./connect_responses_status.htm.md) | Status of the request. | Small, 60.0 | 60.0 |
+| `facets` | [Search Facet](./connect_responses_search_facet_output.htm.md "Output representation of the details of the faceted search.") | Details of the faceted search. This property is applicable if the **Use Indexed Data For Product Listing and Search** toggle from the Product Discovery Settings page from Setup is enabled. | Small, 63.0 | 63.0 |
+| `products` | [Product](./connect_responses_product_output.htm.md "Output representation of the product definition.")[] | List of products matching the request query. | Small, 60.0 | 60.0 |
+| `status` | [Status](./connect_responses_status.htm.md "Output representation of the status of the request.") | Status of the request. | Small, 60.0 | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_products_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

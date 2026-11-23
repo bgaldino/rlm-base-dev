@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: approvals
 parent_article: ind.approvals_advanced_approvals.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Design an Approval Workflow
@@ -43,3 +43,7 @@ Flow Core Action: Override Approval Work Item
 Update the status of an approval work item to reflect the approval admin's decision, allowing admins to override the decision for any assignee.
 Use Advanced Approvals in a Quote
 Now that your Approval Designer has created and activated an approval workflow for discounts, you’re ready to create quotes as a sales rep and use it.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.approvals_building_blocks_of_advanced_approvals.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

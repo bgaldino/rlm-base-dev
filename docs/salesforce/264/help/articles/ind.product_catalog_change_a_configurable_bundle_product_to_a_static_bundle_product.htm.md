@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_conversion_of_bundle_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Change a Configurable Bundle Product to a Static Bundle Product
@@ -57,3 +57,7 @@ To change the root product to type static, change the value of Configure During 
 Save your changes.
 
 After you convert the configurable product bundle to a static product bundle, click Validate Product Definition to determine if the static bundle has any product components without default attribute values. If the validation results return such attributes, assign a default value to each of them and validate the product definition again.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_change_a_configurable_bundle_product_to_a_static_bundle_product.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

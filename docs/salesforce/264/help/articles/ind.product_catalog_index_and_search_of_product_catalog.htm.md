@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_search_options_for_product_catalog_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Product Index and Search in Product Catalog Management
@@ -30,3 +30,7 @@ Faceted Search
 Faceted search improves the search experience by allowing users to refine search results using multiple criteria, such as price, brand, or color. This feature lets customers quickly narrow down extensive product catalogs to find exactly what they need with fewer clicks. By simplifying the discovery process, faceted search saves users time and effort, ensuring greater search accuracy and efficiency, particularly in large catalogs.
 Partial Search
 Partial search helps you find products by entering an incomplete product code or product SKU. It matches the term that you enter to any part of the product code or product SKU, ignoring special characters such as hyphens, underscores, spaces, periods, and slashes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_index_and_search_of_product_catalog.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_salesforce_contracts.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # New and Changed Objects in Document Generation and Contracts
@@ -43,3 +43,7 @@ Use the system-generated token identifier to insert the latest active version of
 Use the new LatestClauseTmplIdentifier field on the DocumentClause object. The value is auto-populated when the clause is saved and is read-only.
 Indicate whether the document template contains tokens in the clause
 Use the new HasClauseToken field on the DocumentTemplate object. The default value is false.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_salesforce_contracts_newandchanged_objects.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

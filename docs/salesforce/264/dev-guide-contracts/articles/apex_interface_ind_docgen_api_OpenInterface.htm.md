@@ -7,123 +7,65 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: apex_namespace_ind_docgen_api.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # OpenInterface Interface
 
-  
 The `OpenInterface` provides user the capability
-    to provide custom logic for task permitted by Salesforce.
+to provide custom logic for task permitted by Salesforce.
 
 ## Namespace
 
-[ind_docgen_api](./apex_namespace_ind_docgen_api.htm.md)
+[ind\_docgen\_api](./apex_namespace_ind_docgen_api.htm.md "The ind_docgen_api namespace provides class for scheduling Envelope Status updates.")
 
-- 
-**[OpenInterface Methods](./apex_interface_ind_docgen_api_OpenInterface.htm.md#apex_ind_docgen_api_OpenInterface_methods)**  
-
-- 
-**[OpenInterface Example Implementation](./apex_interface_ind_docgen_api_OpenInterface.htm.md#apex_interface_ind_docgen_api_OpenInterface_Example)**  
+- **[OpenInterface Methods](./apex_interface_ind_docgen_api_OpenInterface.htm.md#apex_ind_docgen_api_OpenInterface_methods)**
+- **[OpenInterface Example Implementation](./apex_interface_ind_docgen_api_OpenInterface.htm.md#apex_interface_ind_docgen_api_OpenInterface_Example)**
 
 ## OpenInterface Methods
 
 The following are methods for `OpenInterface`.
 
-- 
-**[invokeMethod(var1, var2, var3)](./apex_interface_ind_docgen_api_OpenInterface.htm.md#apex_ind_docgen_api_OpenInterface_invokeMethod)**  
-
-Invokes method based on the use-case.
-
-  
+- **[invokeMethod(var1, var2, var3)](./apex_interface_ind_docgen_api_OpenInterface.htm.md#apex_ind_docgen_api_OpenInterface_invokeMethod)**  
+  Invokes method based on the use-case.
 
 ### invokeMethod(var1, var2, var3)
 
-  
-  
-  
 Invokes method based on the use-case.
-
-    
 
 #### Signature
 
-      
-      
-
 `public Boolean invokeMethod(String var1, Map<String,ANY> var2, Map<String,ANY> var3)`
-
-      
-    
-
-    
 
 #### Parameters
 
-      
-      
-
 **var1**
-
-      
 
 Type: String
 
-      
-
 Contains the name of the method that is supposed to be implemented from invoke method.
-
-      
 
 **var2**
 
-      
-
 Type: Map<String,ANY>
-
-      
 
 Contains the inputs as per the use-case.
 
-      
-
 **var3**
-
-      
 
 Type: Map<String,ANY>
 
-      
-
 Returns the output as per the use-case.
-
-    
-
-    
 
 #### Return Value
 
-      
-      
-
 Type: Boolean
-
-      
 
 true or false
 
-    
-
-  
-
 ## OpenInterface Example Implementation
 
-    
-      
-
 This is an example implementation of the `ind_docgen_api.OpenInterface` interface.
-
-      
 
 ```
 global class TestTF implements ind_docgen_api.OpenInterface {
@@ -162,3 +104,7 @@ outMap.put('documentTemplateList', tempList);
 }
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/apex_interface_ind_docgen_api_OpenInterface.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

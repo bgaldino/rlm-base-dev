@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_salesforce_contracts_summer_23_release_notes.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Design Templates and Create and Edit Contract Documents with Microsoft 365 Word Features
@@ -34,3 +34,7 @@ Use of Microsoft 365 Word features to format documents.
 See Also
 
 Design Document Templates in Microsoft 365 Editor ​
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_design_templates_create_and_edit_contract_documents_using_microsoft_365_word_features.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

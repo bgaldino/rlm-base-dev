@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_generation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create Standalone Invoices or Import External Invoices
@@ -24,3 +24,7 @@ The API creates Invoice, Invoice Line, Invoice Line Tax, and Invoice Address Gro
 If you specify an order ID as the referenceEntityId property value in the Invoice Ingestion API, the generated invoices appear on the All Invoices related list of the Order record.
 
 To generate invoices from debit memos, specify the debit memo ID as the referenceEntityId property value in the request body of this API. Make sure that the debit memo is in Posted status and is ready for invoice generation. The invoice is generated in Draft status.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_creation.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_introduction.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Plan Your Product Catalog
@@ -97,7 +97,7 @@ What's Next
 
 As part of your catalog planning process, it's a good idea to get some hands-on experience. In a developer edition or sandbox, build out a sample product catalog using your company's actual products or services as examples. Once you've worked through the process a couple of times, you'll have a better understanding of how to scale up and tackle your entire catalog.
 
-There's even more to discover about Product Catalog Management and related Revenue Management features like Salesforce Pricing and Product Discovery. As you're working on your product catalog, explore the rest of Revenue Management to understand how your product catalog fits into the bigger picture of your CRM solution.
+There's even more to discover about Product Catalog Management and related Revenue Cloud features like Salesforce Pricing and Product Discovery. As you're working on your product catalog, explore the rest of Revenue Cloud to understand how your product catalog fits into the bigger picture of your CRM solution.
 
 SEE ALSO
 Sign Up for Revenue Cloud Developer Edition
@@ -105,3 +105,7 @@ Organize Your Products with Catalogs and Categories
 Manage Dynamic Attributes in Revenue Cloud
 Create Product Templates Using Product Classifications
 Create Products and Product Bundles in Revenue Cloud
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_plan_catalog.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

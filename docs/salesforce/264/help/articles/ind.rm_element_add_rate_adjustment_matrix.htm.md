@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: rating
 parent_article: ind.rm_element_rate_adjustment_matrix.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Add the Rate Adjustment Matrix Element
@@ -41,3 +41,7 @@ In the Input tab, click Simulate.
 Verify that the calculations are as per your rating settings.
 The Waterfall View shows every step of the rating calculation.
 When you’re happy with the simulation result, click Activate.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rm_element_add_rate_adjustment_matrix.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_set_up_product_catalog_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Translate Product Catalog Data
@@ -46,3 +46,7 @@ Example: Provide a Localized French Buying Experience
 This example shows how data translation changes the runtime experience for French users. See how translated values appear in catalogs, categories, products, and search results. Deliver localized catalogs without duplicate configurations. Buyers benefit from intuitive search and browsing in their preferred language, reducing confusion and improving adoption.
 Data Translation Limits
 There are limitations to where translated product details appear when you use data translation in Product Catalog Management.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_data_translation.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

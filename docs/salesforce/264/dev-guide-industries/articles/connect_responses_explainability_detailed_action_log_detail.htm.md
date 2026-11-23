@@ -7,24 +7,14 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Decision Explainer
 parent_page: decision_explainer_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Explainability Detailed Action Log Detail
 
 Output representation of explainability action log in detail.
 
-      
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -43,34 +33,7 @@ Output representation of explainability action log in detail.
 }
 ```
 
-          
-
-        
-      
-
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-              
-
-              
-
-              
-
-              
-
-              
-
-            
+## Properties
 
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
@@ -86,3 +49,7 @@ Output representation of explainability action log in detail.
 | `processType` | String | Type of business process associated with the application for which the explainability action log is generated. It must match with one of the valid values in the processType field of the Explainability Action Specification table. | Small, 62.0 | 62.0 |
 | `secondaryFilter` | String | Secondary filter that's used to retrieve the results. | Small, 62.0 | 62.0 |
 | `uniqueIdentifier` | String | Unique ID associated with the specific Explainability action log. | Small, 62.0 | 62.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_responses_explainability_detailed_action_log_detail.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

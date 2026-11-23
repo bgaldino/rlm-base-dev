@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_future_dated_order_amendments.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Future-Dated Amendment Types and Results
@@ -15,7 +15,7 @@ Familiarize yourself with the various types of future-dated amendments and their
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 Positive Amendments: Upsell or Add Quantity
 
 Increase the quantity of an asset by setting a positive change on the quote line item (QLI) or order item (OI).
@@ -73,3 +73,7 @@ Transfers
 An asset transfer between accounts acts as an amendment and copies the ASP from the source account to the destination account. It creates a negative amendment (TransferFrom) for the source and adds the asset to the destination (TransferTo). You only transfer the minimum quantity available across all current and future ASPs.
 Swaps
 A product swap acts as both an add amendment and a negative amendment. Swapped products inherit the ASP and relevant actions, with the quantity reduction applying to all future-dated ASPs starting on the swap date.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_fdo_examples_of_amendment_types_and_results.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

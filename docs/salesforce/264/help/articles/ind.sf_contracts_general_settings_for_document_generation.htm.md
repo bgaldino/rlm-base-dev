@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_system_administration_for_salesforce_contracts.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Document Generation Settings for Salesforce Contracts
@@ -31,3 +31,7 @@ Document Templates Export
 In Winter 24, this setting is intended exclusively for internal use by Salesforce applications to export standard document templates via the Metadata and Tooling API.
 
 Enabling the setting introduces a few limitations for the document template naming: the name can't start with a number, the use of spaces and special characters aren't allowed, and the developer name can't exceed 38 characters.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_general_settings_for_document_generation.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

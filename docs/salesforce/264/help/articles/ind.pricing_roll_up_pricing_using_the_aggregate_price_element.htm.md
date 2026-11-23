@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_add_aggregate_price_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Roll Up Pricing Using the Aggregate Price Element
@@ -15,7 +15,7 @@ Calculate the total price of a group of products using the Roll Up Price option 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS NEEDED
 To create, update, and delete pricing procedures:	Salesforce Pricing Design Time
 
@@ -55,3 +55,7 @@ Click Simulate to test your procedure. Enter the input values for your products 
 Aggregate pricing changes can't be viewed in the waterfall view. However, the JSON output provides insight into how the aggregate price of the bundle of products was calculated. Based on our example, the aggregate price of products belonging to the LaptopPro Bundle is the total price of the Laptop, the Mouse, and the Laptop Pro Bundle itself.
 
 The sum of these products ($1,049 + $7.99 + $1,150) is stored in the ItemNetTotalPrice variable, which displays the amount as $2,206.99. This confirms that your procedure is working as expected.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_roll_up_pricing_using_the_aggregate_price_element.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_create_a_constraint_model.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Import Data from Salesforce Objects to Use in Constraint Models
@@ -15,7 +15,7 @@ Import data from a standard or custom Salesforce object to use in a table constr
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 USER PERMISSIONS NEEDED
 To import object data:	Product Configuration Constraints Designer permission set
 
@@ -36,3 +36,7 @@ In this example, data is imported to a table with four columns. The suffix __c i
 constraint(table(attr1, attr2, attr3, attr4, SalesforceTable("tablename__c","column1name__c,column2name__c,column3name__c,column4name__c")));
 
 NOTE If the table data is deployed when the constraint model is activated, and you add records to the table after constraint model activation, to fetch the new table data at runtime you must deactivate and reactivate the constraint model.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_import_object_data.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

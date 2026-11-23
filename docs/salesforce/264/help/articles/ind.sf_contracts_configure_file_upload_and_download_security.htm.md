@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Configure File Upload and Download Security for Salesforce Contracts
@@ -18,3 +18,7 @@ Click File Upload and Download Security.
 Click Edit.
 Select Hybrid or Execute in Browser for .docx and .pdf file types.
 Save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_configure_file_upload_and_download_security.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

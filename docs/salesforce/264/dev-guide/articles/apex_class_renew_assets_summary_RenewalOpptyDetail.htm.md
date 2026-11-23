@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: apex_namespace_renew_assets_summary.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # RenewalOpptyDetail Class
 
@@ -18,43 +16,23 @@ Contains asset details and renewal pricing information for creating renewal oppo
 
 ## Namespace
 
-[renew_assets_summary](./apex_namespace_renew_assets_summary.htm.md)
+[renew\_assets\_summary](./apex_namespace_renew_assets_summary.htm.md "Retrieve details about renewable assets to create renewal opportunities.")
 
-- 
-**[RenewalOpptyDetail Constructors](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_constructors)**  
-
-Learn more about the constructors available with the RenewalOpptyDetail     class.
-
-- 
-**[RenewalOpptyDetail Properties](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_properties)**  
-
-Learn more about the properties available with the RenewalOpptyDetail     class.
-
-  
+- **[RenewalOpptyDetail Constructors](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_constructors)**  
+  Learn more about the constructors available with the RenewalOpptyDetail class.
+- **[RenewalOpptyDetail Properties](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_properties)**  
+  Learn more about the properties available with the RenewalOpptyDetail class.
 
 ## RenewalOpptyDetail Constructors
 
-  
-  
-  
 Learn more about the constructors available with the RenewalOpptyDetail
-    class.
-
-    
-      
+class.
 
 The `RenewalOpptyDetail` class includes these
-        constructors.
+constructors.
 
-    
-
-    
-  
-
-- 
-**[RenewalOpptyDetail(assetId, startDate, endDate, productId, account, priceBookId, priceBookEntryId, lastAssetActionSubtype, renewalPriceDetails, opportunityProductId, orderItem, rootAssetOpportunity, lastAssetAction, totalLineAmount)](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_ctor)**  
-
-Initializes the RenewalOpptyDetail class that contains asset details and renewal pricing information.
+- **[RenewalOpptyDetail(assetId, startDate, endDate, productId, account, priceBookId, priceBookEntryId, lastAssetActionSubtype, renewalPriceDetails, opportunityProductId, orderItem, rootAssetOpportunity, lastAssetAction, totalLineAmount)](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_ctor)**  
+  Initializes the RenewalOpptyDetail class that contains asset details and renewal pricing information.
 
 ### RenewalOpptyDetail(assetId, startDate, endDate, productId, account, priceBookId, priceBookEntryId, lastAssetActionSubtype, renewalPriceDetails, opportunityProductId, orderItem, rootAssetOpportunity, lastAssetAction, totalLineAmount)
 
@@ -72,224 +50,130 @@ renew_assets_summary.RenewalOpptyDetail, newinstance, [String, Date, Date, Strin
 
 **assetId**
 
-: Type: String
-
-: 
+Type: String
 
 The ID of the asset.
 
 **startDate**
 
-: Type: Date
-
-: 
+Type: Date
 
 The start date of the asset.
 
 **endDate**
 
-: Type: Date
-
-: 
+Type: Date
 
 The end date of the asset.
 
 **productId**
 
-: Type: String
-
-: 
+Type: String
 
 The ID of the product associated with the asset.
 
 **account**
 
-: Type: String
-
-: 
+Type: String
 
 The ID of the account.
 
 **priceBookId**
 
-: Type: String
-
-: 
+Type: String
 
 The ID of the price book.
 
 **priceBookEntryId**
 
-: Type: String
-
-: 
+Type: String
 
 The ID of the price book entry.
 
 **lastAssetActionSubtype**
 
-: Type: String
-
-: 
+Type: String
 
 The subtype of the last action performed on the asset. Valid value is `Start Date Adjustment`.
 
 **renewalPriceDetails**
 
-: Type: List<[renew_assets_summary.RenewalPriceDetail](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_class_renew_assets_summary_RenewalPriceDetail)>
-
-: 
+Type: List<[renew\_assets\_summary.RenewalPriceDetail](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_class_renew_assets_summary_RenewalPriceDetail "Contains net unit price and quantity details for an asset to set as sales price for renewal opportunities.")>
 
 List of renewal price details for the asset.
 
 **opportunityProductId**
 
-: Type: String
-
-: 
+Type: String
 
 The ID of the associated opportunity product.
 
 **orderItem**
 
-: Type: String
-
-: 
+Type: String
 
 The ID of the associated order item.
 
 **rootAssetOpportunity**
 
-: Type: String
-
-: 
+Type: String
 
 The ID of the root asset opportunity.
 
 **lastAssetAction**
 
-: Type: String
-
-: 
+Type: String
 
 The last action performed on the asset.
 
-            
-              
 - `Initial Sale`
-
-              
 - `Upsell`
-
-              
 - `Downsell`
-
-              
 - `Renewal`
-
-              
 - `Cancellation`
-
-            
 
 **totalLineAmount**
 
-: Type: Decimal
-
-: 
+Type: Decimal
 
 The total line amount for the asset.
 
-  
-
 ## RenewalOpptyDetail Properties
 
-  
-  
-  
 Learn more about the properties available with the RenewalOpptyDetail
-    class.
-
-    
-      
+class.
 
 The `RenewalOpptyDetail` class includes these
-        properties.
+properties.
 
-    
-
-    
-  
-
-- 
-**[account](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_account)**  
-
-Get or set the ID of the account.
-
-- 
-**[assetId](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_assetId)**  
-
-Get or set the ID of the asset.
-
-- 
-**[endDate](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_endDate)**  
-
-Get or set the end date of the asset.
-
-- 
-**[lastAssetAction](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_lastAssetAction)**  
-
-Get or set the last action performed on the asset.
-
-- 
-**[lastAssetActionSubtype](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_lastAssetActionSubtype)**  
-
-Get or set the subtype of the last action performed on the asset.
-
-- 
-**[opportunityProductId](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_opportunityProductId)**  
-
-Get or set the ID of the associated opportunity product.
-
-- 
-**[orderItem](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_orderItem)**  
-
-Get or set the ID of the associated order item.
-
-- 
-**[priceBookEntryId](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_priceBookEntryId)**  
-
-Get or set the ID of the price book entry.
-
-- 
-**[priceBookId](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_priceBookId)**  
-
-Get or set the ID of the price book.
-
-- 
-**[productId](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_productId)**  
-
-Get or set the ID of the product associated with the asset.
-
-- 
-**[renewalPriceDetails](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_renewalPriceDetails)**  
-
-Get or set the list of renewal price details for the asset.
-
-- 
-**[rootAssetOpportunity](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_rootAssetOpportunity)**  
-
-Get or set the ID of the root asset opportunity.
-
-- 
-**[startDate](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_startDate)**  
-
-Get or set the start date of the asset.
-
-- 
-**[totalLineAmount](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_totalLineAmount)**  
-
-Get or set the total line amount for the asset.
+- **[account](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_account)**  
+  Get or set the ID of the account.
+- **[assetId](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_assetId)**  
+  Get or set the ID of the asset.
+- **[endDate](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_endDate)**  
+  Get or set the end date of the asset.
+- **[lastAssetAction](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_lastAssetAction)**  
+  Get or set the last action performed on the asset.
+- **[lastAssetActionSubtype](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_lastAssetActionSubtype)**  
+  Get or set the subtype of the last action performed on the asset.
+- **[opportunityProductId](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_opportunityProductId)**  
+  Get or set the ID of the associated opportunity product.
+- **[orderItem](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_orderItem)**  
+  Get or set the ID of the associated order item.
+- **[priceBookEntryId](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_priceBookEntryId)**  
+  Get or set the ID of the price book entry.
+- **[priceBookId](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_priceBookId)**  
+  Get or set the ID of the price book.
+- **[productId](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_productId)**  
+  Get or set the ID of the product associated with the asset.
+- **[renewalPriceDetails](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_renewalPriceDetails)**  
+  Get or set the list of renewal price details for the asset.
+- **[rootAssetOpportunity](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_rootAssetOpportunity)**  
+  Get or set the ID of the root asset opportunity.
+- **[startDate](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_startDate)**  
+  Get or set the start date of the asset.
+- **[totalLineAmount](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md#apex_renew_assets_summary_RenewalOpptyDetail_totalLineAmount)**  
+  Get or set the total line amount for the asset.
 
 ### account
 
@@ -357,23 +241,11 @@ Type: String
 
 Valid values are:
 
-      
-        
 - `Initial Sale`
-
-        
 - `Upsell`
-
-        
 - `Downsell`
-
-        
 - `Renewal`
-
-        
 - `Cancellation`
-
-      
 
 ### lastAssetActionSubtype
 
@@ -487,7 +359,7 @@ renew_assets_summary.RenewalOpptyDetail, renewalPriceDetails
 
 #### Property Value
 
-Type: List<[renew_assets_summary.RenewalPriceDetail](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_class_renew_assets_summary_RenewalPriceDetail)>
+Type: List<[renew\_assets\_summary.RenewalPriceDetail](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_class_renew_assets_summary_RenewalPriceDetail "Contains net unit price and quantity details for an asset to set as sales price for renewal opportunities.")>
 
 ### rootAssetOpportunity
 
@@ -536,3 +408,7 @@ renew_assets_summary.RenewalOpptyDetail, totalLineAmount
 #### Property Value
 
 Type: Decimal
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_renew_assets_summary_RenewalOpptyDetail.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

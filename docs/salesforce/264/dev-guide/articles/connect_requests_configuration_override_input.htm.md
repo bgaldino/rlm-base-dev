@@ -7,22 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_requests.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Configuration Override Input
 
 Input representation of the details to override for a Pricing API configuration.
 
-    
-
 ## JSON Example
 
-      
-      
-
 ```
-
     "configurationOverrides": {
          "skipWaterfall": true,
          "useSessionScopedContext": true,
@@ -32,160 +26,10 @@ Input representation of the details to override for a Pricing API configuration.
          "taggedData": false,
          "isHighVolumeLineItems": false
     }
-
 ```
-
-    
-
-    
 
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `discovery​Procedure` | String | Name of the discovery procedure to use to fetch the details of assets. | Optional | 61.0 |
@@ -197,3 +41,7 @@ Input representation of the details to override for a Pricing API configuration.
 | `skip​Waterfall` | Boolean | Indicates whether the price waterfall must be skipped in the output response (`true`) or not (`false`). | Optional | 60.0 |
 | `tagged​Data` | Boolean | Indicates whether the JSON data string can specify tags in the input instead of attributes (`true`) or not (`false`). | Optional | 60.0 |
 | `useSession​Scoped​Context` | Boolean | Indicates whether a session scoped context must be created (`true`) or request scoped context (`false`). The default is `false`. | Optional | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_configuration_override_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_usage_product_setup_with_guided_workflow.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Configure a Usage-Based Product with Guided Workflow
@@ -17,7 +17,7 @@ REQUIRED EDITIONS
 Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Advanced license and the Revenue Cloud Billing license
 USER PERMISSIONS NEEDED
-To use guided workflow with Revenue Management Advanced license:	
+To use guided workflow with Revenue Cloud Advanced license:	
 
 Product Catalog Management Designer
 
@@ -26,7 +26,7 @@ Rate Management Design Time User
 Usage Design User
 
 
-To use guided workflow with Revenue Management Advanced and Revenue Management Billing license:	
+To use guided workflow with Revenue Cloud Advanced and Revenue Cloud Billing license:	
 
 Product Catalog Management Designer
 
@@ -111,3 +111,7 @@ Product Usage Grant
 If you've created new records for units of measure, unit of measure class, rate card entry, or any policy for product usage resource or product usage grant, they also get activated.
 
 Manually refresh the decision tables used for the rate card and rate card entries.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_configure_usage_product_with_guided_workflow.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

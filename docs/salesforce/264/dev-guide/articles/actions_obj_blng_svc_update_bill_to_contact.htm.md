@@ -7,224 +7,51 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Update Bill To Contact Action
 
-Update the Bill to Contact detail on an invoice to ensure accurate
-            billing communication and routing.
+Update the Bill to Contact detail on an invoice to ensure accurate billing communication and routing.
 
-        
-            
-
-Specify the invoice ID and the new Bill to Contact detail. Optionally, indicate
-                whether the new contact must be set as the default for future invoices. Use this
-                action to change the contact to be billed on an invoice, for example, when handling
-                a billing dispute.
-
-            
+Specify the invoice ID and the new Bill to Contact detail. Optionally, indicate whether the new contact must be set as the default for future invoices. Use this action to change the contact to be billed on an invoice, for example, when handling a billing dispute.
 
 This action is available in API version 66.0 and later.
 
-        
-
-        
-
 ## Special Access Rules
 
-            
-            
-
-The Update Bill To Contact Action is available in Enterprise, Developer, and
-                Unlimited Editions where Dispute Management is enabled in Billing.
-
-        
-
-        
+The Update Bill To Contact Action is available in Enterprise, Developer, and Unlimited Editions where Dispute Management is enabled in Billing.
 
 ## Supported REST HTTP Methods
 
-            
-            
-                
-                    
+**URI:** `/services/data/v68.0/actions/standard/blngSvcUpdateBillToContact`
 
-**URI**
+**Formats:** JSON, XML
 
-                    
-: `/services/data/v68.0/actions/standard/blngSvcUpdateBillToContact`
+**HTTP Methods:** POST
 
-                
-                
-                    
-
-**Formats**
-
-                    
-: JSON, XML
-
-                
-                
-                    
-
-**HTTP Methods**
-
-                    
-: POST
-
-                
-                
-                    
-
-**Authentication**
-
-                    
-: `Authorization:
-                            Bearertoken`
-
-                
-            
-
-        
-
-        
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| invoiceId | **Type** string **Description** ID of the invoice whose Bill to Contact detail must be updated. |
-| newBill​ToContactId | **Type** string **Description** ID of the Bill to Contact record to be updated on the invoice. |
-| setAs​Default | **Type** boolean **Description** Indicates whether the new Bill to Contact detail must be set as default for future invoices (`true`) or not (`false`). The default value is `false`. |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| invoiceId | string | ID of the invoice whose Bill to Contact detail must be updated. |
+| newBill​ToContactId | string | ID of the Bill to Contact record to be updated on the invoice. |
+| setAs​Default | boolean | Indicates whether the new Bill to Contact detail must be set as default for future invoices (`true`) or not (`false`). The default value is `false`. |
 
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Output | Details |
-| --- | --- |
-| additional​Information | **Type** string **Description** Any additional information to be included in the response. |
-| isSuccess | **Type** boolean **Description** Indicates whether the Bill to Contact detail is updated on the invoice record (`true`) or not (`false`). |
-
-        
-
-        
-        
+| Output | Type | Description |
+| --- | --- | --- |
+| additional​Information | string | Any additional information to be included in the response. |
+| isSuccess | boolean | Indicates whether the Bill to Contact detail is updated on the invoice record (`true`) or not (`false`). |
 
 ## Example
 
-            
-            
-                
-                    
-
 **POST**
 
-                    
-: 
-                        
-
 This sample request is for the Update Bill To Contact action.
-
-                        
 
 ```
 {
@@ -238,15 +65,7 @@ This sample request is for the Update Bill To Contact action.
 }
 ```
 
-                    
-
-                    
-: 
-                        
-
 This sample response is for the Update Bill To Contact action.
-
-                        
 
 ```
 [
@@ -265,3 +84,7 @@ This sample response is for the Update Bill To Contact action.
   }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_blng_svc_update_bill_to_contact.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

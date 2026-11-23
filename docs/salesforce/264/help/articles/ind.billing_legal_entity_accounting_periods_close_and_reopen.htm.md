@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_financial_accounting.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Legal Entity Accounting Periods Closure and Reopening
@@ -15,7 +15,7 @@ Close legal entity accounting periods and accounting periods after their duratio
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions with Revenue Management (formerly Revenue Cloud)
+Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
 
 
 The feature is available for the Invoice and Credit memo records, and their related records with the Revenue Cloud Advanced license or the Revenue Cloud Billing license.
@@ -30,3 +30,7 @@ Reopen a Legal Entity Accounting Period
 Reopen legal entity accounting periods to reconcile any previous journal entries. This exercise helps maintain accurate and compliant financial records during accounting period closure.
 Close an Accounting Period
 Close an accounting period after its duration ends and after all journal entries are validated for financial reporting of that period.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_legal_entity_accounting_periods_close_and_reopen.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

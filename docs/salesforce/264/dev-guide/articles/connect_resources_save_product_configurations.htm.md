@@ -7,133 +7,46 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_resources.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Saved Configuration (GET, POST)
 
 Save and reuse a record's configurations, and get a list of the saved configurations for a record.
 
-    
-
 ## Resource
-
-      
-      
 
 ```
 /connect/cpq/configurator/saved-configuration
 ```
 
-    
-
-    
-
 ## Resource Example
-
-      
-      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator/saved-configuration
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 63.0
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 GET, POST
 
-    
-
-    
-
 ## Request Parameters for GET
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `referenceRecordId` | String | ID of the record whose saved configurations must be retrieved. | Required | 63.0 |
 
-    
-
-    
-
 ## Response Body for GET
 
-      
-      
-
-[Configuration List](./connect_responses_favorite_list_output_represenation.htm.md)
-
-    
-
-    
+[Configuration List](./connect_responses_favorite_list_output_represenation.htm.md "Output representation of the details of the saved configuration.")
 
 ## Request Body for POST
 
-      
-      
-
 **JSON Example**
-
-      
 
 ```
 {
@@ -144,89 +57,8 @@ GET, POST
 }
 ```
 
-      
-
 **Properties**
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `data` | String | JSON object that contains the details of the sales transaction, formatted as a string. | Optional | 63.0 |
@@ -234,21 +66,14 @@ GET, POST
 | `name` | String | Name of the saved configuration. | Optional | 63.0 |
 | `referenceRecord​Id` | String | ID of the record for which the configuration must be saved. | Required | 63.0 |
 
-    
-
-    
-
 ## Response Body for POST
 
-      
-      
-
-[Configuration Record Save](./connect_responses_create_favorite_output.htm.md)
-
-    
-
-  
+[Configuration Record Save](./connect_responses_create_favorite_output.htm.md "Output representation of the details of a saved configuration.")
 
 #### See Also
 
-- [*Salesforce Help*: Considerations to Save and Reuse Configurations](https://help.salesforce.com/s/articleView?id=ind.product_configurator_considerations_to_save_and_reuse_configurations.htm&language=en_US)
+- [*Salesforce Help*: Considerations to Save and Reuse Configurations](https://help.salesforce.com/s/articleView?id=ind.product_configurator_considerations_to_save_and_reuse_configurations.htm&language=en_US "Salesforce Help: Considerations to Save and Reuse Configurations - HTML (New Window)")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_save_product_configurations.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

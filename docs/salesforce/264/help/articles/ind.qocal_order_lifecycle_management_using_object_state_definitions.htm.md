@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_manage_orders_in_revenue_lifecycle_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Order Lifecycle Management
@@ -18,7 +18,7 @@ Control access to specific states or state transitions by using custom permissio
 Order Lifecycle States and Transitions
 Familiarize yourself with the specific states and transitions used to manage an order through its lifecycle. Use this example and the accompanying object state definitions to configure valid status changes and establish clear fulfillment milestones in your Salesforce org.
 Implement an Object State Definition for Order Lifecycle Management
-Establish the foundation for managing an order through its lifecycle by defining object state values and valid transitions. Object state definitions help you to control the progression of orders and establish a clear fulfillment process within Revenue Management.
+Establish the foundation for managing an order through its lifecycle by defining object state values and valid transitions. Object state definitions help you to control the progression of orders and establish a clear fulfillment process within Revenue Cloud.
 Create Object State Values for Order Lifecycle Management
 Define the possible states for the order object to establish the stages of your order lifecycle. Ensure the name of your object state values exactly match the API names of your order status picklist values to maintain data integrity.
 Create Object State Transitions for Order Lifecycle Management
@@ -27,3 +27,7 @@ Control Access to States and State Transitions
 Create custom permissions to restrict or grant access to order states and transitions for specific user groups. Assigning these permissions ensures that only authorized agents move an order to its next supported stage in the fulfillment process.
 Activate an Object State Definition
 To use an object state definition, you must activate it.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_order_lifecycle_management_using_object_state_definitions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

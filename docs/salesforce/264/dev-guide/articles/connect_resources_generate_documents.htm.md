@@ -7,80 +7,36 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Generate On-Demand Invoice Document (POST)
 
-Generate an invoice document for a record, and update any junction
-      object record.
+Generate an invoice document for a record, and update any junction object record.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /revenue/billing/document/actions/generate
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/revenue/billing/document/actions/generate
 ```
 
-          
+## Available Version
 
-        
-        
-          
+66.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 66.0
+POST
 
-        
-        
-          
+## Request Body for POST
 
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-
-**JSON example**
-
-: 
+**JSON Example**
 
 ```
 {
@@ -94,24 +50,18 @@ https://yourInstance.salesforce.com/services/data/v68.0/revenue/billing/document
 
 **Properties**
 
-: 
-
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `documentTemplateId` | String | Document template ID to use for PDF generation. The document template must be active with UsageType as `INVOICE` If you don't specify this value, the system auto-resolves by using the default template. | Optional | 66.0 |
+| `documentTemplateId` | String | Document template ID to use for PDF generation. The document template must be active with UsageType as `INVOICE`. If you don't specify this value, the system auto-resolves by using the default template. | Optional | 66.0 |
 | `documentTitle` | String | Custom title for the generated document. If you don't specify a value, the value is auto-generated. | Optional | 66.0 |
 | `recordId` | String | Record ID of the object the document is generated for. You can specify invoice ID only. | Required | 66.0 |
 | `shouldForceRegenerate` | Boolean | Indicates whether to regenerate the document (`true`) or not (`false`). If set to `true`, this API generates a document, replacing any existing ones. If set to `false`, this API skips the generation of document if invoice already has an associated document. The default value is `false`. | Optional | 66.0 |
 | `tokenData` | String | Token data to generate the document. | Optional | 66.0 |
 
-          
+## Response Body for POST
 
-        
-        
-          
+[On-Demand Document Generation Response](./connect_responses_on_demand_doc_gen_output.htm.md "Output representation of the details of the generated document along with error response.")
 
-**Response body for POST**
+---
 
-          
-: [On-Demand Document
-              Generation Response](./connect_responses_on_demand_doc_gen_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_generate_documents.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

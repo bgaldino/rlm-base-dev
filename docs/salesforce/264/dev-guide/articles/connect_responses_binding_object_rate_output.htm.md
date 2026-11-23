@@ -7,24 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Usage Management
 parent_page: usage_management_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Binding Object Rate
 
-Output representation of the details of Binding Object Rates object or Asset Rates
-    object.
+Output representation of the details of Binding Object Rates object or Asset Rates object.
 
-        
-          
+## JSON Example
 
-**JSON example**
-
-          
-: This example includes the details of a binding object
-            rate.
+This example includes the details of a binding object rate.
 
 ```
 {
@@ -58,117 +50,15 @@ Output representation of the details of Binding Object Rates object or Asset Rat
 }
 ```
 
-        
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `id` | String | ID of the `Binding Object Rate Card Entry` or `Asset Rate Card Entry` object. | Big, 65.0 | 65.0 |
 | `negotiated​Rate` | Double | Negotiated rate available in the `Binding Object Rate Card Entry` or `Asset Rate Card Entry` object. | Big, 65.0 | 65.0 |
-| `negotiatedRate​Adjustments` | [Binding Object Rate Adjustments](./connect_responses_binding_object_rate_adjustments_output.htm.md)[] | List of rate adjustments available in the `Binding Object Rate Adjustment` or `Asset Rate Adjustment`. | Big, 65.0 | 65.0 |
+| `negotiatedRate​Adjustments` | [Binding Object Rate Adjustments](./connect_responses_binding_object_rate_adjustments_output.htm.md "Output representation of the details of binding target rate adjustments.")[] | List of rate adjustments available in the `Binding Object Rate Adjustment` or `Asset Rate Adjustment`. | Big, 65.0 | 65.0 |
 | `rate` | Double | Rate of the rate card entry associated to the `Binding Object Rate Card Entry` or `Asset Rate Card Entry` object. | Big, 65.0 | 65.0 |
 | `rateCard​EntryId` | String | ID of the rate card entry associated to the `Binding Object Rate Card Entry` or `Asset Rate Card Entry` object. | Big, 65.0 | 65.0 |
 | `rateUnitOf​MeasureName` | String | Rate unit of measure of the rates. | Big, 65.0 | 65.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_binding_object_rate_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

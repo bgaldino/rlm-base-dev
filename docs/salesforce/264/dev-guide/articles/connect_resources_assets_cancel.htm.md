@@ -7,92 +7,40 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Asset Cancellation (POST)
 
 Initiate and execute the cancellation of an asset.
 
-    
-      
-        
-          
+## Special Access Rules
 
-**Special Access Rules**
+To use this API, you need the InitiateCancellation API permission set.
 
-          
-: To use this API, you need the InitiateCancellation API permission set.
-
-        
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /connect/revenue-management/assets/actions/cancel
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-management/assets/actions/cancel
 ```
 
-          
+## Available Version
 
-        
-        
-          
+62.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 62.0
+POST
 
-        
-        
-          
+## Request Body for POST
 
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+**JSON Example**
 
 ```
 {
@@ -108,121 +56,8 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-manageme
 }
 ```
 
-          
-
-        
-        
-          
-
 **Properties**
 
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `assetIds` | String[] | IDs of the assets that you want to cancel. All assets in a request must belong to the same price book. | Required | 62.0 |
@@ -232,18 +67,10 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-manageme
 | `output​RecordId` | String | ID of the quote or order that you want to cancel. | Optional | 62.0 |
 | `output​RecordType` | String | Type of cancellation record that you want to create. | Required | 62.0 |
 
-          
+## Response Body for POST
 
-        
-      
+[Cancellation](./connect_responses_cancel_output.htm.md "Output representation of the details of a cancellation record.")
 
-          
+---
 
-        
-        
-          
-
-**Response body for POST**
-
-          
-: [Cancellation](./connect_responses_cancel_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_assets_cancel.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

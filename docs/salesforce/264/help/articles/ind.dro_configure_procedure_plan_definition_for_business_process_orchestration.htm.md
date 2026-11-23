@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_orchestrate_sales_transaction_business_processes.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Configure Procedure Plan Definition for Business Process Orchestration
@@ -15,7 +15,7 @@ Use the procedure plan definition to determine the correct context definition an
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud
 USER PERMISSIONS NEEDED
 To create, update, and activate procedure plan definitions:	
 
@@ -43,3 +43,7 @@ Select the same value for the save context mapping.
 NOTE The procedure plan definition doesn’t write any information to your object.
 Save the plan definition.
 Activate the procedure plan definition.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_configure_procedure_plan_definition_for_business_process_orchestration.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

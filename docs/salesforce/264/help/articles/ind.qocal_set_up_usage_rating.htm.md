@@ -6,24 +6,24 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_usage_selling.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up the Default Usage Rating Discovery Procedure
 
-The final net rate of a usage source is calculated based on the default value specified for usage rating discovery procedure in Revenue Management.
+The final net rate of a usage source is calculated based on the default value specified for usage rating discovery procedure in Revenue Cloud.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
 USER PERMISSIONS NEEDED
-To update the Revenue Settings in Revenue Management:	
+To update the Revenue Settings in Revenue Cloud:	
 
 Customize Application
 
 AND
 
-Manage Revenue Management
+Manage Revenue Cloud
 
 A usage rating discovery procedure must be defined in Rate Management before you can select the procedure as the default.
 
@@ -32,3 +32,7 @@ In the Quote, Order, and Configuration Settings section, find Set Up Usage Ratin
 Your changes are autosaved.
 SEE ALSO
 Rating Discovery Procedures
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_set_up_usage_rating.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

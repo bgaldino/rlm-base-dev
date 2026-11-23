@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_unique_pricing_scenarios.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Establish Procedure Output Resolution
@@ -15,7 +15,7 @@ To select the definitive price for a product when pricing rules generate multipl
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 To determine the best price, you must first configure your pricing strategies and then select the option to enable output resolution within a pricing element of a pricing procedure. There are four common best price practices that we can determine using the Procedure Output Resolution feature.
 
@@ -35,3 +35,7 @@ Configure Pricing Resolution Strategies
 To set a pricing resolution strategy, create a procedure output resolution record.
 Determine the Best Price for a Product Using Pricing Procedures
 Use a pricing procedure to determine the best price for a product using a resolution strategy when multiple pricing options exist.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_procedure_output_resolution.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

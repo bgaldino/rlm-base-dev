@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_quote_line_item_import.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Import Quote Line Items from a CSV File
@@ -15,7 +15,7 @@ Create quotes faster by importing quote line items from CSV files. After the imp
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To download the CSV template file and import quote line items:	Advanced CSV Data Import permission set
 
@@ -35,3 +35,7 @@ If the file upload doesn't complete and the Done button remains disabled, see Un
 WARNING Transaction Management suspends all actions on the quote while the import is in progress.
 Considerations for Creating a CSV File
 Familiarize yourself with recommendations, supported products, required fields, and limits before creating your file.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_qli_import_user_import_lines_csv.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,18 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Advanced Approvals
 parent_page: advanced_approvals_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Preview Approval Input
 
 Input representation of the details of the request to preview an approval.
 
-**JSON example**
-
-: 
+## JSON Example
 
 ```
 {
@@ -32,9 +28,7 @@ Input representation of the details of the request to preview an approval.
 }
 ```
 
-**Properties**
-
-: 
+## Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
@@ -42,3 +36,7 @@ Input representation of the details of the request to preview an approval.
 | `objectApiName` | String | API name of the object to preview the approvals for. | Required | 65.0 |
 | `recordId` | String | ID of the record to preview the approvals for. | Required | 65.0 |
 | `inputParameters` | Map<String, Object> | List of input parameters to preview. | Optional | 67.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_preview_approval_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

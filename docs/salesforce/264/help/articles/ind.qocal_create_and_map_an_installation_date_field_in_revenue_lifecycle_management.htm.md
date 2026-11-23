@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_extend_your_transactions_with_custom_field_support.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Example: Map an Installation Date Field
@@ -15,7 +15,7 @@ Follow these steps to track a custom InstallationDate__c field across the sales 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 Add Products
 
 Add the field to the Product and Quote Line Item objects. Then, update the Product Discovery and Sales Transaction context definitions. 
@@ -84,7 +84,7 @@ Order to Asset
 
 Add the field to Order and Asset Action Source. Then, update the Sales Transaction context definition. 
 
-NOTE Custom field mapping from Order to Asset Action Source is only available for Agentforce Revenue Management.
+NOTE Custom field mapping from Order to Asset Action Source is only available for Agentforce Revenue Cloud.
 Use Object Manager to add InstallationDate__c to Order Item and Asset Action Source.
 In Context Service, edit your Sales Transaction context definition.
 Under the SalesTransactionItem and AssetActionSource nodes, create an InstallationDate attribute.
@@ -108,3 +108,20 @@ Set SalesTransaction as the default mapping on the extended SalesTransactionCont
 Create a new mapping between the Installation Date in SalesTransactionItem to InstallationDate in AssetStatePeriod in the Amend, Renew, Cancel cross-context mapping called SalesTxnItmToAssetStatePrdMap.
 Cross-context mappings don’t have default connected objects. Select the data source Context Definition Objects and the context definition you're using from the dropdown to create mappings between the two entities.
 Create a new mapping between the Installation Date in AssetStatePeriod to InstallationDate in SalesTransactionItem in the cross-context mapping called AssetStatePrdToSalesTxnItmMap.
+Map Custom Fields between AssetActionSource and Quote Line Item Detail or Order Item Detail
+
+When quotes or orders include detail lines, map custom fields on the detail node so asset action source records store the detail-line field values.
+
+IMPORTANT Configure the detail-line mapping in addition to the item-level mapping. To cover standard lines and detail lines, configure the SalesTransactionItem mapping and the SalesTransactionItemDetail mapping.
+In Object Manager, add a custom field with the API name InstallationDate__c on Quote Line Item Detail or Order Item Detail, and on Asset Action Source.
+In Context Service, edit the Sales Transaction context definition.
+Under the SalesTransactionItemDetail node, create an attribute and a tag for InstallationDate__c.
+Under the AssetActionSource node, create an attribute and a tag for InstallationDate__c.
+To map InstallationDate__c to the quote or order object, add a mapping on the SalesTransactionItemDetail node in QuoteEntitiesMapping or OrderEntitiesMapping.
+To map InstallationDate__c to the Asset Action Source object, add a mapping on the AssetActionSource node in AssetEntitiesMapping.
+Create a mapping between the InstallationDate__c in AssetActionSource and SalesTransactionItemDetail in the Order to Asset mapping called AssetToSalesTransactionMapping.
+Create a mapping between the InstallationDate__c in SalesTransactionItemDetail and AssetActionSource in the Amend, Renew, Cancel mapping called SalesTransactionToAssetMapping.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_create_and_map_an_installation_date_field_in_revenue_lifecycle_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

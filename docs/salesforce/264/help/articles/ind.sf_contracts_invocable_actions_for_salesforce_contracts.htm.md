@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_na_1.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Invocable Actions for Salesforce Contracts
@@ -178,3 +178,7 @@ Action Data: The JSON payload that contains additional data required to revoke t
 	 
 Run Salesforce Contracts Invocable Actions
 Leverage invocable actions to enhance the functionality of your applications. These actions can trigger various functions within Salesforce Contracts to manage the contract lifecycle efficiently.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_invocable_actions_for_salesforce_contracts.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

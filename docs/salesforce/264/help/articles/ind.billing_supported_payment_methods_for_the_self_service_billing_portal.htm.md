@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_self_service_portal.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Supported Payment Methods for the Self-Service Billing Portal
@@ -57,3 +57,7 @@ iDEAL
 Klarna
 SEPA Debit
 NOTE Payment method availability depends on your invoice currency and merchant account region. For a complete list of supported payment methods and constraints, see the Stripe Payment Methods documentation and Adyen Payment Methods documentation.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_supported_payment_methods_for_the_self_service_billing_portal.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

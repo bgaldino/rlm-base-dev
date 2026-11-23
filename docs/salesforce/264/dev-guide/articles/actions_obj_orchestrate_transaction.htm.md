@@ -7,253 +7,55 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Dynamic Revenue Orchestrator
 parent_page: dynamic_revenue_orchestrator_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Orchestrate Transaction Action
 
-Orchestrate a transaction for any
-            domain-specific object, such as a collection plan for Revenue billing, that requires the
-            composition and execution of a fulfillment plan.
+Orchestrate a transaction for any domain-specific object, such as a collection plan for Revenue billing, that requires the composition and execution of a fulfillment plan.
 
-        
-            
+Specify the ID of the transaction to orchestrate and the orchestration type. The orchestration process includes:
 
-Specify the ID of the transaction to orchestrate and the orchestration type. The
-                orchestration process includes:
-
-            
-                
 - Composition of the orchestration plan
-
-                
 - Execution of the fulfillment plan
 
-            
-
-            
-
-This action is available in API
-                version
-                66.0  and later.
-
-        
-
-        
+This action is available in API version 66.0 and later.
 
 ## Special Access Rules
 
-            
-            
-
-The Orchestrate Transaction action is available in Enterprise, Unlimited, and
-                Developer Editions of Revenue Management. See the [required
-                    permissions](https://help.salesforce.com/s/articleView?id=sf.dro_permission_sets_in_dynamic_revenue_orchestrator.htm&language=en_US) to access and call this invocable action.
-
-        
-
-        
+The Orchestrate Transaction action is available in Enterprise, Unlimited, and Developer Editions of Revenue Management. See the [required permissions](https://help.salesforce.com/s/articleView?id=sf.dro_permission_sets_in_dynamic_revenue_orchestrator.htm&language=en_US "HTML (New Window)") to access and call this invocable action.
 
 ## Supported REST HTTP Methods
 
-            
-            
-                
-                    
+**URI:** `/services/data/v68.0/actions/standard/orchestrateTransaction`
 
-**URI**
+**Formats:** JSON, XML
 
-                    
-: `/services/data/v68.0/actions/standard/orchestrateTransaction`
+**HTTP Methods:** POST
 
-                
-                
-                    
-
-**Formats**
-
-                    
-: JSON, XML
-
-                
-                
-                    
-
-**HTTP Methods**
-
-                    
-: POST
-
-                
-                
-                    
-
-**Authentication**
-
-                    
-: `Authorization:
-                            Bearertoken`
-
-                
-            
-
-        
-
-        
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-- 
-- 
-- 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| transactionId | **Type** string **Description** Required. ID of the business object or domain object to be orchestrated, such as a Collection Plan ID. |
-| orchestration​Type | **Type** string **Description** Required. Type of orchestration that’s used to orchestrate the transaction. Valid values are: `Generic` `Fulfillment` `Billing` |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| transactionId | string | Required. ID of the business object or domain object to be orchestrated, such as a Collection Plan ID. |
+| orchestration​Type | string | Required. Type of orchestration that’s used to orchestrate the transaction. Valid values are `Generic`, `Fulfillment`, or `Billing`. |
 
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-- 
-- 
-
-                        
-
-                    
-
-                
-| Output | Details |
-| --- | --- |
-| requestId | **Type** string **Description** Request ID of the invocation. |
-| errorCode | **Type** string **Description** Code that corresponds to the type of encountered error. |
-| fulfillment​PlanId | **Type** string **Description** ID of the composed fulfillment plan. |
-| submitStatus | **Type** string **Description** Submission status of the transaction that’s orchestrated. Valid values are: `Success` `Error` |
-
-        
-
-        
-        
+| Output | Type | Description |
+| --- | --- | --- |
+| requestId | string | Request ID of the invocation. |
+| errorCode | string | Code that corresponds to the type of encountered error. |
+| fulfillment​PlanId | string | ID of the composed fulfillment plan. |
+| submitStatus | string | Submission status of the transaction that’s orchestrated. Valid values are `Success` or `Error`. |
 
 ## Example
 
-            
-            
-                
-                    
-
 **POST**
 
-                    
-: 
-                        
-
 This sample request is for the Orchestrate Transaction action.
-
-                        
 
 ```
 {
@@ -266,15 +68,7 @@ This sample request is for the Orchestrate Transaction action.
 }
 ```
 
-                    
-
-                    
-: 
-                        
-
 This sample response is for the Orchestrate Transaction action.
-
-                        
 
 ```
 [
@@ -294,3 +88,7 @@ This sample response is for the Orchestrate Transaction action.
   }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_orchestrate_transaction.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

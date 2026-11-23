@@ -7,154 +7,46 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_constraints.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Logical Constraints
 
-A logical constraint defines a statement that must hold true logically. The constraint
-    can be any logical expression by using a logical operator.
+A logical constraint defines a statement that must hold true logically. The constraint can be any logical expression by using a logical operator.
 
-    
-
-For example, the statement `c0 ? c1 : c2` means that if
-        `c0` is true, then `c1` needs to be true, otherwise `c2` needs to be
-      true.
-
-    
+For example, the statement `c0 ? c1 : c2` means that if `c0` is true, then `c1` needs to be true, otherwise `c2` needs to be true.
 
 ## Constraint Syntax Patterns
 
-Here are the details of the constraint
-        syntax patterns.
+Here are the details of the constraint syntax patterns.
 
-        
-- 
-`constraint(logic expression);`: The simplest form,
-          enforcing a logic statement.
+- `constraint(logic expression);`: The simplest form, enforcing a logic statement.
+- `constraint(logic expression, string literal | string variable);`: Includes an optional failure explanation that is displayed if the constraint is violated.
+- `constraint(logic expression, string literal | string variable, arg, …, arg);`: Includes a failure explanation with additional arguments to be interpolated into the string of the failure explanation.
 
-        
-- 
-`constraint(logic expression, string literal | string
-            variable);`: Includes an optional failure explanation that is displayed if the
-          constraint is violated.
-
-        
-- 
-`constraint(logic expression, string literal | string
-            variable, arg, …, arg);`: Includes a failure explanation with additional
-          arguments to be interpolated into the string of the failure explanation.
-
-      
-
-If a constraint is violated, it takes an optional string variable or string literal as
-        the failure explanation. The failure explanation could be in a string format with additional
-        arguments. CML supports two string formats. One is the standard string format and another is
-        a string with {} placeholder, to be replaced with the actual argument value.
-
-    
+If a constraint is violated, it takes an optional string variable or string literal as the failure explanation. The failure explanation could be in a string format with additional arguments. CML supports two string formats. One is the standard string format and another is a string with {} placeholder, to be replaced with the actual argument value.
 
 ## Key Components of the Constraint Syntax
 
-      
-      
-
 Here are the details of the key components of the constraint syntax.
 
-      
-
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-```
-
-```
-
-            
-
-            
-              
-
-              
-
-- 
-- 
-
-              
-
-```
-
-```
-
-            
-
-            
-              
-
-              
-
-              
-
-```
-
-```
-
-            
-
-          
-
-        
 | Component | Description | Code Sample |
 | --- | --- | --- |
-| Logic Expression | This can be a basic mathematical expression (using operators like +, -, * , /) or a relational expression (using ==, !=, >, <, and so on). It can also include logical operators such as AND (&&), OR (||), NOT (!), the implication operator (->), or the bi-directional operator (< - >). | Basicconstraint(generator.sum(quantity) > 20); |
-| Failure Explanation | This optional string literal or variable provides a human-readable reason for the violation. CML supports two formatting styles for these strings: Java string format (for example, using `%`d or `%s`). Placeholder format using `{}` | With Explanationconstraint(x + y <= 100, "Total must not exceed 100"); |
-| Arguments (arg) | Arguments are used to replace the placeholders in the failure explanation string with actual values at runtime. | With Explanation and Argumentsconstraint(requiredKW <= 2500, "The required capacity of {} kW exceeds the maximum supported limit of 2500 kW.",requiredKW); |
+| Logic Expression | This can be a basic mathematical expression (using operators like +, -, \* , /) or a relational expression (using ==, !=, >, <, and so on). It can also include logical operators such as AND (&&), OR (||), NOT (!), the implication operator (->), or the bi-directional operator (< - >). | Basic `constraint(generator.sum(quantity) > 20);` |
+| Failure Explanation | This optional string literal or variable provides a human-readable reason for the violation. CML supports two formatting styles for these strings Java string format (for example, using `%` d or `%s`) or Placeholder format using `{}`. | With Explanation `constraint(x + y <= 100, "Total must not exceed 100");` |
+| Arguments (arg) | Arguments are used to replace the placeholders in the failure explanation string with actual values at runtime. | With Explanation and Arguments. |
 
-      
+Example Arguments (arg):
 
-See the complete example in [Constraints using Format Specifiers (%s, %d) and
-        Dates](./cml_core_concept_examples.htm.md).
+```
+constraint(requiredKW <= 2500, "The required capacity of {} kW exceeds the maximum supported limit of 2500 kW.",requiredKW);
+```
 
-    
-
-      
+See the complete example in [Constraints using Format Specifiers (%s, %d) and Dates](./cml_core_concept_examples.htm.md "These examples illustrate core Constraint Modeling Language (CML) concepts including type, relationships, constraints, and so on.").
 
 ## Constraint Example
 
-        
-        
-
-In this example, the first constraint specifies that, if the `DutyRating` value isn't `Prime Power (PRP)`,
-        then the quantity of `Warranty_PRP (Warranties subtype)`
-        must be 0. Similarly in the second constraint, if `DutyRating` value isn't `Data Center Continuous
-          (DCC)` then the quantity of `Warranty_DCC` must
-        be 0. Lastly, in the third constraint, if `DutyRating`
-        value isn't `Emergency Standby Power (ESP)`, then the
-        quantity of `Warranty_ESP` must be 0.
-
-        
+In this example, the first constraint specifies that, if the `DutyRating` value isn't `Prime Power (PRP)`, then the quantity of `Warranty_PRP (Warranties subtype)` must be 0. Similarly in the second constraint, if `DutyRating` value isn't `Data Center Continuous (DCC)` then the quantity of `Warranty_DCC` must be 0. Lastly, in the third constraint, if `DutyRating` value isn't `Emergency Standby Power (ESP)`, then the quantity of `Warranty_ESP` must be 0.
 
 ```
 type Warranty;
@@ -170,116 +62,14 @@ constraint(DutyRating != "Emergency Standby Power (ESP)" -> Warranties[Warranty_
 }
 ```
 
-      
-
-      
-
 ## Example: Constraints Using String and Logical Operators
 
-        
-        
-
-This example demonstrates how a GeneratorSet uses string functions to extract a numeric
-          voltage value, and then uses logical operators (`->`,
-            `&&`,
-            `||`) to enforce safety and certification
-          requirements.
-
-      
-
-      
+This example demonstrates how a GeneratorSet uses string functions to extract a numeric voltage value, and then uses logical operators (`->`, `&&`, `||`) to enforce safety and certification requirements.
 
 ## Explanation of Operators Used in the Example
 
-        
-        
-
 Here are the details of the operators used in the example.
 
-        
-
-            
-            
-            
-            
-              
-                
-
-                
-
-                
-
-              
-
-            
-
-            
-              
-                
-
-                
-
-                
-
-              
-
-              
-                
-
-                
-
-                
-
-              
-
-              
-                
-
-                
-
-                
-
-              
-
-              
-                
-
-                
-
-                
-
-              
-
-              
-                
-
-                
-
-                
-
-              
-
-              
-                
-
-                
-
-                
-
-              
-
-              
-                
-
-                
-
-                
-
-              
-
-            
-
-          
 | Operator/Function | Category | Usage in Example |
 | --- | --- | --- |
 | `strtoint()` | String Function | Converts the extracted voltage string to the integer `Voltage3`. |
@@ -289,8 +79,6 @@ Here are the details of the operators used in the example.
 | `&&` | Logical AND | Requires both conditions (high requiredKW AND duty rating contains "Power") to be true. |
 | `||` | Logical OR | Requires `standardsAndCompliance` to be "`Listing-UL 2200`" or "`Certification-CSA`". |
 | `!=` | Comparison/Relational | Used to check if the string value is "Not Equal" to a specific string literal. |
-
-      
 
 ```
 // --- Constants (Required for String Manipulation) ---
@@ -345,39 +133,15 @@ relation Warranties : Warranty[3];
 }
 ```
 
-      
-
-    
-
 ## How User Input Order Affects Constraint Engine Behavior
 
-      
-      
-
-The constraint engine is architecturally designed to never override or modify a
-        user-selected value when evaluating constraints, except in the specific case of an `exclude` rule. If a constraint violation occurs due to user
-        input, the engine generates an error message rather than attempting to fix the value
-        itself.
-
-    
-
-      
+The constraint engine is architecturally designed to never override or modify a user-selected value when evaluating constraints, except in the specific case of an `exclude` rule. If a constraint violation occurs due to user input, the engine generates an error message rather than attempting to fix the value itself.
 
 ## Example: Constraint Evaluation Based on Input Order (Generator Set)
 
-        
-        
+The order in which a user configures attributes for a product (such as a `GeneratorSet`) determines whether the constraint engine performs an automatic update or enforces a validation error.
 
-The order in which a user configures attributes for a product (such as a `GeneratorSet`) determines whether the constraint engine
-        performs an automatic update or enforces a validation error.
-
-        
-
-Consider a constraint within the `GeneratorSet` type
-        that links the operational requirement (`DutyRating`) to
-        the required certification (`standardsAndCompliance`).
-
-        
+Consider a constraint within the `GeneratorSet` type that links the operational requirement (`DutyRating`) to the required certification (`standardsAndCompliance`).
 
 ```
 type GeneratorSet {
@@ -393,89 +157,22 @@ DutyRating == "Prime Power (PRP)" -> standardsAndCompliance == "Listing-UL 2200"
 }
 ```
 
-        
-
 The outcomes depend on the user's input sequence.
 
-        
-
-            
-            
-            
-            
-              
-                
-
-                
-
-                
-
-              
-
-            
-
-            
-              
-                
-
-                
-
-                
-
-              
-
-              
-                
-
-                
-
-                
-
-              
-
-            
-
-          
 | Scenario | User Input Sequence | Constraint Engine Result |
 | --- | --- | --- |
 | Scenario 1: Successful Update (Precondition first) | The user first sets `DutyRating` to "`Prime Power (PRP)`". | The constraint engine recognizes the precondition is met and updates the dependent attribute, setting `standardsAndCompliance` to "`Listing-UL 2200`". The constraint is validated. |
 | Scenario 2: Constraint Violation (Conflicting Value first) | The user first sets `standardsAndCompliance` to "`Certification-CSA`", and then sets `DutyRating` to "`Prime Power (PRP)`". | The existing user-selected value ("`Certification-CSA`") violates the constraint. The constraint engine will not override the user's prior selection to change it to "`Listing-UL 2200`". Instead, the engine displays an error. |
 
-        
-
-To resolve the error in Scenario 2, the user must manually adjust one of their
-        selections: either change the `DutyRating` (precondition)
-        or manually update the `standardsAndCompliance`
-        (dependent value) to "`Listing-UL 2200`".
-
-      
-
-      
+To resolve the error in Scenario 2, the user must manually adjust one of their selections: either change the `DutyRating` (precondition) or manually update the `standardsAndCompliance` (dependent value) to "`Listing-UL 2200`".
 
 ## Left-Hand Side and Right-Hand Side Behavior in Constraint Resolution
 
-        
-        
+Operator precedence and constraint engine resolution process determines whether the left-hand side (LHS) or right-hand side (RHS) of a constraint changes or is constrained to maintain logical validity. Variable origin, which means whether variables are user-selected, calculated, or restricted by system limitations, can also affect the outcome for the LHS or RHS in an expression.
 
-Operator precedence and constraint engine resolution process determines whether the
-          left-hand side (LHS) or right-hand side (RHS) of a constraint changes or is constrained
-          to maintain logical validity. Variable origin, which means whether variables are
-          user-selected, calculated, or restricted by system limitations, can also affect the
-          outcome for the LHS or RHS in an expression.
-
-        
-
-These examples show how different user inputs lead to different outcomes for the LHS and
-          RHS in the same expression.
-
-      
-
-        
+These examples show how different user inputs lead to different outcomes for the LHS and RHS in the same expression.
 
 ## Example 1. Implication Operator (->): Directional Enforcement
-
-          
-          
 
 ```
 type Order {
@@ -487,58 +184,14 @@ quantity >= 100 -> requiresApproval == true
 }
 ```
 
-          
+The implication constraint `A -> B` (if A, then B) is the primary method for defining a mandatory outcome. The engine evaluates the LHS (A) first. If the `quantity` is 150 (LHS TRUE), then the engine forces `requiresApproval` (RHS) to be `TRUE`.
 
-The implication constraint `A -> B` (if A, then
-        B) is the primary method for defining a mandatory outcome. The engine evaluates the LHS (A)
-        first. If the `quantity` is 150 (LHS TRUE), then the
-        engine forces `requiresApproval` (RHS) to be `TRUE`.
-
-          
-
-              
-              
-              
-                
-                  
-
-                  
-
-                
-
-              
-
-              
-                
-                  
-
-                  
-
-                
-
-                
-                  
-
-                  
-
-                
-
-              
-
-            
 | Scenario | Outcome |
 | --- | --- |
 | Scenario A: LHS is True, RHS Changes | The user sets a quantity greater than or equal to 100 on the LHS, which makes the condition true. The engine sets or changes the value of requiresApproval, the RHS, to true. |
 | Scenario B: RHS is False, LHS is Constrained to be False | The user manually sets requiresApproval, the RHS variable, to false. Since the implication true -> false is forbidden, the LHS condition must be false to satisfy the constraint. The engine constrains quantity on the LHS to be less than 100 to make the LHS false. |
 
-        
-
-        
-
 ## Example 2. Bi-conditional (<->): Symmetrical Equivalence
-
-          
-          
 
 ```
 type BulkOrderSystem {
@@ -553,71 +206,20 @@ isBulkOrder <-> (quantity >= 100 && requiresApproval),
 }
 ```
 
-          
+The bi-conditional constraint A `<->` B (A if and only if B) requires that the LHS and RHS must share the same Boolean truth value. Either side can act as the driver, forcing the other side to change. In the example above:
 
-The bi-conditional constraint A `<->` B (A if
-        and only if B) requires that the LHS and RHS must share the same Boolean truth value. Either
-        side can act as the driver, forcing the other side to change. In the example above:
-
-          
-            
 - A is the boolean variable `isBulkOrder`.
+- B is the complex condition `(quantity >= 100 && requiresApproval)`.
 
-            
-- B is the complex condition `(quantity >= 100
-            && requiresApproval)`.
-
-          
-
-          
-
-              
-              
-              
-                
-                  
-
-                  
-
-                
-
-              
-
-              
-                
-                  
-
-                  
-
-                
-
-                
-                  
-
-                  
-
-                
-
-              
-
-            
 | Scenario | Outcome |
 | --- | --- |
 | Scenario A: LHS Drives RHS | If the user manually sets the attribute isBulkOrder to true (making the LHS true), the engine immediately forces the RHS (quantity >= 100 && requiresApproval) to also be true, ensuring that both quantity is at least 100 and requiresApproval is set to true. |
 | Scenario B: RHS Drives LHS | If the user selects a configuration where the quantity is high (for example, 500) and then sets requiresApproval to false (making the RHS condition false), the engine immediately forces the LHS attribute isBulkOrder to false to maintain equivalence. |
 
-        
-
-      
-
 ## Exception: The exclude Rule
 
-        
-        
+The only scenario where the constraint engine intentionally overrides user input is when processing the `exclude` rule. If a user selects a component or sets an attribute value that violates an `exclude` rule, the engine will automatically override that user input to satisfy the exclusion constraint. In all other constraint types (like implication constraints shown previously), the engine relies on the user to fix the error. For more information, see [Exclude Rule](./cml_exclude_rule.htm.md "The exclude rule automatically removes a specific type in a relationship if a certain condition is true.").
 
-The only scenario where the constraint engine intentionally overrides user input is when
-        processing the `exclude` rule. If a user selects a
-        component or sets an attribute value that violates an `exclude` rule, the engine will automatically override that user input to satisfy
-        the exclusion constraint. In all other constraint types (like implication constraints shown
-        previously), the engine relies on the user to fix the error. For more information, see [Exclude
-        Rule](./cml_exclude_rule.htm.md).
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_logical_constraints.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

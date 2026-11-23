@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_singleext_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Turn On Industries Einstein AI Single Document Extraction
@@ -96,3 +96,7 @@ After enabling Einstein and Contracts AI, configure a named credential.
 
 Configure a Named Credential and External Credential for Industries Einstein AI Extraction
 A named credential stores your AWS account information. You can create a named credential in Setup. To extract contract details using Contracts AI, you must first extract values such as access keys, account ID, ARN, and IAM role from your AWS account. Use these AWS values to create an external credential and named credential. Additionally, create and assign a permission set to users.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_enable_einstein_and_contracts_ai_settings.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

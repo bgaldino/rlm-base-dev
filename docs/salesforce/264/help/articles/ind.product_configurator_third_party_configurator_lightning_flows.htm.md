@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_third_party_configurator.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Third-Party Configurator Lightning Flows
@@ -15,7 +15,7 @@ Third-party users can build a third-party configurator as a replacement to the f
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 
 Both first-party and third-party configurators receive the same data when the screen-based Lightning Flow launches during a configuration process.
 
@@ -38,7 +38,11 @@ Both first-party and third-party configurators receive the same data when the sc
 
 When the screen-based Lightning Flow built with the required data format, the screen-based Lightning Flow can be assigned to specific products, product classifications, or even entire organizations, where it functions as the designated configurator.
 
-Third-party configurators offer greater flexibility. Third-party configurators can have their own solutions from scratch, bypassing features like Salesforce Pricing, Context Service, Configurator API, and Business Rules Engine. Third-party configurators can use any Salesforce APIs that are required. There’s no obligation to use any of the Revenue Management specific APIs.
+Third-party configurators offer greater flexibility. Third-party configurators can have their own solutions from scratch, bypassing features like Salesforce Pricing, Context Service, Configurator API, and Business Rules Engine. Third-party configurators can use any Salesforce APIs that are required. There’s no obligation to use any of the Revenue Cloud specific APIs.
 
 SEE ALSO
 Define Product Configuration Flows
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_third_party_configurator_lightning_flows.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

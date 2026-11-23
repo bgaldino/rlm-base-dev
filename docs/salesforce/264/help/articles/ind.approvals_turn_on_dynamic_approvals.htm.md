@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: approvals
 parent_article: ind.approvals_manage_advanced_approvals.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Set Up Dynamic Approval Notifications
@@ -24,3 +24,7 @@ From Setup, find and select Approval Settings.
 Turn on Dynamic Approval Notifications.
 When turned on, dynamic approval notifications are used in the body of approval emails of approval email templates. The prompt template that's provided in the org is the only one used with dynamic approval notifications.
 EXAMPLE Let's consider a scenario where a manufacturing company uses dynamic approval notifications to streamline its quoting process. When a sales rep submits a quote, the sales manager receives an email that includes key data generated based on the step's approval conditions and user context, like the total quote amount and discount percentage, and features an AI-powered summary highlighting critical factors, such as low profit margins. The manager can then review all necessary context and approve or reject the quote directly from their email—without logging into another system. This process reduces approval times by 30% and ensures all decisions are fully informed.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.approvals_turn_on_dynamic_approvals.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

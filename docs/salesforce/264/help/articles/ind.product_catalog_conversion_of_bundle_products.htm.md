@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_create_bundled_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Convert Static and Configurable Product Bundles
@@ -25,3 +25,7 @@ Change a Static Bundle Product To a Configurable Bundle Product
 You can change a static product bundle to a configurable product bundle when you want to configure the bundle during run time. Configurable product bundles have products under a group. Additionally, the parent product is always configurable in the run time.
 Change a Configurable Bundle Product to a Static Bundle Product
 You can change a configurable bundle product to a static product bundle when you don’t want to configure the bundle during run time. You can't configure products in a static product bundle during run time. Every bundle component is present in the bundle by default and can’t be removed. You can’t change the child component quantity in the run time. Every attribute of every product component has a default value.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_conversion_of_bundle_products.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_unreferenced_refunds.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Issue Refund Against a Credit Memo
@@ -39,3 +39,7 @@ EXAMPLE
 A customer has an available credit balance of $200 on a credit memo set for header-level application. You issue an unreferenced refund of $200 against the credit memo, paid to the customer's saved card. Billing reduces the credit memo's pending balance by $200 and sets the refund balance to zero.
 
 To confirm the refund reached the customer, check the refund status. If the status stays Pending on an asynchronous gateway, wait for the gateway to confirm the refund before you take further action.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_issue_unreferenced_refund.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

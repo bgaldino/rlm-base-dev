@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.revenue_impl_glossary.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Product Configurator Essentials
@@ -107,3 +107,7 @@ Variables
 The properties or characteristics that you define within a type. Variables can hold different kinds of data, such as strings, numbers, and lists.
 Visibility Rules
 Rule outcomes make visual updates to the configured product, for example, hide, disable, or exclude.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_essentials.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

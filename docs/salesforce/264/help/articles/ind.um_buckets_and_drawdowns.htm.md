@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_consumption_management.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Buckets and Drawdowns
@@ -52,3 +52,7 @@ Token Commitment Drawdown Use Cases
 The relationship between commitments and anchors, and how their consumption is processed varies depending on the binding target and the number of active products.
 Consumption Proration Calculations
 Proration is used to ensure that customers are only billed or granted resources for the fraction of a billing period that a product was active. Consumption Management uses a proration engine that performs the calculation and provides accurate billing.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_buckets_and_drawdowns.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

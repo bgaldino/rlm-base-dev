@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_milestone_plans.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Define Billing Milestones
@@ -26,3 +26,7 @@ Method 1: Configure Billing Milestones Using Billing Treatments
 Create billing milestone plans and billing milestone plan items from billing treatment and billing treatment items and apply them to one or more products. This method is ideal when multiple products follow the same milestone billing pattern. You can edit the billing milestone plans for individual order products without affecting the billing treatment.
 Method 2: Create Billing Milestone Plans and Plan Items
 Create billing milestone plans, and then create billing milestone plan items to specify how billings are scheduled based on the completion of specific project milestones throughout the lifecycle of the order product.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_milestone_methods.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

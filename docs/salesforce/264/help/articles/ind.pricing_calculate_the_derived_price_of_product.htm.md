@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_derived_price.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Calculate the Derived Price of Product
@@ -15,7 +15,7 @@ Use the discovery procedure and the derived price element in a pricing procedure
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS NEEDED
 To create pricing procedures:	Salesforce Pricing Design Time
 To run pricing procedures:	Salesforce Pricing Run Time
@@ -107,3 +107,7 @@ Save your procedure.
 Click Simulate to test your procedure.
 Enter the input values for your contributor product (Laptop Pro Bundle) and the derived product (Laptop Bag). Click Simulate again.
 The price waterfall shows the Laptop Bag’s price was derived from the Laptop Pro Bundle, confirming that your procedure is working as expected.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_calculate_the_derived_price_of_product.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

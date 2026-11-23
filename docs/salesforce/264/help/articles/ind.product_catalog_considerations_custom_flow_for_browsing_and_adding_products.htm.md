@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_product_discovery.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Customize the Product Browsing Experience
@@ -24,3 +24,7 @@ Customize Product Discovery in Lightning App Builder
 Add product discovery components to supported pages and customize them to show only the information and options that your users need. For example, customize the Product List component to show additional fields that your users are interested in.
 Product Discovery Component Properties
 Use the Product Discovery component properties to show only the information and options that your users need.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_considerations_custom_flow_for_browsing_and_adding_products.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

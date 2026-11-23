@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_asset_lifecycle.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Asset Lifecycle Considerations
@@ -15,12 +15,19 @@ This topic details known limitations for the Asset Lifecycle features of Transac
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 Important Considerations
-When you renew a bundle that includes one-time products, the system doesn't create Asset Contract Relationship records for those products. Renewal of one-time products isn't supported. The system sets the action to No Change and the quantity to zero, which prevents assetization. To manage Asset Contract Relationships for one-time products after renewal, manually create the ACR directly from the asset record on the account. See Create Asset Contract Relationships.
-When amending or renewing an asset, you cannot change its price book or currency. The amendment or renewal transaction must use the same price book and currency as the initial sale.
+When you amend, renew, or cancel assets, Asset Lifecycle Management runs a nightly process to keep important fields up to date.
+Current Quantity
+Current Amount
+Current Monthly Recurring Revenue (MMR)
+Current Lifecycle End Date
+When you renew a bundle that includes one-time products, the system doesn't create Asset Contract Relationship (ACR) records for those products. Renewal of one-time products isn't supported. The system sets the action to No Change and the quantity to zero, which prevents assetization. To manage ACRs for one-time products after renewal, manually create the ACR directly from the asset record on the account. See Create Asset Contract Relationships.
+When amending or renewing an asset, you can’t change its price book or currency. The amendment or renewal transaction uses the same price book and currency as the initial sale.
 Usage Selling Assets Considerations
 Understand the limitations and behaviors of usage-based assets before setting up or selling usage products. Reviewing these requirements ensures accurate grant management, consumption tracking, and account binding throughout the asset lifecycle.
+Renewal Rate and Grant Sourcing Considerations
+Review these behaviors before renewing usage-based assets.
 Field and Price Amendment Considerations
 Familiarize yourself with the specific requirements for using Field Amendments and Price Amendments to update asset details and adjust pricing effectively. Understanding these technical mappings and supported fields helps you accurately reflect amendments in asset state periods (ASPs) and audit trails.
 Transaction Rollbacks Considerations
@@ -39,3 +46,7 @@ Considerations for Assets with Backdated Changes
 These considerations apply when you amend, renew, or cancel an asset with an effective date in the past.
 Add Assets Considerations for Amendment and Renewal Quotes and Orders
 Before you add assets to an amendment or renewal quote or order, understand how the Contract lookup field affects which assets are eligible to appear in the Add Assets modal.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_asset_lifecycle_considerations.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

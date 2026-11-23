@@ -7,76 +7,22 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_annotation_examples.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # peelable Annotation
 
-The `peelable` annotation is used to create soft
-    selection values and allow the engine to modify these selections to satisfy a
-    constraint.
-
-    
-      
-
-      
-      
-      
-
-      
-
-      
-
-      
-
-      
-      
-
-      
-
-      
-
-      
-      
-
-      
-
-      
-
-      
-      
-
-      
-
-- 
-- 
-
-      
-
-      
+The `peelable` annotation is used to create soft selection values and allow the engine to modify these selections to satisfy a constraint.
 
 | Annotation | `peelable` |
 | --- | --- |
 | Applicable to | Variable |
 | Value Type/Values | true, false |
-| Description | Indicates whether the constraint engine can override the variable's value (whether set by default or user selection) to resolve a conflict. If `peelable` annotation is set to `true`, the engine treats the value as a "soft selection." When a configuration conflict occurs, the engine attempts to "peel" (unbind) this variable and retry the solution. If a valid configuration is found, the engine automatically changes the value to satisfy constraints rather than displaying an error message. If `peelable` annotation is set to `false`, the engine treats the value as a "hard selection." If the value causes a conflict with a constraint, the engine will not attempt to change it automatically. Instead, it will stop and display a conflict error message to the user, requiring manual intervention to resolve the issue. |
-
-    
-
-    
+| Description | Indicates whether the constraint engine can override the variable's value (whether set by default or user selection) to resolve a conflict. If `peelable` annotation is set to `true`, the engine treats the value as a "soft selection." When a configuration conflict occurs, the engine attempts to "peel" (unbind) this variable and retry the solution. If a valid configuration is found, the engine automatically changes the value to satisfy constraints rather than displaying an error message; or If `peelable` annotation is set to `false`, the engine treats the value as a "hard selection." If the value causes a conflict with a constraint, the engine will not attempt to change it automatically. Instead, it will stop and display a conflict error message to the user, requiring manual intervention to resolve the issue. |
 
 ## Example 1: peelable = true (Soft Selection)
 
-      
-      
-
-In this scenario, the `ServiceLevel` defaults to `"Standard"`. Because it is marked `peelable = true`, the Constraint Engine treats this value as a
-        "soft pick." It is authorized to override this value automatically if a conflict
-        arises with another selection.
-
-      
+In this scenario, the `ServiceLevel` defaults to `"Standard"`. Because it is marked `peelable = true`, the Constraint Engine treats this value as a "soft pick." It is authorized to override this value automatically if a conflict arises with another selection.
 
 ```
 type CloudSubscription {
@@ -97,20 +43,9 @@ type CloudSubscription {
 }
 ```
 
-    
-
-    
-
 ## Example 2: peelable = false (Hard Selection)
 
-      
-      
-
-In this scenario, `peelable` is omitted (defaulting to
-          `false`) or explicitly set to `false`. The engine treats the value `"Standard"` as a "hard constraint" or a
-        firm user commitment. It is not authorized to change it automatically.
-
-      
+In this scenario, `peelable` is omitted (defaulting to `false`) or explicitly set to `false`. The engine treats the value `"Standard"` as a "hard constraint" or a firm user commitment. It is not authorized to change it automatically.
 
 ```
 type CloudSubscription {
@@ -131,43 +66,13 @@ type CloudSubscription {
 }
 ```
 
-    
-
-    
-
 ## Example Description and Configurator Result
 
-      
-      
-
-In example 1, the `ServiceLevel` attribute is specified
-        with the `peelable` annotation set to `true`. In example 2, the annotation is not specified, so the
-        system considers it as false by default. As a result, if the user updates the `storageTB` variable to 5, the system automatically changes the
-          `ServiceLevel` to `"Premium"` in example 1 according to constraint logic, effectively
-        "peeling" the default `"Standard"`
-        value to resolve the conflict. The system allows this override without displaying an error
-        message to the user. In example 2, the system does not allow the engine to override the
-        default `"Standard"` value automatically.
-        Consequently, the system displays a conflict error message, and the user must manually
-        update the `ServiceLevel` to `"Premium"` to satisfy the constraint.
-
-    
-
-    
+In example 1, the `ServiceLevel` attribute is specified with the `peelable` annotation set to `true`. In example 2, the annotation is not specified, so the system considers it as false by default. As a result, if the user updates the `storageTB` variable to 5, the system automatically changes the `ServiceLevel` to `"Premium"` in example 1 according to constraint logic, effectively "peeling" the default `"Standard"` value to resolve the conflict. The system allows this override without displaying an error message to the user. In example 2, the system does not allow the engine to override the default `"Standard"` value automatically. Consequently, the system displays a conflict error message, and the user must manually update the `ServiceLevel` to `"Premium"` to satisfy the constraint.
 
 ## Example 3: System-Driven Soft Selection (configurable = false, peelable = true)
 
-      
-      
-
-In this example, the `Voltage` is set to a high voltage
-        (" `2400/4160`") by default. The annotation
-          `configurable = false` prevents the user from manually
-        changing this value in the UI. However, `peelable = true`
-        is added to allow the constraint engine to override this default if a specific compliance
-        standard is selected.
-
-      
+In this example, the `Voltage` is set to a high voltage (" `2400/4160`") by default. The annotation `configurable = false` prevents the user from manually changing this value in the UI. However, `peelable = true` is added to allow the constraint engine to override this default if a specific compliance standard is selected.
 
 ```
 type GeneratorSet {
@@ -187,39 +92,13 @@ type GeneratorSet {
 }
 ```
 
-    
-
-    
-
 ## Example Description and Configurator Result
 
-      
-      
-
-In example 3, the `Voltage` is specified with
-        configurable set to `false`, preventing user interaction,
-        but peelable is set to `true`. Initially, the system sets
-        the voltage to "`2400/4160`". If the user
-        updates the `standardsAndCompliance` variable to
-          "`Listing-UL 2200`", the system detects a
-        conflict with the default voltage. Because the variable is peelable, the system
-        automatically "peels" the default "`2400/4160`" value and changes it to "`277/480`" to satisfy the constraint. The transition happens silently without
-        a conflict error, even though the user cannot manually edit the field.
-
-    
-
-    
+In example 3, the `Voltage` is specified with configurable set to `false`, preventing user interaction, but peelable is set to `true`. Initially, the system sets the voltage to "`2400/4160`". If the user updates the `standardsAndCompliance` variable to "`Listing-UL 2200`", the system detects a conflict with the default voltage. Because the variable is peelable, the system automatically "peels" the default "`2400/4160`" value and changes it to "`277/480`" to satisfy the constraint. The transition happens silently without a conflict error, even though the user cannot manually edit the field.
 
 ## Example 4: System-Driven Hard Constraint (configurable = false, peelable = false)
 
-      
-      
-
-In this example, the `EmissionsTier` is set to
-          "`Tier 3`" by default. It is marked `configurable = false` (system-controlled) and `peelable` is omitted (defaults to false), treating the default
-        value as a hard constraint.
-
-      
+In this example, the `EmissionsTier` is set to "`Tier 3`" by default. It is marked `configurable = false` (system-controlled) and `peelable` is omitted (defaults to false), treating the default value as a hard constraint.
 
 ```
 type GeneratorSet {
@@ -238,41 +117,13 @@ type GeneratorSet {
 }
 ```
 
-    
-
-    
-
 ## Example Description and Configurator Result
 
-      
-      
-
-In example 4, the `EmissionsTier` is specified with
-        configurable set to `false`, and `peelable` is not specified (defaulting to `false`). As a result, the system considers the default value
-          "`Tier 3`" as a hard constraint that cannot
-        be overridden. If the user updates the Location variable to "`US`", the constraint engine attempts to enforce
-          "`Tier 4 Final`" but finds it cannot
-        overwrite the fixed "`Tier 3`" value.
-        Consequently, the system displays a conflict error message stating "`US requires Tier 4 Final emissions`," and the
-        configuration enters an invalid state because the user cannot manually change the
-        EmissionsTier to resolve it.
-
-    
-
-    
+In example 4, the `EmissionsTier` is specified with configurable set to `false`, and `peelable` is not specified (defaulting to `false`). As a result, the system considers the default value "`Tier 3`" as a hard constraint that cannot be overridden. If the user updates the Location variable to "`US`", the constraint engine attempts to enforce "`Tier 4 Final`" but finds it cannot overwrite the fixed "`Tier 3`" value. Consequently, the system displays a conflict error message stating "`US requires Tier 4 Final emissions`," and the configuration enters an invalid state because the user cannot manually change the EmissionsTier to resolve it.
 
 ## Example 5: Auto-Correcting User Input (`configurable = true`, `peelable = true`)
 
-      
-      
-
-In this example, the ``EnclosureType`` is
-        user-selectable (``configurable = true``) and defaults to
-        "Standard". It is marked with `peelable = true`. This allows the engine to
-        override even an explicit user selection if a subsequent choice makes the enclosure
-        invalid.
-
-      
+In this example, the ``EnclosureType`` is user-selectable (``` configurable = true` ``) and defaults to "Standard". It is marked with `peelable = true`. This allows the engine to override even an explicit user selection if a subsequent choice makes the enclosure invalid.
 
 ```
 type GeneratorAccessories {
@@ -291,40 +142,13 @@ type GeneratorAccessories {
 }
 ```
 
-    
-
-    
-
 ## Example Description and Configurator Result
 
-      
-      
-
-In example 5, the ``EnclosureType`` is specified with
-          ``configurable`` set to ``true`` and ``peelable`` set to ``true``. Initially, the system allows the user to confirm the
-        selection of "`Standard`". If the user
-        subsequently updates the ``Environment`` variable to
-          "`Arctic`", the system detects that
-          "`Standard`" is invalid. Typically, the
-        engine protects user selections and would throw an error. However, because ``EnclosureType`` is peelable, the system treats the user's
-        choice as a "soft pick." It automatically "peels" the "`Standard`" selection and changes it to "`Heated`" to satisfy the logic. The user sees their
-        previous selection update automatically to match the new environment requirement, preventing
-        a "dead end" configuration state.
-
-    
-
-    
+In example 5, the ``EnclosureType`` is specified with ``configurable`` set to ``true`` and ``peelable`` set to ``true``. Initially, the system allows the user to confirm the selection of "`Standard`". If the user subsequently updates the ``Environment`` variable to "`Arctic`", the system detects that "`Standard`" is invalid. Typically, the engine protects user selections and would throw an error. However, because ``EnclosureType`` is peelable, the system treats the user's choice as a "soft pick." It automatically "peels" the "`Standard`" selection and changes it to "`Heated`" to satisfy the logic. The user sees their previous selection update automatically to match the new environment requirement, preventing a "dead end" configuration state.
 
 ## Example 6: Upstream Correction (`sequence`, `peelable = true`)
 
-      
-      
-
-In this example, the ``Voltage`` is configured early in
-        the process (Sequence 1) with a default value of "`Low`". It is marked with ``peelable =
-          true`` to allow downstream selections to override this initial setting.
-
-      
+In this example, the ``Voltage`` is configured early in the process (Sequence 1) with a default value of "`Low`". It is marked with ``peelable = true`` to allow downstream selections to override this initial setting.
 
 ```
 type GeneratorSet {
@@ -347,41 +171,13 @@ type GeneratorSet {
 }
 ```
 
-    
-
-    
-
 ## Example Description and Configurator Result
 
-      
-      
-
-In example 6, the ``Voltage`` attribute is specified
-        with ``sequence`` set to `1` and ``peelable`` set to ``true``. As a result, the system initially sets the value to
-          "`Low`" before evaluating the ``Application`` attribute. If the user updates the ``Application`` variable to "`DataCenter`" (which runs at sequence 2), the system detects a conflict
-        between the established "`Low`" voltage and the
-        constraint requirement for "`High`" voltage.
-        Because ``Voltage`` is peelable, the system automatically
-        "peels" the default "`Low`" value and
-        changes it to "`High`" to satisfy the
-        constraint. The transition happens silently without a conflict error, effectively allowing a
-        later user choice to correct an earlier default assumption.
-
-    
-
-    
+In example 6, the ``Voltage`` attribute is specified with ``sequence`` set to `1` and ``peelable`` set to ``true``. As a result, the system initially sets the value to "`Low`" before evaluating the ``Application`` attribute. If the user updates the ``Application`` variable to "`DataCenter`" (which runs at sequence 2), the system detects a conflict between the established "`Low`" voltage and the constraint requirement for "`High`" voltage. Because ``Voltage`` is peelable, the system automatically "peels" the default "`Low`" value and changes it to "`High`" to satisfy the constraint. The transition happens silently without a conflict error, effectively allowing a later user choice to correct an earlier default assumption.
 
 ## Example 7: Guided Fallback (‘strategy`, `peelable = true`)
 
-      
-      
-
-In this example, the ``ServiceTier`` defaults to
-          "`Bronze`" (the lowest value). It is marked
-        with ``peelable = true`` and ``strategy = "descending`"`. If a constraint forces a change from the
-        default, the strategy directs the engine to try the highest possible valid values first.
-
-      
+In this example, the ``ServiceTier`` defaults to "`Bronze`" (the lowest value). It is marked with ``peelable = true`` and ``strategy = "descending`"`. If a constraint forces a change from the default, the strategy directs the engine to try the highest possible valid values first.
 
 ```
 type ServicePlan {
@@ -401,20 +197,10 @@ type ServicePlan {
 }
 ```
 
-    
-
-    
-
 ## Example Description and Configurator Result
 
-      
-      
+In example 7, the ``ServiceTier`` is specified with ``strategy`` set to "`descending`" and ``peelable`` set to ``true``. Initially, the system sets the value to "`Bronze`". If the user updates the ``UserCount`` variable to 150, the constraint requires ``ServiceTier`` to be either "`Gold`" or "`Platinum`". Because the variable is peelable, the system removes the "`Bronze`" selection. Instead of testing the next closest value ("`Silver`"), the "`descending`" strategy instructs the engine to attempt resolution starting from the top of the domain. Consequently, the system automatically selects "`Platinum`" (the highest valid option) rather than "`Gold`". The user sees the plan upgrade immediately to the highest tier without an error message.
 
-In example 7, the ``ServiceTier`` is specified with
-          ``strategy`` set to "`descending`" and ``peelable`` set to
-          ``true``. Initially, the system sets the value to
-          "`Bronze`". If the user updates the ``UserCount`` variable to 150, the constraint requires ``ServiceTier`` to be either "`Gold`" or "`Platinum`". Because
-        the variable is peelable, the system removes the "`Bronze`" selection. Instead of testing the next closest value ("`Silver`"), the "`descending`" strategy instructs the engine to attempt resolution starting
-        from the top of the domain. Consequently, the system automatically selects "`Platinum`" (the highest valid option) rather than
-          "`Gold`". The user sees the plan upgrade
-        immediately to the highest tier without an error message.
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_annotation_example_peelable.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

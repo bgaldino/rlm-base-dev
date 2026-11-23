@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_standard_tax_rate.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Revenue Standard Tax Engine Example
@@ -21,8 +21,12 @@ Cloud Kicks sells products across the United States and operates using USD as it
 
 Consider an invoice generated on 11/25/2025, with a single invoice line having a Professional Services product for a customer based out of San Francisco, California.
 
-When Acme Corp invoices a customer in San Francisco, California, using the Standard Tax Engine, Revenue Management matches the invoice line to the applicable tax rates by using the in-built decision table.
+When Acme Corp invoices a customer in San Francisco, California, using the Standard Tax Engine, Revenue Cloud matches the invoice line to the applicable tax rates by using the in-built decision table.
 
 The matching logic considers the invoice line’s Legal Entity, Country ISO code, and State ISO code, Currency ISO Code, Product Code to filter the tax rate records which are applicable.
 
 In our example the first four rows match and the resulting invoice line taxes generated.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_standard_tax_rate_example.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

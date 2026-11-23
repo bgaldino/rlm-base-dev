@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_set_up_flow.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Enable Non-Blocking Behavior in the Configurator
@@ -15,7 +15,7 @@ Enable non-blocking behavior so that configurator users can change multiple attr
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 USER PERMISSIONS NEEDED
 To enable non-blocking behavior:	Product Configuration Constraints Designer permission set
 
@@ -28,3 +28,7 @@ To enable non-blocking behavior, for the Non Blocking Enabled attribute, select 
 If you’re using the default Configurator flow, continue to step 6. For a custom flow, repeat steps 3-4 to set the Non Blocking Enabled attribute for all the screen components.
 When you've finished setting the attribute values, select Done.
 To activate the changes, select Save as New Version, then select Activate.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_non_blocking_enabled.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

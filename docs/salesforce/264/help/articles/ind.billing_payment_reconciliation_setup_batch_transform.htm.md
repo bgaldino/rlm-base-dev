@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_payment_reconciliation_setup.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create a Custom Batch Data Transform
@@ -27,3 +27,7 @@ Add a transform node to convert all the fields in the DLO to the required data t
 Select the three DLOs and add them to the default data space. Select the Add without filters checkbox.
 Map the output DLOs to the PaymentAdvice_std__dlm, PaymentAdviceLineInvoice_std__dlm, and PaymentProof_std__dlm data model objects.
 Save, build, and run the batch data transform. You can run the data transform manually or schedule it.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_payment_reconciliation_setup_batch_transform.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

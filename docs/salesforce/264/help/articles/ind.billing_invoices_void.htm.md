@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_generation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Void Invoices
@@ -36,3 +36,7 @@ If an invoice remains in Void in Progress status for a long time, you can recove
 NOTE You can void invoices in reverse chronological order, starting with the most recent invoice. You can't void invoices that credit memos, payments, or write-offs have partially or fully settled.
 Tax Implications of Invoice Voids
 Learn how voiding an invoice cancels its associated taxes and affects the status of related credit memos.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoices_void.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

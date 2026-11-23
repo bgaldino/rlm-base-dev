@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_initiate_online_external_review_concept.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Initiate Private External Review
@@ -57,3 +57,7 @@ Incorporate Reviewer Changes from Private External Review
 After the external reviewers submit the reviewed document, the updated document with all changes is checked into Salesforce and made accessible only to the contract author. The external review changes are anonymized. The contract author receives an in-app notification and email confirming the completion of the external review and can then review the changes and finalize the updated document.
 Restart Private External Review
 Restart an external private review to begin the process again with a revised set of reviewers. A fresh document copy is created, previous reviewers and their changes are excluded, and the author must re-add all required reviewers.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_initiate_private_external_review.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

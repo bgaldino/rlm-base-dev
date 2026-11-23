@@ -7,101 +7,42 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Batch Payment Scheduler (POST)
 
-Create a payment scheduler to automate and process payment runs on a
-      recurring basis.
+Create a payment scheduler to automate and process payment runs on a recurring basis.
 
-    
-      
-        
-          
+## Special Access Rules
 
-**Special Access Rules**
+You need the Payment Ops permission set to use this API.
 
-          
-: You need the Payment Ops permission set to use this API.
-
-        
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /commerce/payments/payment-schedulers/
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/commerce/payments/payment-schedulers/
 ```
 
-          
+## Available Version
 
-        
-        
-          
+64.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 64.0
+POST
 
-        
-        
-          
+## Request Body for POST
 
-**HTTP methods**
+**JSON Example**
 
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-        
-          
-
-**JSON example**
-
-          
-: 
-            
-              
-                
-
-**JSON example**
-
-                
-: 
-                  
+**JSON Example**
 
 ```
 {
@@ -139,203 +80,31 @@ https://yourInstance.salesforce.com/services/data/v68.0/commerce/payments/paymen
 }
 ```
 
-                
-
-              
-            
-
-          
-
-        
-        
-          
-
 **Properties**
 
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-- 
-- 
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-- 
-- 
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `criteria​MatchType` | String | Match type for the criteria of the payment scheduler. Valid values are: `Match Any` `Match None` | Required if the `frequencyCadence` property is set to `Monthly`. | 64.0 |
+| `criteria​MatchType` | String | Match type for the criteria of the payment scheduler. Valid values are `Match Any` or `Match None`. | Required if the `frequencyCadence` property is set to `Monthly`. | 64.0 |
 | `endDate` | String | End date of the payment scheduler. | Required if the `frequencyCadence` property is set to `Monthly`. | 64.0 |
-| `frequency​Cadence` | String | Frequency cadence of the payment scheduler. Valid values are: `Once` `Daily` `Weekly` `Monthly` | Required | 64.0 |
-| `filter​Criteria` | [Payment Run Batch Filter Criteria Input](./connect_requests_payment_run_batch_filter_criteria_input.htm.md) | List of criteria that are used to filter the payment run details. | Required if the `frequencyCadence` property is set to `Monthly`. | 64.0 |
+| `frequency​Cadence` | String | Frequency cadence of the payment scheduler. | Required | 64.0 |
+| `filter​Criteria` | [Payment Run Batch Filter Criteria Input](./connect_requests_payment_run_batch_filter_criteria_input.htm.md "Input representation of the filter criteria for an invoice batch run. This representation covers the criteria and sequence for filtering payment run details. It specifies the field and object names, comparison operations, and values to be used for filtering.") | List of criteria that are used to filter the payment run details. | Required if the `frequencyCadence` property is set to `Monthly`. | 64.0 |
 | `preferredTime` | String | Preferred time for the payment scheduler run. | Required | 64.0 |
 | `recursEvery​MonthOnDay` | String | Date when the payment scheduler recurs. | Required if the `frequencyCadence` property is set to `Monthly`. | 64.0 |
 | `scheduler​Name` | String | Name of the payment scheduler. | Required | 64.0 |
 | `startDate` | String | Start date of the payment scheduler. | Required | 64.0 |
-| `status` | String | Status of the payment scheduler. Valid values are: `Active` `Canceled` `Draft` `Inactive` | Required | 64.0 |
+| `status` | String | Status of the payment scheduler. Valid values are `Active`, `Canceled`, `Draft`, or `Inactive`. | Required | 64.0 |
 
-          
+Valid values are:
 
-        
-      
+- `Once`
+- `Daily`
+- `Weekly`
+- `Monthly`
 
-          
+## Response Body for POST
 
-        
-        
-          
+[Batch Payments Scheduler](./connect_responses_payment_scheduler_output.htm.md "Output representation of the details of a payment scheduler.")
 
-**Response body for POST**
+---
 
-          
-: [Batch Payments
-              Scheduler](./connect_responses_payment_scheduler_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_create_payment_scheduler.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

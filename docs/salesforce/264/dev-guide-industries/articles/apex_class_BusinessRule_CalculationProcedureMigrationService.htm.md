@@ -7,43 +7,31 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: apex_namespace_BusinessRule.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # CalculationProcedureMigrationService Class
 
 Contains methods for migrating calculation procedures from the Vlocity
-      package to the Business Rules Engine as expression sets.
+package to the Business Rules Engine as expression sets.
 
 ## Namespace
 
-[BusinessRule](./apex_namespace_BusinessRule.htm.md)
-
-    
+[BusinessRule](./apex_namespace_BusinessRule.htm.md "The BusinessRule namespace provides classes for migrating calculation matrices and calculation procedures from Vlocity to the Business Rules Engine in Salesforce.")
 
 ## Usage
 
-      
-      Consider these guidelines before migrating a calculation procedure that uses a calculation matrix.
-          
+Consider these guidelines before migrating a calculation procedure that uses a calculation matrix.
+
 - Migrate the calculation matrix first. This creates a decision matrix.
-
-          
 - Add data to the decision matrix and activate it.
-
-        
-
-    
 
 ## Example
 
-      This example converts a list of calculation procedure IDs to expression set IDs and logs
-        the result in the debug log.
+This example converts a list of calculation procedure IDs to expression set IDs and logs
+the result in the debug log.
 
 ```
-
 List<String> calcProcIds = new List<String>();
 calcProcIds.add('a00xx000000boy5AAA');
 calcProcIds.add('a00xx000000bozhAAA');
@@ -51,101 +39,82 @@ calcProcIds.add('a00xx000000bp1JAAQ');
 
 System.debug('TO MIGRATE A LIST OF CALCULATION PROCEDURES');
 System.debug(BusinessRule.CalculationProcedureMigrationService.migrate(calcProcIds, 'vlocity_ins'));
-
 ```
 
-      This example converts a calculation procedure ID to an expression set ID and logs the
-        result in the debug log.
+This example converts a calculation procedure ID to an expression set ID and logs the
+result in the debug log.
 
 ```
-
 System.debug('TO MIGRATE A CALCULATION PROCEDURE');
 System.debug(BusinessRule.CalculationProcedureMigrationService.migrate('a00xx000000bp2vAAA', 'vlocity_ins'));
-
 ```
 
-- 
-**[CalculationProcedureMigrationService Methods](./apex_class_BusinessRule_CalculationProcedureMigrationService.htm.md#apex_BusinessRule_CalculationProcedureMigrationService_methods)**  
+- **[CalculationProcedureMigrationService Methods](./apex_class_BusinessRule_CalculationProcedureMigrationService.htm.md#apex_BusinessRule_CalculationProcedureMigrationService_methods)**
 
 ## CalculationProcedureMigrationService Methods
 
 The following are methods for `CalculationProcedureMigrationService`.
 
-- 
-**[migrate(calcProcedureIds, namespace)](./apex_class_BusinessRule_CalculationProcedureMigrationService.htm.md#apex_BusinessRule_CalculationProcedureMigrationService_migrate)**  
-
-Migrate calculation procedures from the Vlocity package as expression       sets to the Business Rules Engine.
-
-- 
-**[migrate(calcProcedureId, namespace)](./apex_class_BusinessRule_CalculationProcedureMigrationService.htm.md#apex_BusinessRule_CalculationProcedureMigrationService_migrate_2)**  
-
-Migrate a calculation procedure from the Vlocity package as an       expression set to the Business Rules Engine.
+- **[migrate(calcProcedureIds, namespace)](./apex_class_BusinessRule_CalculationProcedureMigrationService.htm.md#apex_BusinessRule_CalculationProcedureMigrationService_migrate)**  
+  Migrate calculation procedures from the Vlocity package as expression sets to the Business Rules Engine.
+- **[migrate(calcProcedureId, namespace)](./apex_class_BusinessRule_CalculationProcedureMigrationService.htm.md#apex_BusinessRule_CalculationProcedureMigrationService_migrate_2)**  
+  Migrate a calculation procedure from the Vlocity package as an expression set to the Business Rules Engine.
 
 ### migrate(calcProcedureIds, namespace)
 
 Migrate calculation procedures from the Vlocity package as expression
-      sets to the Business Rules Engine.
+sets to the Business Rules Engine.
 
 #### Signature
 
 `public static Map<String,Object> migrate(List<String>
-          calcProcedureIds, String namespace)`
+calcProcedureIds, String namespace)`
 
 #### Parameters
 
-**calcProcedureIds**
+calcProcedureIds
+:   Type: List<[String](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexcode.meta/apexcode/apex_methods_system_string.htm#apex_methods_system_string)>
+:   The 18-character IDs of the calculation procedures in the Vlocity managed package to be migrated
+    to the Business Rules Engine as expression sets.
 
-: Type: List<String>
+    18 character ID.
 
-: The 18-character IDs of the calculation procedures in the Vlocity managed package to be migrated
-                        to the Business Rules Engine as expression sets.
-
-18 character ID.
-
-                    
-
-**namespace**
-
-                    
-: Type: String
-
-                    
-: The namespace in which Vlocity is deployed as a
-                            managed package. For example, `vlocity_ins`. This contains the calculation procedure
-                            custom objects.
-
-                
+namespace
+:   Type: [String](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexcode.meta/apexcode/apex_methods_system_string.htm#apex_methods_system_string)
+:   The namespace in which Vlocity is deployed as a
+    managed package. For example, `vlocity_ins`. This contains the calculation procedure
+    custom objects.
 
 #### Return Value
 
-Type: Map<String,Object>
+Type: Map<[String](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexcode.meta/apexcode/apex_methods_system_string.htm#apex_methods_system_string),Object>
 
 ### migrate(calcProcedureId, namespace)
 
 Migrate a calculation procedure from the Vlocity package as an
-      expression set to the Business Rules Engine.
+expression set to the Business Rules Engine.
 
 #### Signature
 
 `public static Map<String,Object> migrate(String
-          calcProcedureId, String namespace)`
+calcProcedureId, String namespace)`
 
 #### Parameters
 
-**calcProcedureId**
+calcProcedureId
+:   Type: String
+:   The 18-character ID of the calculation procedure in the Vlocity managed package to be migrated
+    to the Business Rules Engine as an expression set.
 
-: Type: String
-
-: The 18-character ID of the calculation procedure in the Vlocity managed package to be migrated
-            to the Business Rules Engine as an expression set.
-
-**namespace**
-
-: Type: String
-
-: The namespace in which Vlocity is deployed as a managed package. For example, `vlocity_ins`. This contains the calculation procedure
-            custom objects.
+namespace
+:   Type: String
+:   The namespace in which Vlocity is deployed as a managed package. For example, `vlocity_ins`. This contains the calculation procedure
+    custom objects.
 
 #### Return Value
 
 Type: Map<String,Object>
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/apex_class_BusinessRule_CalculationProcedureMigrationService.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,24 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_api_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Promotion Details Response
 
-Output representation of the eligible promotion and its details. This representation
-    includes details of any coupons, eligibility rules, and terms and conditions.
+Output representation of the eligible promotion and its details. This representation includes details of any coupons, eligibility rules, and terms and conditions.
 
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -115,222 +105,10 @@ Output representation of the eligible promotion and its details. This representa
 }
 ```
 
-          
-
-        
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `additional​PromotionFields` | Map<String, Object> | Values of the additional promotion fields that are mapped in the context definition. | Big, 66.0 | 66.0 |
-| `couponDetails` | [Promotion Coupon Availability](./connect_responses_promotion_coupon_availability.htm.md)[] | Specifies the details of the coupon eligible for the promotion or specifies the reason why there isn’t an eligible coupon for the promotion. | Big, 66.0 | 66.0 |
+| `couponDetails` | [Promotion Coupon Availability](./connect_responses_promotion_coupon_availability.htm.md "Output representation of the details of the coupon that's eligible for the promotion. Additionally, this representation specifies the reason for any coupon ineligibility.")[] | Specifies the details of the coupon eligible for the promotion or specifies the reason why there isn’t an eligible coupon for the promotion. | Big, 66.0 | 66.0 |
 | `currencyIso​Code` | String | Three-letter ISO 4217 code of the monetary currency associated with the promotion. | Big, 66.0 | 66.0 |
 | `description` | String | Description of the promotion. | Big, 66.0 | 66.0 |
 | `displayName` | String | Display name of the eligible promotion. | Big, 66.0 | 66.0 |
@@ -338,8 +116,12 @@ Output representation of the eligible promotion and its details. This representa
 | `isAutomatic` | Boolean | Indicates whether the promotion is automatically applied for eligible carts (`true`) or not (`false`). | Big, 66.0 | 66.0 |
 | `priorityNumber` | Integer | Priority number of the eligible promotion for promotion ordering. | Big, 66.0 | 66.0 |
 | `promotionCode` | String | Code of the eligible promotion. | Big, 66.0 | 66.0 |
-| `promotionEligible​Rules` | [Promotion Rules List](./connect_responses_promotion_rules_list.htm.md)[] | List of promotion rules that are eligible for the customer's cart. | Big, 66.0 | 66.0 |
+| `promotionEligible​Rules` | [Promotion Rules List](./connect_responses_promotion_rules_list.htm.md "Output representation of the details of the rules of an eligible promotion.")[] | List of promotion rules that are eligible for the customer's cart. | Big, 66.0 | 66.0 |
 | `promotionId` | String | ID of the eligible promotion. | Big, 66.0 | 66.0 |
-| `promotion​Limits` | [Promotion Limit](./connect_responses_promotion_limit.htm.md)[] | List of the promotion's cart level and cart item level limits. | Big, 66.0 | 66.0 |
+| `promotion​Limits` | [Promotion Limit](./connect_responses_promotion_limit.htm.md "Output representation of the details of the promotion limit of an eligible promotion.")[] | List of the promotion's cart level and cart item level limits. | Big, 66.0 | 66.0 |
 | `startDate​Time` | String | Start date and time of the promotion in the ISO 8601 date format. | Big, 66.0 | 66.0 |
 | `termsAnd​Condition` | String | Terms and conditions of the promotion. | Big, 66.0 | 66.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_promotion_details.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

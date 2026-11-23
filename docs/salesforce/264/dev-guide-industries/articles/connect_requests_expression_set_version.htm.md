@@ -7,22 +7,18 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: expression_set_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Expression Set Version Input
 
 Input representation of an expression set version.
 
-**Root XML tag**
+## Root XML tag
 
-: `<ExpressionSetVersionInput>`
+`<ExpressionSetVersionInput>`
 
-**JSON example**
-
-: 
+## JSON Example
 
 ```
 "versions": [
@@ -151,9 +147,7 @@ Input representation of an expression set version.
   ]
 ```
 
-**Properties**
-
-: 
+## Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
@@ -166,6 +160,10 @@ Input representation of an expression set version.
 | `rank` | Integer | Rank of the version. | Optional | 58.0 |
 | `show​Expl​Externally` | Boolean | Indicates whether the decision explanation is exposed to community users (`true`) or not (`false`). | Required | 58.0 |
 | `start​Date` | String | Effective start date of the version. | Required | 58.0 |
-| `steps` | [Expression Set Version Step Input](./connect_requests_expression_set_version_step.htm.md)[] | List of steps in an expression set. | Optional | 58.0 |
-| `variables` | [Expression Set Version Variable Input](./connect_requests_expression_set_version_variable.htm.md)[] | List of variables in an expression set. | Optional | 58.0 |
+| `steps` | [Expression Set Version Step Input](./connect_requests_expression_set_version_step.htm.md "Input representation of a step in an expression set version.")[] | List of steps in an expression set. | Optional | 58.0 |
+| `variables` | [Expression Set Version Variable Input](./connect_requests_expression_set_version_variable.htm.md "Input representation of a variable in an expression set version.")[] | List of variables in an expression set. | Optional | 58.0 |
 | `version​Number` | Integer | Version number of the expression set version. | Required | 58.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_requests_expression_set_version.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

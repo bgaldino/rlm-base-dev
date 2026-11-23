@@ -7,211 +7,54 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Create Order From Quote Action
 
 Create a draft order from a quote record.
 
-		
-			
-
 This action is available in API version 60.0 and later.
 
-			
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=revenue_lifecycle_management_dev_guide)
 
 #### Note
 
- This API has been deprecated as of API version 65.0. In API version 65.0 and
-				later, use the [Create
-					Orders From Quote Action](./actions_obj_create_orders_from_quote.htm.md).
-
-		
-
-		
+This API has been deprecated as of API version 65.0. In API version 65.0 and later, use the [Create Orders From Quote Action](./actions_obj_create_orders_from_quote.htm.md "HTML (New Window)").
 
 ## Special Access Rules
 
-			
-			
-
-The Create Order From Quote action is available in Enterprise, Unlimited, and Developer
-				Editions of Revenue Management.
-
-		
-
-		
+The Create Order From Quote action is available in Enterprise, Unlimited, and Developer Editions of Revenue Management.
 
 ## Supported REST HTTP Methods
 
-			
-			
-				
-					
+**URI:** `/services/data/v68.0/actions/standard/createOrderFromQuote`
 
-**URI**
+**Formats:** JSON, XML
 
-					
-: `/services/data/v68.0/actions/standard/createOrderFromQuote`
+**HTTP Methods:** POST
 
-				
-				
-					
-
-**Formats**
-
-					
-: JSON, XML
-
-				
-				
-					
-
-**HTTP Methods**
-
-					
-: POST
-
-				
-				
-					
-
-**Authentication**
-
-					
-: `Authorization: Bearer
-							token`
-
-				
-			
-
-		
-
-		
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Input | Details |
-| --- | --- |
-| quoteRecordId | **Type** id **Description** Required. ID of the quote record. |
-
-		
-
-		
+| Input | Type | Description |
+| --- | --- | --- |
+| quoteRecordId | id | Required. ID of the quote record. |
 
 ## Outputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Output | Details |
-| --- | --- |
-| orderId | **Type** string **Description** ID of the created draft order. |
-| orderNumber | **Type** string **Description** Unique order number of the created draft order. |
-| requestId | **Type** string **Description** ID of the request. |
-
-		
-
-		
+| Output | Type | Description |
+| --- | --- | --- |
+| orderId | string | ID of the created draft order. |
+| orderNumber | string | Unique order number of the created draft order. |
+| requestId | string | ID of the request. |
 
 ## Example
 
-			
-			
-				
-					
-
 **POST**
 
-					
-: 
-						
-
 This sample request is for the Create Order From Quote action.
-
-						
 
 ```
 {
@@ -223,11 +66,7 @@ This sample request is for the Create Order From Quote action.
 }
 ```
 
-						
-
 This sample response is for the Create Order From Quote action.
-
-						
 
 ```
 [
@@ -246,3 +85,7 @@ This sample response is for the Create Order From Quote action.
   }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_create_order_from_quote.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

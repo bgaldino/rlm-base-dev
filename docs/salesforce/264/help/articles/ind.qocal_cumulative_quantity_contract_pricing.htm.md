@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_manage_contract_pricing_in_revenue_lifecycle_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Calculate Cumulative Quantity Pricing for Contractual Discounts
@@ -15,7 +15,7 @@ Motivate larger purchases by aggregating product quantities across transactions 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To use cumulative quantity pricing:	Sales Pricing Design Time User permission
 
@@ -53,3 +53,7 @@ When you set the Aggregation Strategy to Cumulative, the transaction system uses
 Aggregates quantities based on transaction line items with a matching product, PSM, and UOM.
 Bundle lines that meet the same matching criteria.
 Active assets on the account that meet the same matching criteria.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_cumulative_quantity_contract_pricing.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

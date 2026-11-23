@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_quote_and_order_features_in_revenue_cloud.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Delta Pricing
@@ -15,10 +15,14 @@ Improve large transaction performance by enabling Delta Pricing to recalculate o
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 
 Delta Pricing optimizes performance by recalculating only modified quote or order lines and their dependent lines rather than the entire transaction. This background process requires no at run time user interface changes. The system applies Delta Pricing automatically to transaction updates that lack validation errors and follow a successful previous pricing run. If the transaction fails to meet these criteria, the system performs a full repricing.
 
 IMPORTANT Turn off Dual Persistence mode before you use Delta Pricing, as these features are incompatible.
 From Setup, in the Quick Find box, search for and select Revenue Settings.
 Turn on Delta Pricing for Quotes and Orders.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_use_delta_pricing_for_quotes_and_orders.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

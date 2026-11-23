@@ -7,53 +7,42 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Omnistudio
 parent_page: omnistudio_apis_resources_1.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Decision Matrix
 
 Retrieve the details for a given decision matrix record (also known as
-      calculation matrix).
+calculation matrix).
 
-**Resource**
-
-: 
+## Resource
 
 ```
 /connect/omnistudio/decision-matrices/${matrixId}
 ```
 
-        
-          
-
-**Example URI**
-
-          
-: 
-            
+## Example URI
 
 ```
 /services/data/v53.0/connect/omnistudio/decision-matrices/0lIx0000000000zEAA
 ```
 
-          
+## Available Version
 
-        
+53.0
 
-**Available version**
+## Requires Chatter
 
-: 53.0
+No
 
-**Requires Chatter**
+## HTTP Methods
 
-: No
+GET
 
-**HTTP methods**
+## Response Body for GET
 
-: GET
+[Decision Matrix Result](./connect_responses_decision_matrix_result.htm.md "Output representation of the decision matrix details.")
 
-**Response body for GET**
+---
 
-: [Decision Matrix Result](./connect_responses_decision_matrix_result.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_decision_matrix.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,84 +7,45 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: apex_namespace_RevSalesTrxn.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # RecordResource Class
 
 Contains constructors and properties to create a record object from the field values of a
-    sales transaction.
+sales transaction.
 
 ## Namespace
 
-[RevSalesTrxn](./apex_namespace_RevSalesTrxn.htm.md)
-
-    
+[RevSalesTrxn](./apex_namespace_RevSalesTrxn.htm.md "Create a sales transaction, such as a quote or an order, with integrated pricing and configuration. Additionally, update an order or a quote, and insert and delete order or quote line items to calculate the estimated tax.")
 
 ## Example
-
-      
-      
 
 ```
 RevSalesTrxn.RecordResource quoteRecord = new RevSalesTrxn.RecordResource(Quote.getSobjectType(),'POST');
 ```
 
-    
-
-- 
-**[RecordResource Constructors](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_constructors)**  
-
-Learn more about the available constructors with the RecordResource class.
-
-- 
-**[RecordResource Properties](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_properties)**  
-
-Learn more about the available properties with the RecordResource class.
-
-  
+- **[RecordResource Constructors](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_constructors)**  
+  Learn more about the available constructors with the RecordResource class.
+- **[RecordResource Properties](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_properties)**  
+  Learn more about the available properties with the RecordResource class.
 
 ## RecordResource Constructors
 
-  
-  
-  
 Learn more about the available constructors with the RecordResource class.
-
-    
-      
 
 The `RecordResource` class has these constructors.
 
-    
-
-    
-  
-
-- 
-**[RecordResource(type, method, groupAction, criteria)](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_ctor)**  
-
-Creates an instance of the RecordResource class to assign values to the fields of a     sales transaction by using the sObject type, API method, and sales transaction ID properties.     Additionally, you can group order or quote line items based on a criteria by using the     groupAction and criteria properties.
-
-- 
-**[RecordResource(type, method, id)](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_ctor_2)**  
-
-Creates an instance of the RecordResource class to assign values to the fields of a sales     transaction by using the sObject type, API method, and sales transaction ID     properties.
-
-- 
-**[RecordResource(type, method)](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_ctor_3)**  
-
-Creates an instance of the RecordResource class to assign the values to the fields of a     sales transaction by using the sObject type and API method properties.
+- **[RecordResource(type, method, groupAction, criteria)](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_ctor)**  
+  Creates an instance of the RecordResource class to assign values to the fields of a sales transaction by using the sObject type, API method, and sales transaction ID properties. Additionally, you can group order or quote line items based on a criteria by using the groupAction and criteria properties.
+- **[RecordResource(type, method, id)](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_ctor_2)**  
+  Creates an instance of the RecordResource class to assign values to the fields of a sales transaction by using the sObject type, API method, and sales transaction ID properties.
+- **[RecordResource(type, method)](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_ctor_3)**  
+  Creates an instance of the RecordResource class to assign the values to the fields of a sales transaction by using the sObject type and API method properties.
 
 ### RecordResource(type, method, groupAction, criteria)
 
-  
-Creates an instance of the RecordResource class to assign values to the fields of a
-    sales transaction by using the sObject type, API method, and sales transaction ID properties.
-    Additionally, you can group order or quote line items based on a criteria by using the
-    groupAction and criteria properties.
+Creates an instance of the RecordResource class to assign values to the fields of a sales transaction by using the sObject type, API method, and sales transaction ID properties. Additionally, you can group order or quote line items based on a criteria by using the groupAction and criteria properties.
 
 #### Signature
 
@@ -92,66 +53,39 @@ Creates an instance of the RecordResource class to assign values to the fields o
 
 #### Parameters
 
-        
-          
-
 **type**
 
-          
-: Type: [Schema.SObjectType](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexref.meta/apexref/apex_class_Schema_SObjectType.htm)
+Type: [Schema.SObjectType](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexref.meta/apexref/apex_class_Schema_SObjectType.htm "HTML (New Window)")
 
-          
-: Object that’s returned from the field describe result using the `getReferenceTo()` method or from the sObject describe result
-            using the `getSObjectType() `method.
-
-        
-        
-          
+Object that’s returned from the field describe result using the `getReferenceTo()` method or from the sObject describe result using the `getSObjectType()`method.
 
 **method**
 
-          
-: Type: String
+Type: String
 
-          
-: Method for the API request, such as POST, PATCH, or DELETE.
-
-        
+Method for the API request, such as POST, PATCH, or DELETE.
 
 **groupAction**
 
-: Type: String
+Type: String
 
-: Action to group order or quote line items. Valid values are:
-              
+Action to group order or quote line items. Valid values are:
+
 - `GroupBy`
-
-              
 - `Group`
-
-              
 - `Ungroup`
-
-              
 - `GroupAll`
-
-              
 - `DeleteGroup`
-
-            
 
 **criteria**
 
-: Type: Map<String,ANY>
+Type: Map<String,ANY>
 
-: Criteria to group order or quote line items. For example, group order or quote line items based
-            on a monthly billing frequency.
+Criteria to group order or quote line items. For example, group order or quote line items based on a monthly billing frequency.
 
 ### RecordResource(type, method, id)
 
-Creates an instance of the RecordResource class to assign values to the fields of a sales
-    transaction by using the sObject type, API method, and sales transaction ID
-    properties.
+Creates an instance of the RecordResource class to assign values to the fields of a sales transaction by using the sObject type, API method, and sales transaction ID properties.
 
 #### Signature
 
@@ -161,30 +95,25 @@ Creates an instance of the RecordResource class to assign values to the fields o
 
 **type**
 
-: Type: [Schema.SObjectType](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexref.meta/apexref/apex_class_Schema_SObjectType.htm)
+Type: [Schema.SObjectType](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexref.meta/apexref/apex_class_Schema_SObjectType.htm "HTML (New Window)")
 
-          
-: Object that’s returned from the field describe result using the `getReferenceTo()` method or from the sObject describe result
-            using the `getSObjectType() `method.
+Object that’s returned from the field describe result using the `getReferenceTo()` method or from the sObject describe result using the `getSObjectType()`method.
 
 **method**
 
-: Type: String
+Type: String
 
-          
-: Method for the API request, such as POST, PATCH, or DELETE.
+Method for the API request, such as POST, PATCH, or DELETE.
 
 **id**
 
-: Type: Id
+Type: Id
 
-          
-: ID of the sales transaction, such as a quote or an order.
+ID of the sales transaction, such as a quote or an order.
 
 ### RecordResource(type, method)
 
-Creates an instance of the RecordResource class to assign the values to the fields of a
-    sales transaction by using the sObject type and API method properties.
+Creates an instance of the RecordResource class to assign the values to the fields of a sales transaction by using the sObject type and API method properties.
 
 #### Signature
 
@@ -194,73 +123,39 @@ Creates an instance of the RecordResource class to assign the values to the fiel
 
 **type**
 
-: Type: [Schema.SObjectType](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexref.meta/apexref/apex_class_Schema_SObjectType.htm)
+Type: [Schema.SObjectType](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexref.meta/apexref/apex_class_Schema_SObjectType.htm "HTML (New Window)")
 
-          
-: Object that’s returned from the field describe result using the `getReferenceTo()` method or from the sObject describe result
-            using the `getSObjectType()`method.
+Object that’s returned from the field describe result using the `getReferenceTo()` method or from the sObject describe result using the `getSObjectType()`method.
 
 **method**
 
-: Type: String
+Type: String
 
-          
-: Method for the API request, such as POST, PATCH, or DELETE.
-
-  
+Method for the API request, such as POST, PATCH, or DELETE.
 
 ## RecordResource Properties
 
-  
-  
-  
 Learn more about the available properties with the RecordResource class.
-
-    
-      
 
 The `RecordResource` class includes these properties.
 
-    
-
-    
-  
-
-- 
-**[criteria](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_criteria)**  
-
-Set the criteria property to group order or quote line items. For example, group order     or quote line items based on a monthly billing frequency.
-
-- 
-**[fieldValues](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_fieldValues)**  
-
-Set the fieldValues property to assign values to the fields to update the sales     transaction.
-
-- 
-**[groupAction](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_groupAction)**  
-
-Set the groupAction property to group order or quote line items.
-
-- 
-**[id](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_id)**  
-
-Set the id property to assign the ID of the sales transaction record.
-
-- 
-**[method](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_method)**  
-
-Set the method property to specify the API request method, such as POST, PATCH, or     DELETE.
-
-- 
-**[type](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_type)**  
-
-Set the type property to assign the object type that’s returned from the field describe     result by using the getReferenceTo() method or from the sObject describe result by using the     getSObjectType() method.
+- **[criteria](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_criteria)**  
+  Set the criteria property to group order or quote line items. For example, group order or quote line items based on a monthly billing frequency.
+- **[fieldValues](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_fieldValues)**  
+  Set the fieldValues property to assign values to the fields to update the sales transaction.
+- **[groupAction](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_groupAction)**  
+  Set the groupAction property to group order or quote line items.
+- **[id](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_id)**  
+  Set the id property to assign the ID of the sales transaction record.
+- **[method](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_method)**  
+  Set the method property to specify the API request method, such as POST, PATCH, or DELETE.
+- **[type](./apex_class_RevSalesTrxn_RecordResource.htm.md#apex_RevSalesTrxn_RecordResource_type)**  
+  Set the type property to assign the object type that’s returned from the field describe result by using the getReferenceTo() method or from the sObject describe result by using the getSObjectType() method.
 
 ### criteria
 
-  
 Set the criteria property to group order or quote line items. For example, group order
-    or quote line items based on a monthly billing frequency.
+or quote line items based on a monthly billing frequency.
 
 #### Signature
 
@@ -273,7 +168,7 @@ Type: Map<String,ANY>
 ### fieldValues
 
 Set the fieldValues property to assign values to the fields to update the sales
-    transaction.
+transaction.
 
 #### Signature
 
@@ -281,20 +176,15 @@ Set the fieldValues property to assign values to the fields to update the sales
 
 #### Property Value
 
-Type: [List](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexref.meta/apexref/apex_methods_system_list.htm#apex_methods_system_list)Map<String,ANY>
+Type: ListMap<String,ANY>
 
 ### groupAction
 
 Set the groupAction property to group order or quote line items.
 
-    
-      
-
 You can group order or quote line items based on location, work types, or departments, if
-        groups are enabled for your org. Groups provide a visualization of the products to view
-        large quotes.
-
-    
+groups are enabled for your org. Groups provide a visualization of the products to view
+large quotes.
 
 #### Signature
 
@@ -306,22 +196,11 @@ Type: String
 
 Valid values are:
 
-        
 - `GroupBy`
-
-        
 - `Group`
-
-        
 - `Ungroup`
-
-        
 - `GroupAll`
-
-        
 - `DeleteGroup`
-
-      
 
 ### id
 
@@ -338,7 +217,7 @@ Type: String
 ### method
 
 Set the method property to specify the API request method, such as POST, PATCH, or
-    DELETE.
+DELETE.
 
 #### Signature
 
@@ -351,8 +230,8 @@ Type: String
 ### type
 
 Set the type property to assign the object type that’s returned from the field describe
-    result by using the getReferenceTo() method or from the sObject describe result by using the
-    getSObjectType() method.
+result by using the getReferenceTo() method or from the sObject describe result by using the
+getSObjectType() method.
 
 #### Signature
 
@@ -360,4 +239,8 @@ Set the type property to assign the object type that’s returned from the field
 
 #### Property Value
 
-Type: [Schema.SObjectType](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexref.meta/apexref/apex_class_Schema_SObjectType.htm)
+Type: [Schema.SObjectType](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexref.meta/apexref/apex_class_Schema_SObjectType.htm "HTML (New Window)")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RevSalesTrxn_RecordResource.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_automate_invoice_generation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Understand Invoice Date, Target Date, and Billing Period Count
@@ -50,7 +50,7 @@ When you base the target date on the run date, a positive offset produces a targ
 
 In some complex billing scenarios, businesses don’t have a fixed day offset. Instead they work with a flexible date like the Nth day of the coming month. When you base the target date on a calendar day of the month, Billing determines the target date from the target day of month and target month offset. The target day of month can be 1 through 28, or the last, second-to-last, or third-to-last day of the month. The target month offset is the number of months added to or subtracted from the month of the invoice batch run. For example, a monthly invoice batch run on July 23 with a target day of month of 23 and a target month offset of 1 has a target date of August 23.
 
-NOTE For milestone billing, the target date determines which accomplished milestones are invoiced. When no target date is set, Billing uses the run date of the invoice batch run so that future milestones aren’t invoiced. Usage billing schedules with liable summaries in Ready for Invoicing status are always invoiced, regardless of the target date. The Milestone Billing and Usage-Based Invoicing features are available only with the Revenue Management Billing license.
+NOTE For milestone billing, the target date determines which accomplished milestones are invoiced. When no target date is set, Billing uses the run date of the invoice batch run so that future milestones aren’t invoiced. Usage billing schedules with liable summaries in Ready for Invoicing status are always invoiced, regardless of the target date. The Milestone Billing and Usage-Based Invoicing features are available only with the Revenue Cloud Billing license.
 Billing Period Count
 
 When schedules have different next billing dates, using a fixed target date to select all of them can cause some schedules to be invoiced for extra billing periods. This can result in over-billing.
@@ -61,7 +61,7 @@ Use billing period count with a target date when you want to limit which schedul
 
 You can also use billing period count without a target date when you want to invoice every schedule that matches the invoice scheduler's filter criteria for a specific number of periods. For example, to invoice every matching schedule for the next two billing periods, set billing period count to 2.
 
-NOTE Billing period count doesn’t apply to milestone or usage billing schedules. For milestone billing, the target date determines which milestones are invoiced. Usage billing invoices all Ready for Invoicing usage records. The Milestone Billing and Usage-Based Invoicing features are available only with the Revenue Management Billing license.
+NOTE Billing period count doesn’t apply to milestone or usage billing schedules. For milestone billing, the target date determines which milestones are invoiced. Usage billing invoices all Ready for Invoicing usage records. The Milestone Billing and Usage-Based Invoicing features are available only with the Revenue Cloud Billing license.
 
 To create an invoice scheduler after you choose these options, see Generate Invoices Automatically Based on Billing Schedules.
 
@@ -70,3 +70,7 @@ EXAMPLE
 You have a monthly schedule with a next billing date of April 1 and a quarterly schedule with a next billing date of June 1. A target date of June 1 without a billing period count invoices the monthly schedule for three monthly periods instead of one.
 
 With billing period count set to 1, each schedule is invoiced for one period: April 1 to May 1 for the monthly schedule and June 1 to September 1 for the quarterly schedule.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_understand_target_date_and_billing_period_count.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

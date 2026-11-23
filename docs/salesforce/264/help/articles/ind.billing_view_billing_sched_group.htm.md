@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_schedules_and_schedule_groups.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Generated Billing Schedule Details
@@ -15,12 +15,12 @@ View all the key billing schedule and invoice details in the Billing Schedule Gr
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions with Revenue Management
+Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
 
 
-This feature is available with the Revenue Management Advanced license or the Revenue Management Billing license.
+This feature is available with the Revenue Cloud Advanced license or the Revenue Cloud Billing license.
 
-The Usage Management feature is only available with the the Revenue Management Billing license. Contact your Salesforce account executive for more information.
+The Usage Management feature is only available with the the Revenue Cloud Billing license. Contact your Salesforce account executive for more information.
 
 From the App Launcher, find and select Billing, and then click Billing Schedule Groups. Open any Billing Schedule Group record to view all the required details.
 
@@ -69,7 +69,7 @@ EXAMPLE
 
 These examples illustrate the process of how amending and canceling assets affect the creation of billing schedules.
 
-Asset Amendment Scenario: SmartBytes is a large enterprise company that uses Revenue Management. One of its longstanding customers, Greenfield Enterprises, wants to purchase 10 more SmartBytes’ DocuCraft software licenses to cater to a rising employee demand. SmartBytes’ sales operations representative amends Greenfield Enterprises’ existing asset for DocuCraft software licenses to include 10 more licenses. On amending the asset, an amendment quote is created. The sales representative then creates an order for the amendment quote and activates it. On activating the order, a billing schedule is created for 10 licenses with Amendment as the category. The billing schedule is also linked to the billing schedule created for the initial asset.
+Asset Amendment Scenario: SmartBytes is a large enterprise company that uses Revenue Cloud. One of its longstanding customers, Greenfield Enterprises, wants to purchase 10 more SmartBytes’ DocuCraft software licenses to cater to a rising employee demand. SmartBytes’ sales operations representative amends Greenfield Enterprises’ existing asset for DocuCraft software licenses to include 10 more licenses. On amending the asset, an amendment quote is created. The sales representative then creates an order for the amendment quote and activates it. On activating the order, a billing schedule is created for 10 licenses with Amendment as the category. The billing schedule is also linked to the billing schedule created for the initial asset.
 
 Asset Cancellation Scenario: One of SmartBytes customers, TechCore Solutions, wants to cancel their ongoing order for DocuCraft software. SmartBytes’ sales operations representative cancels TechCore Solutions’ existing asset for DocuCraft software licenses. On canceling the asset, a cancellation quote is created. The sales representative then creates an order for the cancellation quote and activates it. On activating the order, a billing schedule is created with Cancellation as the category. The billing schedule is also linked to the billing schedule created for the initial asset.
 
@@ -81,6 +81,51 @@ When you cancel an asset before or after the start of a future-dated amendment, 
 
 When a future-dated amendment, renewal, or cancellation is rolled back before it takes effect, Billing doesn’t modify existing billing schedules. Instead, Billing creates compensating adjustment billing schedules that offset the impact of the rolled-back change. The original billing schedules are retained for historical accuracy, ensuring that future billing reflects the correct amounts and periods while preserving a complete audit trail.
 
+Billing Schedules for Early Renewals That Supersede Active Renewals or Future-Dated Orders
+
+When an early renewal supersedes an active renewal or a future-dated order, Billing automatically detects the overlap, cancels the billing schedule for the superseded period, and creates a new billing schedule for the early renewal to prevent double-charging the customer for the overlapping period.
+
+You can supersede active renewals or future-dated orders with an early renewal for termed, evergreen, and bundle products, but not for usage-based or ramped products. For evergreen products, Billing treats an early renewal as an amendment.
+
+EXAMPLE This scenario demonstrates how billing schedules are created when an early renewal cancels and replaces an existing renewal's billing schedules.
+
+Acme Software Innovations Inc. sells an analytics platform to their customer, Cloudline Software, under an active contract for 100 units for the January 1, 2026–December 31, 2026 period, with an active renewal contract for the January 1, 2027–December 31, 2027 period.
+
+Acme's Billing Admin creates these billing schedules.
+
+Billing Schedule 1
+
+Product: Analytics platform
+Quantity: 100
+Base Contract Period: January 1, 2026–December 31, 2026
+
+Billing Schedule 2
+
+Product: Analytics platform
+Quantity: 100
+Renewal Period: January 1, 2027–December 31, 2027
+
+Before the renewal period begins, Cloudline Software negotiates an early renewal with Acme for a new term period of November 1, 2026–October 31, 2027, increasing the subscription from 100 to 150 units.
+
+The early renewal's start date is on November 1, 2026, which falls before the original renewal's start date of January 1, 2027, and overlaps the still active base contract. Acme's Billing Admin creates these billing schedules for the early renewed order.
+
+Cancellation Billing Schedule 3
+
+Product: Analytics platform
+Quantity: 100
+Period: November 1, 2026–December 31, 2026
+
+Cancellation Billing Schedule 4
+
+Product: Analytics platform
+Quantity: 100
+Period: January 1, 2027–December 31, 2027
+
+New Billing Schedule
+
+Product: Analytics platform
+Quantity: 150
+Period: November 1, 2026–October 31, 2027
 Billing Schedules for Usage-Based Products
 
 For usage-based products and add-on packs, billing schedules are ready for invoicing when the rated usage and overage charges are calculated.
@@ -142,8 +187,12 @@ Quantity and Unit of Measure
 
 Billing schedules inherit their quantity and unit of measure from the related order products’ quantity and unit of measure. A billing schedule’s quantity is rounded off based on the scale and rounding method of its unit of measure.
 
-See View and Edit Orders in Revenue Management and Decimal Quantity Support in Product Catalog Management.
+See View and Edit Orders in Revenue Cloud and Decimal Quantity Support in Product Catalog Management.
 
 Start and End Dates
 
 Billing prioritizes the start and end dates found on Quote Line Detail and Order Item Detail records. If no dates are specified on the detail records, then Billing uses the dates from the parent order or quote item.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_view_billing_sched_group.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

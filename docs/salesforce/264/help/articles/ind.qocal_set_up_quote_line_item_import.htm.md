@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_quote_line_item_import.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Quote Line Items Import
@@ -15,7 +15,7 @@ Turn on the Import Quote Line Items setting and create a Data Processing Engine 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 Turn On Import Quote Line Items
 
 Before you begin, perform these actions.
@@ -36,7 +36,7 @@ To use a custom flow, enter your specific flow API name.
 The flow opens when a user clicks Import Lines.
 Create and Set Up a Data Processing Engine Definition
 
-Create a Data Processing Engine definition to process CSV data and create quote line items. Revenue Management provides templates based on organization type.
+Create a Data Processing Engine definition to process CSV data and create quote line items. Revenue Cloud provides templates based on organization type.
 
 REQUIRED EDITIONS
 USER PERMISSIONS NEEDED
@@ -48,7 +48,7 @@ AND
 
 Modify All Data
 
-Revenue Management provides these Data Processing Engine definition templates.
+Revenue Cloud provides these Data Processing Engine definition templates.
 
 ORG TYPE	NAME	API NAME
 Single-currency	Create Quote Line Items from a CSV File	CreateQuoteLineItemsFromCSV
@@ -66,3 +66,7 @@ After you complete the setup:
 
 Monitor import status by using Monitor Workflow Services.
 Extend the import functionality to support more requirements, such as custom fields.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_set_up_quote_line_item_import.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

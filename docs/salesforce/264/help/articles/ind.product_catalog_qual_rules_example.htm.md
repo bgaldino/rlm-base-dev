@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_qualification_rules.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Explore a Qualification Rule Example
@@ -162,3 +162,7 @@ Now let's ensure that the qualification rule performs as expected.
 Create a quote for an Account where Billing State = CA. Confirm that PEST-1X is not available in the catalog.
 Create a quote for an Account where Billing State is not CA. Confirm that PEST-1X is available in the catalog.
 NOTE If the qualification rule doesn't appear to be working, Sync Pricing Data and try again.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_qual_rules_example.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

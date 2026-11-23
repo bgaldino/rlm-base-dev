@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_revenue.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Large Transactions and Quote Processing
@@ -22,8 +22,14 @@ Edit large quotes and orders more efficiently with a single session context for 
 Generate Documents for Quotes with 15,000 Line Items
 Create PDFs that accurately capture complex product hierarchies in large quotes. CLM Document Generation supports quotes with up to 15,000 line items, 1,000 bundles, and 5 levels of nested grouping.
 Transform Context Data in Large Transactions
-Apply Data Processing Engine (DPE) transforms to context data in large transactions, so you can shape and localize high-volume data before it's merged into documents. Transformation definitions run against Revenue Management transactions, such as quotes and orders with thousands of line items. Previously, DPE-based transforms in the Context Service were available only for standard transactions.
+Apply Data Processing Engine (DPE) transforms to context data in large transactions, so you can shape and localize high-volume data before it's merged into documents. Transformation definitions run against Revenue Cloud transactions, such as quotes and orders with thousands of line items. Previously, DPE-based transforms in the Context Service were available only for standard transactions.
 Apply Configuration Rules Across 15,000 Line Items
 Apply rules and constraints across quotes or orders with up to 15,000 line items. Run configurations accurately and efficiently for all products and bundles in the quote or order. Automate and validate demanding configurations at scale, so your sales reps can build large quotes and orders without reaching scale limits.
+Clone Large Quotes and Orders
+Sales reps no longer run into a line-item ceiling when cloning their biggest quotes and orders. The Clone API processes these large-scale clones asynchronously, returning a context ID and an async operation tracker ID so you can follow progress. When a clone finishes, reps see a completion alert, and any failures show a specific, actionable error message instead of a generic one.
 Price Quotes and Orders with Up to 15,000 Lines
 Price quotes and orders with up to 15,000 lines, an increase from the previous 1,000-line limit. Your teams can process larger deals without splitting them into multiple transactions. Configure separate pricing procedures when large and standard transactions require different pricing capabilities.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_large_txn.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

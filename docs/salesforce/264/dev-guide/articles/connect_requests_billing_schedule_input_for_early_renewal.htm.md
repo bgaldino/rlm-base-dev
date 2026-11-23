@@ -7,156 +7,50 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: connect_requests_context_aware_standalone_billing_schedule_input.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Early Renewal Transaction
 
-Early Renewal ends the current term at an effective date and starts a renewed term to a
-    new end date, creating two billing schedules in one request. The request creates a negative
-    segment for the remaining original term and a positive segment for the renewal term.
+Early Renewal ends the current term at an effective date and starts a renewed term to a new end date, creating two billing schedules in one request. The request creates a negative segment for the remaining original term and a positive segment for the renewal term.
 
 ## Considerations
 
-      
-      
+Keep these important considerations in mind when you specify the details for early renewal transactions.
 
-Keep these important considerations in mind when you specify the details for early renewal
-        transactions.
+- The `BillingActionType__std` value for early renewal transactions must be `Renew`.
+- When you're creating billing schedules for early renewal transactions, your input payload must have details for two transactions.
 
-      
-        
-- The `BillingActionType__std` value for early renewal
-          transactions must be `Renew`.
+  - A transaction to cancel the existing new-sale transaction. The details of this transaction must include a negative quantity to cancel billing for the remaining period. The quantity for this transaction must be the negative equivalent of the total quantity of all the existing billing schedules associated with the same billing schedule group.
+  - Another transaction that specifies the early renewal details, which must have a positive quantity.
+  - The `BillingActionType__std` value for both these transactions must be `Renew`.
+- The start date of the early renewal transaction must be:
 
-        
-- 
-          
-
-When you're creating billing schedules for early renewal transactions, your input
-            payload must have details for two transactions.
-
-          
-            
-  - A transaction to cancel the existing new-sale transaction. The details of this
-              transaction must include a negative quantity to cancel billing for the remaining
-              period. The quantity for this transaction must be the negative equivalent of the total
-              quantity of all the existing billing schedules associated with the same billing
-              schedule group.
-
-            
-  - Another transaction that specifies the early renewal details, which must have a
-              positive quantity.
-
-            
-  - The `BillingActionType__std` value for both these
-              transactions must be `Renew`.
-
-          
-
-        
-
-        
-- 
-          
-
-The start date of the early renewal transaction must be:
-
-          
-            
   - Before the end date of the related transaction.
-
-            
-  - Before the maximum end date of all the existing billing schedules associated with
-              the billing schedule group of the related transaction.
-
-            
-  - The same as the start date of all the existing billing schedules associated with the
-              same billing schedule group or after it.
-
-          
-
-        
-
-        
-- The end date for the early renewal transaction must be after the maximum end date of all
-          the existing transactions associated with the billing schedule group of the related
-          transaction.
-
-        
+  - Before the maximum end date of all the existing billing schedules associated with the billing schedule group of the related transaction.
+  - The same as the start date of all the existing billing schedules associated with the same billing schedule group or after it.
+- The end date for the early renewal transaction must be after the maximum end date of all the existing transactions associated with the billing schedule group of the related transaction.
 - For early renewal transactions, the `TaxTreatmentId__std` value, the `BillingTreatmentId__std` value, and the `LegalEntityId__std` value of the related transaction are considered.
-
-      
-
-    
-
-    
 
 ## Early Renewal Payload Types
 
-      
-      
-
-The Create Standalone Billing Schedules API accepts two early renewal payload types in the
-          `transactionDetails` node. Use the type that matches
-        the level of detail you want to provide in the request.
-
-      
+The Create Standalone Billing Schedules API accepts two early renewal payload types in the `transactionDetails` node. Use the type that matches the level of detail you want to provide in the request.
 
 Simplified early renewal payloads support these scenarios.
 
-      
-        
-- Early renewal by related transaction by using `SimplifiedRenewal` sub-action type with an effective start date before the
-          current term end and a new end date.
+- Early renewal by related transaction by using `SimplifiedRenewal` sub-action type with an effective start date before the current term end and a new end date.
+- Early renewal by billing schedule group by using `SimplifiedRenewal` sub-action type with the same date rules at the group level
+- Early as-is renewal by using `AsIsRenewal` sub-action type when each underlying billing schedule should renew at its own quantity and net unit price from an effective date before the group end.
 
-        
-- Early renewal by billing schedule group by using `SimplifiedRenewal` sub-action type with the same date rules at the group
-          level
+For renewal that begins after the prior term or billing schedule group ends, see [Renewal Transaction](./connect_requests_billing_schedule_input_for_renewal.htm.md "Create a renewal billing schedule for termed subscriptions that continues without a gap, starting the day after the current billing schedule group ends and running for the same term length.").
 
-        
-- Early as-is renewal by using `AsIsRenewal` sub-action
-          type when each underlying billing schedule should renew at its own quantity and net unit
-          price from an effective date before the group end.
+Detailed early renewal payloads use separate cancel and renewal rows when you supply full transaction and financial fields yourself.
 
-      
+**Simplified Early Renewal Payload**
 
-      
+Set `BillingActionType__std` to `Renew`. Set `BillingSubActionType__std` to `SimplifiedRenewal` for a blended early renewal, or to `AsIsRenewal` for an early as-is renewal. Include `TransactionId__std`, `StartDate__std` (before the related transaction or group end), and `EndDate__std` for the new term. Identify the source with either `RelatedTransactionId__std` (one billing schedule) or `BillingScheduleGroupId__std` (a billing schedule group). The API can derive quantity and pricing when you omit those fields.
 
-For renewal that begins after the prior term or billing schedule group ends, see [Renewal Transaction](./connect_requests_billing_schedule_input_for_renewal.htm.md).
-
-      
-
-Detailed early renewal payloads use separate cancel and renewal rows when you supply full
-        transaction and financial fields yourself.
-
-      
-        
-          
-
-**Simplified early renewal payload**
-
-          
-: 
-            
-
-Set `BillingActionType__std` to `Renew`. Set `BillingSubActionType__std` to `SimplifiedRenewal` for a blended early renewal, or to `AsIsRenewal` for an early as-is renewal. Include `TransactionId__std`, `StartDate__std` (before the related transaction or group end), and `EndDate__std` for the new term. Identify the source with
-              either `RelatedTransactionId__std` (one billing
-              schedule) or `BillingScheduleGroupId__std` (a
-              billing schedule group). The API can derive quantity and pricing when you omit those
-              fields.
-
-            
-              
-                
-
-**Early renewal by related transaction (SimplifiedRenewal)**
-
-                
-: 
-                  
+**Early Renewal by Related Transaction (SimplifiedRenewal)**
 
 ```
 {
@@ -173,12 +67,7 @@ Set `BillingActionType__std` to `Renew`. Set `BillingSubActionType__std` to `Sim
 }
 ```
 
-                  
-
-This sample shows the request payload for the same simplified early renewal by
-                    using related transaction ID.
-
-                  
+This sample shows the request payload for the same simplified early renewal by using related transaction ID.
 
 ```
 {
@@ -192,17 +81,7 @@ This sample shows the request payload for the same simplified early renewal by
 }
 ```
 
-                
-
-              
-              
-                
-
-**Early renewal by billing schedule group (SimplifiedRenewal)**
-
-                
-: 
-                  
+**Early Renewal by Billing Schedule Group (SimplifiedRenewal)**
 
 ```
 {
@@ -221,12 +100,7 @@ This sample shows the request payload for the same simplified early renewal by
 }
 ```
 
-                  
-
-This sample shows the request payload for the same simplified early renewal by
-                    using billing schedule group.
-
-                  
+This sample shows the request payload for the same simplified early renewal by using billing schedule group.
 
 ```
 {
@@ -240,23 +114,9 @@ This sample shows the request payload for the same simplified early renewal by
 }
 ```
 
-                
+**Early As-is Renewal (AsIsRenewal)**
 
-              
-              
-                
-
-**Early as-is renewal (AsIsRenewal)**
-
-                
-: 
-                  
-
-Use this pattern when the billing schedule group has multiple billing schedules
-                    with different quantities or net unit prices and the renewal effective date is
-                    before the group end.
-
-                  
+Use this pattern when the billing schedule group has multiple billing schedules with different quantities or net unit prices and the renewal effective date is before the group end.
 
 ```
 {
@@ -273,11 +133,7 @@ Use this pattern when the billing schedule group has multiple billing schedules
 }
 ```
 
-                  
-
 This sample shows the request payload for the same early as-is renewal.
-
-                  
 
 ```
 {
@@ -291,34 +147,11 @@ This sample shows the request payload for the same early as-is renewal.
 }
 ```
 
-                
+**Detailed Early Renewal Payload**
 
-              
-            
-
-          
-
-        
-        
-          
-
-**Detailed early renewal payload**
-
-          
-: 
-            
-
-Send two transactions with `BillingActionType__std` set to `Renew`
-              for each row. The first transaction ends billing for the remainder of the current term
-              with a negative quantity. The second transaction starts the new term with a positive
-              quantity. Include identifiers, related transaction, dates, unit price, and total price
-              for each row.
-
-            
+Send two transactions with `BillingActionType__std` set to `Renew` for each row. The first transaction ends billing for the remainder of the current term with a negative quantity. The second transaction starts the new term with a positive quantity. Include identifiers, related transaction, dates, unit price, and total price for each row.
 
 This sample includes the transaction data for an early renewal.
-
-            
 
 ```
 {
@@ -349,12 +182,7 @@ This sample includes the transaction data for an early renewal.
 }
 ```
 
-            
-
-This sample shows the request payload to create a billing schedule for an early
-              renewal.
-
-            
+This sample shows the request payload to create a billing schedule for an early renewal.
 
 ```
 {
@@ -368,189 +196,16 @@ This sample shows the request payload to create a billing schedule for an early
 }
 ```
 
-          
+When you renew a new-sale transaction before its end date, those transactions are called early renewal transactions. For example, a new-sale transaction starts on 01/01/2025 and ends on 12/31/2025, and you renew it to start on 12/01/2025 and end on 12/31/2026.
 
-        
-      
+When a billing schedule is created for an early renewal transaction, it results in these updates.
 
-    
-
-    
-      
-
-When you renew a new-sale transaction before its end date, those transactions are called
-        early renewal transactions. For example, a new-sale transaction starts on 01/01/2025 and
-        ends on 12/31/2025, and you renew it to start on 12/01/2025 and end on 12/31/2026.
-
-      
-
-When a billing schedule is created for an early renewal transaction, it results in these
-        updates.
-
-      
-        
 - The cancellation date on the original billing schedule is populated.
+- A billing schedule with a negative quantity is created and can be used for a refund.
+- A billing schedule with a positive quantity is created for the early renewal transaction.
 
-        
-- A billing schedule with a negative quantity is created and can be used for a
-          refund.
+When you're creating a billing schedule for an early renewal transaction, make sure that you provide the mandatory values in the `transactionDetails` property value.
 
-        
-- A billing schedule with a positive quantity is created for the early renewal
-          transaction.
-
-      
-
-      
-
-When you're creating a billing schedule for an early renewal transaction, make sure that
-        you provide the mandatory values in the `transactionDetails` property value.
-
-      
-
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Context Tag in the Transaction Node of the StandaloneBillingContext Context Definition | Description | Mapped Field | Required or Optional |
 | --- | --- | --- | --- |
 | `TransactionId__std` | The unique identifier reference to apply to the renewal billing schedule. The Reference and ReferenceItem field on a billing schedule has this value appended with a unique ID generated string. | If the transaction is an OrderItem, OrderItemAdjustmentLineItem, OrderItemDetail, QuoteLineDetail, or QuoteLineItem record, the ReferenceEntityItemId field on the BillingScheduleobject is populated. For other sObject records or external records, the ReferenceItem field on the BillingSchedule object is populated. | Required |
@@ -564,3 +219,7 @@ When you're creating a billing schedule for an early renewal transaction, make s
 | `BillingSubActionType__std` | The sub-action that you want to perform for the transaction. Specify `AsIsRenewal` as the BillingActionType to specify minimal details in the payload for an as-is renewal. Specify `SimplifiedRenewal` as the BillingActionType to specify minimal details in the payload for a renewal or an early renewal. Available in API version 67.0 and later. | SubCategory field on the BillingSchedule object | Optional |
 | `UnitPrice__std` | The unit price of the transaction. | UnitPrice field on the BillingSchedule object | Either the UnitPrice or the NetUnitPrice value is required |
 | `TotalPrice__std` | The total price of the transaction. | TotalAmount field on the BillingSchedule object | Required |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_billing_schedule_input_for_early_renewal.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

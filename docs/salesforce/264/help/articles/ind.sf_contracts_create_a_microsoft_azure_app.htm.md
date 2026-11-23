@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Configure a Microsoft Azure App for Salesforce Contracts
@@ -49,3 +49,7 @@ Enter or select an expiration timeframe.
 Click Add.
 Immediately copy and save the Client Secret Value. Use the copied client secret value while configuring Auth. Provider.
 Automatic encryption prevents retrieval of the client secret value. If you don't to save the client secret value immediately, you have to create a new client secret value.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_create_a_microsoft_azure_app.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

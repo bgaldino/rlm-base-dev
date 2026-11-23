@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: agents
 parent_article: ind.billing_agentforce_billing_agent.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Subagent: Billing Collections Management
@@ -15,7 +15,7 @@ Use Agentforce to help teams quickly assess and act on customer account health. 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management with the Revenue Cloud Advanced license and the Revenue Cloud Billing license with the Agentforce Employee Agent add-on.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Advanced license and the Revenue Cloud Billing license with the Agentforce Employee Agent add-on.
 Subagent Details
 API Name	BillingCollections
 Included actions	
@@ -41,3 +41,7 @@ USER SAMPLE INPUT	ACTION ENGAGED	AGENT RESPONSE
 "Based on the high-risk score for this account, what is the recommended engagement strategy?"	Get Dunning Strategy	The agent evaluates the risk profile and suggests the most effective dunning orchestration to expedite payment recovery.
 SEE ALSO
 Manage Collections for Accounts in Billing
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rev_agent_topic_billing_collections_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

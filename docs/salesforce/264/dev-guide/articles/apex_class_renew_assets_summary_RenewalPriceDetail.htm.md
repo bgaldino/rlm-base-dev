@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: apex_namespace_renew_assets_summary.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # RenewalPriceDetail Class
 
@@ -18,43 +16,23 @@ Contains net unit price and quantity details for an asset to set as sales price 
 
 ## Namespace
 
-[renew_assets_summary](./apex_namespace_renew_assets_summary.htm.md)
+[renew\_assets\_summary](./apex_namespace_renew_assets_summary.htm.md "Retrieve details about renewable assets to create renewal opportunities.")
 
-- 
-**[RenewalPriceDetail Constructors](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_renew_assets_summary_RenewalPriceDetail_constructors)**  
-
-Learn more about the constructors available with the RenewalPriceDetail     class.
-
-- 
-**[RenewalPriceDetail Properties](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_renew_assets_summary_RenewalPriceDetail_properties)**  
-
-Learn more about the properties available with the RenewalPriceDetail     class.
-
-  
+- **[RenewalPriceDetail Constructors](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_renew_assets_summary_RenewalPriceDetail_constructors)**  
+  Learn more about the constructors available with the RenewalPriceDetail class.
+- **[RenewalPriceDetail Properties](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_renew_assets_summary_RenewalPriceDetail_properties)**  
+  Learn more about the properties available with the RenewalPriceDetail class.
 
 ## RenewalPriceDetail Constructors
 
-  
-  
-  
 Learn more about the constructors available with the RenewalPriceDetail
-    class.
-
-    
-      
+class.
 
 The `RenewalPriceDetail` class includes these
-        constructors.
+constructors.
 
-    
-
-    
-  
-
-- 
-**[RenewalPriceDetail(netUnitPrice, quantity)](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_renew_assets_summary_RenewalPriceDetail_ctor)**  
-
-Initializes the RenewalPriceDetail class that contains net unit price and quantity information.
+- **[RenewalPriceDetail(netUnitPrice, quantity)](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_renew_assets_summary_RenewalPriceDetail_ctor)**  
+  Initializes the RenewalPriceDetail class that contains net unit price and quantity information.
 
 ### RenewalPriceDetail(netUnitPrice, quantity)
 
@@ -72,50 +50,28 @@ renew_assets_summary.RenewalPriceDetail, newinstance, [Decimal, Decimal], renew_
 
 **netUnitPrice**
 
-: Type: Decimal
-
-: 
+Type: Decimal
 
 The net unit price of the asset.
 
 **quantity**
 
-: Type: Decimal
-
-: 
+Type: Decimal
 
 The quantity of the asset.
 
-  
-
 ## RenewalPriceDetail Properties
 
-  
-  
-  
 Learn more about the properties available with the RenewalPriceDetail
-    class.
-
-    
-      
+class.
 
 The `RenewalPriceDetail` class includes these
-        properties.
+properties.
 
-    
-
-    
-  
-
-- 
-**[netUnitPrice](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_renew_assets_summary_RenewalPriceDetail_netUnitPrice)**  
-
-Get or set the net unit price of the asset.
-
-- 
-**[quantity](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_renew_assets_summary_RenewalPriceDetail_quantity)**  
-
-Get or set the quantity of the asset.
+- **[netUnitPrice](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_renew_assets_summary_RenewalPriceDetail_netUnitPrice)**  
+  Get or set the net unit price of the asset.
+- **[quantity](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md#apex_renew_assets_summary_RenewalPriceDetail_quantity)**  
+  Get or set the quantity of the asset.
 
 ### netUnitPrice
 
@@ -148,3 +104,7 @@ renew_assets_summary.RenewalPriceDetail, quantity
 #### Property Value
 
 Type: Decimal
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_renew_assets_summary_RenewalPriceDetail.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

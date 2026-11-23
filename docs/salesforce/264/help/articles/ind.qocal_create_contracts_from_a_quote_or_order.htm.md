@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_contract_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Add a New Contract Button
@@ -15,11 +15,11 @@ Help your sales reps create contracts directly from finalized records by using t
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To customize page layouts:	Customize Application
 IMPORTANT Review your order status before attempting to create a contract. You link contracts only to draft orders. You can’t create a contract for an activated order.
-NOTE The New Contract button and the Create Contract button serve different purposes. The New Contract button creates a contract that inherits details from the source record. The Create Contract button is the standard Salesforce action that creates a basic contract without inheriting transaction details. To create contracts with Revenue Management data, use the New Contract button.
+NOTE The New Contract button and the Create Contract button serve different purposes. The New Contract button creates a contract that inherits details from the source record. The Create Contract button is the standard Salesforce action that creates a basic contract without inheriting transaction details. To create contracts with Revenue Cloud data, use the New Contract button.
 In Setup, select Object Manager.
 Search for and select Quote or Order.
 Go to Page Layouts.
@@ -27,6 +27,10 @@ Either create a page layout or select the page layout to modify.
 In the Quote Layout or Order Layout section, select Buttons.
 Select and drag New Contract from the palette to the Salesforce Mobile and Lightning Experience Actions section.
 Save your changes.
-Contracts created by using the New Contract button have the Revenue Management application usage tag assigned by default.
+Contracts created by using the New Contract button have the Revenue Cloud application usage tag assigned by default.
 SEE ALSO
 Customize Standard and Custom Buttons on Page Layouts
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_create_contracts_from_a_quote_or_order.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

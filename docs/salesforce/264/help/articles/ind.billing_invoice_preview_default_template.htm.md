@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_previews.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Default Document Template to Generate Invoice Preview PDF Documents
@@ -25,4 +25,8 @@ The Billing Address and Shipping Address fields of the Account object.
 The Product, Quantity field, Unit Price, Tax Amount, and Line Amount fields of the Invoice Line object.
 The start and end dates of the invoice line, which determine the billing period.
 SEE ALSO
-Turn On Invoice PDF Document Generation and Account Statement
+Turn On PDF Document Generation for Billing
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_preview_default_template.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

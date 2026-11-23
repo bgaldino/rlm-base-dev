@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_general_ledger_account_assignment_rules_and_criteria.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Define Criteria for Transaction Types
@@ -38,3 +38,7 @@ You can define up to 10 conditions and select both custom and standard fields of
 Save your work.
 
 For each filter criteria, a billing batch filter criteria record is created. When billing transactions that meet the general ledger account assignment rule and filter criteria are created, then dual transaction journals are created.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_general_ledger_account_assignment_rules_criteria.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

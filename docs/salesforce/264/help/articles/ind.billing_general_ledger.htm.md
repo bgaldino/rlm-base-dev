@@ -1,15 +1,15 @@
 ---
 article_id: ind.billing_general_ledger.htm
-title: Manage Chart of Accounts and Transaction Journals in Revenue Management
+title: Manage Chart of Accounts and Transaction Journals in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.billing_general_ledger.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_financial_accounting.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# Manage Chart of Accounts and Transaction Journals in Revenue Management
+# Manage Chart of Accounts and Transaction Journals in Revenue Cloud
 
 Set up a chart of accounts for your legal entities by creating general ledger accounts. Assign appropriate general ledger accounts to transaction journals by setting up general ledger account assignment rules. Automatically generate dual transaction journals based on the configuration for the billing transaction type and criteria in the general ledger account assignment rule.
 
@@ -24,7 +24,13 @@ General Ledger Account Assignment Rules and Related Records
 Define rules to assign accurate general ledger accounts to transaction journals and establish criteria for which these rules must apply to. Define multiple journal entry rules for a billing transaction with a specified criteria from a single user interface.
 Automatic Creation of Dual Transaction Journals
 Automatically generate dual transaction journals, that represent a credit entry and a debit entry, based on the configuration for the transaction type in the General Ledger Account Assignment Rule record. Integrate these transaction journals with any accounting system of your choice to prepare your financial statements such as balance sheets, and profit and loss statements.
+Reconcile Failed Transaction Journals
+When Billing fails to create transaction journals, generate them from the details saved in Revenue Transaction Error Log (RTEL) records by running a custom Apex class.
 Example: Chart of Accounts and Dual Journal Entries
 Explore an example to understand how chart of accounts are set up and how dual transaction journals are created based on the configured general ledger accounts and account assignment rules.
 Create General Ledger Accounting Period Summary Manually
 General Ledger Accounting Period Summary records are automatically created when the Create General Ledger Accounting Period Summary Records for Multiple Currencies or the Create General Ledger Accounting Period Summary Records data processing engine runs during legal entity accounting period closure. You can create them manually as well. General ledger accounting period summaries are created to capture the opening balance and closing balance for general ledger accounts of a legal entity accounting period.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_general_ledger.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

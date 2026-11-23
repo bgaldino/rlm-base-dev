@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_setup_additional_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Self-Service Billing Portal
@@ -19,8 +19,12 @@ Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Clo
 Raise Billing Inquiries and Invoice-Related Disputes
 The self-service Billing portal serves as the customer-facing gateway that transforms manual, phone-based dispute processes into a streamlined, transparent self-service experience. The Help Center tab provides a catalog of available billing service processes. The Cases tab shows all cases and their statuses for the customer account.
 Pay Invoices with the Self-Service Billing Portal
-When your customers log in to the self-service billing portal, they can view invoices, download invoice PDF documents, and pay outstanding balances for the invoices. The Home tab shows the list of invoices that aren't settled, partially settled, and settled.
+Set up the Self-Service Billing Portal so that your customers can view invoices, download invoice PDF documents, pay outstanding balances, and manage their saved payment methods. If your site uses Aura templates, add the Saved Payment Methods for Aura component to the site.
 Supported Payment Methods for the Self-Service Billing Portal
 Give your customers more flexibility to pay invoices by configuring additional payment methods, including digital wallets, bank debit methods, and buy now, pay later options, in the Self-Service Billing Portal.
 Add Billing Components to LWR Experience Cloud Sites
-Add billing self-service capabilities to any Experience Cloud site that uses Lightning Web Runtime (LWR) templates, including a site that you build yourself. Drag the Posted Invoices, Invoice Line Viewer, Self-Service Payment Sheet, Self-Service Payment Confirmation, and Manage Saved Payment Methods components onto your pages so that customers can view invoices, pay outstanding balances, and manage their saved payment methods from your own branded site.
+Add billing self-service capabilities to any Experience Cloud site that uses Lightning Web Runtime (LWR) templates, including a site that you build yourself. Drag the Posted Invoices, Invoice Line Viewer, Invoice Payment Options, Self-Service Payment Confirmation, and Saved Payment Methods components onto your pages so that customers can view invoices, pay outstanding balances, and manage their saved payment methods from your own branded site.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_self_service_portal.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

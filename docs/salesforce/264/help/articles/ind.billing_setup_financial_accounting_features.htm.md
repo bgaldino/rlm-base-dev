@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_setup_additional_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Financial Accounting Features
@@ -15,15 +15,15 @@ Make sure that every billing transaction is compliant with double-entry accounti
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions with Revenue Management
+Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
 
 
 The Store Transaction Amounts in Corporate Currency and Legal Entity Accounting Periods features are available:
 
-For the Invoice and Credit Memo records, and their related records with the Revenue Management Advanced license or the Revenue Management Billing license.
-For the Payment, Refund, and Debit Memos records, and their related records only with the Revenue Management Billing license. Contact your Salesforce account executive for more information.
+For the Invoice and Credit Memo records, and their related records with the Revenue Cloud Advanced license or the Revenue Cloud Billing license.
+For the Payment, Refund, and Debit Memos records, and their related records only with the Revenue Cloud Billing license. Contact your Salesforce account executive for more information.
 
-The Create Transaction Journals for Transactions feature and Create Transaction Journals for Foreign Exchange Gains or Losses feature are available with the Revenue Management Billing license. Contact your Salesforce account executive for more information.
+The Create Transaction Journals for Transactions feature and Create Transaction Journals for Foreign Exchange Gains or Losses feature are available with the Revenue Cloud Billing license. Contact your Salesforce account executive for more information.
 
 USER PERMISSIONS
 NEEDED
@@ -71,3 +71,7 @@ This feature is applicable only when multiple currencies is enabled for your Sal
 See Close Legal Entity Accounting Periods.
 
 After you set up financial accounting features, your Accounts Receivables admins can manage financial accounting.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_setup_financial_accounting_features.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

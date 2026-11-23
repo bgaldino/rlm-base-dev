@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_salesforce_contracts_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Salesforce Contracts End To End Flow
@@ -60,3 +60,7 @@ Activation: From the contract actions menu, select Activate. The contract status
 Compliance: After a contract is activated, track contractual commitments by creating obligations. Assign each obligation to an owner and monitor its compliance status — Compliant, Non-Compliant, or At Risk. Automated alerts notify owners when deadlines approach. See Obligation Management.
 
 Use Salesforce Contracts Analytics dashboards to monitor contract status, track renewal timelines, and identify compliance risks across your contract portfolio. See Salesforce Contracts Analytics.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_end_to_end_flow.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

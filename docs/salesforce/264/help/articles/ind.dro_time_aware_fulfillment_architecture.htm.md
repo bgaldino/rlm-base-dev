@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_time_aware_fulfillment.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # How Time-Awareness Works
@@ -18,3 +18,7 @@ Available in: Enterprise, Unlimited, and Developer Editions
 When of a fulfillment asset's quantity or attributes change, DRO creates an FASP record to represent the new state. FASP records change the validity of an existing fulfillment asset or overwrite the fulfillment asset configuration for a specific time period.
 When a state period is updated, DRO marks the previous FASP records as superseded. During order decomposition, it filters out superseded records and queries only the fulfillment asset's current state.
 A nightly background job identifies assets with configuration end dates that passed and updates their current quantity and attributes to match the next effective state period.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_time_aware_fulfillment_architecture.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

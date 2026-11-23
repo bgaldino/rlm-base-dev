@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_salesforce_contracts_release_notes.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Salesforce Contracts Winter '24 Release Notes
@@ -27,3 +27,7 @@ Enable Salesforce Contracts Connector for Word (Microsoft 365) Setting
 To continue to use the Microsoft 365 Word features after you upgrade to Winter ‘24, you must enable the Salesforce Contracts Connector for Word (Microsoft 365) setting.
 Change in Processing Time to Check In and Save Documents in Microsoft 365 Editor
 Now, it takes up to one minute to check in a contract document version and save a document template in the Microsoft 365 editor. The processing time depends on the document’s size and contents. Wait until the processing is complete because closing the document ends the check in and saving process.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_salesforce_contracts_winter_24_release_notes.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

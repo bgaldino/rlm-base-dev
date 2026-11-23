@@ -7,18 +7,14 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_service_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
 
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
-
-# Context Nodes Input 
+# Context Nodes Input
 
 Input representation of context node.
 
-**JSON example**
-
-: 
+## JSON Example
 
 ```
 {
@@ -55,16 +51,18 @@ Input representation of context node.
 }
 ```
 
-**Properties**
-
-: 
+## Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `attributes` | [Context Attributes Input](./connect_requests_context_attributes_input.htm.md)[] | List of context attributes. | Optional | 59.0 |
-| `childNodes` | [Context Nodes Input](#)[] | List of child context nodes. | Optional | 59.0 |
+| `attributes` | [Context Attributes Input](./connect_requests_context_attributes_input.htm.md "Input representation of context attribute.") [] | List of context attributes. | Optional | 59.0 |
+| `childNodes` | [Context Nodes Input](# "Input representation of context node.")[] | List of child context nodes. | Optional | 59.0 |
 | `contextNodeId` | String | ID of the context node. | Required | 59.0 |
 | `isTransposable` | Boolean | Specifies if the context node is used for the transposable feature (`true`) or not (`false`). | Optional | 59.0 |
 | `name` | String | Name of the context node. | Required | 59.0 |
 | `parentNodeId` | String | ID of (parent) context node. | Optional | 59.0 |
-| `tags` | [Context Tag Input](./connect_requests_context_tag_input.htm.md)[] | List of context tags. | Optional | 59.0 |
+| `tags` | [Context Tag Input](./connect_requests_context_tag_input.htm.md "Input representation of the context tag.")[] | List of context tags. | Optional | 59.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_requests_context_nodes_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

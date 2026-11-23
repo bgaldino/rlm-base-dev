@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.rev_agent_overview.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Agentforce for Revenue Quote Management
@@ -20,6 +20,10 @@ To use additional features relevant to quotes, turn on the required features and
 Subagent: Product Selection
 Use Agentforce to power product discovery and filtering with AI-driven assistance. Sales users can use the Product Selection topic to search the product catalog, ask clarifying questions, and refine results based on customer criteria. The topic helps users explore available products, review key details, and receive recommendations that support accurate and complete quote building. You can customize the Product Selection topic to match your catalog, sales workflows, and conversational experience.
 Subagent: Quote Management
-Create and modify quotes and their quote line items in Revenue Management.
+Create and modify quotes and their quote line items in Revenue Cloud.
 Subagent: Consumption Management
 Get consumption details of accounts with resource overages and generate quotes for the resources with overages.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_agentforce_quote_mgmt.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

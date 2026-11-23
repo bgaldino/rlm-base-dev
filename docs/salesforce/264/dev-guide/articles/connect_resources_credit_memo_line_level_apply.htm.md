@@ -7,146 +7,48 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Apply Credit Memo Line (POST)
 
-Adjust or correct already issued invoices by applying an existing
-      credit memo line to an invoice line.
+Adjust or correct already issued invoices by applying an existing credit memo line to an invoice line.
 
-    
-      
-        
-          
+## Special Access Rules
 
-**Special Access Rules**
+You need the Credit Memo Operations User permission set to use this API.
 
-          
-: You need the Credit Memo Operations User permission set to use this API.
-
-        
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /commerce/invoicing/credit-memo-lines/creditMemoLineId/actions/apply
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/commerce/invoicing/credit-memo-lines/9yxSG0000000LUHYA2/actions/apply
 ```
 
-          
+## Available Version
 
-        
-        
-          
+62.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 62.0
+POST
 
-        
-        
-          
+## Path Parameter for POST
 
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Path parameter for POST**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `creditMemo​LineId` | String | ID of the credit memo line record. | Required | 62.0 |
 
-          
+## Request Body for POST
 
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-
-**JSON example**
-
-: 
+**JSON Example**
 
 ```
-
 {
  "applyCreditDetails": [
  {
@@ -167,20 +69,14 @@ https://yourInstance.salesforce.com/services/data/v68.0/commerce/invoicing/credi
 
 **Properties**
 
-: 
-
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `applyCredit​Details` | [Credit Memo Line Application Input](./connect_requests_credit_memo_line_application_input.htm.md)[] | List of one or more applications to apply the credit memo line for. Each application represents an invoice line that’s credited by using the balance of the specified credit memo line. | Required | 62.0 |
+| `applyCredit​Details` | [Credit Memo Line Application Input](./connect_requests_credit_memo_line_application_input.htm.md "Input representation of the request to specify one or more applications to apply a credit memo line for, with each application representing an invoice line.")[] | List of one or more applications to apply the credit memo line for. Each application represents an invoice line that’s credited by using the balance of the specified credit memo line. | Required | 62.0 |
 
-          
+## Response Body for POST
 
-        
-        
-          
+[Credit Memo Line Applied](./connect_responses_credit_memo_line_applied.htm.md "Output representation of the list of applied credit memo line results.")
 
-**Response body for POST**
+---
 
-          
-: [Credit Memo Line
-              Applied](./connect_responses_credit_memo_line_applied.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_credit_memo_line_level_apply.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

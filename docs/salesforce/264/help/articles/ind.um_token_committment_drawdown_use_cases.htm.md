@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_buckets_and_drawdowns.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Token Commitment Drawdown Use Cases
@@ -29,3 +29,7 @@ A customer buys a token commitment product and binds it to an account. The accou
 If the commitment is active and unexhausted, the consumption process draws directly from the committed tokens. However, because multiple assets are associated with the same product, they’re sorted in ascending order by their Asset Billing End Date.
 If the commitment is active but exhausted, the consumption process applies the rate available for the anchor product or the commit rate, as specified in the commitment policy.
 If there’s a conflict between end dates, the asset with the highest resource rate draws down first to minimize the overall cost of overages.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_token_committment_drawdown_use_cases.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

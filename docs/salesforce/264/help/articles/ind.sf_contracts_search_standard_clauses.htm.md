@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_authoring.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Search for Standard Clauses in Clause Library
@@ -25,3 +25,7 @@ Type in keywords in the search box and press Enter to initiate the search. The s
 Select either tab to view the result details with three fields: name, is alternate, and preview. On the Document Clauses tab, hover over the eye icon next to the clause name to obtain a quick preview of the clause content.	
 Expand the document clause set to view both the main and alternate clauses. To view the content of a specific clause, click the eye icon next to the clause name.	
 Use Clause Name, selected by default, enables users to see the clause name in both the document and the panel. If deselected, the clause name is visible only in the panel. This simplifies the process of identifying and managing the clauses within a document.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_search_standard_clauses.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

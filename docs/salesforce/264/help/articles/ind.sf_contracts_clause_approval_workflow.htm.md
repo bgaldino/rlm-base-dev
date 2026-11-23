@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_document_clause_library.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Clause Approval Workflow
@@ -48,3 +48,7 @@ Define a Clause Approval Process Name
 Create a clause approval process and define the final approval, final rejection, and recall actions. The clause approval process setup ensures that the clause status reflects the defined action when a clause is approved, rejected, or recalled.
 Set Up Approval Process Detail Page For Clause
 Define at least one approval step and configure the field update settings for approval, rejection, and recall actions to activate the clause approval process.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_clause_approval_workflow.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

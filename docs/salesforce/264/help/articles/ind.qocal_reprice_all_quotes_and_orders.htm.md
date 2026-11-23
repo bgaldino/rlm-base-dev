@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_quote_and_order_features_in_revenue_cloud.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Reprice All for Quotes and Orders
@@ -15,7 +15,7 @@ Refresh and validate prices across an entire transaction by recalculating all qu
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 
 The Reprice All action performs a full repricing of every transaction line, even when no changes exist. This action always runs a full recalculation, regardless of whether you turn on Delta Pricing.
 
@@ -40,3 +40,7 @@ Avoid manual deletion of usage resource grants for quote line items.
 Acknowledge that manual deletion breaks resource links, which causes record commitment failures and locked resources.
 Restore accidentally deleted grants by clicking Reprice All to rebuild the records.
 Contact your Salesforce admin or Customer Support if repricing fails to restore data consistency.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_reprice_all_quotes_and_orders.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

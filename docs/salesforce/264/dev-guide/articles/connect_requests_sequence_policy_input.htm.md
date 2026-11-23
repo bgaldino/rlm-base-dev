@@ -7,20 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Sequence Policy Input
 
-Input representation of the configured rules and properties to generate unique,
-    sequential numbers for objects.
+Input representation of the configured rules and properties to generate unique, sequential numbers for objects.
 
-**JSON example**
+## JSON Example
 
-: This example shows a sample request to create a sequence
-            policy.
+This example shows a sample request to create a sequence policy.
 
 ```
 {
@@ -62,262 +58,8 @@ Input representation of the configured rules and properties to generate unique,
 }
 ```
 
-**Properties**
+## Properties
 
-: 
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `dateStamp​Format` | String | Format of the stamp date that's appended to the sequence number. You can't edit this property by using the Update Sequence Policy API. | Required | 65.0 |
@@ -330,10 +72,14 @@ Input representation of the configured rules and properties to generate unique,
 | `maximumSequence​Number` | Integer | Maximum number the sequence number can reach. | Optional | 65.0 |
 | `minimumSequence​NumberWidth` | Integer | Minimum number of digits a sequence number must have. You can't edit this property by using the Update Sequence Policy API. | Optional | 65.0 |
 | `name` | String | Name of the sequence policy. | Required | 65.0 |
-| `selection​Condition` | [Selection Condition Input](./connect_requests_selection_condition_input.htm.md)[] | Criteria to determine which sequence policy is applied to a record. This property includes conditions based on any standard or custom fields of the record. | Optional | 65.0 |
+| `selection​Condition` | [Selection Condition Input](./connect_requests_selection_condition_input.htm.md "Input representation of the criteria that's used to determine which sequencing policy is applied to a record. The criteria stores the conditions based on any standard or custom fields of the record.")[] | Criteria to determine which sequence policy is applied to a record. This property includes conditions based on any standard or custom fields of the record. | Optional | 65.0 |
 | `selection​Logic` | String | Logic that determines the objects that the sequence policy applies to. | Optional | 65.0 |
-| `sequence​Mode` | String | Specifies how sequence numbers are generated. Valid values are: `Basic`—Assigns sequential numbers without gap reconciliation. `Gapless`—Assigns sequential numbers with gap reconciliation. The usage of this value ensures that the posted invoices or credit memos don't have any numbering gaps for audits and compliance. You can't edit this property by using the Update Sequence Policy API. | Required | 65.0 |
+| `sequence​Mode` | String | Specifies how sequence numbers are generated. Valid values are `Basic`—Assigns sequential numbers without gap reconciliation; or `Gapless`—Assigns sequential numbers with gap reconciliation. The usage of this value ensures that the posted invoices or credit memos don't have any numbering gaps for audits and compliance. You can't edit this property by using the Update Sequence Policy API. | Required | 65.0 |
 | `sequence​Pattern` | String | Pattern structure that’s followed for the sequence. | Required | 65.0 |
 | `sequenceStart​Number` | Integer | Starting value of the sequence number, which must be greater than or equal to `0`. The default value is `1`. You can't edit this property by using the Update Sequence Policy API. | Required | 65.0 |
-| `target​Object` | String | Object that the policy is applied to. Valid values are: `Invoice` `CreditMemo`—Available in API version 66.0 and later. You can't edit this property by using the Update Sequence Policy API. | Required | 65.0 |
+| `target​Object` | String | Object that the policy is applied to. Valid values are `Invoice`; or `CreditMemo`—Available in API version 66.0 and later. You can't edit this property by using the Update Sequence Policy API. | Required | 65.0 |
 | `timeZone` | String | Time zone that’s applicable for the sequence policy. | Optional | 65.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_sequence_policy_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

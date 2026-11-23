@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_design_time_orchestration.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Configure Steps for Future Execution
@@ -43,3 +43,7 @@ Configure Context Definition Fields for Future Dated Fulfillment Steps
 You can configure the execution of steps in your orchestration plan based on custom dates that correspond to date or datetime tags in context definition.
 Use Custom Dates To Schedule Fulfillment Steps
 Configure the execution of steps in your orchestration plan based on custom dates that correspond to date or datetime tags in context definition. For example, you can map a custom context tag to a custom field to activate a service on a date requested by the customer.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_configure_steps_for_future_execution.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

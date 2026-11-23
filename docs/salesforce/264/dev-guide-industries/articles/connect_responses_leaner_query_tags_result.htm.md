@@ -7,24 +7,15 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_service_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Leaner Query Tags Result
 
 Output representation of the leaner query tags result. The result includes compact tag
-    data mapped to tag names and a shared list of record IDs.
+data mapped to tag names and a shared list of record IDs.
 
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -68,105 +59,16 @@ Output representation of the leaner query tags result. The result includes compa
 }
 ```
 
-          
+## Properties
 
-        
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `contextId` | String | ID of context to be queried. | Small, 66.0 | 66.0 |
 | `errorMessage` | String | Error message when `isSuccess` is false. | Small, 66.0 | 66.0 |
 | `isSuccess` | Boolean | Indicates whether the query was successful (`true`) or not (`true`). | Small, 66.0 | 66.0 |
-| `queryResult​LeanerRepresentation` | [Context Tag Data Leaner](./connect_responses_context_tag_data_leaner.htm.md) | Map of tag name and list of lean tag data. Each entry contains tag values and compact indexes for record path construction. | Small, 66.0 | 66.0 |
+| `queryResult​LeanerRepresentation` | [Context Tag Data Leaner](./connect_responses_context_tag_data_leaner.htm.md "Output representation of the leaner context tag data. It stores only the metadata required to reconstruct tag values and the index references instead of full path strings.") | Map of tag name and list of lean tag data. Each entry contains tag values and compact indexes for record path construction. | Small, 66.0 | 66.0 |
 | `recordIds` | String[] | List of all record IDs present in the context that are included in the tag result. | Small, 66.0 | 66.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_responses_leaner_query_tags_result.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

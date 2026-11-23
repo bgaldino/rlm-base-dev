@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_get_ready_to_build_pricing_procedures.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Decision Tables
@@ -15,11 +15,13 @@ Decision tables are essential as they match your input values with the input row
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 Decision tables provide a structured, efficient, and maintainable way to manage complex pricing logic without needing to hardcode numerous conditional statements. You can centralize and organize these rules into a clear, tabular format using decision tables. The tabular format makes it easy to see all the conditions applied and their corresponding outcomes at a glance. This transparency helps in understanding why a particular price was derived and makes it easier to audit pricing decisions.
 
-NOTE We recommend that you use the Advanced decision table type instead of the Standard type.
+NOTE
+We recommend that you use the Advanced decision table type instead of the Standard type.
+To avoid pricing errors from exceeding the lookup input limit, set Usage Type to Pricing when you create a decision table.
 
 When working with decision tables, you'll map various variables.
 
@@ -29,3 +31,7 @@ Input Variables: These refer to the input provided by the pricing element.
 Output Variables: These refer to the output generated from the pricing element.
 Additional Variables: These are custom output variables reflecting a pricing change. Their values can only be added using the Advanced mode (JSON) during simulation and are visible in the waterfall view.
 NOTE To enable multicurrency with active pricing procedures linked to predefined Salesforce Pricing decision tables, first deactivate the pricing procedure, then enable multicurrency, and finally reactivate the procedure. Similarly, to add the Currency field to a predefined decision table in a multicurrency org, you must deactivate the decision table, add the field, and then activate it.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_create_or_use_predefined_lookup_tables.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

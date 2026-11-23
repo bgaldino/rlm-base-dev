@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_determine_the_best_price_using_a_pricing_procedure.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Example: Calculate the Lowest Price of a Product
@@ -15,7 +15,7 @@ Let’s determine the lowest price of a product using the List Price element.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS NEEDED
 To create pricing procedures:	Salesforce Pricing Design Time
 Create a Procedure Output Resolution Record
@@ -67,3 +67,7 @@ Finally, set your preferences to view pricing information, profile access, and r
 Save your procedure.
 Click Simulate to test your procedure. Enter the input values for your laptop product and click Simulate again.
 The price waterfall shows that the pricing engine has looked through all the available price books in the org and found the best (minimum) price for the Laptop product, confirming that your procedure is working as expected.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_example_calculate_the_lowest_price_of_a_product.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

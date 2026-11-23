@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_dynamic_attributes.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Working with Product Attribute Fields
@@ -52,3 +52,7 @@ Considerations while updating attribute field values
 If you update attribute field values in the attribute definition, review and update the corresponding attribute values on the product classification attributes and product attributes.
 If you update these attribute field values in the product classification attributes, review and update the corresponding attribute values on the product attributes.
 If you update attribute field values in the product attributes, review and update the corresponding attribute value overrides in the context of any bundles the product is a part of.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_attribute_fields.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

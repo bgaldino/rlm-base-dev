@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Preview Invoices
@@ -24,3 +24,7 @@ Generate Invoice Previews with the Invoice Preview API
 To generate preview invoices by using the Invoice Preview API, create and activate a custom procedure plan definition for the object that you want to preview invoices for. The Invoice Preview API uses the procedure plan to generate invoice previews. A custom procedure plan creation isn't required to use the Invoice Preview API for orders, accounts, and billing schedule groups.
 Example: Preview Invoices for an Order
 This example shows how Billing generates preview invoices when an order includes products with different billing frequencies.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_previews.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

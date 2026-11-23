@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_document_clause_library.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Configure Clause Category
@@ -34,3 +34,7 @@ NOTE The Disclosure Category applies only to NetZero Cloud. For more information
 Save your changes.
 Define Sharing Settings for Clause Sets and Clauses
 Configure sharing settings to control user access to document clauses and clause sets at the object, field, and record levels.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_configure_clause_category.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,108 +7,46 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_node_mapping_management.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Node Mapping (POST, PATCH)
 
 Create and update context node mappings.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
-/connect/context-mappings/${contextMappingId}/context-node-mappings
+/connect/context-mappings/contextMappingId/context-node-mappings
 ```
 
-          
-
-        
-        
-          
-
-**Example for POST**
-
-          
-: 
-            
+## Example for POST
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-mappings/${contextMappingId}/context-node-mappings
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-mappings/contextMappingId/context-node-mappings
 ```
 
-          
-
-        
-        
-          
-
-**Example for PATCH**
-
-          
-: 
-            
+## Example for PATCH
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-mappings/${contextMappingId}/context-node-mappings
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-mappings/contextMappingId/context-node-mappings
 ```
 
-          
+## Available Version
 
-        
-        
-          
+59.0
 
-**Available version**
+## Requires Chatter
 
-          
-: 59.0
+No
 
-        
-        
-          
+## HTTP Methods
 
-**Requires Chatter**
+POST, PATCH
 
-          
-: No
+## Request Body for POST
 
-        
-        
-          
-
-**HTTP methods**
-
-          
-: POST, PATCH
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-                
-                    
-
-**JSON example**
-
-                    
-: 
-                        
+### JSON Example
 
 ```
 {
@@ -125,135 +63,22 @@ https://yourInstance.salesforce.com/services/data/v59.0/connect/context-mappings
 }
 ```
 
-                    
+### Properties
 
-                
-                
-                    
-
-**Properties**
-
-                    
-: 
-                        
-
-                                
-                                
-                                
-                                
-                                
-                                
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                
-
-                                
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                
-
-                            
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `attributeMappings` | [Context Attribute Mappings Input](./connect_requests_context_attribute_mappings_input.htm.md)[] | List of context attribute mappings. | Required | 59.0 |
+| `attributeMappings` | [Context Attribute Mappings Input](./connect_requests_context_attribute_mappings_input.htm.md "Input representation of context attribute mapping.")[] | List of context attribute mappings. | Required | 59.0 |
 | `contextNodeId` | String | Reference to context node. | Optional | 59.0 |
 | `contextNodeMappingId` | String | ID of this context node mapping. Required for update. | Required | 59.0 |
 | `sObjectName` | String | SObject name. | Optional | 59.0 |
 
-                    
+## Response Body for POST
 
-                
-            
+[Context Node Mapping List Output](./connect_responses_context_node_mapping_list.htm.md "Output representation of list of context node mappings.")
 
-          
+## Request Body for PATCH
 
-        
-        
-          
-
-**Response body for POST**
-
-          
-: [Context Node Mapping List Output](./connect_responses_context_node_mapping_list.htm.md)
-
-        
-        
-          
-
-**Request body for PATCH**
-
-          
-: 
-            
-              
-                
-
-**JSON example**
-
-                
-: 
-                  
+### JSON Example
 
 ```
 {
@@ -270,18 +95,10 @@ https://yourInstance.salesforce.com/services/data/v59.0/connect/context-mappings
 }
 ```
 
-                
+## Response Body for PATCH
 
-              
-            
+[Context Node Mapping List Output](./connect_responses_context_node_mapping_list.htm.md "Output representation of list of context node mappings.")
 
-          
+---
 
-        
-        
-          
-
-**Response body for PATCH**
-
-          
-: [Context Node Mapping List Output](./connect_responses_context_node_mapping_list.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_node_mapping.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_ramp_deals_complex_long_term_multiple_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Ramp Deals for Usage Products
@@ -15,7 +15,7 @@ Use ramp deals for groups for usage products to break down a long-term deal into
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 
 Look at DataFlow, a software company that sells a data transfer service with tiered pricing based on usage. They want to offer a promotional deal to a new customer, GlobalCorp, for a three-year contract.
 
@@ -33,3 +33,7 @@ ACTION	DESCRIPTION	CONSIDERATIONS
 Rate Changes	Modify the rate of a usage product within a segment.	The initial product addition copies rates to all segments. However, subsequent modifications to a rate in a segment apply only to that specific segment—rate changes don't carry to other segments.
 Binding Type Changes	Change the binding type per segment.	Changes to the binding type propagate across all segments with the same ramp identifier, because binding types are consistent for the entire deal. This propagation happens both forward and backward through the segments.
 Grant Changes	Modify the grant quantity for a usage product within a segment.	The grant quantity can be changed on a per-segment basis.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_create_ramp_deal_for_groups_for_usage_products.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

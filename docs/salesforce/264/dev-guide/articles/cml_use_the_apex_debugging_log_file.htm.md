@@ -7,31 +7,22 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_debugging_cml.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Use the Apex Debugging Log File
 
 To find possible reasons for the performance problems and identify solutions, look at
-    the RLM_CONFIGURATOR_STATS section of the log file.
-
-    
-      
+the RLM\_CONFIGURATOR\_STATS section of the log file.
 
 See the values for Total Execution Time, Constraints Violation Stats, and ChoicePoint
-        Backtracking Stats.
-
-      
+Backtracking Stats.
 
 For example, consider how the constraint engine performs with this sample constraint model.
-        In the constraint model, the value of the `volts`
-        variable is greater than 110/10000 (`volts = power/amps *
-          9999;`). The constraint engine must backtrack the `power` variable to find a value that satisfies the constraint, starting with
-        0.01, 0.02, and so on until it reaches a valid value.
-
-      
+In the constraint model, the value of the `volts`
+variable is greater than 110/10000 (`volts = power/amps *
+9999;`). The constraint engine must backtrack the `power` variable to find a value that satisfies the constraint, starting with
+0.01, 0.02, and so on until it reaches a valid value.
 
 ```
 relation laptops : Laptop[1..9999];
@@ -43,11 +34,7 @@ decimal(2)  volts = (power / amps) * laptops[Laptop];
 constraint(volts > 110);
 ```
 
-      
-
 In the log file for this constraint model, see the execution statistics for Total Execution Time, Constraints Violation Stats, and ChoicePoint Backtracking Stats:
-
-      
 
 ```
 "rootId" : "ref_a67c6632_fa1f_40b4_8093_226a9ab8a4d0",
@@ -67,11 +54,13 @@ In the log file for this constraint model, see the execution statistics for Tota
 "VariableChoicePoint(IntVar(amps))" : "49499"
 ```
 
-      
-
 Optimally, execution time for a constraint model is less than 100 milliseconds, with fewer
-        than 1,000 backtracks and no violations. Values for the constraint model example are
-        significantly higher, indicating that the constraint engine is performing inefficiently. To
-        improve performance in this example, reduce the domain of the power variable without
-        reducing the solution space. For example, define the domain as `[110..500]` instead of `[0..500]`. This change
-        reduces the number of backtracks the constraint engine performs to find a solution.
+than 1,000 backtracks and no violations. Values for the constraint model example are
+significantly higher, indicating that the constraint engine is performing inefficiently. To
+improve performance in this example, reduce the domain of the power variable without
+reducing the solution space. For example, define the domain as `[110..500]` instead of `[0..500]`. This change
+reduces the number of backtracks the constraint engine performs to find a solution.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_use_the_apex_debugging_log_file.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

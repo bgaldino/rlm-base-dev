@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_general_ledger.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # What are Chart of Accounts and Dual Journal Entries?
@@ -22,3 +22,7 @@ What are Dual Journal Entries (Double-Entry System)?
 The dual journal entry system is the foundational principle for recording financial transactions, ensuring every event impacts at least two accounts with equal debits and credits. Debits always appear on the left side of a T-account, while credits are on the right. An account's balance dictates how debits or credits affect it. For instance, assets and expenses increase with debits, whereas liabilities, equity, and revenues increase with credits. All these movements are initially documented in a journal entry.
 
 Dual journal entries are vital for several reasons, starting with maintaining the accounting equation's balance. This system provides a critical self-checking mechanism, instantly highlighting errors if total debits and credits don't match. It also offers a comprehensive view of a transaction's financial impact, detailing both the source and destination of value. Furthermore, these entries directly feed into the general ledger and financial statements, ensuring reporting accuracy. Ultimately, the dual journal entry system creates an indispensable audit trail for internal control, external audits, and regulatory compliance.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_general_ledger_accounts_explain.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

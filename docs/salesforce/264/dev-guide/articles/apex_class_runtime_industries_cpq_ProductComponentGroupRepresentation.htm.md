@@ -7,7 +7,7 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # ProductComponentGroupRepresentation Class
@@ -16,155 +16,67 @@ Represents a product component group used in bulk product operations. This class
 
 ## Namespace
 
-[runtime_industries_cpq](./apex_namespace_runtime_industries_cpq.htm.md)
+[runtime\_industries\_cpq](./apex_namespace_runtime_industries_cpq.htm.md "The runtime_industries_cpq namespace provides classes and methods to search products or to manage products, catalogs, and categories.")
 
-- 
-**[ProductComponentGroupRepresentation Constructor](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_constructors)**  
-
-Learn more about the constructor that's available with the ProductComponentGroupRepresentation     class.
-
-- 
-**[ProductComponentGroupRepresentation Properties](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_properties)**  
-
-Contains properties to include details of a product component group used in bulk operations.
-
-  
+- **[ProductComponentGroupRepresentation Constructor](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_constructors)**  
+  Learn more about the constructor that's available with the ProductComponentGroupRepresentation class.
+- **[ProductComponentGroupRepresentation Properties](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_properties)**  
+  Contains properties to include details of a product component group used in bulk operations.
 
 ## ProductComponentGroupRepresentation Constructor
 
-  
-  
-  
 Learn more about the constructor that's available with the ProductComponentGroupRepresentation
-    class.
-
-    
-      
+class.
 
 The `ProductComponentGroupRepresentation` class includes this
-        constructor.
+constructor.
 
-    
-
-    
-  
-
-- 
-**[ProductComponentGroupRepresentation(apexObj)](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_ctor)**  
-
-Constructor to create a ProductComponentGroupRepresentation instance from a ConnectApi CPQProductComponentGroupOutputRepresentation object.
-
-  
+- **[ProductComponentGroupRepresentation(apexObj)](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_ctor)**  
+  Constructor to create a ProductComponentGroupRepresentation instance from a ConnectApi CPQProductComponentGroupOutputRepresentation object.
 
 ### ProductComponentGroupRepresentation(apexObj)
 
-  
-  
-  
 Constructor to create a ProductComponentGroupRepresentation instance from a ConnectApi CPQProductComponentGroupOutputRepresentation object.
-
-    
 
 #### Signature
 
-      
-      
-
 `public ProductComponentGroupRepresentation(ConnectApi.CPQProductComponentGroupOutputRepresentation apexObj)`
-
-      
-    
-
-    
 
 #### Parameters
 
-      
-      
-
 **apexObj**
-
-      
 
 Type: ConnectApi.CPQProductComponentGroupOutputRepresentation
 
-      
-
 The ConnectApi product component group representation object to convert to ProductComponentGroupRepresentation.
-
-    
-
-  
-
-  
 
 ## ProductComponentGroupRepresentation Properties
 
-  
-  
-  
 Contains properties to include details of a product component group used in bulk operations.
 
-    
-      
-
 The `ProductComponentGroupRepresentation` class includes these
-        properties.
+properties.
 
-    
-
-    
-  
-
-- 
-**[childGroups](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_childGroups)**  
-
-Get the list of childgroup.
-
-- 
-**[classifications](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_ricpq_ProductComponentGroupR_classifications)**  
-
-Get the list of product classifications.
-
-- 
-**[code](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_code)**  
-
-Get the code of the productcomponentgroup.
-
-- 
-**[components](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_components)**  
-
-Get the list of component.
-
-- 
-**[description](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_description)**  
-
-Get the description of the productcomponentgroup.
-
-- 
-**[id](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_id)**  
-
-Get the ID of the productcomponentgroup.
-
-- 
-**[name](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_name)**  
-
-Get the name of the productcomponentgroup.
-
-- 
-**[parentGroupId](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_ricpq_ProductComponentGroupR_parentGroupId)**  
-
-Get the ID of the parentgroup.
-
-- 
-**[parentProductId](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_ricpq_ProductComponentGroupR_parentProductId)**  
-
-Get the ID of the parentproduct.
-
-- 
-**[sequence](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_sequence)**  
-
-Get the sequence value.
+- **[childGroups](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_childGroups)**  
+  Get the list of childgroup.
+- **[classifications](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_ricpq_ProductComponentGroupR_classifications)**  
+  Get the list of product classifications.
+- **[code](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_code)**  
+  Get the code of the productcomponentgroup.
+- **[components](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_components)**  
+  Get the list of component.
+- **[description](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_description)**  
+  Get the description of the productcomponentgroup.
+- **[id](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_id)**  
+  Get the ID of the productcomponentgroup.
+- **[name](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_name)**  
+  Get the name of the productcomponentgroup.
+- **[parentGroupId](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_ricpq_ProductComponentGroupR_parentGroupId)**  
+  Get the ID of the parentgroup.
+- **[parentProductId](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_ricpq_ProductComponentGroupR_parentProductId)**  
+  Get the ID of the parentproduct.
+- **[sequence](./apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm.md#apex_runtime_industries_cpq_ProductComponentGroupRepresentation_sequence)**  
+  Get the sequence value.
 
 ### childGroups
 
@@ -176,7 +88,7 @@ Get the list of childgroup.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.ProductComponentGroupRepresentation](#apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation)>
+Type: List<[runtime\_industries\_cpq.ProductComponentGroupRepresentation](#apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation "Represents a product component group used in bulk product operations. This class is similar to ProductComponentGroupOutputRepresentation but is used specifically for bulk product detail representations where components are represented as BulkProductDetailsRepresentation objects.")>
 
 ### classifications
 
@@ -188,7 +100,7 @@ Get the list of product classifications.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.ProductClassificationOutputRepresentation](./apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation)>
+Type: List<[runtime\_industries\_cpq.ProductClassificationOutputRepresentation](./apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation "Get details of the product classification in a product configuration.")>
 
 ### code
 
@@ -212,7 +124,7 @@ Get the list of component.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.BulkProductDetailsRepresentation](./apex_class_runtime_industries_cpq_BulkProductDetailsRepresentation.htm.md#apex_class_runtime_industries_cpq_BulkProductDetailsRepresentation)>
+Type: List<[runtime\_industries\_cpq.BulkProductDetailsRepresentation](./apex_class_runtime_industries_cpq_BulkProductDetailsRepresentation.htm.md#apex_class_runtime_industries_cpq_BulkProductDetailsRepresentation "Get the details of multiple product definitions in a single request. This class is used for bulk product retrieval operations in Product Discovery.")>
 
 ### description
 
@@ -285,3 +197,7 @@ Get the sequence value.
 #### Property Value
 
 Type: Integer
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_runtime_industries_cpq_ProductComponentGroupRepresentation.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

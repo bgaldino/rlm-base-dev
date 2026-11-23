@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_group_cardinality.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Nested Group Cardinality and Product Classification Component Cardinality
@@ -38,3 +38,7 @@ Maximum Quantity: 2
 Default Quantity: 1
 
 At run time, users can select a minimum of one instance of the product and a maximum of 2 instances of the product. That means that a user can select a minimum of 1 double-door wardrobe and a maximum of 2 double-door wardrobes. Similarly, the user can select a minimum of 1 four-door swing wardrobe and a maximum of 2 four-door swing wardrobes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_nested_group_cardinality_and_product_classification_component_cardinality.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

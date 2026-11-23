@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_advanced_detail_line_pricing_for_custom_and_derived_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Add Context Tag Mappings to the Discovery Procedure Map Line Item Element Using JSON
@@ -15,7 +15,7 @@ To configure a discovery procedure to use advanced detail line pricing with deri
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To set up and use advanced detail line pricing:	
 
@@ -30,3 +30,7 @@ Add two new elements to the discovery procedure to price derived products: Disco
 Add the context tag mappings to the map line item using this JSON.
 {"componentName":"Map Line Item","businessKnowledgeModelName":"BreakdownLineMapping","usageType":"PricingDiscovery","elementAttributes":null,"parameters":null,"inputVariablesMappingText":{"section-0-input1":"LineItem","section-1-input1":"EffectiveFrom","section-2-input1":"EffectiveTo","section-3-input1":"DerivedPricingAttribute","section-0-output":"SalesTrxnItemDetailSource","section-1-output":"ItemDetailEffectiveFrom__std","section-2-output":"ItemDetailEffectiveTo__std","section-3-output":"ItemDetailDerivedPricingAttribute__std","sectionCount":"4","sectionJsonString1":"{\"whereConditions\":[{\"field\":{\"dataType\":\"Text\",\"name\":\"section-0-input1\",\"value\":\"LineItem\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Text\",\"name\":\"section-0-output\",\"value\":\"SalesTrxnItemDetailSource\",\"allowCompatibleDataTypes\":true}}]}","sectionJsonString2":"{\"whereConditions\":[{\"field\":{\"dataType\":\"DateTime\",\"name\":\"section-1-input1\",\"value\":\"EffectiveFrom\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"DateTime\",\"name\":\"section-1-output\",\"value\":\"ItemDetailEffectiveFrom__std\",\"allowCompatibleDataTypes\":true}}]}","sectionJsonString3":"{\"whereConditions\":[{\"field\":{\"dataType\":\"DateTime\",\"name\":\"section-2-input1\",\"value\":\"EffectiveTo\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"DateTime\",\"name\":\"section-2-output\",\"value\":\"ItemDetailEffectiveTo__std\",\"allowCompatibleDataTypes\":true}}]}","sectionJsonString4":"{\"whereConditions\":[{\"field\":{\"dataType\":\"Boolean\",\"name\":\"section-3-input1\",\"value\":\"DerivedPricingAttribute\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Boolean\",\"name\":\"section-3-output\",\"value\":\"ItemDetailDerivedPricingAttribute__std\",\"allowCompatibleDataTypes\":true}}]}"},"outputVariablesMappingText":{}}
 Save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_advanced_line_discovery_map_line_json_task.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_create_bundled_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Define Quantity Limits for Bundled Products
@@ -31,3 +31,7 @@ Manage Local Cardinality
 Use local cardinality to define if a product component or products based on a product classification are required, are included in the bundle by default, whether their quantities can be changed, and what the minimum and maximum quantities are.
 Manage Group Cardinality
 Bundled products are grouped under product groups. You can control the number of components that can be added to the bundle hierarchy in the runtime through product group cardinality.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_local_cardinality_and_group_cardinality.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

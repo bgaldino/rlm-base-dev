@@ -7,242 +7,50 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Initiate Cancellation Action
 
 Initiate and execute the cancellation of an asset.
 
-		
+Specify the IDs of the assets that you want to add to cancel by specifying a start date. You can also specify the type of cancellation record that you want to create, such as a quote or an order.
 
-Specify the IDs of the assets that you want to add to cancel by specifying a start date. You can
-				also specify the type of cancellation record that you want to create, such as a
-				quote or an order.
-
-This action is available in API version 60.0 and
-				later.
-
-		
-		
+This action is available in API version 60.0 and later.
 
 ## Supported REST HTTP Methods
 
-			
-			
-				
-					
+**URI:** `/services/data/v68.0/actions/standard/initiateCancellation`
 
-**URI**
+**Formats:** JSON, XML
 
-					
-: `/services/data/v68.0/actions/standard/initiateCancellation`
+**HTTP Methods:** POST
 
-				
-				
-					
-
-**Formats**
-
-					
-: JSON, XML
-
-				
-				
-					
-
-**HTTP Methods**
-
-					
-: POST
-
-				
-				
-					
-
-**Authentication**
-
-					
-: `Authorization: Bearer
-							token`
-
-				
-			
-
-		
-
-		
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Input | Details |
-| --- | --- |
-| cancelAssetIds | **Type** string **Description** Required. The IDs of the assets that you want to cancel. All assets in a request must belong to the same price book. |
-| cancelContractId | **Type** string **Description** The ID of the contract record to sync with the cancellation. |
-| cancelOpportunityId | **Type** string **Description** The ID of the Opportunity record to sync with the cancellation quote. |
-| cancelOutputType | **Type** string **Description** Required. Type of cancellation record to create such as a quote or an order. |
-| cancelStartDate | **Type** datetime **Description** Required. Effective date of the cancellation. |
-| skipPricing | **Type** boolean **Description** Indicates whether the pricing procedure must be skipped (`true`) or performed (`false`). Available in API version 64.0 and later. |
-
-		
-
-		
+| Input | Type | Description |
+| --- | --- | --- |
+| cancelAssetIds | string | Required. The IDs of the assets that you want to cancel. All assets in a request must belong to the same price book. |
+| cancelContractId | string | The ID of the contract record to sync with the cancellation. |
+| cancelOpportunityId | string | The ID of the Opportunity record to sync with the cancellation quote. |
+| cancelOutputType | string | Required. Type of cancellation record to create such as a quote or an order. |
+| cancelStartDate | datetime | Required. Effective date of the cancellation. |
+| skipPricing | boolean | Indicates whether the pricing procedure must be skipped (`true`) or performed (`false`). Available in API version 64.0 and later. |
 
 ## Outputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Output | Details |
-| --- | --- |
-| cancelRecordId | **Type** string **Description** The ID of the cancellation record that’s created. |
-| requestIdentifier | **Type** string **Description** Request ID that’s used to track the async request. |
-
-		
-
-		
+| Output | Type | Description |
+| --- | --- | --- |
+| cancelRecordId | string | The ID of the cancellation record that’s created. |
+| requestIdentifier | string | Request ID that’s used to track the async request. |
 
 ## Example
 
-			
-			
-				
-					
-
 **POST**
 
-					
-: 
-						
-
 This sample request is for the Initiate Cancellation action.
-
-						
 
 ```
 {
@@ -261,11 +69,7 @@ This sample request is for the Initiate Cancellation action.
 }
 ```
 
-						
-
 This sample response is for the Initiate Cancellation action.
-
-						
 
 ```
 [
@@ -281,3 +85,7 @@ This sample response is for the Initiate Cancellation action.
     }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_cancel_assets.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

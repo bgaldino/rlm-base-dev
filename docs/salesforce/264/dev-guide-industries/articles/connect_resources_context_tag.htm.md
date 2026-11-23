@@ -7,144 +7,64 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_tag_managament.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Tag (GET, POST, PATCH)
 
 Query, create, and update context tag.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
-/connect/context-definitions/${contextDefinitionId}/context-tags
+/connect/context-definitions/contextDefinitionId/context-tags
 ```
 
-          
-
-        
-        
-          
-
-**Example for GET **
-
-          
-: 
-            
+## Example for GET
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/${contextDefinitionId}/context-tags
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/contextDefinitionId/context-tags
 ```
 
-          
-
-        
-        
-          
-
-**Example for POST **
-
-          
-: 
-            
+## Example for POST
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/${contextDefinitionId}/context-tags
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/contextDefinitionId/context-tags
 ```
 
-          
-
-        
-        
-          
-
-**Example for PATCH **
-
-          
-: 
-            
+## Example for PATCH
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/${contextDefinitionId}/context-tags
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/contextDefinitionId/context-tags
 ```
 
-          
+## Available Version
 
-        
-        
-          
+59.0
 
-**Available version**
+## Requires Chatter
 
-          
-: 59.0
+No
 
-        
-        
-          
+## HTTP Methods
 
-**Requires Chatter**
+GET, POST, PATCH
 
-          
-: No
+## Response Body for GET
 
-        
-        
-          
+[Context
+Tag List Output](./connect_responses_context_tag_list.htm.md "Output representation of list of context tags.")
 
-**HTTP methods**
-
-          
-: GET, POST, PATCH 
-
-        
-        
-          
-
-**Response body for GET**
-
-          
-: 
-[Context Tag List Output](./connect_responses_context_tag_list.htm.md)
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=industries_reference)
 
 #### Note
 
-              
+When the `includeReferencedDefinitionTag` query parameter is set to `true` in a GET request, the response will include the name
+of the context tag in the format `ContextDeveloperName.tagName`.
 
-When the `includeReferencedDefinitionTag` query
-                parameter is set to `true` in a GET request, the
-                response will include the name of the context tag in the format `ContextDeveloperName.tagName`.
+## Request Body for POST
 
-            
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+### JSON Example
 
 ```
 {
@@ -161,13 +81,7 @@ When the `includeReferencedDefinitionTag` query
 }
 ```
 
-          
-
-        
-
-**Properties**
-
-: 
+### Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
@@ -176,34 +90,13 @@ When the `includeReferencedDefinitionTag` query
 | `contextTagId` | String | ID of this Context tag. Required only for update. | Optional | 59.0 |
 | `name` | String | Name of the context tag. | Required | 59.0 |
 
-          
+## Response Body for POST
 
-        
-        
-          
+[Context Tag List Output](./connect_responses_context_tag_list.htm.md "Output representation of list of context tags.")
 
-**Response body for POST**
+## Request Body for PATCH
 
-          
-: [Context Tag List Output](./connect_responses_context_tag_list.htm.md)
-
-        
-        
-          
-
-**Request body for PATCH**
-
-          
-: 
-            
-              
-                
-
-**JSON example**
-
-                
-: 
-                  
+### JSON Example
 
 ```
 {
@@ -216,18 +109,10 @@ When the `includeReferencedDefinitionTag` query
 }
 ```
 
-                
+## Response Body for PATCH
 
-              
-            
+[Context Tag List Output](./connect_responses_context_tag_list.htm.md "Output representation of list of context tags.")
 
-          
+---
 
-        
-        
-          
-
-**Response body for PATCH**
-
-          
-: [Context Tag List Output](./connect_responses_context_tag_list.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_context_tag.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

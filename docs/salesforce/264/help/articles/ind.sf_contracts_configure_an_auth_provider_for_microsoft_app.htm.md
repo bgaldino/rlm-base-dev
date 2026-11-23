@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Configure an Auth Provider for Salesforce Contracts Microsoft Integration
@@ -35,7 +35,7 @@ In Default Scopes, enter https://graph.microsoft.com/Files.ReadWrite.All offline
 NOTE Ensure that Default Scopes matches the API permissions that you added to your Microsoft Azure account. See Configure a Microsoft Azure App for Salesforce Contracts.
 Ensure Send client credentials in header is unselected.
 Select Send access token in header and Include Consumer Secret in SOAP API Responses.
-For Registration Handler, click Automatically create a registration handler template.
+For Registration Handler Type, select Apex, and then click Automatically create a registration handler template.
 In Execute Registration As, select your system admin account.
 Save your changes.
 It saves your auth provider and generates Salesforce Configuration URLs.
@@ -96,3 +96,7 @@ From the Salesforce Configuration section, copy the Test-Only Initialization URL
 Paste the URL in the address bar, and press Enter.
 
 This is a sample text that appears:
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_configure_an_auth_provider_for_microsoft_app.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

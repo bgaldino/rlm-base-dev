@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_customize_quote_and_order_capture.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Required Fields and Related Lists for Transaction Management
@@ -15,7 +15,7 @@ Configure your page layouts by adding the fields and related lists necessary for
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 Page Layout Configurations
 
 Customize your page layouts to include the following related lists and fields.
@@ -37,3 +37,7 @@ Add a Related List to an Object
 Customize Page Layouts with the Enhanced Page Layout Editor
 SEE ALSO
 Customize Related Lists
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_customize_page_layouts_for_quote_and_order_capture.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

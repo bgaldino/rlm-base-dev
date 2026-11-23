@@ -7,27 +7,18 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_what_is_constraint_modeling_language.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Core Concept Examples
 
 These examples illustrate core Constraint Modeling Language (CML) concepts including
-    type, relationships, constraints, and so on.
-
-    
+type, relationships, constraints, and so on.
 
 For an explanation of the constraint model structure in these examples, see [Model
-          Structure](./cml_appendix_model_structure.htm.md).
-
-    
+Structure](./cml_appendix_model_structure.htm.md "The tables on the following pages show the structure for the constraint model in Core Concept Examples.").
 
 ## Example 1: Use Regex Global Variable
-
-      
-      
 
 ```
 // Global Constant: Regex used to parse voltage strings
@@ -66,88 +57,30 @@ type GeneralModel : LineItem {
 }
 ```
 
-    
-
-    
-
 ## Key Technical Details
-
-      
-      
 
 - The `GeneratorSet` type is related to the `GeneralModel` type through a single relation.
 
-              
-              
-              
-              
-              
-              
-                
-                  
-
-                  
-
-                  
-
-                  
-
-                  
-
-                
-
-              
-
-              
-                
-                  
-
-                  
-
-                  
-
-                  
-
-                  
-
-                
-
-              
-
-            
-| Parent Type | Relation Name | Child Type | Cardinality | Key Attribute Usage |
-| --- | --- | --- | --- | --- |
-| `GeneratorSet` | `GeneralModels` | `GeneralModel` | Not Applicable | Constrained by `requiredKW` on the parent type. |
-
-      
+  | Parent Type | Relation Name | Child Type | Cardinality | Key Attribute Usage |
+  | --- | --- | --- | --- | --- |
+  | `GeneratorSet` | `GeneralModels` | `GeneralModel` | Not Applicable | Constrained by `requiredKW` on the parent type. |
 
 - Parent Type (`GeneratorSet`): Defined as a `LineItem` component, the `GeneratorSet` holds configuration parameters such as the user's power
-          requirement (`requiredKW`), the specified voltage
-            (`Voltage`), and compliance standards (`standardsAndCompliance`). It also includes calculated
-          attributes like `surgeLoadKW` and `Voltage3`.
-
+  requirement (`requiredKW`), the specified voltage
+  (`Voltage`), and compliance standards (`standardsAndCompliance`). It also includes calculated
+  attributes like `surgeLoadKW` and `Voltage3`.
 - Child Type (`GeneralModel`): Defined as a `LineItem` component, the `GeneralModel` specifies the technical attributes of the selected generator
-          configuration, including its power output (`powerKW`)
-          and noise rating (`dB`).
-
+  configuration, including its power output (`powerKW`)
+  and noise rating (`dB`).
 - Cardinality: The relation `GeneralModels : GeneralModel`
-          specifies the quantity bounds for the component, indicating that exactly 11 instances of
-          the `GeneralModel` type must be included in this
-          configuration.
-
-    
-
-    
+  specifies the quantity bounds for the component, indicating that exactly 11 instances of
+  the `GeneralModel` type must be included in this
+  configuration.
 
 ## Example 2: Use Groupby Annotation to Create Virtual Group
 
-      
-      
-
 Using Groupby annotation for types, this model creates a virtual `VoltageGroup` for every unique voltage (for example,
-        "220/380", "480/277") found in the transaction.
-
-      
+"220/380", "480/277") found in the transaction.
 
 ```
 // 1. The physical product type
@@ -189,47 +122,26 @@ type GeneratorSystem {
 }
 ```
 
-    
-
-    
-
 ## Key Technical Details
 
-      
-      
-
-- 
-`groupBy=Voltage`: The engine scans all `GeneratorSet` instances and creates one virtual `VoltageGroup` for each unique voltage value detected (for
-          example, one group for all "220/380" units, another for all "277/480"
-          units).
-
-- 
-`sourceContextNode`: This tells the virtual group to pull its
-          "children" (the generators) from the specific path in the Salesforce context
-          where quote line items are stored.
-
+- `groupBy=Voltage`: The engine scans all `GeneratorSet` instances and creates one virtual `VoltageGroup` for each unique voltage value detected (for
+  example, one group for all "220/380" units, another for all "277/480"
+  units).
+- `sourceContextNode`: This tells the virtual group to pull its
+  "children" (the generators) from the specific path in the Salesforce context
+  where quote line items are stored.
 - Bottom-Up Aggregation: Each `VoltageGroup` independently
-          calculates its `groupTotalSurgeKW` based strictly on
-          the generators assigned to it by the groupBy logic.
-
+  calculates its `groupTotalSurgeKW` based strictly on
+  the generators assigned to it by the groupBy logic.
 - Explicit Domains: Following best practices, the `surgeLoadKW`
-          and `groupTotalSurgeKW` use explicit domains (for
-          example, [0.00..99999.99]) to prevent "NullPointer" or initialization errors
-          during solving.
-
-    
-
-    
+  and `groupTotalSurgeKW` use explicit domains (for
+  example, [0.00..99999.99]) to prevent "NullPointer" or initialization errors
+  during solving.
 
 ## Example 3: Use Sharingcount Annotation to Reuse Accessory Instances
 
-      
-      
-
 In this example, we apply sharingcount annotation to the `Accessory` type to allow the engine to reuse accessory instances across the
-        configuration up to a specified limit.
-
-      
+configuration up to a specified limit.
 
 ```
 // 1. Define the component type with split and sharingCount
@@ -253,35 +165,19 @@ type GeneratorSet {
 }
 ```
 
-    
-
-    
-
 ## Key Technical Details
 
-      
-      
-
 - Parallel Solving: By setting `split = true`, the engine can
-          process the 99 possible accessories in parallel rather than sequentially, which is
-          critical for large-scale generator configurations.
-
+  process the 99 possible accessories in parallel rather than sequentially, which is
+  critical for large-scale generator configurations.
 - Resource Management: The `sharingCount = 5` tells the solver
-          that it doesn't need to instantiate 99 unique `Accessory` objects; it can reuse the same object definition up to five times
-          across different parts of the configuration graph.
-
+  that it doesn't need to instantiate 99 unique `Accessory` objects; it can reuse the same object definition up to five times
+  across different parts of the configuration graph.
 - Relationship Requirement: For `sharingCount` to take effect,
-          the Relation (the port) must also be annotated with `@(sharing
-            = true)` to grant the engine permission to reuse instances.
-
-    
-
-    
+  the Relation (the port) must also be annotated with `@(sharing
+  = true)` to grant the engine permission to reuse instances.
 
 ## Example 4: Use contextPath and tagName Annotations
-
-      
-      
 
 ```
 // 1. GLOBAL EXTERN DECLARATIONS
@@ -315,48 +211,28 @@ type GeneratorSet {
 }
 ```
 
-    
-
-    
-
 ## Key Technical Details
 
-      
-      
-
 - External Variable (`extern`): These are declared outside of
-          any type to hold values supplied by the environment (Salesforce).
+  any type to hold values supplied by the environment (Salesforce).
+- `contextPath` Annotation: This maps the variable directly to
+  a header-level field in the Sales Transaction.
+- `tagName` Annotation: This links the variable to a specific
+  Context Tag identifier within the Salesforce Context Definition.
 
-- 
-`contextPath` Annotation: This maps the variable directly to
-          a header-level field in the Sales Transaction.
-
-- 
-`tagName` Annotation: This links the variable to a specific
-          Context Tag identifier within the Salesforce Context Definition.
-
-      
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=revenue_lifecycle_management_dev_guide)
 
 #### Note
 
 Rules depending on these external variables (such as the `ShippingCountry` message) only re-evaluate when a Line Item
-        change occurs (For example, updating `requiredKW`), not
-        solely when the header field changes.
-
-    
-
-    
+change occurs (For example, updating `requiredKW`), not
+solely when the header field changes.
 
 ## Example 5: Use Format Specifiers (%s, %d) and Dates in Constraints
 
-      
-      
-
 In this example, we define a generator configuration that validates the required power
-          (`requiredKW`) against the duty rating and voltage,
-        providing specific feedback when a mismatch occurs.
-
-      
+(`requiredKW`) against the duty rating and voltage,
+providing specific feedback when a mismatch occurs.
 
 ```
 type GeneratorSet  {
@@ -393,44 +269,21 @@ type GeneratorSet  {
 }
 ```
 
-    
-
-    
-
 ## Key Technical Details
 
-      
-      
-
 - Multiple Arguments: You can pass several variables after the string literal. The engine maps them to the placeholders in the exact order they appear.
-
 - Format Specifiers
-
-- 
-`%s` is used for string variables (for example, `DutyRating` or `Voltage`).
-
-- 
-`%d` is used for integer variables (for example, `requiredKW`).
-
+- `%s` is used for string variables (for example, `DutyRating` or `Voltage`).
+- `%d` is used for integer variables (for example, `requiredKW`).
 - Placeholder Usage: Alternatively, you can use the {} syntax, which the constraint engine automatically replaces with the actual argument values during runtime evaluation.
-
 - Comparison Logic with Dates: You can treat dates as comparable values in `constraint` or `message`
-          rules to enforce scheduling logic (for example, ensuring a delivery date is not too early
-          for a complex build).
-
-    
-
-    
+  rules to enforce scheduling logic (for example, ensuring a delivery date is not too early
+  for a complex build).
 
 ## Example 6: Use Arithmetic Calculations and Functions
 
-      
-      
-
 This example demonstrates using aggregate functions (a virtual type for transaction-level
-        aggregation) and mathematical functions within the `GeneratorSet` type for precise quantity calculation.
-
-      
+aggregation) and mathematical functions within the `GeneratorSet` type for precise quantity calculation.
 
 ```
 // --- Component Definition —
@@ -488,44 +341,24 @@ type ShipmentBatch {
 }
 ```
 
-    
-
-    
-
 ## Key Considerations for Calculations and Aggregations
-
-      
-      
 
 When implementing these functions in CML, follow these architectural best practices for robustness and performance.
 
-      
-
 - Explicit domains are required: All the derived attributes that result from a calculation or aggregation must have an explicit variable domain definition. This practice ensures accurate aggregation and helps prevent runtime errors.
-
 - Separate calculation from declaration: Define the aggregation or calculation in a separate
-          constraint rather than using an inline derived attribute declaration (for example, `int total = items.sumPrice;`). This separation helps avoid
-          issues where domains may not initialize correctly.
-
+  constraint rather than using an inline derived attribute declaration (for example, `int total = items.sumPrice;`). This separation helps avoid
+  issues where domains may not initialize correctly.
 - Correct Pattern: Define the relation aggregate (`totalQty =
-            sum(quantity);`) and then enforce the result via a constraint (`constraint(totalItemCount == items.totalQty);`).
-
-    
-
-    
+  sum(quantity);`) and then enforce the result via a constraint (`constraint(totalItemCount == items.totalQty);`).
 
 ## Example 7: Use Asset-Based Constraints Across Transaction and Installed Base
 
-      
-      
-
 This example shows how to enforce quantity rules that span both in-flight items on the
-        current sales transaction and products the customer already owns (the installed base). The
-          `sourceContextNode="Asset"` annotation on a relation
-        pulls existing asset records into the model as read-only data, so that a `require()` rule can combine those asset quantities with
-        in-transaction quantities to drive configuration logic.
-
-      
+current sales transaction and products the customer already owns (the installed base). The
+`sourceContextNode="Asset"` annotation on a relation
+pulls existing asset records into the model as read-only data, so that a `require()` rule can combine those asset quantities with
+in-transaction quantities to drive configuration logic.
 
 ```
 // 1. Top-level virtual type that organizes generator sets by fuel type
@@ -571,69 +404,38 @@ type Heater {
 }
 ```
 
-    
-
-    
-
 ## Key Technical Details
 
-      
-      
-        
-- 
-`sourceContextNode="SalesTransaction.SalesTransactionItem"`:
-          Binds the relation to line items on the current quote or order. The engine reads and writes
-          these instances during configuration.
-
-        
-- 
-`sourceContextNode="Asset"`: Binds the relation to
-          asset records that represent products the customer already owns from prior transactions.
-          These records exist outside the current transaction and are treated as read-only context
-          data.
-
-        
-- 
-`closerelation=true`: Required on asset-sourced
-          relations to prevent the engine from attempting to add new instances to the installed base.
-          Without this annotation, the engine may try to create asset records to satisfy cardinality
-          or require rules.
-
-        
+- `sourceContextNode="SalesTransaction.SalesTransactionItem"`:
+  Binds the relation to line items on the current quote or order. The engine reads and writes
+  these instances during configuration.
+- `sourceContextNode="Asset"`: Binds the relation to
+  asset records that represent products the customer already owns from prior transactions.
+  These records exist outside the current transaction and are treated as read-only context
+  data.
+- `closerelation=true`: Required on asset-sourced
+  relations to prevent the engine from attempting to add new instances to the installed base.
+  Without this annotation, the engine may try to create asset records to satisfy cardinality
+  or require rules.
 - Asset-based `require()`: The rule `require(heaters[Heater] + heaterAssets[Heater] > 10,
-            generators[GeneratorSet] == 100)` combines cardinality from two separate
-          relations — one sourced from the transaction and one from the installed base — in a single
-          logical expression. This lets the model enforce quantity thresholds that account for what
-          the customer is buying now and what they already have.
-
-        
+  generators[GeneratorSet] == 100)` combines cardinality from two separate
+  relations — one sourced from the transaction and one from the installed base — in a single
+  logical expression. This lets the model enforce quantity thresholds that account for what
+  the customer is buying now and what they already have.
 - Virtual grouping: The `groupby=FuelType` annotation
-          on `GeneratorGroup` ensures that the asset-based
-          constraint is evaluated independently per fuel type, so heaters and generator sets of
-          different fuel types do not count toward each other's totals.
-
-      
-
-    
-
-    
+  on `GeneratorGroup` ensures that the asset-based
+  constraint is evaluated independently per fuel type, so heaters and generator sets of
+  different fuel types do not count toward each other's totals.
 
 ## Example 8: Use Asset Scope to Drive Auto-Add Logic
 
-      
-      
-
 These examples show how to use the installed base (existing customer assets) as a condition
-        in a `require()` rule to automatically add products to
-        the current quote. The positive asset check triggers an auto-add when the customer already
-        owns a product. The negative asset check enforces a prerequisite product when the customer
-        does not yet own it.
-
-      
+in a `require()` rule to automatically add products to
+the current quote. The positive asset check triggers an auto-add when the customer already
+owns a product. The negative asset check enforces a prerequisite product when the customer
+does not yet own it.
 
 Positive asset check: if the customer already owns at least one `GeneratorSet` in their installed base, the engine automatically adds a `MaintenanceKit` to the current quote.
-
-      
 
 ```
 @(virtual=true)
@@ -659,11 +461,7 @@ type GeneratorSet;
 type MaintenanceKit;
 ```
 
-      
-
 Negative asset check: if the customer does not yet own a `GeneratorSet` in their installed base but is adding more than one `MaintenanceKit` to the quote, the engine requires a `GeneratorSet` to also be added to the quote.
-
-      
 
 ```
 @(virtual=true)
@@ -689,32 +487,115 @@ type GeneratorSet;
 type MaintenanceKit;
 ```
 
-    
+## Key Technical Details
 
-    
+- Positive asset check (`generatorAssets[GeneratorSet] >=
+  1`): Evaluates to true when the installed base contains at least one matching
+  asset. Use this pattern to trigger upsell or companion-product logic for existing
+  customers.
+- Negative asset check (`generatorAssets[GeneratorSet] <
+  1`): Evaluates to true when the customer has no matching asset. Use this pattern
+  to enforce a prerequisite product for net-new buyers.
+- Auto-add result: When the `require()` condition is
+  met, the engine adds the specified product to the relation automatically. Passing only the
+  relation and type without a quantity (`maintenanceKits[MaintenanceKit]`) requires exactly one instance. Append `== N` to require a specific quantity.
+- `closeRelation=true` is required on the asset
+  relation to prevent the engine from attempting to write back to the installed base when
+  evaluating the condition.
+
+## Example 9: Model Bundle Composition with Type Hierarchies and Mixed Rules
+
+This example demonstrates how to model a
+multi-relation bundle that uses type inheritance to organize components and enforces
+compatibility rules using both `require()` and `exclude()` in the same model. `GeneratorBundle` holds three relations of different types and uses `require()` to enforce cross-relation dependencies based on
+quantity and presence. `ExhaustBundle`, a subtype of
+`Accessory`, uses `exclude()` to prevent incompatible child component combinations. The type
+hierarchy (`Heater : Accessory, ExhaustFilter : Filter,
+GeneratorSet : PowerUnit`) shows how subtypes participate in relations typed to
+their parent while carrying their own attributes and
+rules.
+
+```
+@(virtual=true)
+type ServiceOrder {
+  relation groups : GeneratorGroup;
+}
+@(virtual=true, groupBy=FuelType)
+type GeneratorGroup {
+  @(sourceContextNode="SalesTransaction.SalesTransactionItem")
+  relation generators : GeneratorSet;
+  constraint(generators[GeneratorSet] < 10, "Generator qty should be less than 10");
+  constraint(generators[GeneratorSet].Discount > 10 && generators[GeneratorSet].Discount < 20, "Discount should be between 10 and 20");
+  @(sourceContextNode="SalesTransaction.SalesTransactionItem")
+  relation heaters : Heater;
+  @(sourceContextNode="Asset", closeRelation=true)
+  relation heaterAssets : Heater;
+  require(heaters[Heater] + heaterAssets[Heater] > 10, generators[GeneratorSet] == 100);
+}
+type GeneratorBundle {
+    relation accessories : Accessory;
+    relation controlSystems : ControlSystem;
+    relation generators : GeneratorSet;
+    require(controlSystems[ControlSystem] > 1, accessories[Heater]);
+    require(accessories[Accessory], generators[GeneratorSet]);
+}
+type Accessory;
+type ExhaustBundle : Accessory {
+    relation turbines : Turbine;
+    relation filters : ExhaustFilter;
+    exclude(turbines.Turbine == "Gas", filters[ExhaustFilter]);
+}
+type Heater : Accessory {
+    boolean AutoIgnition;
+}
+type MaintenanceKit : Accessory;
+type Turbine {
+    string Turbine = ["Gas", "Steam", "Hydro"];
+}
+type ExhaustFilter : Filter;
+type Filter {
+    string FilterGrade = ["Standard", "HEPA"];
+}
+type GeneratorSet : PowerUnit {
+    string FuelType = ["Natural Gas", "Diesel", "Propane"];
+    string EngineSpec = ["500kW Continuous", "750kW Continuous", "1000kW Peak"];
+    string CoolingSystem = ["Air Cooled", "Water Cooled", "Hybrid Cooled"];
+    string OutputVoltage = ["208V", "480V", "4160V", "13.8kV"];
+    string Enclosure = ["Open Frame", "Sound Attenuated", "Weather Protected", "Hazardous Location"];
+    string TransferSwitch = ["Manual Transfer Switch", "Automatic Transfer Switch (ATS)", "Bypass Isolation ATS"];
+    decimal Discount = [0..100];
+}
+
+type PowerUnit;
+type ControlSystem;
+```
 
 ## Key Technical Details
 
-      
-      
-        
-- Positive asset check (`generatorAssets[GeneratorSet] >=
-            1`): Evaluates to true when the installed base contains at least one matching
-          asset. Use this pattern to trigger upsell or companion-product logic for existing
-          customers.
+- Supertype as relation target: The `accessories :
+  Accessory` relation accepts any subtype instance, including `Heater`, `ExhaustBundle`,
+  or `MaintenanceKit`, because all three extend `Accessory`. The engine resolves which subtype is present at
+  runtime. To target a specific subtype in a rule, reference it by name in the cardinality
+  expression, for example `accessories[Heater]`.
+- Cross-relation `require()`: `require(controlSystems[ControlSystem] > 1,
+  accessories[Heater])` evaluates a condition on one relation (`controlSystems`) and enforces a requirement on a different
+  relation (`accessories`). The condition and the result
+  do not have to involve the same relation or type.
+- Supertype cardinality in `require()`: `require(accessories[Accessory], generators[GeneratorSet])`
+  uses the supertype `Accessory` in the condition to
+  check whether any accessory of any subtype is present. This is broader than checking for a
+  specific subtype and fires regardless of which `Accessory` subtype the user selects.
+- `require()` and `exclude()` in the same model: `GeneratorBundle` uses `require()` to mandate
+  components; `ExhaustBundle` uses `exclude()` to block incompatible combinations. Both rules
+  coexist in the same model without conflict because they apply to different types and
+  relations.
+- Multi-level hierarchy: `ExhaustFilter : Filter` and
+  `Heater : Accessory` each inherit from their
+  respective parent types. The `filters : ExhaustFilter`
+  relation in `ExhaustBundle` targets the concrete
+  subtype directly rather than the parent `Filter`, which
+  constrains the relation to only that subtype's instances.
 
-        
-- Negative asset check (`generatorAssets[GeneratorSet] <
-            1`): Evaluates to true when the customer has no matching asset. Use this pattern
-          to enforce a prerequisite product for net-new buyers.
+---
 
-        
-- Auto-add result: When the `require()` condition is
-          met, the engine adds the specified product to the relation automatically. Passing only the
-          relation and type without a quantity (`maintenanceKits[MaintenanceKit]`) requires exactly one instance. Append `== N` to require a specific quantity.
-
-        
-- 
-`closeRelation=true` is required on the asset
-          relation to prevent the engine from attempting to write back to the installed base when
-          evaluating the condition.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_core_concept_examples.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

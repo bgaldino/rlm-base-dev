@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: approvals
 parent_article: ind.approvals_types_of_approvals.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Implement Serial and Parallel Approvers
@@ -22,3 +22,7 @@ Open Flow Builder and create a new flow (either an Autolaunched Flow Approval Pr
 Add a Stage element to the flow and include approval steps for the approvers.
 For each approval step, fill out the required fields, including the Approval Chain Name.
 The Approval Chain Name should reflect the list of approvers for that step or stage in the process.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.approvals_implement_serial_and_parallel_approvers.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

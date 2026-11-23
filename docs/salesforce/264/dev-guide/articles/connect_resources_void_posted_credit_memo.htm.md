@@ -7,103 +7,51 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Void Posted Credit Memo (POST)
 
 Void a credit memo in posted state.
 
-The API response returns a unique identifier. In case of any asynchronous errors, a
-        RevenueTransactionErrorLog record is created.
+The API response returns a unique identifier. In case of any asynchronous errors, a RevenueTransactionErrorLog record is created.
 
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /commerce/billing/credit-memos/creditMemoId/actions/void
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/commerce/billing/credit-memos/50gVB0000003khRYAQ/actions/void
 ```
 
-          
+## Available Version
 
-        
-        
-          
+66.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 66.0
+POST
 
-        
-        
-          
-
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Path parameter for POST**
-
-          
-: 
-            
+## Path Parameter for POST
 
 **Properties**
-
-: 
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `creditMemoId` | String | ID of the posted credit memo to be voided. | Required | 66.0 |
 
-          
+## Request Body for POST
 
-        
-        
-          
+As this API accepts a credit memo ID as a path parameter in the URL, specify an empty request body.
 
-**Request body for POST**
+## Response Body for POST
 
-          
-: As this API accepts a credit memo ID as a path parameter in the URL, specify an empty
-            request body.
+[Void Posted Credit Memo](./connect_responses_void_posted_credit_memo_output.htm.md "Output representation of the request to void a posted credit memo.")
 
-        
-        
-          
+---
 
-**Response body for POST**
-
-          
-: [Void Posted Credit
-              Memo](./connect_responses_void_posted_credit_memo_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_void_posted_credit_memo.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

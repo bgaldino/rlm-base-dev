@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_data_translation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Data Translation in Product Catalog Management
@@ -23,3 +23,7 @@ Enable Translation Workbench in your org. See Enable or Disable Translation Work
 Add one or more translation languages in the translation language settings for your user account. See Add Translated Languages and Translators.
 Configure default and supported languages. See Configure Search Index Localization.
 Rebuild index. See Build the Product Index.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_set_up_data_translation_in_product_catalog_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

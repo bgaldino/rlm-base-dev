@@ -7,7 +7,7 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # ProductRelatedComponentOutputRepresentation Class
@@ -16,114 +16,54 @@ Represents a related component product in a bundle or product relationship, incl
 
 ## Namespace
 
-[runtime_industries_cpq](./apex_namespace_runtime_industries_cpq.htm.md)
+[runtime\_industries\_cpq](./apex_namespace_runtime_industries_cpq.htm.md "The runtime_industries_cpq namespace provides classes and methods to search products or to manage products, catalogs, and categories.")
 
-- 
-**[ProductRelatedComponentOutputRepresentation Properties](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_properties)**  
+- **[ProductRelatedComponentOutputRepresentation Properties](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_properties)**
 
 ## ProductRelatedComponentOutputRepresentation Properties
 
 The following are properties for `ProductRelatedComponentOutputRepresentation`.
 
-- 
-**[childProductId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_childProductId)**  
-
-Get or set the identifier of the child product in the relationship.
-
-- 
-**[childSellingModelId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_childSellingModelId)**  
-
-Get or set the identifier of the child product's selling model in the relationship.
-
-- 
-**[doesBundlePriceIncludeChild](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_doesBundlePriceIncludeChild)**  
-
-Get or set whether the bundle price includes the price of this child component.
-
-- 
-**[id](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_runtime_industries_cpq_ProductRelatedComponentOutputRepresentation_id)**  
-
-Get or set the unique identifier of the product related component relationship.
-
-- 
-**[isComponentRequired](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_isComponentRequired)**  
-
-Get or set whether this component is required in the bundle or product relationship.
-
-- 
-**[isDefaultComponent](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_isDefaultComponent)**  
-
-Get or set whether this component is selected by default in the bundle or product relationship.
-
-- 
-**[isQuantityEditable](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_isQuantityEditable)**  
-
-Get or set whether the quantity of this component can be edited.
-
-- 
-**[maxQuantity](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_maxQuantity)**  
-
-Get or set the maximum quantity allowed for this component.
-
-- 
-**[minQuantity](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_minQuantity)**  
-
-Get or set the minimum quantity required for this component.
-
-- 
-**[parentProductId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_parentProductId)**  
-
-Get or set the identifier of the parent product in the relationship.
-
-- 
-**[parentSellingModelId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_parentSellingModelId)**  
-
-Get or set the identifier of the parent product's selling model in the relationship.
-
-- 
-**[productClassificationId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_productClassificationId)**  
-
-Get or set the identifier of the product classification for this component.
-
-- 
-**[productComponentGroupId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_productComponentGroupId)**  
-
-Get or set the identifier of the product component group that this component belongs to.
-
-- 
-**[productRelationshipTypeId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_productRelationshipTypeId)**  
-
-Get or set the identifier of the product relationship type that defines this relationship.
-
-- 
-**[quantity](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_quantity)**  
-
-Get or set the current quantity of this component.
-
-- 
-**[quantityScaleMethod](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_quantityScaleMethod)**  
-
-Get or set the method used to scale the quantity of this component, such as "PerUnit" or "PerBundle".
-
-- 
-**[sequence](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_sequence)**  
-
-Get or set the display sequence order of this component within the bundle or product relationship.
-
-- 
-**[unitOfMeasure](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_unitOfMeasure)**  
-
-Get or set the unit of measure for the quantity of this component.
-
-- 
-**[isExcluded](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_isExcluded)**  
-
-Indicates whether excluded is true or false.
-
-- 
-**[quoteVisibility](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_quoteVisibility)**  
-
-Get the quotevisibility value.
+- **[childProductId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_childProductId)**  
+  Get or set the identifier of the child product in the relationship.
+- **[childSellingModelId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_childSellingModelId)**  
+  Get or set the identifier of the child product's selling model in the relationship.
+- **[doesBundlePriceIncludeChild](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_doesBundlePriceIncludeChild)**  
+  Get or set whether the bundle price includes the price of this child component.
+- **[id](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_runtime_industries_cpq_ProductRelatedComponentOutputRepresentation_id)**  
+  Get or set the unique identifier of the product related component relationship.
+- **[isComponentRequired](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_isComponentRequired)**  
+  Get or set whether this component is required in the bundle or product relationship.
+- **[isDefaultComponent](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_isDefaultComponent)**  
+  Get or set whether this component is selected by default in the bundle or product relationship.
+- **[isQuantityEditable](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_isQuantityEditable)**  
+  Get or set whether the quantity of this component can be edited.
+- **[maxQuantity](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_maxQuantity)**  
+  Get or set the maximum quantity allowed for this component.
+- **[minQuantity](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_minQuantity)**  
+  Get or set the minimum quantity required for this component.
+- **[parentProductId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_parentProductId)**  
+  Get or set the identifier of the parent product in the relationship.
+- **[parentSellingModelId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_parentSellingModelId)**  
+  Get or set the identifier of the parent product's selling model in the relationship.
+- **[productClassificationId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_productClassificationId)**  
+  Get or set the identifier of the product classification for this component.
+- **[productComponentGroupId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_productComponentGroupId)**  
+  Get or set the identifier of the product component group that this component belongs to.
+- **[productRelationshipTypeId](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_productRelationshipTypeId)**  
+  Get or set the identifier of the product relationship type that defines this relationship.
+- **[quantity](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_quantity)**  
+  Get or set the current quantity of this component.
+- **[quantityScaleMethod](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_quantityScaleMethod)**  
+  Get or set the method used to scale the quantity of this component, such as "PerUnit" or "PerBundle".
+- **[sequence](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_sequence)**  
+  Get or set the display sequence order of this component within the bundle or product relationship.
+- **[unitOfMeasure](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_unitOfMeasure)**  
+  Get or set the unit of measure for the quantity of this component.
+- **[isExcluded](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_isExcluded)**  
+  Indicates whether excluded is true or false.
+- **[quoteVisibility](./apex_class_ricpq_ProductRelatedComponentOR.htm.md#apex_ricpq_ProductRelatedComponentOR_quoteVisibility)**  
+  Get the quotevisibility value.
 
 ### childProductId
 
@@ -364,3 +304,7 @@ Get the quotevisibility value.
 #### Property Value
 
 Type: String
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_ricpq_ProductRelatedComponentOR.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

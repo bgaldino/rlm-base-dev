@@ -7,26 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_catalog_management_api_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Product Variants
 
-Output representation of the variation products associated with the specified parent
-    variant products.
+Output representation of the variation products associated with the specified parent variant products.
 
-    
-      
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -51,116 +39,8 @@ Output representation of the variation products associated with the specified pa
 }
 ```
 
-          
+## Properties
 
-        
-      
-
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `correlation​Id` | String | Unique ID to track and associate related events or transactions. | Small, 67.0 | 67.0 |
@@ -168,4 +48,8 @@ Output representation of the variation products associated with the specified pa
 | `details` | Map<String, String[]> | Specifies a map where each key is a parent variant product ID and the value is a list of its associated variation product IDs. Only parent variants that have at least one variation are included in this map. | Small, 67.0 | 67.0 |
 | `inValid​Product​Ids` | String[] | List of product IDs from the request that are blank, invalid, or not found in the org. The API excludes these IDs from processing but doesn’t fail the request. | Small, 67.0 | 67.0 |
 | `non​Variant​Parent​Ids` | String[] | List of product IDs from the request that are valid products but don’t have the `VariationParent` product class. For example, simple products or bundle products passed in the request appear in this list. | Small, 67.0 | 67.0 |
-| `status` | [Status](./connect_responses_status.htm.md) | Status of the request. | Small, 67.0 | 67.0 |
+| `status` | [Status](./connect_responses_status.htm.md "Output representation of the status of the request.") | Status of the request. | Small, 67.0 | 67.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_product_variants_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

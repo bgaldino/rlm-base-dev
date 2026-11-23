@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_usage_management_setup.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Usage-Based Product Setup with Guided Workflow
@@ -23,3 +23,7 @@ Configure a Usage-Based Product with Guided Workflow
 Follow the guided workflow to create the related records required for your usage-based product. These records complete the product setup so that you can start selling quickly.
 Guided Workflow Considerations and Limits
 Review the record limits, supported policy types, and custom field constraints when you configure your usage product.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_usage_product_setup_with_guided_workflow.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

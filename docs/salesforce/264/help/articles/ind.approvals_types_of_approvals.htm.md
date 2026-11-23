@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: approvals
 parent_article: ind.approvals_building_blocks_of_advanced_approvals.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Approval Workflow Types
@@ -39,3 +39,7 @@ Alternatively, you can group all steps of the same level into one Stage element 
 EXAMPLE A marketing campaign might be sent to the Head of Legal, the Head of PR, and the Head of Brand simultaneously. If configured for All Must Approve, the campaign can’t launch until all three have signed off.
 Implement Serial and Parallel Approvers
 To implement serial and parallel approvers, you’ll need to set up an approval chain.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.approvals_types_of_approvals.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

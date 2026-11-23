@@ -6,16 +6,16 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_sync_pricing_data.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Automate Pricing Data Sync with a Scheduled Flow
 
-Create a scheduled flow that refreshes your pricing decision tables on a regular cadence so that Agentforce Revenue Management always uses current pricing data without requiring a manual sync.
+Create a scheduled flow that refreshes your pricing decision tables on a regular cadence so that Revenue Cloud always uses current pricing data without requiring a manual sync.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS
 NEEDED
 To create and activate flows:	Manage Flow
@@ -46,4 +46,8 @@ Enter a label for the action, and in the Decision Table API Name input field, en
 To refresh multiple decision tables, add a separate Refresh Decision Table action for each one.
 Save the flow and click Activate.
 
-The flow runs at the scheduled time and refreshes the specified decision tables. Pricing calculations in Agentforce Revenue Management then use the updated data for all subsequent transactions.
+The flow runs at the scheduled time and refreshes the specified decision tables. Pricing calculations in Revenue Cloud then use the updated data for all subsequent transactions.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_automate_pricing_data_sync.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

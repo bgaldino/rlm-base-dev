@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_cnsption_mngmnt_lifecycle.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Consumption Management Lifecycle Statuses
@@ -16,6 +16,13 @@ The successful processing of consumption data involves status changes across the
 REQUIRED EDITIONS
 Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Billing license
+Transaction Journal
+
+A transaction journal records consumption for a usage-based product. The Create Usage Summary Data Processing Engine job aggregates transaction journal entries into the usage summary for the corresponding summary period.
+
+STATUS	WHAT DOES IT MEAN?	PROCESSING JOB
+Pending	The transaction journal entry hasn’t been aggregated into a usage summary. The entry remains pending if its timestamp is outside the applicable summary period or the corresponding usage summary has reached Usage Summary Complete.	Create Usage Summary Data Processing Engine job
+Processed	The transaction journal entry is aggregated into the corresponding usage summary. The Usage Summary field on the transaction journal identifies the updated summary.	Create Usage Summary Data Processing Engine job
 Usage Summary
 
 The usage summary stores the aggregated transaction journal entries and drawdown results for a specified period.
@@ -46,3 +53,7 @@ New	Zero-value usage summary record is created.	Create Empty Summaries batch job
 Liable Summary In Progress	Liable summary is updated with provisional data, including the current running overage amount and the total unbilled usage quantity for the billing period to date.	Create Liable Summary DPE Job
 Liable Summary Complete	Liable summary is updated with the details of overages and the applicable net unit rate.	Create Liable Summary DPE job
 Ready for Invoicing	The billing cycle is completed for the liable summary, and the liable summary is ready for invoicing.	Create Liable Summary DPE job
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_sum_statuses_through_cnsmptn_mngmnt_lifecycle.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

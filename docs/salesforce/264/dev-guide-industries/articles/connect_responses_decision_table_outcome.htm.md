@@ -7,26 +7,15 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: decision_table_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Decision Table Outcome
 
 Output representation of the decision table
-      execution.
+execution.
 
-      
-         
-            
-               
-
-**JSON example**
-
-               
-: 
-                  
+## JSON Example
 
 ```
 {
@@ -66,110 +55,18 @@ Output representation of the decision table
   "outcomeType" : "Multiple Matches",
   "successStatus" : true
 }
-
 ```
 
-               
+## Properties
 
-            
-         
-
-         
-
-               
-               
-               
-               
-               
-               
-                  
-                     
-
-                     
-
-                     
-
-                     
-
-                     
-
-                  
-
-               
-
-               
-                  
-                     
-
-                     
-
-                     
-
-                     
-
-                     
-
-                  
-
-                  
-                     
-
-                     
-
-                     
-
-                     
-
-                     
-
-                  
-
-                  
-                     
-
-                     
-
-                     
-
-                     
-
-                     
-
-                  
-
-                  
-                     
-
-                     
-
-                     
-
-                     
-
-                     
-
-                  
-
-                  
-                     
-
-                     
-
-                     
-
-                     
-
-                     
-
-                  
-
-               
-
-            
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `errorCode` | Integer | The error code if transaction fails for any reason. | Small, 55.0 | 55.0 |
 | `errorMessage` | String | The error message if transaction fails for any reason. | Small, 55.0 | 55.0 |
-| `outcomeList` | [Decision Table Outcome Item](./connect_responses_decision_table_outcome_item.htm.md)[] | Outcome list that stores two or more outcomes provided by the decision table. | Small, 55.0 | 55.0 |
+| `outcomeList` | [Decision Table Outcome Item](./connect_responses_decision_table_outcome_item.htm.md "Output representation of the decision table outcome item.")[] | Outcome list that stores two or more outcomes provided by the decision table. | Small, 55.0 | 55.0 |
 | `outcomeType` | String | The outcome type after the request is successful. | Small, 55.0 | 55.0 |
 | `successStatus` | Boolean | Indicates the status of the decision table execution. | Small, 55.0 | 55.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_responses_decision_table_outcome.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

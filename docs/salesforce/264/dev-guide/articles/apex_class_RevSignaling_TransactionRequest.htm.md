@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: apex_namespace_RevSignaling.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # TransactionRequest Class
 
@@ -18,49 +16,27 @@ Represents the transaction request to the signaling Apex processor.
 
 ## Namespace
 
-[RevSignaling](./apex_namespace_RevSignaling.htm.md)
+[RevSignaling](./apex_namespace_RevSignaling.htm.md "The RevSignaling Namespace includes properties and methods to extend the standard procedure plan implementation through custom logic. Using this extension support, you can tailor implementations to your unique requirements.")
 
-- 
-**[TransactionRequest Constructors](./apex_class_RevSignaling_TransactionRequest.htm.md#apex_RevSignaling_TransactionRequest_constructors)**  
-
-Learn more about the available constructors with the TransactionRequest     class.
-
-- 
-**[TransactionRequest Properties](./apex_class_RevSignaling_TransactionRequest.htm.md#apex_RevSignaling_TransactionRequest_properties)**  
-
-Learn more about the properties that are available with the TransactionRequest     class.
-
-  
+- **[TransactionRequest Constructors](./apex_class_RevSignaling_TransactionRequest.htm.md#apex_RevSignaling_TransactionRequest_constructors)**  
+  Learn more about the available constructors with the TransactionRequest class.
+- **[TransactionRequest Properties](./apex_class_RevSignaling_TransactionRequest.htm.md#apex_RevSignaling_TransactionRequest_properties)**  
+  Learn more about the properties that are available with the TransactionRequest class.
 
 ## TransactionRequest Constructors
 
-  
-  
-  
 Learn more about the available constructors with the TransactionRequest
-    class.
-
-    
-      
+class.
 
 The `TransactionRequest` class includes these
-        constructors.
+constructors.
 
-    
+- **[TransactionRequest(procedurePlanInstance, ctxInstanceId)](./apex_class_RevSignaling_TransactionRequest.htm.md#apex_RevSignaling_TransactionRequest_ctor)**  
+  Creates an instance of the TransactionRequest class to specify the procedure plan and context instance ID.
 
-    
-  
+### TransactionRequest(procedurePlanInstance, ctxInstanceId)
 
-- 
-**[TransactionRequest(procedurePlanInstance, ctxInstanceId)](./apex_class_RevSignaling_TransactionRequest.htm.md#apex_RevSignaling_TransactionRequest_ctor)**  
-
-Creates an instance of the TransactionRequest class to specify the procedure plan and     context instance ID.
-
-### TransactionRequest(procedurePlanInstance,
-    ctxInstanceId)
-
-Creates an instance of the TransactionRequest class to specify the procedure plan and
-    context instance ID.
+Creates an instance of the TransactionRequest class to specify the procedure plan and context instance ID.
 
 #### Signature
 
@@ -74,46 +50,28 @@ RevSignaling.TransactionRequest, newinstance, [RevSignaling.ProcedurePlan, Strin
 
 **procedurePlan**
 
-: Type: [RevSignaling.ProcedurePlan](./apex_class_RevSignaling_ProcedurePlan.htm.md#apex_class_RevSignaling_ProcedurePlan)
+Type: [RevSignaling.ProcedurePlan](./apex_class_RevSignaling_ProcedurePlan.htm.md#apex_class_RevSignaling_ProcedurePlan "Represents the instance of the current pricing procedure plan that you're working on.")
 
-: Instance of the procedure plan.
+Instance of the procedure plan.
 
 **ctxInstanceId**
 
-: Type: String
+Type: String
 
-: ID of the context.
-
-  
+ID of the context.
 
 ## TransactionRequest Properties
 
-  
-  
-  
 Learn more about the properties that are available with the TransactionRequest
-    class.
-
-    
-      
+class.
 
 The `TransactionRequest` class includes these
-        properties.
+properties.
 
-    
-
-    
-  
-
-- 
-**[ctxInstanceId](./apex_class_RevSignaling_TransactionRequest.htm.md#apex_RevSignaling_TransactionRequest_ctxInstanceId)**  
-
-Set the context ID.
-
-- 
-**[procedurePlanInstance](./apex_class_RevSignaling_TransactionRequest.htm.md#apex_RevSignaling_TransactionRequest_procedurePlanInstance)**  
-
-Set the instance of the procedure plan.
+- **[ctxInstanceId](./apex_class_RevSignaling_TransactionRequest.htm.md#apex_RevSignaling_TransactionRequest_ctxInstanceId)**  
+  Set the context ID.
+- **[procedurePlanInstance](./apex_class_RevSignaling_TransactionRequest.htm.md#apex_RevSignaling_TransactionRequest_procedurePlanInstance)**  
+  Set the instance of the procedure plan.
 
 ### ctxInstanceId
 
@@ -145,4 +103,8 @@ RevSignaling.TransactionRequest, procedurePlanInstance
 
 #### Property Value
 
-Type: [RevSignaling.ProcedurePlan](./apex_class_RevSignaling_ProcedurePlan.htm.md#apex_class_RevSignaling_ProcedurePlan)
+Type: [RevSignaling.ProcedurePlan](./apex_class_RevSignaling_ProcedurePlan.htm.md#apex_class_RevSignaling_ProcedurePlan "Represents the instance of the current pricing procedure plan that you're working on.")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RevSignaling_TransactionRequest.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

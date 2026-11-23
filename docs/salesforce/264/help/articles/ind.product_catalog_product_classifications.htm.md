@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_introduction.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create Product Templates Using Product Classifications
@@ -42,3 +42,7 @@ Include or Exclude Picklist Values in a Product Classification Attribute
 For product classification attributes of the data type picklist, all the picklist values are included by default. To exclude specific picklist values and ensure they’re unavailable to products at run time, use Include or Exclude Picklist Values. Use the same functionality to include picklist values when your requirements change.
 Explore Product Classification with an Example
 Streamline the creation of a car product template by engineering a product classification hierarchy. Create a parent classification to automatically share attributes with child subclassifications, and curate valid options for specific models to reduce data entry errors.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_product_classifications.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

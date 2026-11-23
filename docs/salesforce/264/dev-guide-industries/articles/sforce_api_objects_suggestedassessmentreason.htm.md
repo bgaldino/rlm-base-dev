@@ -7,214 +7,107 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Discovery Framework
 parent_page: discovery_framework_standard_objects.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # SuggestedAssessmentReason
 
-      Stores the reasons for a suggested assessment. This object is available
-      in API version 60.0 and later.
-
-      
+Stores the reasons for a suggested assessment. This object is available
+in API version 60.0 and later.
 
 ## Supported Calls
 
-      
-      
-
-         `create()`, 
-         `delete()`, 
-         `describeLayout()`, 
-         `describeSObjects()`, 
-         `getDeleted()`,
-         `getUpdated()`,
-         `query()`, 
-         `retrieve()`, 
-         `search()`, 
-         `undelete()`, 
-         `update()`, 
-         `upsert()`
-      
-
-      
-
-      
+`create()`,
+`delete()`,
+`describeLayout()`,
+`describeSObjects()`,
+`getDeleted()`,
+`getUpdated()`,
+`query()`,
+`retrieve()`,
+`search()`,
+`undelete()`,
+`update()`,
+`upsert()`
 
 ## Fields
 
-         
-         
+### LastReferencedDate
 
-               
-               
-            
-               
-                  
+- **Type**: dateTime
+- **Properties**: Filter, Nillable, Sort
+- **Description**: The most recent date on which a user referenced this record.
 
-                  
+### LastViewedDate
 
-               
+- **Type**: dateTime
+- **Properties**: Filter, Nillable, Sort
+- **Description**: The most recent date on which a user viewed this record.
 
-            
+### Name
 
-            
-                  
-                     
+- **Type**: string
+- **Properties**: Autonumber, Defaulted on create, Filter, idLookup, Sort
+- **Description**: The name of the record.
 
-                     
+### PrimaryAsmtQuestionResponseId
 
-: 
+- **Type**: reference
+- **Properties**: Create, Filter, Group, Nillable, Sort, Update
+- **Description**: The response value in the primary assessment that triggered the
+  suggested assessment.
 
-: 
+  This field is a relationship field.
+- **Relationship Name**: PrimaryAsmtQuestionResponse
+- **Relationship Type**: Lookup
+- **Refers To**: AssessmentQuestionResponse
 
-: 
+### PrimaryAssessmentId
 
-                  
+- **Type**: reference
+- **Properties**: Create, Filter, Group, Sort
+- **Description**: The primary assessment from which a suggested assessment was
+  triggered.
 
-                  
-                     
+  This field is a relationship field.
+- **Relationship Name**: PrimaryAssessment
+- **Relationship Type**: Lookup
+- **Refers To**: Assessment
 
-                     
+### SuggestedAssessmentDefId
 
-: 
+- **Type**: reference
+- **Properties**: Create, Filter, Group, Sort, Update
+- **Description**: The suggested assessment associated with the suggested assessment
+  reason.
 
-: 
+  This field is a relationship field.
+- **Relationship Name**: SuggestedAssessmentDef
+- **Relationship Type**: Lookup
+- **Refers To**: SuggestedAssessmentDef
 
-: 
+### SuggestionSourceType
 
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-- 
-- 
-
-                  
-
-            
-
-            
-| Field | Details |
-| --- | --- |
-| LastReferencedDate | **Type** dateTime **Properties** Filter, Nillable, Sort **Description** The most recent date on which a user referenced this record. |
-| LastViewedDate | **Type** dateTime **Properties** Filter, Nillable, Sort **Description** The most recent date on which a user viewed this record. |
-| Name | **Type** string **Properties** Autonumber, Defaulted on create, Filter, idLookup, Sort **Description** The name of the record. |
-| PrimaryAsmtQuestionResponseId | **Type** reference **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** The response value in the primary assessment that triggered the suggested assessment. This field is a relationship field. **Relationship Name** PrimaryAsmtQuestionResponse **Relationship Type** Lookup **Refers To** AssessmentQuestionResponse |
-| PrimaryAssessmentId | **Type** reference **Properties** Create, Filter, Group, Sort **Description** The primary assessment from which a suggested assessment was triggered. This field is a relationship field. **Relationship Name** PrimaryAssessment **Relationship Type** Lookup **Refers To** Assessment |
-| SuggestedAssessmentDefId | **Type** reference **Properties** Create, Filter, Group, Sort, Update **Description** The suggested assessment associated with the suggested assessment reason. This field is a relationship field. **Relationship Name** SuggestedAssessmentDef **Relationship Type** Lookup **Refers To** SuggestedAssessmentDef |
-| SuggestionSourceType | **Type** picklist **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** Specifies the source of the logic by which an assessment was suggested. Possible values are: `Business Rule` `MCG` |
-
-      
-
-      
+- **Type**: picklist
+- **Properties**: Create, Filter, Group, Nillable, Sort, Update
+- **Description**: Specifies the source of the logic by which an assessment was
+  suggested.
+- **Possible values**:
+  - `Business Rule`
+  - `MCG`
 
 ## Associated Objects
 
-         
-         
-
 This object has the following associated objects. If the API version isn’t specified,
-            they’re available in the same API versions as this object. Otherwise, they’re available
-            in the specified API version and later.
+they’re available in the same API versions as this object. Otherwise, they’re available
+in the specified API version and later.
 
-         
-            
-               
+[SuggestedAssessmentReasonFeed](https://developer.salesforce.com/docs/atlas.en-us.248.0.object_reference.meta/object_reference/sforce_api_associated_objects_feed.htm)
+:   Feed tracking is available for the object.
 
-**[SuggestedAssessmentReasonFeed](https://developer.salesforce.com/docs/atlas.en-us.248.0.object_reference.meta/object_reference/sforce_api_associated_objects_feed.htm)**
+[b](https://developer.salesforce.com/docs/atlas.en-us.248.0.object_reference.meta/object_reference/sforce_api_associated_objects_history.htm)
+:   History is available for tracked fields of the object.
 
-               
-: Feed tracking is available for the object.
+---
 
-            
-            
-               
-
-**[b](https://developer.salesforce.com/docs/atlas.en-us.248.0.object_reference.meta/object_reference/sforce_api_associated_objects_history.htm)**
-
-               
-: History is available for tracked fields of the object.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/sforce_api_objects_suggestedassessmentreason.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

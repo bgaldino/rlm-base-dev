@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_datatrueup_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Limitations for Data True-Up
@@ -21,6 +21,7 @@ RTB, HYP, and IMG DT tokens.
 DT tokens within clauses, including the Marked clause. You can create DT tokens inside sections.
 DT tokens placed inside headers or footers.
 DT tokens placed inside section or clause headings and titles.
+Omnistudio Data Mappers
 Data True-Up supports:
 Repeating line item tokens when the section and its field tokens use the DT_ prefix.
 Nested DT tokens for related object fields up to one level deep when you use the DT_ prefix.
@@ -44,9 +45,9 @@ Document template work only with document generation 2.0 and requires the Advanc
 Merging Data True-Up token data during document generation works only with Salesforce Contracts.
 Supports only DOCX templates. PPTX and PDF files aren’t compatible.
 Doesn’t support DT tokens in a document template’s table of contents.
-Avoid importing documents that contain DT fields from another org or a different contract object. DT tokens reference the contract object that they were generated from or the object specified in the ObjectId field of the Omnistudio Data Mapper or Context Service.
+Avoid importing documents that contain DT fields from another org or a different contract object. DT tokens reference the contract object that they were generated from or the object specified in the ObjectId field of the Context Service.
 Data Source Compatibility
-Custom date formats aren’t supported when the data is sourced through Data Mappers and transformed with formats. Only the default date format is supported.
+Only the default date format is supported.
 Data True-Up uses database values for fetching values without intermediate formatting. Document formatting doesn’t affect reconciliation values.
 For numeric fields, such as number, percentage, and currency, values with more decimal places than defined for the field show a validation warning but can be saved in the document without rounding off.
 Editing and Formatting
@@ -68,3 +69,7 @@ Formatting must be applied to the entire token, from {{ to }}.
 Formatting must be uniform across the entire token. You can't format part of the token one way and another part differently, for example, half bold and half italic.
 Only the following formatting options are supported: Bold, Italics, Underline, Font (typeface), and Font Size. Additional formatting options can be added on demand.
 You can edit DT token values through the Edit Value option in the Microsoft 365 Word add-in, even when tokens have formatting applied.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_datatrueup_limitations.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

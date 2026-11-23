@@ -7,287 +7,57 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Initiate Transfer Action
 
-Transfer an asset or multiple assets from one account to
-            another.
-
-        
-            
+Transfer an asset or multiple assets from one account to another.
 
 Keep these considerations in mind when you use this invocable action.
 
-            
-                
 - This action generates 2 quotes or 2 orders.
-
-                
-- One transaction is considered the source, which is used to calculate the
-                    reduction amount of the transfer. The other transaction is the target, which is
-                    used to calculate the new amount on the target account. 
-
-                
-- The quantity on the source is negative, which reduces the existing asset's
-                    quantity. The quantity on the target is positive, which creates a new asset on
-                    the target account.
-
-                
-- You can change the quantity on the source or the target, but the quantities must
-                    be equal and opposite. For example, the source quote line can have a quantity
-                    value as `-5`, and the target quote line can
-                    have a quantity value `5`. If you change the
-                    source value to `-10`, you must update the
-                    target value to `10`. You must update quotes
-                    or orders manually.
-
-                
+- One transaction is considered the source, which is used to calculate the reduction amount of the transfer. The other transaction is the target, which is used to calculate the new amount on the target account.
+- The quantity on the source is negative, which reduces the existing asset's quantity. The quantity on the target is positive, which creates a new asset on the target account.
+- You can change the quantity on the source or the target, but the quantities must be equal and opposite. For example, the source quote line can have a quantity value as `-5`, and the target quote line can have a quantity value `5`. If you change the source value to `-10`, you must update the target value to `10`. You must update quotes or orders manually.
 - The transfer is complete after the orders are assetized.
-
-            
-
-            
 
 This action is available in API version 65.0 and later.
 
-        
-
-        
-        
-
 ## Supported REST HTTP Methods
 
-            
-            
-                
-                    
+**URI:** `/services/data/v68.0/actions/standard/initiateTransfer`
 
-**URI**
+**Formats:** JSON, XML
 
-                    
-: `/services/data/v68.0/actions/standard/initiateTransfer`
+**HTTP Methods:** POST
 
-                
-                
-                    
-
-**Formats**
-
-                    
-: JSON, XML
-
-                
-                
-                    
-
-**HTTP Methods**
-
-                    
-: POST
-
-                
-                
-                    
-
-**Authentication**
-
-                    
-: `Authorization:
-                            Bearertoken`
-
-                
-            
-
-        
-
-        
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-            
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| outputRecordType | **Type** string **Description** Required. Specifies either a quote or order record type that’s being transferred. |
-| shouldSkipPricing | **Type** boolean **Description** Indicates whether to skip pricing at the time of asset transfer (`true`) or not (`false`). |
-| targetAccountId | **Type** string **Description** Required. The ID of the target account where the asset is transferred. |
-| targetContractId | **Type** string **Description** The ID of the target contract that’s associated with the asset that’s being transferred. |
-| transferDate | **Type** datetime **Description** Required. The date of the asset transfer. |
-| transferRecords | **Type** Apex-defined **Description** Required. A collection of Apex `connectapi__TransferRecordInputRepresentation` records that contain details about the assets to be transferred. See [ConnectApi.TransferRecordInputRepresentation](./apex_connectapi_input_transfer_record.htm.md). |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| outputRecordType | string | Required. Specifies either a quote or order record type that’s being transferred. |
+| shouldSkipPricing | boolean | Indicates whether to skip pricing at the time of asset transfer ( `true` ) or not ( `false` ). |
+| targetAccountId | string | Required. The ID of the target account where the asset is transferred. |
+| targetContractId | string | The ID of the target contract that’s associated with the asset that’s being transferred. |
+| transferDate | datetime | Required. The date of the asset transfer. |
+| transferRecords | Apex-defined | Required. A collection of Apex `connectapi__TransferRecordInputRepresentation` records that contain details about the assets to be transferred. See [ConnectApi.TransferRecordInputRepresentation](./apex_connectapi_input_transfer_record.htm.md "Input representation of the details of the assets to be transferred."). |
 
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Output | Details |
-| --- | --- |
-| assetTransferSourceId | **Type** id **Description** The ID of the quote or order that’s related to the source account used to start the transfer. |
-| assetTransferTargetId | **Type** id **Description** The ID of the quote or order that’s related to the target account used to start the transfer. |
-| requestIdentifier | **Type** id **Description** The request ID can be used to track the async request. |
-
-        
-
-        
-        
+| Output | Type | Description |
+| --- | --- | --- |
+| assetTransferSourceId | id | The ID of the quote or order that’s related to the source account used to start the transfer. |
+| assetTransferTargetId | id | The ID of the quote or order that’s related to the target account used to start the transfer. |
+| requestIdentifier | id | The request ID can be used to track the async request. |
 
 ## Example
 
-            
-            
-                
-                    
-
 **POST**
 
-                    
-: 
-                        
-
 Here's a sample input to call this invocable action.
-
-                        
 
 ```
 {
@@ -308,15 +78,7 @@ Here's a sample input to call this invocable action.
 }
 ```
 
-                    
-
-                    
-: 
-                        
-
 Here's a sample input to call this invocable action from Apex code.
-
-                        
 
 ```
 ConnectApi.TransferRecordInputRepresentation transferRecord = new ConnectApi.TransferRecordInputRepresentation();
@@ -335,15 +97,7 @@ System.assertEquals(true, results[0].isSuccess());
 Assert.isNotNull(results[0].getOutputParameters().get('assetTransferSourceId'));
 ```
 
-                    
-
-                    
-: 
-                        
-
 Here's a sample response when you call this action.
-
-                        
 
 ```
 [
@@ -362,3 +116,7 @@ Here's a sample response when you call this action.
   }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_initiate_transfer.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

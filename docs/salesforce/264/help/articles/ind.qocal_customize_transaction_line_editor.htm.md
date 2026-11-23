@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_quote_and_order_features_in_revenue_cloud.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Add and Customize the Transaction Line Editor or Sales Transaction Line Editor
@@ -20,7 +20,7 @@ Perform bulk actions such as editing fields, updating discounts, or deleting sel
 Filter and sort items across groups.
 View and edit group details in the side panel.
 
-The line editors show as Quote Line Items on the Quote page and as Order Products on the Order page. To access this component, users need an Revenue Management permission set, such as Assetize Order or Price and Tax Calculation for Quoting.
+The line editors show as Quote Line Items on the Quote page and as Order Products on the Order page. To access this component, users need an Revenue Cloud permission set, such as Assetize Order or Price and Tax Calculation for Quoting.
 
 The line editors use the Transaction Line Progress Indicator component to:
 
@@ -61,3 +61,7 @@ Adjustment Type Column
 The Adjustment Type column merges multiple adjustment fields into a single column so that sales reps can make pricing adjustments more efficiently.
 Turn On Auto-Refresh for the Sales Transaction Line Editor and Transaction Summary
 Keep your sales reps focused on closing deals instead of reloading pages. To turn on auto-refresh for Sales Transaction Line Editor (STLE) and Transaction Summary, set up Change Data Capture for the quote and order objects. The auto-refresh feature captures changes made outside STLE, including record pages, flows, Apex triggers, and Agentforce actions. After it's turned on, sales reps see accurate line items right away, helping them work with confidence and complete quotes and orders faster.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_customize_transaction_line_editor.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

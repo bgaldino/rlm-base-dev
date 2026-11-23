@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Billing Arrangements
@@ -88,3 +88,7 @@ Configure Billing Arrangements for Billing Schedule Groups
 Route invoices with the appropriate allocated charges to the correct billing accounts by configuring billing arrangements on billing schedule groups.
 Examples: Flexible Invoicing for Complex Business Models
 Billing arrangements can help you manage complex financial relationships by automating the allocation of invoice charges across billing accounts. You can configure billing arrangements for invoicing a billing account that’s different from a service or owning account. You can also split bills for products or services shared by multiple accounts to streamline invoicing with prorated charge allocation. Here are several business scenarios where billing arrangements help businesses by invoicing and billing the right parties.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_billing_arrangements.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_consumption_management.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Consumption Management Lifecycle
@@ -22,3 +22,7 @@ Orchestrate Usage Management Flow Stages
 The Orchestrate Usage Management flow with its subflows processes consumption data in various stages.
 Consumption Management Lifecycle Statuses
 The successful processing of consumption data involves status changes across the interlinked summaries—Usage Summary, Usage Ratable Summary, and Liable Summary. The entire flow, from raw usage data in the transaction journal to the calculation of net unit rates and the creation of invoice-ready data, is managed through these coordinated summaries.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_cnsption_mngmnt_lifecycle.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

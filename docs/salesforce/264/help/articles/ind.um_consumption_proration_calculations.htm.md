@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_buckets_and_drawdowns.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Consumption Proration Calculations
@@ -30,3 +30,7 @@ Mid-Cycle Rate Amendments
 
 SCENARIO	PRORATION CALCULATION	RESULT
 A customer is consuming an active plan that’s valid from Jan 1 to Jan 31. In the middle of a customer’s billing period, a sales rep overrides and amends the negotiated rate of a resource from $10 to $9.	The proration engine splits the consumption for the different rate durations. Consumed units logged before Jan 15 are aggregated and rated at the $10 rate, while usage logged after the amendment date is aggregated separately and rated at the new $9 rate.	Consumption Management generates two separate Liability Summary rows for the split periods, ensuring the total invoice accurately reflects the prorated mid-cycle rate change.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_consumption_proration_calculations.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

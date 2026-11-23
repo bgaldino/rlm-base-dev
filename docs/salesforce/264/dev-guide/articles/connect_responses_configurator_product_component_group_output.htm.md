@@ -7,22 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_responses.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Configurator Product Component Group
 
 Output representation of the product component group in a product classification.
 
-    
-
 ## JSON Example
 
-      
-      
-
 ```
-
     "productComponentGroups": [
       {
         "classifications": [],
@@ -216,171 +210,11 @@ Output representation of the product component group in a product classification
     ]
 ```
 
-    
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `classifications` | [Configurator Product Classification](./connect_responses_configurator_product_classification_output.htm.md)[] | List of classifications for this product component group. | Small, 60.0 | 60.0 |
+| `classifications` | [Configurator Product Classification](./connect_responses_configurator_product_classification_output.htm.md "Output representation of the product classification in a product configuration.")[] | List of classifications for this product component group. | Small, 60.0 | 60.0 |
 | `code` | String | Code of the product component group. | Small, 60.0 | 60.0 |
-| `components` | [Configurator Product Catalog](./connect_responses_configurator_product_catalog_output.htm.md)[] | Components within the product component group. | Small, 60.0 | 60.0 |
+| `components` | [Configurator Product Catalog](./connect_responses_configurator_product_catalog_output.htm.md "Output representation of the product catalog.")[] | Components within the product component group. | Small, 60.0 | 60.0 |
 | `description` | String | Description of the product component group. | Small, 60.0 | 60.0 |
 | `id` | String | ID of the product component group. | Small, 60.0 | 60.0 |
 | `maxBundle​Components` | Integer | Maximum number of bundle components within the product component group. | Small, 60.0 | 60.0 |
@@ -388,3 +222,7 @@ Output representation of the product component group in a product classification
 | `name` | String | Name of the product component group. | Small, 60.0 | 60.0 |
 | `parent​ProductId` | String | Parent Product2 ID of the product component group. | Small, 60.0 | 60.0 |
 | `sequence` | Integer | Sequence of the product component group. | Small, 60.0 | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_configurator_product_component_group_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_payment_schedules_and_payment_schedule_items_auto_manual.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Automatic Creation of Payment Schedules and Payment Schedule Items
@@ -16,8 +16,8 @@ Automate the creation of payment schedules and payment schedule items so that th
 REQUIRED EDITIONS
 Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
-The Salesforce Payments feature is available with the Revenue Cloud Billing license, with a cost per transaction model for both native and Bring Your Own payment gateways. Contact your Salesforce account executive for more information.
-If you purchased the Revenue Cloud Billing license on or before July 2025, contact your Salesforce account executive to add the Salesforce Payments feature to your existing license.
+To integrate a native payment gateway, you have two options. Use Salesforce Payments, which runs on Stripe and is available with the the Revenue Cloud Billing license on a cost-per-transaction basis. Or, connect your own Adyen account, contracted directly with Adyen.
+ 
 Process Overview
 
 When your Payments admin enables the Create Payment Schedules and Payment Schedule Items feature for the first time, these default records are created for your Salesforce org:
@@ -55,3 +55,7 @@ Revenue Cloud Developer Guide: PaymentSchedulePolicy
 Revenue Cloud Developer Guide: PaymentScheduleTreatment
 Revenue Cloud Developer Guide: PaymentScheduleTreatmentDtl
 Revenue Cloud Developer Guide: PymtSchdDistributionMethod
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_setup_payment_schedules_and_payment_schedule_items_enable.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

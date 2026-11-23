@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_integration_ms365_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Set Up Microsoft 365 and Azure Integration Using Guided Setup
@@ -37,3 +37,7 @@ Set Up External Document Storage for Salesforce Contracts Using Guided Setup
 Set up external document storage for Salesforce contract records and templates, which is used for online editing in Microsoft 365. Specify the target object and record type to determine which records use external storage. Doing this ensures proper organization and access to the documents. A target object and record type combination must be unique and can’t be repeated.
 Deploy Salesforce Contracts Connector for Microsoft Word Using Guided Setup
 Help users manage contract documents directly in Microsoft Word. You can manually deploy the connector either centrally for all users or for specific users.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

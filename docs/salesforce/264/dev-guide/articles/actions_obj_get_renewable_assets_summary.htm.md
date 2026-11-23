@@ -7,184 +7,52 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Get Renewable Assets Summary Action
 
-Retrieve details about renewable assets in a given order. You can
-            use this information to create renewal opportunities.
+Retrieve details about renewable assets in a given order. You can use this information to create renewal opportunities.
 
-        
+This action gets pricing data from the OrderEntitiesMapping context mapping within the SalesTransactionContext context definition. Before you use this action, edit the context mapping to map the objects and fields used in your pricing procedure to the nodes and attributes in the context definition.
 
-This action gets pricing data from the OrderEntitiesMapping context mapping
-                within the SalesTransactionContext context definition. Before you use this action,
-                edit the context mapping to map the objects and fields used in your pricing
-                procedure to the nodes and attributes in the context definition.
+This action doesn’t support providing a summary with procedure plans. As a result, renewal line items may return a price of zero.
 
-This action
-                doesn’t support providing a summary with procedure plans. As a result, renewal line
-                items may return a price of zero.
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=revenue_lifecycle_management_dev_guide)
 
 #### Note
 
-We recommend adding the same fields and
-                mappings for the Quote and Order objects, and for the Quote Line Item and Order
-                Product objects.
+We recommend adding the same fields and mappings for the Quote and Order objects, and for the Quote Line Item and Order Product objects.
 
-This action is available in API version 64.0 and
-                later.
-
-        
-        
+This action is available in API version 64.0 and later.
 
 ## Supported REST HTTP Methods
 
-            
-            
-                
-                    
+**URI:** `/services/data/v68.0/actions/standard/getRenewableAssetsSummary`
 
-**URI**
+**Formats:** JSON, XML
 
-                    
-: `/services/data/v68.0/actions/standard/getRenewableAssetsSummary`
+**HTTP Methods:** POST
 
-                
-                
-                    
-
-**Formats**
-
-                    
-: JSON, XML
-
-                
-                
-                    
-
-**HTTP Methods**
-
-                    
-: POST
-
-                
-                
-                    
-
-**Authentication**
-
-                    
-: `Authorization:
-                            Bearertoken`
-
-                
-            
-
-        
-
-        
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-            
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| orderId | **Type** id **Description** Required. ID of the order related to the assets to check for renewal opportunities. |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| orderId | id | Required. ID of the order related to the assets to check for renewal opportunities. |
 
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Output | Details |
-| --- | --- |
-| renewableAssetsSummary | **Type** Apex-defined **Description** Summary of the assets associated with the order, including details about renewal opportunities such as renewal pricing information. See [renew_assets_summary Apex Namespace](./apex_namespace_renew_assets_summary.htm.md). |
-
-        
-
-        
-        
+| Output | Type | Description |
+| --- | --- | --- |
+| renewableAssetsSummary | Apex-defined | Summary of the assets associated with the order, including details about renewal opportunities such as renewal pricing information. See [renew\_assets\_summary Apex Namespace](./apex_namespace_renew_assets_summary.htm.md "HTML (New Window)"). |
 
 ## Example
 
-            
-            
-                
-                    
-
 **POST**
 
-                    
-: 
-                        
-
 Here's a sample request for the Get Renewable Assets Summary action.
-
-                        
 
 ```
 {
@@ -196,15 +64,7 @@ Here's a sample request for the Get Renewable Assets Summary action.
 }
 ```
 
-                    
-
-                    
-: 
-                        
-
 Here's a sample response for the Get Renewable Assets Summary action.
-
-                        
 
 ```
 [
@@ -243,3 +103,7 @@ Here's a sample response for the Get Renewable Assets Summary action.
   }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_get_renewable_assets_summary.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

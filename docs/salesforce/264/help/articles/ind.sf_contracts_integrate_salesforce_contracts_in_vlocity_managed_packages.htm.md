@@ -5,7 +5,7 @@ source_url: https://help.salesforce.com/s/articleView?id=ind.sf_contracts_integr
 release: 264
 release_name: Winter '27
 area: salesforce_contracts
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Integration of Salesforce Contracts in Vlocity Managed Packages
@@ -28,3 +28,7 @@ Disable Vlocity State Models Trigger
 To use the Salesforce Contracts features in an org, the contract admin must disable the Vlocity State Models trigger so that Salesforce Contracts can use the default Contract Lifecycle Management object state definitions. You must disable the trigger in the orgs where Omnistudiio licenses are provisioned first, followed by the installation of the Vlocity managed package (CME or INS).
 Support for Template Designer in Core and Server-Side Document Generation
 The combinations of managed packages that support the transition from the manage package designer to the document template designer in Salesforce core. In core, the designer is named Design Document Templates.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_integrate_salesforce_contracts_in_vlocity_managed_packages.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

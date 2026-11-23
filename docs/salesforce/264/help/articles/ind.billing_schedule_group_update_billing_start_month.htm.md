@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_schedule_group_update.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Billing Start Month
@@ -18,7 +18,11 @@ Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
 Eligibility Conditions for Updating Billing Start Month
 
-The billing day of month can be updated only if these conditions are met:
+The billing start month can be updated only if these conditions are met:
 
 The billing term unit of the billing schedule group must be Semi-Annual or Quarter.
 The billing method of the billing schedule group can't be Usage.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_schedule_group_update_billing_start_month.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

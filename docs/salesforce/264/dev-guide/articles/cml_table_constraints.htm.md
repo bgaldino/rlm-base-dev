@@ -7,60 +7,34 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_constraints.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Table Constraints
 
 The table constraint in Constraint Modeling Language (CML) is used to define a set of
-    valid combinations of values for two or more attributes. These combinations are specified in
-    rows within the constraint definition.
-
-    
-      
+valid combinations of values for two or more attributes. These combinations are specified in
+rows within the constraint definition.
 
 The table constraint has this syntax:
-
-      
 
 ```
 table(variable, …, variable, {value, .. value}, …, {value, …, value});
 ```
 
-      
-
 Each row inside {} defines a valid combination of values.
-
-    
-
-    
 
 ## Example: Table Constraint
 
-      
-      
-
 In this example:
 
-      
-        
 - Variables: The attributes `Voltage` and `DutyRating` are listed as the columns for the table.
-
-        
 - Table Rows: Each row defined within the curly braces ({}) specifies a valid combination.
-          For instance, `{"7976/13800", "Continuous Power
-            (COP)"}` is a valid pairing.
-
-        
+  For instance, `{"7976/13800", "Continuous Power
+  (COP)"}` is a valid pairing.
 - Enforcement: If a user attempts to select a high voltage (`"7976/13800"`) while choosing a Prime Power rating (`"Prime Power (PRP)"`), the table constraint is violated, and the engine
-          displays the error message: "Selected Voltage is not compatible with the required Duty
-          Rating."
-
-      
-
-      
+  displays the error message: "Selected Voltage is not compatible with the required Duty
+  Rating."
 
 ```
 // --- Component Types ---
@@ -86,39 +60,21 @@ DutyRating,
 }
 ```
 
-    
-
-    
-
 ## Import Data from a Salesforce Object to Populate a Table Constraint
-
-      
-      
 
 Import data from a standard or custom Salesforce object to use in a table constraint in a constraint model. The imported data populates the columns and rows in the table constraint in CML, and saves you the step of manually entering the data.
 
-      
-
 To import data from a Salesforce object, first assign Read, Create, Edit, and Delete
-        permissions for the object to the Constraint Rules Engine Licenseless permission set. See
-          [Import Data from Salesforce Objects
-          to Use in Constraint Models](https://help.salesforce.com/s/articleView?id=ind.product_configurator_import_object_data.htm&language=en_US) in Salesforce Help.
-
-      
+permissions for the object to the Constraint Rules Engine Licenseless permission set. See
+[Import Data from Salesforce Objects
+to Use in Constraint Models](https://help.salesforce.com/s/articleView?id=ind.product_configurator_import_object_data.htm&language=en_US "HTML (New Window)") in Salesforce Help.
 
 In CML, use the SalesforceTable keyword and the syntax shown here to import data from a
-        Salesforce object. This example uses the `GeneratorSet`
-        type to constrain the calculated running capacity (`gc_runningKw`) based on a user's selection of the nominal output (`Nominal_Power_Output`), referencing an external Salesforce
-        custom object named PowerCst__c.
-
-    
-
-    
+Salesforce object. This example uses the `GeneratorSet`
+type to constrain the calculated running capacity (`gc_runningKw`) based on a user's selection of the nominal output (`Nominal_Power_Output`), referencing an external Salesforce
+custom object named PowerCst\_\_c.
 
 ## Example: Imported Table Constraint
-
-      
-      
 
 ```
 type GeneratorSet {
@@ -137,28 +93,19 @@ SalesforceTable("PowerCst__c","Nominal__c,Running__c")
 }
 ```
 
-    
-
-    
-
 ## Explanation of the Imported Table
 
-      
-      
-
 The table constraint ensures that the selected values for `Nominal_Power_Output` and `gc_runningKw` must
-        form one of the valid combinations defined in the external source.
+form one of the valid combinations defined in the external source.
 
-      
-        
 - Table (`Nominal_Power_Output`, `gc_runningKw`, ...): These are the CML attributes whose
-          values must correlate. They define the columns of the required combination table.
-
-        
+  values must correlate. They define the columns of the required combination table.
 - Salesforce Table ("`PowerCst__c",
-            "Nominal__c,Running__c`"): This function keyword directs the constraint engine
-          to import data from the Salesforce custom object PowerCst__c.
-
-        
+  "Nominal__c,Running__c`"): This function keyword directs the constraint engine
+  to import data from the Salesforce custom object PowerCst\_\_c.
 - Field Mapping: The fields specified ("`Nominal__c,Running__c`") define the columns in the Salesforce object that
-          correspond to the CML attributes listed in the table function. Nominal__c maps to `Nominal_Power_Output`, and Running__c maps to `gc_runningKw`.
+  correspond to the CML attributes listed in the table function. Nominal\_\_c maps to `Nominal_Power_Output`, and Running\_\_c maps to `gc_runningKw`.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_table_constraints.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

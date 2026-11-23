@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_set_up_constraints_engine.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Context Definitions
@@ -15,10 +15,14 @@ Update the extended SalesTransactionContext context definition and set up a cust
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 Update the Extended SalesTransactionContext Context Definition
 
 To use the custom ConstraintEngineNodeStatus field, update the extended SalesTransactionContext context definition ​that's configured for the default pricing procedure on the Revenue Settings page.
+
+Constraint Rules Engine uses the extended SalesTransactionContext context definition to read and write each line item's configuration state as it runs CML. The ConstraintEngineNodeStatus and AssetConstraintEngineNodeStatus attributes and their mappings, along with the TransactionType mappings, are required setup rather than optional refinements. Complete them before you use Constraint Rules Engine.
+
+When you extend a base context definition instead of cloning it, the base definition's standard attributes and mappings carry over, but the CML-required items don't. The ConstraintEngineNodeStatus and AssetConstraintEngineNodeStatus attributes and their mappings point to the ConstraintEngineNodeStatus__c custom field that you create, so they aren't part of the base SalesTransactionContext. Add these attributes and mappings yourself after you extend the definition.
 
 Add Attributes
 
@@ -53,6 +57,8 @@ Activate Context Definition
 
 Activate the updated SalesTransactionContext context definition.
 
+An extended context definition starts without a default mapping, because inherited mappings come across as non-default. Designate one mapping as the default before you activate the extended definition. Otherwise, activation fails.
+
 See Activate a Context Definition.
 
 Set Up Custom Asset Context Definition
@@ -60,6 +66,10 @@ Set Up Custom Asset Context Definition
 Set up an asset context definition to get asset data based on the selected context. Use this asset data when you configure asset-based rules and constraints in the CML Editor, and apply other filters on the data as needed.
 
 An asset context is required to create asset-based configuration rules and constraints. If you don't define one, Constraint Rules Engine doesn't fetch any asset data.
+
+When you extend a base context definition instead of cloning it, the base definition's own standard attributes and mappings are preserved, and you can use Sync to pick up later updates to the base. Extending doesn't add the CML-required items for you. The ConstraintEngineNodeStatus and AssetConstraintEngineNodeStatus attributes, their mappings to the ConstraintEngineNodeStatus__c custom field, and the TransactionType mappings aren't part of the base SalesTransactionContext, because they reference a custom field that you create. Add these attributes and mappings yourself after you extend the context definition.
+
+Designate one mapping as the default before you activate the extended definition. Extended context definitions start without a default mapping.
 
 NOTE You can set up a custom asset context definition only from Summer ’25 and onwards.
 Create Custom Asset Context Definitions
@@ -82,3 +92,7 @@ In the Set Up Asset Context for Product Configurator section, select the asset c
 After you select the asset context definition, filter the asset data directly in the CML Editor based on your requirements when you define configuration rules and constraints.
 
 To learn about creating rules and constraints by using Constraint Rules Engine, see Use Constraint Builder With Constraint Rules Engine.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_set_up_constraint_engine_context_definitions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

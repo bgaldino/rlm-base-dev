@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_local_cardinality_and_group_cardinality.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Local Cardinality
@@ -49,3 +49,7 @@ Edit Local Cardinality
 To define the default, minimum, and maximum quantity of a product that’s permissible in the product bundle, edit the local cardinality of the product component and the product classification component.
 Override Local Cardinality
 You can override the cardinality of product components and product classification components that are at the second level and beyond in the product hierarchy. When you override the local cardinality, you update the product component or product classification component cardinality while maintaining a record of the original local cardinality. You can revert to the original cardinality by restoring the default cardinality.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_local_cardinality.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

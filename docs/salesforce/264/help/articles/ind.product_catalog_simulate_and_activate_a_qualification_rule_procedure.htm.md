@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_qualification_rules.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Simulate and Activate a Qualification Rule Procedure
@@ -39,3 +39,7 @@ Click Activate.
 All the pieces are now in place for your qualification rule. As a best practice, check the Product Discovery Settings to ensure that you have the correct Context Definition and Qualification Procedure selected there.
 
 To check these settings, go to Setup | Product Discovery | Product Discovery Settings.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_simulate_and_activate_a_qualification_rule_procedure.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

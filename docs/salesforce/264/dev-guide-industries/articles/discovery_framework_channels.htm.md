@@ -7,206 +7,105 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Discovery Framework
 parent_page: discovery_framework_metadata_api_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Supported Metadata Channels
 
 In Discovery Framework, you can create questions and question sets to categorize
-    questions, and you can move such a dataset across multiple orgs. A metadata wrapper is
-    automatically created for these objects.
+questions, and you can move such a dataset across multiple orgs. A metadata wrapper is
+automatically created for these objects.
 
-    
-      Metadata APIs provide ways to package those datasets and move them across orgs. There are
-        multiple ways to export or import datasets from one org to another. Each way is a metadata
-        channel that provides some specific features with the import or export. The public metadata
-        API is the basic way in which metadata is serialized so that clients can read, edit, and
-        deploy the data into the same or another organization. Exposure in the public metadata API
-        is a prerequisite for these channels.
-          
-            
+Metadata APIs provide ways to package those datasets and move them across orgs. There are
+multiple ways to export or import datasets from one org to another. Each way is a metadata
+channel that provides some specific features with the import or export. The public metadata
+API is the basic way in which metadata is serialized so that clients can read, edit, and
+deploy the data into the same or another organization. Exposure in the public metadata API
+is a prerequisite for these channels.
 
-**[Second-Generation Managed
-                Packages](https://developer.salesforce.com/docs/atlas.en-us.pkg2_dev.meta/pkg2_dev/sfdx_dev_dev2gp.htm)**
+[Second-Generation Managed Packages](https://developer.salesforce.com/docs/atlas.en-us.pkg2_dev.meta/pkg2_dev/sfdx_dev_dev2gp.htm "HTML (New Window)")
+:   Managed packages are used by Salesforce partners to distribute and sell
+    applications to customers.
 
-            
-: 
-              
+[Unlocked Packaging](https://developer.salesforce.com/docs/atlas.en-us.264.0.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_before.htm "HTML (New Window)")
+:   Unlocked packages are especially suited for internal business apps. You can use
+    unlocked packages to organize your existing metadata, package an app, extend an app
+    that you’ve purchased from AppExchange, or package new metadata.
 
-Managed packages are used by Salesforce partners to distribute and sell
-                applications to customers. 
+[Unmanaged Package](https://developer.salesforce.com/docs/atlas.en-us.pkg1_dev.meta/pkg1_dev/sharing_apps.htm "HTML (New Window)")
+:   Unmanaged packages are typically used to distribute open-source projects or
+    application templates to provide developers with the basic building blocks for an
+    application.
 
-            
+[Change Sets](https://help.salesforce.com/s/articleView?id=platform.changesets.htm&type=5&language=en_US "HTML (New Window)")
+:   Use change sets to send customizations from one Salesforce org to another. For
+    example, you can create and test a new object in a sandbox org, then send it to your
+    production org using a change set.
 
-          
-          
-            
+[Salesforce CLI](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/meta_rest_deploy_enable_cli.htm "HTML (New Window)")
+:   Salesforce CLI is the client-side tool at the center of the modern Salesforce
+    developer experience. It’s a command-line interface that simplifies development and
+    build automation when working with Salesforce orgs. Use it to create and manage orgs,
+    synchronize metadata to and from orgs, create and install packages, and more.
 
-**[Unlocked Packaging](https://developer.salesforce.com/docs/atlas.en-us.264.0.sfdx_dev.meta/sfdx_dev/sfdx_dev_unlocked_pkg_before.htm)**
-
-            
-: 
-              
-
-Unlocked packages are especially suited for internal business apps. You can use
-                unlocked packages to organize your existing metadata, package an app, extend an app
-                that you’ve purchased from AppExchange, or package new metadata.
-
-            
-
-          
-        
-
-      
-        
-          
-
-**[Unmanaged Package](https://developer.salesforce.com/docs/atlas.en-us.pkg1_dev.meta/pkg1_dev/sharing_apps.htm)**
-
-          
-: 
-            
-
-Unmanaged packages are typically used to distribute open-source projects or
-              application templates to provide developers with the basic building blocks for an
-              application.
-
-          
-
-        
-        
-          
-
-**[Change Sets](https://help.salesforce.com/s/articleView?id=platform.changesets.htm&type=5&language=en_US)**
-
-          
-: 
-            
-
-Use change sets to send customizations from one Salesforce org to another. For
-              example, you can create and test a new object in a sandbox org, then send it to your
-              production org using a change set.
-
-          
-
-        
-        
-          
-
-**[Salesforce CLI](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/meta_rest_deploy_enable_cli.htm)**
-
-          
-: 
-            
-
-Salesforce CLI is the client-side tool at the center of the modern Salesforce
-              developer experience. It’s a command-line interface that simplifies development and
-              build automation when working with Salesforce orgs. Use it to create and manage orgs,
-              synchronize metadata to and from orgs, create and install packages, and more.
-
-          
-
-        
-        
-          
-
-**[Source Control
-              Integration/Source-Driven Development](https://developer.salesforce.com/docs/atlas.en-us.264.0.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file_config_values.htm)**
-
-          
-: 
-            
-
-A scratch org is a source-driven and disposable deployment of Salesforce code and
-              metadata. A scratch org is fully configurable, allowing developers to emulate
-              different Salesforce editions with different features and preferences.
-
-          
-
-        
-      
-
-    
-
-    
+[Source Control Integration/Source-Driven Development](https://developer.salesforce.com/docs/atlas.en-us.264.0.sfdx_dev.meta/sfdx_dev/sfdx_dev_scratch_orgs_def_file_config_values.htm "HTML (New Window)")
+:   A scratch org is a source-driven and disposable deployment of Salesforce code and
+    metadata. A scratch org is fully configurable, allowing developers to emulate
+    different Salesforce editions with different features and preferences.
 
 ## Usage
 
-      
-      
-
 When importing or exporting the Discovery Framework metadata APIs types across the
-        supported channels, we recommend that you review these considerations:
+supported channels, we recommend that you review these considerations:
 
-      
-        
 - When you deploy metadata with a managed package, the namespace is inserted in setup and
-          platform objects.
-
-        
+  platform objects.
 - When a dataset is deployed using a change set, the created setup object record has the
-          namespace of the target org only. The created platform object record has the Null
-          namespace.
-
-        
+  namespace of the target org only. The created platform object record has the Null
+  namespace.
 - When deploying a beta or released version of the managed package in a target org, the
-          installation creates both setup and platform objects for AssessmentQuestion and
-          AssessmentQuestionSets. The setup object and developerName of the platform object for
-          AssessmentQuestion and AssessmentQuestionSets are not editable in a target org. Assessment
-          questions in Beta packages are also not editable.
-
-        
+  installation creates both setup and platform objects for AssessmentQuestion and
+  AssessmentQuestionSets. The setup object and developerName of the platform object for
+  AssessmentQuestion and AssessmentQuestionSets are not editable in a target org. Assessment
+  questions in Beta packages are also not editable.
 - You can update or upgrade a released version of the managed package. Setup and platform
-          objects for AssessmentQuestion and AssessmentQuestionSets are updated if there are changes
-          in the upgraded version. 
-
-        
+  objects for AssessmentQuestion and AssessmentQuestionSets are updated if there are changes
+  in the upgraded version.
 - Uninstalling the beta version of the managed package deletes the metadata from the
-          target org. Setup objects are deleted for AssessmentQuestion and
-          AssessmentQuestionSets.
-
-        
+  target org. Setup objects are deleted for AssessmentQuestion and
+  AssessmentQuestionSets.
 - When using a scratch org,
-            
   - Create the scratch org definition
-              with:
+    with:
 
-```
-{
-  "orgName": "Sample Org",
-  "edition": "developer",
-  "features": [
-    "ASSESSMENTS"
-  ],
-  "settings": {
-    "industriesSettings": {
-      "enableIndustriesAssessment": true,
-      "enableDiscoveryFrameworkMetadata": true
+    ```
+    {
+      "orgName": "Sample Org",
+      "edition": "developer",
+      "features": [
+        "ASSESSMENTS"
+      ],
+      "settings": {
+        "industriesSettings": {
+          "enableIndustriesAssessment": true,
+          "enableDiscoveryFrameworkMetadata": true
+        }
+      }
     }
-  }
-}
-```
-
-            
+    ```
   - Enabling Discovery Framework (ASSESSMENTS) enables both AssessmentQuestion and
-              AssessmentQuestionSet and enabling enableDiscoveryFrameworkMetadata enables the
-              metadata for both AssessmentQuestion and AssessmentQuestionSet.
-
-            
-  - Add the Assessment to the page layout. See [Page Layouts](https://help.salesforce.com/s/articleView?id=platform.customize_layout.htm&type=5&language=en_US) in Salesforce Help for
-              more information.
-
-          
-
-        
+    AssessmentQuestionSet and enabling enableDiscoveryFrameworkMetadata enables the
+    metadata for both AssessmentQuestion and AssessmentQuestionSet.
+  - Add the Assessment to the page layout. See [Page Layouts](https://help.salesforce.com/s/articleView?id=platform.customize_layout.htm&type=5&language=en_US "HTML (New Window)") in Salesforce Help for
+    more information.
 - Deploying or retrieving the OmniScript metadata API for Discovery Framework is supported
-          only in Change Sets, Salesforce CLI, Source Control Integration/Source-Driven Development,
-          and public metadata API channels only.
-
-        
+  only in Change Sets, Salesforce CLI, Source Control Integration/Source-Driven Development,
+  and public metadata API channels only.
 - To avoid deployment errors, do not combine Setup objects and non-setup objects in a
-          single transaction. For example, deploy Apex Class and Platform BPOs, such as
-          AssessmentQuestion and ExpressionSets separately. See [Deploying OmniStudio Components with Other Objects Causes an
-            Exception](https://help.salesforce.com/s/articleView?id=002890891&type=1&language=en_US)
+  single transaction. For example, deploy Apex Class and Platform BPOs, such as
+  AssessmentQuestion and ExpressionSets separately. See [Deploying OmniStudio Components with Other Objects Causes an
+  Exception](https://help.salesforce.com/s/articleView?id=002890891&type=1&language=en_US)
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/discovery_framework_channels.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

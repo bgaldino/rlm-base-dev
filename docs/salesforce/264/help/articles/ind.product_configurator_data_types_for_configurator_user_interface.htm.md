@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_third_party_configurator.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Data Types for Configurator User Interface
@@ -15,7 +15,7 @@ The Apex classes contain data accessible through the user interface. The Configu
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 
 The effective method to interact with the user interface is to import data through the Flow user interface properties that the Data Manager exports.
 
@@ -199,3 +199,7 @@ parentId	String
 parentName	String
 origin	String
 pricingTermUnit	String
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_data_types_for_configurator_user_interface.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

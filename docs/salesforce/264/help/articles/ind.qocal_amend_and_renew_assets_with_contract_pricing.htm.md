@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_advanced_amendment_and_renewal_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Apply Contract Pricing When Amending or Renewing
@@ -15,7 +15,7 @@ Apply negotiated contract prices or discounts to amendments and renewals to ensu
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS
 NEEDED
 To use contract pricing:	Salesforce Pricing Design Time User
@@ -29,3 +29,7 @@ From App Launcher, find and select Contracts.
 From the Contract List view, select a contract.
 On the Assets tab of the contract, select the assets that you want to amend or renew.
 Select Amend or Renew.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_amend_and_renew_assets_with_contract_pricing.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

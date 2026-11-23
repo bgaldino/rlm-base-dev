@@ -7,57 +7,37 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: apex_namespace_InvoiceWriteOff.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # WriteOffInvoiceResponseError Class
 
 Contains properties to store the error response that's associated with a request to write
-    off a posted invoice.
+off a posted invoice.
 
 ## Namespace
 
-[InvoiceWriteOff](./apex_namespace_InvoiceWriteOff.htm.md)
+[InvoiceWriteOff](./apex_namespace_InvoiceWriteOff.htm.md "Create credit memos with the total charge amount on the invoice as the write-off amount and close the invoice.")
 
-- 
-**[WriteOffInvoiceResponseError Constructors](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceResponseError_constructors)**  
-
-Learn more about the constructors available with the WriteOffInvoiceResponseError     class.
-
-- 
-**[WriteOffInvoiceResponseError Properties](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceResponseError_properties)**  
-
-Learn more about the properties available with the WriteOffInvoiceResponseError     class.
-
-  
+- **[WriteOffInvoiceResponseError Constructors](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceResponseError_constructors)**  
+  Learn more about the constructors available with the WriteOffInvoiceResponseError class.
+- **[WriteOffInvoiceResponseError Properties](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceResponseError_properties)**  
+  Learn more about the properties available with the WriteOffInvoiceResponseError class.
 
 ## WriteOffInvoiceResponseError Constructors
 
-  
-  
-  
 Learn more about the constructors available with the WriteOffInvoiceResponseError
-    class.
-
-    
-      
+class.
 
 The `WriteOffInvoiceResponseError` class includes these
-        constructors.
+constructors.
 
-    
-
-- 
-**[WriteOffInvoiceResponseError(errorCode, errorMessage)](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceResponseError_ctor)**  
-
-Initializes the WriteOffInvoiceResponseError class that stores the error response that's     associated with a request to write off a posted invoice.
+- **[WriteOffInvoiceResponseError(errorCode, errorMessage)](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceResponseError_ctor)**  
+  Initializes the WriteOffInvoiceResponseError class that stores the error response that's associated with a request to write off a posted invoice.
 
 ### WriteOffInvoiceResponseError(errorCode, errorMessage)
 
-Initializes the WriteOffInvoiceResponseError class that stores the error response that's
-    associated with a request to write off a posted invoice.
+Initializes the WriteOffInvoiceResponseError class that stores the error response that's associated with a request to write off a posted invoice.
 
 #### Signature
 
@@ -67,43 +47,28 @@ Initializes the WriteOffInvoiceResponseError class that stores the error respons
 
 **errorCode**
 
-: Type: String
-
-: 
+Type: String
 
 Code that represents the error.
 
 **errorMessage**
 
-: Type: String
-
-: 
+Type: String
 
 Message that describes the error.
 
 ## WriteOffInvoiceResponseError Properties
 
-  
 Learn more about the properties available with the WriteOffInvoiceResponseError
-    class.
-
-    
-      
+class.
 
 The `WriteOffInvoiceResponseError` class includes these
-        properties.
+properties.
 
-    
-
-- 
-**[errorCode](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceResponseError_errorCode)**  
-
-Get the error code details.
-
-- 
-**[errorMessage](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceResponseError_errorMessage)**  
-
-Get the error message details.
+- **[errorCode](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceResponseError_errorCode)**  
+  Get the error code details.
+- **[errorMessage](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceResponseError_errorMessage)**  
+  Get the error message details.
 
 ### errorCode
 
@@ -128,3 +93,7 @@ Get the error message details.
 #### Property Value
 
 Type: String
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

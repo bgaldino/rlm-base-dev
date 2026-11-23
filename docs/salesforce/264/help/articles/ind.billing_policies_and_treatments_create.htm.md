@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_policies_and_treatments.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create Billing Policies, Treatments, and Treatment Items
@@ -90,3 +90,7 @@ The Zero Amount Behavior, Type, Percentage, Flat Amount, and Sequencing values a
 After you create an active billing treatment item, update the status of the related billing treatment to Active, and then update the status of the related billing policy to Active.
 
 NOTE You can’t deactivate a billing treatment that is set as the default on an active billing policy.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_policies_and_treatments_create.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

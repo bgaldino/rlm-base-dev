@@ -7,119 +7,45 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: connect_resources_clm_resources.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Document Generation Process
 
 Get the status of document generation process for a given contract
-      document version ID. 
-
-    
+document version ID.
 
 ## Resource
-
-      
-      
 
 ```
 /connect/clm/document-generation-process/status
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 56.0
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 GET
 
-    
-
-    
-
 ## Example for GET
-
-      
-      
 
 ```
 https://YOUR_INSTANCE.salesforce.com/services/data/v56.0/connect/clm/document-generation-process/status?contractDocumentVersionId=<contractDocumentVersionId>
 ```
 
-    
-
-    
-
 ## Request Parameters for GET
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `contractDocument​VersionId` | String | ID of the contract document version. | Required | 56.0 |
 
-    
-
-    
-
 ## Response Body for GET
 
-      
-      
-
 [Document Generation ​Process Status
-            Representation](./connect_responses_document_generation_process_status.htm.md)
+Representation](./connect_responses_document_generation_process_status.htm.md "Status of the document generation process.")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/connect_resources_doc_generation_process.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

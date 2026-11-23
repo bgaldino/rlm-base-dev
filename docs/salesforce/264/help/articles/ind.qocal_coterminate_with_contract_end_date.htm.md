@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_manage_contract_pricing_in_revenue_lifecycle_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Coterminate Subscription Assets with Contract End Dates
@@ -15,7 +15,7 @@ Synchronize subscription end dates with their corresponding contract end dates t
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To use contract cotermination:	Renew Assets user permission
 Considerations for Contract Cotermination
@@ -70,3 +70,7 @@ Renewal Order
 If you renew a contract with the cotermination flag set to True, subscription end dates automatically align with the contract renewal date.
 Negative Amendments with Contract Date Changes
 If a user extends a contract end date to 6/1/2026 while performing a negative amendment for 10 licenses of an original 100-license sale, the end dates for the remaining 90 licenses update to 6/1/2026.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_coterminate_with_contract_end_date.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

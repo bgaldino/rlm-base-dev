@@ -1,21 +1,20 @@
 ---
 article_id: ind.product_configurator_introduction.htm
-title: Configure Your Products in Revenue Management
+title: Configure Your Products in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.product_configurator_introduction.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: configurator
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# Configure Your Products in Revenue Management
+# Configure Your Products in Revenue Cloud
 
 Use the Product Configurator tool to customize the components and attributes of a product so that the final configured product meets the business requirement expectations. Product configuration entails customizing a product to align with the specific requirements of a customer.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
-NOTE Revenue Cloud is now Revenue Management. You may see references to Revenue Cloud in Salesforce applications and documentation.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 
 By using the Product Configurator, present complex product offerings to customers efficiently. The Product Configurator tool provides users with an optimized and intuitive interface making it simple and easy to select the most suitable combination of features for a complex product. The Product Configurator not only facilitates the configuration of product bundles, but it also facilitates the customization of individual product attributes.
 
@@ -40,6 +39,10 @@ To create configuration rules and constraints that can validate large and comple
 Define Configuration Rules with Business Rules Engine
 When you configure products for sale, make sure that all your products have valid attributes and are compatible with other products in the offering. With configuration rules, make sure that the product configuration aligns with the business needs and standards and that your sales reps select the right set of products.
 Third-Party Configurator
-Revenue Management (formerly Revenue Cloud) provides extensibility options to third-party users seeking to build integrations with the Revenue Management product. Revenue Management supports various third-party use cases. The support includes replacing the first-party configurator with the third-party configurator, integrating third-party UI components into the first-party configurator, and creating custom configurator UI using headless configurator APIs.
+Revenue Cloud provides extensibility options to third-party users seeking to build integrations with the Revenue Cloud product. Revenue Cloud supports various third-party use cases. The support includes replacing the first-party configurator with the third-party configurator, integrating third-party UI components into the first-party configurator, and creating custom configurator UI using headless configurator APIs.
 Product Configurator Limits
 Review the default limits for Product Configurator before you configure products, define configuration rules, or create constraint models.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_introduction.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

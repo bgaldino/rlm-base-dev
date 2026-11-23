@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_forecast.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Generated Forecast Details
@@ -39,3 +39,7 @@ When a forecast run processes a billing schedule, it replaces that schedule’s 
 If you generate a draft invoice for a charge that’s already in Billing Forecast, Forecast Status doesn’t change, and the existing forecast line stays. That line remains until you post the invoice and a later forecast run processes the billing schedule.
 
 When you post an invoice or change the billing schedule, billing schedule group, billing arrangement, billing profile, or account, the system sets Forecast Status to Pending Forecast. Posted invoices show amounts already billed, and Billing Forecast shows projected amounts. After you post an invoice, the related forecast line can still appear until the next forecast run processes that billing schedule.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_forecast_details.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

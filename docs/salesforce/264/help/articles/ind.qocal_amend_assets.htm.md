@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_general_procedures.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Amend Assets with the Managed Asset Viewer
@@ -15,7 +15,7 @@ To meet changing customer needs and optimize revenue, use the asset lifecycle am
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS
 NEEDED
 To amend assets:	
@@ -56,3 +56,7 @@ You can’t reduce the quantity to less than the original asset quantity.
 Add assets to the amendment quote if needed.
 Review your amendment request and save your changes.
 EXAMPLE
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_amend_assets.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

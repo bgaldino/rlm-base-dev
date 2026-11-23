@@ -7,24 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Billing Arrangement
 
-Output representation that contains the details of a billing arrangement, including its
-    status, configuration settings, and associated lines.
+Output representation that contains the details of a billing arrangement, including its status, configuration settings, and associated lines.
 
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -56,178 +46,19 @@ Output representation that contains the details of a billing arrangement, includ
 }
 ```
 
-          
-
-        
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-- 
-- 
-- 
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `billing​ArrangementId` | String | Unique ID of the billing arrangement. | Big, 66.0 | 66.0 |
-| `billing​ArrangementLines` | [Billing Arrangement Line](./connect_responses_billing_arrangement_line.htm.md)[] | List of billing arrangement lines associated with the latest version of the billing arrangement. | Big, 66.0 | 66.0 |
+| `billing​ArrangementLines` | [Billing Arrangement Line](./connect_responses_billing_arrangement_line.htm.md "Output representation that contains the details of a specific line item within a billing arrangement, defining how charges are split for an account.")[] | List of billing arrangement lines associated with the latest version of the billing arrangement. | Big, 66.0 | 66.0 |
 | `error` | [Error Response Output](https://developer.salesforce.com/docs/atlas.en-us.264.0.chatterapi.meta/chatterapi/connect_responses_error_response.htm) | Error details if the request was unsuccessful. | Big, 66.0 | 66.0 |
 | `isAdjustment​ToOwnAccount` | Boolean | Indicates whether the remainder of the bill is adjusted to the owning account (`true`) or not (`false`). | Big, 66.0 | 66.0 |
 | `isSuccess` | Boolean | Indicates whether the request was successfully processed (`true`) or not (`false`). | Big, 66.0 | 66.0 |
 | `name` | String | Name of the billing arrangement. | Big, 66.0 | 66.0 |
 | `numOf​AssociatedBSGs` | Integer | Total number of billing schedule groups associated with the billing arrangement. | Big, 66.0 | 66.0 |
 | `remainderPercentage` | Double | Remaining percentage of the bill after all line allocations are calculated. | Big, 66.0 | 66.0 |
-| `status` | String | Status of the billing arrangement. Valid values are: `Draft` `Active` `Inactive` | Big, 66.0 | 66.0 |
+| `status` | String | Status of the billing arrangement. Valid values are `Draft`, `Active`, or `Inactive`. | Big, 66.0 | 66.0 |
 | `versionNumber` | Integer | Current version number of the billing arrangement. | Big, 66.0 | 66.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_billing_arrangement_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

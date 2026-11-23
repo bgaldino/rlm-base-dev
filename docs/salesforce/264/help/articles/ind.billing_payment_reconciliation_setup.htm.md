@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_payment_reconciliation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Payment Reconciliation
@@ -33,7 +33,11 @@ Create a Custom Batch Data Transform
 After Document AI parses your payment advice and payment proof files, convert the numeric and text fields that represent currency and date values into the currency and date data types that payment reconciliation requires.
 Create a Vector Search Index
 Enhance the searchability of your data by creating a vector search index on the Account object.
-Set Up the Ingestion API Schema
+Set Up the Ingestion API Connector
 Upload and save a JSON-formatted schema to create the output data lake objects (DLOs) for payment reconciliation.
 Deploy the Payment Reconciliation Data Kit
 The Payment Reconciliation data kit bundles the data model objects, batch data transforms, data actions, and a data action target that reconcile your payments.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_payment_reconciliation_setup.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

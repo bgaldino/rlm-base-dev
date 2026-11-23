@@ -7,195 +7,83 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Rate Management
 parent_page: rate_management_std_objects_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # PriceBookRateCard
 
-Represents a junction between price book and rate card objects.
-      This object is available in API version 62.0 and later.
+Represents a junction between price book and rate card objects. This object is available in API version 62.0 and later.
 
-      
-         
+![Important](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note_important.png&folder=revenue_lifecycle_management_dev_guide)
 
 #### Important
 
-Where possible, we changed noninclusive terms to align with our
-            company value of Equality. We maintained certain terms to avoid any effect on customer
-            implementations.
-
-      
-
-      
+Where possible, we changed noninclusive terms to align with our company value of Equality. We maintained certain terms to avoid any effect on customer implementations.
 
 ## Supported Calls
 
-         
-         
-
-            `create()`, `delete()`, `describeLayout()`, `describeSObjects()`, `getDeleted()`, `getUpdated()`, `query()`, `retrieve()`, `search()`, `undelete()`, `update()`, `upsert()`
-         
-
-      
-
-      
+`create()`, `delete()`, `describeLayout()`, `describeSObjects()`, `getDeleted()`, `getUpdated()`, `query()`, `retrieve()`, `search()`, `undelete()`, `update()`, `upsert()`
 
 ## Fields
 
-         
-         
+### LastReferencedDate
 
-               
-               
-               
-                  
-                     
+- **Type**: dateTime
+- **Properties**: Filter, Nillable, Sort
+- **Description**: Timestamp for when the current user last referred to this record.
 
-                     
+### LastViewedDate
 
-                  
+- **Type**: dateTime
+- **Properties**: Filter, Nillable, Sort
+- **Description**: Timestamp for when the current user last viewed a record related to this record.
 
-               
+### Name
 
-               
-                  
-                     
+- **Type**: string
+- **Properties**: Autonumber, Defaulted on create, Filter, idLookup, Sort
+- **Description**: Auto-generated identifier for the price book rate card record.
 
-                     
+### PriceBookId
 
-: 
+- **Type**: reference
+- **Properties**: Create, Filter, Group, Sort
+- **Description**: Price book ID that's associated with the rate cards IDs. For Quote, Order, and Contracts, the price book IDs identify the associated rate cards.
 
-: 
+This field is a relationship field.
 
-: 
+- **Relationship Name**: PriceBook
+- **Relationship Type**: Master-detail
+- **Refers To**: Pricebook2 (the master object)
 
-                  
+### RateCardId
 
-                  
-                     
+- **Type**: reference
+- **Properties**: Create, Filter, Group, Sort
+- **Description**: Rate card ID that's associated with the price book.
 
-                     
+This field is a relationship field.
 
-: 
+- **Relationship Name**: RateCard
+- **Relationship Type**: Master-detail
+- **Refers To**: RateCard (the detail object)
 
-: 
+### RateCardType
 
-: 
+- **Type**: picklist
+- **Properties**: Filter, Group, Restricted picklist, Sort
+- **Description**: Type of rate card associated with the price book.
 
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-- 
-- 
-- 
-
-                  
-
-               
-
-            
-| Field | Details |
-| --- | --- |
-| LastReferencedDate | **Type** dateTime **Properties** Filter, Nillable, Sort **Description** Timestamp for when the current user last referred to this record. |
-| LastViewedDate | **Type** dateTime **Properties** Filter, Nillable, Sort **Description** Timestamp for when the current user last viewed a record related to this record. |
-| Name | **Type** string **Properties** Autonumber, Defaulted on create, Filter, idLookup, Sort **Description** Auto-generated identifier for the price book rate card record. |
-| PriceBookId | **Type** reference **Properties** Create, Filter, Group, Sort **Description** Price book ID that's associated with the rate cards IDs. For Quote, Order, and Contracts, the price book IDs identify the associated rate cards. This field is a relationship field. **Relationship Name** PriceBook **Relationship Type** Master-detail **Refers To** Pricebook2 (the master object) |
-| RateCardId | **Type** reference **Properties** Create, Filter, Group, Sort **Description** Rate card ID that's associated with the price book. This field is a relationship field. **Relationship Name** RateCard **Relationship Type** Master-detail **Refers To** RateCard (the detail object) |
-| RateCardType | **Type** picklist **Properties** Filter, Group, Restricted picklist, Sort **Description** Type of rate card associated with the price book. Valid values are: `Attribute` `Base` `Tier` |
-
-      
-
-      
-      
+Valid values are `Attribute`, `Base`, or `Tier`.
 
 ## Associated Objects
 
-         
-         
+This object has these associated objects. If the API version isn’t specified, they’re available in the same API versions as this object. Otherwise, they’re available in the specified API version and later.
 
-This object has these associated objects. If the API version isn’t specified, they’re
-            available in the same API versions as this object. Otherwise, they’re available in the
-            specified API version and later.
+**[PriceBookRateCardFeed](https://developer.salesforce.com/docs/atlas.en-us.264.0.object_reference.meta/object_reference/sforce_api_associated_objects_feed.htm):** Feed tracking is available for the object.
 
-         
-            
-               
+**[PriceBookRateCardHistory](https://developer.salesforce.com/docs/atlas.en-us.264.0.object_reference.meta/object_reference/sforce_api_associated_objects_history.htm):** History is available for tracked fields of the object.
 
-**[PriceBookRateCardFeed](https://developer.salesforce.com/docs/atlas.en-us.264.0.object_reference.meta/object_reference/sforce_api_associated_objects_feed.htm)**
+---
 
-               
-: Feed tracking is available for the object.
-
-            
-            
-               
-
-**[PriceBookRateCardHistory](https://developer.salesforce.com/docs/atlas.en-us.264.0.object_reference.meta/object_reference/sforce_api_associated_objects_history.htm)**
-
-               
-: History is available for tracked fields of the object.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/sforce_api_objects_pricebookratecard.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,74 +7,49 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: decision_table_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Decision Table Execution
 
 Execute an active decision table.
 
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 services/data/vXX.X/connect/business-rules/decision-table/lookup/${decisionTableId}
 ```
 
-          
+## Available Version
 
-        
-        
-          
+51.0
 
-**Available version**
+## Requires Chatter
 
-          
-: 51.0
+No
 
-        
-        
-          
+## HTTP Methods
 
-**Requires Chatter**
+POST
 
-          
-: No
+## Sample Response body
 
-        
-        
-          
+```
+{
+   “outcomeType” : “Single Match”,
+   "outcomeList" : [
+      {
+         “values” : {
+            “Discount_c”: 5
+         }
+      }
+   ]
+}
+```
 
-**HTTP methods**
+## Request Body for POST
 
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-            
-               
-
-**JSON example**
-
-               
-: 
-                  
+### JSON Example
 
 ```
 {
@@ -111,110 +86,17 @@ services/data/vXX.X/connect/business-rules/decision-table/lookup/${decisionTable
 }
 ```
 
-               
+### Properties
 
-            
-            
-               
-
-**Properties**
-
-               
-: 
-                  
-
-                        
-                        
-                        
-                        
-                        
-                        
-                           
-                              
-
-                              
-
-                              
-
-                              
-
-                              
-
-                           
-
-                        
-
-                        
-                           
-                              
-
-                              
-
-                              
-
-                              
-
-                              
-
-                           
-
-                           
-                              
-
-                              
-
-                              
-
-                              
-
-                              
-
-                           
-
-                        
-
-                     
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `conditions` | [Decision Table Condition](./connect_requests_decision_table_condition.htm.md)[] | The list of decision table conditions on which the decision table executes and provides outcomes. | Required | 55.0 |
+| `conditions` | [Decision Table Condition](./connect_requests_decision_table_condition.htm.md "Input representation of the decision table condition.")[] | The list of decision table conditions on which the decision table executes and provides outcomes. | Required | 55.0 |
 | `datasetLinkName` | String | The API name of the dataset link provided as an input for the decision table execution. | Optional | 55.0 |
 
-               
+## Response Body for POST
 
-            
-         
+[Decision Table Outcome](./connect_responses_decision_table_outcome.htm.md "Output representation of the decision table execution.")
 
-          
+---
 
-        
-        
-          
-
-**Response body for POST**
-
-          
-: [Decision Table Outcome](./connect_responses_decision_table_outcome.htm.md)
-
-        
-        
-          
-
-**Sample Response body**
-
-          
-: 
-            
-
-```
-{
-   “outcomeType” : “Single Match”,
-   "outcomeList" : [
-      {
-         “values” : {
-            “Discount_c”: 5
-         }
-      }
-   ]
-}
-
-```
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_decision_table_execution.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_quote_and_order_capture.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Transaction Management Features
@@ -25,3 +25,7 @@ Set Up Derived Pricing Assets to a Quote or Order
 Streamline the quoting process by automatically adding derived product assets when your users add contributing products to a transaction.
 Set Up Transaction Processing for Complex Product Configurations
 To handle complex product configurations, increase the number of product attributes that a sales transaction can support. To control performance, you can also specify the number of records processed in a single transaction.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_common_capabilities.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

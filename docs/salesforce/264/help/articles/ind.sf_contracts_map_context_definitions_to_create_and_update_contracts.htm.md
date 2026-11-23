@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_configure_context_services_to_create_and_update_contracts.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Map Context Definitions to Create and Update Contracts
@@ -37,3 +37,7 @@ Create Hydration Mapping to Create and Update Contracts
 Data is first fetched from objects through hydration mapping and then temporarily stored in the cache. Within the node, separate structures such as contract cache and sales contract line cache store relevant data such as attribute name, type, and data type.
 Create Persistence Mapping to Create and Update Contracts
 Persistence mapping specifies how data from one object, such as an opportunity or account, is persisted or saved into another object, such as a contract. It defines the relationship between the fields in different objects. Persistence mapping ensures data is correctly synced and updated across the Salesforce environment during the create and update contract actions.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_map_context_definitions_to_create_and_update_contracts.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

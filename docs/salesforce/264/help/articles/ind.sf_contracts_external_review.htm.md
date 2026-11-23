@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_review.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # External Review in Salesforce Contracts
@@ -24,3 +24,7 @@ Reviewer Actions in External Reviews
 An external reviewer can initiate the review process by clicking the review link in the email received from the contract author. This occurs when the reviewer is added in the Initiate External review process.
 View Review Status and Cancel External Review
 Contract authors can check the review status and check whether all reviewer changes and comments are addressed.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_external_review.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

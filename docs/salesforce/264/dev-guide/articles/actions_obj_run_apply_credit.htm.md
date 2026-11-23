@@ -7,234 +7,52 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Apply Credit Action
 
-Apply a credit memo or credit memo line to an invoice or invoice
-			line, respectively. 
+Apply a credit memo or credit memo line to an invoice or invoice line, respectively.
 
-		
-			
-
-This action credits the amount of the credit memo or credit memo line to the
-				corresponding invoice or invoice line, reducing both their balances.
-
-			
+This action credits the amount of the credit memo or credit memo line to the corresponding invoice or invoice line, reducing both their balances.
 
 This action is available in API version 62.0 and later.
 
-		
-
-		
-
 ## Special Access Rules
 
-			
-			
-
-The Apply Credit action is available in Enterprise, Developer, and Unlimited Editions
-				where Billing is enabled. To use this action, you need the Credit Memo Operations
-				User permission set.
-
-		
-
-		
+The Apply Credit action is available in Enterprise, Developer, and Unlimited Editions where Billing is enabled. To use this action, you need the Credit Memo Operations User permission set.
 
 ## Supported REST HTTP Methods
 
-			
-			
-				
-					
+**URI:** `/services/data/v68.0/actions/standard/applyCredit`
 
-**URI**
+**Formats:** JSON, XML
 
-					
-: `/services/data/v68.0/actions/standard/applyCredit`
+**HTTP Methods:** POST
 
-				
-				
-					
-
-**Formats**
-
-					
-: JSON, XML
-
-				
-				
-					
-
-**HTTP Methods**
-
-					
-: POST
-
-				
-				
-					
-
-**Authentication**
-
-					
-: `Authorization: Bearer
-							token`
-
-				
-			
-
-		
-
-		
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Input | Details |
-| --- | --- |
-| appliedCreditAmount | **Type** double **Description** Required. Credit amount applied to an invoice or invoice line. |
-| creditSourceRecordId | **Type** string **Description** Required. ID of the credit memo or credit memo line that’s applied to an invoice or invoice line. |
-| creditTargetRecordId | **Type** string **Description** Required. ID of the invoice or invoice line record that the credit is applied to. |
-| description | **Type** string **Description** Additional details about the credit memo or credit memo line to be applied to an invoice or invoice line. |
-| effectiveDate | **Type** string **Description** Date to use for applying the credit memo to an invoice or invoice line. |
-
-		
-
-		
+| Input | Type | Description |
+| --- | --- | --- |
+| appliedCreditAmount | double | Required. Credit amount applied to an invoice or invoice line. |
+| creditSourceRecordId | string | Required. ID of the credit memo or credit memo line that’s applied to an invoice or invoice line. |
+| creditTargetRecordId | string | Required. ID of the invoice or invoice line record that the credit is applied to. |
+| description | string | Additional details about the credit memo or credit memo line to be applied to an invoice or invoice line. |
+| effectiveDate | string | Date to use for applying the credit memo to an invoice or invoice line. |
 
 ## Outputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Output | Details |
-| --- | --- |
-| recordId | **Type** string **Description** ID of the credit memo invoice application or credit memo line invoice line record of type `Applied` that the action created. |
-
-		
-
-		
+| Output | Type | Description |
+| --- | --- | --- |
+| recordId | string | ID of the credit memo invoice application or credit memo line invoice line record of type `Applied` that the action created. |
 
 ## Example
 
-			
-			
-				
-					
-
 **POST**
 
-					
-: 
-						
-
 This example shows a sample request for the Apply Credit action.
-
-						
 
 ```
 {
@@ -250,11 +68,7 @@ This example shows a sample request for the Apply Credit action.
 }
 ```
 
-						
-
 This example shows a sample response for the Apply Credit action.
-
-						
 
 ```
 {
@@ -269,3 +83,7 @@ This example shows a sample response for the Apply Credit action.
   "version": 1
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_run_apply_credit.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

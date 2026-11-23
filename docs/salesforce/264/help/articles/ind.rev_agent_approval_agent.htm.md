@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: agents
 parent_article: ind.rev_agent_overview.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Agentforce for Advanced Approval
@@ -16,7 +16,7 @@ The Approval Agent brings the full approval lifecycle into the conversation. Sal
 REQUIRED EDITIONS
 Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions where Advanced Approvals is enabled
-NOTE Before you begin, set up Agentforce for Revenue Management and connect the agent to slack.
+NOTE Before you begin, set up Agentforce for Revenue Cloud and connect the agent to slack.
 
 When sales reps, reviewers, and approval admins need to submit, review, or manage approval requests, Approval Agent gives them a conversational way to complete approval tasks without navigating multiple records or systems. Users can build custom topics to submit records for approval, track pending submissions, retrieve approval work items, generate AI-powered summaries and comments, and take action on decisions directly from Salesforce or Slack.
 
@@ -46,3 +46,7 @@ Subagent: Search Approval Record
 Filter and list approval work item or approval submission records based on related record type, date ranges, status, and assignee context.
 Subagent: Summarize Multiple Approval Work Items
 Filter approval work item records and summarize them in aggregate, providing per-record details so reviewers can quickly understand the context of each approval.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rev_agent_approval_agent.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

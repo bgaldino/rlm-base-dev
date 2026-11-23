@@ -7,199 +7,19 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Revenue Management Deployment
 parent_page: deployment_appendix_B.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Product Configurator Metadata
 
 This table provides the metadata deployment reference for Product Configurator in
-    Revenue Management, including setup paths and configuration details.
+Revenue Management, including setup paths and configuration details.
 
-    
-
-        
-        
-        
-        
-        
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-        
-
-        
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-        
-
-      
 | Type | Label | Setup Path | Comments |
 | --- | --- | --- | --- |
 | Setup | Context Service | Context Service > Context Service Settings | Enable (prerequisite to Product Configurator). |
 | Setup | Configure Products at Runtime | Setup > Feature Settings > Revenue Cloud > Revenue Settings |  |
-| Setup | Set Up Configuration Rules with Business Rules Engine | Setup > Feature Settings > Revenue Cloud > Revenue Settings | Standard Configurator Prerequisite: Create a Rule Library Version ([Set Up Configurator With Business Rules Engine](https://help.salesforce.com/s/articleView?id=ind.product_configurator_set_up_configuration_rules.htm&language=en_US)) |
+| Setup | Set Up Configuration Rules with Business Rules Engine | Setup > Feature Settings > Revenue Cloud > Revenue Settings | Standard Configurator Prerequisite: Create a Rule Library Version ([Set Up Configurator With Business Rules Engine](https://help.salesforce.com/s/articleView?id=ind.product_configurator_set_up_configuration_rules.htm&language=en_US "HTML (New Window)")) |
 | Setup | Set Up Configuration Rules and Constraints with Constraints Engine | Setup > Feature Settings > Revenue Cloud > Revenue Settings |  |
 | Setup | Transaction processing for quotes and orders | Setup > Feature Settings > Revenue Cloud > Revenue Settings | If both Business Rules Engine and Constraint Builder are enabled in the org, ConstraintBuilder is used. Exception is Transaction Processing Type on Quotes and Orders override. |
 | Setup | Set Up Asset Context for Product Configurator | Setup > Feature Settings > Revenue Cloud > Revenue Settings |  |
@@ -211,3 +31,7 @@ This table provides the metadata deployment reference for Product Configurator i
 | Permission Set | Product Configuration Rules Designer | Setup > Users > Permission Sets | Prerequisite for Business Rules Engine Configurator. |
 | Permission Set | Product Configuration Constraints Designer | Setup > Users > Permission Sets | Prerequisite for Constraint Builder. |
 | Flow | Default Product Configurator Flow | Setup > Flow | Supports Flow version, and activation or deactivation. Other Flows can be created. |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/deployment_product_configurator_metadata.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

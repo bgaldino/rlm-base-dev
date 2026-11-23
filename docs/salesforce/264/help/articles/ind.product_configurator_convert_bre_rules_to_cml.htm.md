@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_advanced.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Convert Rules from Business Rules Engine into CML Code
@@ -15,7 +15,7 @@ Export rules from Business Rules Engine, then convert them to CML code and impor
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 USER PERMISSIONS NEEDED
 To import rules to Constraint Rules Engine:	Product Configuration Constraints Designer permission set
 
@@ -41,3 +41,7 @@ In CML, conditional defaults for Set Default Attribute Value and Set Default Pro
 In CML, auto-adding multiple instances of a product isn’t supported. For example, consider this rule: if product == A and quantity > 5, auto-add B. In the Business Rules Engine, if there are 2 line items of product A with quantity greater than 5, two instances of product B are added. In CML, only 1 instance of product B is added.
 
 In CML, a message persists as long as a condition is true.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_convert_bre_rules_to_cml.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

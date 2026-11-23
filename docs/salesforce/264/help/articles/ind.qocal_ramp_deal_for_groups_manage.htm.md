@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_ramp_deals_complex_long_term_multiple_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage a Ramp Deal
@@ -15,7 +15,7 @@ After you create a group ramp schedule, use these actions to manage segments and
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 ACTION	LEVEL	WHAT IT DOES	SUPPORTED QUOTES OR RAMP SCHEDULES
 Browse Catalogs	Segment	Adds products into the current segment or all subsequent ramp schedule group segments. If you use Browse Catalogs at the quote or order level instead, products are added only to the first group as non-ramped lines.	All quote types and ramp schedules.
 Clone Segment	Segment	Creates the next segment by copying lines and updating the start and end dates for the new segment. You can copy only the ramped lines or all the lines.	
@@ -39,3 +39,7 @@ Available only for ramped line items.
 Delete	Line	Deletes a line item and all its related ramped line items in subsequent segments. If you add the same product back to a ramp segment, the product is treated as a separate line and a new asset is created for it.	
 New ramp schedule lines
 Auto-generated ramp schedule lines on all quote types.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_ramp_deal_for_groups_manage.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

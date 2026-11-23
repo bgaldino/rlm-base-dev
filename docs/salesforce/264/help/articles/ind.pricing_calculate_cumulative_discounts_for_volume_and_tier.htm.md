@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_add_volume_discount_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Cumulative Pricing Using Volume or Tier Discount Elements
@@ -15,7 +15,7 @@ Customers can apply volume or tier-based discounts to a line item based on aggre
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 This ability to aggregate quantities, from current transactions or historical purchases, is crucial for effective discounting. It allows customers to receive cumulative quantity discounts based on defined rules, incentivizing larger purchases over time and honoring negotiated pricing commitments.
 
@@ -34,3 +34,7 @@ Similarly, when you apply cumulative pricing to the Tier Discount element, it ex
 For example, let’s assume that the cumulative tier quantity is 3 units, and the current line item quantity is 6 units. If your pricing structure has an initial tier with no discount for 1 to 3 units, this tier would be filled by the cumulative quantity of 3. The current line item quantity of 6 would then be spread across subsequent tiers such as, 4-7 units and 8-10 units, potentially leading to a higher overall discount than if only the line item quantity was considered.
 
 NOTE For active orders or assets, cumulative pricing requires Contract Pricing Volume or Tiered Discounts. However, when simulating a pricing procedure, you can use cumulative quantity independently, without Contract Pricing.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_calculate_cumulative_discounts_for_volume_and_tier.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

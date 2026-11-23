@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_foreign_exchange_realized_gains_and_losses.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Example: Automatically Capture Foreign Exchange Realized Gains or Losses
@@ -32,14 +32,14 @@ Invoice creation: On invoice date August 27, 2025, Smartbytes creates an invoice
 The system automatically converts the balance to the corporate currency (USD) using the conversion rate on the invoice date.
 
 Dated conversion rate on the invoice date: 1 USD = 87.66 INR
-Corporate currency equivalent of the balance amount on August 27, 2025: 10,000/97.66 = 114.07 USD
+Corporate currency equivalent of the balance amount on August 27, 2025: 10,000/87.66 = 114.07 USD
 
 Payment and settlement: On September 3, 2025, a full payment is made for 10,000 INR. When the payment is applied to an invoice, a Payment Line Invoice record is created and the invoice is settled.
 
 Dated conversion rate on the payment's effective date: 1 USD = 88.07 INR
 Corporate Currency equivalent of the paid amount on the payment's effective date = 113.54 USD
 
-Foreign exvhange realized gain or loss calculation: The foreign exchange realized gains or losses are calculated by taking the payment's corporate currency value and subtracting the invoice's corporate currency value. The loss recorded for this transaction is 0.53 USD.
+Foreign exchange realized gain or loss calculation: The foreign exchange realized gains or losses are calculated by taking the payment's corporate currency value and subtracting the invoice's corporate currency value. The loss recorded for this transaction is 0.53 USD.
 
 Automatic Transaction Journal Creation
 
@@ -52,3 +52,7 @@ If the calculations result in foreign exchange realized gain, then these two tra
 
 A transaction journal is created for the 01-100-1001 Accounts Receivable account with the realized gain amount as the debit amount.
 A transaction journal is created for the 01-900-9000 Realized Gain account with the realized gain amount as the credit amount.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_fgn_exch_realized_gains_losses_use_case.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

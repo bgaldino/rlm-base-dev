@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_search_summarize_and_interact_with_contracts_using_ai.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Use Case: Extract Key Terms from Contracts Using AI
@@ -66,3 +66,7 @@ Share the Insights via Email
 Summarize your findings and align with internal stakeholders by sending the details via email.
 
 If your org uses the Draft or Revise Email action, you can send the summary and key insights directly from the agent interface. This step is optional.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_use_case_extract_key_terms_from_contracts_using_ai.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

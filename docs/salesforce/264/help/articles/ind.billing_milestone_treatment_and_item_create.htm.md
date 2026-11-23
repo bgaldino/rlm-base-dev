@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_milestone_methods.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Method 1: Configure Billing Milestones Using Billing Treatments
@@ -43,3 +43,7 @@ Milestone Commencement Offset Unit	For date-based milestones, specify the time u
 After you create an active billing treatment item, update the status of the related billing treatment to Active, and then update the status of the related billing policy to Active.
 
 For milestone billing, activate the related order to automatically generate billing schedules, and create billing milestone plan and billing milestone plan items based on the specified billing treatment and billing treatment items inputs. The validation on the fields is run, and calculated fields are updated only when the order is activated.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_milestone_treatment_and_item_create.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

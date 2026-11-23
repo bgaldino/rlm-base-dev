@@ -7,171 +7,49 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: clm_invocable_actions_parent.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Search Contract Document Action
 
 Search the latest contract document version based on the user's
-            query.
-
-        
-            
+query.
 
 This action is available in API version 64.0 and later.
 
-        
-
-        
-
 ## Special Access Rules
-
-            
-            
 
 To use this action, Contracts AI User permission set is required.
 
-        
-
-        
-
 ## Supported REST HTTP Methods
-
-            
-            
 
 **URI:** `/services/data/v68.0/actions/standard/searchContractDocument`
 
-            
-
 **Formats:** JSON, XML
-
-            
 
 **HTTP Methods:** POST
 
-            
-
 **Authentication:** `Authorization: Bearer TOKEN`
-
-        
-
-        
 
 ## Inputs
 
-            
-            
-
-                    
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-                            
-
-                        
-
-                        
-                            
-
-                            
-
-                            
-
-                        
-
-                        
-                            
-
-                            
-
-                            
-
-                        
-
-                    
-
-                
 | Input | Type | Description |
 | --- | --- | --- |
 | contractId | string | Required. ID of the contract record to use for the search. |
 | searchQuery | string | Required. Text-based query to use to search contract documents. |
 | resultLimit | string | Required. Maximum number of text segments that can be returned from the contract search. Each segment represents a relevant portion of a contract document. |
 
-        
-
-        
-
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-                            
-
-                        
-
-                    
-
-                
 | Output | Type | Description |
 | --- | --- | --- |
 | searchResult | string | Concatenated content of the top segments that match a user query. |
 
-        
-
-        
-
 ## Example
-
-            
-            
 
 **POST**
 
-            
-
 This sample request is for the Search Contract Document action.
-
-            
 
 ```
 {
@@ -185,11 +63,7 @@ This sample request is for the Search Contract Document action.
 }
 ```
 
-            
-
 This sample response is for the Search Contract Document action.
-
-            
 
 ```
 {
@@ -205,3 +79,7 @@ This sample response is for the Search Contract Document action.
   "version": 1
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/actions_obj_search_contract_document.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

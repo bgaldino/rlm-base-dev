@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_sales_transactions_rev_cloud.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Differences Between Calculation Status Field and Validation Result Field
@@ -15,7 +15,7 @@ Map the Calculation Status field and Validation Result field to specific tasks w
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 
 Use the Calculation Status field exclusively to monitor the real-time progress of execution tasks. For example, use it to see if pricing or tax calculation is in progress for a specific quote. Because these values are often imprecise, avoid using them as a definitive state machine to block business logic such as order activation or billing.
 
@@ -42,3 +42,7 @@ If an error occurs during transaction processing, the Calculation Status update 
 IMPORTANT We recommend that you don't manually update the Calculation Status field unless no other recovery option is available. Manual updates can introduce inconsistencies and lead to unexpected behavior in downstream processes such as quote-to-order conversion or order assetization.
 
 To manually update the Calculation Status field, create a permission set that includes the Edit Calculation Status on Quote and Order system permission. Before updating the Calculation Status field on the quote or order, assign the permission set to the user.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_differences_between_calculation_status_field_and_validation_result_field.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

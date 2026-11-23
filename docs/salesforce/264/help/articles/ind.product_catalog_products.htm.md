@@ -1,15 +1,15 @@
 ---
 article_id: ind.product_catalog_products.htm
-title: Create Products and Product Bundles in Revenue Management
+title: Create Products and Product Bundles in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.product_catalog_products.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_introduction.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# Create Products and Product Bundles in Revenue Management
+# Create Products and Product Bundles in Revenue Cloud
 
 Products are all the items and services that you sell to customers. There are two types of products: simple products and bundled products. Simple products are single-element products with no dependencies on any other products. Bundled products are a group of products that are sold together as one unit.
 
@@ -65,12 +65,14 @@ To get started creating products and product bundles, refer to these instruction
 
 Create Simple Products
 Learn how to create simple products for your product catalog. Simple products are products that aren't bundled with other products. You can create static or configurable simple products.
-Configure Product Attributes in Revenue Management
+Configure Product Attributes in Revenue Cloud
 Products that are based on a product classification inherit all the attributes from the product classification. You can configure the inherited attributes to make them product-specific. You can override the configured and inherited attributes in the context of a product bundle.
 Include or Exclude Picklist Values in a Product Attribute
 A product that’s based on a product classification, inherits all the product classification attributes including any included or excluded picklist values. To include or exclude specific picklist values for product attributes of the data type picklist, use Include or Exclude Picklist Values. The included picklist values are available at run time while excluded picklist values are unavailable at run time.
 Create Bundled Products
 Bundled products are a group of products that are sold together as one unit. You can create static or configurable bundled products.
+Convert Simple Product to Bundle Product
+Change a product’s type to a bundle to update the product definition with bundle-specific features without making duplicates.
 Product Description Generation in Product Catalog Management
 Use Einstein AI or Agentforce to generate detailed product descriptions that enhance product discoverability and minimize the time and manual effort spent on catalog creation.
 Deep Clone Products in Product Catalog Management
@@ -79,3 +81,7 @@ Decimal Quantity Support in Product Catalog Management
 Define accurate product quantities for products that support decimal values. Based on the product's unit of measure (UOM), define the number of decimal places the product supports, with specific rounding methodologies.
 Data Import Through CSV Files in Product Catalog Management
 Catalog admins and product designers can create records by importing CSV files into Product Catalog Management.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_products.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

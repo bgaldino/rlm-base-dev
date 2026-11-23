@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_setup.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Guided Setup for Billing
@@ -15,12 +15,12 @@ Admins can use the Billing Guided Setup for a ‌step-by-step guidance to comple
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions with Revenue Management
+Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
 
 
-The Billing Advanced Features setup assistant and the Payment Configurations setup assistant are available only with the the Revenue Management Billing license. Contact your Salesforce account executive for more information.
+The Billing Advanced Features setup assistant and the Payment Configurations setup assistant are available only with the the Revenue Cloud Billing license. Contact your Salesforce account executive for more information.
 
-All the other setup assistants are available with the Revenue Management Advanced license or the Revenue Management Billing license.
+All the other setup assistants are available with the Revenue Cloud Advanced license or the Revenue Cloud Billing license.
 
 How It Works
 
@@ -46,9 +46,13 @@ Assign Permissions to Access Billing Features
 Define Billing Policies and Billability Rules
 Tax Calculation for Invoices
 Automated Invoice Generation with Invoice Batch Runs
-Manage Accounting Periods in Revenue Management
+Manage Accounting Periods in Revenue Cloud
 Capture Transaction Amounts in Multiple Currencies
-Turn On Invoice PDF Document Generation and Account Statement
+Turn On PDF Document Generation for Billing
 Turn On Email Delivery of Invoices
-Manage Chart of Accounts and Transaction Journals in Revenue Management
-Process Payments and Issue Refunds in Revenue Management
+Manage Chart of Accounts and Transaction Journals in Revenue Cloud
+Process Payments and Issue Refunds in Revenue Cloud
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_guided_setup.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

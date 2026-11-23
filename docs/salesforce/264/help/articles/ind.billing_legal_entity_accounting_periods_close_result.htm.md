@@ -6,24 +6,24 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_legal_entity_accounting_periods_close.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Legal Entity Accounting Period Closure Procedure
 
 When you close legal entity accounting period, the system runs three Data Processing Engine (DPE) definitions in a sequence.
 
-This feature is available for the Invoice and Credit Memo records, and their related records with the Revenue Management Advanced license or the Revenue Management Billing license.
+This feature is available for the Invoice and Credit Memo records, and their related records with the Revenue Cloud Advanced license or the Revenue Cloud Billing license.
 
-This feature is available for the Payment, Refund, and Debit Memo records, and their related records with the Revenue Management Billing license. Contact your Salesforce account executive for more information.
+This feature is available for the Payment, Refund, and Debit Memo records, and their related records with the Revenue Cloud Billing license. Contact your Salesforce account executive for more information.
 
-The Create Transaction Journals for Unrealized Foreign Exchange Gains or Losses and Create General Ledger Accounting Period Summary Records for Multiple Currencies data processing engines are available only with the Revenue Management Billing license.
+The Create Transaction Journals for Unrealized Foreign Exchange Gains or Losses and Create General Ledger Accounting Period Summary Records for Multiple Currencies data processing engines are available only with the Revenue Cloud Billing license.
 
 DPE Execution Sequence
 
 These Data Processing Engine definitions are executed in this sequence based on the licenses and currency settings in your Salesforce org.
 
-DATA PROCESSING ENGINE	REVENUE MANAGEMENT ADVANCED LICENSE	REVENUE MANAGEMENT BILLING LICENSE WITH SINGLE CURRENCY	REVENUE MANAGEMENT BILLING LICENSE WITH MULTIPLE CURRENCIES	REVENUE MANAGEMENT BILLING LICENSE WITH ADVANCED CURRENCY MANAGEMENT
+DATA PROCESSING ENGINE	REVENUE CLOUD ADVANCED LICENSE	REVENUE CLOUD BILLING LICENSE WITH SINGLE CURRENCY	REVENUE CLOUD BILLING LICENSE WITH MULTIPLE CURRENCIES	REVENUE CLOUD BILLING LICENSE WITH ADVANCED CURRENCY MANAGEMENT
 
 
 Close Legal Entity Accounting Period (Basic)
@@ -149,3 +149,7 @@ Go to Monitor Workflow Services in Setup to check the status of the batch calcul
 SEE ALSO
 Set Up Financial Accounting Features
 Example: Automatically Capture Unrealized Foreign Exchange Unrealized Gains or Losses
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_legal_entity_accounting_periods_close_result.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,26 +6,26 @@
   "root_article_id": "release-notes.rn_revenue.htm",
   "article_id_prefix": "release-notes.rn_",
   "snapshot_started": "2026-09-30",
-  "capture_method": "tasks.rlm_snapshot_help.SnapshotSalesforceHelp (Playwright + shadow-DOM walker)",
+  "capture_method": "scripts/doc_snapshot help (Playwright + shadow-DOM walker)",
   "areas": [
     {
       "area": "revenue",
       "root_article_id": "release-notes.rn_revenue.htm",
       "article_id_prefix": "release-notes.rn_",
       "source_root_url": "https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&type=5&release=264",
-      "last_updated": "2026-09-30T09:44:17Z",
+      "last_updated": "2026-11-23T12:11:00Z",
       "stats": {
-        "discovered": 127,
-        "captured": 127,
+        "discovered": 146,
+        "captured": 146,
         "pending": 0,
         "errored": 0,
-        "total_captured_body_chars": 158327
+        "total_captured_body_chars": 182305
       },
+      "snapshot_started": "2026-09-30",
       "last_run_discovered": {
-        "kept": 127,
-        "before_prefix_filter": 1599
-      },
-      "snapshot_started": "2026-09-30"
+        "kept": 144,
+        "before_prefix_filter": 2174
+      }
     }
   ],
   "articles": [
@@ -62,7 +62,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_advanced_approvals.htm",
-      "body_length": 655,
+      "body_length": 747,
       "file": "articles/release-notes.rn_adv_approvals_work_item_sharing.htm.md"
     },
     {
@@ -80,8 +80,17 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_revenue.htm",
-      "body_length": 3878,
+      "body_length": 4499,
       "file": "articles/release-notes.rn_billing.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_access_request_payload_data_on_rtel.htm",
+      "title": "Recover Failed Transaction Journals Using Payload from Revenue Transaction Error Logs",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing.htm",
+      "body_length": 1201,
+      "file": "articles/release-notes.rn_billing_access_request_payload_data_on_rtel.htm.md"
     },
     {
       "article_id": "release-notes.rn_billing_api_updates.htm",
@@ -89,8 +98,17 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing.htm",
-      "body_length": 556,
+      "body_length": 527,
       "file": "articles/release-notes.rn_billing_api_updates.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_billing_schedule_reconciliations_for_early_renewals.htm",
+      "title": "Automate Billing Schedule Reconciliations for Early Renewals of Future-Dated Orders",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
+      "body_length": 892,
+      "file": "articles/release-notes.rn_billing_billing_schedule_reconciliations_for_early_renewals.htm.md"
     },
     {
       "article_id": "release-notes.rn_billing_catch_up_bill_runs.htm",
@@ -98,7 +116,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_invoices.htm",
-      "body_length": 871,
+      "body_length": 842,
       "file": "articles/release-notes.rn_billing_catch_up_bill_runs.htm.md"
     },
     {
@@ -107,7 +125,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
-      "body_length": 866,
+      "body_length": 837,
       "file": "articles/release-notes.rn_billing_change_frequency_arc.htm.md"
     },
     {
@@ -134,7 +152,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_collections.htm",
-      "body_length": 892,
+      "body_length": 863,
       "file": "articles/release-notes.rn_billing_collections_specialist_console.htm.md"
     },
     {
@@ -143,7 +161,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_invoices.htm",
-      "body_length": 920,
+      "body_length": 891,
       "file": "articles/release-notes.rn_billing_dynamic_sequence_patterns.htm.md"
     },
     {
@@ -152,7 +170,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_tax_management.htm",
-      "body_length": 1159,
+      "body_length": 1130,
       "file": "articles/release-notes.rn_billing_extend_tax_engine.htm.md"
     },
     {
@@ -161,7 +179,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_rev_salesforce_go.htm",
-      "body_length": 1511,
+      "body_length": 1506,
       "file": "articles/release-notes.rn_billing_features_with_salesforce_go.htm.md"
     },
     {
@@ -170,7 +188,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_invoices.htm",
-      "body_length": 1236,
+      "body_length": 1207,
       "file": "articles/release-notes.rn_billing_forecast.htm.md"
     },
     {
@@ -179,7 +197,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
-      "body_length": 976,
+      "body_length": 947,
       "file": "articles/release-notes.rn_billing_future_dated_suspensions.htm.md"
     },
     {
@@ -188,7 +206,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_invoices.htm",
-      "body_length": 852,
+      "body_length": 823,
       "file": "articles/release-notes.rn_billing_generate_invoice_documents_batch.htm.md"
     },
     {
@@ -197,7 +215,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_invoices.htm",
-      "body_length": 972,
+      "body_length": 943,
       "file": "articles/release-notes.rn_billing_generate_invoices_across_accounts.htm.md"
     },
     {
@@ -206,8 +224,17 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_customer360.htm",
-      "body_length": 926,
+      "body_length": 897,
       "file": "articles/release-notes.rn_billing_invoice_aging_summaries.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_invoice_line_summary.htm",
+      "title": "See Product Charges Together on an Invoice",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_invoices.htm",
+      "body_length": 1249,
+      "file": "articles/release-notes.rn_billing_invoice_line_summary.htm.md"
     },
     {
       "article_id": "release-notes.rn_billing_invoices.htm",
@@ -215,7 +242,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing.htm",
-      "body_length": 2731,
+      "body_length": 3074,
       "file": "articles/release-notes.rn_billing_invoices.htm.md"
     },
     {
@@ -224,7 +251,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_payments_refunds.htm",
-      "body_length": 1107,
+      "body_length": 1078,
       "file": "articles/release-notes.rn_billing_issue_credits_as_refunds.htm.md"
     },
     {
@@ -233,7 +260,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_payments_refunds.htm",
-      "body_length": 834,
+      "body_length": 805,
       "file": "articles/release-notes.rn_billing_lockbox_reconciliation.htm.md"
     },
     {
@@ -247,11 +274,11 @@
     },
     {
       "article_id": "release-notes.rn_billing_new_changed_invocable_actions.htm",
-      "title": "New and Changed Invocable Actions in Billing",
+      "title": "New Invocable Action in Billing",
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing.htm",
-      "body_length": 672,
+      "body_length": 242,
       "file": "articles/release-notes.rn_billing_new_changed_invocable_actions.htm.md"
     },
     {
@@ -260,7 +287,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing.htm",
-      "body_length": 3078,
+      "body_length": 3728,
       "file": "articles/release-notes.rn_billing_payments_refunds.htm.md"
     },
     {
@@ -269,7 +296,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
-      "body_length": 1339,
+      "body_length": 1310,
       "file": "articles/release-notes.rn_billing_price_uplifts_for_multiyear_ramp_dealsxml.htm.md"
     },
     {
@@ -278,7 +305,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_payments_refunds.htm",
-      "body_length": 712,
+      "body_length": 683,
       "file": "articles/release-notes.rn_billing_regional_payment_methods.htm.md"
     },
     {
@@ -287,7 +314,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_customer360.htm",
-      "body_length": 825,
+      "body_length": 796,
       "file": "articles/release-notes.rn_billing_review_split_invoices.htm.md"
     },
     {
@@ -296,8 +323,17 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_payments_refunds.htm",
-      "body_length": 658,
+      "body_length": 629,
       "file": "articles/release-notes.rn_billing_save_digital_wallets.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_saved_payment_method_aura_component.htm",
+      "title": "Manage Saved Payment Methods in Aura Experience Sites",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_payments_refunds.htm",
+      "body_length": 844,
+      "file": "articles/release-notes.rn_billing_saved_payment_method_aura_component.htm.md"
     },
     {
       "article_id": "release-notes.rn_billing_schedule_timelines.htm",
@@ -305,7 +341,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_customer360.htm",
-      "body_length": 646,
+      "body_length": 617,
       "file": "articles/release-notes.rn_billing_schedule_timelines.htm.md"
     },
     {
@@ -314,7 +350,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing.htm",
-      "body_length": 2910,
+      "body_length": 3452,
       "file": "articles/release-notes.rn_billing_schedules_arrangements.htm.md"
     },
     {
@@ -323,7 +359,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_payments_refunds.htm",
-      "body_length": 1276,
+      "body_length": 1247,
       "file": "articles/release-notes.rn_billing_self_service_components_lwr.htm.md"
     },
     {
@@ -332,7 +368,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_payments_refunds.htm",
-      "body_length": 722,
+      "body_length": 693,
       "file": "articles/release-notes.rn_billing_send_l2_l3_data_native.htm.md"
     },
     {
@@ -341,7 +377,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_invoices.htm",
-      "body_length": 882,
+      "body_length": 853,
       "file": "articles/release-notes.rn_billing_target_date_flexibility.htm.md"
     },
     {
@@ -359,7 +395,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
-      "body_length": 700,
+      "body_length": 671,
       "file": "articles/release-notes.rn_billing_term_units.htm.md"
     },
     {
@@ -368,8 +404,17 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
-      "body_length": 411,
+      "body_length": 382,
       "file": "articles/release-notes.rn_billing_track_ramp_deal_details.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_billing_unapply_refund_line.htm",
+      "title": "Undo Refund Line Applications with Unapply Support",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_billing_payments_refunds.htm",
+      "body_length": 946,
+      "file": "articles/release-notes.rn_billing_unapply_refund_line.htm.md"
     },
     {
       "article_id": "release-notes.rn_billing_weekly_cycle.htm",
@@ -377,8 +422,26 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_billing_schedules_arrangements.htm",
-      "body_length": 534,
+      "body_length": 505,
       "file": "articles/release-notes.rn_billing_weekly_cycle.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_build_revenue_management_foundations.htm",
+      "title": "Build Revenue Cloud Faster with Prebuilt Design Foundations",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue_management_accelerators.htm",
+      "body_length": 867,
+      "file": "articles/release-notes.rn_build_revenue_management_foundations.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_connect_order_fulfillment_to_fieldservice.htm",
+      "title": "Connect Order Fulfillment to Field Service",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue_management_accelerators.htm",
+      "body_length": 672,
+      "file": "articles/release-notes.rn_connect_order_fulfillment_to_fieldservice.htm.md"
     },
     {
       "article_id": "release-notes.rn_contracts_new_connect_rest_apis.htm",
@@ -388,6 +451,15 @@
       "parent_article": "release-notes.rn_salesforce_contracts.htm",
       "body_length": 1329,
       "file": "articles/release-notes.rn_contracts_new_connect_rest_apis.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_create_quotes_faster_with_opportunity.htm",
+      "title": "Create Quotes Faster with Opportunity Data",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue_management_accelerators.htm",
+      "body_length": 668,
+      "file": "articles/release-notes.rn_create_quotes_faster_with_opportunity.htm.md"
     },
     {
       "article_id": "release-notes.rn_customer360.htm",
@@ -404,7 +476,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
-      "body_length": 1090,
+      "body_length": 1061,
       "file": "articles/release-notes.rn_dro_backdated_future_dated_amendments.htm.md"
     },
     {
@@ -413,7 +485,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
-      "body_length": 862,
+      "body_length": 833,
       "file": "articles/release-notes.rn_dro_clone_fulfillment_workspaces.htm.md"
     },
     {
@@ -422,7 +494,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
-      "body_length": 965,
+      "body_length": 936,
       "file": "articles/release-notes.rn_dro_custom_fulfillment_scopes.htm.md"
     },
     {
@@ -431,7 +503,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
-      "body_length": 655,
+      "body_length": 626,
       "file": "articles/release-notes.rn_dro_enhanced_decomposition_viewer.htm.md"
     },
     {
@@ -440,7 +512,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
-      "body_length": 523,
+      "body_length": 494,
       "file": "articles/release-notes.rn_dro_fulfill_ramped_asset_amendments.htm.md"
     },
     {
@@ -449,7 +521,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_rev_salesforce_go.htm",
-      "body_length": 671,
+      "body_length": 642,
       "file": "articles/release-notes.rn_dro_hightech_orch_with_salesforce_go.htm.md"
     },
     {
@@ -467,8 +539,17 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
-      "body_length": 783,
+      "body_length": 754,
       "file": "articles/release-notes.rn_dro_optimize_multiyear_orchestration.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_dro_read_only_permission_set.htm",
+      "title": "Optimize License Spend with Read-Only Access to Dynamic Revenue Orchestrator",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
+      "body_length": 862,
+      "file": "articles/release-notes.rn_dro_read_only_permission_set.htm.md"
     },
     {
       "article_id": "release-notes.rn_dro_staged_assetization_ramped_products.htm",
@@ -476,7 +557,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_dynamic_revenue_orchestrator.htm",
-      "body_length": 957,
+      "body_length": 928,
       "file": "articles/release-notes.rn_dro_staged_assetization_ramped_products.htm.md"
     },
     {
@@ -485,7 +566,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_revenue.htm",
-      "body_length": 3659,
+      "body_length": 4312,
       "file": "articles/release-notes.rn_dynamic_revenue_orchestrator.htm.md"
     },
     {
@@ -494,7 +575,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_revenue.htm",
-      "body_length": 2797,
+      "body_length": 3205,
       "file": "articles/release-notes.rn_large_txn.htm.md"
     },
     {
@@ -503,8 +584,17 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_large_txn.htm",
-      "body_length": 537,
+      "body_length": 508,
       "file": "articles/release-notes.rn_large_txn_apply_configuration_rules.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_large_txn_clone_quotes_orders.htm",
+      "title": "Clone Large Quotes and Orders",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_large_txn.htm",
+      "body_length": 762,
+      "file": "articles/release-notes.rn_large_txn_clone_quotes_orders.htm.md"
     },
     {
       "article_id": "release-notes.rn_large_txn_generate_documents_for_quotes_with_15_000.htm",
@@ -512,7 +602,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_large_txn.htm",
-      "body_length": 668,
+      "body_length": 639,
       "file": "articles/release-notes.rn_large_txn_generate_documents_for_quotes_with_15_000.htm.md"
     },
     {
@@ -521,7 +611,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_large_txn.htm",
-      "body_length": 515,
+      "body_length": 486,
       "file": "articles/release-notes.rn_large_txn_price_quotes_and_orders.htm.md"
     },
     {
@@ -530,7 +620,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_large_txn.htm",
-      "body_length": 651,
+      "body_length": 622,
       "file": "articles/release-notes.rn_large_txn_recover_faster_from_quote_and_order_calculation_errors.htm.md"
     },
     {
@@ -539,7 +629,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_large_txn.htm",
-      "body_length": 526,
+      "body_length": 497,
       "file": "articles/release-notes.rn_large_txn_speed_up_large_quote_operations_with_automatic_context_reuse.htm.md"
     },
     {
@@ -548,7 +638,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_large_txn.htm",
-      "body_length": 621,
+      "body_length": 592,
       "file": "articles/release-notes.rn_large_txn_sync_large_quotes_to_opportunities.htm.md"
     },
     {
@@ -557,8 +647,17 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_large_txn.htm",
-      "body_length": 832,
+      "body_length": 798,
       "file": "articles/release-notes.rn_large_txn_transform_context_data_in_large_transactions.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_launch_the_revenue_cloud_solution_for_subscription_selling.htm",
+      "title": "Launch the Revenue Cloud Solution for Subscription Selling",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_rev_salesforce_go.htm",
+      "body_length": 1224,
+      "file": "articles/release-notes.rn_launch_the_revenue_cloud_solution_for_subscription_selling.htm.md"
     },
     {
       "article_id": "release-notes.rn_new_changed_billing_objects.htm",
@@ -575,7 +674,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_pricing.htm",
-      "body_length": 421,
+      "body_length": 392,
       "file": "articles/release-notes.rn_pricing_avoid_integration_parsing_errors_from_pricing_api_decimal_values.htm.md"
     },
     {
@@ -584,7 +683,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_pricing.htm",
-      "body_length": 834,
+      "body_length": 805,
       "file": "articles/release-notes.rn_pricing_keep_calculated_values_in_context_with_local_list_variables.htm.md"
     },
     {
@@ -593,7 +692,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_pricing.htm",
-      "body_length": 900,
+      "body_length": 871,
       "file": "articles/release-notes.rn_pricing_prorate_with_short-term_and_high-velocity_sales_models.htm.md"
     },
     {
@@ -602,7 +701,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_pricing.htm",
-      "body_length": 1252,
+      "body_length": 1223,
       "file": "articles/release-notes.rn_pricing_reduce_pricing_errors_and_improve_deal_transparency_on_ramp_deals.htm.md"
     },
     {
@@ -611,7 +710,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_pricing.htm",
-      "body_length": 847,
+      "body_length": 818,
       "file": "articles/release-notes.rn_pricing_tailor_pricing_rules_for_multiple_industry_clouds.htm.md"
     },
     {
@@ -629,7 +728,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_product_catalog_management.htm",
-      "body_length": 828,
+      "body_length": 799,
       "file": "articles/release-notes.rn_product_catalog_discover_products_faster_using_price_book_filters.htm.md"
     },
     {
@@ -638,7 +737,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_product_catalog_management.htm",
-      "body_length": 789,
+      "body_length": 760,
       "file": "articles/release-notes.rn_product_catalog_display_order_attributes.htm.md"
     },
     {
@@ -647,7 +746,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_product_catalog_management.htm",
-      "body_length": 922,
+      "body_length": 893,
       "file": "articles/release-notes.rn_product_catalog_find_products_with_prefix_matching_and_partial_search.htm.md"
     },
     {
@@ -656,7 +755,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_product_catalog_management.htm",
-      "body_length": 651,
+      "body_length": 622,
       "file": "articles/release-notes.rn_product_catalog_get_accurate_product_details_with_automated_product_cache_management.htm.md"
     },
     {
@@ -665,7 +764,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_product_catalog_management.htm",
-      "body_length": 756,
+      "body_length": 727,
       "file": "articles/release-notes.rn_product_catalog_get_faster_product_pricing_with_list_price_caching.htm.md"
     },
     {
@@ -674,7 +773,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_product_catalog_management.htm",
-      "body_length": 894,
+      "body_length": 865,
       "file": "articles/release-notes.rn_product_catalog_guide_sales_reps_through_product_setups_with_dynamic_ui_controls.htm.md"
     },
     {
@@ -683,8 +782,17 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_revenue.htm",
-      "body_length": 4413,
+      "body_length": 4649,
       "file": "articles/release-notes.rn_product_catalog_management.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_product_catalog_reuse_existing_simple_products_as_bundles.htm",
+      "title": "Reuse Existing Simple Products as Bundles",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_product_catalog_management.htm",
+      "body_length": 465,
+      "file": "articles/release-notes.rn_product_catalog_reuse_existing_simple_products_as_bundles.htm.md"
     },
     {
       "article_id": "release-notes.rn_product_catalog_see_instant_updates_in_product_discovery_while_building_quotes.htm",
@@ -692,7 +800,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_product_catalog_management.htm",
-      "body_length": 773,
+      "body_length": 744,
       "file": "articles/release-notes.rn_product_catalog_see_instant_updates_in_product_discovery_while_building_quotes.htm.md"
     },
     {
@@ -701,7 +809,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_revenue.htm",
-      "body_length": 2561,
+      "body_length": 2104,
       "file": "articles/release-notes.rn_product_configurator.htm.md"
     },
     {
@@ -737,7 +845,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_product_configurator.htm",
-      "body_length": 1999,
+      "body_length": 1970,
       "file": "articles/release-notes.rn_product_configurator_flow_updates.htm.md"
     },
     {
@@ -746,7 +854,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_product_configurator.htm",
-      "body_length": 737,
+      "body_length": 708,
       "file": "articles/release-notes.rn_product_configurator_guardrails_annotation.htm.md"
     },
     {
@@ -755,26 +863,35 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_product_configurator.htm",
-      "body_length": 805,
+      "body_length": 776,
       "file": "articles/release-notes.rn_product_configurator_instance_quantity.htm.md"
     },
     {
       "article_id": "release-notes.rn_product_configurator_optimize_performance.htm",
-      "title": "Optimize Performance for Revenue Management (Release Update)",
+      "title": "Optimize Performance for Revenue Cloud (Release Update)",
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_product_configurator.htm",
-      "body_length": 1653,
+      "body_length": 1619,
       "file": "articles/release-notes.rn_product_configurator_optimize_performance.htm.md"
     },
     {
       "article_id": "release-notes.rn_promotions.htm",
-      "title": "Promotions in Revenue Management",
+      "title": "Promotions in Revenue Cloud",
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_revenue.htm",
-      "body_length": 795,
+      "body_length": 780,
       "file": "articles/release-notes.rn_promotions.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_quote_auto_approval.htm",
+      "title": "Keep Quote Approvals Moving with Automated Workflows",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue_management_accelerators.htm",
+      "body_length": 536,
+      "file": "articles/release-notes.rn_quote_auto_approval.htm.md"
     },
     {
       "article_id": "release-notes.rn_ramp_deals.htm",
@@ -787,7 +904,7 @@
     },
     {
       "article_id": "release-notes.rn_rev_agentforce.htm",
-      "title": "Agentforce for Revenue Management",
+      "title": "Agentforce for Revenue Cloud",
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_revenue.htm",
@@ -809,33 +926,42 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_revenue.htm",
-      "body_length": 1122,
+      "body_length": 1719,
       "file": "articles/release-notes.rn_rev_salesforce_go.htm.md"
     },
     {
       "article_id": "release-notes.rn_revenue.htm",
-      "title": "Revenue Management",
+      "title": "Revenue Cloud",
       "status": "captured",
       "area": "revenue",
-      "body_length": 7539,
+      "body_length": 11612,
       "file": "articles/release-notes.rn_revenue.htm.md"
     },
     {
       "article_id": "release-notes.rn_revenue_increase_sales_with_promotions.htm",
-      "title": "Increase Sales with Promotions in Revenue Management",
+      "title": "Increase Sales with Promotions in Revenue Cloud",
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_promotions.htm",
-      "body_length": 1175,
+      "body_length": 1146,
       "file": "articles/release-notes.rn_revenue_increase_sales_with_promotions.htm.md"
     },
     {
+      "article_id": "release-notes.rn_revenue_management_accelerators.htm",
+      "title": "Revenue Cloud Accelerators",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue.htm",
+      "body_length": 2169,
+      "file": "articles/release-notes.rn_revenue_management_accelerators.htm.md"
+    },
+    {
       "article_id": "release-notes.rn_revenue_promotions_new_changed_objects.htm",
-      "title": "New and Changed Objects for Promotions in Revenue Management",
+      "title": "New and Changed Objects for Promotions in Revenue Cloud",
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_promotions.htm",
-      "body_length": 880,
+      "body_length": 875,
       "file": "articles/release-notes.rn_revenue_promotions_new_changed_objects.htm.md"
     },
     {
@@ -853,7 +979,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_revenue.htm",
-      "body_length": 4068,
+      "body_length": 3640,
       "file": "articles/release-notes.rn_salesforce_contracts.htm.md"
     },
     {
@@ -862,7 +988,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_contracts.htm",
-      "body_length": 704,
+      "body_length": 699,
       "file": "articles/release-notes.rn_salesforce_contracts_add_clauses_to_quotes.htm.md"
     },
     {
@@ -889,7 +1015,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_contracts.htm",
-      "body_length": 629,
+      "body_length": 624,
       "file": "articles/release-notes.rn_salesforce_contracts_track_recipient_signing_progress.htm.md"
     },
     {
@@ -907,7 +1033,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_revenue.htm",
-      "body_length": 1600,
+      "body_length": 1960,
       "file": "articles/release-notes.rn_salesforce_document_generation.htm.md"
     },
     {
@@ -916,7 +1042,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_document_generation.htm",
-      "body_length": 609,
+      "body_length": 604,
       "file": "articles/release-notes.rn_salesforce_document_generation_clause_merge_placeholder_tokens.htm.md"
     },
     {
@@ -925,8 +1051,17 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_document_generation.htm",
-      "body_length": 832,
+      "body_length": 827,
       "file": "articles/release-notes.rn_salesforce_document_generation_clause_tokens_runtime_resolution.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_salesforce_document_generation_retry_timeout.htm",
+      "title": "Handle Document Generation Timeouts with Configurable Retry",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_salesforce_document_generation.htm",
+      "body_length": 1335,
+      "file": "articles/release-notes.rn_salesforce_document_generation_retry_timeout.htm.md"
     },
     {
       "article_id": "release-notes.rn_salesforce_document_generation_rich_text_tables.htm",
@@ -934,7 +1069,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_document_generation.htm",
-      "body_length": 636,
+      "body_length": 631,
       "file": "articles/release-notes.rn_salesforce_document_generation_rich_text_tables.htm.md"
     },
     {
@@ -961,7 +1096,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_contracts.htm",
-      "body_length": 1208,
+      "body_length": 1203,
       "file": "articles/release-notes.rn_sf_contracts_document_playbooks.htm.md"
     },
     {
@@ -970,7 +1105,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_contracts.htm",
-      "body_length": 707,
+      "body_length": 702,
       "file": "articles/release-notes.rn_sf_contracts_eliminate_privileges_runtime_users.htm.md"
     },
     {
@@ -979,7 +1114,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_contracts.htm",
-      "body_length": 1355,
+      "body_length": 1350,
       "file": "articles/release-notes.rn_sf_contracts_lpp_licenses.htm.md"
     },
     {
@@ -988,8 +1123,17 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_salesforce_contracts.htm",
-      "body_length": 1824,
+      "body_length": 1819,
       "file": "articles/release-notes.rn_sf_contracts_risk_analysis.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_share_quote_documents_and_track_e_sign.htm",
+      "title": "Share Quote Documents and Track E-Signatures from Salesforce",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue_management_accelerators.htm",
+      "body_length": 733,
+      "file": "articles/release-notes.rn_share_quote_documents_and_track_e_sign.htm.md"
     },
     {
       "article_id": "release-notes.rn_transaction_management.htm",
@@ -997,7 +1141,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_revenue.htm",
-      "body_length": 4883,
+      "body_length": 5785,
       "file": "articles/release-notes.rn_transaction_management.htm.md"
     },
     {
@@ -1006,7 +1150,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_transaction_management.htm",
-      "body_length": 573,
+      "body_length": 544,
       "file": "articles/release-notes.rn_transaction_management_backdate_asset_transactions.htm.md"
     },
     {
@@ -1015,7 +1159,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_ramp_deals.htm",
-      "body_length": 937,
+      "body_length": 908,
       "file": "articles/release-notes.rn_transaction_management_backdated_arc_for_ramps.htm.md"
     },
     {
@@ -1028,12 +1172,21 @@
       "file": "articles/release-notes.rn_transaction_management_changed_connect_rest_apis.htm.md"
     },
     {
+      "article_id": "release-notes.rn_transaction_management_docgen_clm.htm",
+      "title": "Generate Documents for Quotes via CLM",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 885,
+      "file": "articles/release-notes.rn_transaction_management_docgen_clm.htm.md"
+    },
+    {
       "article_id": "release-notes.rn_transaction_management_dynamic_forms_for_quote_line_items_and_order_products.htm",
       "title": "Build Focused Quote Line Item and Order Product Pages with Dynamic Forms",
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_transaction_management.htm",
-      "body_length": 550,
+      "body_length": 521,
       "file": "articles/release-notes.rn_transaction_management_dynamic_forms_for_quote_line_items_and_order_products.htm.md"
     },
     {
@@ -1042,7 +1195,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_transaction_management.htm",
-      "body_length": 713,
+      "body_length": 684,
       "file": "articles/release-notes.rn_transaction_management_filter_transactions_by_product_name_in_the_sales_transaction_line_editor.htm.md"
     },
     {
@@ -1060,7 +1213,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_transaction_management.htm",
-      "body_length": 913,
+      "body_length": 884,
       "file": "articles/release-notes.rn_transaction_management_prevent_cross_industry_pricing_errors_with_subtype.htm.md"
     },
     {
@@ -1069,8 +1222,17 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_ramp_deals.htm",
-      "body_length": 1463,
+      "body_length": 1434,
       "file": "articles/release-notes.rn_transaction_management_ramp_deal_compound_uplift.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_transaction_management_renewal_stacking_of_termed_assets.htm",
+      "title": "Stack Renewals on Termed Assets with an Active Future-Dated Renewal",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_transaction_management.htm",
+      "body_length": 1221,
+      "file": "articles/release-notes.rn_transaction_management_renewal_stacking_of_termed_assets.htm.md"
     },
     {
       "article_id": "release-notes.rn_transaction_management_stle_enhance_autorefresh.htm",
@@ -1078,7 +1240,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_transaction_management.htm",
-      "body_length": 1969,
+      "body_length": 1940,
       "file": "articles/release-notes.rn_transaction_management_stle_enhance_autorefresh.htm.md"
     },
     {
@@ -1087,7 +1249,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_transaction_management.htm",
-      "body_length": 1797,
+      "body_length": 1768,
       "file": "articles/release-notes.rn_transaction_management_stle_enhance_button_groups.htm.md"
     },
     {
@@ -1096,7 +1258,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_transaction_management.htm",
-      "body_length": 1189,
+      "body_length": 1160,
       "file": "articles/release-notes.rn_transaction_management_sync_quote_to_opportunity.htm.md"
     },
     {
@@ -1105,7 +1267,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_transaction_management.htm",
-      "body_length": 644,
+      "body_length": 615,
       "file": "articles/release-notes.rn_transaction_management_update_quote_and_order_prices_with_price_amendments.htm.md"
     },
     {
@@ -1114,7 +1276,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_transaction_management.htm",
-      "body_length": 507,
+      "body_length": 478,
       "file": "articles/release-notes.rn_transaction_managment_preserve_original_time_zones_for_asset_lifecycle_changes.htm.md"
     },
     {
@@ -1132,7 +1294,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_um_usage_management.htm",
-      "body_length": 774,
+      "body_length": 745,
       "file": "articles/release-notes.rn_um_renew_active_usage_assets_early.htm.md"
     },
     {
@@ -1141,7 +1303,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_um_usage_management.htm",
-      "body_length": 709,
+      "body_length": 680,
       "file": "articles/release-notes.rn_um_renew_expired_usage_assets.htm.md"
     },
     {
@@ -1150,7 +1312,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_um_usage_management.htm",
-      "body_length": 689,
+      "body_length": 660,
       "file": "articles/release-notes.rn_um_renew_ramped_usage_assets_early.htm.md"
     },
     {
@@ -1159,7 +1321,7 @@
       "status": "captured",
       "area": "revenue",
       "parent_article": "release-notes.rn_um_usage_management.htm",
-      "body_length": 511,
+      "body_length": 482,
       "file": "articles/release-notes.rn_um_update_overridden_flows_with_dpe_v4.htm.md"
     },
     {
@@ -1170,14 +1332,23 @@
       "parent_article": "release-notes.rn_revenue.htm",
       "body_length": 1658,
       "file": "articles/release-notes.rn_um_usage_management.htm.md"
+    },
+    {
+      "article_id": "release-notes.rn_validate_orders_before_activation.htm",
+      "title": "Validate Orders Before Activation",
+      "status": "captured",
+      "area": "revenue",
+      "parent_article": "release-notes.rn_revenue_management_accelerators.htm",
+      "body_length": 424,
+      "file": "articles/release-notes.rn_validate_orders_before_activation.htm.md"
     }
   ],
-  "last_updated": "2026-09-30T09:44:17Z",
+  "last_updated": "2026-11-23T12:11:00Z",
   "stats": {
-    "discovered": 127,
-    "captured": 127,
+    "discovered": 146,
+    "captured": 146,
     "pending": 0,
     "errored": 0,
-    "total_captured_body_chars": 158327
+    "total_captured_body_chars": 182305
   }
 }

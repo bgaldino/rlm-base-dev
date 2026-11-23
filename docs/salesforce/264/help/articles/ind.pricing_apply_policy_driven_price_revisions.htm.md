@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_unique_pricing_scenarios.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Apply Policy-Driven Price Revisions
@@ -15,7 +15,7 @@ Apply policy-driven price changes to respond to market conditions, contract term
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 IMPORTANT The Price Revision feature isn’t supported for Partner Community and Customer Community users.
 Understand Price Revisions
 Price revisions are adjustments to the price of goods or services. For a sales rep, understanding these changes is crucial, as they provide a clear and logical justification for a new price during a renewal. These changes, whether increases (uplifts) or decreases, help companies respond to market shifts, control costs, and maximize revenue. Revisions aren't random; they're typically triggered by pre-planned schedules, shifts in economic indicators, or contractual terms, which allow a sales rep to frame a price adjustment as a pre-agreed condition rather than a surprise demand.
@@ -23,3 +23,7 @@ Use the Price Revision Element in a Pricing Procedure
 To maintain profitability on renewals, use the Price Revision element to automatically adjust for inflation and rising operational costs on quotes.
 Use Consumer Price Index for Automated Renewal Price Uplifts
 Automate the calculation of renewal price increases by using the consumer price index (CPI) and additional negotiated price uplift. With this feature, your pricing keeps pace with market conditions and maximizes your high-margin annual contract value (ACV).
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_apply_policy_driven_price_revisions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

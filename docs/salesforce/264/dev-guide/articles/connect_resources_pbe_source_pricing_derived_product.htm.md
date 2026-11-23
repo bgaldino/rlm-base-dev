@@ -7,71 +7,36 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_business_apis_rest_references.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # PBE Derived Pricing (POST)
 
 Get the source product for the Price Book Entry (PBE) derived pricing.
 
-    
-
 ## Resource
-
-      
-      
 
 ```
 /connect/core-pricing/pbeDerivedPricingSourceProduct
 ```
 
-    
-
-    
-
 ## Resource Example
-
-      
-      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/pbeDerivedPricingSourceProduct
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 61.0
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 POST
 
-    
-
-    
-
 ## Request Body for POST
 
-      
-      
-
 **JSON Example**
-
-      
 
 ```
 {
@@ -82,89 +47,8 @@ POST
 }
 ```
 
-      
-
 **Properties**
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `effective​From` | String | Date from when the price book entry is effective. | Required | 61.0 |
@@ -172,13 +56,10 @@ POST
 | `pricebook​EntryId` | String | ID of the price book entry. | Required | 61.0 |
 | `product​Id` | String | ID of the price book. | Required | 61.0 |
 
-    
-
-    
-
 ## Response Body for POST
 
-      
-      
+[PBE Derived Pricing](./connect_responses_p_b_e_derived_pricing_out_put.htm.md "Output representation of the response that includes the source product for the Price Book Entry (PBE) derived pricing.")
 
-[PBE Derived Pricing](./connect_responses_p_b_e_derived_pricing_out_put.htm.md)
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_pbe_source_pricing_derived_product.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

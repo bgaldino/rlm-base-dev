@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_collections.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up and Send Dunning Emails
@@ -15,8 +15,8 @@ Configure automated dunning campaign emails to improve overdue invoice collectio
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions with Revenue Management
-The Collections feature is available with the Revenue Management Billing license and the Marketing Cloud Growth edition. Contact your Salesforce account executive for more information.
+Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
+The Collections feature is available with the Revenue Cloud Billing license and the Marketing Cloud Growth edition. Contact your Salesforce account executive for more information.
 USER PERMISSIONS NEEDED
 To enable Data 360:	Data Cloud Admin permission set
 To enable Marketing Cloud:	Marketing Cloud Admin permission set
@@ -57,3 +57,7 @@ Create campaigns with predefined flows to send dunning emails to the targeted se
 Create an email campaign and send the dunning emails.
 Create and manage SMS messages in Marketing Cloud.
 NOTE Instead of segmenting customer accounts and sending dunning emails using the Data 360 and Marketing Cloud, you can alternatively send emails directly from the Collection Plan record page, See Send Email from a Record in Lightning Experience.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_collections_dunning_process_setup.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

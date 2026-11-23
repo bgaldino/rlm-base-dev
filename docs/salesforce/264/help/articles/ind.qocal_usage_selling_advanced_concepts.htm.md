@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_usage_selling.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Usage Selling Advanced Concepts
@@ -27,4 +27,8 @@ In a quantity commitment, the customer agrees to consume a specific number of un
 Anchor Product with Monetary Commitments
 In a monetary commitment, your customer agrees to spend a specific dollar amount, for example, $1,000 per month. Monetary commitment products are used when your customer wants a discount on the overall spend and doesn’t want the discount to be tied to a specific resource type, such as SMS or storage.
 Saving Usage Rates for Quotes and Orders
-Automatically save current usage rates by generating rate card entries when you save a quote or order. This process helps maintain rate consistency for the duration of the sale, even if the product catalog is updated later.
+Automatically save current usage rates by generating rate card entries when you save a quote or order. This process helps maintain rate consistency during the sale, even if the product catalog is updated later.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_usage_selling_advanced_concepts.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

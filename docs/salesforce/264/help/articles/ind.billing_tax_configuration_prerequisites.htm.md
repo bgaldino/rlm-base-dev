@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_partner_or_custom_tax_engine.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Prerequisites for a Partner or Custom Tax Engine
@@ -34,3 +34,7 @@ If you use your own tax engine, define a custom tax adapter by extending the Tax
 You can model your custom tax adapter’s implementation based on this example.
 
 From Summer ’25, Billing supports up to 2000 invoice lines for a single invoice. To avoid limit-related issues, test your TaxEngineAdapter Apex interface’s implementation to make sure that it adheres to the Apex limit for total heap size.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_tax_configuration_prerequisites.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

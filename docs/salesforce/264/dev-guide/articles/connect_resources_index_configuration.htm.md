@@ -7,188 +7,46 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_catalog_management_api_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Index Configuration Collection (GET, PUT)
 
-Retrieve the saved index configurations. Additionally, you can persist
-      the index configuration.
-
-    
-      
-        
-          
+Retrieve the saved index configurations. Additionally, you can persist the index configuration.
 
 **Resource**
-
-          
-: 
-            
 
 ```
 /connect/pcm/index/configurations
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+**Resource Example**
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/index/configurations
 ```
 
-          
-
-          
-: 
-            
-
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/index/configurations?includeMetadata=false&fieldTypes=Standard,Custom
 ```
 
-          
+**Available Version:** 62.0
 
-        
-        
-          
+**HTTP Methods:** GET, PUT
 
-**Available version**
+**Request Parameters for GET**
 
-          
-: 62.0
-
-        
-        
-          
-
-**HTTP methods**
-
-          
-: GET, PUT
-
-        
-        
-          
-
-**Request parameters for GET**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-- 
-- 
-- 
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `correlationId` | String | Unique token to track and associate related events or transactions across different components of the application. If unspecified, a Universally Unique Identifier (UUID) is generated. | Optional | 62.0 |
-| `field​Types` | String[] | Filters and returns only the persisted index configurations, based on the index configuration type specified in the query parameters. The supported types of filters are: `STANDARD` `CUSTOM` `ProductDynamicAttribute` `ProductAttributeDefinitionStandard` `ProductAttributeDefinitionCustom` | Optional | 62.0 |
+| `field​Types` | String[] | Filters and returns only the persisted index configurations, based on the index configuration type specified in the query parameters. The supported types of filters are `STANDARD`, `CUSTOM`, `ProductDynamicAttribute`, `ProductAttributeDefinitionStandard`, or `ProductAttributeDefinitionCustom`. | Optional | 62.0 |
 | `include​Metadata` | Boolean | Indicates whether to include metadata (`true`) or not (`false`). | Optional | 62.0 |
 
-          
+**Response Body for GET:** [Index Configuration Collection](./connect_responses_index_configuration_collection_output.htm.md "Output representation of the collection of index configuration details.")
 
-        
-        
-          
+**Request Body for PUT**
 
-**Response body for GET**
-
-          
-: [Index Configuration
-              Collection](./connect_responses_index_configuration_collection_output.htm.md)
-
-        
-        
-          
-
-**Request body for PUT**
-
-          
-: 
-            
-
-**JSON example**
-
-: 
+**JSON Example**
 
 ```
 {
@@ -224,21 +82,13 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/index/config
 
 **Properties**
 
-: 
-
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `correlationId` | String | Unique token to track and associate related events or transactions across different components of the application. If unspecified, a Universally Unique Identifier (UUID) is generated. | Optional | 62.0 |
-| `index​Configurations` | [Index Configuration Input](./connect_requests_index_configuration_input.htm.md)[] | List of index configurations. | Required | 62.0 |
+| `index​Configurations` | [Index Configuration Input](./connect_requests_index_configuration_input.htm.md "Input representation of the request to persist the index configuration.")[] | List of index configurations. | Required | 62.0 |
 
-          
+**Response Body for PUT:** [Index Configurations Update](./connect_responses_index_configurations_update_output.htm.md "Output representation of the updated index configuration.")
 
-        
-        
-          
+---
 
-**Response body for PUT**
-
-          
-: [Index Configurations
-              Update](./connect_responses_index_configurations_update_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_index_configuration.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

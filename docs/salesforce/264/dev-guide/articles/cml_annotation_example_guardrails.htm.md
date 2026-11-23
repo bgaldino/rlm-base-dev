@@ -7,75 +7,22 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_annotation_examples.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # guardrails Annotation
 
-guardrails is a CML annotation that prevent the constraint engine from changing
-    specified attributes or relations when it resolves the constraint.
-
-    
-      
-
-      
-      
-      
-
-      
-
-      
-
-      
-
-      
-      
-
-      
-
-      
-
-      
-      
-
-      
-
-      
-
-      
-      
-
-      
-
-- 
-- 
-
-      
-
-      
+guardrails is a CML annotation that prevent the constraint engine from changing specified attributes or relations when it resolves the constraint.
 
 | Annotation | `guardrails` |
 | --- | --- |
 | Applicable to | Constraint |
 | Value Type/Values | String. A comma-separated list of the attribute or relation names to protect. |
-| Description | Prevents the constraint engine from altering the listed attributes or relations to satisfy the constraint. Defines protections at the constraint level instead of on individual attributes and relations, which avoids conflicts with other constraints that share the same elements. When you guard an attribute, the engine can't change its domain values. When you guard a relation, the engine can't change its cardinality. |
-
-    
-
-    
+| Description | Prevents the constraint engine from altering the listed attributes or relations to satisfy the constraint. Defines protections at the constraint level instead of on individual attributes and relations, which avoids conflicts with other constraints that share the same elements. When you guard an attribute, the engine can't change its domain values or When you guard a relation, the engine can't change its cardinality. |
 
 ## Example 1: Guard an Attribute
 
-      
-      
-
-In this generator set model, the UL 2200 compliance constraint requires a secondary voltage
-        of 600V or less. The `Voltage` attribute is guarded, so
-        the engine can't change its domain values to satisfy the constraint.
-
-      
+In this generator set model, the UL 2200 compliance constraint requires a secondary voltage of 600V or less. The `Voltage` attribute is guarded, so the engine can't change its domain values to satisfy the constraint.
 
 ```
 type GeneratorSet : LineItem {
@@ -94,20 +41,10 @@ type GeneratorSet : LineItem {
 }
 ```
 
-    
-
-    
-
 ## Example Description and Configurator Result
 
-      
-      
+In example 1, the `guardrails` annotation set to "`Voltage`". As a result, if the user selects the "`Listing-UL 2200`" standard, the engine can't change the domain values of the `Voltage` attribute to resolve the conflict. Instead, the engine either satisfies the constraint by changing an unguarded element, such as `standardsAndCompliance`, or displays a conflict error message. Without the `guardrails` annotation, the engine restricts the domain values of `Voltage` to satisfy the constraint.
 
-In example 1, the `guardrails` annotation set to
-          "`Voltage`". As a result, if the user selects
-        the "`Listing-UL 2200`" standard, the engine
-        can't change the domain values of the `Voltage`
-        attribute to resolve the conflict. Instead, the engine either satisfies the constraint by
-        changing an unguarded element, such as `standardsAndCompliance`, or displays a conflict error message. Without the
-          `guardrails` annotation, the engine restricts the
-        domain values of `Voltage` to satisfy the constraint.
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_annotation_example_guardrails.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

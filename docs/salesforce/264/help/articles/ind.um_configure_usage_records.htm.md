@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_usage_management_setup.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Configure Usage Management Records Manually
@@ -34,7 +34,7 @@ Define the details of a grant associated with a resource, product, or service, s
 Create Usage Aggregation Policy
 Define the method used to aggregate consumption of a usage resource over a period.
 Create Rating Frequency Policy
-The rating frequency policy defines how often the rating for a sellable product and a usage resource should be computed.
+The rating frequency policy defines how often the rating for a sellable product and a usage resource is computed.
 Create a Usage Overage Policy
 Define the set of rules that determine how units consumed beyond the granted limit are managed for a usage resource.
 Create Usage Grant Refresh Policy
@@ -51,3 +51,7 @@ Create a Usage Commitment Policy
 Define the set of rules that determine how commitments are applied to a usage resource.
 Create a Usage Commitment Asset Related Object
 Apply discounted rates and additional grants available for the commitment product to the resources consumed by an anchor product. To provide these benefits, link the commitment product to the anchor product.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_configure_usage_records.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

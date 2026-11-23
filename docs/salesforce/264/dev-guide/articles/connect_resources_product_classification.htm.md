@@ -7,88 +7,34 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_catalog_management_api_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Product Classification Details (POST)
 
-Retrieve the details for a list of product classification
-      records.
+Retrieve the details for a list of product classification records.
 
-    
-      
-
-This API fetches metadata, attributes, and attribute categories associated with product
-        classifications across supported catalog systems.
-
-    
-
-    
-      
-        
-          
+This API fetches metadata, attributes, and attribute categories associated with product classifications across supported catalog systems.
 
 **Resource**
-
-          
-: 
-            
 
 ```
 /revenue/product-catalog-management/product-classifications/details
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+**Resource Example**
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/revenue/product-catalog-management/product-classifications/details
 ```
 
-          
+**Available Version:** 66.0
 
-        
-        
-          
+**HTTP Methods:** POST
 
-**Available version**
+**Request Body for POST**
 
-          
-: 66.0
-
-        
-        
-          
-
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-
-**JSON example**
-
-: 
+**JSON Example**
 
 ```
 {
@@ -104,23 +50,13 @@ https://yourInstance.salesforce.com/services/data/v68.0/revenue/product-catalog-
 
 **Properties**
 
-: 
-
-- 
-
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `catalogSystems` | String[] | Name of the catalog system. Valid value is: `epc`—Enterprise Product Catalog | Optional | 66.0 |
+| `catalogSystems` | String[] | Name of the catalog system. Valid value is `epc`—Enterprise Product Catalog. | Optional | 66.0 |
 | `product​ClassificationIds` | String[] | List of product classification IDs for which you want to retrieve product details. In the `epc` catalog system, these values are the `Product2` record IDs. | Required | 66.0 |
 
-          
+**Response Body for POST:** [Product Classification Details Collection](./connect_responses_product_classification_details_collection_output.htm.md "Output representation that contains a collection of product classification details along with any processing errors.")
 
-        
-        
-          
+---
 
-**Response body for POST**
-
-          
-: [Product Classification Details
-              Collection](./connect_responses_product_classification_details_collection_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_product_classification.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

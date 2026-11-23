@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: approvals
 parent_article: ind.approvals_smart_or_rule_based_approvals.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Smart Approvals
@@ -38,3 +38,7 @@ When the specified evaluation flow returns True, the step starts	Not eligible fo
 EXAMPLE A company uses Smart Approvals for its multistep discount workflow. John can approve discounts up to 40%, James approves 41–50%, and the CFO, Jenny, must approve anything over 50%. A sales rep submits a quote with a 55% discount. After John and James approve the quote, Jenny rejects it and asks for a lower discount. The rep adjusts the quote to 52% and resubmits. Instead of restarting the entire process, Smart Approvals compares the new submission to the previous one and sees that John and James’s conditions are still met, so it routes the request only to Jenny for the final sign-off. This process eliminates redundant approvals.
 Turn On Smart Approvals
 To skip reviewing previously approved steps in an approval resubmission, turn on Smart Approvals.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.approvals_smart_approvals.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

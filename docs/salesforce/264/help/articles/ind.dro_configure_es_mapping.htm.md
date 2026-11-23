@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_define_field_and_attribute_mapping.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Configure Expression Set Based Mapping
@@ -53,3 +53,7 @@ Configure the mapping from the source to the target mapping by using the Commiss
 When a user submits an order with ProductType as Advanced, CustomerAccount as Priority, and Price as $12000, the target product is set with Commission Amount as $1000.
 
 When the user submits an order with ProductType as Basic, CustomerAccount as Regular, and Price as $1200, the target product is set with Commission Amount as $100.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_configure_es_mapping.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

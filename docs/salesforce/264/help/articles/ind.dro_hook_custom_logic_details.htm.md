@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_run_time_administration.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Configure Custom Logic between Decomposition and Orchestration
@@ -23,3 +23,7 @@ Configure Custom Logic in a Synchronous Flow
 When you configure the Decompose Sales Transaction and Orchestrate Sales Transaction invocable actions in a synchronous request, the flow executes the actions sequentially.
 Configure Custom Logic in an Asynchronous Flow
 When you configure the Decompose Sales Transaction and Orchestrate Sales Transaction invocable actions in an asynchronous request, the decomposition process runs in the background. Pause the flow until decomposition is finished before executing the custom logic and the Orchestrate Sales Transaction invocable action.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_hook_custom_logic_details.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

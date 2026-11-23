@@ -7,22 +7,19 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: apex_namespace_ind_docgen_api.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # EnvelopeStatusScheduler Class
 
 The `ind_docgen_api.EnvelopeStatusScheduler` class
-    schedules Envelope Status updates.
+schedules Envelope Status updates.
 
 ## Namespace
 
-[ind_docgen_api](./apex_namespace_ind_docgen_api.htm.md)
+[ind\_docgen\_api](./apex_namespace_ind_docgen_api.htm.md "The ind_docgen_api namespace provides class for scheduling Envelope Status updates.")
 
 ## Example
-
-      
-      
 
 ```
 ind_docgen_api.EnvelopeStatusScheduler envelopeScheduler = new ind_docgen_api.EnvelopeStatusScheduler();
@@ -32,66 +29,36 @@ System.schedule('Update Docusign Envelope Job 3', '0 30 * * * ?', envelopeSchedu
 System.schedule('Update Docusign Envelope Job 4', '0 45 * * * ?', envelopeScheduler);
 ```
 
-    
-
-- 
-**[EnvelopeStatusScheduler Methods](./apex_class_ind_docgen_api_EnvelopeStatusScheduler.htm.md#apex_ind_docgen_api_EnvelopeStatusScheduler_methods)**  
+- **[EnvelopeStatusScheduler Methods](./apex_class_ind_docgen_api_EnvelopeStatusScheduler.htm.md#apex_ind_docgen_api_EnvelopeStatusScheduler_methods)**
 
 ## EnvelopeStatusScheduler Methods
 
 The following are methods for `EnvelopeStatusScheduler`.
 
-- 
-**[execute(ctx)](./apex_class_ind_docgen_api_EnvelopeStatusScheduler.htm.md#apex_ind_docgen_api_EnvelopeStatusScheduler_execute)**  
-
-Executes the scheduled Apex job for Envelope Status     Updates.
-
-  
+- **[execute(ctx)](./apex_class_ind_docgen_api_EnvelopeStatusScheduler.htm.md#apex_ind_docgen_api_EnvelopeStatusScheduler_execute)**  
+  Executes the scheduled Apex job for Envelope Status Updates.
 
 ### execute(ctx)
 
-  
-  
-  
 Executes the scheduled Apex job for Envelope Status
-    Updates.
-
-    
+Updates.
 
 #### Signature
 
-      
-      
-
 `public void execute(System.SchedulableContext ctx)`
-
-      
-    
-
-    
 
 #### Parameters
 
-      
-      
-
 **ctx**
-
-      
 
 Type: [System.SchedulableContext](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexref.meta/apexref/apex_interface_system_schedulablecontext.htm)
 
-      
-
 Contains the job ID.
-
-    
-
-    
 
 #### Return Value
 
-      
-      
-
 Type: void
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/apex_class_ind_docgen_api_EnvelopeStatusScheduler.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

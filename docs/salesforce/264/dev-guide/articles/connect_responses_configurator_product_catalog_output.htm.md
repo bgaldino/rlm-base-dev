@@ -7,22 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_responses.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Configurator Product Catalog
 
 Output representation of the product catalog.
 
-    
-
 ## JSON Example
 
-      
-      
-
 ```
-
   "catalogProducts": {
     "additionalFields": [],
     "attributeCategories": [
@@ -361,391 +355,10 @@ Output representation of the product catalog.
   }
 ```
 
-    
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `additional​Fields` | [Configurator Additional Fields](./connect_responses_configurator_additional_fields_output.htm.md)[] | Additional fields for this product. | Small, 60.0 | 60.0 |
-| `attribute​Categories` | [Configurator Attribute Category](./connect_responses_configurator_attribute_category_output.htm.md)[] | List of attribute categories. The categories that aren’t categorized are specified in the uncategorized entry in this list. | Small, 60.0 | 60.0 |
+| `additional​Fields` | [Configurator Additional Fields](./connect_responses_configurator_additional_fields_output.htm.md "Output representation of the additional fields of a product configuration.")[] | Additional fields for this product. | Small, 60.0 | 60.0 |
+| `attribute​Categories` | [Configurator Attribute Category](./connect_responses_configurator_attribute_category_output.htm.md "Output representation of the attribute category in a product configuration.")[] | List of attribute categories. The categories that aren’t categorized are specified in the uncategorized entry in this list. | Small, 60.0 | 60.0 |
 | `availability​Date` | String | Availability date of this product. | Small, 60.0 | 60.0 |
 | `description` | String | Description of this product. | Small, 60.0 | 60.0 |
 | `discontinued​Date` | String | Date when this product is discontinued. | Small, 60.0 | 60.0 |
@@ -761,13 +374,17 @@ Output representation of the product catalog.
 | `isSoldOnly​WithOtherProds` | Boolean | Indicates whether this product is sold only with other products (`true`) or not (`false`). | Small, 60.0 | 60.0 |
 | `name` | String | Name of the product. | Small, 60.0 | 60.0 |
 | `nodeType` | String | Node type of the product. | Small, 60.0 | 60.0 |
-| `prices` | [Configurator Price](./connect_responses_configurator_price_output.htm.md)[] | List of prices from the product catalog. | Small, 60.0 | 60.0 |
-| `product​Classification` | [Configurator Product Classification](./connect_responses_configurator_product_classification_output.htm.md)[] | Classification details of the product. | Small, 60.0 | 60.0 |
+| `prices` | [Configurator Price](./connect_responses_configurator_price_output.htm.md "Output representation of the pricing details in a product configuration.")[] | List of prices from the product catalog. | Small, 60.0 | 60.0 |
+| `product​Classification` | [Configurator Product Classification](./connect_responses_configurator_product_classification_output.htm.md "Output representation of the product classification in a product configuration.")[] | Classification details of the product. | Small, 60.0 | 60.0 |
 | `productCode` | String | Code of the product. | Small, 60.0 | 60.0 |
-| `product​ComponentGroups` | [Configurator Product Component Group](./connect_responses_configurator_product_component_group_output.htm.md)[] | List of product component groups for this product. | Small, 60.0 | 60.0 |
-| `product​RelatedComponent` | [Configurator Product Related Component](./connect_responses_configurator_product_related_component_output.htm.md)[] | Details of the product related component of this product. | Small, 60.0 | 60.0 |
-| `productSelling​ModelOptions` | [Configurator Product Selling Model Option](./connect_responses_configurator_product_selling_model_option_output.htm.md)[] | List of product selling model options for this product. | Small, 60.0 | 60.0 |
+| `product​ComponentGroups` | [Configurator Product Component Group](./connect_responses_configurator_product_component_group_output.htm.md "Output representation of the product component group in a product classification.")[] | List of product component groups for this product. | Small, 60.0 | 60.0 |
+| `product​RelatedComponent` | [Configurator Product Related Component](./connect_responses_configurator_product_related_component_output.htm.md "Output representation of the product related component in a product configuration.")[] | Details of the product related component of this product. | Small, 60.0 | 60.0 |
+| `productSelling​ModelOptions` | [Configurator Product Selling Model Option](./connect_responses_configurator_product_selling_model_option_output.htm.md "Output representation of the product selling model option in a product configuration.")[] | List of product selling model options for this product. | Small, 60.0 | 60.0 |
 | `productType` | String | Type of product. | Small, 60.0 | 60.0 |
-| `qualification​Context` | [Configurator Qualification Context](./connect_responses_configurator_qualification_context_output.htm.md)[] | Details of the qualification context of the product. | Small, 60.0 | 60.0 |
+| `qualification​Context` | [Configurator Qualification Context](./connect_responses_configurator_qualification_context_output.htm.md "Output representation of the qualification context in a product configuration.")[] | Details of the qualification context of the product. | Small, 60.0 | 60.0 |
 | `status` | String | Status of the product. | Small, 60.0 | 60.0 |
-| `unitOfMeasure` | [Configurator Unit Of Measure](./connect_responses_configurator_unit_of_measure_output.htm.md)[] | Details about the unit of measure associated with a product. | Small, 63.0 | 63.0 |
+| `unitOfMeasure` | [Configurator Unit Of Measure](./connect_responses_configurator_unit_of_measure_output.htm.md "Output representation of the details of the unit of measure record.")[] | Details about the unit of measure associated with a product. | Small, 63.0 | 63.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_configurator_product_catalog_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.rev_agent_overview.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Agentforce for Billing Employee Assistance
@@ -28,12 +28,12 @@ Reduce context switching by viewing invoices, payments, and balances in one plac
 Improve billing clarity and transparency through consistent explanations of line items and charges.
 Enhance operational efficiency by eliminating manual record navigation and repetitive lookup steps.
 
-Billing Employee Assistance runs inside your Salesforce org and uses your existing Agentforce Revenue Management Billing data to answer billing questions. When an internal user needs information, such as an explanation for a specific invoice line, the customer’s outstanding balance, or the next payment due, they can open Agentforce and ask a question in natural language.
+Billing Employee Assistance runs inside your Salesforce org and uses your existing Agentforce Revenue Cloud Billing data to answer billing questions. When an internal user needs information, such as an explanation for a specific invoice line, the customer’s outstanding balance, or the next payment due, they can open Agentforce and ask a question in natural language.
 
 The agent uses generative AI with real-time billing data retrieved through supported flows to return concise, plain language explanations. It can summarize invoice charges, list payment plan details, generate or retrieve invoice documents, and surface key account information to help employees resolve questions quickly and accurately.
 
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management with the Revenue Cloud Billing license with the Agentforce Employee Agent add-on.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Billing license with the Agentforce Employee Agent add-on.
 
 To review the billing considerations for Billing Employee Assistance, see Considerations for Agentforce in Revenue Management.
 
@@ -44,4 +44,8 @@ Help users understand their invoice lines by providing detailed explanations of 
 Subagent: Billing Collections Management
 Use Agentforce to help teams quickly assess and act on customer account health. The Billing Collections Management subagent provides an at-a-glance view of financial standing, highlighting high-risk invoices based on payment history, disputes, and outstanding balances, along with recommended next actions.
 Subagent: Billing Inquiries
-Use Agentforce to help internal teams quickly access and understand key billing information. The Billing Inquiries subagent answers questions about account balances, payment plans, upcoming payment dates, invoice details, and downloadable invoice documents. Users can ask about an account or a specific invoice, and the agent automatically identifies the right billing flow to run. The subagent consolidates information from Revenue Management Billing so teams can resolve billing questions efficiently and confidently.
+Use Agentforce to help internal teams quickly access and understand key billing information. The Billing Inquiries subagent answers questions about account balances, payment plans, upcoming payment dates, invoice details, and downloadable invoice documents. Users can ask about an account or a specific invoice, and the agent automatically identifies the right billing flow to run. The subagent consolidates information from Revenue Cloud Billing so teams can resolve billing questions efficiently and confidently.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_agentforce_billing_agent.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

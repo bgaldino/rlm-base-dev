@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_system_administration_for_salesforce_contracts.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # State Models and Transitions in Salesforce Contracts
@@ -53,3 +53,7 @@ Object State Transition Action Scenarios in Salesforce Contracts
 These scenarios contain important information to keep in mind when configuring actions for a contract.
 Sample Workflows to Create and Customize Contract Object State Definitions
 You can customize or create contract Object State Definitions as per your business needs. This sections details few sample customizations.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_state_models_transitions_and_actions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

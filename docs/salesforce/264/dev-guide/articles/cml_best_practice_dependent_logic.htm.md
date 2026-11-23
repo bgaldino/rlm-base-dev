@@ -7,41 +7,32 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_cml_best_practices.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
-# Dependent Logic: Use Configurable Variable Annotation to Prevent Premature Default
-    Assignment
+# Dependent Logic: Use Configurable Variable Annotation to Prevent Premature Default Assignment
 
 Use the configurable variable annotation on a target attribute to prevent the engine
-    from assigning a default value before your calculation and preference rules execute.
-
-    
+from assigning a default value before your calculation and preference rules execute.
 
 To ensure preference rules correctly set target attributes based on calculated values, use
-      the `@(configurable=false)` annotation on the target
-      attribute. This prevents a race condition where the engine assigns a default value during
-      initialization before your calculation and preference rules execute.
-
-    
+the `@(configurable=false)` annotation on the target
+attribute. This prevents a race condition where the engine assigns a default value during
+initialization before your calculation and preference rules execute.
 
 When an inline expression is used, CML evaluates the model top-down. If the target attribute
-      is declared before the inline calculation, the engine immediately assigns a default value to
-      the attribute. As a result, any subsequent `preference()`
-      rules are ignored because the engine treats the existing default value as an established
-      selection and avoids overwriting it with the calculated value. Annotating the target
-      attribute with `@(configurable=false)`) forces the engine
-      to leave the variable as `null` until the calculation and
-      preference rules are executed.
-
-    
+is declared before the inline calculation, the engine immediately assigns a default value to
+the attribute. As a result, any subsequent `preference()`
+rules are ignored because the engine treats the existing default value as an established
+selection and avoids overwriting it with the calculated value. Annotating the target
+attribute with `@(configurable=false)`) forces the engine
+to leave the variable as `null` until the calculation and
+preference rules are executed.
 
 In this example, the engine processes `ShippingMethod`
-      first and immediately assigns the default value "Standard" to it. Later, when the calculation
-      for `totalWeight` returns a value high enough to require
-      the “Freight” shipping method, the engine ignores this preference rule because the `ShippingMethod` variable is already bound to "Standard".
-
-    
+first and immediately assigns the default value "Standard" to it. Later, when the calculation
+for `totalWeight` returns a value high enough to require
+the “Freight” shipping method, the engine ignores this preference rule because the `ShippingMethod` variable is already bound to "Standard".
 
 ```
 type Order : LineItem {
@@ -62,21 +53,17 @@ type Order : LineItem {
 }
 ```
 
-    
-
 In this example, using the `@(configurable=false)`
-      annotation ensures the `ShippingMethod` attribute remains
-      as `null` until the calculation completes and the rules
-      execute.
+annotation ensures the `ShippingMethod` attribute remains
+as `null` until the calculation completes and the rules
+execute.
 
-    
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=revenue_lifecycle_management_dev_guide)
 
 #### Note
 
 Provide a second preference rule for the fallback condition (else)
-      to ensure a value is always set.
-
-    
+to ensure a value is always set.
 
 ```
 type Order : LineItem {
@@ -97,3 +84,7 @@ type Order : LineItem {
     preference(totalWeight <= 1000 -> ShippingMethod == "Standard");
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_best_practice_dependent_logic.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

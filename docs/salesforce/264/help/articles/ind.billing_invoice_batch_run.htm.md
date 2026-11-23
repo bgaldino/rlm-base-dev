@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_automate_invoice_generation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Invoice Batch Run Process
@@ -73,6 +73,9 @@ Failed Invoice Batch Runs
 Review the generated invoices in the Invoices related list. If the invoice generation fails, check the Revenue Transaction Error Logs related list on the Invoice Batch Run records. The log’s Error Message field shows the reason for the failure.
 
 SEE ALSO
-Data Processing Engine
 Revenue Cloud Developer Guide: InvoiceBatchRun
 Monitor Your Batch Jobs
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_batch_run.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

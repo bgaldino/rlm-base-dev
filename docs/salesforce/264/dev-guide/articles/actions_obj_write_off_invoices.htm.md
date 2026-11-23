@@ -7,194 +7,48 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Write Off Invoices Action
 
-Write off partially paid or unpaid invoices to manage pending debts
-            and to maintain accurate financial records. This action calls the Posted Invoice List
-            Write-Off (POST) API.
-
-        
-            
+Write off partially paid or unpaid invoices to manage pending debts and to maintain accurate financial records. This action calls the Posted Invoice List Write-Off (POST) API.
 
 This action is available in API version 64.0 and later.
 
-        
-
-        
-
 ## Special Access Rules
 
-            
-            
-
-The Write Off Invoices action is available in Enterprise, Developer, and Unlimited
-                Editions where Billing is enabled. To use this action, you need the Billing
-                Operations User and Credit Memo Operations User permission sets.
-
-        
-
-        
+The Write Off Invoices action is available in Enterprise, Developer, and Unlimited Editions where Billing is enabled. To use this action, you need the Billing Operations User and Credit Memo Operations User permission sets.
 
 ## Supported REST HTTP Methods
 
-            
-            
-                
-                    
+**URI:** `/services/data/v68.0/actions/standard/writeOffInvoices`
 
-**URI**
+**Formats:** JSON, XML
 
-                    
-: `/services/data/v68.0/actions/standard/writeOffInvoices`
+**HTTP Methods:** GET
 
-                
-                
-                    
+**Authentication:** `Authorization: Bearer token`
 
-**Formats**
-
-                    
-: JSON, XML
-
-                
-                
-                    
-
-**HTTP Methods**
-
-                    
-: GET
-
-                
-                
-                    
-
-**Authentication**
-
-                    
-: `Authorization:
-                            Bearertoken`
-
-                
-                
-                    
-
-**Notes**
-
-                    
-: You can also call the associated Connect REST API endpoint or
-                        InvoiceWriteOff Apex methods. See [Posted Invoice List Write-Off
-                            (POST)](./connect_resources_write_off_invoices.htm.md) API or [InvoiceWriteOff Namespace](./apex_namespace_InvoiceWriteOff.htm.md).
-
-                
-            
-
-        
-
-        
+**Notes:** You can also call the associated Connect REST API endpoint or InvoiceWriteOff Apex methods. See [Posted Invoice List Write-Off (POST)](./connect_resources_write_off_invoices.htm.md) API or [InvoiceWriteOff Namespace](./apex_namespace_InvoiceWriteOff.htm.md).
 
 ## Inputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| writeOffInvoiceInputList | **Type** Apex-defined **Description** Required. A collection of Apex input records that contain details about the invoices to be written off. See [InvoiceWriteOff Namespace](./apex_namespace_InvoiceWriteOff.htm.md) for the list of input parameters. |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| writeOffInvoiceInputList | Apex-defined | Required. A collection of Apex input records that contain details about the invoices to be written off. See [InvoiceWriteOff Namespace](./apex_namespace_InvoiceWriteOff.htm.md) for the list of input parameters. |
 
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Output | Details |
-| --- | --- |
-| writeOffInvoiceResponseList | **Type** Apex-defined **Description** A collection of Apex output records that contain details about the invoices that were written off. See [InvoiceWriteOff Namespace](./apex_namespace_InvoiceWriteOff.htm.md) for the list of output parameters. |
-
-        
-
-        
-        
+| Output | Type | Description |
+| --- | --- | --- |
+| writeOffInvoiceResponseList | Apex-defined | A collection of Apex output records that contain details about the invoices that were written off. See [InvoiceWriteOff Namespace](./apex_namespace_InvoiceWriteOff.htm.md) for the list of output parameters. |
 
 ## Example
 
-            
-            
-                
-                    
-
 **GET**
 
-                    
-: 
-                        
-
 This sample request is for the Write Off Invoices action.
-
-                        
 
 ```
 {
@@ -220,15 +74,7 @@ This sample request is for the Write Off Invoices action.
 }
 ```
 
-                    
-
-                    
-: 
-                        
-
 This sample response is for the Write Off Invoices action.
-
-                        
 
 ```
 {
@@ -247,3 +93,7 @@ This sample response is for the Write Off Invoices action.
   ]
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_write_off_invoices.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

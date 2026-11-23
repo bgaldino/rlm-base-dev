@@ -7,149 +7,68 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: apex_namespace_Context.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # IndustriesContext Class
 
 Contains methods to create, query, persist, or delete a context. Also, query a record's
-    status, query a context based on tags, or update context attributes by using the available
-    methods.
+status, query a context based on tags, or update context attributes by using the available
+methods.
 
 ## Namespace
 
-[Context](#apex_class_Context_IndustriesContext)
+[Context](#apex_class_Context_IndustriesContext "Contains methods to create, query, persist, or delete a context. Also, query a record's status, query a context based on tags, or update context attributes by using the available methods.")
 
-- 
-**[IndustriesContext Methods](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_methods)**  
-
-Learn more about the available methods with the `IndustriesContext` class.
-
-  
+- **[IndustriesContext Methods](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_methods)**  
+  Learn more about the available methods with the `IndustriesContext` class.
 
 ## IndustriesContext Methods
 
-  
-  
-  
 Learn more about the available methods with the `IndustriesContext` class.
-
-    
-      
 
 The `IndustriesContext` class includes these methods.
 
-    
-
-    
-  
-
-- 
-**[addRecordsToContext(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_addRecordsToContext)**  
-
-Adds one or more records at a user-defined level in the hierarchy of the         context.
-
-- 
-**[buildContext(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_buildContext)**  
-
-Creates a context.
-
-- 
-**[deleteContext(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_deleteContext)**  
-
-Deletes a context.
-
-- 
-**[deleteRecords(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_deleteRecords)**  
-
-Deletes one or more records from a context session identified by data         paths.
-
-- 
-**[evictContextDefinition(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_evictContextDefinition)**  
-
-Removes the details of the context definition from cache.
-
-- 
-**[filteringContext(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_filteringContext)**  
-
-Builds or queries a context based on a filter criteria.
-
-- 
-**[getContext(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_getContext)**  
-
-Retrieves context details.
-
-- 
-**[getContextTranslation(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_getContextTranslation)**  
-
-Retrieves context mappings based on a target mapping ID.
-
-- 
-**[leanerQueryTags(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_leanerQueryTags)**  
-
-Queries context tags and returns an optimized, leaner result set compared to the standard     queryTags.
-
-- 
-**[persistContext(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_persistContext)**  
-
-Persists the current data or state of context to the database.
-
-- 
-**[queryContextRecordsAndChildren(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_queryContextRecordsAndChildren)**  
-
-Queries Context records and children based on the dataPath instead of         tags.
-
-- 
-**[queryRecordStatus(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_queryRecordStatus)**  
-
-Queries the status of a record.
-
-- 
-**[queryTags(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_queryTags)**  
-
-Queries a context by using tags.
-
-- 
-**[updateContextAttributes(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_updateContextAttributes)**  
-
-Updates the attributes of a context. 
-
-    
+- **[addRecordsToContext(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_addRecordsToContext)**  
+  Adds one or more records at a user-defined level in the hierarchy of the context.
+- **[buildContext(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_buildContext)**  
+  Creates a context.
+- **[deleteContext(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_deleteContext)**  
+  Deletes a context.
+- **[deleteRecords(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_deleteRecords)**  
+  Deletes one or more records from a context session identified by data paths.
+- **[evictContextDefinition(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_evictContextDefinition)**  
+  Removes the details of the context definition from cache.
+- **[filteringContext(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_filteringContext)**  
+  Builds or queries a context based on a filter criteria.
+- **[getContext(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_getContext)**  
+  Retrieves context details.
+- **[getContextTranslation(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_getContextTranslation)**  
+  Retrieves context mappings based on a target mapping ID.
+- **[leanerQueryTags(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_leanerQueryTags)**  
+  Queries context tags and returns an optimized, leaner result set compared to the standard queryTags.
+- **[persistContext(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_persistContext)**  
+  Persists the current data or state of context to the database.
+- **[queryContextRecordsAndChildren(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_queryContextRecordsAndChildren)**  
+  Queries Context records and children based on the dataPath instead of tags.
+- **[queryRecordStatus(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_queryRecordStatus)**  
+  Queries the status of a record.
+- **[queryTags(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_queryTags)**  
+  Queries a context by using tags.
+- **[updateContextAttributes(input)](./apex_class_Context_IndustriesContext.htm.md#apex_Context_IndustriesContext_updateContextAttributes)**  
+  Updates the attributes of a context.
 
 ### addRecordsToContext(input)
 
-    
-    
-    
 Adds one or more records at a user-defined level in the hierarchy of the
-        context.
-
-        
+context.
 
 #### Signature
 
-            
-            
-
 `public Map<String,Object>
-                    addRecordsToContext(Map<String,Object> input)`
-
-            
-
-```
-Context.IndustriesContext, addRecordsToContext, [Map<String,ANY>], Map<String,ANY>
-```
-
-        
-
-        
+addRecordsToContext(Map<String,Object> input)`
 
 #### Example
-
-            
-            
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -161,130 +80,49 @@ inputAddRecord.put('isTaggedData', false);
 inputAddRecord.put('inputData', '{\"Account\":[{\"id\":\"synthetic\",\"businessObjectType\":\"Account\",\"Name\":\"test_account\"}]}');
 
 Map<String, Object> ouputAddRecord = industriesContexts.addRecordsToContext(inputAddRecord);
-
 ```
-
-        
-
-        
 
 #### Parameters
 
-            
-            
-                
-                    
+input
+:   Type: Map<String,Object>
+:   Map of values used to add records to the context. The map can include these
+    keys.
 
-**input**
+contextId
+:   Type: String
+:   ID of the Context to which record described in inputData is
+    added.
 
-                    
-: Type: Map<String,Object>
+overWriteExistingRecords
+:   Type: Boolean
+:   Indicates if an already existing record with same ID as being
+    added through inputData must be overriden.
 
-                    
-: 
-                        
-                            
-                                
+inputData
+:   Type: String
+:   Record data to be added to the context, hierarchical data in
+    stringified format.
 
-**contextId**
-
-                                
-: Type: String
-
-                                
-: ID of the Context to which record described in inputData is
-                                    added.
-
-                            
-                            
-                                
-
-**overWriteExistingRecords**
-
-                                
-: Type: Boolean
-
-                                
-: Indicates if an already existing record with same ID as being
-                                    added through inputData must be overriden.
-
-                            
-                            
-                                
-
-**inputData**
-
-                                
-: Type: String
-
-                                
-: Record data to be added to the context, hierarchical data in
-                                    stringified format.
-
-                            
-                            
-                                
-
-**isTaggedData**
-
-                                
-: Type: Boolean
-
-                                
-: Describes if the inputData structure is using the taggedData
-                                    Format.
-
-                            
-                        
-
-                    
-
-                
-            
-
-        
-
-        
+isTaggedData
+:   Type: Boolean
+:   Describes if the inputData structure is using the taggedData
+    Format.
 
 #### Return Value
 
-            
-            
-
 Type: Map<String,Object>
-
-        
-
-    
 
 ### buildContext(input)
 
 Creates a context.
 
-    
-
 #### Signature
 
-      
-      
-
 `public Map<String,Object>
-          buildContext(Map<String,Object> input)`
-
-      
-
-```
-Context.IndustriesContext, buildContext, [Map<String,ANY>], Map<String,ANY>
-```
-
-    
-
-    
+buildContext(Map<String,Object> input)`
 
 #### Example
-
-      
-      
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -303,46 +141,17 @@ Map<String, Object> context = industriesContexts.buildContext(input);
 System.debug(context.get('contextId'));
 ```
 
-    
-
-    
-
 #### Parameters
 
-      
-      
-        
-          
-
-**input**
-
-          
-: Type: Map<String,Object>
-
-          
-: Metadata about the context and payload data required to create a context.
-
-        
-      
-
-    
-
-    
+input
+:   Type: Map<String,Object>
+:   Metadata about the context and payload data required to create a context.
 
 #### Return Value
 
-      
-      
-
 Type: Map<String,Object>
 
-      
-
 Details containing the context ID that’s created.
-
-    
-
-  
 
 ### deleteContext(input)
 
@@ -352,16 +161,7 @@ Deletes a context.
 
 `public void deleteContext(Map<String,Object> input)`
 
-```
-Context.IndustriesContext, deleteContext, [Map<String,ANY>], void
-```
-
-    
-
 #### Example
-
-      
-      
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -370,54 +170,27 @@ input.put('contextId', '1f6ef0f4f9f361ef966d8a292db12ce90ce20bef22efb4afac431762
 industriesContexts.deleteContext(input);
 ```
 
-    
-
 #### Parameters
 
-**input**
-
-: Type: Map<String,Object>
-
-: Details containing the ID of the context to be deleted.
+input
+:   Type: Map<String,Object>
+:   Details containing the ID of the context to be deleted.
 
 #### Return Value
 
 Type: void
 
-    
-
 ### deleteRecords(input)
 
-    
-    
-    
 Deletes one or more records from a context session identified by data
-        paths.
-
-        
+paths.
 
 #### Signature
 
-            
-            
-
 `public Map<String,Object>
-                    deleteRecords(Map<String,Object> input)`
-
-            
-
-```
-Context.IndustriesContext, deleteRecords, [Map<String,ANY>], Map<String,ANY>
-```
-
-        
-
-        
+deleteRecords(Map<String,Object> input)`
 
 #### Example
-
-            
-            
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -435,136 +208,52 @@ input.put('isPermanentDelete', false);
 
 Map<String, Object> output = industriesContexts.deleteRecords(input);
 System.debug('isSuccess: ' + output.get('isSuccess'));
-
 ```
-
-        
-
-        
 
 #### Parameters
 
-            
-            
-                
-                    
+input
+:   Type: Map<String,Object>
+:   Map of values used to delete records from the context. The map can include
+    these keys.
 
-**input**
+contextId
+:   Type: String
+:   Required. ID of the context session from which records are
+    deleted.
 
-                    
-: Type: Map<String,Object>
+dataPaths
+:   Type: List<Map<String,Object>>
+:   Required. List of data path objects that identify records for
+    deletion. Each object contains a `dataPath` key with record IDs that define the
+    hierarchical path between the root and target record in the
+    context.
 
-                    
-: 
-                        
-                            
-                                
-
-**contextId**
-
-                                
-: Type: String
-
-                                
-: Required. ID of the context session from which records are
-                                    deleted.
-
-                            
-                            
-                                
-
-**dataPaths**
-
-                                
-: Type: List<Map<String,Object>>
-
-                                
-: Required. List of data path objects that identify records for
-                                    deletion. Each object contains a `dataPath` key with record IDs that define the
-                                    hierarchical path between the root and target record in the
-                                    context.
-
-                            
-                            
-                                
-
-**isPermanentDelete**
-
-                                
-: Type: Boolean
-
-                                
-: Optional. Indicates whether the deletion is permanent (`true`) or not (`false`). If `false`, records are soft-deleted
-                                    and marked as deleted within the context. If `true`, records are permanently
-                                    removed from the context. The default value is `false`.
-
-                            
-                        
-
-                    
-
-                
-            
-
-        
-
-        
+isPermanentDelete
+:   Type: Boolean
+:   Optional. Indicates whether the deletion is permanent (`true`) or not (`false`). If `false`, records are soft-deleted
+    and marked as deleted within the context. If `true`, records are permanently
+    removed from the context. The default value is `false`.
 
 #### Return Value
 
-            
-            
-
 Type: Map<String,Object>
 
-            
-                
-                    
-
-**isSuccess**
-
-                    
-: Type: Boolean
-
-                    
-: Returns `true` if the delete operation
-                        completed successfully.
-
-                
-            
-
-        
-
-    
+isSuccess
+:   Type: Boolean
+:   Returns `true` if the delete operation
+    completed successfully.
 
 ### evictContextDefinition(input)
 
 Removes the details of the context definition from cache.
 
-    
-
 #### Signature
 
-      
-      
-
 `public void evictContextDefinition(Map<String,ANY>
-          input)`
-
-      
-
-```
-Context.IndustriesContext, evictContextDefinition, [Map<String,ANY>], void
-```
-
-    
-
-    
+input)`
 
 #### Example
-
-      
-      
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -573,71 +262,30 @@ input.put('contextDefinitionName', 'definitionName');
 industriesContexts.evictContextDefinition(input);
 ```
 
-    
-
-    
-
 #### Parameters
 
-      
-      
-        
-          
-
-**input**
-
-          
-: Type: Map<String,ANY>
-
-          
-: API name of the context definition to remove the details of the context definition
-            from cache.
-
-        
-      
-
-    
-
-    
+input
+:   Type: Map<String,ANY>
+:   API name of the context definition to remove the details of the context definition
+    from cache.
 
 #### Return Value
 
-      
-      
-
 Type: void
-
-    
-
-  
-
-    
 
 ### filteringContext(input)
 
-    
-    
-    
 Builds or queries a context based on a filter criteria.
-
-        
 
 #### Signature
 
-            
-            
-
 `public Map<String, Object>
-                    industriesContexts.filteringContext(buildWithFilter);`
-
-        
-
-        
+industriesContexts.filteringContext(buildWithFilter);`
 
 #### Example
 
 Type:
-                BUILD
+BUILD
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -659,11 +307,10 @@ buildWithFilter.put('filter', '{ \"buildFilter\": {\"Contact\":[{\"filterType\":
 Map<String, Object> res = industriesContexts.filteringContext(buildWithFilter);
 
 System.debug(res);
-
 ```
 
 Type: QUERYRECORDANDCHILDREN or
-                    QUERYRECORDS
+QUERYRECORDS
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -689,77 +336,37 @@ queryWithFilter.put('filter', '{\"queryFilter\":[{\"filterType\":\"WHERE\",\"nod
 Map<String, Object> res = industriesContexts.filteringContext(queryWithFilter);
 
 System.debug(res);
-
 ```
-
-        
 
 #### Parameters
 
-            
-            
-                
-                    
+input
+:   Type: Enum
+:   Object defining the type of operation. Operation Metadata along with filter
+    criteria to be applied on the operation. Valid values are:
+    BUILD,QUERYRECORDANDCHILDREN and
+    QUERYRECORDS
 
-**input**
+filter
+:   Type: String
+:   Metadata about the filter object.
 
-                    
-: Type: Enum
+build
+:   Type: Map<String,Object>
+:   Metadata to build the context. Only for type with value
+    BUILD.
 
-                    
-: Object defining the type of operation. Operation Metadata along with filter
-                        criteria to be applied on the operation. Valid values are:
-                            BUILD,QUERYRECORDANDCHILDREN and
-                            QUERYRECORDS
-
-                
-                
-                    
-: filter: String
-
-                    
-: Metadata about the filter object.
-
-                
-                
-                    
-: build: Map<String,Object>
-
-                    
-: Metadata to build the context. Only for type with value
-                            BUILD. 
-
-                
-                
-                    
-: query: Map<String,Object>
-
-                    
-: Metadata to query records in the context. Only for type
-                        with value QUERYRECORDANDCHILDREN and
-                            QUERYRECORDS.
-
-                
-            
-
-        
-
-        
+query
+:   Type: Map<String,Object>
+:   Metadata to query records in the context. Only for type
+    with value QUERYRECORDANDCHILDREN and
+    QUERYRECORDS.
 
 #### Return Value
 
-            
-            
-
 Type: Map<String,Object>
 
-            
-
 Mapping of the contextId or queryResults with the requested operation type.
-
-        
-
-    
 
 ### getContext(input)
 
@@ -769,16 +376,7 @@ Retrieves context details.
 
 `public Map<String,Object> getContext(Map<String,Object> input)`
 
-```
-Context.IndustriesContext, getContext, [Map<String,ANY>], Map<String,ANY>
-```
-
-    
-
 #### Example
-
-      
-      
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -790,16 +388,11 @@ Map<String, Object> res = industriesContexts.getContext(input);
 System.debug(res);
 ```
 
-    
-
 #### Parameters
 
-**input**
-
-: Type: Map<String,Object>
-
-          
-: Details containing the ID of the context to be retrieved.
+input
+:   Type: Map<String,Object>
+:   Details containing the ID of the context to be retrieved.
 
 #### Return Value
 
@@ -815,16 +408,7 @@ Retrieves context mappings based on a target mapping ID.
 
 `public Map<String,Object> getContextTranslation(Map<String,Object> input)`
 
-```
-Context.IndustriesContext, getContextTranslation, [Map<String,ANY>], Map<String,ANY>
-```
-
-    
-
 #### Example
-
-      
-      
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -843,17 +427,13 @@ Map<String, Object> res = industriesContexts.getContextTranslation(input);
 System.debug(res);
 ```
 
-    
-
 #### Parameters
 
-**input**
-
-: Type: Map<String,Object>
-
-: Details of the request parameters to retrieve context mappings. The details include list of
-            persisted attributes and settings to indicate whether any dependencies are established
-            or restricted fields are removed.
+input
+:   Type: Map<String,Object>
+:   Details of the request parameters to retrieve context mappings. The details include list of
+    persisted attributes and settings to indicate whether any dependencies are established
+    or restricted fields are removed.
 
 #### Return Value
 
@@ -863,37 +443,22 @@ Details of the retrieved context mappings.
 
 ### leanerQueryTags(input)
 
-  
 Queries context tags and returns an optimized, leaner result set compared to the standard
-    queryTags.
+queryTags.
 
 #### Signature
 
 `public Map<String,Object> leanerQueryTags(Map<String,Object> input)`
 
-    
-
 #### Usage
 
-      
-      
-
 Use the `leanerQueryTags` method to retrieve tag values
-                from a context instance with optimized performance. This method returns a leaner
-                result set.
-
-      
+from a context instance with optimized performance. This method returns a leaner
+result set.
 
 Before calling this method, you must first create a context instance using the `buildContext` method and obtain the `contextId`.
 
-    
-
-    
-
 #### Example
-
-      
-      
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -952,55 +517,31 @@ for (String contextTagDataLeanRepresentationKey : contextTagDataLeanRepresentati
 }
 ```
 
-    
-
 #### Parameters
 
-**input**
+input
+:   Type: Map<String,Object>
+:   Input map that contains the parameters required to query the tags. Valid keys are:
 
-: Type: Map<String,Object>
-
-          
-: Input map that contains the parameters required to query the tags. Valid keys are:
-              
-- 
-contextId: (String) — ID of the context to query[cite:
-                223].
-
-              
-- 
-tags: (List<String>) — List of tag names to query from
-                the context instance. Tags serve as aliases for nodes and attributes in the context
-                structure.
-
-            
+    - contextId: (String) — ID of the context to query[cite:
+      223].
+    - tags: (List<String>) — List of tag names to query from
+      the context instance. Tags serve as aliases for nodes and attributes in the context
+      structure.
 
 #### Return Value
 
 Type: Map<String,Object>
 
-      
-
 Returns a map that contains the query results. The map includes these keys:
 
-      
-        
-- 
-`contextId` (String) — ID of the context
-                    instance.
-
-        
-- 
-`recordIds` (List<String>) — List of record IDs
-                    associated with the queried tags.
-
-        
-- 
-`leanerQueryTagResult` (Map<String,Object>) —
-                    Map that contains the query results. Each key represents a tag name, and its
-                    value contains the associated tag data with attribute information.
-
-      
+- `contextId` (String) — ID of the context
+  instance.
+- `recordIds` (List<String>) — List of record IDs
+  associated with the queried tags.
+- `leanerQueryTagResult` (Map<String,Object>) —
+  Map that contains the query results. Each key represents a tag name, and its
+  value contains the associated tag data with attribute information.
 
 ### persistContext(input)
 
@@ -1010,16 +551,7 @@ Persists the current data or state of context to the database.
 
 `public Map<String,Object> persistContext(Map<String,Object> input)`
 
-```
-Context.IndustriesContext, persistContext, [Map<String,ANY>], Map<String,ANY>
-```
-
-    
-
 #### Example
-
-      
-      
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -1030,15 +562,11 @@ Map<String, Object> output = industriesContexts.persistContext(input);
 System.debug(output.get('referenceId'));
 ```
 
-    
-
 #### Parameters
 
-**input**
-
-: Type: Map<String,Object>
-
-: Details to persist context such as context ID and target mapping ID.
+input
+:   Type: Map<String,Object>
+:   Details to persist context such as context ID and target mapping ID.
 
 #### Return Value
 
@@ -1046,35 +574,18 @@ Type: Map<String,Object>
 
 Reference ID for the persisted context.
 
-    
-
 ### queryContextRecordsAndChildren(input)
 
-    
-    
-    
 Queries Context records and children based on the dataPath instead of
-        tags.
-
-        
+tags.
 
 #### Signature
 
-            
-            
-
 `Map<String, Object>
-                    industriesContexts.queryContextRecordsAndChildren(input: Map<String,
-                    Object>);`
-
-        
-
-        
+industriesContexts.queryContextRecordsAndChildren(input: Map<String,
+Object>);`
 
 #### Example
-
-            
-            
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -1095,58 +606,27 @@ input.put('queryPaths', queryPaths);
 Map<String, Object> res = industriesContexts.queryContextRecordsAndChildren(input);
 
 System.debug(res);
-
-            
 ```
-
-        
-
-        
 
 #### Parameters
 
-            
-            
-                
-                    
+input
+:   Type: Map<String,Object>
+:   Map of values used to query context records and children.
 
-**input**
+contextId
+:   Type: String
+:   ID of the context to be queried.
 
-                    
-: contextId: String
-
-                    
-: ID of the context to be queried.
-
-                
-                
-                    
-: queryPaths: Map<String,Object>
-
-                    
-: List of dataPath to be queried.
-
-                
-            
-
-        
-
-        
+queryPaths
+:   Type: Map<String,Object>
+:   List of dataPath to be queried.
 
 #### Return Value
 
-            
-            
-
 queryResults: Map<String,Object>
 
-            
-
 Result containing the record data.
-
-        
-
-    
 
 ### queryRecordStatus(input)
 
@@ -1156,16 +636,7 @@ Queries the status of a record.
 
 `public Map<String,Object> queryRecordStatus(Map<String,Object> input)`
 
-```
-Context.IndustriesContext, queryRecordStatus, [Map<String,ANY>], Map<String,ANY>
-```
-
-    
-
 #### Example
-
-      
-      
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -1181,16 +652,12 @@ input.put('queryPaths', queryPaths);
 Map<String, Object> output = industriesContexts.queryRecordStatus(input);
 ```
 
-    
-
 #### Parameters
 
-**input**
-
-: Type: Map<String,Object>
-
-: Details containing the context ID and list of record paths for context data to query the status
-            for.
+input
+:   Type: Map<String,Object>
+:   Details containing the context ID and list of record paths for context data to query the status
+    for.
 
 #### Return Value
 
@@ -1206,28 +673,12 @@ Queries a context by using tags.
 
 `public Map<String,Object> queryTags(Map<String,Object> input)`
 
-```
-Context.IndustriesContext, queryTags, [Map<String,ANY>], Map<String,ANY>
-```
-
-    
-
 #### Usage
 
-      
-      
-
 The method works on the `tagNames` of the attribute or
-        node.
-
-    
-
-    
+node.
 
 #### Example
-
-      
-      
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -1244,71 +695,39 @@ System.debug(contextTagDataRepresentation.get('dataPath'));
 System.debug(contextTagDataRepresentation.get('tagValue'));
 ```
 
-    
-
 #### Parameters
 
-**input**
-
-: Type: Map<String,Object>
-
-: Details containing the context ID and tags to be queried.
+input
+:   Type: Map<String,Object>
+:   Details containing the context ID and tags to be queried.
 
 #### Return Value
 
 Type: Map<String,Object>
 
-      
-
 Details containing the results of the query.
 
 ### updateContextAttributes(input)
 
-Updates the attributes of a context. 
+Updates the attributes of a context.
 
 #### Signature
 
 `public Map<String,Object> updateContextAttributes(Map<String,Object> input)`
 
-```
-Context.IndustriesContext, updateContextAttributes, [Map<String,ANY>], Map<String,ANY>
-```
-
-    
-
 #### Usage
-
-      
-      
 
 Use this method to update the attributes of a context.
 
-      
-        
--  This method works only with the names of the canonical structure, and not with
-          tags.
-
-        
--  The dataType of the values must match the dataType in the canonical structure. Also, it
-          must match the dataType of the field if persistence is expected later. 
-
-        
+- This method works only with the names of the canonical structure, and not with
+  tags.
+- The dataType of the values must match the dataType in the canonical structure. Also, it
+  must match the dataType of the field if persistence is expected later.
 - The method supports attribute updates at different level. Pass an attributeMap
-          corresponding to the given dataPath.
-
-        
+  corresponding to the given dataPath.
 - The API works at the per-record level.
 
-      
-
-    
-
-    
-
 #### Example
-
-      
-      
 
 ```
 Context.IndustriesContext industriesContexts = new Context.IndustriesContext();
@@ -1341,19 +760,19 @@ Map<String, Object> res = industriesContexts.updateContextAttributes(input);
 System.debug(res.get('isSuccess'));
 ```
 
-    
-
 #### Parameters
 
-**input**
-
-: Type: Map<String,Object>
-
-: Details containing the context ID and node path. The node path contains the path of the context
-            record and list of attributes to be updated with their values.
+input
+:   Type: Map<String,Object>
+:   Details containing the context ID and node path. The node path contains the path of the context
+    record and list of attributes to be updated with their values.
 
 #### Return Value
 
 Type: Map<String,Object>
 
 Details containing the updated attribute list.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/apex_class_Context_IndustriesContext.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

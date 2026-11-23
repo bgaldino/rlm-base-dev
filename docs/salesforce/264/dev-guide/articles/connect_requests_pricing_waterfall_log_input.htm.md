@@ -7,22 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_requests.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Pricing Waterfall Log Input
 
 Input representation of the request to create an explainability action log.
 
-    
-
 ## JSON Example
 
-      
-      
-
 ```
-
 {
       "currencyCode": "USD",
       "executionEndTimestamp": "2023-07-31T20:11:29.625Z",
@@ -103,173 +97,10 @@ Input representation of the request to create an explainability action log.
       }
   ]
 }
-
 ```
-
-    
-
-    
 
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `context​Definition​VersionId` | String | Context definition version ID of the pricing procedure. | Optional | 60.0 |
@@ -281,4 +112,8 @@ Input representation of the request to create an explainability action log.
 | `execution​Start​Timestamp` | String | Start timestamp of procedure execution. | Optional | 60.0 |
 | `lineItem​Id` | String | Line item ID for which the price is being calculated. | Required | 60.0 |
 | `output` | Map<String, Object> | Output of the pricing procedure. | Optional | 60.0 |
-| `waterfall` | [Pricing Waterfall Input](./connect_requests_pricing_waterfall_input.htm.md)[] | Details of the pricing waterfall. | Required | 60.0 |
+| `waterfall` | [Pricing Waterfall Input](./connect_requests_pricing_waterfall_input.htm.md "Input representation of the pricing waterfall details.")[] | Details of the pricing waterfall. | Required | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_pricing_waterfall_log_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,12 +6,12 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_generation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Automated Invoice Generation with Invoice Batch Runs
 
-Schedule invoice batch runs to automate invoice generation. These runs use Data Processing Engine to generate invoices.
+Schedule invoice batch runs to automate invoice generation.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
@@ -28,3 +28,7 @@ Examples: Invoice Batch Run Frequencies
 Explore examples to understand how to schedule invoice batch runs based on your requirements.
 Invoice Batch Run Process
 Invoice batch runs stream invoices by processing billing schedules in parallel. Track each stage of the invoice batch run to monitor progress and status.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_automate_invoice_generation.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,11 +6,15 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_salesforce_contracts.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Protect Sensitive Setup Data by Removing Elevated Permissions from Runtime Users
 
 Your runtime users can now perform contract lifecycle operations without the View Setup and Configuration permission. Previously, they needed this elevated permission to access org-level setup data for contract lifecycle tasks, such as creating and editing documents in the Microsoft 365 Word add-in, creating contracts from quotes, and managing electronic signatures. The user experience remains unchanged while sensitive setup configuration data stays protected.
 
-Where: This change applies to Lightning Experience in Enterprise, Performance, and Unlimited editions of Agentforce Revenue Management, formerly Revenue Cloud, with the Revenue Cloud Advanced license or with the Salesforce Contracts license.
+Where: This change applies to Lightning Experience in Enterprise, Performance, and Unlimited editions of Agentforce Revenue Cloud, formerly Revenue Cloud, with the Revenue Cloud Advanced license or with the Salesforce Contracts license.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_sf_contracts_eliminate_privileges_runtime_users.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

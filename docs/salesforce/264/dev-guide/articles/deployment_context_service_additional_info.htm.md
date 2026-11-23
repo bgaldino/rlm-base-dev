@@ -7,83 +7,50 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Revenue Management Deployment
 parent_page: deployment_appendix_C.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Service Additional Information
 
 Get to know additional deployment information for Context Service in Revenue
-    Cloud.
-
-    
+Cloud.
 
 ## Helpful Links
 
-      
-      
-        
-- [Migrate Context Definitions](https://help.salesforce.com/s/articleView?id=ind.context_service_context_definitions_packages.htm&language=en_US)
-
-  
-      
-
-    
-
-    
+- [Migrate Context Definitions](https://help.salesforce.com/s/articleView?id=ind.context_service_context_definitions_packages.htm&language=en_US "HTML (New Window)")
 
 ## Deployment Considerations
 
-      
-
 - Context tags and individual sObject mappings must
-        be unique for every definition.
-
-        
+  be unique for every definition.
 - Deployment can lead to conflict if there are multiple tags
-        with the same name, or if there are multiple mappings to the same sObject and sObject
-        fields.
-
-        
+  with the same name, or if there are multiple mappings to the same sObject and sObject
+  fields.
 - Standard definitions are versioned and new changes must have a higher version than the
-          version, which is available in the org. 
-
-        
+  version, which is available in the org.
 - You can deploy updates that introduce new custom nodes, attributes, and their
-          corresponding mappings to existing context definitions.
-
-        
+  corresponding mappings to existing context definitions.
 - Deployments that modify (update or delete) existing custom mappings for context
-          definitions in an activated or a deactivated state are supported.
-
-    
+  definitions in an activated or a deactivated state are supported.
 
 ## Unsupported Deployment Scenarios
 
-      
-      
-        
 - Deploying context definitions from the current release to an older release is not
-          supported.
-
-        
+  supported.
 - Modifying custom nodes and attributes for context definitions that are in a deactivated
-          state aren’t supported. To make changes, replicate your desired modifications manually on
-          the target context definition. You can also delete the context definition on the target
-          org and deploy again.
-
-        
+  state aren’t supported. To make changes, replicate your desired modifications manually on
+  the target context definition. You can also delete the context definition on the target
+  org and deploy again.
 - Modifying standard nodes and attributes for context definitions that are in an activated
-          state isn't supported. To make changes, deactivate the definition on the target org first,
-          make your desired modifications, and then activate the context definition again.
-
-        
+  state isn't supported. To make changes, deactivate the definition on the target org first,
+  make your desired modifications, and then activate the context definition again.
 - You can’t activate or deactivate an active context definition as an action within a
-          deployment package. Activation or deactivation must be performed as a separate, manual
-          step outside the deployment process.
-
-        
+  deployment package. Activation or deactivation must be performed as a separate, manual
+  step outside the deployment process.
 - You can’t make a context mapping default or non-default as an action within a
-          deployment. Changing the default status of context mappings must be done as a separate,
-          manual step.
+  deployment. Changing the default status of context mappings must be done as a separate,
+  manual step.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/deployment_context_service_additional_info.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,25 +7,15 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Decision Explainer
 parent_page: decision_explainer_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Explainability Action Log Create
 
 Output representation of the create Explainability action log
-      request.
+request.
 
-      
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -34,12 +24,13 @@ Output representation of the create Explainability action log
 }
 ```
 
-          
-
-        
-      
+## Properties
 
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `sequenceNumber` | Integer | The sequence number of the explainability action log. | Small, 54.0 | 54.0 |
 | `uniqueIdentifier` | String | The unique ID of the explainability action log created after a successful create request. | Small, 54.0 | 54.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_responses_explainability_action_log_create.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

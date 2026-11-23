@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_setup_additional_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Credit Memo Features
@@ -21,7 +21,7 @@ To enable Billing features:	Billing Admin permission set
 From Setup, in the Quick Find box, enter Billing, and then select Billing Settings.
 To automatically convert all negative invoice lines to credit memo and credit memo lines after the related invoices are posted, turn on Conversion of Negative Invoice Lines to Credit Memo and Credit Memo Lines.
 To automatically apply all converted credit memo and credit memo lines to the related invoice and invoice lines, turn on Application of Converted Credit Memo and Credit Memo Lines to Header Level and Line Level.
-Select the credit application level. If your Salesforce org has the Revenue Management Billing license, the label of this setting is Credit, Refunds and Payment Application Level.
+Select the credit application level. If your Salesforce org has the Revenue Cloud Billing license, the label of this setting is Credit, Refunds and Payment Application Level.
 To apply credits to a specific line on invoices, select Line Level.
 
 To apply credits to the total rolled-up balance of invoices, select Header Level.
@@ -37,3 +37,7 @@ SEE ALSO
 Automatic Conversion of Negative Invoice Lines into Credit Memo Lines
 Automatic Application of Credits to Settle Invoice Balances
 Results of Credit Memo Application
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_setup_credit_memo_features_enable.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_risk_scoring.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Add Data Cloud Salesforce Connector Permissions for Invoice Risk Scoring (Pilot)
@@ -15,7 +15,7 @@ To ingest invoice objects and fields into Data 360, add the View All Records and
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Performance, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
+Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
 USER PERMISSIONS
 NEEDED
 To configure Data Cloud Salesforce Connector permissions:	Data Cloud Admin permission set
@@ -26,3 +26,7 @@ Add the Manage Billing, Manage Billing Access, View All Data, and View All Field
 NOTE The Data Cloud Salesforce Connector permission set is available only after you connect your Salesforce org to Data Cloud. For deployed orgs that haven't been updated recently, the permission set is listed as Salesforce CDP Salesforce Connector Integration, Customer Data Platform Salesforce Connector Integration, or Customer 360 Audiences Salesforce Connector Integration.
 Add the Manage Billing Access system permission to the Customer 360 Data Platform Integration permission set.
 Edit the Data Cloud Data Space Management app permission for the Data Cloud Architect permission set to include the required data space.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_risk_scoring_connector_permissions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_collections_specialist_console.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up the Collections Specialist Console
@@ -34,3 +34,7 @@ In App Options or Navigation Items, add the Collections Specialist Console page,
 Grant field-level security access to the Initial Due Amount field on the Collection Plan Item object for the profile or permission set your collections team uses. Without this access, the Collection Progress chart in the console appears empty for those users.
 
 After setup, assign the Billing Collections and Recovery Specialist permission set to each user who opens the console.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_collections_specialist_console_setup.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

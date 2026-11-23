@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_explore_the_product_configurator_flow.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Product Configurator Flow Screen Components
@@ -15,7 +15,7 @@ Product Configurator provides a sample flow, Default Product Configurator Flow. 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 Breadcrumbs
 Breadcrumbs shows the navigation path through the product bundle hierarchy in Product Configurator. The component displays clickable breadcrumb links so users can move between levels, such as root product → option group → option. Breadcrumbs has no output properties and doesn’t listen to any events.
 Data Manager
@@ -36,3 +36,7 @@ Summary
 Summary is a UI display component that renders the pricing summary section in Product Configurator. The component displays the current product's pricing information, including one-time, monthly, and annual totals, along with a hierarchical breakdown of child products and their prices. Summary has no output properties, and doesn’t listen to or fire any events.
 Transaction Header
 Transaction Header is a navigation and control component that displays a header with a dynamic Back or Cancel button at the top of Product Configurator. The component allows users to exit the configurator and navigate back to the parent transaction record. Transaction Header has no output properties and doesn’t listen to any events.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_flow_screen_components.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

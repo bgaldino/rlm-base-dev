@@ -6,14 +6,14 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_salesforce_contracts.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Reduce Contract Risks by Analyzing Every Redline with AI
 
 Identify and classify risks in redlined contracts by comparing changes against your document playbook directly from the Microsoft 365 Word add-in. Review modified clauses, detect deviations from your company standards, see clause-level risk findings with an overall risk rating (critical, high, medium, or low), and get recommended mitigation suggestions. Rerun the risk analysis after each round of edits to see how the contract changes affect the overall risk rating.
 
-Where: This change applies to Lightning Experience in Enterprise, Performance, and Unlimited editions of Agentforce Revenue Management, formerly Revenue Cloud, with the Revenue Cloud Advanced license or with the Salesforce Contracts license. You also need the Data 360 and Einstein Foundations licenses.
+Where: This change applies to Lightning Experience in Enterprise, Performance, and Unlimited editions of Agentforce Revenue Cloud, formerly Revenue Cloud, with the Revenue Cloud Advanced license or with the Salesforce Contracts license. You also need the Data 360 and Einstein Foundations licenses.
 
 Who: To run contract risk analysis, you need the CLM Runtime User, Prompt Template User, Contracts AI User, Microsoft 365 Word User, and Document Playbook User permission sets.
 
@@ -23,3 +23,7 @@ How: Before you run a risk analysis, make sure that document playbook setup is c
 
 SEE ALSO
 Salesforce Help: Contract Document Risk Analysis (can be outdated or unavailable during release preview)
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_sf_contracts_risk_analysis.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

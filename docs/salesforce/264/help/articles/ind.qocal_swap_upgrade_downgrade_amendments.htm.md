@@ -1,27 +1,27 @@
 ---
 article_id: ind.qocal_swap_upgrade_downgrade_amendments.htm
-title: Swap, Upgrade, or Downgrade Assets
+title: Swap Assets
 source_url: https://help.salesforce.com/s/articleView?id=ind.qocal_swap_upgrade_downgrade_amendments.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_specialized_transaction_types.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# Swap, Upgrade, or Downgrade Assets
+# Swap Assets
 
 To maintain accurate records and streamline your sales process, use specific asset actions to capture the relationships between swapped-out and swapped-in assets.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
-To create a swap, upgrade, or downgrade amendment:	Initiate Amend user permission
+To create a swap amendment:	Initiate Amend user permission
 
-Before you begin, add the Type and Subtype columns to the Sales Transaction Line Table component. The Type column shows action types, while the Subtype column shows line groupings like SwapIn, SwapOut, UpgradeFrom, UpgradeTo, DowngradeFrom, and DowngradeTo. See Add and Customize the Transaction Line Editor or Sales Transaction Line Editor.
+Before you begin, add the Type and Subtype columns to the Sales Transaction Line Table component. The Type column shows action types, while the Subtype column shows line groupings like SwapIn and SwapOut. See Add and Customize the Transaction Line Editor or Sales Transaction Line Editor.
 
-Instead of "rip and replace," this feature tracks swaps, upgrades, and downgrades across quote lines, order items, asset actions, and asset action sources.
+Instead of "rip and replace," this feature tracks swaps across quote lines, order items, asset actions, and asset action sources.
 
 Explicit labels for asset actions provide clarity for reports and audits. Business analysts and sales operations generate reports to differentiate products acquired through new sales versus amendments and to understand how these actions impact revenue.
 
@@ -40,3 +40,10 @@ In the Managed Assets viewer, select View for the swapped-out asset and select t
 Confirm that a new asset action exists with a Swaps Business Category and a negative quantity.
 In the Managed Assets viewer, select View for the swapped-in asset and select the Related tab.
 Confirm that a new asset action exists with a Swaps Business Category and a positive quantity.
+NOTE The actions Upgrade and Downgrade, with subtypes of UpgradeFrom, UpgradeTo, DowngradeFrom, and DowngradeTo, are only available by using the APIs:
+Initiate Downgrade (POST)
+Initiate Upgrade (POST)
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_swap_upgrade_downgrade_amendments.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

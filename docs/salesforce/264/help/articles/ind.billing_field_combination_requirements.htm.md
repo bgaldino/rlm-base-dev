@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_frequency_change_flow_impact.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Field Combination Requirements
@@ -97,3 +97,7 @@ Period boundary start month: January
 Period boundary start date: 15
 
 The billing frequency is quarterly, and the period boundary is set to day of period with a start date of January 15. Each billing period starts from the 15th of one month to the 14th of the month 3 months later. The first invoice, generated in advance on January 15, covers the period from January 15 to April 14. On February 15, a midterm amendment, such as a quantity change, occurs. At the next invoicing run, Billing calculates a prorated charge for the updated quantity, effective from February 15 to April 14. On April 15, Billing generates the next quarterly invoice, covering the period from April 15 to July 14 and reflecting the amended configuration.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_field_combination_requirements.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

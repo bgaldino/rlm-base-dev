@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_credit_memos.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Void or Recover Credit Memos
@@ -46,3 +46,7 @@ After you recover a credit memo, its status changes to Canceled.
 If the original credit memo included tax, the credit memo moves to the Voided status. Billing automatically creates a corresponding debit memo in the Posted state to reverse the credit in the ledger. The debit memo includes all the original tax details and tax treatments. Billing reverses the tax interaction in the tax engine. Billing sets the debit memo’s invoice generation status to Not Applicable, so it isn’t invoiced.
 
 NOTE To track the status of the void and recover actions, open the Related tab and review the Async Operation Tracker section.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_credit_memos_void_recover.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

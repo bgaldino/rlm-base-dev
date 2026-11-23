@@ -7,194 +7,41 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_variables.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # String Variable Functions and Operators
 
-Constraint Modeling Language (CML) provides string manipulation and conversion
-    functions, and string comparison and validation operators.
+Constraint Modeling Language (CML) provides string manipulation and conversion functions, and string comparison and validation operators.
 
-    
-      
+The functions can be used to modify strings, extract information, or convert strings to numeric types. The operators can be used to validate string values against sets or regular expressions.
 
-The functions can be used to modify strings, extract information, or convert strings to
-        numeric types. The operators can be used to validate string values against sets or regular
-        expressions.
-
-      
-
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Function | Purpose | Syntax, Examples, and Additional Details |
 | --- | --- | --- |
-| strlen() | Returns the length of the string as an integer. | `strlen(inputString)` `strlen("Hello"` returns 5. |
-| substr() | Returns a substring from the input string. | `substr(inputString, startIndex)` or `substr(inputString, startIndex, endIndex)`The index starts with 0. The character at `startIndex` is included, and the character at `endIndex` is excluded. |
-| strconcat() | Concatenates multiple strings using a specified separator. | `strconcat(separator, stringArgsToConcatenate) ``strconcat("-", "a", "b")` results in "a-b". |
+| strlen() | Returns the length of the string as an integer. | `strlen(inputString)``strlen("Hello"` returns 5. |
+| substr() | Returns a substring from the input string. | `substr(inputString, startIndex)` or `substr(inputString, startIndex, endIndex)`. The index starts with 0. The character at `startIndex` is included, and the character at `endIndex` is excluded. |
+| strconcat() | Concatenates multiple strings using a specified separator. | `strconcat(separator, stringArgsToConcatenate)` `strconcat("-", "a", "b")` results in "a-b". |
 | join() | An aggregate function that concatenates string values across related components, typically using a separator. The separator is a comma by default. | `names = join(name)` |
 | trim() | Returns the string after removing any leading or trailing spaces. | `trim(strToTrim)` |
 | strsplit() | Splits a string into an array of strings around a given separator. | `strsplit(stringToSplit, separator)` |
 | strcontain() | Returns a boolean value (true or false) to specify whether the input string contains the specified search string. | `strcontain(inputString, searchString)` |
 | strshare() | Splits two strings using a delimiter (comma by default) and returns true if the resulting lists have any elements in common. | `strshare(string1, string2, delimiter)` |
-| strformat() | Returns a formatted string based on parameters and format specifiers. | `strformat("%d person", quantity)` Specifiers include `%d` for integer, `%s` for string, `%.2f `for decimal or float, and `%b` for boolean. |
-| strtoint() | Converts a string to an integer. | `strtoint(inputString, defaultValue)`If the string can't be parsed as an integer (for example, it contains text or a decimal point), the provided defaultValue is returned. |
-| strtofloat() | Converts a string to a decimal (floating point) value. | `strtofloat(inputString, defaultValue)` If the conversion fails, the provided `defaultValue` is returned. The resulting decimal attribute must be declared with the intended precision. For example, `decimal(3)`. |
-| regexpreplace() | Take an input string and a defined Regular Expression (regex). Replace the entire input string with a specific captured group from the regex match. | `regexpreplace(InputString, RegexPattern, ReplacementGroup) `This function is commonly used to derive numeric data from complex, formatted strings before they are converted into integers or decimals. |
-| get(index, array) | Used to retrieve an element at a specified index (starting at 0) from an array or list generated by a function like strsplit. | `string splitStr1 = get(0, strsplit("hello constraint engine", " ")); // returns hello` Using Get with Table Constraint—If your table constraint output for three columns is stored in a string[] variable named picklistValues, you would access the first row's attributes like this (assuming the columns are stored in a predictable sequence): `// Retrieve the first element (Row 0, Column 0) string value0_0 = get(0, picklistValues);` `// Retrieve the second element (Row 0, Column 1)` |
-
-    
-
-    
+| strformat() | Returns a formatted string based on parameters and format specifiers. | `strformat("%d person", quantity)`. Specifiers include `%d` for integer, `%s` for string, `%.2f`  for decimal or float, and `%b` for boolean. |
+| strtoint() | Converts a string to an integer. | `strtoint(inputString, defaultValue)`. If the string can't be parsed as an integer (for example, it contains text or a decimal point), the provided defaultValue is returned. |
+| strtofloat() | Converts a string to a decimal (floating point) value. | `strtofloat(inputString, defaultValue)`. If the conversion fails, the provided `defaultValue` is returned. The resulting decimal attribute must be declared with the intended precision. For example, `decimal(3)`. |
+| regexpreplace() | Take an input string and a defined Regular Expression (regex). Replace the entire input string with a specific captured group from the regex match. | `regexpreplace(InputString, RegexPattern, ReplacementGroup)` . This function is commonly used to derive numeric data from complex, formatted strings before they are converted into integers or decimals. |
+| get(index, array) | Used to retrieve an element at a specified index (starting at 0) from an array or list generated by a function like strsplit. | `string splitStr1 = get(0, strsplit("hello constraint engine", " ")); // returns hello`. Using Get with Table Constraint—If your table constraint output for three columns is stored in a string[] variable named picklistValues, you would access the first row's attributes like this (assuming the columns are stored in a predictable sequence): `// Retrieve the first element (Row 0, Column 0) string value0_0 = get(0, picklistValues);` `// Retrieve the second element (Row 0, Column 1)`. |
 
 ## String Comparison and Validation Operators
 
-      
-      
-
 The in operator checks if the value of a string attribute is present within a defined set or array of strings.
 
-      
-
 Example
-
-      
 
 ```
 color in ["red", "blue"]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_string_variable_functions_and_operators.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

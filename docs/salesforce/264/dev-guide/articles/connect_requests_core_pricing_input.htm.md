@@ -7,19 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_requests.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Pricing Input
 
 Input representation of the details of a Pricing API request.
 
-    
-
 ## JSON Example
-
-      
-      
 
 ```
 {
@@ -110,109 +105,16 @@ Input representation of the details of a Pricing API request.
 }
 ```
 
-    
-
-    
-
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `configuration​Overrides` | [Configuration Override Input](./connect_requests_configuration_override_input.htm.md) | Parameters to override the pricing configuration. | Optional | 60.0 |
+| `configuration​Overrides` | [Configuration Override Input](./connect_requests_configuration_override_input.htm.md "Input representation of the details to override for a Pricing API configuration.") | Parameters to override the pricing configuration. | Optional | 60.0 |
 | `context​Definition​Id` | String | ID of the context definition that defines the structure of the input data. | Required | 60.0 |
 | `context​Mapping​Id` | String | ID of the context mapping that maps the input data to the context instance. | Required | 60.0 |
 | `json​Data​String` | String | Data to hydrate the context, which must be in JSON format and passed as String. Pass the JSON data as String by using the stringify() method to convert the object to string. The keys in the jsonDataString property must be in accordance to the contextMappingId property sent in the request. Make sure that the `businessObjectType` value within this property node is set to the sObject used in the context mappings. | Required | 60.0 |
 | `pricing​Procedure​Id` | String | ID or API name of the pricing procedure used for calculating the prices. A pricing procedure is represented as an Expression Set Definition in the system. If you’re an Experience Cloud user, specify the name of the pricing procedure. | Optional | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_core_pricing_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

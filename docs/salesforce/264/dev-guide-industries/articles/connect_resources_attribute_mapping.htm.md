@@ -7,108 +7,46 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_attribute_management.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Attribute Mapping (POST, PATCH)
 
 Create context attribute mapping. Update context attribute mapping.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
-/connect/context-node-mappings/${contextNodeMappingId}/context-attribute-mappings
+/connect/context-node-mappings/contextNodeMappingId/context-attribute-mappings
 ```
 
-          
-
-        
-        
-          
-
-**Example for POST**
-
-          
-: 
-            
+## Example for POST
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-node-mappings/${contextNodeMappingId}/context-attribute-mappings
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-node-mappings/contextNodeMappingId/context-attribute-mappings
 ```
 
-          
-
-        
-        
-          
-
-**Example for PATCH**
-
-          
-: 
-            
+## Example for PATCH
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-node-mappings/${contextNodeMappingId}/context-attribute-mappings
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-node-mappings/contextNodeMappingId/context-attribute-mappings
 ```
 
-          
+## Available Version
 
-        
-        
-          
+59.0
 
-**Available version**
+## Requires Chatter
 
-          
-: 59.0
+No
 
-        
-        
-          
+## HTTP Methods
 
-**Requires Chatter**
+POST, PATCH
 
-          
-: No
+## Request Body for POST
 
-        
-        
-          
-
-**HTTP methods**
-
-          
-: POST, PATCH
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-        
-                    
-
-**JSON example**
-
-                    
-: 
-                        
+### JSON Example
 
 ```
 {
@@ -139,15 +77,8 @@ https://yourInstance.salesforce.com/services/data/v59.0/connect/context-node-map
 }
 ```
 
-                    
-
-                    
-: This example shows a JSON sample when context-to-context mappings
-                        exist.
-
-                    
-: 
-                        
+This example shows a JSON sample when context-to-context mappings
+exist.
 
 ```
 {
@@ -192,135 +123,22 @@ https://yourInstance.salesforce.com/services/data/v59.0/connect/context-node-map
 }
 ```
 
-                    
+### Properties
 
-                
-                
-                    
-
-**Properties**
-
-                    
-: 
-                        
-
-                                
-                                
-                                
-                                
-                                
-                                
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                
-
-                                
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                
-
-                            
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `contextAttributeId` | String | ID of the context attribute record. | Required | 59.0 |
 | `contextAttributeMappingId` | String | ID of the context attribute mapping record. | Required | 59.0 |
 | `contextInputAttributeName` | String | Context input attribute name. | Optional | 59.0 |
-| `hydrationDetails` | [Context Attribute Hydration Details Input](./connect_requests_context_attr_hydration_details_input.htm.md)[] | List of context attribute hydration detail. | Optional | 59.0 |
+| `hydrationDetails` | [Context Attribute Hydration Details Input](./connect_requests_context_attr_hydration_details_input.htm.md "Input representation of context attribute hydration detail.")[] | List of context attribute hydration detail. | Optional | 59.0 |
 
-                    
+## Response Body for POST
 
-                
-      
+[Context Attribute Mapping List Output](./connect_responses_context_attribute_mapping_list.htm.md "Output representation of list of context attribute mappings.")
 
-          
+## Request Body for PATCH
 
-        
-        
-          
-
-**Response body for POST**
-
-          
-: [Context Attribute Mapping List Output](./connect_responses_context_attribute_mapping_list.htm.md)
-
-        
-        
-          
-
-**Request body for PATCH**
-
-          
-: 
-            
-        
-                    
-
-**JSON example**
-
-                    
-: 
-                        
+### JSON Example
 
 ```
 {
@@ -351,15 +169,8 @@ https://yourInstance.salesforce.com/services/data/v59.0/connect/context-node-map
 }
 ```
 
-                    
-
-                    
-: This example shows a JSON sample when context-to-context mappings
-                        exist.
-
-                    
-: 
-                        
+This example shows a JSON sample when context-to-context mappings
+exist.
 
 ```
 {
@@ -404,114 +215,19 @@ https://yourInstance.salesforce.com/services/data/v59.0/connect/context-node-map
 }
 ```
 
-                    
+### Properties
 
-                
-                
-                    
-
-**Properties**
-
-                    
-: 
-                        
-
-                                
-                                
-                                
-                                
-                                
-                                
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                
-
-                                
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                    
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                
-
-                            
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `contextAttributeId` | String | ID of the context attribute record. | Required | 59.0 |
 | `contextAttributeMappingId` | String | ID of the context attribute mapping record. | Required | 59.0 |
 | `contextInputAttributeName` | String | Context input attribute name. | Optional | 59.0 |
-| `hydrationDetails` | [Context Attribute Hydration Details Input](./connect_requests_context_attr_hydration_details_input.htm.md)[] | List of context attribute hydration detail. | Optional | 59.0 |
+| `hydrationDetails` | [Context Attribute Hydration Details Input](./connect_requests_context_attr_hydration_details_input.htm.md "Input representation of context attribute hydration detail.")[] | List of context attribute hydration detail. | Optional | 59.0 |
 
-                    
+## Response Body for PATCH
 
-                
-      
+[Context Attribute Mapping List](./connect_responses_context_attribute_mapping_list.htm.md "Output representation of list of context attribute mappings.")
 
-          
+---
 
-        
-        
-          
-
-**Response body for PATCH**
-
-          
-: [Context Attribute Mapping List](./connect_responses_context_attribute_mapping_list.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_attribute_mapping.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

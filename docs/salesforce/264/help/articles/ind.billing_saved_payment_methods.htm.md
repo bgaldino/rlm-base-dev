@@ -1,23 +1,23 @@
 ---
 article_id: ind.billing_saved_payment_methods.htm
-title: Configure Saved Payment Methods for Revenue Management
+title: Configure Saved Payment Methods for Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.billing_saved_payment_methods.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_payments.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# Configure Saved Payment Methods for Revenue Management
+# Configure Saved Payment Methods for Revenue Cloud
 
 Collect one-time or scheduled recurring payments by securely saving the payment methods of your customers, rather than manually entering payment method details each time a payment is processed. Save various payment methods from native or third-party payment gateways, and set a default saved payment method for each account.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
-The Salesforce Payments feature is available with the Revenue Cloud Billing license, with a cost per transaction model for both native and Bring Your Own payment gateways. Contact your Salesforce account executive for more information.
-If you purchased the Revenue Cloud Billing license on or before July 2025, contact your Salesforce account executive to add the Salesforce Payments feature to your existing license.
+To integrate a native payment gateway, you have two options. Use Salesforce Payments, which runs on Stripe and is available with the the Revenue Cloud Billing license on a cost-per-transaction basis. Or, connect your own Adyen account, contracted directly with Adyen.
+ 
 USER PERMISSIONS NEEDED
 To create saved payment methods:	Payment Operations User permission set
 Prerequisites
@@ -45,3 +45,7 @@ The saved payment method appears in the Saved Payment Methods related list of th
 If the saved payment method you’re creating has the same merchant account and payment method details as an existing record, but contains changes to other details, such as the name on the card, the details of the existing Saved Payment Method record is updated.
 
 NOTE You can create saved payment methods for MOTO payments in native payment gateways only.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_saved_payment_methods.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,22 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_responses.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Pricing Recipe
 
 Output representation of the pricing recipe information table.
 
-    
-
 ## JSON Example
 
-      
-      
-
 ```
-
   "recipes": [
     {
       "active": false,
@@ -53,188 +47,14 @@ Output representation of the pricing recipe information table.
       "procedureId": "",
       "procedureName": ""
     }]
-
 ```
 
-    
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `active` | Boolean | Indicates whether the recipe is active (`true`) or not (`false`). | Small, 60.0 | 60.0 |
 | `created​By` | String | Details on who created the recipe. | Small, 60.0 | 60.0 |
 | `created​On` | String | Date when the recipe was created. | Small, 60.0 | 60.0 |
-| `decision​Tables` | [Pricing Recipe LookUp Table Response](./connect_responses_pricing_recipe_look_up_table_response.htm.md)[] | Decision tables linked to the recipe. | Small, 60.0 | 60.0 |
+| `decision​Tables` | [Pricing Recipe LookUp Table Response](./connect_responses_pricing_recipe_look_up_table_response.htm.md "Output representation of a pricing recipe lookup table.") [] | Decision tables linked to the recipe. | Small, 60.0 | 60.0 |
 | `developer​Name` | String | API name of the recipe. | Small, 60.0 | 60.0 |
 | `id` | String | ID of the recipe. | Small, 60.0 | 60.0 |
 | `name` | String | Name of the recipe. | Small, 60.0 | 60.0 |
@@ -242,3 +62,7 @@ Output representation of the pricing recipe information table.
 | `procedure​CreatedOn` | String | Date when the procedure was created. | Small, 60.0 | 60.0 |
 | `procedure​Id` | String | ID of the procedure. | Small, 60.0 | 60.0 |
 | `procedure​Name` | String | Name of the procedure. | Small, 60.0 | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_pricing_recipe_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

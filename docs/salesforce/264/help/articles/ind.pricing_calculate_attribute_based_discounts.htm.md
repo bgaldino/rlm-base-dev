@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_add_attribute_based_price_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Calculate Attribute-Based Discounts
@@ -15,7 +15,7 @@ Determine the price of a product based on the discounts configured for selected 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS NEEDED
 To create, update, and delete pricing procedures:	Salesforce Pricing Design Time User
 
@@ -93,3 +93,7 @@ PriceImpactingAttribute: true
 Attribute: Display
 Click Simulate again.
 The price waterfall shows the attribute-based discounts used to calculate the final price of the laptops, confirming that your procedure is working as expected.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_calculate_attribute_based_discounts.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

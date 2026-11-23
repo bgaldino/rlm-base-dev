@@ -1,33 +1,33 @@
 ---
 article_id: ind.dro_ramp_deal_decomposition.htm
-title: Decompose and Fulfill Ramp Deal Orders
+title: Decompose and Fulfill Ramp Deals
 source_url: https://help.salesforce.com/s/articleView?id=ind.dro_ramp_deal_decomposition.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.qocal_ramp_deals_complex_long_term_multiple_products.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
-# Decompose and Fulfill Ramp Deal Orders
+# Decompose and Fulfill Ramp Deals
 
 Use Dynamic Revenue Orchestrator (DRO) to decompose, orchestrate, and assetize ramp deal orders across time segments. DRO sequences fulfillment steps, creates fulfillment assets, and processes amendments based on each segment's effective dates and values. A ramp deal contains standalone order line items divided into time segments whose price, quantity, discount, and other attributes can vary.
 
 REQUIRED EDITIONS
 Available in: Enterprise, Unlimited, and Developer Editions
-Decompose Ramp Deal Orders
+Ramp Deal Decomposition
 
 DRO decomposes each ramp segment into fulfillment order line items (FOLIs). The subscription, term, and quantity defined in a segment determine the FOLIs generated for that period. When time-awareness is on, DRO maps the FOLIs and Fulfillment Asset State Period records to each segment's effective dates. As a result, a change to one segment updates only that period.
 
 For more information about time-aware behavior, see Order Fulfillment With Time-Awareness.
 
-Orchestrate Ramp Deal Fulfillment
+Ramp Deal Orchestration
 
 DRO sequences fulfillment steps chronologically across ramp segments according to the configured dependencies and scopes. For example, steps for the first year run before steps for the second year. DRO also resolves dependencies across time segments to prevent fulfillment plans from stalling and to support multiyear subscription provisioning. To sequence fulfillment across ramp segments, configure the fulfillment steps and dependencies with the scopes required by your fulfillment design. The configured scopes determine which fulfillment order line items a step processes and how dependencies connect steps within and across segments.
 
 For more control over execution timing, see Configure Steps for Future Execution.
 
-Assetize Ramp Deal Orders
+Ramp Deal Assetization
 
 Assetize Ramp Deal Orders DRO handles assetization for ramp deal orders based on whether time awareness is on.
 
@@ -39,7 +39,7 @@ By using a staged assetize step, DRO creates assets during fulfillment plan exec
 
 Staged assetization of ramp segments is supported only for time-aware fulfillment assets. Commercial assetization requires all segments of a multisegment ramp to be assetized together. For source behavior, limitations, and setup information, see Staged Assetize Step.
 
-Amend Ramp Deal Assets
+Ramp Deal Asset Amendment
 
 When you amend a ramped asset, DRO detects time-based changes, generates fulfillment order line items with the applicable actions, and updates the related fulfillment assets during technical assetization. You can make these changes to a ramped asset:
 
@@ -49,3 +49,7 @@ Cancel the last segment or multiple future segments. Cancellation sets the quant
 DRO fulfills these amendments whether or not time-awareness is on.
 
 For information about how additions, cancellations, and other dated changes affect fulfillment assets, see Considerations for Backdated Changes in Dynamic Revenue Orchestrator.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_ramp_deal_decomposition.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

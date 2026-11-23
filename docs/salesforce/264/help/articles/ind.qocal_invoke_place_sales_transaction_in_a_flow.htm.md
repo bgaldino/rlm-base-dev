@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_quote_and_order_features_in_revenue_cloud.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Invoke the Place Sales Transaction API in a Flow
@@ -15,7 +15,7 @@ Invoke the Place Sales Transaction (PST) API to create, update, and delete quote
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 NOTE Use the Invoke Place Sales Transaction API action in Agentforce Quoting flows only. The action is designed for the Agentforce Quoting flow execution context and isn't compatible with other flow types. To call the Place Sales Transaction API from a flow other than an Agentforce Quoting flow, use a custom Apex action that calls the API directly. The Place Sales Transaction invocable action is designed for agentic invocation and doesn't support ramp deals or automated processes.
 
 In Flow Builder, add an Action element to your flow. Select the Revenue Cloud category, and search for Invoke Place Sales Transaction API.
@@ -24,7 +24,7 @@ Set Input Values
 INPUT PARAMETER	DESCRIPTION
 Catalog Rates Preferences	
 
-Specify how Revenue Management prices a quote or order during processing. For example, if you add a quote line item to a quote, it’s possible that you don’t want to price the quote yet. Possible values are:
+Specify how Revenue Cloud prices a quote or order during processing. For example, if you add a quote line item to a quote, it’s possible that you don’t want to price the quote yet. Possible values are:
 
 Force—Always price the quote or order.
 Skip—Never price the quote or order.
@@ -35,7 +35,7 @@ The default value is System.
 
 Configuration Method	
 
-Specify when Revenue Management fetches rate card entries for quote line items with usage-based pricing during the quote creation process. Possible values are:
+Specify when Revenue Cloud fetches rate card entries for quote line items with usage-based pricing during the quote creation process. Possible values are:
 
 Fetch—Retrieve the rate card entries during the quote creation process.
 Skip—Skip retrieving rate card entries for quote line items during the quote creation process.
@@ -85,3 +85,7 @@ To set up the Place Sales Transaction API input:
 Use an Assignment element to set the field values of the TransactionNameRecordMapWrapper, OppNameRecordMapWrapper, and PricebookNameRecordMapWrapper of RevSalesTrxn_RecordMapWrapper class variables.
 If you want to include configuration options, create the options as new Boolean variables.
 NOTE Updates made through the Sales Transaction Line Editor don’t trigger record-triggered flows on Quote Line Group. The Sales Transaction Line Editor processes these updates through the Place Sales Transaction API in this order: Quote, Quote Line Group, and then Quote Line Item. When a Quote Line Group field changes in the Sales Transaction Line Editor and related Quote Line Items require updates, use custom Apex hooks instead of declarative record-triggered flows.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_invoke_place_sales_transaction_in_a_flow.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

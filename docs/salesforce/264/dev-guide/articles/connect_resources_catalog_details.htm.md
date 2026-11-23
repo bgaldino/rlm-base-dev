@@ -7,80 +7,36 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_discovery_api_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Catalog Details (POST)
 
-Get catalog details for a specified catalog ID. This API is a
-      composite API for Product Discovery.
+Get catalog details for a specified catalog ID. This API is a composite API for Product Discovery.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /connect/cpq/catalogs/catalogId
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/catalogs/0ZSxx000000009hGAA
 ```
 
-          
+## Available Version
 
-        
-        
-          
+60.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 60.0
+POST
 
-        
-        
-          
+## Request Body for POST
 
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-
-**JSON example**
-
-: 
+**JSON Example**
 
 ```
 {
@@ -94,21 +50,15 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/catalogs/0ZS
 
 **Properties**
 
-: 
-
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `correlation​Id` | String | Unique identifier value that’s attached to the requests and messages, and accepts references to a particular transaction or event chain. | Optional | 60.0 |
-| `user​Context` | [User Context Input](./connect_requests_user_context_input.htm.md) | User context details. For example, account ID or contact ID. | Optional | 60.0 |
+| `user​Context` | [User Context Input](./connect_requests_user_context_input.htm.md "Input representation of the details with the user context.") | User context details. For example, account ID or contact ID. | Optional | 60.0 |
 
-          
+## Response Body for POST
 
-        
-        
-          
+[CPQ Base Details](./connect_responses_cpq_base_details_output.htm.md "Output representation of the catalog, category, or product details based on the request.")
 
-**Response body for POST**
+---
 
-          
-: [CPQ Base
-              Details](./connect_responses_cpq_base_details_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_catalog_details.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

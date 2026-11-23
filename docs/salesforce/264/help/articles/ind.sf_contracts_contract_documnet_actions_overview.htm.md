@@ -5,7 +5,7 @@ source_url: https://help.salesforce.com/s/articleView?id=ind.sf_contracts_contra
 release: 264
 release_name: Winter '27
 area: salesforce_contracts
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Use Salesforce Contracts Application
@@ -32,3 +32,7 @@ How Document Playbook Works
 A document playbook captures the guidelines, acceptable clause language, and fallback positions that legal and contract teams follow during contract negotiations. When a contract author runs a risk analysis on a contract in the Microsoft 365 Word add-in, Salesforce compares the contract against the active playbook and highlights deviations, escalation paths, and nonstandard language. Use document playbooks to manage versioned negotiation guidelines that Contract Risk Analysis uses to evaluate contract changes against your organization's standards.
 How Contract Risk Analysis Works
 Contract Risk Analysis compares each modified clause in a contract against your approved playbook. After a reviewer makes changes to a version of the contract, the author runs the analysis using the Microsoft 365 Word add-in. A generative AI model scores each modified clause, explains the risk, and recommends the mitigation content to add to the contract.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_contract_documnet_actions_overview.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

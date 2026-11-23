@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_cnsption_mngmnt_lifecycle.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Consumption Management Flows
@@ -26,3 +26,7 @@ Orchestrate Usage Management flow—processes consumption data and creates invoi
 Generate Usage Summary flow—creates zero-value summaries and updates usage summaries by aggregating transaction journal records.
 Generate Usage Ratable Summary flow—processes drawdowns, applies the net unit rate retrieved by using the rating request, and updates the usage ratable summary and the asset-related wallets.
 Generate Liable Summary—summarizes the consumption overages in the usage summary and usage ratable summary.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_consumption_management_standard_flow_templates.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

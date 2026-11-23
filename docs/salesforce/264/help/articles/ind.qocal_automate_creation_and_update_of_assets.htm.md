@@ -6,16 +6,16 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_asset_management_features_in_revenue_cloud.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Automate Asset Creation from Orders
 
-To ensure assets related to an order remain current, use flows to create and update them. When you activate Revenue Management orders, create a record-triggered flow that invokes the Create or Update Asset from Order flow action. Customize the flow or add more conditions to perform other actions.
+To ensure assets related to an order remain current, use flows to create and update them. When you activate Revenue Cloud orders, create a record-triggered flow that invokes the Create or Update Asset from Order flow action. Customize the flow or add more conditions to perform other actions.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To open, edit, or create a flow in Flow Builder:	Manage Flow
 To activate object state definitions:	Assetize Order permission set
@@ -51,7 +51,7 @@ API Name: ApplicationUsageAssignmentRecord
 Data Type: Record
 Object: Application Usage Assignment
 Click Done.
-Add a Decision to Check for Revenue Management Records
+Add a Decision to Check for Revenue Cloud Records
 Click .
 Find and select Decision.
 Enter Revenue Lifecycle Management Record? for the label and Is_Revenue_Lifecycle_Management_Record for the API name.
@@ -74,3 +74,7 @@ Click Done.
 Save your changes.
 Enter a label and API name for the flow and save again.
 Activate the flow.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_automate_creation_and_update_of_assets.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

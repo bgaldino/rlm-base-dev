@@ -1,25 +1,24 @@
 ---
 article_id: ind.pricing_salesforce_pricing.htm
-title: Design Your Pricing Model in Revenue Management
+title: Design Your Pricing Model in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.pricing_salesforce_pricing.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: pricing
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
-# Design Your Pricing Model in Revenue Management
+# Design Your Pricing Model in Revenue Cloud
 
 Salesforce Pricing provides a unified platform for consistent, compliant, and accurate pricing for your products. Businesses can define standard prices for their products and apply discounts through price adjustments for a range of scenarios including volume discounts, subscription pricing, bundle pricing, and more.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
-NOTE Revenue Cloud is now Revenue Management. You may see references to Revenue Cloud in Salesforce applications and documentation.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 Sales reps benefit from real-time access to precise pricing and the ability to directly apply relevant discounts, giving them clear visibility into the final price. This is especially valuable for negotiating large quotes and winning complex deals. Sales reps also get the information they need to explain quotes to customers through a detailed price adjustment log (the price waterfall), enhancing transparency and trust.
 
-Salesforce Pricing also offers prebuilt integrations with other Revenue Management (formerly Revenue Cloud)components like Transaction Management, and allows for custom pricing actions and third-party API integrations.
+Salesforce Pricing also offers prebuilt integrations with other Revenue Cloud components like Transaction Management, and allows for custom pricing actions and third-party API integrations.
 
 To get started with Salesforce Pricing, refer to these resources. We recommend working through these sections in order.
 
@@ -31,17 +30,21 @@ Salesforce Pricing Advanced Setup
 Salesforce Pricing provides advanced setup options to customize and extend its core functionalities that is crucial for leveraging the product's full power and tailoring it to specific business needs.
 Considerations for Importing and Exporting Pricing Data
 Use a packaged file to import and export pricing metadata from one org to another, including pricing recipes, decision tables, context definitions, and pricing procedures. These metadata components are crucial for ‌pricing processes, where pricing procedures use recipes for accurate calculations.
-Cost Books and Price Books
+Price Books and Cost Books
 Track the expenses associated with manufacturing a product in a cost book, and record the product's selling price in a price book. You can have multiple price books and cost books in your Salesforce org.
 Explore Price Adjustment Schedules
 Implement dynamic pricing strategies by automating price calculations and adjustments based on various factors like quantity or product attributes. Build flexible pricing models that optimize revenue and adapt to specific market conditions or customer needs.
 Build Your Pricing Procedures Using Salesforce Pricing
-Pricing procedures are fundamental to all pricing strategies in Revenue Management (formerly Revenue Cloud), enabling businesses to implement dynamic pricing rules and efficiently calculate a product's final net price. They act as the core engine for pricing calculations in Salesforce Pricing, providing a flexible and powerful way to manage both simple and complex pricing scenarios.
+Pricing procedures are fundamental to all pricing strategies in Revenue Cloud , enabling businesses to implement dynamic pricing rules and efficiently calculate a product's final net price. They act as the core engine for pricing calculations in Salesforce Pricing, providing a flexible and powerful way to manage both simple and complex pricing scenarios.
 Use Pricing Elements in Pricing Procedures
-Pricing elements are the fundamental building blocks used to construct a pricing procedure. Use these elements to define how prices are calculated and applied in Revenue Management (formerly Revenue Cloud).
+Pricing elements are the fundamental building blocks used to construct a pricing procedure. Use these elements to define how prices are calculated and applied in Revenue Cloud .
 Unique Pricing Scenarios
 Learn how complex pricing scenarios, from product interdependencies to honoring long-term customer agreements, impact sales efficiency and customer satisfaction. Discover how Salesforce Pricing provides the sophisticated capabilities needed to manage these unique challenges and drive revenue.
 Access Your Pricing Information
 View your product pricing either in a simple list view or using custom grid components making it easier to analyze and compare data. Use the discount calendar to show all applied discounts for a product.
 Salesforce Pricing Limits
 Review the default limits for Salesforce Pricing’s components and their usage. To modify the set default values, ask your Salesforce administrator to raise a support ticket.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_salesforce_pricing.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,19 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_requests.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Billing Checkout Input
 
 Input representation of the checkout transaction details used to create the order, invoice, and payment.
 
-    
-
 ## JSON Example
-
-      
-      
 
 ```
 {
@@ -143,18 +138,9 @@ Input representation of the checkout transaction details used to create the orde
 }
 ```
 
-    
-
-    
-
 ## JSON Example — Using an Existing Payment Record
 
-      
-      
-
 This example passes `paymentId` directly for an existing payment record instead of `paymentDetails`.
-
-      
 
 ```
 {
@@ -176,301 +162,37 @@ This example passes `paymentId` directly for an existing payment record instead 
 }
 ```
 
-    
-
-    
-
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `account​Id` | String | ID of the account placing the order. Use `accountId` or `customerDetails`. | Optional | 68.0 |
 | `amount` | Double | Total amount to charge for this checkout transaction. | Required | 68.0 |
-| `billing​Address` | [Address Input](./connect_requests_address_input.htm.md) | Customer's billing address. Use `billingAddress` or `billingProfileId`. | Optional | 68.0 |
-| `billing​Contact` | [Billing Contact Input](./connect_requests_billing_checkout_billing_contact_input.htm.md) | Billing customer details when `billingProfileId` isn't provided. Creates the contact if it doesn't exist. | Optional | 68.0 |
+| `billing​Address` | [Address Input](./connect_requests_address_input.htm.md "Input representation of the details of an address.") | Customer's billing address. Use `billingAddress` or `billingProfileId`. | Optional | 68.0 |
+| `billing​Contact` | [Billing Contact Input](./connect_requests_billing_checkout_billing_contact_input.htm.md "Input representation of billing contact details used when billingProfileId isn't provided. Creates the contact if it doesn't exist.") | Billing customer details when `billingProfileId` isn't provided. Creates the contact if it doesn't exist. | Optional | 68.0 |
 | `billing​Profile​Id` | String | ID of an existing billing profile. Use `billingProfileId` or `billingAddress`. | Optional | 68.0 |
 | `currency​Iso​Code` | String | The currency code of the transaction amount if your Salesforce org has multi-currency enabled. | Required | 68.0 |
-| `customer​Details` | [Billing Checkout Customer Details Input](./connect_requests_billing_checkout_customer_details_input.htm.md) | Customer details used to create a customer when `accountId` isn't provided. | Optional | 68.0 |
+| `customer​Details` | [Billing Checkout Customer Details Input](./connect_requests_billing_checkout_customer_details_input.htm.md "Input representation of customer details used to create a customer when accountId isn't provided.") | Customer details used to create a customer when `accountId` isn't provided. | Optional | 68.0 |
 | `invoice​Date` | String | Date that appears on the generated invoice (YYYY-MM-DD). Defaults to the transaction date. | Optional | 68.0 |
 | `invoice​Target​Date` | String | End date for the billing period to include on this invoice (YYYY-MM-DD). Creates a targeted invoice. | Optional | 68.0 |
 | `is​Partial​Payment​Allowed` | Boolean | Indicates whether partial payment is allowed for this payment context (`true`) or not (`false`). The default value is `false`. | Optional | 68.0 |
-| `line​Items` | [Billing Checkout Line Item Input](./connect_requests_billing_checkout_line_item_input.htm.md)[] | Array of products being purchased. | Required | 68.0 |
-| `payment​Details` | [Billing Checkout Payment Details Input](./connect_requests_billing_checkout_payment_details_input.htm.md) | Raw payment details used to tokenize a new card or bank account. Use `paymentDetails` or `paymentMethodId`. | Optional | 68.0 |
+| `line​Items` | [Billing Checkout Line Item Input](./connect_requests_billing_checkout_line_item_input.htm.md "Input representation of a single line item being purchased in the checkout transaction.")[] | Array of products being purchased. | Required | 68.0 |
+| `payment​Details` | [Billing Checkout Payment Details Input](./connect_requests_billing_checkout_payment_details_input.htm.md "Input representation of payment details used during checkout, referencing a saved payment method.") | Raw payment details used to tokenize a new card or bank account. Use `paymentDetails` or `paymentMethodId`. | Optional | 68.0 |
 | `payment​Id` | String | ID of an existing payment record to associate with this checkout transaction. Not allowed when `shouldCapturePayment` is `true`, and not allowed together with `amount`. | Optional | 68.0 |
 | `payment​Method​Id` | String | ID of a saved payment method. Use `paymentMethodId` or `paymentDetails`. | Optional | 68.0 |
 | `preview​Invoice` | Boolean | If `true`, returns a preview of the invoice without committing the checkout transaction. | Optional | 68.0 |
-| `shipping​Address` | [Address Input](./connect_requests_address_input.htm.md) | Customer's shipping address. | Optional | 68.0 |
+| `shipping​Address` | [Address Input](./connect_requests_address_input.htm.md "Input representation of the details of an address.") | Customer's shipping address. | Optional | 68.0 |
 | `should​Capture​Payment` | Boolean | If `true`, captures the payment as part of the checkout transaction. | Optional | 68.0 |
 
-    
+- **[Billing Contact Input](./connect_requests_billing_checkout_billing_contact_input.htm.md)**  
+  Input representation of billing contact details used when billingProfileId isn't provided. Creates the contact if it doesn't exist.
+- **[Billing Checkout Customer Details Input](./connect_requests_billing_checkout_customer_details_input.htm.md)**  
+  Input representation of customer details used to create a customer when accountId isn't provided.
+- **[Billing Checkout Line Item Input](./connect_requests_billing_checkout_line_item_input.htm.md)**  
+  Input representation of a single line item being purchased in the checkout transaction.
+- **[Billing Checkout Payment Details Input](./connect_requests_billing_checkout_payment_details_input.htm.md)**  
+  Input representation of payment details used during checkout, referencing a saved payment method.
 
-  
+---
 
-- 
-**[Billing Contact Input](./connect_requests_billing_checkout_billing_contact_input.htm.md)**  
-
-Input representation of billing contact details used when billingProfileId isn't provided. Creates the contact if it doesn't exist.
-
-- 
-**[Billing Checkout Customer Details Input](./connect_requests_billing_checkout_customer_details_input.htm.md)**  
-
-Input representation of customer details used to create a customer when accountId isn't provided.
-
-- 
-**[Billing Checkout Line Item Input](./connect_requests_billing_checkout_line_item_input.htm.md)**  
-
-Input representation of a single line item being purchased in the checkout transaction.
-
-- 
-**[Billing Checkout Payment Details Input](./connect_requests_billing_checkout_payment_details_input.htm.md)**  
-
-Input representation of payment details used during checkout, referencing a saved payment method.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_billing_checkout_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

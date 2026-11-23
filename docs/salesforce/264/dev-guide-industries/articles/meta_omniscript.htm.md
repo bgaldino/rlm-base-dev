@@ -7,900 +7,426 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Omnistudio
 parent_page: omnistudio_metadata_api_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # OmniScript
 
 Represents an OmniScript for the Discovery Framework, which
-			guides users through sales, service, and other business processes. For Discovery
-			Framework, the customization type is `discoveryframework`.
-	
+guides users through sales, service, and other business processes. For Discovery
+Framework, the customization type is `discoveryframework`.
 
-		
-			
+![Important](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note_important.png&folder=industries_reference)
 
 #### Important
 
 Where possible, we changed noninclusive terms to align with our
-				company value of Equality. We maintained certain terms to avoid any effect on
-				customer implementations.
-
-		
-
-		
+company value of Equality. We maintained certain terms to avoid any effect on
+customer implementations.
 
 ## Parent Type
 
-			 This type extends the [Metadata](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/metadata.htm) metadata type and inherits its fullName field. 
-
-		
+This type extends the [Metadata](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/metadata.htm "HTML (New Window)") metadata type and inherits its fullName field.
 
 ## File Suffix and Directory Location
 
-			
-			
-
 OmniScript components have the suffix omniScript and are stored
-				in the omniScripts folder.
-
-		
-
-		
+in the omniScripts folder.
 
 ## Version
 
-			
-			
-
 OmniScript components are available in API version 56.0 and later.
-
-		
-
-		
 
 ## Special Access Rules
 
-			
-			
-
 To use this metadata type, you must have an Omnistudio license and the Discovery Framework
-				feature enabled in your Salesforce org.
-
-		
-
-		
+feature enabled in your Salesforce org.
 
 ## Fields
 
-			
-			
+### assessmentDefinitionMetadata
 
-					
-					
-					
-						
-							
+- **Field Type**: [AssessmentDefinitionMetadata[]](#AssessmentDefinitionMetadata)
+- **Description**: Metadata associated with an assessment definition.
+  Available in API version 64.0 and later.
 
-							
+### customHtmlTemplates
 
-						
+- **Field Type**: string
+- **Description**: The angular OmniScript template definitions.
 
-					
+### customJavaScript
 
-					
-						
-							
+- **Field Type**: string
+- **Description**: The custom JavaScript used for an OmniScript.
 
-							
+### designerCustomizationType
 
-: 
+- **Field Type**: string
+- **Description**: The Omnistudio designer customization type.
 
-: 
+### elementTypeComponentMapping
 
-						
+- **Field Type**: string
+- **Description**: Overrides all elements of one type with a custom
+  Lightning web component by mapping the element type to
+  the Custom LWC.
 
-						
-							
+### isActive
 
-							
+- **Field Type**: boolean
+- **Description**: Indicates whether the OmniScript is active (`true`) or not (`false`).
+- **Default value**: `false`
 
-: 
+### isIntegrationProcedure
 
-: 
+- **Field Type**: boolean
+- **Description**: Indicates whether OmniScript is an Integration Procedure
+  (`true`) or
+  OmniScript metadata (`false`).
+- **Default value**: `false`
 
-						
+### isManagedUsingStdDesigner
 
-						
-							
+- **Field Type**: boolean
+- **Description**: Indicates whether Omniscript is managed using standard
+  designer (`true`) or
+  not (`false`).
+  Available in API version 64.0 and later.
 
-							
+### isMetadataCacheDisabled
 
-: 
+- **Field Type**: boolean
+- **Description**: Indicates whether metadata cache for the integration
+  procedure is disabled (`true`) or not (`false`).
+- **Default value**: `false`
 
-: 
+### isOmniScriptEmbeddable
 
-						
+- **Field Type**: boolean
+- **Description**: Indicates whether the OmniScript can be embedded in
+  other OmniScripts (`true`) or not (`false`).
+- **Default value**: `false`
 
-						
-							
+### isTestProcedure
 
-							
+- **Field Type**: boolean
+- **Description**: Indicates whether OmniScript is a test procedure setting
+  (`true`) or not
+  (`false`).
+- **Default value**: `false`
 
-: 
+### isWebCompEnabled
 
-: 
+- **Field Type**: boolean
+- **Description**: Indicates whether web component OmniScript (not Angular)
+  is enabled (`true`)
+  or not (`false`).
+- **Default value**: `false`
 
-						
+### language
 
-						
-							
+- **Field Type**: string
+- **Description**: Required.
 
-							
+  The language of the OmniScript.
 
-: 
+### lastPreviewPage
 
-: 
+- **Field Type**: string
+- **Description**: The last page previewed in the OmniScript designer.
 
-						
+### name
 
-						
-							
+- **Field Type**: string
+- **Description**: Required.
 
-							
+  The name of the OmniScript.
 
-: 
+### namespace
 
-: 
+- **Field Type**: string
+- **Description**: The namespace associated with this OmniScript
+  record.
 
-						
+### omniAssessmentTasks
 
-						
-							
+- **Field Type**: [OmniAssessmentTaskMetadata](#subtype_OmniAssessmentTask)[]
+- **Description**: The omniAssessmentTasks associated with the OmniScript. Available in API version 63.0
+  and later.
 
-							
+  This field is available only if the Dynamic Assessment
+  Access license is enabled.
 
-: 
+### omniProcessElements
 
-: 
+- **Field Type**: [OmniProcessElement](#subtype_OmniProcessElement)[]
+- **Description**: The OmniProcessElements associated with the
+  OmniScript.
 
-						
+### omniProcessKey
 
-						
-							
+- **Field Type**: string
+- **Description**: The integration procedure `Type_SubType` value.
 
-							
+### omniProcessType
 
-: 
+- **Field Type**: OmniProcessType (enumeration of type string)
+- **Description**: Required. Integration Procedure or OmniScript.
+- **Possible values**:
+  - `OmniScript`
 
-: 
+### overrideKey
 
-						
+- **Field Type**: string
+- **Description**: Reserved for future use.
 
-						
-							
+### propertySetConfig
 
-							
+- **Field Type**: string
+- **Description**: The configuration information associated with the
+  OmniScript.
 
-: 
+### uniqueIndex
 
-: 
+- **Field Type**: string
+- **Description**: The developer name of the assessment question in the
+  OmniScript.
 
-						
+  This field is relevant only for Omniscripts with
+  designerCustomizationType as
+  `discoveryframework`.
 
-						
-							
+### requiredPermission
 
-							
+- **Field Type**: string
+- **Description**: The required permissions to execute the integration
+  procedure.
 
-: 
+### responseCacheType
 
-: 
+- **Field Type**: string
+- **Description**: Response cache used for the integration procedure
+  (session or Org).
 
-						
+### subType
 
-						
-							
+- **Field Type**: string
+- **Description**: Required.
 
-							
+  The OmniScript sub type value.
 
-: 
+### type
 
-: 
+- **Field Type**: string
+- **Description**: Required.
 
-						
+  The OmniScript type value.
 
-						
-							
+### uniqueName
 
-							
+- **Field Type**: string
+- **Description**: Required.
 
-: 
+  The unique name for the OmniScript as
+  Type\_SubType\_Language\_VersionNumber.
 
-: 
+### versionNumber
 
-						
+- **Field Type**: string
+- **Description**: Required.
 
-						
-							
+  The OmniScript version number.
 
-							
+### webComponentKey
 
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-- 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Field Name | Description |
-| --- | --- |
-| assessmentDefinitionMetadata | **Field Type** [AssessmentDefinitionMetadata[]](#AssessmentDefinitionMetadata) **Description** Metadata associated with an assessment definition. Available in API version 64.0 and later. |
-| customHtmlTemplates | **Field Type** string **Description** The angular OmniScript template definitions. |
-| customJavaScript | **Field Type** string **Description** The custom JavaScript used for an OmniScript. |
-| designerCustomizationType | **Field Type** string **Description** The Omnistudio designer customization type. |
-| elementTypeComponentMapping | **Field Type** string **Description** Overrides all elements of one type with a custom Lightning web component by mapping the element type to the Custom LWC. |
-| isActive | **Field Type** boolean **Description** Indicates whether the OmniScript is active (`true`) or not (`false`). The default value is `false`. |
-| isIntegrationProcedure | **Field Type** boolean **Description** Indicates whether OmniScript is an Integration Procedure (`true`) or OmniScript metadata (`false`). The default value is `false`. |
-| isManagedUsingStdDesigner | **Field Type** boolean **Description** Indicates whether Omniscript is managed using standard designer (`true`) or not (`false`). Available in API version 64.0 and later. |
-| isMetadataCacheDisabled | **Field Type** boolean **Description** Indicates whether metadata cache for the integration procedure is disabled (`true`) or not (`false`). The default value is `false`. |
-| isOmniScriptEmbeddable | **Field Type** boolean **Description** Indicates whether the OmniScript can be embedded in other OmniScripts (`true`) or not (`false`). The default value is `false` |
-| isTestProcedure | **Field Type** boolean **Description** Indicates whether OmniScript is a test procedure setting (`true`) or not (`false`). The default value is `false` |
-| isWebCompEnabled | **Field Type** boolean **Description** Indicates whether web component OmniScript (not Angular) is enabled (`true`) or not (`false`). The default value is `false` |
-| language | **Field Type** string **Description** Required. The language of the OmniScript. |
-| lastPreviewPage | **Field Type** string **Description** The last page previewed in the OmniScript designer. |
-| name | **Field Type** string **Description** Required. The name of the OmniScript. |
-| namespace | **Field Type** string **Description** The namespace associated with this OmniScript record. |
-| omniAssessmentTasks | **Field Type** [OmniAssessmentTaskMetadata](#subtype_OmniAssessmentTask)[] **Description** The omniAssessmentTasks associated with the OmniScript. Available in API version 63.0 and later. This field is available only if the Dynamic Assessment Access license is enabled. |
-| omniProcessElements | **Field Type** [OmniProcessElement](#subtype_OmniProcessElement)[] **Description** The OmniProcessElements associated with the OmniScript. |
-| omniProcessKey | **Field Type** string **Description** The integration procedure `Type_SubType` value. |
-| omniProcessType | **Field Type** OmniProcessType (enumeration of type string) **Description** Required. Integration Procedure or OmniScript. Possible value is: `OmniScript` |
-| overrideKey | **Field Type** string **Description** Reserved for future use. |
-| propertySetConfig | **Field Type** string **Description** The configuration information associated with the OmniScript. |
-| uniqueIndex | **Field Type** string **Description** The developer name of the assessment question in the OmniScript. This field is relevant only for Omniscripts with designerCustomizationType as `discoveryframework`. |
-| requiredPermission | **Field Type** string **Description** The required permissions to execute the integration procedure. |
-| responseCacheType | **Field Type** string **Description** Response cache used for the integration procedure (session or Org). |
-| subType | **Field Type** string **Description** Required. The OmniScript sub type value. |
-| type | **Field Type** string **Description** Required. The OmniScript type value. |
-| uniqueName | **Field Type** string **Description** Required. The unique name for the OmniScript as Type_SubType_Language_VersionNumber. |
-| versionNumber | **Field Type** string **Description** Required. The OmniScript version number. |
-| webComponentKey | **Field Type** string **Description** Internal unique key for the generated Lightning Web Components (LWC). |
-
-		
-
-		
+- **Field Type**: string
+- **Description**: Internal unique key for the generated Lightning Web
+  Components (LWC).
 
 ## AssessmentDefinitionMetadata
 
-			
-			
-
 Represents the metadata associated with the assessment definition.
 
-		
+### approvalDateTime
 
-		
+- **Field Type**: dateTime
+- **Description**: The date and time when this version of the assessment
+  definition was approved.
 
-				
-				
-				
-					
-						
+### displayType
 
-						
+- **Field Type**: string
+- **Description**: The way this assessment is displayed in a user interface.
 
-					
+### effectiveFromDate
 
-				
+- **Field Type**: dateTime
+- **Description**: The date and time from which the assessment definition
+  becomes active and can be used.
 
-				
-					
-						
+### effectiveToDate
 
-						
+- **Field Type**: dateTime
+- **Description**: The date and time until when this assessment definition is
+  effective.
 
-: 
+### lastRevisedDateTime
 
-: 
+- **Field Type**: dateTime
+- **Description**: The date and time when this assessment definition was last
+  modified.
 
-					
+### performerType
 
-					
-						
+- **Field Type**: string
+- **Description**: The type of user, role, or system qualified or intended to
+  complete the assessment.
 
-						
+### purpose
 
-: 
-
-: 
-
-					
-
-					
-						
-
-						
-
-: 
-
-: 
-
-					
-
-					
-						
-
-						
-
-: 
-
-: 
-
-					
-
-					
-						
-
-						
-
-: 
-
-: 
-
-					
-
-					
-						
-
-						
-
-: 
-
-: 
-
-					
-
-					
-						
-
-						
-
-: 
-
-: 
-
-					
-
-				
-
-			
-| Field Name | Description |
-| --- | --- |
-| approvalDateTime | **Field Type** dateTime **Description** The date and time when this version of the assessment definition was approved. |
-| displayType | **Field Type** string **Description** The way this assessment is displayed in a user interface. |
-| effectiveFromDate | **Field Type** dateTime **Description** The date and time from which the assessment definition becomes active and can be used. |
-| effectiveToDate | **Field Type** dateTime **Description** The date and time until when this assessment definition is effective. |
-| lastRevisedDateTime | **Field Type** dateTime **Description** The date and time when this assessment definition was last modified. |
-| performerType | **Field Type** string **Description** The type of user, role, or system qualified or intended to complete the assessment. |
-| purpose | **Field Type** string **Description** Reason for the assessment. |
-
-		
+- **Field Type**: string
+- **Description**: Reason for the assessment.
 
 ## OmniAssessmentTaskMetadata
 
-			
-			
-
 Represents the omni assessment tasks associated with the OmniScript.
 
-			
+### name
 
-					
-					
-					
-						
-							
+- **Field Type**: string
+- **Description**: Required. The name of the omni assessment
+  task.
 
-							
+### status
 
-						
+- **Field Type**: picklist
+- **Description**: The status of the omni assessment task.
+- **Default value**: `IsDefined`
+- **Possible values**:
+  - `Completed`
+  - `InProgress`—In Progress
+  - `IsDefined`—Is Defined
+  - `NotStarted`—Not Started
 
-					
+### uniqueName
 
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-- 
-- 
-- 
-- 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Field Name | Description |
-| --- | --- |
-| name | **Field Type** string **Description** Required.The name of the omni assessment task. |
-| status | **Field Type** picklist **Description** The status of the omni assessment task. Possible values are: `Completed` `InProgress`—In Progress `IsDefined`—Is Defined `NotStarted`—Not Started The default value is `IsDefined`. |
-| uniqueName | **Field Type** string **Description** A unique name for the omni assessment task. |
-
-		
-
-		
+- **Field Type**: string
+- **Description**: A unique name for the omni assessment task.
 
 ## OmniProcessElement
 
-			
-			
-
 Represents the OmniScript element associated with the OmniScript.
 
-			
+### childElements
 
-					
-					
-					
-						
-							
+- **Field Type**: [OmniProcessElement](#subtype_OmniProcessElement)[]
+- **Description**: The child elements associated with the
+  OmniProcessElement.
 
-							
+### description
 
-						
+- **Field Type**: string
+- **Description**: The description of the OmniProcessElement.
 
-					
+### designerCustomizationType
 
-					
-						
-							
+- **Field Type**: string
+- **Description**: The Omnistudio designer customization type.
 
-							
+  To create assessment questions using the Discovery Framework feature, use the
+  customization type as
+  `discoveryframework`.
 
-: 
+### discoveryFrameworkUsageType
 
-: 
+- **Field Type**: string
+- **Description**: The usage type for industries that use the Discovery
+  Framework. For example, the value for Health Cloud is
+  `HcUsageType`.
+  The value for no specific industry is `Default`.
 
-						
+### embeddedOmniScriptKey
 
-						
-							
+- **Field Type**: string
+- **Description**: The ID of the embedded OmniScript
 
-							
+### isActive
 
-: 
+- **Field Type**: boolean
+- **Description**: Indicates whether the status of the OmniProcessElement
+  is active (`true`) or
+  not (`false`).
 
-: 
+### isOmniScriptEmbeddable
 
-						
+- **Field Type**: boolean
+- **Description**: Indicates whether the OmniScript with the
+  OmniProcessElement can be embedded in other OmniScripts
+  (`true`) or not
+  (`false`).
 
-						
-							
+### level
 
-							
+- **Field Type**: double
+- **Description**: The vertical level in which the OmniProcessElement
+  occurs on the OmniScript.
 
-: 
+### name
 
-: 
-: 
+- **Field Type**: string
+- **Description**: Required.
 
-						
+  The name of the OmniProcessElement.
 
-						
-							
+### omniProcessVersionNumber
 
-							
+- **Field Type**: double
+- **Description**: The related OmniProcess version.
 
-: 
+### parentElementName
 
-: 
+- **Field Type**: string
+- **Description**: The name of the parent OmniProcessElement.
 
-						
+### parentElementType
 
-						
-							
+- **Field Type**: string
+- **Description**: The type of the parent OmniProcessElement.
 
-							
+### propertySetConfig
 
-: 
+- **Field Type**: textarea
+- **Description**: The property set of the OmniProcessElement.
 
-: 
+### sequenceNumber
 
-						
+- **Field Type**: double
+- **Description**: The horizontal level in which the OmniProcessElement
+  occurs on the OmniScript.
 
-						
-							
+### type
 
-							
+- **Field Type**: string
+- **Description**: The OmniProcessElement type. For example, `Text` and `TextArea`.
 
-: 
+### uniqueIndex
 
-: 
+- **Field Type**: string
+- **Description**: The developer name of the assessment question in the
+  OmniScript.
 
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-					
-
-				
-| Field Name | Description |
-| --- | --- |
-| childElements | **Field Type** [OmniProcessElement](#subtype_OmniProcessElement)[] **Description** The child elements associated with the OmniProcessElement. |
-| description | **Field Type** string **Description** The description of the OmniProcessElement. |
-| designerCustomizationType | **Field Type** string **Description** The Omnistudio designer customization type. To create assessment questions using the Discovery Framework feature, use the customization type as `discoveryframework`. |
-| discoveryFrameworkUsageType | **Field Type** string **Description** The usage type for industries that use the Discovery Framework. For example, the value for Health Cloud is `HcUsageType`. The value for no specific industry is `Default`. |
-| embeddedOmniScriptKey | **Field Type** string **Description** The ID of the embedded OmniScript |
-| isActive | **Field Type** boolean **Description** Indicates whether the status of the OmniProcessElement is active (`true`) or not (`false`). |
-| isOmniScriptEmbeddable | **Field Type** boolean **Description** Indicates whether the OmniScript with the OmniProcessElement can be embedded in other OmniScripts (`true`) or not (`false`). |
-| level | **Field Type** double **Description** The vertical level in which the OmniProcessElement occurs on the OmniScript. |
-| name | **Field Type** string **Description** Required. The name of the OmniProcessElement. |
-| omniProcessVersionNumber | **Field Type** double **Description** The related OmniProcess version. |
-| parentElementName | **Field Type** string **Description** The name of the parent OmniProcessElement. |
-| parentElementType | **Field Type** string **Description** The type of the parent OmniProcessElement. |
-| propertySetConfig | **Field Type** textarea **Description** The property set of the OmniProcessElement. |
-| sequenceNumber | **Field Type** double **Description** The horizontal level in which the OmniProcessElement occurs on the OmniScript. |
-| type | **Field Type** string **Description** The OmniProcessElement type. For example, `Text` and `TextArea`. |
-| uniqueIndex | **Field Type** string **Description** The developer name of the assessment question in the OmniScript. This field is relevant only for Omniscripts with designerCustomizationType as `discoveryframework`. |
-
-		
-
-		
+  This field is relevant only for Omniscripts with
+  designerCustomizationType as
+  `discoveryframework`.
 
 ## Declarative Metadata Sample Definition
 
-			
-			
-
 Here’s an
-				example
-				of
-				an
-				Omniscript component.
-
-			
+example
+of
+an
+Omniscript component.
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
@@ -989,12 +515,8 @@ Here’s an
 </OmniScript>
 ```
 
-			
-
 The following is an example `package.xml` that
-				references the previous definition.
-
-			
+references the previous definition.
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
@@ -1008,46 +530,28 @@ The following is an example `package.xml` that
 </Package>
 ```
 
-		
-
-		
-
 ## Wildcard Support in the Manifest File
 
-			
-			
-
 This metadata type supports the wildcard character `*`
-				(asterisk) in the package.xml manifest file. For information
-				about using the manifest file, see [Deploying and Retrieving Metadata with the Zip File](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/file_based_zip_file.htm).
-
-		
-
-		
+(asterisk) in the package.xml manifest file. For information
+about using the manifest file, see [Deploying and Retrieving Metadata with the Zip File](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/file_based_zip_file.htm "HTML (New Window)").
 
 ## Usage Type
 
-			
-			
-
 Before you retrieve or deploy Discovery Framework OmniScripts, we recommend that you
-				review these considerations.
+review these considerations.
 
-			
-				
 - If the DesignerCustomizationType of the OmniScript is
-						`discoveryframework`, then the questions
-					in the OmniScript must be within the <uniqueIndex> tag in
-					the metadata definition file.
-
-				
+  `discoveryframework`, then the questions
+  in the OmniScript must be within the <uniqueIndex> tag in
+  the metadata definition file.
 - When deploying the OmniScript of type Discovery Framework, enable Discovery
-					Framework Metadata Enabled setting.
-
-				
+  Framework Metadata Enabled setting.
 - OmniScripts of type Discovery Framework don't support IDX Workbench.
-
-				
 - If any question associated with the OmniScript doesn’t exist in the target org
-					or, if the active version of that question doesn’t exist in the target org, then
-					deploying the OmniScript fails.
+  or, if the active version of that question doesn’t exist in the target org, then
+  deploying the OmniScript fails.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/meta_omniscript.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

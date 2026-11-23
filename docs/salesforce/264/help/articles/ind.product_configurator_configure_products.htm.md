@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_introduction.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configure Products with Product Configurator
@@ -15,7 +15,7 @@ Create complex product configurations with ease by using Product Configurator. D
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 
 Products are all the items and services that you sell to customers. There are two types of products: simple products and bundled products. Simple products don’t have an associated product hierarchy while bundled products generally have one.
 
@@ -47,3 +47,7 @@ Validate Product Configuration
 Product validation rules enhance the performance and address potential errors before saving a configuration.
 Save and Reuse Configurations
 After you configure simple and bundled products, you can save the configurations and reuse them. You can also edit and delete saved configurations.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_configure_products.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

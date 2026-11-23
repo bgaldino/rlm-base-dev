@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_create_bundled_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Exclude Bundle Components From Product Selection at Run Time
@@ -36,3 +36,7 @@ Excluding a group automatically excludes all the components under that group.
 NOTE You can’t edit or override the cardinality of an excluded component.
 
 To include an excluded product or group, click Restore Default Cardinality. You can also click the  to include the product or group.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_exclude_bundle_components.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

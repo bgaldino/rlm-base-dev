@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_orchestrate_a_business_process.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Orchestrate Sales Transaction Business Processes
@@ -15,7 +15,7 @@ Set up a workflow to orchestrate business processes such as Quote to Order, Orde
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud
 USER PERMISSIONS NEEDED
 To orchestrate business processes:	
 
@@ -64,3 +64,14 @@ Step 4: Submit the Service Request for Orchestration
 Finally, submit the service request for orchestration by using the Submit Sales Transaction invocable action. This action triggers the orchestration of the business object.
 
 By processing these steps, DRO makes sure that the decomposition, plan composition, and plan execution occur in the correct sequence, ultimately creating a sales transaction fulfillment request to efficiently manage the electrical connection service. See Design Your Order Decomposition.
+
+Create Custom Context Definition and Map Business Objects
+Extend a standard context definition where you want to inherit all the standard components such as nodes, attributes, and mappings. Then add components to the extended context definition based on your business requirements.
+Dynamic Revenue Orchestrator Context
+The Salesforce DRO solution comes with its own predefined context definitions that are used to map sales transactions to objects like order and quote.
+Configure Procedure Plan Definition for Business Process Orchestration
+Use the procedure plan definition to determine the correct context definition and mapping, and orchestrate the business process to create a sales transaction fulfillment request.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_orchestrate_sales_transaction_business_processes.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_create_and_configure_a_csv_based_decision_table.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # CSV-Based Decision Table Limitations
@@ -25,3 +25,7 @@ CSV-based decision tables support only Datetime, Text, Boolean, and Number data 
 Previously created CSV-based decision tables remain unversioned. These tables continue to work in pricing procedures, but built-in versioning isn’t available for them.
 SEE ALSO
 Decision Table
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_csv_based_decision_table_limitations.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

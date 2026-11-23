@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_integration_ms365_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Considerations When Migrating Microsoft 365 Word Templates Across Environments
@@ -39,3 +39,7 @@ When creating a custom profile, don’t use the reserved profile names PT1 throu
 Depending on template content, migrating many templates at one time can exceed metadata size limits.
 SEE ALSO
 Export and Import of Document Templates in Salesforce Orgs
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_migrate_ms_templates.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

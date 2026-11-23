@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_order_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Split Quotes into Multiple Orders
@@ -15,7 +15,7 @@ Unlock greater flexibility in your sales process by creating multiple, independe
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To create orders from quotes:	
 
@@ -56,3 +56,7 @@ New orders appear in the list view with a Draft status.
 Update the new orders and save your changes.
 Lightning App Builder shows supported standard fields during design time.
 Supported data types for custom fields include Checkbox, Date, Text, Email, URL, Phone, Picklist, Multi-select Picklist, Foreign Key, Foreign Key + Option, and External Lookup.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_split_quote_into_multiple_orders.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

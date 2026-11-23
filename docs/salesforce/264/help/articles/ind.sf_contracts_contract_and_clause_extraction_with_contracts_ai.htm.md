@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contracts_ai_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Contract and Clause Extraction with Contracts AI
@@ -28,3 +28,7 @@ Create Contract Record
 After you review the extracted contract details and clauses, create a Salesforce contract record with the extracted contract details. Contract creation deletes the extraction record from the Contract Extraction Results, and the contract data is mapped to the contract fields in Salesforce.
 Limitations of Field Values Extraction Using Contracts AI
 This topic outlines the limitations of the Contracts Extraction feature, detailing various field types and their specific challenges. Each limitation requires specific manual adjustments after extraction to ensure data accuracy and integrity.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_contract_and_clause_extraction_with_contracts_ai.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_authoring.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Integration Limitations with Microsoft 365
@@ -45,3 +45,7 @@ This behavior is due to how the editor handles tab characters within content con
 Section name formatting not applied when locked	When a section is inserted into a document, the section name is enclosed within a locked content control to prevent manual changes. However, in the Microsoft 365 editor, you can still modify font styles and formatting inside these locked controls. This leads to inconsistencies in how section headers appear across documents.	To prevent this issue, avoid making formatting changes to section names when using the Microsoft 365 editor.
 Document view and PDF output don’t match	When editing documents by using Microsoft 365 editor, the formatting may differ from the final PDF output. This is noticeable when the “Don’t add spaces between paragraphs of the same style” paragraph setting is enabled. Microsoft 365 editor and Microsoft Word render this setting differently, and the PDF reflects the Microsoft Word formatting.	To prevent this issue, don’t enable the Don’t add spaces between paragraphs of the same style option while editing in the Microsoft 365 editor. This ensures consistent formatting between the editor and the generated PDF.
 Microsoft 365 Word editor document source compatibility	Microsoft 365 Word editor only supports documents that are created using Microsoft 365 or Microsoft Word. Documents created by using other tools, such as Google Docs, might not be fully compatible and can result in editing or rendering issues within the Microsoft 365 editor.	Create all document templates and contract documents by using Microsoft 365 Word or Microsoft Word.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_known_limitations_for_microsoft_365_integration.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

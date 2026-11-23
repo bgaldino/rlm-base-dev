@@ -7,197 +7,47 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: connect_resources_design_document_template_resources.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Document Templates (GET, PATCH, POST)
 
 Access document template actions, including template creation with the Document Template Designer.
 
-    
-
 ## Resource
-
-      
-      
 
 ```
 /connect/docgen/document-templates
 ```
 
-    
-
-    
-
 ## GET Example
-
-      
-      
 
 ```
 https://YOUR_INSTANCE.salesforce.com/services/data/v68.0/connect/docgen/document-templates?offset=${offset}&limit=${limit}&searchString=${searchString}
 ```
 
-    
-
-    
-
 ## PATCH Example
-
-      
-      
 
 ```
 https://YOUR_INSTANCE.salesforce.com/services/data/v68.0/connect/docgen/document-templates?documentTemplateId=${documentTemplateId}
 ```
 
-    
-
-    
-
 ## POST Example
-
-      
-      
 
 ```
 https://YOUR_INSTANCE.salesforce.com/services/data/v68.0/connect/docgen/document-templates?documentTemplateId=${documentTemplateId}&action=${action}
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 60.0
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 GET, PATCH, POST
 
-    
-
-    
-
 ## Request Parameters for GET
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `cloneOnly` | String | Filters the results to return only the document templates that can be cloned. | Optional | 66.0 |
@@ -207,29 +57,13 @@ GET, PATCH, POST
 | `type` | String | Filters the list of document templates by the file type. | Optional | 66.0 |
 | `usageType` | String | Filters the list of document templates by the usage type. | Optional | 66.0 |
 
-    
-
-    
-
 ## Response Body for GET
 
-      
-      
-
-[Document Template List](./connect_responses_document_template_list.htm.md)
-
-    
-
-    
+[Document Template List](./connect_responses_document_template_list.htm.md "Output representation for the document template list.")
 
 ## Request Body for PATCH
 
-      
-      
-
 **JSON Example**
-
-      
 
 ```
 {
@@ -251,232 +85,8 @@ GET, PATCH, POST
 }
 ```
 
-      
-
 **Properties**
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `content​Document​Id` | String | ID of the document associated with a document template. | Optional | 60.0 |
@@ -495,94 +105,20 @@ GET, PATCH, POST
 | `token​Mapping​MethodType` | String | Processing method for data that can originate from the same source object. Possible values are `ContextService` or `OmniDataTransform`. The default value is `ContextService`. | Required | 60.0 |
 | `usageType` | String | Usage type of the document template. | Optional | 60.0 |
 
-    
-
-    
-
 ## Request Parameters for PATCH
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `documentTemplateId` | String | ID of the document template for operations like cloning or creating a new version. | Required | 60.0 |
 | `documentTemplateUpdateInput` | Object | Specifies the details to modify an existing document template. | Optional | 64.0 |
 
-    
-
-    
-
 ## Response Body for PATCH
 
-      
-      
-
-[Document Template](./connect_responses_document_template.htm.md)
-
-    
-
-    
+[Document Template](./connect_responses_document_template.htm.md "Output representation for the document template record.")
 
 ## Request Body for POST
 
-      
-      
-
 **JSON Example**
-
-      
 
 ```
 {
@@ -599,11 +135,7 @@ GET, PATCH, POST
 }
 ```
 
-      
-
 This example shows a sample request with `ContextService` as the value of the tokenMappingMethodType property.
-
-      
 
 ```
 {
@@ -625,232 +157,8 @@ This example shows a sample request with `ContextService` as the value of the to
 }
 ```
 
-      
-
 **Properties**
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `content​DocumentId` | String | ID of the Document associated with a document template. | Optional | 60.0 |
@@ -869,92 +177,18 @@ This example shows a sample request with `ContextService` as the value of the to
 | `type` | String | Type of document template. | Required | 60.0 |
 | `usageType` | String | Usage type of the document template. | Optional | 60.0 |
 
-    
-
-    
-
 ## Request Parameters for POST
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `action` | String | Action to be performed on the document template. Possible values are `Clone` or `NewVersion`. | Optional | 60.0 |
 | `documentTemplate` | Object | Specifies the details of a new document template resource. | Optional | 64.0 |
 | `documentTemplateId` | String | ID of the document template for operations like cloning or creating a new version. | Optional | 60.0 |
 
-    
-
-    
-
 ## Response Body for POST
 
-      
-      
+[Document Template](./connect_responses_document_template.htm.md "Output representation for the document template record.")
 
-[Document Template](./connect_responses_document_template.htm.md)
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/connect_resources_document_template.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

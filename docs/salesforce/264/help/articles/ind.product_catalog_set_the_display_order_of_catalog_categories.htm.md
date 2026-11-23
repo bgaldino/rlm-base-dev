@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_sort_categories_in_a_catalog.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set the Display Order of Catalog Categories
@@ -23,3 +23,7 @@ Enter a negative number to display the category after null values but before zer
 Enter 0 to display the category after null and negative values but before positive values.
 Enter a positive number to display the category last in the sequence.
 Save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_set_the_display_order_of_catalog_categories.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

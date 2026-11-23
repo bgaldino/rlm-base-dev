@@ -7,87 +7,43 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Dynamic Revenue Orchestrator
 parent_page: dynamic_revenue_orchestrator_callouts_overview.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Configure Callout Settings
 
 Before you set up a callout provider, configure the callout settings. The settings
-  include the creation of a named credential and an external credential, the creation of an
-  integration definition, and the configuration of a fulfillment step definition.
-
-  
-   
+include the creation of a named credential and an external credential, the creation of an
+integration definition, and the configuration of a fulfillment step definition.
 
 Meet these prerequisites before you configure the callout settings.
 
-   
-
-     
-      
-       
-
-      
-
-     
-
-    
-| Available in: **Developer**, **Enterprise**, and **Unlimited** Editions |
+|  |
 | --- |
+| Available in: **Developer**, **Enterprise**, and **Unlimited** Editions |
 
-  
-
-   
-
-     
-     
-     
-      
-       
-
-      
-
-     
-
-     
-      
-       
-
-       
-
-      
-
-     
-
-    
-| User Permissions Needed |  |
-| --- | --- |
+| User Permissions Needed | |  | |
+| --- | --- | --- | --- |
 | To create authenticated callouts: | External Credentials Principal Access Permission |
 
-  
+- Configure named and external credentials to define access to an external system. Specify a
+  named credential as the callout endpoint and an external credential to configure the
+  authentication protocol.
 
-  
+  See [Create Named
+  Credentials and External Credentials](https://help.salesforce.com/s/articleView?id=xcloud.nc_named_creds_and_ext_creds.htm&type=5&language=en_US "HTML (New Window)").
+- Create integration definitions to connect Salesforce with an external system. Integration
+  definitions use APIs to perform operations in both Salesforce and the external system. You can
+  create Apex Defined, External Services Defined, or Standard integration definitions.
 
-- 
-    Configure named and external credentials to define access to an external system. Specify a
-     named credential as the callout endpoint and an external credential to configure the
-     authentication protocol.
-    See [Create Named
-      Credentials and External Credentials](https://help.salesforce.com/s/articleView?id=xcloud.nc_named_creds_and_ext_creds.htm&type=5&language=en_US).
-   
+  See [Create an
+  Integration Definition](https://help.salesforce.com/s/articleView?id=ind.consumption_framework_integration_definitions.htm&type=5&language=en_US "HTML (New Window)").
+- Define a fulfillment step with `Callout` as the step
+  type. Additionally, set the integration definition name and integration user.
 
-- 
-    Create integration definitions to connect Salesforce with an external system. Integration
-     definitions use APIs to perform operations in both Salesforce and the external system. You can
-     create Apex Defined, External Services Defined, or Standard integration definitions.
-    See [Create an
-      Integration Definition](https://help.salesforce.com/s/articleView?id=ind.consumption_framework_integration_definitions.htm&type=5&language=en_US).
-   
+  See [Callout Fulfillment
+  Step](https://help.salesforce.com/s/articleView?id=ind.dro_callout.htm&type=5&language=en_US "HTML (New Window)").
 
-- 
-    Define a fulfillment step with `Callout` as the step
-     type. Additionally, set the integration definition name and integration user.
-    See [Callout Fulfillment
-      Step](https://help.salesforce.com/s/articleView?id=ind.dro_callout.htm&type=5&language=en_US).
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/dynamic_revenue_orchestrator_callout_configuration_steps.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

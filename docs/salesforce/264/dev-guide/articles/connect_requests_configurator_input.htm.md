@@ -7,23 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_requests.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Configurator Input
 
 Input representation of the request to modify the product configuration.
 
-    
-
 ## JSON Example
 
-      
-      
-
 This example shows a sample to initiate a context based on a transaction ID.
-
-      
 
 ```
 {
@@ -41,11 +34,7 @@ This example shows a sample to initiate a context based on a transaction ID.
 }
 ```
 
-      
-
 This example shows a sample to add, update, or delete a node in an existing context.
-
-      
 
 ```
 {
@@ -111,11 +100,7 @@ This example shows a sample to add, update, or delete a node in an existing cont
 }
 ```
 
-      
-
 This example adds a node to an existing context and includes the contextFieldsList property.
-
-      
 
 ```
 {
@@ -265,206 +250,29 @@ This example adds a node to an existing context and includes the contextFieldsLi
     "contextResponseType": "Product"
   }
 }
-
 ```
-
-    
-
-    
 
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `added​Nodes` | [Configurator Added Node Input](./connect_requests_configurator_added_node_input.htm.md)[] | List of added context nodes that’s passed to the product configurator | Optional | 60.0 |
-| `configurator​Options` | [Configurator Options Input](./connect_requests_configurator_options_input.htm.md)[] | Options to pass to the configurator | Optional | 60.0 |
+| `added​Nodes` | [Configurator Added Node Input](./connect_requests_configurator_added_node_input.htm.md "Input representation of the nodes to be added to a product configuration.")[] | List of added context nodes that’s passed to the product configurator | Optional | 60.0 |
+| `configurator​Options` | [Configurator Options Input](./connect_requests_configurator_options_input.htm.md "Input representation of the request to get the product configuration options that’s passed to the configurator.")[] | Options to pass to the configurator | Optional | 60.0 |
 | `context​FieldsList` | String[] | List of fields to return in the configurator response | Optional | 68.0 |
 | `context​ResponseType` | String | Specifies the type of transaction context response. Valid values are `Delta`—Returns only the sales transaction items that are added or updated in the call. Deleted items are returned separately in a `DeletedSTIIds` collection on the response. The response is always flat regardless of response type; reconstruct hierarchy from `SalesTransactionItemParent` on child items and `MainItem`/`AssociatedItem` on relationships; `Full`—Returns all sales transaction items in a transaction; `None`—Returns empty transaction context response; or `Product`—Returns the sales transaction items related to the product that's being configured. | Required for large sales transactions with more than 1000 line items and less than 15K line items. | 65.0 |
 | `correlation​Id` | String | ID that’s specified for traceability of logs | Optional | 60.0 |
-| `deleted​Nodes` | [Configurator Deleted Node Input](./connect_requests_configurator_deleted_node_input.htm.md)[] | List of deleted context nodes that’s passed to the product configurator | Optional | 60.0 |
-| `qualification​Context` | [User Context Input](./connect_requests_configurator_user_context_input.htm.md)[] | Details such as account ID, contact ID, and context ID that are used for executing qualification rules | Optional | 60.0 |
+| `deleted​Nodes` | [Configurator Deleted Node Input](./connect_requests_configurator_deleted_node_input.htm.md "Input representation of the nodes to be deleted from a product configuration.")[] | List of deleted context nodes that’s passed to the product configurator | Optional | 60.0 |
+| `qualification​Context` | [User Context Input](./connect_requests_configurator_user_context_input.htm.md "Input representation of the request to get the context details of a user, which are used for qualification rules.")[] | Details such as account ID, contact ID, and context ID that are used for executing qualification rules | Optional | 60.0 |
 | `transaction​ContextId` | String | ID of the transaction context. The context expires after 10 minutes by default (managed by Context Service). To extend it, set `ContextTtlInMinutes` on the Context Definition record. The org-level ceiling is controlled by `ContextMaxTtlInMinutes` (default: 45 minutes). Design for short-lived sessions: rebuild context on expiry rather than extending TTL indefinitely, because the durable state lives on the persisted transaction record. | Optional | 60.0 |
 | `transaction​Id` | String | ID of the sales transaction that’s being configured such as a quote or an order | Required | 60.0 |
 | `transaction​LineId` | String | ID of the top-level line item that’s being configured | Optional | 60.0 |
-| `updated​Nodes` | [Configurator Updated Node Input](./connect_requests_configurator_updated_node_input.htm.md)[] | List of updated context nodes that’s passed to the product configurator | Optional | 60.0 |
-
-    
-
-  
+| `updated​Nodes` | [Configurator Updated Node Input](./connect_requests_configurator_updated_node_input.htm.md "Input representation of the nodes to be updated in a product configuration.")[] | List of updated context nodes that’s passed to the product configurator | Optional | 60.0 |
 
 #### See Also
 
-- [*Salesforce Help*: Context Service](https://help.salesforce.com/s/articleView?id=ind.context_service.htm&type=5&language=en_US)
+- [*Salesforce Help*: Context Service](https://help.salesforce.com/s/articleView?id=ind.context_service.htm&type=5&language=en_US "Salesforce Help: Context Service - HTML (New Window)")
+- [*Developer Documentation*: Context Service](https://developer.salesforce.com/docs/atlas.en-us.264.0.industries_reference.meta/industries_reference/context_service_overview.htm "Developer Documentation: Context Service - HTML (New Window)")
 
-- [*Developer Documentation*: Context Service](https://developer.salesforce.com/docs/atlas.en-us.264.0.industries_reference.meta/industries_reference/context_service_overview.htm)
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_configurator_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

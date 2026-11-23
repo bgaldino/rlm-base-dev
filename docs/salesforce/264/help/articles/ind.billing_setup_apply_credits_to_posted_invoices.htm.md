@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_credit_memos.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Automatic Application of Credits to Settle Invoice Balances
@@ -28,3 +28,7 @@ After running the Post Draft Invoice Batch Run action.
 Visualizing the Process
 
 This flowchart shows the step where credit application happens in the business process flow.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_setup_apply_credits_to_posted_invoices.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

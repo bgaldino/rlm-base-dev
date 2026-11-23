@@ -7,248 +7,23 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: clm_apis_responses.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Contract Risk Analysis Run
 
 Output representation of the status and results of a contract document version risk analysis run.
 
-    
-
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `completedAt` | Date | Timestamp at which the run reached a terminal state. | Big, 68.0 | 68.0 |
 | `contractDocument​VersionId` | String | ID of the contract document version against which the risk analysis was performed. | Big, 68.0 | 68.0 |
-| `contractRisk​AnalysisElements` | [Contract Risk Analysis Element[]](./connect_responses_contract_risk_analysis_element_output.htm.md) | List of completed document elements processed in this analysis run. | Big, 68.0 | 68.0 |
+| `contractRisk​AnalysisElements` | [Contract Risk Analysis Element[]](./connect_responses_contract_risk_analysis_element_output.htm.md "Output representation of an individual document element extracted and processed during risk analysis, including its content and the risk finding.") | List of completed document elements processed in this analysis run. | Big, 68.0 | 68.0 |
 | `contract​Risk​Analysis​RunId` | String | ID of the contract risk analysis run record that represents this analysis. | Big, 68.0 | 68.0 |
 | `documentContext` | String | Extracted summary of the contract document used as context for AI-driven risk analysis of individual clauses. | Big, 68.0 | 68.0 |
-| `error` | [Contract Risk Analysis Error](./connect_responses_contract_risk_analysis_error_output.htm.md) | Error code and error message when the API request is unsuccessful. | Big, 68.0 | 68.0 |
+| `error` | [Contract Risk Analysis Error](./connect_responses_contract_risk_analysis_error_output.htm.md "Output representation of the error code and error message returned when a contract risk analysis request is unsuccessful.") | Error code and error message when the API request is unsuccessful. | Big, 68.0 | 68.0 |
 | `initiatedById` | String | ID of the user who initiated the run. | Big, 68.0 | 68.0 |
 | `overallScore` | Double | Aggregate risk score for the run, computed as the average of all finding risk scores. Ranges from 0 through 100, where a higher value indicates greater risk. Populated only when the run is completed. | Big, 68.0 | 68.0 |
 | `overallSeverity` | String | Highest severity across all findings produced in this run. Valid values are `Low`, `Medium`, `High`, or `Critical`. | Big, 68.0 | 68.0 |
@@ -259,14 +34,7 @@ Output representation of the status and results of a contract document version r
 | `summary` | String | Executive summary of all findings, for a quick review of the document's risk posture without drilling into individual clauses. Populated only when the run is completed. | Big, 68.0 | 68.0 |
 | `totalElement​Count` | Integer | Total number of elements for this run. Populated after change detection completes. | Big, 68.0 | 68.0 |
 
-    
-
-    
-
 ## JSON Example
-
-      
-      
 
 ```
 {
@@ -302,3 +70,7 @@ Output representation of the status and results of a contract document version r
   ]
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/connect_responses_contract_risk_analysis_run_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

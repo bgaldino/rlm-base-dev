@@ -7,119 +7,49 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Asset Amendment (POST)
 
-Initiate and execute the amendment of a quote or an
-    order.
-
-    
+Initiate and execute the amendment of a quote or an order.
 
 ## Considerations
 
-      
-      
-
-For usage products, creating an order directly by setting `outputRecordType` to `Order` is currently not
-        supported. The direct-to-order flow can create Order Products without required related Rate
-        Card Entry records, which can cause order activation to fail.
-
-      
+For usage products, creating an order directly by setting `outputRecordType` to `Order` is currently not supported. The direct-to-order flow can create Order Products without required related Rate Card Entry records, which can cause order activation to fail.
 
 When you amend usage assets, use a two-step flow.
 
-      
-        
-- Create an amendment quote by calling `initiateAmendment` with `outputRecordType`
-          set to `Quote`.
-
-        
+- Create an amendment quote by calling `initiateAmendment` with `outputRecordType` set to `Quote`.
 - Create an order from that amendment quote.
 
-      
+## Special Access Rules
 
-    
+To use this API, you need the InitiateAmend API permission set.
 
-    
-      
-        
-          
-
-**Special Access Rules**
-
-          
-: To use this API, you need the InitiateAmend API permission set.
-
-        
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /connect/revenue-management/assets/actions/amend
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-management/assets/actions/amend
 ```
 
-          
+## Available Version
 
-        
-        
-          
+62.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 62.0
+POST
 
-        
-        
-          
+## Request Body for POST
 
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-          
-
-**JSON example**
-
-          
-: 
-            
+**JSON Example**
 
 ```
 {
@@ -136,134 +66,8 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-manageme
 }
 ```
 
-          
-
-        
-        
-          
-
 **Properties**
 
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `assetIds` | String[] | IDs of the assets that you want to add to the amendment record. | Required | 62.0 |
@@ -274,17 +78,10 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/revenue-manageme
 | `output​RecordType` | String | Type of amendment record that you want to create. For usage products, set this value to `Quote`. The usage-related records (`QuoteLineItemUseResourceGrant`, `QuoteLineItemUsageResourcePolicy`, and `QuoteLineRateCardEntry`) are copied in the quote action flow, not in the amend order flow. | Required | 62.0 |
 | `quantity​Change` | Double | Quantity to add to or reduce from the asset's existing quantity. | Required | 62.0 |
 
-          
+## Response Body for POST
 
-        
+[Amendment](./connect_responses_amend_output.htm.md "Output representation of the details of an amendment record.")
 
-          
+---
 
-        
-        
-          
-
-**Response body for POST**
-
-          
-: [Amendment](./connect_responses_amend_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_assets_amend.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

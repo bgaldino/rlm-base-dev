@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: rating
 parent_article: ind.rm_rate_management.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Rate Management Setup
@@ -31,3 +31,7 @@ Select Rating Discovery Procedure
 To select a rating discovery procedure, you must first clone the predefined rating discovery procedure available with Salesforce Rate Management. You can also build a custom rating procedure to meet the unique needs of your business.
 Record Sharing for Rate Management
 For runtime users to access the data created by rating designers, managers or catalog admins, set up record sharing for all the Rate Management entities.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rm_rate_management_setup.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

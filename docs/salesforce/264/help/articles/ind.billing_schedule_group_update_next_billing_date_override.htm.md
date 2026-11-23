@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_schedule_group_update.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Next Billing Date Override
@@ -44,3 +44,7 @@ Next Billing Date: 04/15/2025
 Next Charge Date: 04/15/2025
 
 When a target date that's on or after 04/20/2025 is specified for generating invoices, invoices are generated for these billing schedules. After the invoices are generated, the Next Billing Date Override value is removed.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_schedule_group_update_next_billing_date_override.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

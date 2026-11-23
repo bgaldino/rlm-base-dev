@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_usage_management.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Billing Schedules and Invoices for Usage-Based Products
@@ -50,3 +50,7 @@ Data Connect Plan	Base Subscription	1	$30	$30	Asset-201
 Data Connect Plan	Data Overage GB	2	$10	$20	Asset-201
 
 This model provides a clear visibility into included allowances versus overage charges. It’s ideal for Telecom providers that need transparent and flexible invoicing for subscription and consumption-based services.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_billing_schedules_for_usage_products.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

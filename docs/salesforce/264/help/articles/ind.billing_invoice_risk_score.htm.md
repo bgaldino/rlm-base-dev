@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Invoice Risk Score (Pilot)
@@ -15,9 +15,15 @@ Invoice Risk Scoring uses invoice data and predictive AI to estimate the likelih
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Performance, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
+Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
 NOTE Invoice Risk Scoring is a pilot or beta service that is subject to the Beta Services Terms at Agreements - Salesforce.com or a written Unified Pilot Agreement if executed by Customer, and applicable terms in the Product Terms Directory. Use of this pilot or beta service is at the Customer's sole discretion.
+Set Up Invoice Risk Scoring to Predict Risk Scores for Invoices (Pilot)
+A risk score for an invoice predicts the likelihood that payment for an open invoice is delayed beyond its due date. The score estimates the probability of late payment based on patterns and signals such as historical payment behavior, invoice aging, outstanding balances, customer payment trends, dispute history, and other relevant account characteristics.
 Overview of Features and Assets of Invoice Risk Scoring (Pilot)
 Review key input features and assets involved in the installation and configuration of Invoice Risk Scoring via the Scoring Framework configuration template type.
 View Invoice Risk Scores (Pilot)
 After configuring Invoice Risk Scoring, you can view the predicted risk scores and risk levels on invoice records.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_risk_score.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

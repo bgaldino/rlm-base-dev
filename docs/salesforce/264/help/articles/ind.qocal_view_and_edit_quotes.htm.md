@@ -1,26 +1,26 @@
 ---
 article_id: ind.qocal_view_and_edit_quotes.htm
-title: View and Edit Quotes in Revenue Management
+title: View and Edit Quotes in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.qocal_view_and_edit_quotes.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_quotes_and_orders_in_the_revenue_cloud.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# View and Edit Quotes in Revenue Management
+# View and Edit Quotes in Revenue Cloud
 
-Use the Transaction Line Editor or Sales Transaction Line Editor to add, configure, and price quotes in Revenue Management (formerly Revenue Cloud). These editors provide a centralized workspace to manage product selections, apply discounts, and verify pricing details before final submission.
+Use the Transaction Line Editor or Sales Transaction Line Editor to add, configure, and price quotes in Revenue Cloud. These editors provide a centralized workspace to manage product selections, apply discounts, and verify pricing details before final submission.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS
 NEEDED
 To use the Transaction Line Editor or Sales Transaction Line Editor:	
 
-Manage Revenue Management
+Manage Revenue Cloud
 
 AND
 
@@ -147,3 +147,7 @@ Group lines to see the total price for a specific field or set of items.
 For example, group by Location to view the financial total for that specific site.
 SEE ALSO
 Transaction Management Limits
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_view_and_edit_quotes.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

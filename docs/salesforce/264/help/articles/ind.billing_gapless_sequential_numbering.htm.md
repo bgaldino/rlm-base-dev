@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_sequential_numbering_for_invoices_configure.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Gapless Sequential Numbering
@@ -37,3 +37,7 @@ Global Electronics, a company that operates in different countries through multi
 To eliminate this inefficiency, the company used sequence policies to automatically assign a unique, gapless invoice number based on the legal entity from which the products were sold. For example, an invoice for products sold from the U.S. office now carries a number like USA-2025-1001, indicating the country, year, and sequence value. An invoice for sales from Germany shows a number such as DE-12-2025-2001, indicating the country, month, year, and sequence value. An invoice for sales from India uses a number such as IN/12-02-2025/00123, indicating the country, date, month, year, and sequence value. Each invoice number is tailored to reflect the legal entity code and the specific numbering rules legally mandated for that region.
 
 This automation transformed their financial tracking by eliminating manual data entry and reducing errors. Now, both the finance and sales teams have instant clarity, as the invoice number itself reflects the legal entity responsible for the sale and adheres to the regional legal regulations for invoice bookkeeping and auditing purposes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_gapless_sequential_numbering.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,95 +7,51 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_constraints.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Proxy Variables with Constraints on Types and Relationships
 
 Use proxy variables to reference the variables of related types, including parent,
-    root, and sibling types.
-
-    
-      
+root, and sibling types.
 
 The supported proxy variables include:
 
-      
-        
 - Cardinality
-
-        
 - Parent
-
-        
 - this.quantity
-
-      
-
-    
-
-    
 
 ## Cardinality
 
-      
-      
-
 Cardinality is a fundamental concept in Constraint Modeling Language (CML), controlling the
-        quantity of product instances allowed in a defined relationship. It’s crucial for ensuring
-        product structure validity and optimizing performance.
-
-      
+quantity of product instances allowed in a defined relationship. It’s crucial for ensuring
+product structure validity and optimizing performance.
 
 The `cardinality` proxy variable refers to the
-        cardinality of a relationship, that is, the quantity of instances of the same type in a
-        relationship. The first parameter is the type name. The second, optional parameter is the
-        port name. This variable differs from the this.quantity proxy variable, which refers to the
-        quantity of the current instance.
-
-      
+cardinality of a relationship, that is, the quantity of instances of the same type in a
+relationship. The first parameter is the type name. The second, optional parameter is the
+port name. This variable differs from the this.quantity proxy variable, which refers to the
+quantity of the current instance.
 
 Use this format:
-
-      
 
 ```
 cardinality(<type name>, <relation name>) or cardinality(<type name>)
 ```
 
-      
-
 Each parameter value can be a string or a string variable. If you don’t specify the
-        relation name, the engine searches all ports to find the type.
-
-      
+relation name, the engine searches all ports to find the type.
 
 The cardinality bounds are defined within the relation declaration with square brackets,
-        formatted as `[minimum..maximum]`.
-
-    
-
-    
+formatted as `[minimum..maximum]`.
 
 ## Cardinality Examples
 
-      
-      
-
 These examples illustrate how cardinality is defined and managed in the Generator Set
-        model, focusing on standard definition, conditional enforcement, and reading the
-        quantity.
-
-    
-
-    
+model, focusing on standard definition, conditional enforcement, and reading the
+quantity.
 
 ## Example 1: Using Cardinality Full Syntax
-
-      
-      
 
 ```
 type Heater ;
@@ -112,19 +68,10 @@ message(totalHeaterCount > 0, "Current configuration includes {} heaters.", tota
 }
 ```
 
-      
-
 See [Message
-          Rule](./cml_message_rule.htm.md).
-
-    
-
-    
+Rule](./cml_message_rule.htm.md "The message rule displays a message to users based on specified conditions.").
 
 ## Example 2: Using Cardinality Partial Syntax
-
-      
-      
 
 ```
 type Heater ;
@@ -150,19 +97,10 @@ message(totalHeatersFound > 0, "System found {} heaters in this configuration.",
 }
 ```
 
-    
-
-    
-
 ## Example 3: Defining Cardinality in Relations
 
-      
-      
-
 This example shows how the Generator Set uses different cardinality ranges to define fixed
-        requirements, optional components, and minimum quantities for necessary components.
-
-      
+requirements, optional components, and minimum quantities for necessary components.
 
 ```
 type GeneratorSet {
@@ -181,37 +119,20 @@ type TemperatureSensor;
 type Test ;
 ```
 
-      
-
 Key Concepts:
 
-      
-        
 - Syntax: Cardinality is specified immediately after the component type in the relation
-          declaration.
-
-        
+  declaration.
 - Best Practice: Specifying the smallest required range, such as [1..1] or [0..5], ensures
-          the constraint engine tests fewer combinations, which prevents performance
-          degradation.
-
-      
-
-    
-
-    
+  the constraint engine tests fewer combinations, which prevents performance
+  degradation.
 
 ## Example 4: Enforcing Conditional Cardinality via require()
 
-      
-      
-
 Cardinality can be dynamically enforced based on attributes of the parent product using the
-          `require()` constraint keyword. For more information,
-        see [Require
-          Rule](./cml_require_rule.htm.md).
-
-      
+`require()` constraint keyword. For more information,
+see [Require
+Rule](./cml_require_rule.htm.md "The require rule requires certain components to be included in a relationship when specified conditions are met.").
 
 ```
 type GeneratorSet {
@@ -239,40 +160,22 @@ type Accessory;
 type Test;
 ```
 
-      
-
 This pattern (`require(condition, relation[type] == N,
-          ...)`) allows the CML model to enforce a precise fixed number of child components
-        when a quantity threshold or attribute condition is met on the parent.
-
-    
-
-    
+...)`) allows the CML model to enforce a precise fixed number of child components
+when a quantity threshold or attribute condition is met on the parent.
 
 ## Cardinality vs. Count
 
-      
-      
-
 The `cardinality()` keyword is a proxy variable used to
-        refer to the size of a relationship. The `count()`
-        keyword is an aggregate function that counts matching components or attribute conditions
-        within a relation. Both can be used to read quantities for validation or aggregation
-        rules.
-
-    
-
-    
+refer to the size of a relationship. The `count()`
+keyword is an aggregate function that counts matching components or attribute conditions
+within a relation. Both can be used to read quantities for validation or aggregation
+rules.
 
 ## Example for Similarity
 
-      
-      
-
 Both `cardinality()` and `count()` can be used to determine the total quantity of items in a relationship.
-        In this scenario, they return the same value because the `count()` condition covers all possible active instances.
-
-      
+In this scenario, they return the same value because the `count()` condition covers all possible active instances.
 
 ```
 type Accessory{
@@ -289,20 +192,11 @@ constraint(totalByCount == items.count(isPresent == true));
 }
 ```
 
-    
-
-    
-
 ## Example for Difference
 
-      
-      
-
 Cardinality is a proxy variable representing the headcount or size of the relation, whereas
-        count is a function used to evaluate specific attribute conditions or filters within those
-        instances.
-
-      
+count is a function used to evaluate specific attribute conditions or filters within those
+instances.
 
 ```
 type Accessory {
@@ -334,61 +228,41 @@ heavyItemsCount
 }
 ```
 
-      
-
-For more information, see [Message Rule](./cml_message_rule.htm.md).
-
-    
-
-    
+For more information, see [Message Rule](./cml_message_rule.htm.md "The message rule displays a message to users based on specified conditions.").
 
 ## Instance Quantity
 
 Instance Quantity is the
-        quantity of a child product per instance of the parent product. It differs from the end
-        quantity, which is the total quantity of the child product across all parent instances. For
-        example, if a customer orders 3 generator sets and each set requires 2 alternators, the
-        instance quantity is 2, the quantity per bundle. The end quantity of alternators is 6.
-        
+quantity of a child product per instance of the parent product. It differs from the end
+quantity, which is the total quantity of the child product across all parent instances. For
+example, if a customer orders 3 generator sets and each set requires 2 alternators, the
+instance quantity is 2, the quantity per bundle. The end quantity of alternators is 6.
 
 The constraint engine calculates instance quantity when the constraint model CML
-        meets all of these conditions.
+meets all of these conditions.
 
-        
-        
 - Instance Quantity Access (`orgHasInstanceQtyAccess`)
-          is turned on. To turn on Instance Quantity Access, go to Revenue Settings and turn on the
-          Instance Quantity Access setting.
-
-        
+  is turned on. To turn on Instance Quantity Access, go to Revenue Settings and turn on the
+  Instance Quantity Access setting.
 - The child product's `ProductRelatedComponent` record
-          has `QuantityScalingMethod__c` set to Proportional. 
-
-        
+  has `QuantityScalingMethod__c` set to Proportional.
 - The child product's end quantity divides evenly by the parent product's quantity.
 
-      
-
 The constraint engine divides the child's end quantity by the parent's quantity to
-        derive the instance
-      quantity.
+derive the instance
+quantity.
 
 ```
 Instance Quantity = Child End Quantity / Parent End Quantity
-
 ```
 
-    
-
-## Example: Using this.quantity to Calculate Instance
-        Quantity 
+## Example: Using this.quantity to Calculate Instance Quantity
 
 In the Generator Set configuration, `instanceQty` is assigned the value of `this.quantity`. Quantities for `MainAlternator` and `TemperatureSensor` are
-        returned as instance quantities of `GeneratorSet`.
+returned as instance quantities of `GeneratorSet`.
 
 The require rule validates against `instanceQty` values, confirming the per-set configuration is correct regardless
-        of how many sets the customer orders.
-      
+of how many sets the customer orders.
 
 ```
 type LineItem;
@@ -414,118 +288,50 @@ type MainAlternator : LineItem {
 type TemperatureSensor : LineItem {
    int instanceQty = this.quantity;  // Per-generator-set quantity when QSM is Proportional
 }
-
 ```
-
-    
 
 ## Parent
 
-      
-      
-
 The `parent()` proxy variable is used to turn on
-        components at any level of the product hierarchy (child, grandchild, and so on) to access
-        the attributes (variables) defined by their ancestor types. This mechanism facilitates the
-        flow of configuration data and calculated values from the top of the bundle down to its
-        components.
-
-      
+components at any level of the product hierarchy (child, grandchild, and so on) to access
+the attributes (variables) defined by their ancestor types. This mechanism facilitates the
+flow of configuration data and calculated values from the top of the bundle down to its
+components.
 
 The `parent()` keyword functions as a proxy variable
-        used to reference attributes residing in the immediate parent or any ancestor type in the
-        configuration model.
+used to reference attributes residing in the immediate parent or any ancestor type in the
+configuration model.
 
-      
-
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Variable Name | Syntax | Purpose |
 | --- | --- | --- |
 | `parent()` | `parent(<ancestor variable name>, <level>)` | Retrieves the value of an attribute from a parent or ancestor type. |
 
-    
-
-    
-
 ## Key Characteristics
 
-      
-      
-        
 - Targeting Ancestors: The first parameter is the name of the attribute in the ancestor
-          type that you want to reference.
-
-        
+  type that you want to reference.
 - Level Parameter: The second parameter (`<level>`) is optional and specifies how many levels up the hierarchy the
-          engine searches. If omitted, it typically references the immediate parent. The level index
-          for the `parent()` function effectively starts from 0
-          (implicit) for the immediate parent.
-
-        
+  engine searches. If omitted, it typically references the immediate parent. The level index
+  for the `parent()` function effectively starts from 0
+  (implicit) for the immediate parent.
 - Level 0 (Default): When you use `parent(attributeName)`, the engine references the attribute in the immediate
-          parent.
-
-        
+  parent.
 - Level n: When you specify `parent(attributeName, 1)`,
-          the engine reaches one level beyond the immediate parent, to the grandparent.
-
-        
+  the engine reaches one level beyond the immediate parent, to the grandparent.
 - Data Flow: `parent()` makes sure that the data flows
-          unidirectionally, where the child reads attributes calculated or defined by the parent,
-          which helps to prevent complex circular dependencies.
-
-        
+  unidirectionally, where the child reads attributes calculated or defined by the parent,
+  which helps to prevent complex circular dependencies.
 - Single Inheritance: CML follows a single inheritance model, where a type can only extend
-          one other type at a time.
-
-        
+  one other type at a time.
 - Same Variable Name: In CML, using the same variable name between a parent bundle and its
-          child accessories is a standard architectural pattern for cascading values down a product
-          hierarchy. This allows a child component to automatically inherit or synchronize its
-          properties with the parent type, ensuring configuration consistency.
-
-      
-
-    
-
-    
+  child accessories is a standard architectural pattern for cascading values down a product
+  hierarchy. This allows a child component to automatically inherit or synchronize its
+  properties with the parent type, ensuring configuration consistency.
 
 ## Example: Standards and Compliance Synchronization
 
-      
-      
-
 In this example, the `standardsAndCompliance` selection
-        made at the bundle level is passed down to every accessory within that bundle.
-
-      
+made at the bundle level is passed down to every accessory within that bundle.
 
 ```
 type AccessoryBundle {
@@ -544,98 +350,21 @@ constraint(standardsAndCompliance == "Listing-UL 2200" -> testingFee == 250.00);
 }
 ```
 
-      
-
 The `parent()` proxy variable is essential for cascading
-        configuration data and constraints down the product hierarchy, so that child components
-        reference attributes defined by their ancestors.
-
-    
-
-    
+configuration data and constraints down the product hierarchy, so that child components
+reference attributes defined by their ancestors.
 
 ## Example: Parent Attribute Reference
 
-      
-      
-
 This example uses attributes found on the `GeneratorSet`
-        type (the parent) and demonstrates how related components (like TemperatureSensor) access
-        those values using the parent() proxy variable. Here’s the hierarchy context.
+type (the parent) and demonstrates how related components (like TemperatureSensor) access
+those values using the parent() proxy variable. Here’s the hierarchy context.
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Parent Type | Relation Name | Child Type | Cardinality | Key Attribute Usage |
 | --- | --- | --- | --- | --- |
 | Root `GeneratorSet` | `TemperatureSensors` | `TemperatureSensor` | `[0..5]` | Defines primary inputs (`requiredKW`) and a derived attribute (`ULComplianceEnforced`) based on the `standardsAndCompliance` selection. |
-| Child `TemperatureSensor` (Instance within `GeneratorSet` relation) | Not Applicable | Not Applicable | Not Applicable | Uses the `parent() `proxy variable to reference the `requiredKW` attribute from its ancestor (`GeneratorSet`). A constraint ensures the component's capacity (`maxOperatingKW`) meets the requirement inherited from the parent. |
+| Child `TemperatureSensor` (Instance within `GeneratorSet` relation) | Not Applicable | Not Applicable | Not Applicable | Uses the `parent()` proxy variable to reference the `requiredKW` attribute from its ancestor (`GeneratorSet`). A constraint ensures the component's capacity (`maxOperatingKW`) meets the requirement inherited from the parent. |
 | Grandchild `StatorTemperatureSensor` (Subtype of `TemperatureSensor`) | Not Applicable | Not Applicable | Not Applicable | Inherits functionality from `TemperatureSensor`. Uses parent() to retrieve the calculated `ULComplianceEnforced` boolean from the `GeneratorSet`. Enforces a conditional installation rule using the Implication Operator (->). |
-
-      
 
 ```
 // --- Parent Type (GeneratorSet) ---
@@ -672,83 +401,41 @@ constraint(enforceULCompliance -> installationMethod == "Shielded",
 // int grandParentValue = parent(requiredKW, 1); // Accesses attribute 1 level up
 ```
 
-    
-
-    
-
 ## Explanation of Parent Reference
 
-      
-      
-        
 - Direct Reference (Immediate Parent): In the `TemperatureSensor` type, `int parentRequiredKW =
-            parent(requiredKW);` accesses the `requiredKW` attribute defined in the immediately superior type, which is
-            `GeneratorSet`.
-
-        
+  parent(requiredKW);` accesses the `requiredKW` attribute defined in the immediately superior type, which is
+  `GeneratorSet`.
 - Unidirectional Data Flow: The `parent()` proxy
-          variable is critical for enabling unidirectional data flow, where calculated or defined
-          values in the parent are read by children to enforce constraints. The engine makes sure
-          that parent aggregation and calculation are complete before the `parent()` function executes in the child component.
-
-      
-
-    
-
-    
+  variable is critical for enabling unidirectional data flow, where calculated or defined
+  values in the parent are read by children to enforce constraints. The engine makes sure
+  that parent aggregation and calculation are complete before the `parent()` function executes in the child component.
 
 ## this.quantity
 
-      
-      
-
 `this.quantity` is a proxy variable used specifically to
-        access the quantity of the current instance (the specific product line item) within a
-        configuration.
-
-    
-
-    
+access the quantity of the current instance (the specific product line item) within a
+configuration.
 
 ## Key Characteristics and Usage
 
-      
-      
-        
 - Scope: It refers only to the quantity of the specific instance in which it’s used. It’s
-          used at the component level to determine the quantity of that item selected by the user or
-          set by the constraint engine.
-
-        
+  used at the component level to determine the quantity of that item selected by the user or
+  set by the constraint engine.
 - Calculation Rule: The `this.quantity` proxy variable
-          can be used only within a calculation rule.
-
-        
+  can be used only within a calculation rule.
 - Distinction from `cardinality()`: `this.quantity` differs from the `cardinality()` proxy variable, which refers to the total number of instances of
-          a specific type within a relationship and includes the quantity of other instances of the
-          same type.
-
-        
+  a specific type within a relationship and includes the quantity of other instances of the
+  same type.
 - Read-Only/Validation: When accessing quantity in CML, attributes like `this.quantity`, or external equivalents like `lineItemQuantity` or `ItemEndQuantity`, are treated as read only and should be used only in
-          calculation or evaluation rules. It isn’t recommended to use it to drive component
-          creation, which should be done via cardinality.
-
-      
-
-    
-
-    
+  calculation or evaluation rules. It isn’t recommended to use it to drive component
+  creation, which should be done via cardinality.
 
 ## Example: Using this.quantity for Calculation
 
-      
-      
-
 In the Generator Set configuration, a component like the `NaturalGasReformer` uses `this.quantity` to
-        define a local attribute representing how many units were selected, which is used for
-        internal calculations (like total capacity or total weight contribution).
-
-      
+define a local attribute representing how many units were selected, which is used for
+internal calculations (like total capacity or total weight contribution).
 
 ```
 type LineItem;
@@ -762,3 +449,7 @@ int unitCapacityKW = 100;
 int totalReformerCapacity = LineItemQuantity * unitCapacityKW;
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_using_proxy_variables_constraints.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

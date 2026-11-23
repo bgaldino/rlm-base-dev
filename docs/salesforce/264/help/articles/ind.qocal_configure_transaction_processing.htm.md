@@ -6,16 +6,16 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_quote_and_order_features_in_revenue_cloud.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up the Transaction Processing Type for Quotes and Orders
 
-Define how Revenue Management processes transactions by selecting a default Transaction Processing Type (TPT).
+Define how Revenue Cloud processes transactions by selecting a default Transaction Processing Type (TPT).
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To create transaction processing type records and to select a default transaction processing type:	
 
@@ -32,3 +32,7 @@ Create a Transaction Processing Type record and specify preferences that use the
 From Setup, in the Quick Find box, search for and select Revenue Settings.
 Turn on Transaction processing for quotes and orders.
 Add the Transaction Type field to quote and order page layouts to provide override capabilities. See Customize Page Layouts with the Enhanced Page Layout Editor and Modify Field Access Settings.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_configure_transaction_processing.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

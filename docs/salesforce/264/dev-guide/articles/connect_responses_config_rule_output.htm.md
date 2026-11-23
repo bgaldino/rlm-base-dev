@@ -7,19 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_responses.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Configuration Rule Response
 
 Output representation of the details of the configuration rule response.
 
-    
-
 ## JSON Example
-
-      
-      
 
 ```
 {
@@ -137,143 +132,24 @@ Output representation of the details of the configuration rule response.
 }
 ```
 
-    
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `errors` | [Config Rule Errors](./connect_responses_config_rule_errors_output.htm.md)[] | List of error messages from the configuration rule evaluation, if any. | Small, 67.0 | 67.0 |
-| `message​Rules` | [Message Rules](./connect_responses_message_rules_output.htm.md)[] | List of message rules that were evaluated during configuration. | Small, 67.0 | 67.0 |
-| `product​Recommendation​Rules` | [Product Recommendation Rules](./connect_responses_product_recommendation_rules_output.htm.md)[] | List of product recommendation rules that were evaluated during configuration. | Small, 67.0 | 67.0 |
+| `errors` | [Config Rule Errors](./connect_responses_config_rule_errors_output.htm.md "Output representation of the error details, if applicable, when you run config rules.")[] | List of error messages from the configuration rule evaluation, if any. | Small, 67.0 | 67.0 |
+| `message​Rules` | [Message Rules](./connect_responses_message_rules_output.htm.md "Output representation of the details of the message rules.")[] | List of message rules that were evaluated during configuration. | Small, 67.0 | 67.0 |
+| `product​Recommendation​Rules` | [Product Recommendation Rules](./connect_responses_product_recommendation_rules_output.htm.md "Output representation of the details of the product recommendation rules.")[] | List of product recommendation rules that were evaluated during configuration. | Small, 67.0 | 67.0 |
 | `success` | Boolean | Indicates whether the API request is successful (`true`) or not (`false`). | Small, 67.0 | 67.0 |
 | `transaction​ContextId` | String | ID of the transaction context for this configuration rule evaluation. | Small, 67.0 | 67.0 |
-| `visibility​Rules` | [Visibility Rules](./connect_responses_visibility_rules_output.htm.md)[] | List of visibility rules that were evaluated during configuration. | Small, 67.0 | 67.0 |
+| `visibility​Rules` | [Visibility Rules](./connect_responses_visibility_rules_output.htm.md "Output representation of the details of the visibility rules.")[] | List of visibility rules that were evaluated during configuration. | Small, 67.0 | 67.0 |
 
-    
+- **[Configuration Rule Errors](./connect_responses_config_rule_errors_output.htm.md)**  
+  Output representation of the error details, if applicable, when you run config rules.
+- **[Message Rules](./connect_responses_message_rules_output.htm.md)**  
+  Output representation of the details of the message rules.
+- **[Product Recommendation Rules](./connect_responses_product_recommendation_rules_output.htm.md)**  
+  Output representation of the details of the product recommendation rules.
+- **[Visibility Rules](./connect_responses_visibility_rules_output.htm.md)**  
+  Output representation of the details of the visibility rules.
 
-  
+---
 
-- 
-**[Configuration Rule Errors](./connect_responses_config_rule_errors_output.htm.md)**  
-
-Output representation of the error details, if applicable, when you run config     rules.
-
-- 
-**[Message Rules](./connect_responses_message_rules_output.htm.md)**  
-
-Output representation of the details of the message rules.
-
-- 
-**[Product Recommendation Rules](./connect_responses_product_recommendation_rules_output.htm.md)**  
-
-Output representation of the details of the product recommendation rules.
-
-- 
-**[Visibility Rules](./connect_responses_visibility_rules_output.htm.md)**  
-
-Output representation of the details of the visibility rules.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_config_rule_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

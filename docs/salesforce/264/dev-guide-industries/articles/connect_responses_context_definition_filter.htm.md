@@ -7,24 +7,17 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_service_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Definition Filter
 
 Output representation details of a context definition filter.
 
-      
-        
-          
+## JSON Example
 
-**JSON example**
-
-          
-: This example shows a sample response for the Context Definition Filter by ID (GET)
-            request.
+This example shows a sample response for the Context Definition Filter by ID (GET)
+request.
 
 ```
 {
@@ -37,9 +30,8 @@ Output representation details of a context definition filter.
 }
 ```
 
-          
-: This example shows a sample response for the Context Definition Filter By ID (PATCH)
-            request.
+This example shows a sample response for the Context Definition Filter By ID (PATCH)
+request.
 
 ```
 {
@@ -53,8 +45,7 @@ Output representation details of a context definition filter.
 }
 ```
 
-        
-      
+## Properties
 
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
@@ -66,3 +57,7 @@ Output representation details of a context definition filter.
 | `filtersPerNode` | String | A JSON string representation of the filter condition logic that defines the filter criteria. This field contains the structured query conditions that's evaluated to determine which records match the filter. The JSON structure typically includes field names, operators, and values that form the filter expression. | Small, 65.0 | 65.0 |
 | `inheritedFrom` | String | Source context definition if filter is inherited in the GET request. This field is not applicable for POST request. | Small, 65.0 | 65.0 |
 | `isSuccess` | Boolean | Indicates whether the API request is successful (`true`) or not (`false`). | Small, 65.0 | 65.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_responses_context_definition_filter.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

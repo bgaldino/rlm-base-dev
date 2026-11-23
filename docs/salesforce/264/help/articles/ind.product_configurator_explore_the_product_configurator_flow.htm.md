@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_introduction.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Explore the Product Configurator Flow
@@ -15,7 +15,7 @@ The product configurator flow outlines the layout for presenting customizable pr
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 Product Configurator Flow Screen Components
 Product Configurator provides a sample flow, Default Product Configurator Flow. The default flow contains a screen element with components that collect and display information in Product Configurator. For information on each screen component, including its responsibilities and properties, see the topics linked here.
 Set Up Your Product Configuration Flow
@@ -26,3 +26,7 @@ Preview the Product Configurator
 See how the product configurator looks and functions for your users.
 Set Up a Custom Dynamic Addition Screen Flow
 Build a screen flow that replaces the default add-products experience for a product classification during bundle configurations. When a product classification uses a Dynamic Addition Flow, Product Configurator can open your own flow with a custom interface and logic. Publish the product selections back to the Configurator as an addedNodes payload with Lightning Message Service (LMS) so that your quote or order lines stay in sync.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_explore_the_product_configurator_flow.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

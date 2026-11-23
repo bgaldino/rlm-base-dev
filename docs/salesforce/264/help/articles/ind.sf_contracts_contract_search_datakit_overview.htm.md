@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_set_up_contract_search_for_contract_ai.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Set Up Contract Search By Using Prebuilt Data Kit
@@ -68,3 +68,7 @@ Set Up a Contract Search Integration User for Data Kit Deployment
 Create and configure an integration user to control access to contract data in Data Cloud. This user is essential for supporting secure contract search operations.
 Set Up Data Governance for Contract Search
 Use Data Governance in Data Cloud to secure access to contract document chunks used in vector search. Configure a custom permission to make sure that only authorized access is granted to contract-related data. This setup is optional and required only if you want to replicate your object-level security configurations from the core to Data Cloud.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_contract_search_datakit_overview.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

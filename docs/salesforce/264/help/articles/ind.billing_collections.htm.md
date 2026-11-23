@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Collections for Accounts in Billing
@@ -52,7 +52,7 @@ The collections rep then schedules a few follow-up reminders based on the new pa
 Key Features
 Collections App: Create, view, and monitor collection plans and collection plan items for accounts with overdue invoices to manage the invoice recovery process.
 Dunning Emails: Leverage out-of-the-box email capabilities of Salesforce to set up and send personalized email reminders to notify customers about overdue invoice balance or upcoming payments. Use Dynamic Revenue Orchestrator templates to orchestrate your dunning strategy for collections. You can use the email templates that are available as part of the dunning orchestration solution to send automated email reminders for your collection plans. However, if you have Marketing Cloud, you can also design dunning campaigns and tailor your email communication for specific customer segments.
-Timeline: Track the timeline of unpaid invoices from collections initiation and email communications to scheduled calls. You can also view upcoming tasks such as calling the customer or sending a second email reminder by using the New Task  icon on the activity panel in your collections timeline. See Enable Timeline for Collections and Set Up a Timeline in Salesforce.
+Timeline: Track the timeline of unpaid invoices from collections initiation and email communications to scheduled calls. You can also view upcoming tasks such as calling the customer or sending a second email reminder by using the New Task  icon on the activity panel in your collections timeline. See Set Up a Timeline in Salesforce and Add Timeline to a Record Page.
 Payment Promises: Communicate with the customers, receive payment commitments, and set up payment schedules to streamline the payment process.
 Create Collection Plans and Collection Plan Items
 Create collection plans for accounts to help your collections reps track and resolve unpaid invoices. Create collection plan items for unpaid invoices that are related to the collection plan's account, enabling your collections rep to focus on the payment collection for individual invoices.
@@ -64,3 +64,7 @@ Set Up and Send Dunning Emails
 Configure automated dunning campaign emails to improve overdue invoice collections. Your collections reps can schedule timely overdue payment email reminders on a recurring basis, helping improve payment recovery rate and reduce collections efforts.
 Collections Specialist Console
 Use the Collections Specialist Console to manage your day to day collections from a single screen. Track receivables, invoice aging, and payment promises, and take necessary action directly from the console.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_collections.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

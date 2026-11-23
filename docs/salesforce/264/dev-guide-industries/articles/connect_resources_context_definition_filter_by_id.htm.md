@@ -7,91 +7,44 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_service_context_definition_management.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Definition Filter By ID (DELETE, GET, PATCH)
 
 Get, update, or delete a context definition filter for a specified context definition
-    filter ID.
+filter ID.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /connect/context-definitions/${contextDefinitionId}/context-filters/${contextDefinitionFilterId}
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
-https://yourInstance.salesforce.com/services/data/v67.0/connect/context-definitions/SimpleDef/context-filters/1Tlxx0000004DUuCAM
+https://yourInstance.salesforce.com/services/data/v68.0/connect/context-definitions/SimpleDef/context-filters/1Tlxx0000004DUuCAM
 ```
 
-          
+## Available Version
 
-        
-        
-          
+65.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 65.0
+DELETE, GET, PATCH
 
-        
-        
-          
+## Response Body for GET
 
-**HTTP methods**
+[Context Definition Filter](./connect_responses_context_definition_filter.htm.md "Output representation details of a context definition filter.")
 
-          
-: DELETE, GET, PATCH
+## Request Body for PATCH
 
-        
-        
-          
+### JSON Example
 
-**Response body for GET**
-
-          
-: [Context Definition Filter](./connect_responses_context_definition_filter.htm.md)
-
-        
-        
-          
-
-**Request body for PATCH**
-
-          
-: 
-            
-        
-          
-: 
 This example shows a sample request to
-            create, get, or update a context definition filter.
-            
+create, get, or update a context definition filter.
 
 ```
 {
@@ -103,11 +56,7 @@ This example shows a sample request to
     }
 ```
 
-        
-
-**Properties**
-
-: 
+### Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
@@ -118,13 +67,10 @@ This example shows a sample request to
 | `filtersPerNode` | String | A JSON string representation of the filter condition logic that defines the filter criteria. This field contains the structured query conditions that's evaluated to determine which records match the filter. The JSON structure typically includes field names, operators, and values that form the filter expression. | Required | 65.0 |
 | `inheritedFrom` | String | Source context definition if filter is inherited in the GET request. This field is not applicable for POST request. | Optional | 65.0 |
 
-          
+## Response Body for PATCH
 
-        
-        
-          
+[Context Definition Filter](./connect_responses_context_definition_filter.htm.md "Output representation details of a context definition filter.")
 
-**Response body for PATCH**
+---
 
-          
-: [Context Definition Filter](./connect_responses_context_definition_filter.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_context_definition_filter_by_id.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

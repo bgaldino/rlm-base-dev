@@ -7,7 +7,7 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # ProductOutputRepresentation Class
@@ -16,203 +16,90 @@ Get the details of a product definition.
 
 ## Namespace
 
-[runtime_industries_cpq](./apex_namespace_runtime_industries_cpq.htm.md)
+[runtime\_industries\_cpq](./apex_namespace_runtime_industries_cpq.htm.md "The runtime_industries_cpq namespace provides classes and methods to search products or to manage products, catalogs, and categories.")
 
-- 
-**[ProductOutputRepresentation Properties](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_properties)**  
-
-Learn more about the properties available with the ProductOutputRepresentation     class.
-
-  
+- **[ProductOutputRepresentation Properties](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_properties)**  
+  Learn more about the properties available with the ProductOutputRepresentation class.
 
 ## ProductOutputRepresentation Properties
 
-  
-  
-  
 Learn more about the properties available with the ProductOutputRepresentation
-    class.
-
-    
-      
+class.
 
 The `ProductOutputRepresentation` class includes these
-        properties.
-
-    
-
-    
-  
-
-- 
-**[additionalFields](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_additionalFields)**  
-
-Get the key-value pair of additional standard or custom fields with their     values.
-
-- 
-**[attributeCategories](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_attributeCategories)**  
-
-Get the list of categorized attributes related to the product.
-
-- 
-**[availabilityDate](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_availabilityDate)**  
-
-Get the date when the part is used in the product or is made available for     sale.
-
-- 
-**[catalogs](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_catalogs)**  
-
-Get the list of associated catalogs. Returns the name and id values only.
-
-- 
-**[childVariationIds](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_childVariationIds)**  
-
-Get the list of IDs of the child variations of the product.
-
-- 
-**[configureDuringSale](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_configureDuringSale)**  
-
-Determines whether to allow or prevent configuration when a bundle is sold.
-
-- 
-**[description](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_description)**  
-
-Get the description of the product. If data translation is set up and specified in the     org, the translated description is available.
-
-- 
-**[discontinuedDate](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_discontinuedDate)**  
-
-Get the date from when the part can’t be used in the product or sold.
-
-- 
-**[displayUrl](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_displayUrl)**  
-
-Get the display image URL of the product.
-
-- 
-**[endOfLifeDate](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_endOfLifeDate)**  
-
-Get the date after which a product isn’t supported, ordered, or maintained.
-
-- 
-**[id](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_id)**  
-
-Get the ID of the product.
-
-- 
-**[isActive](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_isActive)**  
-
-Indicates whether the product is active (true) or not (false).
-
-- 
-**[isAssetizable](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_isAssetizable)**  
-
-Indicates whether the product instance remains a customer asset after it's purchased     (true) or not (false).
-
-- 
-**[isComponentRequired](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_isComponentRequired)**  
-
-Indicates whether the product component is required (true) or not (false).
-
-- 
-**[isDefaultComponent](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_isDefaultComponent)**  
-
-Indicates whether the product component is the default component (true) or not     (false).
-
-- 
-**[isQuantityEditable](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_isQuantityEditable)**  
-
-Indicates whether the product quantity is editable (true) or not (false).
-
-- 
-**[isSoldOnlyWithOtherProds](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_isSoldOnlyWithOtherProds)**  
-
-Indicates whether the product can't be sold separately (true) or not (false).
-
-- 
-**[name](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_name)**  
-
-Get the name of the product. If data translation is set up and specified in the org, the     translated name is available.
-
-- 
-**[nodeType](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_nodeType)**  
-
-Get the type of the node, such as a product or bundled product.
-
-- 
-**[productClass](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_productClass)**  
-
-Get the class of the product.
-
-- 
-**[productClassification](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productClassification)**  
-
-Get the details of the product classification that the product is based on.
-
-- 
-**[productCode](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_productCode)**  
-
-Get the universal product code that's used to track the part that’s used in the     product.
-
-- 
-**[productComponentGroups](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productComponentGroups)**  
-
-Get the logical grouping of the component products in a bundle and group cardinality for     ordering the product components.
-
-- 
-**[productInformation](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_productInformation)**  
-
-Get the details of a product.
-
-- 
-**[productPricingInformation](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productPricingInformation)**  
-
-Get the pricing details of a product.
-
-- 
-**[productQuantity](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_productQuantity)**  
-
-Get the quantity of a product.
-
-- 
-**[productRelatedComponent](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productRelatedComponent)**  
-
-Get the details of the related components of a product.
-
-- 
-**[productSellingModelOptions](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productSellingModelOptions)**  
-
-Get the details of the product selling model options.
-
-- 
-**[productSpecificationType](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productSpecificationType)**  
-
-Get the details of the product specification type.
-
-- 
-**[productType](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_productType)**  
-
-Get the product type.
-
-- 
-**[qualificationContext](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_qualificationContext)**  
-
-Get the context details of a user, which are used for qualification rules.
-
-- 
-**[status](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_status)**  
-
-Get or set the status of the product, such as Active or Inactive.
-
-- 
-**[variationAttributeSet](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_variationAttributeSet)**  
-
-Get the variation attribute set of the product.
+properties.
+
+- **[additionalFields](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_additionalFields)**  
+  Get the key-value pair of additional standard or custom fields with their values.
+- **[attributeCategories](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_attributeCategories)**  
+  Get the list of categorized attributes related to the product.
+- **[availabilityDate](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_availabilityDate)**  
+  Get the date when the part is used in the product or is made available for sale.
+- **[catalogs](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_catalogs)**  
+  Get the list of associated catalogs. Returns the name and id values only.
+- **[childVariationIds](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_childVariationIds)**  
+  Get the list of IDs of the child variations of the product.
+- **[configureDuringSale](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_configureDuringSale)**  
+  Determines whether to allow or prevent configuration when a bundle is sold.
+- **[description](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_description)**  
+  Get the description of the product. If data translation is set up and specified in the org, the translated description is available.
+- **[discontinuedDate](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_discontinuedDate)**  
+  Get the date from when the part can’t be used in the product or sold.
+- **[displayUrl](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_displayUrl)**  
+  Get the display image URL of the product.
+- **[endOfLifeDate](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_endOfLifeDate)**  
+  Get the date after which a product isn’t supported, ordered, or maintained.
+- **[id](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_id)**  
+  Get the ID of the product.
+- **[isActive](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_isActive)**  
+  Indicates whether the product is active (true) or not (false).
+- **[isAssetizable](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_isAssetizable)**  
+  Indicates whether the product instance remains a customer asset after it's purchased (true) or not (false).
+- **[isComponentRequired](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_isComponentRequired)**  
+  Indicates whether the product component is required (true) or not (false).
+- **[isDefaultComponent](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_isDefaultComponent)**  
+  Indicates whether the product component is the default component (true) or not (false).
+- **[isQuantityEditable](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_isQuantityEditable)**  
+  Indicates whether the product quantity is editable (true) or not (false).
+- **[isSoldOnlyWithOtherProds](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_isSoldOnlyWithOtherProds)**  
+  Indicates whether the product can't be sold separately (true) or not (false).
+- **[name](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_name)**  
+  Get the name of the product. If data translation is set up and specified in the org, the translated name is available.
+- **[nodeType](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_nodeType)**  
+  Get the type of the node, such as a product or bundled product.
+- **[productClass](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_productClass)**  
+  Get the class of the product.
+- **[productClassification](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productClassification)**  
+  Get the details of the product classification that the product is based on.
+- **[productCode](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_productCode)**  
+  Get the universal product code that's used to track the part that’s used in the product.
+- **[productComponentGroups](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productComponentGroups)**  
+  Get the logical grouping of the component products in a bundle and group cardinality for ordering the product components.
+- **[productInformation](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_productInformation)**  
+  Get the details of a product.
+- **[productPricingInformation](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productPricingInformation)**  
+  Get the pricing details of a product.
+- **[productQuantity](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_productQuantity)**  
+  Get the quantity of a product.
+- **[productRelatedComponent](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productRelatedComponent)**  
+  Get the details of the related components of a product.
+- **[productSellingModelOptions](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productSellingModelOptions)**  
+  Get the details of the product selling model options.
+- **[productSpecificationType](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_ricpq_ProductOR_productSpecificationType)**  
+  Get the details of the product specification type.
+- **[productType](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_productType)**  
+  Get the product type.
+- **[qualificationContext](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_qualificationContext)**  
+  Get the context details of a user, which are used for qualification rules.
+- **[status](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_status)**  
+  Get or set the status of the product, such as Active or Inactive.
+- **[variationAttributeSet](./apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductOutputRepresentation_variationAttributeSet)**  
+  Get the variation attribute set of the product.
 
 ### additionalFields
 
 Get the key-value pair of additional standard or custom fields with their
-    values.
+values.
 
 #### Signature
 
@@ -220,7 +107,7 @@ Get the key-value pair of additional standard or custom fields with their
 
 #### Property Value
 
-Type: List<runtime_industries_cpq.AdditionalFieldsWrapper>
+Type: List<runtime\_industries\_cpq.AdditionalFieldsWrapper>
 
 ### attributeCategories
 
@@ -232,12 +119,12 @@ Get the list of categorized attributes related to the product.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.AttributeCategoryOutputRepresentation](./apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation)>
+Type: List<[runtime\_industries\_cpq.AttributeCategoryOutputRepresentation](./apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_AttributeCategoryOutputRepresentation "Stores details of an attribute such as code, description, usage type, and so on.")>
 
 ### availabilityDate
 
 Get the date when the part is used in the product or is made available for
-    sale.
+sale.
 
 #### Signature
 
@@ -257,7 +144,7 @@ Get the list of associated catalogs. Returns the name and id values only.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.CatalogOutputRepresentation](./apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_CatalogOutputRepresentation)>
+Type: List<[runtime\_industries\_cpq.CatalogOutputRepresentation](./apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_CatalogOutputRepresentation "Contains properties to store details of a catalog definition.")>
 
 ### childVariationIds
 
@@ -286,7 +173,7 @@ Type: String
 ### description
 
 Get the description of the product. If data translation is set up and specified in the
-    org, the translated description is available.
+org, the translated description is available.
 
 #### Signature
 
@@ -359,7 +246,7 @@ Type: Boolean
 ### isAssetizable
 
 Indicates whether the product instance remains a customer asset after it's purchased
-    (true) or not (false).
+(true) or not (false).
 
 #### Signature
 
@@ -384,7 +271,7 @@ Type: Boolean
 ### isDefaultComponent
 
 Indicates whether the product component is the default component (true) or not
-    (false).
+(false).
 
 #### Signature
 
@@ -421,7 +308,7 @@ Type: Boolean
 ### name
 
 Get the name of the product. If data translation is set up and specified in the org, the
-    translated name is available.
+translated name is available.
 
 #### Signature
 
@@ -465,12 +352,12 @@ Get the details of the product classification that the product is based on.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.ProductClassificationOutputRepresentation](./apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation)
+Type: [runtime\_industries\_cpq.ProductClassificationOutputRepresentation](./apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductClassificationOutputRepresentation "Get details of the product classification in a product configuration.")
 
 ### productCode
 
 Get the universal product code that's used to track the part that’s used in the
-    product.
+product.
 
 #### Signature
 
@@ -483,7 +370,7 @@ Type: String
 ### productComponentGroups
 
 Get the logical grouping of the component products in a bundle and group cardinality for
-    ordering the product components.
+ordering the product components.
 
 #### Signature
 
@@ -491,7 +378,7 @@ Get the logical grouping of the component products in a bundle and group cardina
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.ProductComponentGroupOutputRepresentation](./apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation)>
+Type: List<[runtime\_industries\_cpq.ProductComponentGroupOutputRepresentation](./apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductComponentGroupOutputRepresentation "Get details of the product component group in a product classification.")>
 
 ### productInformation
 
@@ -527,7 +414,7 @@ Get the quantity of a product.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.ProductQuantityOutputRepresentation](./apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation)
+Type: [runtime\_industries\_cpq.ProductQuantityOutputRepresentation](./apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductQuantityOutputRepresentation "Represents the quantity constraints and current quantity for a product in the product discovery context.")
 
 ### productRelatedComponent
 
@@ -551,7 +438,7 @@ Get the details of the product selling model options.
 
 #### Property Value
 
-Type: List<[runtime_industries_cpq.ProductSellingModelOptionOutputRepresentation](./apex_class_ricpq_ProductSellingModelOptionOR.htm.md#apex_class_ricpq_ProductSellingModelOptionOR)>
+Type: List<[runtime\_industries\_cpq.ProductSellingModelOptionOutputRepresentation](./apex_class_ricpq_ProductSellingModelOptionOR.htm.md#apex_class_ricpq_ProductSellingModelOptionOR "Represents a selling model option available for a product, which defines how the product can be sold (such as subscription, one-time, or usage-based).")>
 
 ### productSpecificationType
 
@@ -563,7 +450,7 @@ Get the details of the product specification type.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.ProductSpecificationTypeOutputRepresentation](./apex_class_ricpq_ProductSpecificationTypeOR.htm.md#apex_class_ricpq_ProductSpecificationTypeOR)
+Type: [runtime\_industries\_cpq.ProductSpecificationTypeOutputRepresentation](./apex_class_ricpq_ProductSpecificationTypeOR.htm.md#apex_class_ricpq_ProductSpecificationTypeOR "Represents a product specification type that defines the structure and attributes available for configuring a product.")
 
 ### productType
 
@@ -587,7 +474,7 @@ Get the context details of a user, which are used for qualification rules.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.QualificationContextOutputRepresentation](./apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation)
+Type: [runtime\_industries\_cpq.QualificationContextOutputRepresentation](./apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_QualificationContextOutputRepresentation "Represents the context information used for product qualification, including account, opportunity, and other relevant context data for determining product eligibility.")
 
 ### status
 
@@ -611,4 +498,8 @@ Get the variation attribute set of the product.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.ProductVariantAttributeSetOutputRepresentation](./apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation)
+Type: [runtime\_industries\_cpq.ProductVariantAttributeSetOutputRepresentation](./apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_ProductVariantAttributeSetOutputRepresentation "Stores the set of attributes that define the variations of a product.")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_runtime_industries_cpq_ProductOutputRepresentation.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

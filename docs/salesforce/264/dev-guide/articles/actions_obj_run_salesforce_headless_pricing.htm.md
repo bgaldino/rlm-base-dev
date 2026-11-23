@@ -7,372 +7,70 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Run Salesforce Headless Pricing Action
 
-Invoke the Pricing Connect API by providing the pricing data and
-			details of a context, pricing procedure, and price waterfall.
-
-		
-			
+Invoke the Pricing Connect API by providing the pricing data and details of a context, pricing procedure, and price waterfall.
 
 This action is available in API version 60.0 and later.
 
-		
-
-		
-
 ## Special Access Rules
 
-			
-			
-
-The Run Salesforce Headless Pricing action is available in Enterprise, Unlimited, and
-				Developer Editions where Salesforce Pricing is enabled.
-
-		
-
-		
+The Run Salesforce Headless Pricing action is available in Enterprise, Unlimited, and Developer Editions where Salesforce Pricing is enabled.
 
 ## Supported REST HTTP Methods
 
-			
-			
-				
-					
+**URI:**
+`/services/data/vXX.X/actions/standard/runSalesforceHeadlessPricing`
 
-**URI**
+Where
+`XX.X` is the latest API version.
 
-					
-: `/services/data/v68.0/actions/standard/runSalesforceHeadlessPricing`
+**Formats:**
+JSON, XML
 
-				
-				
-					
+**HTTP Methods:** POST
 
-**Formats**
+**Authentication:**
+`Authorization: Bearer TOKEN`
 
-					
-: JSON, XML
-
-				
-				
-					
-
-**HTTP Methods**
-
-					
-: POST
-
-				
-				
-					
-
-**Authentication**
-
-					
-: `Authorization: Bearer
-							token`
-
-				
-			
-
-		
-
-		
+Where `TOKEN` is a variable.
 
 ## Inputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Input | Details |
-| --- | --- |
-| contextDefinitionId | **Type** string **Description** Required. ID of the context definition record that’s used to build the pricing data. |
-| contextMappingId | **Type** string **Description** Required. ID of the context-mapping record that identifies which Salesforce object and mappings to use to build the pricing data. |
-| discoveryProcedure | **Type** string **Description** Name of the discovery procedure that’s used to execute the discovery process. |
-| displayContext | **Type** boolean **Description** Indicates whether to display the context structure for pricing (`true`) or not (`false`). |
-| effectiveDate | **Type** string **Description** Date when the pricing rules, as specified in the pricing procedure, are applied. The effectiveDate parameter determines which pricing procedure to execute when multiple active versions of pricing procedures are available with different date ranges. |
-| isHighVolumeLineItems | **Type** boolean **Description** Indicates whether the pricing API returns pricing details for more than 100 line items (`true`) or not (`false`). |
-| isSkipWaterfall | **Type** boolean **Description** Indicates whether to generate the price waterfall data (`true`) or not (`false`). |
-| persistContext | **Type** boolean **Description** Indicates whether to store the context (`true`) or not (`false`). If set to `true`, the user must have edit access to all sObject fields used in the context mapping. |
-| pricingData | **Type** string **Description** Required. JSON data that’s used to build the pricing data. The JSON must be escaped. If you're using this data within a Flow, then the JSON data must not be escaped. Also, make sure that the `businessObjectType` value within the pricingData property node is set to the sObject used in the context mappings. |
-| pricingProcedureId | **Type** string **Description** Required. ID or API name of the pricing procedure used for calculating the prices. A pricing procedure is represented as an Expression Set Definition in the system. If you’re an Experience Cloud user, specify the name of the pricing procedure. |
-| skipDiscovery | **Type** boolean **Description** Indicates whether to skip executing the discovery procedure (`true`) or not (`false`). |
-| taggedData | **Type** boolean **Description** Indicates whether the associated context node contains a key (`true`) or not (`false`). |
-| useSessionScopedContext | **Type** boolean **Description** Indicates whether to store the context in a session (`true`) or a request (`false`). |
-
-		
-
-		
+| Input | Type | Description |
+| --- | --- | --- |
+| contextDefinitionId | string | Required. ID of the context definition record that’s used to build the pricing data. |
+| contextMappingId | string | Required. ID of the context-mapping record that identifies which Salesforce object and mappings to use to build the pricing data. |
+| discoveryProcedure | string | Name of the discovery procedure that’s used to execute the discovery process. |
+| displayContext | boolean | Indicates whether to display the context structure for pricing (`true`) or not (`false`). |
+| effectiveDate | string | Date when the pricing rules, as specified in the pricing procedure, are applied. The effectiveDate parameter determines which pricing procedure to execute when multiple active versions of pricing procedures are available with different date ranges. |
+| isHighVolumeLineItems | boolean | Indicates whether the pricing API returns pricing details for more than 100 line items (`true`) or not (`false`). |
+| isSkipWaterfall | boolean | Indicates whether to generate the price waterfall data (`true`) or not (`false`). |
+| persistContext | boolean | Indicates whether to store the context (`true`) or not (`false`). If set to `true`, the user must have edit access to all sObject fields used in the context mapping. |
+| pricingData | string | Required. JSON data that’s used to build the pricing data. The JSON must be escaped. If you're using this data within a Flow, then the JSON data must not be escaped. Also, make sure that the `businessObjectType` value within the pricingData property node is set to the sObject used in the context mappings. |
+| pricingProcedureId | string | Required. ID or API name of the pricing procedure used for calculating the prices. A pricing procedure is represented as an Expression Set Definition in the system. If you’re an Experience Cloud user, specify the name of the pricing procedure. |
+| skipDiscovery | boolean | Indicates whether to skip executing the discovery procedure (`true`) or not (`false`). |
+| taggedData | boolean | Indicates whether the associated context node contains a key (`true`) or not (`false`). |
+| useSessionScopedContext | boolean | Indicates whether to store the context in a session (`true`) or a request (`false`). |
 
 ## Outputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Output | Details |
-| --- | --- |
-| contextDetails | **Type** string **Description** Context structure for pricing that’s generated when the displayContext parameter is set to `true`. |
-| executionId | **Type** string **Description** ID of the executed pricing data. |
-| pricingProcessErrors | **Type** string **Description** Errors that are generated due to context tags in a pricing process. |
-| pricingProcessStatus | **Type** string **Description** Status of the pricing process, which is executed as an API call. |
-| pricingResult | **Type** string **Description** Outcome of the executed pricing process that’s based on the output tags defined in the associated context definition. |
-
-		
-
-		
+| Output | Type | Description |
+| --- | --- | --- |
+| contextDetails | string | Context structure for pricing that’s generated when the displayContext parameter is set to `true`. |
+| executionId | string | ID of the executed pricing data. |
+| pricingProcessErrors | string | Errors that are generated due to context tags in a pricing process. |
+| pricingProcessStatus | string | Status of the pricing process, which is executed as an API call. |
+| pricingResult | string | Outcome of the executed pricing process that’s based on the output tags defined in the associated context definition. |
 
 ## Example
 
-			
-			
-				
-					
-
 **POST**
 
-					
-: 
-						
-
 This sample request is for the Run Salesforce Headless Pricing action.
-
-						
 
 ```
 {
@@ -396,11 +94,7 @@ This sample request is for the Run Salesforce Headless Pricing action.
 }
 ```
 
-						
-
 This sample response is for the Run Salesforce Headless Pricing action.
-
-						
 
 ```
 {
@@ -538,3 +232,7 @@ This sample response is for the Run Salesforce Headless Pricing action.
   "version": 1
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_run_salesforce_headless_pricing.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

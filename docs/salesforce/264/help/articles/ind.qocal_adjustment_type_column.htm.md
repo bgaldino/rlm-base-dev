@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_customize_transaction_line_editor.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Adjustment Type Column
@@ -31,3 +31,7 @@ Unit Cost
 These adjustment types are available on Quote Line Items, Quote Line Groups, Order Line Items, and Order Item Groups objects.
 
 NOTE You can add custom currency or percent fields to the Adjustment Type column, but verify that the fields are editable. Don't add read-only, calculated, or formula fields.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_adjustment_type_column.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

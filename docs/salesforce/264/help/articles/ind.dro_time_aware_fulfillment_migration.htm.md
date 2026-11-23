@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_time_aware_fulfillment.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Migrate Fulfillment Assets from Time-Agnostic to Time-Aware
@@ -20,3 +20,7 @@ For each FA record, create an FASP record with the configuration for every state
 For each FASP record, create the corresponding FASP attribute records that capture the attribute key-value pairs in effect during that period.
 SEE ALSO
 Turn On Time-Awareness
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_time_aware_fulfillment_migration.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

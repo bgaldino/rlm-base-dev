@@ -7,23 +7,14 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: expression_set_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Business Rules Input
 
 Input representation of an expression set.
 
-        
-          
-
-**JSON example 1**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -43,18 +34,6 @@ Input representation of an expression set.
 }
 ```
 
-          
-
-        
-        
-          
-
-**JSON example 2**
-
-          
-: 
-            
-
 ```
 {
   "inputs": [
@@ -70,85 +49,22 @@ Input representation of an expression set.
     "useDatesOnly": "true"
   }
 }
-
 ```
 
-            
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=industries_reference)
 
 #### Note
 
 You can use more than one `actionContextCode`
-              for multiple sets of inputs, passed in a single API call. 
+for multiple sets of inputs, passed in a single API call.
 
-          
+## Properties
 
-        
-        
-          
-
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-#### 
-
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `inputs` | Map<String, Object>[] | List of inputs passed to an expression set. An input may contain multiple variables. Note If the expression set uses a field alias as a variable, append Id to the object alias to which the field alias belongs, and pass the ID of the source object linked to the object alias. If the expression set uses a context definition, append Id to the context definition developer name and pass the context ID as the value. | Required | 55.0 |
-| `options` | [Expression Set Options Input](./connect_requests_options.htm.md) | The options for executing an expression set. | Optional | 55.0 |
+| `inputs` | Map<String, Object>[] | List of inputs passed to an expression set. An input may contain multiple variables. Note:  - If the expression set uses a field alias as a variable, append Id to   the object alias to which the field alias belongs, and pass the ID of   the source object linked to the object alias. - If the expression set uses a context definition, append Id to the   context definition developer name and pass the context ID as the   value. | Required | 55.0 |
+| `options` | [Expression Set Options Input](./connect_requests_options.htm.md "Input representation of the options for executing an expression set.") | The options for executing an expression set. | Optional | 55.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_requests_business_rules_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

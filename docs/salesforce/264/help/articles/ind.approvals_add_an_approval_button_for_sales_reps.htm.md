@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: approvals
 parent_article: ind.approvals_design_advanced_approvals.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Example: Add an Approval Button on a Record Page
@@ -15,7 +15,7 @@ Add a button that users can click to submit a record for approval. Let’s see a
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 NOTE In an autolaunched flow triggered by a quick action, $User resolves to the Automated Process User, not to the submitting user. If your flow needs details about the submitting user, use the Visualforce page and Apex controller approach to pass that information into the flow as an input variable. You can’t hard code the User, Group, or Queue ID in a packaged orchestration. See Revenue Cloud Advanced Approvals: Cannot deploy or package Flow Orchestration with User, Group, or Queue assignee type.
 
 To add an approval button, follow the instructions in each of these sections.
@@ -109,3 +109,7 @@ Select Quote Layout.
 In the palette, click Mobile & Lightning Actions.
 Drag Submit for Approval to the Salesforce Mobile and Lightning Experience Actions section in the layout.
 Save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.approvals_add_an_approval_button_for_sales_reps.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

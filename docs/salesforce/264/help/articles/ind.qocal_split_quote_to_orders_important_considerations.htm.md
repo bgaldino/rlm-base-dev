@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_order_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Considerations for Creating Multiple Orders from a Quote
@@ -15,7 +15,7 @@ Familiarize yourself with these limitations and functional behaviors that use th
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 Order Creation Limits and Requirements
 
 Review these technical constraints and data handling rules before splitting quotes.
@@ -30,7 +30,9 @@ You can’t split bundled product components or line items that have pricing dep
 Splitting a quote with existing header level adjustments carries over the same pricing adjustments to the resulting orders created, but they aren’t re-applied to the orders. It’s best practice to not reprice orders when they’re created from a quote, so all pricing remains the same as the pricing from the original quote. Any further pricing operation causes those adjustments to be re-applied, which can result in over-discounted pricing.
 You can’t split ramp groups.
 Nested groups in quotes split into multiple orders.
-A single quote supports a maximum split of 200 orders.
+A single quote supports a maximum split of 200 orders through the API.
+When you use the Create Orders from Quote action in a flow, such as the standard Create Orders From Quote screen flow, a quote supports a maximum split of 100 orders.
+NOTE This limit can vary based on your specific implementation and customizations.
 API Processing Behavior
 
 The Create Orders From Quote API handles order headers and line items that use different processing methods.
@@ -38,3 +40,7 @@ The Create Orders From Quote API handles order headers and line items that use d
 ORDER TYPE	HEADER CREATION	LINE ITEM CREATION
 Multiple Orders	Synchronous	Asynchronous
 Single Order	Synchronous	Synchronous
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_split_quote_to_orders_important_considerations.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

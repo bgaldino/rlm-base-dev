@@ -7,25 +7,14 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Discovery Framework
 parent_page: dfdt_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Assessment Responses Input
 
 Input for assessment responses.
 
-    
-      
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -102,84 +91,14 @@ Input for assessment responses.
 }
 ```
 
-          
+## Properties
 
-        
-        
-          
-
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `assessment​Values` | [Assessment Values Input>](./connect_requests_assessment_responses_assessment_values_input.htm.md)[] | Values of Assessment fields. | Optional | 60.0 |
+| `assessment​Values` | [Assessment Values Input>](./connect_requests_assessment_responses_assessment_values_input.htm.md "Input representation of the assessment value of Assessment Response request.")[] | Values of Assessment fields. | Optional | 60.0 |
 | `contextId` | String | Context record for the OmniScript. | Optional | 60.0 |
-| `inputs` | [Question Responses Input](./connect_requests_question_responses_input.htm.md)[] | Responses for Assessment Questions. | Optional | 60.0 |
+| `inputs` | [Question Responses Input](./connect_requests_question_responses_input.htm.md "Input for assessment question responses.")[] | Responses for Assessment Questions. | Optional | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_requests_assessment_responses_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

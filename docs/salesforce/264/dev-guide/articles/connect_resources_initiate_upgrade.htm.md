@@ -7,57 +7,38 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Initiate Upgrade (POST)
 
-Move a lower-tier product to a higher-tier product. The change is
-      tracked as an upgrade request with linked asset actions and quote or order line linkage for
-      reporting and auditing. This API creates an amendment quote and order with order actions and
-      quote action subtypes.
+Move a lower-tier product to a higher-tier product. The change is tracked as an upgrade request with linked asset actions and quote or order line linkage for reporting and auditing. This API creates an amendment quote and order with order actions and quote action subtypes.
 
-      
+The original asset receives an asset action with an `Upgrade` (or equivalent) business category. This step indicates that the upgrade-from product and the new asset is created with an asset action (upgraded to), with relationships between the two. This step also enables sales reps to process upgrades and makes sure that upgrades are distinguishable in reporting and analytics from cancellations plus new sales.
 
-The original asset receives an asset action with an `Upgrade` (or equivalent) business category. This step indicates that the
-        upgrade-from product and the new asset is created with an asset action (upgraded to), with
-        relationships between the two. This step also enables sales reps to process upgrades and
-        makes sure that upgrades are distinguishable in reporting and analytics from cancellations
-        plus new sales.
-
-**Resource**
-
-: 
+## Resource
 
 ```
 /revenue/transaction-management/assets/actions/upgrade
 ```
 
-**Resource example**
-
-: 
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/revenue/transaction-management/assets/actions/upgrade
 ```
 
-**Available version**
+## Available Version
 
-: 66.0
+66.0
 
-**HTTP methods**
+## HTTP Methods
 
-: POST
+POST
 
-**Request body for POST**
+## Request Body for POST
 
-: 
-
-**JSON example**
-
-: 
+**JSON Example**
 
 ```
 {
@@ -102,113 +83,24 @@ https://yourInstance.salesforce.com/services/data/v68.0/revenue/transaction-mana
 
 **Properties**
 
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `contractId` | String | ID of the contract record to upgrade. | Optional | 66.0 |
 | `opportunityId` | String | ID of the opportunity record to upgrade. | Optional | 66.0 |
 | `outputRecordType` | String | Record type of the output for the upgrade. | Required | 66.0 |
-| `swapGroups` | [Swap Group](./connect_requests_swap_group.htm.md)[] | Groups that contain the asset details for the upgrade. | Required | 66.0 |
+| `swapGroups` | [Swap Group](./connect_requests_swap_group.htm.md "Input representation of the details of the swap groupings for swap operations.")[] | Groups that contain the asset details for the upgrade. | Required | 66.0 |
 | `swapStartDate` | String | Amendment start date for the upgrade action. | Required | 66.0 |
 
-          
+## Response Body for POST
 
-**Response body for POST**
-
-: [Initiate Upgrade Response](./connect_responses_initiate_upgrade_output.htm.md)
+[Initiate Upgrade Response](./connect_responses_initiate_upgrade_output.htm.md "Output representation of the request to initiate an upgrade action.")
 
 #### See Also
 
-- [*Salesforce Help*: Swap, Upgrade, or Downgrade Assets](https://help.salesforce.com/s/articleView?id=ind.qocal_swap_upgrade_downgrade_amendments.htm&language=en_US)
+- [*Salesforce Help*: Swap, Upgrade, or Downgrade
+  Assets](https://help.salesforce.com/s/articleView?id=ind.qocal_swap_upgrade_downgrade_amendments.htm&language=en_US "Salesforce Help: Swap, Upgrade, or Downgrade
+                              Assets - HTML (New Window)")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_initiate_upgrade.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

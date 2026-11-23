@@ -7,25 +7,14 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Discovery Framework
 parent_page: dfdt_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Omniscript Output
 
 Output representation of the details of the Omniscript.
 
-    
-
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -237,225 +226,15 @@ Output representation of the details of the Omniscript.
 }
 ```
 
-          
+## Properties
 
-        
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `additionalAttributes` | [additionalAttributes Output](./connect_responses_additional_attributes.htm.md)[] | Additional attributes of the Omniscript. | Small, 63.0 | 63.0 |
+| `additionalAttributes` | [additionalAttributes Output](./connect_responses_additional_attributes.htm.md "Output representation of the Additional Attributes.")[] | Additional attributes of the Omniscript. | Small, 63.0 | 63.0 |
 | `description` | String | Description of the Omniscript. | Small, 60.0 | 60.0 |
 | `designer​Customization​Type` | String | Custom type of the Omniscript. | Small, 60.0 | 60.0 |
 | `discovery​FrameworkUsage​Type` | String | Usage type of the Omniscript. | Small, 60.0 | 60.0 |
-| `elements` | [Omniscript Elements List](./connect_responses_omniscript_elements_list.htm.md)[] | Element node of the Omniscript. | Small, 60.0 | 60.0 |
+| `elements` | [Omniscript Elements List](./connect_responses_omniscript_elements_list.htm.md "Output representation of the details of the Omniscript elements.")[] | Element node of the Omniscript. | Small, 60.0 | 60.0 |
 | `isActive` | Boolean | Indicates if the Omniscript assessment is active `(true)` or not `(false)`. | Small, 60.0 | 60.0 |
 | `language` | String | Language of the Omniscript. | Small, 60.0 | 60.0 |
 | `lastModifiedDate` | String | Date when the Omniscript was modified. | Small, 60.0 | 60.0 |
@@ -465,3 +244,7 @@ Output representation of the details of the Omniscript.
 | `type` | String | Type of the Omniscript. | Small, 60.0 | 60.0 |
 | `version​Number` | String | Version of the Omniscript. | Small, 60.0 | 60.0 |
 | `uniqueName` | String | Unique name for the Omniscript. | Small, 60.0 | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_responses_omniscript_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

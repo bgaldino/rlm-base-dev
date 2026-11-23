@@ -7,184 +7,45 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Apply Payments and Credits by Rules Action
 
-Apply payments and credits to posted invoices by adhering to the specified
-        rules.
+Apply payments and credits to posted invoices by adhering to the specified rules.
 
-        
+This action uses predefined logic to allocate payments and credits, reducing any manual intervention and errors.
 
-This action uses predefined logic to allocate payments and credits, reducing any
-                manual intervention and errors.
-
-This action is available in API version 66.0
-                and later.
-
-        
-        
+This action is available in API version 66.0 and later.
 
 ## Supported REST HTTP Methods
 
-            
-            
-                
-                    
+**URI:** `/services/data/v68.0/actions/standard/applyPaymentsAndCreditsByRules`
 
-**URI**
+**Formats:** JSON, XML
 
-                    
-: `/services/data/v68.0/actions/standard/applyPaymentsAndCreditsByRules`
+**HTTP Methods:** POST
 
-                
-                
-                    
-
-**Formats**
-
-                    
-: JSON, XML
-
-                
-                
-                    
-
-**HTTP Methods**
-
-                    
-: POST
-
-                
-                
-                    
-
-**Authentication**
-
-                    
-: `Authorization:
-                            Bearertoken`
-
-                
-            
-
-        
-
-        
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| accountId | **Type** reference **Description** Required. The ID of the account to perform the settlement of payments and credits against invoices in adherence with the applied rules. |
-| targetDate | **Type** date **Description** Optional. The date used to select invoices and invoice lines with a posted date equal to or later than the target date to apply payments and credits. |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| accountId | reference | Required. The ID of the account to perform the settlement of payments and credits against invoices in adherence with the applied rules. |
+| targetDate | date | Optional. The date used to select invoices and invoice lines with a posted date equal to or later than the target date to apply payments and credits. |
 
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Output | Details |
-| --- | --- |
-| rulesApplicationResponse | **Type** Apex-defined **Description** The Apex [RulesApplicationResponse](./apex_class_RulesAppln_RulesApplicationResponse.htm.md) record that contains the results of rules application including the list of applied rules, application details, and any errors. |
-
-        
-
-        
-        
+| Output | Type | Description |
+| --- | --- | --- |
+| rulesApplicationResponse | Apex-defined | The Apex [RulesApplicationResponse](./apex_class_RulesAppln_RulesApplicationResponse.htm.md "HTML (New Window)") record that contains the results of rules application including the list of applied rules, application details, and any errors. |
 
 ## Example
 
-            
-            
-                
-                    
-
 **POST**
 
-                    
-: 
-                        
-
-Here's a sample request for the Apply Payments and Credits by Rules
-                            action.
-
-                        
+Here's a sample request for the Apply Payments and Credits by Rules action.
 
 ```
 {
@@ -197,13 +58,7 @@ Here's a sample request for the Apply Payments and Credits by Rules
 }
 ```
 
-                    
-
-                    
-: 
-
-Here's a sample success response for the Apply Payments and Credits by
-                            Rules action.
+Here's a sample success response for the Apply Payments and Credits by Rules action.
 
 ```
 [
@@ -236,14 +91,7 @@ Here's a sample success response for the Apply Payments and Credits by
 ]
 ```
 
-                    
-: 
-                        
-
-Here's a sample error response for the Apply Payments and Credits by
-                            Rules action.
-
-                        
+Here's a sample error response for the Apply Payments and Credits by Rules action.
 
 ```
 [
@@ -271,3 +119,7 @@ Here's a sample error response for the Apply Payments and Credits by
   }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_apply_rules.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

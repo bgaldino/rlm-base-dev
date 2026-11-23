@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_salesforce_contracts_troubleshooting_guide.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Microsoft 365 Integration Troubleshooting Guide
@@ -19,3 +19,7 @@ Why Can’t I Edit the Document Template in Microsoft 365?
 Document templates with tokens created in Microsoft Word can’t be edited directly in Microsoft 365 due to lack of feature parity.
 Why Can’t I Create or Edit a Contract using Microsoft 365 Word?
 To create or edit a contract using Microsoft 365, you must enable the View Setup and Configuration setting for your user profile.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_microsoft_365_integration_troubleshooting_guide.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

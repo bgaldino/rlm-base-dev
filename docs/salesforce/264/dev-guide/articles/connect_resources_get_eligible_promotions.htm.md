@@ -7,89 +7,38 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Get Eligible Promotions (POST)
 
-Get eligible promotions for line items within a quote or an
-      order.
+Get eligible promotions for line items within a quote or an order.
 
-    
+This API accepts line item IDs and sales transaction ID as the input and then initializes the context by filtering on the specific line items.
 
-This API accepts line item IDs and sales transaction ID as the input and then
-        initializes the context by filtering on the specific line items.
-
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /revenue/transaction-management/sales-transactions/actions/get-eligible-promotions
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/revenue/transaction-management/sales-transactions/actions/get-eligible-promotions
 ```
 
-          
+## Available Version
 
-        
-        
-          
+66.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 66.0
+POST
 
-        
-        
-          
+## Request Body for POST
 
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+**JSON Example**
 
 ```
 {
@@ -100,90 +49,19 @@ https://yourInstance.salesforce.com/services/data/v68.0/revenue/transaction-mana
     "0QLxx0000004E7gGAE"
   ]
 }
-
 ```
-
-          
-
-        
-        
-          
 
 **Properties**
 
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `lineItemIds` | String[] | List of line item IDs to evaluate for promotions. The object type is auto-determined from the sales transaction ID. | Required | 66.0 |
 | `salesTransactionId` | String | The sales transaction ID, such as an order ID or a quote ID, for the promotion evaluation. | Required | 66.0 |
 
-          
+## Response Body for POST
 
-        
-      
+[Get Eligible Promotions](./connect_responses_get_eligible_promotions_output.htm.md "Output representation of the details of the eligible promotions.")
 
-          
+---
 
-        
-        
-          
-
-**Response body for POST**
-
-          
-: [Get Eligible
-              Promotions](./connect_responses_get_eligible_promotions_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_get_eligible_promotions.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

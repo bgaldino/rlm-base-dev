@@ -7,74 +7,47 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Decision Explainer
 parent_page: decision_explainer_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Action Logs (GET, POST)
 
 Retrieve a paginated list of Explainability action logs. Create an
-      Explainability action log.
+Explainability action log.
 
-**Resource**
-
-: 
+## Resource
 
 ```
 /connect/decision-explainer/action-logs
 ```
 
-        
-          
-
-**Example for GET**
-
-          
-: 
-            
+## Example for GET
 
 ```
 https://yourInstance.salesforce.com/services/data/vXX.X/connect​​/
 decision-explainer/action-logs?actionContextCode=001x0000005DmI3AAK
 ```
 
-          
-
-        
-        
-          
-
-**Example for POST**
-
-          
-: 
-            
+## Example for POST
 
 ```
 https://yourInstance.salesforce.com/services/data/vXX.X/connect​​/
 decision-explainer/action-logs
 ```
 
-          
+## Available Version
 
-        
+54.0
 
-**Available version**
+## Requires Chatter
 
-: 54.0
+No
 
-**Requires Chatter**
+## HTTP Methods
 
-: No
+GET, POST
 
-**HTTP methods**
-
-: GET, POST
-
-**Query parameters for GET**
-
-: 
+## Request Parameters for GET
 
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
@@ -87,31 +60,13 @@ decision-explainer/action-logs
 | `processType` | String | The process type of the associated application for which the explainability action log is generated. This matches one of the valid values in the ExplainabilityActionDef `ProcessType` field. | Optional | 54.0 |
 | `queryMore` | String | A string returned from the previous request, which you must pass to the next request to get the next page. | Optional | 54.0 |
 
-**Response body for GET**
+## Response Body for GET
 
-: [Explainability Action Logs](./connect_responses_explainability_action_logs.htm.md)
+[Explainability Action Logs](./connect_responses_explainability_action_logs.htm.md "Output representation of the list of Explainability action logs.")
 
-**Request body for POST**
+## Request Body for POST
 
-: 
-            
-        
-          
-
-**Root XML tag**
-
-          
-: `ExplainabilityActionLog`
-
-        
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+### JSON Example
 
 ```
 {
@@ -138,160 +93,8 @@ decision-explainer/action-logs
 }
 ```
 
-          
+### Properties
 
-        
-        
-          
-
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `action​Context​Code` | String | The valid Salesforce record ID that’s used to retrieve the explainability action logs. | Required | 54.0 |
@@ -304,11 +107,10 @@ decision-explainer/action-logs
 | `secondary​Filter` | String | The string that’s used as the secondary filter criteria to fetch the explainability action logs. | Optional | 57.0 |
 | `specification​Name` | String | A unique name that identifies an active explainability action log record. | Required | 54.0 |
 
-          
+## Response Body for POST
 
-        
-      
+[Explainability Action Log Create](./connect_responses_explainability_action_log_create.htm.md "Output representation of the create Explainability action log request.")
 
-**Response body for POST**
+---
 
-: [Explainability Action Log Create](./connect_responses_explainability_action_log_create.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_get_create_action_logs.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

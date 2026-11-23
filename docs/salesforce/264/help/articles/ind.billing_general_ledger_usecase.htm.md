@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_general_ledger.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Example: Chart of Accounts and Dual Journal Entries
@@ -74,3 +74,7 @@ A transaction journal is created for the 01-200-2010 Sales Tax Liabilities accou
 SEE ALSO
 Create General Ledger Account Assignment Rules
 Set Up Financial Accounting Features
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_general_ledger_usecase.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

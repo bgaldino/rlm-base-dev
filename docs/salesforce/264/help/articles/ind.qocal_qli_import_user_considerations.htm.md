@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_qli_import_user_import_lines_csv.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Considerations for Creating a CSV File
@@ -17,7 +17,7 @@ Enter values for all required fields, which include ProductCode, RowNumber, and 
 Include the Billing Frequency if you turn on Billing.
 Provide the ProductSellingModelName for products with product selling models.
 Use unique values in the RowNumber column, though they appear in any order.
-Match the values in the ProductCode and ProductSellingModelName columns to the values defined in Revenue Management.
+Match the values in the ProductCode and ProductSellingModelName columns to the values defined in Revenue Cloud.
 Use unique values in the ProductName column to identify rows if they fail to process.
 Make sure that all associated products have product codes before attempting an import.
 Import only the root product to add a bundle product. Manually configure child products after the import finishes.
@@ -30,4 +30,9 @@ Limit the CSV file to 1,000 rows, ensuring the total number of lines created doe
 Import multiple files until you reach the quote line item limit per quote.
 Verify that the imported line items add to the first group if your quote contains groups.
 Use only comma-delimited CSV files that meet all readiness criteria. For more information, see CSV File Readiness.
+When Quote Sync is enabled, the CSV file must include a value for the Sales Price field.
 IMPORTANT The error logs exclude ProductCode and RowNumber columns. If you import both root and child products of a bundle via CSV, the system adds them as separate products.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_qli_import_user_considerations.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

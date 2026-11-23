@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_quote_management_lifecyle.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Considerations for Syncing Quotes and Opportunities
@@ -15,7 +15,7 @@ Get to know the data differences between quotes and opportunities before you syn
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 
 Starting the sync process makes sure that any changes you make to quote line items automatically update the associated opportunity.
 
@@ -33,3 +33,7 @@ The system transfers only one-time products and excludes term-defined products w
 Manage the Sync Process
 Use the Start Sync quick action on the quote page to begin the process.
 Use the Stop Sync quick action on the quote page to terminate the automatic update process.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_considerations_syncing_quotes_and_opportunities_in_revenue_cloud.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

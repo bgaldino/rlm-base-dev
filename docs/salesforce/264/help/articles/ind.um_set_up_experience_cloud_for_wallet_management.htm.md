@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_wallet_management.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Set Up Wallet View for Experience Cloud
@@ -29,3 +29,7 @@ Set up the components and navigation required for external users to view their w
 
 From Setup, in the Quick Find box, enter Sharing Settings, and then select Sharing Settings.
 For both Usage Resource and Binding Object Custom Extension, set the Default External Access to Public Read-Only.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_set_up_experience_cloud_for_wallet_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

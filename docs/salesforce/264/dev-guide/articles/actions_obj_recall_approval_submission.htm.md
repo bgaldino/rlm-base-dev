@@ -7,168 +7,47 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Advanced Approvals
 parent_page: advanced_approvals_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Recall Approval Submission Action
 
-Recall an approval submission that isn't completed. You can also add
-            comments that the submitter or approval admin made the recall.
+Recall an approval submission that isn't completed. You can also add comments that the submitter or approval admin made the recall.
 
-        
-            
+This action also validates if a user has required permissions to recall an approval submission. Keep these considerations in mind when you use this invocable action.
 
-This action also validates if a user has required permissions to recall an approval
-                submission. Keep these considerations in mind when you use this invocable
-                action.
-
-            
-                
 - The user must have the Approval Admin user permission.
-
-                
 - The user must also be a submitter of this approval submission.
-
-                
-- The status of the approval submission must be in `In
-                        progress` or `Suspended`
-                    status.
-
-            
-
-            
+- The status of the approval submission must be in `In progress` or `Suspended` status.
 
 This action is available in API version 62.0 and later.
 
-        
-
-        
-        
-
 ## Supported REST HTTP Methods
 
-            
-            
-                
-                    
+**URI:** `/services/data/v68.0/actions/standard/recallApprovalSubmission`
 
-**URI**
+**Formats:** JSON, XML
 
-                    
-: `/services/data/v68.0/actions/standard/recallApprovalSubmission`
+**HTTP Methods:** POST
 
-                
-                
-                    
-
-**Formats**
-
-                    
-: JSON, XML
-
-                
-                
-                    
-
-**HTTP Methods**
-
-                    
-: POST
-
-                
-                
-                    
-
-**Authentication**
-
-                    
-: `Authorization:
-                            Bearertoken`
-
-                
-            
-
-        
-
-        
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| approvalSubmissionId | **Type** string **Description** Required. ID of the approval submission to be recalled. |
-| comments | **Type** string **Description** Comments entered by the approval admin or approval submitter about why they recalled the approval submission. |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| approvalSubmissionId | string | Required. ID of the approval submission to be recalled. |
+| comments | string | Comments entered by the approval admin or approval submitter about why they recalled the approval submission. |
 
 ## Outputs
 
 None.
 
-        
-        
-
 ## Example
-
-            
-            
-                
-                    
 
 **POST**
 
-                    
-: 
-                        
-
 Here's a sample request for the Recall Approval Submission action.
-
-                        
 
 ```
 {
@@ -181,15 +60,7 @@ Here's a sample request for the Recall Approval Submission action.
 }
 ```
 
-                    
-
-                    
-: 
-                        
-
 Here's a sample response for the Recall Approval Submission action.
-
-                        
 
 ```
 {
@@ -203,3 +74,7 @@ Here's a sample response for the Recall Approval Submission action.
   "version": 1
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_recall_approval_submission.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

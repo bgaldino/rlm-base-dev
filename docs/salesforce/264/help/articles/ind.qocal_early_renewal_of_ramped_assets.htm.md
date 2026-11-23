@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_ramp_deals_complex_long_term_multiple_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Early Renewal of Ramped Assets
@@ -15,7 +15,7 @@ You can renew one or more ramped assets before their scheduled end date to lock 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 USER PERMISSIONS NEEDED
 To renew group ramp assets early:	
 
@@ -62,3 +62,7 @@ On March 1, 2027, the sales rep initiates an early renewal for both assets with 
 The renewal quote inherits quantity 150 from the active segment and generates cancellation credits for uncharged remainders.
 
 After the renewal quote is generated, you can modify quantities and attribute values and add products to segments. You can't change dates on auto-generated ramp schedule lines, delete auto-generated ramped lines, or remove child products from a ramped bundle. To make those changes and complete the renewal, create a separate amendment.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_early_renewal_of_ramped_assets.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

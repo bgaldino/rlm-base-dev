@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: agents
 parent_article: ind.rev_agent_approval_agent.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Subagent: Summarize Multiple Approval Work Items
@@ -30,3 +30,7 @@ USER SAMPLE INPUT	ACTION ENGAGED	AGENT RESPONSE
 "Summarize the 10 most recent approval work items of the contracts."	Query Records	The agent searches for the 10 most recent approval work items linked to the records and provides a summarized breakdown of their statuses and key details.
 "Summarize the most recent 10 approval work items on this record."	Get Record Details	The agent searches for approval work items associated with the record, retrieves the 10 latest entries, and presents a summarized list of their current progress.
 "Summarize the 10 most recent approval work items assigned to me."	Get Record Details	The agent queries approval work items filtered by the current user's ID as the assignee, orders them by date, and generates a summary of the 10 most recent items.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rev_agent_topic_summarize_multiple_approval_work_items.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

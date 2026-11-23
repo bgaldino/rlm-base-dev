@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_product_discovery_setup.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configure Product Discovery Settings
@@ -40,7 +40,7 @@ For context definition, select ProductDiscoveryContext or the extended context d
 To use a qualification procedure for Product Discovery, turn on Qualification Procedure, and then select the qualification procedure.
 Only procedures with Product Qualification as the Usage Type appear in the Select Qualification Procedure dropdown. Procedures with Product Category Qualification as the Usage Type aren’t supported. To qualify or disqualify product categories in Product Discovery, add category-level elements to a Product Qualification procedure.
 To use a pricing procedure for Product Discovery, turn on Pricing Procedure, and then select the pricing procedure.
-To use a custom flow to browse and add products from quote and order pages, in Select a Custom Flow for Browsing and Adding Products in Revenue Management, select the custom flow.
+To use a custom flow to browse and add products from quote and order pages, in Select a Custom Flow for Browsing and Adding Products in Revenue Cloud, select the custom flow.
 The Select a Custom Flow for Browsing and Adding Products setting is available only when Transaction Management is available in your org.
 To configure a default catalog for the product list page, select a default catalog.
 Configure your search settings.
@@ -57,3 +57,7 @@ Guided Product Selection
 Manage Qualification Rules for Products in Revenue Cloud
 Search Options in Product Catalog Management
 Write Product Descriptions with Einstein Generative AI
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_set_up_product_discovery.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

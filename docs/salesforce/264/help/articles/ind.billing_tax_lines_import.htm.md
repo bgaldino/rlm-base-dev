@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_tax_configuration.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Import External Tax Lines into Billing
@@ -19,7 +19,7 @@ Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Clo
 USER PERMISSIONS NEEDED
 To export and import Invoice Line Tax records:	Billing Admin OR Billing Operations User permission set
 Create draft invoices for order products having Is Taxable set to false on tax treatments.
-See Create Tax Policies and Treatments and Generate Invoices in Revenue Management.
+See Create Tax Policies and Treatments and Generate Invoices in Revenue Cloud.
 Use a data extraction tool to export the required Invoice Line fields.
 The external tax system uses this data to calculate taxes.
 Import the calculated Invoice Line Tax records into Billing.
@@ -34,3 +34,7 @@ Here's a sample CSV file for invoice line tax. Make sure to include the mandator
 INVOICELINEID	LEGALENTITYID	TAXAMOUNT	TAXCODE	TAXDOCUMENTNUMBER	TAXEXEMPTAMOUNT	TAXNAME	STARTDATE	ENDDATE
 5TVSG0000007l0b4AA	0fwSG000000TwwfYAC	50	PA020111	3ttDU00000002Fr_Debit-4wADU0000002aH22AI	0	T1234	2025-03-21	2025-03-31
 5TVSG0000007l0c4AA	0fwSG000000TwwfYAC	30	PA020111	3ttDU00000002Fr_Debit-4wADU0000002aH22AI	0	T1234	2025-03-21	2025-03-31
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_tax_lines_import.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

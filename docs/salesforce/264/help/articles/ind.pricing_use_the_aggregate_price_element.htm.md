@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_add_aggregate_price_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Use the Aggregate Price Element
@@ -15,7 +15,7 @@ Aggregate and show the price of a group of products based on product categories,
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS NEEDED
 To create, update, and delete pricing procedures:	Salesforce Pricing Design Time
 IMPORTANT When using the Aggregate Price element, be careful not to create pricing loops by incorrectly mapping values in your pricing procedure. For instance, a circular dependency forms when the Net Unit Price is set by Input Unit Price, but then Input Unit Price is changed by an aggregate element that also relies on Net Unit Price. This creates a never-ending loop where Net Unit Price keeps updating, preventing it from settling on a final value and causing performance problems or wrong calculations.
@@ -57,3 +57,7 @@ Finally, set your preferences to view pricing information, profile access, and r
 Save your procedure.
 Click Simulate to test your procedure. Enter the input values for your products and click Simulate again.
 Aggregate pricing changes can't be viewed in the waterfall view. However, the JSON output provides insight into how the aggregate prices were calculated based on the product category. Based on our example, the aggregate price of products belonging to the Electronics category is calculated by summing their individual prices ($141,615 + $4,975), resulting in an ItemGroupSummarySubtotal of $146,590. This confirms that your procedure is working as expected.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_use_the_aggregate_price_element.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_change_billing_pricing_frequencies.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Examples: Impact of Billing Frequency Change
@@ -108,3 +108,7 @@ Billing Amount: $2,160.00 ($40.64 + $1,980.00 + $139.36)
 Billing Frequency: Annual
 Proration Multiplier: 1.00
 Calculated Quantity: 1.00
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_change_billing_frequency_examples.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

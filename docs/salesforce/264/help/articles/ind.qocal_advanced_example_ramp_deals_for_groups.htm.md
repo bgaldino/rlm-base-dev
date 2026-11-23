@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.ramp_deals_examples.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Advanced Example of Ramp Deals for Groups
@@ -15,7 +15,7 @@ See an example of adding products to specific segments, dynamic configuration, v
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 Introduction
 
 Alex, a sales rep from SmartBytes, creates a quote for Acme that spans over 5 years based on the requirements shared in the opportunity record. Alex shares the quote with James from Bloomington Caregivers, a healthcare client who wants to transition from traditional learning methods to digital learning solutions.
@@ -105,3 +105,7 @@ Creates the asset action, AA-000000243, to track the upsell.
 Updates the asset state period, ASP-000000520, for the fulfilled duration of the current segment.
 Creates the asset state period, ASP-000000561, for the remaining duration of the current segment.
 Updates the asset state period, ASP-000000521, of the modified segment.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_advanced_example_ramp_deals_for_groups.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

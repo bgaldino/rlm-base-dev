@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_quote_and_order_capture.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Enabling Revenue Settings
@@ -15,7 +15,7 @@ Give your users access to Transaction Management. Also, enable optional features
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS
 NEEDED
 To turn on quote and order capture:	
@@ -27,9 +27,9 @@ AND
 Manage Revenue Cloud
 
 IMPORTANT The order for enabling features and assigning permissions can vary, so if you encounter an error during enablement, check that you have the required permission sets. Skip these steps if the feature is already active in your scratch org definition file.
-Turn On Revenue Management
+Turn On Revenue Cloud
 
-If you haven’t done it yet, enable Revenue Management Features to give your users access to Transaction Management’s object and features.
+If you haven’t done it yet, enable Revenue Cloud Features to give your users access to Transaction Management’s object and features.
 
 From Setup, in the Quick Find box, find and select Revenue Settings.
 Verify that Enable Revenue Cloud Features is turned on.
@@ -152,10 +152,14 @@ Turn On Tax Calculations for Quotes and Orders
 
 Provide customers the estimated tax on their quotes and orders.
 
-Set up a tax engine and create a tax policy before you enable tax configurations for Revenue Management. To learn more, see Tax Configurations in Transaction Management.
+Set up a tax engine and create a tax policy before you enable tax configurations for Revenue Cloud. To learn more, see Tax Configurations in Transaction Management.
 
 From Setup, in the Quick Find box, enter Revenue, and then select Revenue Settings.
 Turn on Add Estimated Taxes to Quotes and Orders.
 NOTE After you enable tax calculations, ensure accurate tax details by verifying that the tax attributes are mapped and synced to their data source in SalesTransactionContext or your extended context definition. See Upgrade Context Definition.
 
-To proceed with the rest of the Revenue Management setup, see Set Up Revenue Management.
+To proceed with the rest of the Revenue Cloud setup, see Set Up Revenue Cloud.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_turn_on_quote_and_order_capture.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

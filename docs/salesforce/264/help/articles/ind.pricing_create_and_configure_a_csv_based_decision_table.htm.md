@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_configure_decision_tables.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Create and Configure a CSV-Based Decision Table
@@ -15,7 +15,7 @@ You can use CSV-based decision tables to manage medium-scale pricing logic. Afte
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS NEEDED
 To create and manage decision tables:	
 
@@ -41,3 +41,7 @@ After the data uploads successfully, activate the decision table version.
 Go to Pricing Recipes, and select the recipe that you want to modify (for example, Price Adjustment Matrix).
 Map your new CSV-based decision table to the recipe by specifying the relevant input, output, and discount type columns.
 Save your changes. You can now select this decision table within the elements of your pricing procedure.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_create_and_configure_a_csv_based_decision_table.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,7 +7,7 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # SearchProductsFacetRepresentation Class
@@ -16,58 +16,29 @@ Represents a search facet that provides filtering and categorization options for
 
 ## Namespace
 
-[runtime_industries_cpq](./apex_namespace_runtime_industries_cpq.htm.md)
+[runtime\_industries\_cpq](./apex_namespace_runtime_industries_cpq.htm.md "The runtime_industries_cpq namespace provides classes and methods to search products or to manage products, catalogs, and categories.")
 
-- 
-**[SearchProductsFacetRepresentation Properties](./apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md#apex_runtime_industries_cpq_SearchProductsFacetRepresentation_properties)**  
-
-Learn more about the properties available with the SearchProductsFacetRepresentation     class.
-
-  
+- **[SearchProductsFacetRepresentation Properties](./apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md#apex_runtime_industries_cpq_SearchProductsFacetRepresentation_properties)**  
+  Learn more about the properties available with the SearchProductsFacetRepresentation class.
 
 ## SearchProductsFacetRepresentation Properties
 
-  
-  
-  
 Learn more about the properties available with the SearchProductsFacetRepresentation
-    class.
-
-    
-      
+class.
 
 The `SearchProductsFacetRepresentation` class includes
-        these properties.
+these properties.
 
-    
-
-    
-  
-
-- 
-**[attributeType](./apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md#apex_runtime_industries_cpq_SearchProductsFacetRepresentation_attributeType)**  
-
-Get or set the type of attribute this facet represents, such as "Picklist" or "Text".
-
-- 
-**[displayName](./apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md#apex_runtime_industries_cpq_SearchProductsFacetRepresentation_displayName)**  
-
-Get or set the display name of the search facet.
-
-- 
-**[displayRank](./apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md#apex_runtime_industries_cpq_SearchProductsFacetRepresentation_displayRank)**  
-
-Get or set the display rank that determines the order in which this facet appears in search results.
-
-- 
-**[nameOrId](./apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md#apex_runtime_industries_cpq_SearchProductsFacetRepresentation_nameOrId)**  
-
-Get or set the name or identifier of the attribute or category that this facet represents.
-
-- 
-**[values](./apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md#apex_runtime_industries_cpq_SearchProductsFacetRepresentation_values)**  
-
-Get or set the list of facet values available for filtering, each representing a distinct option within this facet.
+- **[attributeType](./apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md#apex_runtime_industries_cpq_SearchProductsFacetRepresentation_attributeType)**  
+  Get or set the type of attribute this facet represents, such as "Picklist" or "Text".
+- **[displayName](./apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md#apex_runtime_industries_cpq_SearchProductsFacetRepresentation_displayName)**  
+  Get or set the display name of the search facet.
+- **[displayRank](./apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md#apex_runtime_industries_cpq_SearchProductsFacetRepresentation_displayRank)**  
+  Get or set the display rank that determines the order in which this facet appears in search results.
+- **[nameOrId](./apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md#apex_runtime_industries_cpq_SearchProductsFacetRepresentation_nameOrId)**  
+  Get or set the name or identifier of the attribute or category that this facet represents.
+- **[values](./apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm.md#apex_runtime_industries_cpq_SearchProductsFacetRepresentation_values)**  
+  Get or set the list of facet values available for filtering, each representing a distinct option within this facet.
 
 ### attributeType
 
@@ -127,4 +98,8 @@ Get or set the list of facet values available for filtering, each representing a
 
 #### Property Value
 
-Type: List<runtime_industries_cpq.FacetValueRepresentation>
+Type: List<runtime\_industries\_cpq.FacetValueRepresentation>
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_runtime_industries_cpq_SearchProductsFacetRepresentation.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

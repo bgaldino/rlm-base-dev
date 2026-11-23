@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_create_bundled_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create a Bundled Product Structure
@@ -50,5 +50,9 @@ Add Components to a Static Product Bundle
 Static products are non-configurable at run time. That means you can’t add or remove child products, alter product quantities, or configure product attributes at run time. You can add product and product group components to a static product bundle. Product Group components are optional.
 Add Components to a Configurable Product Bundle
 You can add multiple groups, multiple product components, or one product classification component under a product group in configurable bundles.
-Product Relationship Management in Revenue Management
+Product Relationship Management in Revenue Cloud
 Bundle products consist of components such as groups, products, and product classifications. These components are related to each other through product relationships.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_creation_of_a_bundled_product_structure.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

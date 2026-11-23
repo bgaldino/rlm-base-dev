@@ -7,71 +7,36 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_resources.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Configurator Add Nodes (POST)
 
 Add a node to the context through the runtime system without using the Salesforce user interface.
 
-    
-
 ## Resource
-
-      
-      
 
 ```
 /connect/cpq/configurator/actions/add-nodes
 ```
 
-    
-
-    
-
 ## Resource Example
-
-      
-      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator/actions/add-nodes
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 60.0
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 POST
 
-    
-
-    
-
 ## Request Body for POST
 
-      
-      
-
 **JSON Example**
-
-      
 
 ```
 {
@@ -128,103 +93,19 @@ POST
 }
 ```
 
-      
-
 **Properties**
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `added​Nodes` | [Configurator Added Node Input](./connect_requests_configurator_added_node_input.htm.md)[] | List of the nodes to be added. | Required | 60.0 |
-| `configurator​Options` | [Configurator Options Input](./connect_requests_configurator_options_input.htm.md) | List of the configuration options to execute. | Optional | 60.0 |
+| `added​Nodes` | [Configurator Added Node Input](./connect_requests_configurator_added_node_input.htm.md "Input representation of the nodes to be added to a product configuration.")[] | List of the nodes to be added. | Required | 60.0 |
+| `configurator​Options` | [Configurator Options Input](./connect_requests_configurator_options_input.htm.md "Input representation of the request to get the product configuration options that’s passed to the configurator.") | List of the configuration options to execute. | Optional | 60.0 |
 | `context​Id` | String | ID of the context object that’s being considered. | Required | 60.0 |
-| `qualification​Context` | [User Context Input](./connect_requests_configurator_user_context_input.htm.md) | Context details that are used for the qualification rules. | Optional | 60.0 |
-
-    
-
-    
+| `qualification​Context` | [User Context Input](./connect_requests_configurator_user_context_input.htm.md "Input representation of the request to get the context details of a user, which are used for qualification rules.") | Context details that are used for the qualification rules. | Optional | 60.0 |
 
 ## Response Body for POST
 
-      
-      
+[Configurator Add Nodes](./connect_responses_add_nodes_configurator_output.htm.md "Output representation of the configuration request details to add nodes.")
 
-[Configurator Add Nodes](./connect_responses_add_nodes_configurator_output.htm.md)
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_add_nodes.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_considerations_custom_flow_for_browsing_and_adding_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Override Flow for Product Discovery
@@ -145,3 +145,7 @@ In Advanced, locate the Revisited Screen Values field.
 Change the value from Use values from when the user last visited this screen to Refresh inputs to incorporate changes elsewhere in the flow.
 Save the node.
 TIP Refer to the Discovery Products flow to ensure your customized flow is in sync with the latest update
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_example_create_custom_flow_for_browsing_and_adding_products.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

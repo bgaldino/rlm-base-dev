@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Set Up External Document Storage for Salesforce Contracts Using Guided Setup
@@ -23,3 +23,7 @@ In the guided setup, click Set Up External Document Storage to expand the step.
 Select a target object, and then select a corresponding record type.
 In the Document Path field, enter the storage path starting from the root directory (for example, salesforce/contracts). If the field is left blank, the root directory is considered as the storage path.
 Click Add and save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_set_up_external_document_storage.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

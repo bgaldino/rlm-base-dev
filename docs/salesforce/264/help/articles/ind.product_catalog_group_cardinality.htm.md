@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_local_cardinality_and_group_cardinality.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Group Cardinality
@@ -38,3 +38,7 @@ Nested Group Cardinality and Product Classification Component Cardinality
 You can add product classification components only under a product group component. The product group component and the product classification component each have their own cardinalities.
 Group Cardinality Examples
 To better understand how group cardinality works in Product Catalog Management, refer to these examples.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_group_cardinality.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

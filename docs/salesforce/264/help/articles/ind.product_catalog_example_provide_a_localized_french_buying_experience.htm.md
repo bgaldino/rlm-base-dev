@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_data_translation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Example: Provide a Localized French Buying Experience
@@ -93,3 +93,7 @@ Filters show Noir instead of Black.
 Business impact
 
 Admins can deliver localized catalogs without duplicate configurations. Buyers benefit from intuitive search and browsing in their preferred language, reducing confusion and improving adoption.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_example_provide_a_localized_french_buying_experience.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

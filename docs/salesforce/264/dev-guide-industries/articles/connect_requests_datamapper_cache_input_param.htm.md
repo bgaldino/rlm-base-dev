@@ -7,22 +7,17 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Omnistudio
 parent_page: omnistudio_data_mapper_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Data Mapper Clear Cache Input
 
 Input representation of the details to clear the cache of the data mappers.
 
-**JSON example**
+## JSON Example
 
-          
-: This is a sample example to clear the execution cache by using only the name of the
-            data mapper.
-
-: 
+This is a sample example to clear the execution cache by using only the name of the
+data mapper.
 
 ```
 {
@@ -37,13 +32,8 @@ Input representation of the details to clear the cache of the data mappers.
 }
 ```
 
-          
-: This is a sample example to clear the execution cache by using the name of the data
-            mapper along with additional inputs.
-
-          
-: 
-            
+This is a sample example to clear the execution cache by using the name of the data
+mapper along with additional inputs.
 
 ```
 {
@@ -61,17 +51,13 @@ Input representation of the details to clear the cache of the data mappers.
 }
 ```
 
-          
-
-**Properties**
-
-: 
-
-- 
-- 
-- 
+## Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `cacheStorageType` | String | Storage type that's used for caching the data. Valid values are: `Session`—Cache is stored in the current user session. `Org`—Cache is shared across the entire organization. `All`—Refers to both session and org-level cache. | Required | 64.0 |
-| `dataMapperList` | [Data Mapper Details](./connect_requests_data_mapper_details.htm.md)[] | List of data mappers to clear the cache for. | Required | 64.0 |
+| `cacheStorageType` | String | Storage type that's used for caching the data. Valid values are:  - `Session`—Cache is stored in   the current user session. - `Org`—Cache is shared across   the entire organization. - `All`—Refers to both session   and org-level cache. | Required | 64.0 |
+| `dataMapperList` | [Data Mapper Details](./connect_requests_data_mapper_details.htm.md "Input representation of the data mapper details to clear the cache for.")[] | List of data mappers to clear the cache for. | Required | 64.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_requests_datamapper_cache_input_param.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

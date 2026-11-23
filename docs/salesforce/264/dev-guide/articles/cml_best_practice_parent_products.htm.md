@@ -7,36 +7,30 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_cml_best_practices.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Configure Child or Grandchild Products Based on Parent Product
 
 Use the parent keyword to configure child and grandchild products dynamically based on
-    the parent product.
-
-    
+the parent product.
 
 Use the `parent` keyword to configure child and
-      grandchild products dynamically based on the parent product. Control visibility or
-      availability for the child or grandchild using the keyword.
+grandchild products dynamically based on the parent product. Control visibility or
+availability for the child or grandchild using the keyword.
 
-    
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=revenue_lifecycle_management_dev_guide)
 
 #### Note
 
 The `parent` keyword isn't supported with
-      Group Type. When you organize components in Product Component Groups, the Group Type becomes
-      an intermediate parent in the hierarchy. To reach the bundle root, use parent(attribute, 1)
-      to skip the group, or use the dot-notation pattern from the bundle level,
-      groupVariable.childRelation.attribute, instead of parent(). See [Group Type](./cml_group_type.htm.md).
-
-    
+Group Type. When you organize components in Product Component Groups, the Group Type becomes
+an intermediate parent in the hierarchy. To reach the bundle root, use parent(attribute, 1)
+to skip the group, or use the dot-notation pattern from the bundle level,
+groupVariable.childRelation.attribute, instead of parent(). See [Group Type](./cml_group_type.htm.md).
 
 In this example, grandchild products are excluded based on which parent product they belong
-      to.
-
-    
+to.
 
 ```
 type LineItem;
@@ -109,3 +103,7 @@ type Heater : LineItem;
 
 type InternalLighting : LineItem;
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_best_practice_parent_products.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

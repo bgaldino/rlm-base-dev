@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_run_time_administration.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Monitor Decomposition During Fulfillment
@@ -39,3 +39,7 @@ Actions are assigned to order products when an order is submitted. The actions r
 To view the order products and enrichment rules that led to the action on the decomposed product, click the links on the Reason for Action window.
 Use this information to troubleshoot and optimize your decomposition process.
 Click View Orchestration Plan to see the orchestration plan.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_monitor_decomposition_during_fulfillment.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

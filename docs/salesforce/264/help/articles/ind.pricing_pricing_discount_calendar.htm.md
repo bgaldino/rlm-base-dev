@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_access_your_pricing_information.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Pricing Discount Calendar
@@ -15,7 +15,7 @@ Pricing analysts can easily see and understand the diverse discounts associated 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 The Pricing Discount calendar shows all the applied price adjustment schedule types for a product and the range of discounts over different dates. To better analyze this information, users can group discounts based on their respective schedule types, such as Volume, Attribute, and Bundle. They can also search for a particular schedule type by using available filters.
 
@@ -34,3 +34,7 @@ Period	Select the date range of the calendar. Use to change the dates on the cal
 Group By	Select how you want the discounts grouped.	To group pricing discounts based on the price adjustment schedule, select Schedule Type.
 Filter	Use filters to find a specific pricing discount applied to your product.	Use filters to find discounts based on the schedule type, the selling model type, and the pricing term unit.
 Refresh	Refresh the calendar after you add a discount or price adjustment method against a product to see it on the calendar.	For example, if you can’t find a discount that another user created while you were viewing the calendar, refresh the calendar.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_pricing_discount_calendar.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

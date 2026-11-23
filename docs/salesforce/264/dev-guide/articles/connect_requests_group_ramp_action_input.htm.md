@@ -7,43 +7,23 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: connect_requests_place_sales_transaction_input.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Group Ramp Action Input
 
 Understand the sample request to specify group ramp actions during initial sale.
 
-    
-      
-
 Keep these considerations in mind when you specify ramp actions.
 
-      
-        
-- Use the [Clone Sales Transaction API](./connect_resources_clone_sales_transaction.htm.md) to clone a ramp segment, and specify the clone option.
-
-        
-- Use the [Place Sales Transaction API](./connect_resources_place_sales_transaction.htm.md) to specify a group ramp action by using the `groupRampAction` property. You can refer to the sections in this topic for examples.
-
-      
-
-    
-
-    
+- Use the [Clone Sales Transaction API](./connect_resources_clone_sales_transaction.htm.md "HTML (New Window)") to clone a ramp segment, and specify the clone option.
+- Use the [Place Sales Transaction API](./connect_resources_place_sales_transaction.htm.md "HTML (New Window)") to specify a group ramp action by using the `groupRampAction` property. You can refer to the sections in this topic for examples.
 
 ## JSON Example to Edit a Group
 
-      
-      
-
 This is a sample request that creates the first ramp segment. This request accepts IDs of a quote and quote line group. Additionally, the request accepts attributes of quote line group such as `IsRamped`, `SegmentType`, `StartDate`, and `EndDate`. A ramp segment is created with a ramp identifier and segment identifier added to all the quote line items available in the ramp segment.
 
-      
-
-This process converts a group into a segment, which becomes the first segment in the ramp schedule. A quote can contain a single ramp schedule only. To create another segment in the ramp schedule, use the [Clone Sales Transaction API](./connect_resources_clone_sales_transaction.htm.md).
-
-      
+This process converts a group into a segment, which becomes the first segment in the ramp schedule. A quote can contain a single ramp schedule only. To create another segment in the ramp schedule, use the [Clone Sales Transaction API](./connect_resources_clone_sales_transaction.htm.md "HTML (New Window)").
 
 ```
 {
@@ -82,18 +62,9 @@ This process converts a group into a segment, which becomes the first segment in
 }
 ```
 
-    
-
-    
-
 ## JSON Example to Edit a Ramp Segment
 
-      
-      
-
 This is a sample request to edit multiple ramp segments simultaneously, maintaining date continuity among ramp segments.
-
-      
 
 ```
 {
@@ -153,18 +124,9 @@ This is a sample request to edit multiple ramp segments simultaneously, maintain
 }
 ```
 
-    
-
-    
-
 ## JSON Example to Add a Product
 
-      
-      
-
 This is a sample request to add a product to the current and subsequent segments. A ramp identifier and segment identifier are added to the quote line items.
-
-      
 
 ```
 {
@@ -248,18 +210,9 @@ This is a sample request to add a product to the current and subsequent segments
 }
 ```
 
-    
-
-    
-
 ## JSON Example to Delete a Product
 
-      
-      
-
 This is a sample request to delete a product from the current and subsequent ramp segments.
-
-      
 
 ```
 {
@@ -303,18 +256,9 @@ This is a sample request to delete a product from the current and subsequent ram
 }
 ```
 
-    
-
-    
-
 ## JSON Example to Delete a Segment
 
-      
-      
-
 This is a sample request to delete the first and last segment in a ramp schedule. The API throws an error if the specified segment isn't the first and last segment, ensuring there are no gaps between quote line items in different ramp segments.
-
-      
 
 ```
 {
@@ -349,18 +293,9 @@ This is a sample request to delete the first and last segment in a ramp schedule
 }
 ```
 
-    
-
-    
-
 ## JSON Example to Remove a Segment From a Ramp Schedule
 
-      
-      
-
 This is a sample request to remove the first or last ramp segment in a ramp schedule. This request removes the ramp-specific fields from a quote line group such as `IsRamped` and `SegmentType`. Additionally, this request removes the `RampIdentifier` and `SegmentIdentifier` fields from a quote line item.
-
-      
 
 ```
 {
@@ -393,3 +328,7 @@ This is a sample request to remove the first or last ramp segment in a ramp sche
   }
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_group_ramp_action_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

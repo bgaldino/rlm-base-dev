@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_setup_salesforce_payments_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Generate Pay Now Links for Business Accounts
@@ -42,3 +42,7 @@ Save and activate the flow.
 When your customer completes the payment, they can select Save this payment method for future use to save the payment method to the business account.
 
 NOTE To run the flow and generate a payment link, see Generate a Pay Now Payment Link. To add the Generate Payment Link V2 flow as an action button on a record page so that you can generate payment links directly from any record, see Add a Payment Link to a Salesforce Record.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_generate_pay_now_payment_links_for_business_accounts.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.
