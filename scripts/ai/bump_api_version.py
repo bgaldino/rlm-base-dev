@@ -140,8 +140,9 @@ PROVENANCE_LINE_RE = re.compile(
     # `#` or `/`; so a trailing comment or a string that merely mentions the name
     # (a pin followed by `# MIN_API_VERSION = ...`, or `log("x; MIN_API_VERSION = %s"); api = ...`)
     # does not spare the live pin. By design it still cannot tell prose from a floor when the
-    # annotation is a bare word (`# MIN_API_VERSION: default = <pin>` is spared), and a live pin
-    # BEFORE a `;` floor on one line is bumped along with it. Subscripts allow one nesting level
+    # annotation is a bare word (`# MIN_API_VERSION: default = <pin>` is spared), and a floor
+    # after `;` on a line whose prefix has a quote is bumped with that line, while with a
+    # quote-free prefix the whole line, any pin included, is spared. Subscripts allow one nesting level
     # (`Final[Literal[...]]`) with disjoint alternatives, so a long no-`=` line cannot backtrack. The `verified (...)`
     # forms end at a word boundary, so "verified payloads"/"verified inside"/"verified online"
     # are NOT spared; no tracked line uses them beside a version (swept 2026-11-24), so add a

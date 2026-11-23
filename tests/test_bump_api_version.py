@@ -91,12 +91,19 @@ for text in ("alias offset v68.0", "it has offered v68.0", "unobserved at v68.0"
              "apiVersion = '68.0'; // MIN_API_VERSION = 65 is the floor",
              'log("x; MIN_API_VERSION = %s", v); api = "v68.0"'):
     check(f"does not spare a live pin on {text!r}", not bump.PROVENANCE_LINE_RE.search(text))
-import time
 _slow = "MIN_API_VERSION: " + "|".join(["a[]"] * 60)
-_t0 = time.monotonic()
-bump.PROVENANCE_LINE_RE.search(_slow)
-check("no catastrophic backtracking on a 60-segment annotation", time.monotonic() - _t0 < 1.0)
-for text in ("# MIN_API_VERSION = v6" "7.0 \u2014 some note", "// MIN_API_VERSION = 65", "as of v67.0", "as-of v67.0", "observed at v67.0", "MIN_API_VERSION = \"65.0\"",
+try:
+    # A subprocess, because a regex in this process cannot be interrupted if it backtracks.
+    _r = subprocess.run(
+        [sys.executable, "-I", "-c",
+         "import re,sys; re.compile(sys.argv[1], int(sys.argv[2])).search(sys.argv[3])",
+         bump.PROVENANCE_LINE_RE.pattern, str(int(bump.PROVENANCE_LINE_RE.flags)), _slow],
+        capture_output=True, timeout=5)
+    _ok, _why = _r.returncode == 0, "probe exited non-zero"
+except subprocess.TimeoutExpired:
+    _ok, _why = False, "catastrophic backtracking: the 60-segment probe did not finish in 5s"
+check("no catastrophic backtracking on a 60-segment annotation", _ok, _why)
+for text in ("# MIN_API_VERSION = v67.0 \u2014 some note", "// MIN_API_VERSION = 65", "as of v67.0", "as-of v67.0", "observed at v67.0", "MIN_API_VERSION = \"65.0\"",
              'MIN_API_VERSION: str = "65.0"', "MIN_API_VERSION:str=\"65.0\"",
              'MIN_API_VERSION: Final[str] = "65.0"', 'MIN_API_VERSION: str | None = "65.0"',
              'MIN_API_VERSION: "str" = "65.0"', 'MIN_API_VERSION: Final[Literal["65.0"]] = "65.0"',
