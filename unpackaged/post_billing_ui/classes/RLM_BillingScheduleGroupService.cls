@@ -112,7 +112,7 @@ public with sharing class RLM_BillingScheduleGroupService {
     @TestVisible
     private static final String NO_BILLING_LINK_ACCESS_MESSAGE =
         'You do not have access to read the links between this Account and its billing accounts '
-        + '(Account Billing Account), so the billing account cannot be resolved. '
+        + '(AccountBillingAccount), so the billing account cannot be resolved. '
         + 'Ask an administrator to grant it, for example through the RLM Billing UI permission set.';
 
     // Throws for a missing id or an account the caller cannot read: there is no account name to show
