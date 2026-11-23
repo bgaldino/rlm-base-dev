@@ -343,7 +343,7 @@ public with sharing class RLM_TaxTestFactory {
     public class RecordingHttpMock implements HttpCalloutMock {
         public List<HttpRequest> requests = new List<HttpRequest>();
         private Integer statusCode;
-        public String body;
+        private String body;
 
         public RecordingHttpMock(Integer statusCode, String body) {
             this.statusCode = statusCode;

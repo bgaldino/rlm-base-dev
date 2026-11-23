@@ -133,9 +133,12 @@ global class RLM_CalculateTaxService {
                 //system.debug('response'+responseString);
                 system.debug('Heap size used ' +Limits.getHeapSize());
                 
-                // The engine's errors always carry a top-level "error" key (the Avalara error result), so the
-                // HTTP status is not consulted: a non-2xx body without one is either not JSON or lacks the
-                // totals, and takes the 502 paths below.
+                // The code expects an engine error to carry a top-level "error" key (the Avalara error result).
+                // That shape is an assumption: it was not measured against a live engine, and the 264
+                // developer guide documents only the ErrorResponse class, not the engine's error body.
+                // The HTTP status is not consulted: a non-2xx JSON body without an "error" key is
+                // parsed as a success body, lacks the totals, and returns the 502 incomplete response;
+                // a non-JSON body returns the 502 unreadable response.
                 // Route on the body's top-level "error" key, not on the text "error" anywhere in it: a
                 // successful body can carry the word in a tax name or a reason.
                 Object parsedBody = parseBodyOrNull(responseString);
