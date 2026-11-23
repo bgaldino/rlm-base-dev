@@ -24,11 +24,17 @@ import asyncio
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from scripts.doc_snapshot.guard import refusal_reason, report_orphans, report_refusals
+from scripts.doc_snapshot.guard import (
+    read_prior,
+    refusal_reason,
+    report_orphans,
+    report_refusals,
+)
 from scripts.doc_snapshot._core import (
     OptionsError,
     SnapshotError,
     as_bool,
+    as_id_set,
     as_int,
     attribution_note,
     captured_table,
@@ -252,8 +258,9 @@ class HelpSnapshot:
         headless              default true
         concurrency           articles captured in parallel (default 4)
         wait_ms               ms between sidebar reads, and the per-article settle (default 3000)
-        accept_shrinkage      write a capture the guard would refuse as a truncated stub of
-                              the prior one (default false); a not-found page is never written
+        accept_shrinkage      article ids (list or comma-separated) whose capture may shrink
+                              past the guard's stub threshold (default none); a not-found
+                              page is never written
         discover_timeout_ms   max ms to poll the sidebar for a stable count (default 20000)
         expect_min_articles   fail discovery below this many prefix matches
         subtree_only          keep only root_article_id's sidebar descendants (default false);
@@ -262,7 +269,6 @@ class HelpSnapshot:
     """
 
     BASE_URL = "https://help.salesforce.com/s/articleView"
-    _walked_ids: Optional[Set[str]] = None
 
     def __init__(self, options: Dict[str, Any], logger=None):
         self.options = dict(options)
@@ -311,7 +317,7 @@ class HelpSnapshot:
             as_int(self.options.get("expect_min_articles"), None) or None
         )
         self.options["subtree_only"] = as_bool(self.options.get("subtree_only"), False)
-        self.options["accept_shrinkage"] = as_bool(self.options.get("accept_shrinkage"), False)
+        self.options["accept_shrinkage"] = as_id_set(self.options.get("accept_shrinkage"))
 
     def preflight(self) -> None:
         """Nothing to check offline: every Help failure needs a discovery walk."""
@@ -627,9 +633,12 @@ class HelpSnapshot:
         self._build_index(index_path, manifest)
         log_done(self.logger, manifest["stats"], manifest_path)
         self.logger.info(f"Index:    {index_path}")
-        raise_on_capture_errors(failed, len(to_capture), "articles")
+        raise_on_capture_errors(
+            failed, len(to_capture), "articles",
+            refused=self.refused, orphaned=self.orphaned,
+        )
         # The manifest's stats sum every area; a caller's summary wants this one.
-        return {**area_stats, "refused": len(self.refused), "orphaned": len(self.orphaned)}
+        return area_stats
 
     def _is_only_root(self, kept_ids: List[str]) -> bool:
         """True when a walk kept nothing but the root (a wrong or unhydrated root)."""
@@ -863,30 +872,25 @@ class HelpSnapshot:
                     record.setdefault("area", self.options["area"])
                     record.setdefault("article_id", article_id)
                     if captured.get("error") or not captured.get("body"):
-                        # A refresh can turn a previously-captured article into
-                        # an error (e.g. it's since become a not-found shell).
-                        # Drop the stale file/metadata
-                        # from the prior successful capture rather than leaving
-                        # it on disk and in the manifest, still marked
-                        # `captured`-looking except for `status`, where a
-                        # directory scan (not filtering on `status`) would
-                        # still surface it. `title` is untouched here — it's
-                        # only ever set by a successful capture (below), so on
-                        # error it already stays whatever discovery/a prior
-                        # capture last put there.
+                        # A failed fetch (timeout, no H1, empty body) says nothing
+                        # about the article's text, so the prior capture stays on
+                        # disk with its file/body_length; only status and error
+                        # change. A not-found shell never reaches here: the guard
+                        # refuses it below.
                         error = captured.get("error") or "Empty body"
                         record["status"] = "error"
                         record["error"] = error
-                        if record.pop("file", None):
-                            (articles_dir / f"{article_id}.md").unlink(missing_ok=True)
-                        record.pop("body_length", None)
                         failed.append(article_id)
                         self.logger.warning(f"  [skip] {article_id}: {error}")
                     elif refusal := refusal_reason(
                         captured.get("title") or record.get("title"),
                         captured["body"],
-                        self._read_prior(articles_dir / f"{article_id}.md"),
-                        self.options.get("accept_shrinkage", False),
+                        read_prior(articles_dir / f"{article_id}.md"),
+                        article_id,
+                        self.options["accept_shrinkage"],
+                        lambda why, a=article_id: self.logger.warning(
+                            f"  [accepted] {a}: {why}"
+                        ),
                     ):
                         # Keep the prior file and its file/body_length: the
                         # refused text is not the article.
@@ -950,14 +954,6 @@ class HelpSnapshot:
         )
         self._save_manifest(manifest_path, manifest)
         return failed
-
-    @staticmethod
-    def _read_prior(path: Path) -> Optional[str]:
-        """The file a capture would overwrite, or None when there is none."""
-        try:
-            return path.read_text(encoding="utf-8")
-        except OSError:
-            return None
 
     async def _capture_one(self, page, article_id: str) -> Dict[str, Any]:
         url = self._article_url(article_id)

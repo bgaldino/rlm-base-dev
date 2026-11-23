@@ -84,6 +84,14 @@ def _snapshot_class(kind: str):
 # ---------------------------------------------------------------------------
 
 
+def _id_list(value: str) -> List[str]:
+    """Parse ``ID[,ID...]``; an empty list must not read as "accept nothing"."""
+    ids = [part.strip() for part in value.split(",") if part.strip()]
+    if not ids:
+        raise argparse.ArgumentTypeError("needs at least one page or article id")
+    return ids
+
+
 def _add_common_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--mode", choices=VALID_MODES,
                    help="discover | capture | all | refresh (default all)")
@@ -92,10 +100,12 @@ def _add_common_run_flags(p: argparse.ArgumentParser) -> None:
     p.add_argument("--concurrency", type=int, help="parallel fetches")
     p.add_argument("--wait-ms", dest="wait_ms", type=int,
                    help="ms to wait after each navigation")
-    p.add_argument("--accept-shrinkage", dest="accept_shrinkage",
-                   action="store_const", const=True,
-                   help="write captures that shrank to under half of the prior text "
-                        "(a real upstream cut); a not-found page is never written")
+    p.add_argument("--accept-shrinkage", dest="accept_shrinkage", type=_id_list,
+                   metavar="ID[,ID...]",
+                   help="write these pages even when the capture kept under 50%% of "
+                        "the prior text's characters and under 60%% of its words (a "
+                        "real upstream cut you have checked); named pages only, and "
+                        "a not-found page is never written")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -251,8 +261,7 @@ def _print_summary(results, failed: int) -> None:
             status = "ok"
             detail = (f"discovered {stats.get('discovered', '?')}, "
                       f"captured {stats.get('captured', '?')}, "
-                      f"errored {stats.get('errored', '?')}, "
-                      f"refused {stats.get('refused', 0)}")
+                      f"errored {stats.get('errored', '?')}")
         else:
             status, detail = "FAILED", error
         print(f"  {label.ljust(width)}  {status:<6}  {detail}")

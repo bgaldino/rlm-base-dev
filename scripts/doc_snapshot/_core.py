@@ -30,7 +30,15 @@ See scripts/doc_snapshot/README.md for details.
 
 
 class SnapshotError(Exception):
-    """A snapshot run failed (bad walk, blocked fetch, missing dependency)."""
+    """A snapshot run failed (bad walk, blocked fetch, missing dependency).
+
+    A run whose captures failed also carries what the capture guard found:
+    ``refused`` is ``[(id, reason)]`` for captures it refused, ``orphaned`` the
+    ids of errored pages the current table of contents no longer lists.
+    """
+
+    refused: List[Tuple[str, str]] = []
+    orphaned: List[str] = []
 
 
 class OptionsError(SnapshotError):
@@ -64,14 +72,46 @@ def run_browser(coro):
         raise SnapshotError(f"browser error: {exc}") from exc
 
 
-def raise_on_capture_errors(failed: List[str], attempted: int, noun: str) -> None:
-    """Fail a run whose own captures errored; call after progress is saved."""
+def raise_on_capture_errors(
+    failed: List[str],
+    attempted: int,
+    noun: str,
+    refused: Optional[List[Tuple[str, str]]] = None,
+    orphaned: Optional[List[str]] = None,
+) -> None:
+    """Fail a run whose own captures errored; call after progress is saved.
+
+    The guard's counts ride on the error (message and attributes) because a
+    failed run returns no stats: the multi-preset summary prints this message
+    on the FAILED row.
+    """
     if not failed:
         return
+    refused = list(refused or [])
+    orphaned = list(orphaned or [])
     shown = ", ".join(sorted(failed)[:5]) + (", …" if len(failed) > 5 else "")
-    raise SnapshotError(
-        f"{len(failed)} of {attempted} {noun} failed to capture: {shown} "
+    guard = []
+    if refused:
+        guard.append(f"{len(refused)} refused by the capture guard")
+    if orphaned:
+        guard.append(f"{len(orphaned)} no longer in the contents")
+    detail = f" [{', '.join(guard)}]" if guard else ""
+    error = SnapshotError(
+        f"{len(failed)} of {attempted} {noun} failed to capture{detail}: {shown} "
         "(progress saved; errors are recorded in the manifest)"
+    )
+    error.refused = refused
+    error.orphaned = orphaned
+    raise error
+
+
+def as_id_set(value: Any) -> frozenset:
+    """Ids from a comma-separated string or a list of them (``--accept-shrinkage``)."""
+    if value is None or value is False:
+        return frozenset()
+    items = [value] if isinstance(value, str) else list(value)
+    return frozenset(
+        part.strip() for item in items for part in str(item).split(",") if part.strip()
     )
 
 

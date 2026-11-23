@@ -20,7 +20,8 @@ rules are unit-testable offline. See ``scripts/doc_snapshot/README.md`` ->
 """
 
 import re
-from typing import List, Optional, Tuple
+from pathlib import Path
+from typing import Callable, Collection, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Placeholder (portal not-found page)
@@ -60,7 +61,9 @@ def placeholder_reason(title: Optional[str], body: Optional[str]) -> Optional[st
             return f"portal not-found page (title is {title.strip()!r})"
     text = body or ""
     first = next((ln for ln in text.splitlines() if ln.strip()), "")
-    folded_first = _fold(first)
+    # A converted body opens with the page H1 ("# We couldn't find ..."); compare
+    # the words, not the Markdown heading marker.
+    folded_first = _fold(first.lstrip().lstrip("#"))
     for lead in _NOT_FOUND_LEADS:
         if folded_first.startswith(lead):
             return "portal not-found page (body opens with the not-found headline)"
@@ -95,8 +98,14 @@ _WORD = re.compile(r"\w+")
 
 def body_of(captured_file_text: str) -> str:
     """The article body of a captured file: no frontmatter, H1, banner or footer."""
-    text = _FRONTMATTER.sub("", captured_file_text, count=1)
-    text = _ATTRIBUTION.sub("", text, count=1)
+    return strip_page_chrome(
+        _ATTRIBUTION.sub("", _FRONTMATTER.sub("", captured_file_text, count=1), count=1)
+    )
+
+
+def strip_page_chrome(text: str) -> str:
+    """``text`` without a leading preview banner and H1, so a new body (which the
+    converter opens with its H1) is measured like the prior file's body."""
     text = _PREVIEW_NOTE.sub("", text, count=1)
     text = _H1.sub("", text, count=1)
     return text.strip()
@@ -127,19 +136,40 @@ def refusal_reason(
     title: Optional[str],
     body: str,
     prior_file_text: Optional[str],
-    accept_shrinkage: bool = False,
+    page_id: str = "",
+    accept_shrinkage: Collection[str] = (),
+    on_accepted: Optional[Callable[[str], None]] = None,
 ) -> Optional[str]:
     """Why a capture must not be written, or None when it is safe to write.
 
-    A placeholder is never overridable. Shrinkage is refused unless
-    ``accept_shrinkage`` (the operator has read the page and the loss is real).
+    A placeholder is never overridable. Shrinkage is refused unless ``page_id``
+    is in ``accept_shrinkage`` (the operator named the page after reading it);
+    when that lets a shrunken capture through, ``on_accepted`` is called with
+    the reason it would have been refused for.
     """
     reason = placeholder_reason(title, body)
     if reason:
         return reason
-    if accept_shrinkage or not prior_file_text:
+    if not prior_file_text:
         return None
-    return shrink_reason(body_of(prior_file_text), body)
+    shrink = shrink_reason(body_of(prior_file_text), strip_page_chrome(body))
+    if shrink and page_id and page_id in accept_shrinkage:
+        if on_accepted:
+            on_accepted(shrink)
+        return None
+    return shrink
+
+
+def read_prior(path: Path) -> Optional[str]:
+    """The file a capture would overwrite, or None when there is none to compare.
+
+    A file that is not valid UTF-8 cannot be compared; it is treated as absent
+    (the write then replaces it) rather than crashing the run.
+    """
+    try:
+        return path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
 
 
 def report_refusals(logger, refused: List[Tuple[str, str]]) -> None:
@@ -152,7 +182,7 @@ def report_refusals(logger, refused: List[Tuple[str, str]]) -> None:
     for page_id, reason in sorted(refused):
         logger.warning(f"  {page_id}: {reason}")
     logger.warning(
-        "If a shrunken page is the real new text, re-run with --accept-shrinkage. "
+        "If a shrunken page is the real new text, re-run with --accept-shrinkage <id>. "
         "A not-found page is never written: the id was retired or moved."
     )
 

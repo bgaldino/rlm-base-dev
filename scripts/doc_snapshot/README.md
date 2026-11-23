@@ -32,7 +32,7 @@ Each corpus lives under `docs/salesforce/{release}/`:
 |---|---|
 | `help/` | Help portal areas. Every area of a release shares this one folder and its manifest. |
 | `release-notes/` | The Revenue section of the release notes, for releases that have a `release_notes` preset. |
-| `dev-guide/` | The Revenue Cloud Developer Guide. |
+| `dev-guide/` | The Revenue Management Developer Guide. |
 | `dev-guide-industries/` | The Revenue Cloud sections of the Industries Common Resources guide. |
 
 Every corpus holds the same three things:
@@ -72,7 +72,7 @@ flags.
 | `help --release R --area A` | Snapshot one or more Help areas. |
 | `dev-guide --release R --guide G` | Snapshot one or more developer guides. |
 | `run --release R [--only k1,k2]` | Snapshot every preset of a release, Help and dev guide alike. |
-| `check [--release R]` | Look for glued-link text artifacts in the captured Help corpus. |
+| `check [--release R]` | Look for glued-link text artifacts in the captured Help corpus, and for `X, formerly X` rename artifacts in every captured corpus (upstream text that a recapture will not change). |
 | `bootstrap --from R --to NEW --release-name N` | Add a release to `presets.yaml` by copying an existing one. |
 
 `--area` and `--guide` take a preset key, a comma-separated list of keys, or
@@ -172,20 +172,38 @@ A refused capture:
   shows under **Errored** in `index.md`;
 - is logged as `[refused] <id>: <reason>` as it happens, and listed again with
   the way out at the end of the capture;
-- counts as a failed capture: the run exits 1 after saving its progress, and a
-  multi-preset summary shows `refused N` per preset.
+- counts as a failed capture: the run exits 1 after saving its progress. A failed
+  run returns no stats, so the count rides on the error: the multi-preset
+  summary prints it on that preset's FAILED row ("... [N refused by the capture
+  guard, M no longer in the contents] ...").
 
-**Override.** `--accept-shrinkage` (on `help`, `dev-guide` and `run`) writes a
-page the shrinkage rule refused. Use it only after reading the page and finding
-the loss is real upstream (verify against the live content API or page, as 413
-did). It is a run flag, not a preset option, so a preset can never switch the
-guard off. It never writes a not-found page: the id was retired or moved, so
-search the manifest by title for its new id.
+A refused page is listed under **Errored** in `index.md`, while its kept prior
+file stays on disk and `check` still reads it. The same holds for any failed
+fetch (a navigation timeout, a missing H1, an empty body): Help and dev-guide
+alike keep the prior file and its `file` and `body_length`, and change only
+`status` and `error`.
+
+**Override.** `--accept-shrinkage ID[,ID...]` (on `help`, `dev-guide` and `run`)
+writes the named pages even when the shrinkage rule would refuse them, and logs
+one `[accepted] <id>: <reason>` warning per page it lets through. It names pages,
+never the whole run, so one real cut cannot switch the guard off for the rest.
+Use it only after reading each page and finding the loss is real upstream
+(verify against the live content API or page, as 413 did). It is a run flag, not
+a preset option. It never writes a not-found page: the id was retired or moved,
+so search the manifest by title for its new id.
+
+The new body is measured without its leading H1 and preview banner, the same
+way the prior file's body is, so a long title cannot hide a stub.
+
+A dev-guide page that is refused and has no prior file is left out of the set of
+known pages, so links to it keep their online URL instead of pointing at a file
+that does not exist. A prior file that is not valid UTF-8 is treated as absent
+(the capture replaces it).
 
 **Orphans.** A page that errors and is no longer listed by the run's own
 discovery (a whole-guide TOC walk for `dev-guide`, the sidebar walk for `help`)
 is reported at the end as moved or retired upstream, with its earlier capture
-kept. The 264.0 guide dropped 18 asset and order object pages this way. The
+kept (a failed fetch never deletes it). The 264.0 guide dropped 18 asset and order object pages this way. The
 report is a lead: a page reached only through cross-reference following is also
 not in the TOC. Retire such a page or mark it moved by hand; the tool never
 deletes it.
@@ -263,7 +281,7 @@ applied in this order, and each step overrides the one before:
 | `headless` | `true` | Set `false` to watch the browser. |
 | `concurrency` | 4 (Help), 6 (dev guide) | Parallel fetches. |
 | `wait_ms` | 3000 | Time to wait after each page load. |
-| `accept_shrinkage` | `false` | Flag only (`--accept-shrinkage`), never a preset value. See **Capture guard**. |
+| `accept_shrinkage` | none | Page ids, as a flag only (`--accept-shrinkage ID[,ID...]`), never a preset value. See **Capture guard**. |
 
 **`help`:**
 

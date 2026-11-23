@@ -60,10 +60,12 @@ def _task(**options):
         "root_article_id": "ind.example_introduction.htm",
         "expect_min_articles": None,
         "wait_ms": 1,
+        "accept_shrinkage": frozenset(),
         "discover_timeout_ms": 5,
         "release_version": "264",
         **options,
     }
+    t._walked_ids = None
     t.logger = _NullLogger()
     return t
 
