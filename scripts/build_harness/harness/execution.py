@@ -212,11 +212,18 @@ def _expired_detail(org: Dict[str, Any], sf_alias: str, today: dt.date) -> Optio
 
 
 def _local_org_record(root: Path, sf_alias: str, timeout: float) -> Optional[Dict[str, Any]]:
-    """Find the alias in `sf org list --all --skip-connection-status --json`.
+    """Find the org in `sf org list --all --skip-connection-status --json`.
 
-    Reads local auth files only (no network, no CumulusCI), and `--all` keeps
-    expired and deleted orgs in the list. Returns the org record, `{}` when the
-    list was read and the alias is not in it, or None when the list could not be read.
+    Matches the alias, any entry of an `aliases` list, or the username. Not
+    local-only: `--skip-connection-status` skips only the per-org connection check of
+    non-scratch orgs. plugin-org's `processScratchOrgs` still queries ScratchOrgInfo on
+    the dev hub for every scratch org (read from plugin-org 7.0.13 `orgListUtil.js`),
+    and that query is what supplies `status`, `isExpired` and `expirationDate`. When
+    the hub cannot be queried, scratch orgs are dropped from the list, so an absent org
+    is not evidence that the org is gone. Needs no CumulusCI.
+
+    Returns the org record, `{}` when the list was read and no entry matches, or
+    None when the list could not be read.
     """
     try:
         result = subprocess.run(
@@ -236,7 +243,13 @@ def _local_org_record(root: Path, sf_alias: str, timeout: float) -> Optional[Dic
         if not isinstance(group, list):
             continue
         for org in group:
-            if isinstance(org, dict) and org.get("alias") == sf_alias:
+            if not isinstance(org, dict):
+                continue
+            names = {org.get("alias"), org.get("username")}
+            aliases = org.get("aliases")
+            if isinstance(aliases, list):
+                names.update(aliases)
+            if sf_alias in names:
                 return org
     return {}
 
@@ -254,8 +267,11 @@ def probe_org(
     cannot reach CumulusCI's expired-org recreation (`check_org_expired`), and it took
     1-3 seconds where `cci org info` took 9-27 seconds on the same org. When display
     fails for any reason other than an unknown alias (an expired org can fail on its
-    token refresh), the local org list decides: an expired, deleted or absent org is
-    `missing`; only an unreadable list leaves the state unknown.
+    token refresh), `sf org list --all --skip-connection-status` is consulted. That list
+    is not network-free (it reads each scratch org's status from the dev hub), so it can
+    cost a second timeout. Only positive evidence gives `missing`: display reporting an
+    unknown alias, or a list record that is Expired/Deleted. An alias absent from the
+    list, or an unreadable list, leaves the state `error` (unknown).
 
     Returns {"state": ..., "detail": ...} where state is one of:
       present - the org is authenticated and not expired
@@ -301,7 +317,7 @@ def probe_org(
     local = _local_org_record(root, sf_alias, timeout)
     if local is not None:
         if not local:
-            return {"state": "missing", "detail": f"No local authorization found for `{sf_alias}`. {failure}"}
+            return {"state": "error", "detail": f"`{sf_alias}` is not in `sf org list` (the dev hub may be unreachable). {failure}"}
         gone = _expired_detail(local, sf_alias, today)
         if gone:
             return {"state": "missing", "detail": f"{gone} {failure}"}

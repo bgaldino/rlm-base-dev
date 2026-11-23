@@ -11,6 +11,7 @@ from threading import Event
 
 import pytest
 
+from scripts.build_harness.harness import execution
 from scripts.build_harness.harness.execution import (
     ORG_PROBE_TIMEOUT_SECONDS,
     make_run_id,
@@ -206,8 +207,31 @@ def test_probe_org_display_failure_with_past_expiration_in_list_is_missing(tmp_p
     assert probe_org(tmp_path, "rlm-base__demo", today=dt.date(2026, 11, 24))["state"] == "missing"
 
 
-def test_probe_org_display_failure_with_alias_absent_from_list_is_missing(tmp_path, monkeypatch) -> None:
+def test_probe_org_display_failure_with_alias_absent_from_list_stays_error(tmp_path, monkeypatch) -> None:
+    # plugin-org drops scratch orgs from the list when the dev hub cannot be queried, so
+    # absence is not evidence the org is gone.
     _fake_sf(monkeypatch, stdout=_FAILED_DISPLAY, returncode=1, list_payload=_org_list({"alias": "other"}))
+    result = probe_org(tmp_path, "rlm-base__demo")
+    assert result["state"] == "error"
+    assert "not in `sf org list`" in result["detail"]
+
+
+def test_probe_org_dns_failure_with_live_org_under_other_alias_stays_error(tmp_path, monkeypatch) -> None:
+    display = json.dumps({"status": 2, "name": "DomainNotFoundError", "message": "getaddrinfo ENOTFOUND"})
+    listing = _org_list({"alias": "something-else", "username": "u@example.test", "status": "Active"})
+    _fake_sf(monkeypatch, stdout=display, returncode=2, list_payload=listing)
+    assert probe_org(tmp_path, "rlm-base__demo")["state"] == "error"
+
+
+@pytest.mark.parametrize(
+    "record",
+    [
+        {"alias": "other", "aliases": ["x", "rlm-base__demo"], "status": "Deleted", "isExpired": True},
+        {"alias": "other", "username": "rlm-base__demo", "status": "Deleted", "isExpired": True},
+    ],
+)
+def test_probe_org_list_matches_aliases_list_and_username(tmp_path, monkeypatch, record) -> None:
+    _fake_sf(monkeypatch, stdout=_FAILED_DISPLAY, returncode=1, list_payload=_org_list(record))
     assert probe_org(tmp_path, "rlm-base__demo")["state"] == "missing"
 
 
@@ -228,11 +252,28 @@ def test_probe_org_expiring_today_is_still_present(tmp_path, monkeypatch) -> Non
     assert probe_org(tmp_path, "rlm-base__demo", today=dt.date(2026, 11, 24))["state"] == "present"
 
 
-def test_probe_org_default_today_is_utc(tmp_path, monkeypatch) -> None:
-    utc_today = dt.datetime.now(dt.timezone.utc).date()
-    payload = json.dumps({"status": 0, "result": {"status": "Active", "expirationDate": utc_today.isoformat()}})
+def test_utc_today_uses_the_utc_date_not_the_local_date(monkeypatch) -> None:
+    # 23:30 on the 23rd in UTC-5 is already the 24th in UTC, and 00:30 on the 24th in
+    # UTC+5 is still the 23rd in UTC. _utc_today must convert before taking the date.
+    class _Clock(dt.datetime):
+        instant = dt.datetime(2026, 11, 24, 4, 30, tzinfo=dt.timezone.utc)
+
+        @classmethod
+        def now(cls, tz=None):
+            return cls.instant.astimezone(tz) if tz else cls.instant.astimezone(dt.timezone(dt.timedelta(hours=-5))).replace(tzinfo=None)
+
+    monkeypatch.setattr(execution.dt, "datetime", _Clock)
+    assert execution._utc_today() == dt.date(2026, 11, 24)  # local (UTC-5) date would be the 23rd
+
+
+def test_probe_org_default_today_comes_from_utc_today(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(execution, "_utc_today", lambda: dt.date(2026, 11, 24))
+    payload = json.dumps({"status": 0, "result": {"status": "Active", "expirationDate": "2026-11-24"}})
     _fake_sf(monkeypatch, stdout=payload)
     assert probe_org(tmp_path, "rlm-base__demo")["state"] == "present"
+    payload = json.dumps({"status": 0, "result": {"status": "Active", "expirationDate": "2026-11-23"}})
+    _fake_sf(monkeypatch, stdout=payload)
+    assert probe_org(tmp_path, "rlm-base__demo")["state"] == "missing"
 
 
 @pytest.mark.parametrize("result", [None, [], "Active"])

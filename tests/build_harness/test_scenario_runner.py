@@ -393,6 +393,12 @@ def test_resume_reports_probe_outcome_distinctly(tmp_path, monkeypatch, probe, t
     assert result["failure_class"] == failure_class
     if target != "org_missing":
         assert "does not exist" not in result["failure_signature"]
+        assert "sf org list --all" in result["failure_signature"]
+        assert result["can_resume"] is True
+        assert result["policy"]["recommended_action"] == "resume"
+    else:
+        assert result["can_resume"] is False
+        assert result["policy"]["recommended_action"] != "resume"
 
 
 @pytest.mark.parametrize(

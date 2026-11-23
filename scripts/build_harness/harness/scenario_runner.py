@@ -274,7 +274,7 @@ def run_single_scenario(
                     target = "org_probe_timeout" if probe["state"] == "timeout" else "org_probe_failed"
                     signature = (
                         f"Could not confirm org alias `{org_alias}` exists (the org may be present): "
-                        f"{probe['detail']} Re-run resume."
+                        f"{probe['detail']} Re-run resume; if this repeats, check `sf org list --all`."
                     )
                     failure_class = "transient" if probe["state"] == "timeout" else "unknown"
                 return build_failure_result(
@@ -285,7 +285,8 @@ def run_single_scenario(
                     failure_signature=signature,
                     failure_class=failure_class,
                     retry_count=0,
-                    can_resume=False,
+                    # An unconfirmed org may still exist: keep resume recommended.
+                    can_resume=probe["state"] != "missing",
                 )
 
         last_completed_step = 0
