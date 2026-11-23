@@ -795,8 +795,7 @@ CHECKS = [
         # output.xml/log.html (incl. log.html's compressed strings). No org or browser needed.
         name="robot_session_url_suite",
         cmd=["python", "tests/test_robot_session_url_logging.py"],
-        triggers=["robot/", "scripts/ai/check_robot_session_urls.py",
-                  "tests/test_robot_session_url_logging.py"],
+        triggers=["robot/", "scripts/ai/", "tests/test_robot_session_url_logging.py"],
         deps=["robotframework"], gating=True,
     ),
     dict(
