@@ -632,7 +632,7 @@ foundations:
       path: docs/salesforce/264/help/articles/
       manifest: docs/salesforce/264/help/manifest.json
       index: docs/salesforce/264/help/index.md
-      article_count: 1703  # = len(manifest.json articles) = files on disk, verified 2026-11-24; becomes generator-computed when generate_skill_manifest lands (todo 132)
+      article_count: 1703  # = len(manifest.json articles) = files on disk, verified 2026-11-24; becomes generator-computed when generate_skill_manifest lands
       release: "264"
       season: "Winter '27"
       api_version: v68.0
