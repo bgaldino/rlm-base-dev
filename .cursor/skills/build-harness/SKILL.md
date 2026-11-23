@@ -90,6 +90,7 @@ Start harness and TUI builds from the main checkout or from a regular `git clone
 - From a worktree outside any checkout, no parent has a `.git` directory, so CCI finds no project.
 - `cci project info` run from a worktree's root looks normal and does not reveal this. Check the folder you start from instead: `test -d .git` must succeed there.
 - CCI's root override (`CUMULUSCI_AUTO_DETECT=1` with `CUMULUSCI_REPO_ROOT`, which `tests/test_doc_build_steps.py` uses to read flows from a worktree) is not a fix for builds. The root must be each run's own `cci_project/`; pointing it at the worktree skips the scenario's generated `cumulusci.yml` and the per-run Robot output.
+- The harness now checks this before any org is created or resumed. `execution.py::verify_project_flags` runs `cci project info` in the workspace (read-only, no org, about 0.6 seconds) and compares the boolean flags (the only values `when:` reads; the `rlm_*_api_names`, `ps_*` and `dt_*` lists are skipped) with what CumulusCI loaded, exactly (`True`/`False`). A mismatch, a boolean flag absent from the output, a missing `custom:` block, or no boolean flag to check stops the scenario with target `project_root_flags`, phase `preflight` (`status: failed` on `run`, `resume_blocked` on `resume`; the TUI emits `run_failed`), and a message naming each flag and the value CumulusCI loaded. Every `when:` in the flow, nested tasks included, reads that same `project.custom`, so a matching check means the nested checks see the overrides. Measured 2026-11-24 from a regular clone: with `inapp` and `mcp` overridden on, CumulusCI's flow steps for `deploy_post_inapp`, `load_inapp_dataset` and `deploy_post_mcp` all saw them true from the workspace, and a plain checkout of the same files reported both false.
 - Harness unit tests (`tests/build_harness/`) mock their subprocesses and run fine from a worktree. Only builds are affected.
 
 ### Run all scenarios
@@ -354,6 +355,8 @@ An SFDMU load (`tasks/rlm_sfdmu.py`) writes the target org's access token into t
 
 Unsupported expressions fail open (`True`) to avoid silently skipping steps, matching CCI's defensive behavior.
 
+The harness evaluates only the top-level `prepare_rlm_org` step `when:` itself, with the scenario's effective flags (`scenario_runner.py`, `tui/runner.py`). Everything inside a flow step is evaluated by CumulusCI from the workspace's generated `cumulusci.yml`; `verify_project_flags` confirms CumulusCI loaded those flags (see **Where to run a build**).
+
 ### `tui-cci` wrapper behavior
 
 `./tui-cci` creates a cache-backed venv at
@@ -375,7 +378,7 @@ exported them.
 - `tests/build_harness/test_io.py` - JSON/JSONL/time/directory helpers
 - `tests/build_harness/test_failure.py` - failure signature classification
 - `tests/build_harness/test_config.py` - flags, aliases, safe `when:`, project materialization, cleanup guard
-- `tests/build_harness/test_execution.py` - subprocess streaming, cancellation, and org existence checks
+- `tests/build_harness/test_execution.py` - subprocess streaming, cancellation, org existence checks, and the project-flag check
 - `tests/build_harness/test_provenance.py` - stamp parsing and provenance extraction
 - `tests/build_harness/test_reporting.py` - report composition and analysis artifact generation
 - `tests/build_harness/test_scenario_runner.py` - policy recommendations and scenario orchestration behavior

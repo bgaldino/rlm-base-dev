@@ -17,6 +17,8 @@ from scripts.build_harness.harness.execution import (
     run_command,
     run_command_stream,
     sf_alias_for,
+    _parse_project_info_custom,
+    verify_project_flags,
 )
 
 
@@ -281,3 +283,129 @@ def test_probe_org_non_dict_result_is_error(tmp_path, monkeypatch, result) -> No
 
 def test_probe_timeout_is_well_below_two_minutes() -> None:
     assert 10 < ORG_PROBE_TIMEOUT_SECONDS <= 45
+
+
+def _fake_cci_project_info(monkeypatch, *, output="", returncode=0, raises=None):
+    calls = []
+
+    class _Result:
+        pass
+
+    def _run(command, **kwargs):
+        calls.append((command, kwargs))
+        if raises is not None:
+            raise raises
+        result = _Result()
+        result.returncode, result.stdout, result.stderr = returncode, output, ""
+        return result
+
+    monkeypatch.setattr("scripts.build_harness.harness.execution.subprocess.run", _run)
+    return calls
+
+
+def _render_recursive(data, indent=0):
+    """Mirror of `cumulusci/cli/project.py::render_recursive` without click styling (piped output)."""
+    pad = " " * indent
+    lines = []
+    if isinstance(data, list):
+        for item in data:
+            if isinstance(item, (bytes, str)):
+                lines.append(f"{pad}- {item}")
+            else:
+                lines.append(f"{pad}-")
+                lines.extend(_render_recursive(item, indent + 4))
+    elif isinstance(data, dict):
+        for key, value in data.items():
+            if isinstance(value, (list, dict)):
+                lines.append(f"{pad}{key}:")
+                lines.extend(_render_recursive(value, indent + 4))
+            else:
+                lines.append(f"{pad}{key}: {value}")
+    return lines
+
+
+def _project_info(custom):
+    return "\n".join(
+        _render_recursive({"name": "rlm-base", "git": {"push_prefix_sandbox": "Sandbox orgs: "}, "custom": custom, "tail": "x"})
+    ) + "\n"
+
+
+def test_verify_project_flags_passes_with_list_flags_in_effective_flags(tmp_path, monkeypatch) -> None:
+    effective = {"inapp": True, "clm": False, "ps_inapp": ["RLM_A", "RLM_B"], "inapp_dataset": "datasets/x", "unset": None}
+    calls = _fake_cci_project_info(monkeypatch, output=_project_info(effective))
+    assert verify_project_flags(tmp_path, effective) is None
+    assert calls[0][0] == ["cci", "project", "info"]
+    assert calls[0][1]["cwd"] == str(tmp_path)
+
+
+def test_verify_project_flags_passes_on_the_real_project_custom(tmp_path, monkeypatch) -> None:
+    from scripts.build_harness.harness.config import CCI_FILE, compose_flags, load_cci, load_default_flags
+
+    defaults = load_default_flags(load_cci(CCI_FILE))
+    assert any(isinstance(v, list) for v in defaults.values()), "expected list-valued flags in project.custom"
+    effective = compose_flags(defaults, {"inapp": True, "mcp": True})
+    _fake_cci_project_info(monkeypatch, output=_project_info(effective))
+    assert verify_project_flags(tmp_path, effective) is None
+    # CumulusCI loading the repo defaults instead (another project root) is reported.
+    _fake_cci_project_info(monkeypatch, output=_project_info(defaults))
+    message = verify_project_flags(tmp_path, effective)
+    assert message is not None and "inapp" in message and "mcp" in message
+
+
+def test_verify_project_flags_reports_flags_cci_reads_from_another_root(tmp_path, monkeypatch) -> None:
+    _fake_cci_project_info(monkeypatch, output=_project_info({"inapp": False, "mcp": False, "clm": False}))
+    message = verify_project_flags(tmp_path, {"inapp": True, "mcp": True, "clm": False})
+    assert "inapp: scenario True, CumulusCI loaded 'False'" in message
+    assert "mcp: scenario True" in message
+    assert "clm" not in message
+    assert "git worktree" in message
+
+
+def test_verify_project_flags_compares_exactly_not_case_insensitively(tmp_path, monkeypatch) -> None:
+    _fake_cci_project_info(monkeypatch, output=_project_info({"inapp": "true"}))
+    assert "inapp" in verify_project_flags(tmp_path, {"inapp": True})
+
+
+def test_verify_project_flags_reports_a_flag_absent_from_the_output(tmp_path, monkeypatch) -> None:
+    _fake_cci_project_info(monkeypatch, output=_project_info({"other": True}))
+    assert "inapp: scenario True, absent" in verify_project_flags(tmp_path, {"inapp": True})
+
+
+def test_verify_project_flags_ignores_non_boolean_values_and_none(tmp_path, monkeypatch) -> None:
+    # A None-valued flag must not vacuously pass: only booleans are checked, and a run
+    # whose flags contain none to check fails instead of passing on nothing.
+    _fake_cci_project_info(monkeypatch, output=_project_info({"inapp": True}))
+    assert verify_project_flags(tmp_path, {"inapp": True, "unset": None}) is None
+    message = verify_project_flags(tmp_path, {"unset": None, "names": ["a"]})
+    assert message is not None and "no boolean flags" in message
+
+
+def test_verify_project_flags_fails_without_a_custom_block(tmp_path, monkeypatch) -> None:
+    _fake_cci_project_info(monkeypatch, output="name: rlm-base\ngit:\n    prefix: x\n")
+    assert "no `custom:` block" in verify_project_flags(tmp_path, {"inapp": True})
+
+
+def test_verify_project_flags_fails_when_cci_cannot_report(tmp_path, monkeypatch) -> None:
+    _fake_cci_project_info(monkeypatch, returncode=1)
+    assert "cci project info" in verify_project_flags(tmp_path, {"inapp": True})
+    _fake_cci_project_info(monkeypatch, raises=FileNotFoundError())
+    assert "cci project info" in verify_project_flags(tmp_path, {"inapp": True})
+    _fake_cci_project_info(monkeypatch, raises=subprocess.TimeoutExpired(cmd=["cci"], timeout=60))
+    assert "cci project info" in verify_project_flags(tmp_path, {"inapp": True})
+
+
+def test_parse_project_info_custom_reads_flags_and_blanks_list_keys() -> None:
+    output = (
+        "name: rlm-base\n"
+        "git:\n"
+        "    push_prefix_sandbox: Sandbox orgs: \n"
+        "custom:\n"
+        "    clm: False\n"
+        "    inapp: True\n"
+        "    ps_list:\n"
+        "        - one\n"
+        "        - two\n"
+        "    mcp: True\n"
+        "tail: x\n"
+    )
+    assert _parse_project_info_custom(output) == {"clm": "False", "inapp": "True", "ps_list": "", "mcp": "True"}

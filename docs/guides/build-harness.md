@@ -45,7 +45,11 @@ Each scenario includes:
 `flag_overrides` are merged with `project.custom` defaults in `cumulusci.yml`.
 The harness materializes each scenario into a scenario-scoped CCI project root with
 an overridden `cumulusci.yml`, so CCI `when:` evaluation (including nested
-sub-flows/tasks) uses the scenario's effective flags at execution time.
+sub-flows/tasks) uses the scenario's effective flags at execution time. Before creating or
+resuming an org, the harness (and the TUI) runs `cci project info` in the
+workspace and stops with target `project_root_flags` if CumulusCI loaded other
+flag values, which happens when a build starts from a git worktree (CumulusCI
+then takes the enclosing checkout as its project root).
 
 The workspace (`scenarios/<scenario_id>/cci_project/`) links most repo entries
 to the repo and copies `scripts/` and `robot/`. Robot output

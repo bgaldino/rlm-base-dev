@@ -316,3 +316,94 @@ def probe_org(
         if gone:
             return {"state": "missing", "detail": f"{gone} {failure}"}
     return {"state": "error", "detail": failure}
+
+
+def _parse_project_info_custom(output: str) -> Dict[str, str]:
+    """Read the top-level `custom:` block of `cci project info` as name -> text.
+
+    The output looks like YAML but is not (a value such as `Sandbox orgs: ` breaks a
+    YAML parser), so read the block by indentation: one `name: value` line per flag
+    directly under `custom:`; deeper lines (lists, mappings) are not flags.
+    """
+    flags: Dict[str, str] = {}
+    in_block = False
+    block_indent: Optional[int] = None
+    for line in output.splitlines():
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if indent == 0:
+            in_block = line.rstrip() == "custom:"
+            block_indent = None
+            continue
+        if not in_block:
+            continue
+        if block_indent is None:
+            block_indent = indent
+        if indent != block_indent:
+            continue
+        name, separator, value = line.strip().partition(":")
+        if separator:
+            flags[name.strip()] = value.strip()
+    return flags
+
+
+def verify_project_flags(
+    project_root: Path,
+    effective_flags: Dict[str, Any],
+    *,
+    timeout: float = 60,
+) -> Optional[str]:
+    """Check that CumulusCI, run from ``project_root``, loads the scenario's flags.
+
+    Every ``when:`` check in a flow, including those of the nested flows' tasks, is
+    evaluated against the ``project.custom`` that CumulusCI itself loaded. The
+    harness writes the scenario's flags into the workspace's generated
+    ``cumulusci.yml``, but CumulusCI takes as its project root the first folder
+    upward from the working directory whose ``.git`` is a directory. When that is
+    not the workspace (the build started from a git worktree, where ``.git`` is a
+    file), CumulusCI loads another checkout's defaults and silently skips every
+    task whose flag the scenario turned on. `cci project info` prints the
+    ``project.custom`` CumulusCI loaded, read-only and without an org.
+
+    Returns None when every flag matches, otherwise a message naming the
+    mismatches (or why they could not be read).
+    """
+    try:
+        result = subprocess.run(
+            ["cci", "project", "info"],
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
+        return f"Could not run `cci project info` in {project_root} to confirm the scenario flags: {exc!r}"
+    if result.returncode != 0:
+        return f"`cci project info` exited {result.returncode} in {project_root}; cannot confirm the scenario flags."
+    custom = _parse_project_info_custom(result.stdout or "")
+    if not custom:
+        return "`cci project info` printed no `custom:` block; cannot confirm the scenario flags."
+
+    # `when:` expressions read boolean flags; the rest of project.custom (the
+    # `rlm_*_api_names`, `ps_*` and `dt_*` lists) is data, which `cci project info`
+    # prints as a bare key over indented items.
+    checked = {name: wanted for name, wanted in effective_flags.items() if isinstance(wanted, bool)}
+    if not checked:
+        return "The scenario has no boolean flags to check against `cci project info`; cannot confirm them."
+    mismatches = []
+    for name, wanted in checked.items():
+        if name not in custom:
+            mismatches.append(f"{name}: scenario {wanted!r}, absent from CumulusCI's project.custom")
+        elif custom[name] != str(wanted):
+            mismatches.append(f"{name}: scenario {wanted!r}, CumulusCI loaded {custom[name]!r}")
+    if not mismatches:
+        return None
+    return (
+        "CumulusCI did not load the scenario's flags from the generated workspace, so `when:` checks "
+        "inside flows would skip tasks the scenario enables. Mismatches: "
+        + "; ".join(mismatches)
+        + ". CumulusCI's project root is the first folder upward from the working directory whose "
+        ".git is a directory; start the build from the main checkout or a regular git clone, "
+        "not a git worktree."
+    )

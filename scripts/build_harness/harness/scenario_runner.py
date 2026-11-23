@@ -12,7 +12,7 @@ from scripts.build_harness.harness.config import (
     evaluate_when,
     prepare_scenario_project_root,
 )
-from scripts.build_harness.harness.execution import probe_org, run_command, sf_alias_for
+from scripts.build_harness.harness.execution import probe_org, run_command, sf_alias_for, verify_project_flags
 from scripts.build_harness.harness.io import append_jsonl, now_utc, write_json
 from scripts.build_harness.harness.provenance import write_build_provenance
 
@@ -155,6 +155,20 @@ def run_single_scenario(
         }
 
     try:
+        flags_error = verify_project_flags(project_root, flags)
+        if flags_error is not None:
+            cleanup_workspace = False
+            return build_failure_result(
+                status="resume_blocked" if is_resume else "failed",
+                failed_step=resume_from_step if is_resume else 0,
+                failed_target="project_root_flags",
+                failure_phase="preflight",
+                failure_signature=flags_error,
+                failure_class="deterministic",
+                retry_count=0,
+                can_resume=False,
+            )
+
         if not skip_validate and not is_resume:
             validate_result = run_command(
                 root,
