@@ -11,19 +11,25 @@ public with sharing class RLM_PaymentsDataController {
     public static List<Map<String, String>> getAccountOptions() {
         List<Map<String, String>> options = new List<Map<String, String>>();
         options.add(new Map<String, String>{ 'value' => '', 'label' => 'All Accounts' });
-        Set<Id> accountIds = new Set<Id>();
-        for (AggregateResult ar : [
-            SELECT PaymentAccountId FROM PaymentScheduleItem
-            WHERE PaymentAccountId != null
-            WITH USER_MODE GROUP BY PaymentAccountId
-        ]) {
-            accountIds.add((Id) ar.get('PaymentAccountId'));
-        }
-        if (accountIds.isEmpty()) {
-            return options;
-        }
-        for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :accountIds WITH USER_MODE ORDER BY Name]) {
-            options.add(new Map<String, String>{ 'value' => a.Id, 'label' => a.Name });
+        try {
+            Set<Id> accountIds = new Set<Id>();
+            for (AggregateResult ar : [
+                SELECT PaymentAccountId FROM PaymentScheduleItem
+                WHERE PaymentAccountId != null
+                WITH USER_MODE GROUP BY PaymentAccountId
+            ]) {
+                accountIds.add((Id) ar.get('PaymentAccountId'));
+            }
+            if (accountIds.isEmpty()) {
+                return options;
+            }
+            for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :accountIds WITH USER_MODE ORDER BY Name]) {
+                options.add(new Map<String, String>{ 'value' => a.Id, 'label' => a.Name });
+            }
+        } catch (QueryException e) {
+            // The user cannot read PaymentScheduleItem or Account: offer only "All Accounts"
+            // so the currency options and the rest of the dashboard still load.
+            return new List<Map<String, String>>{ options[0] };
         }
         return options;
     }

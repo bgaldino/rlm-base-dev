@@ -545,28 +545,25 @@ private class RLM_CollectionsDashboardControllerTest {
         Assert.areEqual(0, progress.totalPlans, 'The plan is not measured (access or sharing).');
     }
 
-    // getAccountOptions does not catch its Account query, so a user who cannot read Account gets
-    // a raw QueryException instead of the sentinel option the other lists fall back to.
+    // A user who cannot read Account gets only the "All Accounts" sentinel, like the other
+    // lists that fall back when a read is refused, instead of a raw QueryException.
     @isTest
-    static void getAccountOptions_forAUserWhoCannotReadAccounts_throwsAQueryException() {
+    static void getAccountOptions_forAUserWhoCannotReadAccounts_returnsOnlyTheSentinel() {
         User noAccess = RLM_BillingUITestUsers.create(new List<String>(), new List<String>());
         newAccount('RLM CD Account Options Unreadable');
 
+        List<Map<String, String>> options;
         Test.startTest();
         System.runAs(noAccess) {
             Assert.isTrue(userModeQueryFails('SELECT Id FROM Account LIMIT 1'),
                 'PRECONDITION: the user cannot read Account.');
-            try {
-                RLM_CollectionsDashboardController.getAccountOptions();
-                Assert.fail('Known gap: getAccountOptions throws a raw QueryException for a user who cannot '
-                    + 'read Account; it returned normally here. Update this test when it is fixed.');
-            } catch (Exception e) {
-                Assert.isInstanceOfType(e, QueryException.class, 'Known gap: getAccountOptions throws a raw '
-                    + 'QueryException for a user who cannot read Account; update this test when it is fixed. '
-                    + 'Got: ' + e);
-            }
+            options = RLM_CollectionsDashboardController.getAccountOptions();
         }
         Test.stopTest();
+
+        Assert.areEqual(1, options.size(), 'Only the sentinel is offered; no account is listed.');
+        Assert.areEqual('', options[0].get('value'), 'The sentinel has a blank value.');
+        Assert.areEqual('All Accounts', options[0].get('label'), 'The sentinel is "All Accounts".');
     }
 
     // The collections persona reads its own plan through the USER_MODE queries. A permission
