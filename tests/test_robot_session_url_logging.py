@@ -391,7 +391,7 @@ class RedactionTest(unittest.TestCase):
 
     def test_pattern_matches_bare_params_cookies_and_double_encoding(self):
         for text in [
-            "sid=00D5g000001AbCdE!AQEAQxyz; oid=00D5g000001AbCd",  # cookie string, starts with sid=
+            "sid=00D000000000000AA!AAAAAAAA; oid=00D000000000000",  # cookie string, starts with sid=
             "Cookie: foo=1; sid=abc", "'sid=abc'", "(otp=abc)", "a,sid=abc",
             "https%253A%252F%252Fh%252Fp%253Fsid%253Dabc", "a%2526otp%253Dabc", "h/secur%252Ffrontdoor.jsp",
         ]:
@@ -400,12 +400,17 @@ class RedactionTest(unittest.TestCase):
 
     def test_pattern_matches_a_raw_session_id(self):
         # Shape inferred from Salesforce session ids: 00D + 12-15 org-id chars, '!', 20+ token chars.
-        for sid in ["00D5g000001AbCdEFG!AQEAQexampleExampleExample1234", "00D5g000001AbCd!AQEAQexample.Example_Token12"]:
+        for sid in ["00D000000000000AAA!AAAAAAAAAAAAAAAAAAAAAAAA", "00D000000000000!AAAAAAAAAA.AAAAAAAAAA_AA"]:
             self.assertTrue(guard.SESSION_URL_PATTERN.search(f"value {sid} end"), sid)
             self.assertTrue(scanner.SESSION_URL_PATTERN.search(sid), sid)
             self.assertEqual(guard.redact_session_urls(f"bad {sid}"), guard.WITHHELD)
-        self.assertFalse(guard.SESSION_URL_PATTERN.search("00D5g000001AbCd!short"))
-        self.assertFalse(guard.SESSION_URL_PATTERN.search("record 00D5g000001AbCd is an org id"))
+        for encoded in ["00D000000000000AAA%21AAAAAAAAAAAAAAAAAAAAAAAA", "00D000000000000%2521AAAAAAAAAAAAAAAAAAAAAAAA"]:
+            self.assertTrue(guard.SESSION_URL_PATTERN.search(f"cookie {encoded}"), encoded)
+            self.assertTrue(scanner.SESSION_URL_PATTERN.search(encoded), encoded)
+            self.assertEqual(guard.redact_session_urls(f"bad {encoded}"), guard.WITHHELD)
+        self.assertFalse(guard.SESSION_URL_PATTERN.search("00D000000000000%21short"))
+        self.assertFalse(guard.SESSION_URL_PATTERN.search("00D000000000000!short"))
+        self.assertFalse(guard.SESSION_URL_PATTERN.search("record 00D000000000000 is an org id"))
 
     def test_raw_values_with_plus_are_redacted(self):
         url = "https://h.my.salesforce.com/secur/frontdoor.jsp?sid=AAAA+BBBB+CCCC&otp=DDDD"
@@ -413,7 +418,7 @@ class RedactionTest(unittest.TestCase):
         self.assertNotIn("AAAA+BBBB+CCCC", out)
 
     def test_bare_sid_message_is_withheld(self):
-        self.assertEqual(guard.redact_session_urls("sid=00D5g000001AbCdE!AQEAQxyz"), guard.WITHHELD)
+        self.assertEqual(guard.redact_session_urls("sid=00D000000000000AA!AAAAAAAA"), guard.WITHHELD)
 
     def test_pattern_leaves_ordinary_text(self):
         for text in ["sid and otp are words", "/lightning/setup/Timeline/home", "https://h/p?side=1&other=2",
@@ -445,11 +450,11 @@ class RedactionTest(unittest.TestCase):
         self.assertEqual(guard.redact_session_urls("at host/secur/frontdoor.jsp?sid=ZZZ999"), guard.WITHHELD)
         self.assertEqual(guard.redact_session_urls("odd ?otp=ZZZ999 fragment"), guard.WITHHELD)
 
-    def test_sf_error_json_on_stderr_is_parsed(self):
+    def fetch_with(self, stdout, stderr):
         class Result:
-            returncode, stdout = 1, ""
-            stderr = '{"name":"Error","message":"no such org","exitCode":1}'
+            returncode = 1
 
+        Result.stdout, Result.stderr = stdout, stderr
         real_run, real_which = guard.subprocess.run, guard.shutil.which
         guard.subprocess.run, guard.shutil.which = (lambda *a, **k: Result()), (lambda name: "/bin/sf")
         try:
@@ -457,7 +462,18 @@ class RedactionTest(unittest.TestCase):
                 guard._fetch_url("x", "/p")
         finally:
             guard.subprocess.run, guard.shutil.which = real_run, real_which
-        self.assertIn("no such org", str(ctx.exception))
+        return str(ctx.exception)
+
+    def test_sf_error_json_on_stderr_is_parsed(self):
+        # The parsed message, not the raw stderr, is reported.
+        msg = self.fetch_with("", '{"name":"Error","message":"no such org","exitCode":1}')
+        self.assertEqual(msg, "sf org open failed (exit 1): no such org")
+        self.assertNotIn('"exitCode"', msg)
+
+    def test_sf_error_json_on_stdout_is_parsed(self):
+        # Older sf wrote the error JSON to stdout.
+        msg = self.fetch_with('{"name":"Error","message":"no such org","exitCode":1}', "")
+        self.assertEqual(msg, "sf org open failed (exit 1): no such org")
 
     def test_ordinary_messages_pass_through(self):
         self.assertEqual(guard.redact_session_urls("timeout after 120s"), "timeout after 120s")
@@ -536,8 +552,13 @@ class RobotTreeSweepTest(unittest.TestCase):
     keyword it does not know, so the live-run scan (check_robot_session_urls.py) stays the backstop.
     The forbidden keywords are exactly those of the installed SeleniumLibrary that read
     ``driver.current_url`` (which selenium then logs at DEBUG): the location keywords, the window
-    keywords that build window info, ``Log Source``, cookies, and link/image locators (their
-    element-finder reads the base URL).
+    keywords that build window info, ``Log Source``, cookies, and every keyword that finds an element
+    by an ``a``/``img``/``input`` tag (links, images, buttons, checkboxes, radio buttons, text
+    fields). With an unprefixed locator the element finder reads the base URL, because those tags'
+    key attributes include ``@href``/``@src``. Keywords that find by ``button``/``textarea``/``select``
+    or no tag do not. A prefixed locator (``id:``, ``css:``, ``xpath:``) avoids the read, but this sweep
+    is name based and cannot tell, so the keywords are barred outright; use ``Click Element`` with a
+    prefixed locator instead.
     """
 
     FORBIDDEN = re.compile(
@@ -545,9 +566,11 @@ class RobotTreeSweepTest(unittest.TestCase):
         r"|Wait Until Location (?:Is|Is Not|Contains|Does Not Contain)"
         r"|Get Source|Log Source|Get Cookies?|Add Cookie|Delete (?:All )?Cookies?"
         r"|Switch Window|Close Window|Get Window (?:Titles|Names|Identifiers|Handles)"
-        r"|Click (?:Link|Image)|Mouse Down On (?:Link|Image)|Page Should (?:Not )?Contain (?:Link|Image)"
+        r"|Click (?:Link|Image|Button)|Mouse Down On (?:Link|Image)"
+        r"|Page Should (?:Not )?Contain (?:Link|Image|Button|Checkbox|Radio Button|Textfield)"
+        r"|(?:Select|Unselect) Checkbox|Checkbox Should (?:Not )?Be Selected"
+        r"|Textfield (?:Should Contain|Value Should Be)"
         r"|get_location|get_locations|current_url|page_source|window_handles)\b"
-        r"|(?:^|\s{2,}|=)(?:link|image):"
         r"|(?:window\.|document\.)location\b(?!\.pathname)"
         r"|\blocation\.(?:href|search|hash|origin|host|hostname|toString)\b"
         r"|\bdocument\.(?:URL|documentURI|baseURI|referrer)\b",
@@ -581,9 +604,17 @@ class RobotTreeSweepTest(unittest.TestCase):
                      "    Switch Window    NEW", "    Get Window Titles", "    Log Source", "    Click Link    x",
                      "    Execute JavaScript    return window.location.href", "    Execute JavaScript    return location.search",
                      "    Execute JavaScript    return document.URL", "    Execute JavaScript    return window.location",
-                     "    Click Element    link:Home"]:
+                     "    Click Button    Save", "    Page Should Not Contain Button    Save",
+                     "    Page Should Contain Checkbox    x", "    Select Checkbox    x", "    Unselect Checkbox    x",
+                     "    Checkbox Should Be Selected    x", "    Checkbox Should Not Be Selected    x",
+                     "    Page Should Contain Radio Button    x", "    Page Should Contain Textfield    x",
+                     "    Textfield Should Contain    x    y", "    Textfield Value Should Be    x    y"]:
             self.assertTrue(self.FORBIDDEN.search(line), line)
         self.assertFalse(self.FORBIDDEN.search("    ... window.location.pathname ..."))
+        # Prefixed locators and tags that do not read the URL stay allowed.
+        for line in ["    Click Element    link:Home", "    Click Element    id:save", "    Input Text    id:x    y",
+                     "    Textarea Should Contain    x    y", "    Radio Button Should Be Set To    g    v"]:
+            self.assertFalse(self.FORBIDDEN.search(line), line)
 
     def test_no_unguarded_url_or_source_reads(self):
         self.assertEqual(self.hits(self.FORBIDDEN, self.files("robot", "tasks")), [],

@@ -35,7 +35,7 @@ SESSION_URL_PATTERN = re.compile(
     r"secur(?:/|%2F|%252F)frontdoor\.jsp"
     r"|(?:[?&;]|%3F|%26|%25(?:3F|26))(?:sid|otp)(?:=|%3D|%253D)"
     r"|(?:^|[\s\"';(,])(?:sid|otp)="
-    r"|\b00D[0-9A-Za-z]{12,15}![0-9A-Za-z._]{20,}",
+    r"|\b00D[0-9A-Za-z]{12,15}(?:!|%21|%2521)[0-9A-Za-z._]{20,}",
     re.IGNORECASE,
 )
 # log.html appends string tables with ``window.output["strings"].concat([...])`` (other

@@ -36,13 +36,13 @@ from robot.libraries.BuiltIn import BuiltIn
 
 # A frontdoor path, a sid=/otp= parameter (query, cookie or bare, plain / URL-encoded / double
 # encoded), or a raw session id. The session-id shape is `00D` + 12 or 15 more org-id characters,
-# `!`, then a 20+ character token of letters, digits, `.` and `_` (inferred from Salesforce session
+# `!` (or its percent-encoded `%21` / `%2521`), then a 20+ character token of letters, digits, `.` and `_` (inferred from Salesforce session
 # ids; the token alphabet and length are not measured here).
 SESSION_URL_PATTERN = re.compile(
     r"secur(?:/|%2F|%252F)frontdoor\.jsp"
     r"|(?:[?&;]|%3F|%26|%25(?:3F|26))(?:sid|otp)(?:=|%3D|%253D)"
     r"|(?:^|[\s\"';(,])(?:sid|otp)="
-    r"|\b00D[0-9A-Za-z]{12,15}![0-9A-Za-z._]{20,}",
+    r"|\b00D[0-9A-Za-z]{12,15}(?:!|%21|%2521)[0-9A-Za-z._]{20,}",
     re.IGNORECASE,
 )
 _URL_RE = re.compile(r"https?://[^\s\"'<>]+", re.IGNORECASE)
