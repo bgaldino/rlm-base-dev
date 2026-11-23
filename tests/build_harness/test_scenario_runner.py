@@ -525,3 +525,39 @@ def test_a_fresh_run_never_offers_resume_after_a_preflight_failure(tmp_path, mon
     result = _preflight_failure(tmp_path, monkeypatch, is_resume=False, failure_class="transient")
     assert result["status"] == "failed"
     assert result["can_resume"] is False
+
+
+def test_a_persistent_transient_preflight_failure_stops_recommending_resume(tmp_path, monkeypatch) -> None:
+    # Each attempt appends a preflight row; the policy's retry limit is 2.
+    first = _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    assert first["retry_count"] == 0 and first["policy"]["recommended_action"] == "resume"
+    second = scenario_runner.run_single_scenario(
+        root=tmp_path,
+        scenario=_base_scenario(),
+        run_dir=tmp_path / "runs" / "run-10",
+        prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
+        default_flags={"inapp": False},
+        base_cci={},
+        skip_validate=False,
+        keep_orgs=True,
+        is_resume=True,
+        resume_from_step=3,
+        existing_alias="demo-org",
+    )
+    assert second["retry_count"] == 1 and second["can_resume"] is True
+    third = scenario_runner.run_single_scenario(
+        root=tmp_path,
+        scenario=_base_scenario(),
+        run_dir=tmp_path / "runs" / "run-10",
+        prepare_steps=[Step(step_number=1, target_type="task", target_name="first", when=None)],
+        default_flags={"inapp": False},
+        base_cci={},
+        skip_validate=False,
+        keep_orgs=True,
+        is_resume=True,
+        resume_from_step=3,
+        existing_alias="demo-org",
+    )
+    assert third["retry_count"] == 2
+    assert third["can_resume"] is False
+    assert third["policy"]["recommended_action"] != "resume"

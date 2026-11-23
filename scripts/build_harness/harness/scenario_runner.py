@@ -13,7 +13,7 @@ from scripts.build_harness.harness.config import (
     prepare_scenario_project_root,
 )
 from scripts.build_harness.harness.execution import probe_org, run_command, sf_alias_for, verify_project_flags
-from scripts.build_harness.harness.io import append_jsonl, now_utc, write_json
+from scripts.build_harness.harness.io import append_jsonl, load_jsonl, now_utc, write_json
 from scripts.build_harness.harness.provenance import write_build_provenance
 
 
@@ -158,6 +158,15 @@ def run_single_scenario(
         flags_error = verify_project_flags(project_root, flags)
         if flags_error is not None:
             cleanup_workspace = False
+            # Earlier transient preflight failures of this scenario, so a persistent one
+            # stops being recommended for resume after the policy's retry limit.
+            prior_preflight_attempts = sum(
+                1
+                for row in load_jsonl(step_results_path)
+                if row.get("phase") == "preflight"
+                and row.get("target_name") == "project_root_flags"
+                and row.get("failure_class") == "transient"
+            )
             flags_failure_class = flags_error.failure_class
             record_event(
                 {
@@ -180,11 +189,12 @@ def run_single_scenario(
                 failure_phase="preflight",
                 failure_signature=flags_error.message,
                 failure_class=flags_failure_class,
-                retry_count=0,
+                retry_count=prior_preflight_attempts,
                 # On resume the checkpoint and org are untouched, so only a transient failure
-                # (a cci timeout) keeps resume recommended. Anything else would make the
+                # (a cci timeout) keeps resume recommended, and only until the policy's retry
+                # limit counted from the earlier preflight rows. Anything else would make the
                 # policy recommend resume forever.
-                can_resume=is_resume and flags_failure_class == "transient",
+                can_resume=is_resume and flags_failure_class == "transient" and prior_preflight_attempts < 2,
             )
 
         if not skip_validate and not is_resume:

@@ -56,9 +56,9 @@ target `project_root_flags` if either fails:
 - `cci project info` must print the scenario's boolean flags exactly. This catches a
   project root that resolves to another checkout with different flag defaults.
 
-On `resume` the failure is `resume_blocked` (exit 30); only a transient `cci` failure (a
-timeout, or a transient error on stderr) keeps resume recommended. A `cci` that cannot run,
-any other non-zero exit, and a wrong setup do not, so a policy-following agent does not loop
+On `resume` the failure is `resume_blocked` (exit 30); only a `cci` timeout keeps
+resume recommended, and only for two retries (earlier transient preflight rows count). A `cci`
+that cannot run, any non-zero exit (its text is not pattern-matched), and a wrong setup do not, so a policy-following agent does not loop
 on exit 30. On `run` it is a failed
 scenario. For the TUI, `run_build` returns 20 and emits `run_failed`; the TUI app does not
 use that return value.

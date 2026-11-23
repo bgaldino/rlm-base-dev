@@ -420,9 +420,9 @@ def verify_project_flags(
 
     Returns None when both pass, otherwise a ``PreflightFailure`` (``message`` and
     ``failure_class``): ``deterministic`` for what is wrong with the setup,
-    ``transient`` for a timeout or a transient ``cci`` error, which is the only class
-    that keeps resume recommended. A ``cci`` that cannot run, or exits non-zero without a
-    transient signature, is ``deterministic``.
+    ``transient`` only for a ``cci`` timeout, which is the only class that keeps resume
+    recommended. A ``cci`` that cannot run, or exits non-zero (whatever its text says), is
+    ``deterministic``.
     """
     if not (project_root / ".git").is_dir():
         return PreflightFailure(
@@ -450,19 +450,20 @@ def verify_project_flags(
             "deterministic",
         )
     if result.returncode != 0:
+        # `cci project info` reads local files and makes no org call, so a non-zero exit
+        # is a fault in the setup, never a passing network or platform condition. Matching
+        # a transient pattern in its text would misread e.g. `KeyError: 'org_timeout'`.
         detail = infer_failure_signature((result.stderr or result.stdout or "").splitlines())
-        failure_class = classify_signature(detail)
         return PreflightFailure(
             f"`cci project info` exited {result.returncode} in {project_root}; cannot confirm the scenario flags."
             + (f" {detail}" if detail else ""),
-            # Only a transient signature (a timeout, a 503) is worth a retry. A failure
-            # `cci` reported that matches no pattern is treated as a fault in the setup,
-            # so an agent following the policy does not loop on it.
-            "transient" if failure_class == "transient" else "deterministic",
+            "deterministic",
         )
     custom, ambiguous = _parse_project_info_custom(result.stdout or "")
     if not custom:
-        return PreflightFailure("`cci project info` printed no `custom:` block; cannot confirm the scenario flags.", "deterministic")
+        has_block = any(line.rstrip() == "custom:" for line in (result.stdout or "").splitlines())
+        what = "no flags under `custom:`" if has_block else "no `custom:` block"
+        return PreflightFailure(f"`cci project info` printed {what}; cannot confirm the scenario flags.", "deterministic")
 
     # `when:` expressions read boolean flags; the rest of project.custom (the
     # `rlm_*_api_names`, `ps_*` and `dt_*` lists) is data, which `cci project info`

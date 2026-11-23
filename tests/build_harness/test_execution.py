@@ -393,6 +393,13 @@ def test_verify_project_flags_fails_without_a_custom_block(workspace, monkeypatc
     assert "no `custom:` block" in verify_project_flags(workspace, {"inapp": True}).message
 
 
+def test_verify_project_flags_names_an_empty_custom_block(workspace, monkeypatch) -> None:
+    _fake_cci_project_info(monkeypatch, output="name: rlm-base\ncustom:\ngit:\n    prefix: x\n")
+    message = verify_project_flags(workspace, {"inapp": True}).message
+    assert "no flags under `custom:`" in message
+    assert "no `custom:` block" not in message
+
+
 def test_verify_project_flags_fails_when_cci_cannot_report(workspace, monkeypatch) -> None:
     _fake_cci_project_info(monkeypatch, returncode=1)
     assert "cci project info" in verify_project_flags(workspace, {"inapp": True}).message
@@ -519,7 +526,10 @@ def test_verify_project_flags_refuses_an_ambiguous_flag(workspace, monkeypatch) 
         ({"raises": FileNotFoundError()}, "deterministic"),
         ({"raises": PermissionError()}, "deterministic"),
         ({"returncode": 1}, "deterministic"),
-        ({"returncode": 1, "stderr": "ConnectionError: connection reset by peer"}, "transient"),
+        ({"returncode": 1, "stderr": "ConnectionError: connection reset by peer"}, "deterministic"),
+        ({"returncode": 1, "stderr": "ValueError: invalid literal for int(): 14290"}, "deterministic"),
+        ({"returncode": 1, "stderr": "KeyError: 'org_timeout'"}, "deterministic"),
+        ({"returncode": 1, "stderr": "HTTP 503 Service Unavailable"}, "deterministic"),
         ({"returncode": 1, "stderr": "Traceback (most recent call last):\nKeyError: 'x'"}, "deterministic"),
         ({"returncode": 1, "stderr": "something unrecognised"}, "deterministic"),
     ],
