@@ -61,8 +61,10 @@ STATIC_RESOURCE = "InAppLearningImages"            # self-hosted replacement for
 SR_DIR = OUT_DIR.parents[2] / "unpackaged" / "post_inapp" / "staticresources" / STATIC_RESOURCE
 
 # --- 258 -> 262 (Summer '26) content updates -----------------------------------
-# Verified against docs/salesforce/262/ Help snapshot (935 articles) + dev-guide
-# snapshot (1388). Every target below was confirmed to exist in the snapshot.
+# Authored and verified against the 262 snapshots (Help 935 articles, dev-guide 1388);
+# the 23 distinct HELP_ID_REMAP targets and the DEVGUIDE_ID_REMAP target were rechecked
+# against the 264 snapshot (Help 1,703 articles, dev-guide 1,464); the rest of the remaps
+# below were confirmed against the 262 snapshot only.
 VERSION_TEXT_REMAPS = {
     "Revenue Cloud Winter'26 Release": "Revenue Cloud Summer '26 Release",
     # 262 capability rename — user-facing label only; app API name standard__PriceManagement unchanged.
@@ -201,7 +203,7 @@ HELP_ID_REMAP = {
     "ind.collections_enable_timeline.htm": "ind.billing.htm",
     # NOTE: ind.setup_revenue_cloud.htm ("Get Ready for Your Revenue Management Implementation")
     # is the correct Home "Read Implementation Guide" link — renders live (it's just absent from
-    # the partial 262 snapshot), so it is intentionally NOT remapped.
+    # the partial 262 snapshot, and absent from the 264 snapshot too), so it is intentionally NOT remapped.
 }
 
 # 2 stale atlas Dev Guide pages -> 262 equivalents (assets are QOCAL standard objects in 262).

@@ -126,7 +126,7 @@ Please provide feedback on demo errors, issues, and missing functionality in the
 
 ## Demo Setup [required]
 
-> Verified against `cumulusci.yml` `project.custom` and `docs/salesforce/262/feature-index.md` "Cross-Area: Salesforce Go (Setup Automation)" section. SME pass required to capture 262-specific Setup UI changes (Salesforce Go is heavily updated in 262).
+> Verified against `cumulusci.yml` `project.custom` and `docs/salesforce/262/feature-index.md` "Cross-Area: Salesforce Go (Setup Automation)" section. SME pass required to capture Setup UI changes; verify against a live 264 org (Salesforce Go was heavily updated in 262).
 
 ::: {.layout}
 ::: {.column}
@@ -177,7 +177,7 @@ Publish your community.
 ### Revenue Cloud Agents
 Navigate to Setup → Salesforce Go.
 In search, enter "agentforce for revenue" → select Set Up → select Turn On.
-**262 NOTE:** Salesforce Go received setup-automation enhancements in 262 — verify the exact navigation path against the live org before publishing.
+**262 NOTE:** Salesforce Go received setup-automation enhancements in 262 — verify the exact navigation path against a live 264 org before publishing.
 ![placeholder][img-PLACEHOLDER-rc-agents]
 :::
 :::
@@ -185,7 +185,7 @@ In search, enter "agentforce for revenue" → select Set Up → select Turn On.
 ::: {.layout}
 ::: {.column}
 ### Slack Approvals Setup (NEW in 262)
-For the Slack Accelerated Deal Approvals feature (per the 264 Help snapshot): first connect the org to your Slack workspace, then from Setup open **Approval Settings** and turn on **Notify Reviewers on Slack** and **Notify Submitters on Slack**. To post to a shared channel, set the channel on the individual approval **step** (Advanced Approvals only): in the flow, open the step, set Approver Type to Group or Queue, select **Send Approval Notification to Slack Channel** and enter the channel ID. *(SME to confirm in a live 264 org; these steps come from the Help articles, not a click-through.)*
+For the Slack Accelerated Deal Approvals feature (per the 264 Help snapshot): first connect the org to your Slack workspace, then from Setup open **Approval Settings** and turn on **Notify Reviewers on Slack** and **Notify Submitters on Slack**. To post to a shared channel (Advanced Approvals only): find and copy the Slack channel ID (channel details, About tab); if the channel is private, add the Salesforce app to it first. Then, from Setup, open Flows, open the flow that contains the approval step, open the step, set Approver Type to Group or Queue, specify the group or queue, select **Send Approval Notification to Slack Channel**, enter the channel ID in the Slack Channel ID field, and save and activate the flow. *(SME to confirm in a live 264 org; these steps come from the Help articles, not a click-through.)*
 **Required for the Approvals demo flow.** Verify against 264 Help: `docs/salesforce/264/help/articles/ind.approvals_slack.htm.md` (related: `ind.approvals_slack_considerations.htm.md`, `ind.approvals_slack_channel_notifications.htm.md`, `ind.approvals_turn_on_slack_notifs.htm.md`).
 ![placeholder][img-PLACEHOLDER-slack-approvals-setup]
 :::
@@ -193,7 +193,7 @@ For the Slack Accelerated Deal Approvals feature (per the 264 Help snapshot): fi
 ### Constraint Rules in Product Discovery (NEW in 262)
 Navigate to Setup → Revenue Cloud → Product Discovery → Configure Constraint Rules.
 Enable "Real-time compatibility enforcement" toggle.
-**SME pass needed:** verify exact toggle label against published 262 Setup UI.
+**SME pass needed:** verify exact toggle label against a live 264 org.
 ![placeholder][img-PLACEHOLDER-product-discovery-constraints]
 :::
 :::
@@ -668,7 +668,7 @@ img-PLACEHOLDER-contracts-advanced-approvals
 **Source canvas:** prior-release Slack canvas ("FY27 Revenue Cloud QuantumBit Script", 260 / Spring '26 / v66.0), used as the structural template; saved verbatim in a private maintainer notes repo (650 lines).
 
 **262 deltas applied:**
-- Updated release identifier in title and "How do I get my own copy" section (TFID placeholder pending)
+- Updated release identifier in title and "How do I get my own copy" section (264 TFID placeholder pending; see the TFID line above)
 - Added "What's New in 262" highlights section (RCA + RCB)
 - Added Slack Approvals Setup + Product Discovery Constraint Rules to Demo Setup
 - Annotated Ramp Schedule section with GA-status update (was preview in 260)
@@ -685,12 +685,12 @@ img-PLACEHOLDER-contracts-advanced-approvals
 - Annotated personas with 262-specific use cases (Shaun → Early Renewal; Beth → DRO/OMS Interop; Jeane Claude → Streaming/Batch/Refund)
 
 **262 deltas requiring SME pass before publishing:**
-- TFID identifier (pending 262 deploy)
-- DOT files Drive folder URL (pending 262 deploy)
-- Setup UI screenshots (Salesforce Go is heavily updated in 262)
+- TFID identifier (pending 264 publication; the 262 placeholder is retired)
+- DOT files Drive folder URL (pending 264 deploy)
+- Setup UI screenshots (Salesforce Go was heavily updated in 262; capture against a live 264 org)
 - Known Bugs list (carry-over verification + populate net-new from `salesforce-release-notes-summer-26-2026-05-07.pdf` p. 720+)
 - Slack Approvals setup: steps now follow the 264 Help articles; live-org confirmation still pending
-- Product Discovery Constraint Rules toggle label (verify against published 262 Setup UI)
+- Product Discovery Constraint Rules toggle label (verify against a live 264 org)
 - DRO Templates Beta enablement (verify Beta is gated correctly in demo org)
 - DRO & OMS Interop Beta enablement (verify both apps available)
 - All `(TBD)` entries in `feature-index.md` (Approval Preview Enhancements, Responsive & Maximized Quoting UX, Increased Display Count of Attributes, Deep Clone Enhancements, Quote Extensibility Enhancements, Future-Dated/Backdated Amendments, RCB-cross-listed items)
