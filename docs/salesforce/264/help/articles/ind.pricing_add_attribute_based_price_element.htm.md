@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Attribute-Based Discounts
@@ -15,7 +15,7 @@ To calculate a product's price based on its associated attributes, use the Attri
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 An attribute is a characteristic of a product, such as its price, color, material, or other relevant features. When you configure this price element, attributes can influence a product's price, thereby giving businesses greater control over how they sell specific products.
 
@@ -31,3 +31,7 @@ Attribute-Based Pricing Limits
 Keep these guidelines in mind when configuring attribute-based adjustments.
 Considerations for Migrating Attribute-Based Adjustments
 To prevent hash mismatch issues when you migrate attribute-based adjustment records across Salesforce orgs, follow this process.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_add_attribute_based_price_element.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

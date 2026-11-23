@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_automate_invoice_generation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Catch-Up Bill Runs
@@ -15,12 +15,12 @@ Use a catch-up bill run to advance the next billing date, billed amount, and pen
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions with Revenue Management
+Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
 
 
-This feature is available with the Revenue Management Advanced license or the Revenue Management Billing license.
+This feature is available with the Revenue Cloud Advanced license or the Revenue Cloud Billing license.
 
-The Milestone Billing feature is available only with the Revenue Management Billing license. Contact your Salesforce account executive for more information.
+The Milestone Billing feature is available only with the Revenue Cloud Billing license. Contact your Salesforce account executive for more information.
 
 After you import accounts, orders, billing schedules, billing schedule groups, and billing milestone plans, complete catch-up before generating invoices for those schedules. You can run catch-up more than once for the same schedules until a draft or posted invoice exists. Schedules that already have a draft or posted invoice aren’t included.
 
@@ -47,3 +47,7 @@ Select billing schedules based on: Target Date
 Target Date: June 1, 2026
 
 Billing generates invoices for the June 2026 billing period. A later target date, such as July 1, 2026, can include more than one billing period. To invoice only the next unbilled period, match the target date to that period or set billing period count.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_catch_up_bill_runs.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

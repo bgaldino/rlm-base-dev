@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_foundational_setup_for_quotes_and_orders.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configure Extract Product Mentions Template
@@ -15,7 +15,7 @@ Use the Extract Product Mentions template to identify products and quantities fr
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management with the Einstein or Agentforce for Sales or Einstein 1 Sales add-on.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Einstein or Agentforce for Sales or Einstein 1 Sales add-on.
 USER PERMISSIONS NEEDED
 To manage prompt templates in Prompt Builder:	Prompt Template Manager permission set
 To access and run the Extract Product Mentions prompt template:	Prompt Template User permission set
@@ -36,3 +36,7 @@ After you configure the prompt template, integrate it into your sales processes 
 
 Example: Extract Products from Opportunity Descriptions
 The sales team at QuantumBit wants to streamline quote creation because critical product and pricing discussions often remain buried within the unstructured text of opportunity description fields. To resolve this issue, the Transaction Management Salesforce admin uses the Extract Product Mentions prompt template to automate the identification of these key details. By creating a custom Flex prompt template and deploying it as an agent action, the Salesforce admin enables sales reps to extract product names, quantities, and attributes directly from the opportunity description to expedite the quoting process.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_extract_product_mentions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

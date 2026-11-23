@@ -7,19 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: connect_responses_config_rule_output.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Visibility Rules
 
 Output representation of the details of the visibility rules.
 
-    
-
 ## JSON Example
-
-      
-      
 
 ```
 {
@@ -74,153 +69,6 @@ Output representation of the details of the visibility rules.
 }
 ```
 
-    
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `attributeId` | String | ID of the attribute associated with this visibility rule. | Small, 67.0 | 67.0 |
@@ -232,3 +80,7 @@ Output representation of the details of the visibility rules.
 | `stiId` | String | ID of the sales transaction item associated with this visibility rule. | Small, 67.0 | 67.0 |
 | `target` | String | Target of the visibility rule. Valid values are `COMPONENT`, `QUANTITY`, `ATTRIBUTE`, `ATTRIBUTE_PICKLIST_VALUE`, or `PRODUCT`. | Small, 67.0 | 67.0 |
 | `type` | String | Type of visibility rule. Valid values are `HIDE` or `DISABLE`. | Small, 67.0 | 67.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_visibility_rules_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

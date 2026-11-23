@@ -7,174 +7,47 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_metadata_api_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # ProcedureOutputResolution
 
 Represents the pricing resolution for a pricing
-			element determined by using strategy name and formula.
-
-	
-
-	
+element determined by using strategy name and formula.
 
 ## Parent Type
 
-			
-
-This type extends the [Metadata](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/metadata.htm) metadata type and inherits its fullName
-				field. 
-
-	
+This type extends the [Metadata](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/metadata.htm "HTML (New Window)") metadata type and inherits its fullName
+field.
 
 ## File Suffix and Directory Location
 
-		
-		
-
 ProcedureOutputResolution components have the suffix
-					.procedureOutputResolution and are stored in the
-					procedureOutputResolution folder.
-
-	
-
-	
+.procedureOutputResolution and are stored in the
+procedureOutputResolution folder.
 
 ## Version
 
-		
-		
-
 ProcedureOutputResolution components are available in API version 63.0 and later.
-
-	
-
-	
 
 ## Special Access Rules
 
-		
-			
-
 This metadata type is available with Salesforce Pricing.
-
-	
-
-	
 
 ## Fields
 
-		
-
-		
-
-			
-			
-			
-				
-					
-
-					
-
-				
-
-			
-
-			
-
-				
-					
-
-				
-
-: 
-
-: 
-
-				
-
-				
-					
-
-				
-
-: 
-
-: 
-
-				
-
-				
-					
-
-				
-
-: 
-
-: 
-
-				
-
-				
-					
-
-				
-
-: 
-
-: 
-
-				
-
-				
-					
-
-				
-
-: 
-
-: 
-
-				
-
-				
-					
-
-				
-
-: 
-
-: 
-
-				
-
-				
-
-			
-| Field Name | Description |
-| --- | --- |
-| developerName | **Field Type** string **Description** Required. API name of the procedure output resolution. |
-| formula | **Field Type** string **Description** Required. Stores the encoded formula as text. |
-| isActive | **Field Type** boolean **Description** Required. Indicates whether the strategy is active (`true`) or not (`false`). |
-| isInternal | **Field Type** boolean **Description** Reserved for internal use. |
-| masterLabel | **Field Type** string **Description** Required. A user-friendly name for the procedure output resolution, which is defined when the ProcedureOutputResolution record is created. |
-| pricingElement | **Field Type** string **Description** Required. Pricing element on which the procedure output resolution is defined. |
-
-	
-
-		
+| Field Name | Field Type | Description |
+| --- | --- | --- |
+| developerName | string | Required. API name of the procedure output resolution. |
+| formula | string | Required. Stores the encoded formula as text. |
+| isActive | boolean | Required. Indicates whether the strategy is active (`true`) or not (`false`). |
+| isInternal | boolean | Reserved for internal use. |
+| masterLabel | string | Required. A user-friendly name for the procedure output resolution, which is defined when the ProcedureOutputResolution record is created. |
+| pricingElement | string | Required. Pricing element on which the procedure output resolution is defined. |
 
 ## Declarative Metadata Sample Definition
 
-		
-			
-
 Here's an example of a ProcedureOutputResolution component.
-
-			
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
@@ -188,12 +61,8 @@ Here's an example of a ProcedureOutputResolution component.
 </ProcedureOutputResolution>
 ```
 
-			
-
 Here's an example `package.xml` that references the
-				previous definition.
-
-			
+previous definition.
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
@@ -206,14 +75,11 @@ Here's an example `package.xml` that references the
 </Package>
 ```
 
-		
-
-		
-
 ## Wildcard Support in the Manifest File
 
-			
-			
-
 This metadata type supports the wildcard character `*` (asterisk) in the package.xml manifest file.
-				For information about using the manifest file, see [Deploying and Retrieving Metadata with the Zip File](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/file_based_zip_file.htm).
+For information about using the manifest file, see [Deploying and Retrieving Metadata with the Zip File](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/file_based_zip_file.htm "HTML (New Window)").
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/meta_procedureoutputresolution.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

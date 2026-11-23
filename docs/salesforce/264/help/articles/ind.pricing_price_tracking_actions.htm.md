@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_price_tracking.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Price Tracking Actions
@@ -15,7 +15,7 @@ The price tracking element performs actions to help you fetch and record your pr
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 ACTION TYPE	DESCRIPTION
 Get	This action type fetches the price of the product during a transaction.
 Save	This action type saves the price of a product during a transaction that can be used as an input variable in the pricing procedure.
@@ -25,3 +25,7 @@ To run the Get action type again, you must manually refresh the decision table.
 
 Ensure Price Transparency Using the Price Tracking Element
 Verify if your product prices are tracked, monitored, and captured using the Price Tracking element.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_price_tracking_actions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

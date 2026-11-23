@@ -7,19 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_responses.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Configuration Details
 
 Output representation of the product configuration details.
 
-    
-
 ## JSON Example
-
-      
-      
 
 ```
 {
@@ -609,175 +604,19 @@ Output representation of the product configuration details.
 }
 ```
 
-    
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `catalog​Products` | [Configurator Product Catalog](./connect_responses_configurator_product_catalog_output.htm.md)[] | Structure that contains the product catalog data. | Small, 61.0 | 61.0 |
-| `errors` | [ConnectApi.ErrorResponse](https://developer.salesforce.com/docs/atlas.en-us.264.0.chatterapi.meta/chatterapi/connect_responses_error_response.htm) | List of errors that contains a message and an error code. | Small, 60.0 | 60.0 |
-| `messages` | Map<String, [Configurator Message](./connect_responses_configurator_message_output.htm.md)>> | Messages from the validation, Business Rules Engine (BRE), or Salesforce Pricing calls. | Small, 60.0 | 60.0 |
-| `product​Recommendations` | [Configurator Product Recommendations](./connect_responses_configurator_product_recommendation_output.htm.md) | List of product recommendations. | Small, 65.0 | 65.0 |
+| `catalog​Products` | [Configurator Product Catalog](./connect_responses_configurator_product_catalog_output.htm.md "Output representation of the product catalog.")[] | Structure that contains the product catalog data. | Small, 61.0 | 61.0 |
+| `errors` | [ConnectApi.ErrorResponse](https://developer.salesforce.com/docs/atlas.en-us.264.0.chatterapi.meta/chatterapi/connect_responses_error_response.htm "HTML (New Window)") | List of errors that contains a message and an error code. | Small, 60.0 | 60.0 |
+| `messages` | Map<String, [Configurator Message](./connect_responses_configurator_message_output.htm.md "Output representation of the messages of a product configurator.")>> | Messages from the validation, Business Rules Engine (BRE), or Salesforce Pricing calls. | Small, 60.0 | 60.0 |
+| `product​Recommendations` | [Configurator Product Recommendations](./connect_responses_configurator_product_recommendation_output.htm.md "Output representation of the details of the product recommendations.") | List of product recommendations. | Small, 65.0 | 65.0 |
 | `success` | Boolean | Indicates whether the request is successful (`true`) or not (`false`). | Small, 60.0 | 60.0 |
 | `transaction​Context` | Map<String, Object> | Serialized JSON representation of the transaction context. | Small, 60.0 | 60.0 |
 | `transaction​ContextId` | String | ID of the transaction context. | Small, 60.0 | 60.0 |
 | `transactionContext​MappingId` | String | ID of the context mapping. | Small, 60.0 | 60.0 |
-| `transaction​Qualification` | Map<String, [Configurator Qualification Context](./connect_responses_configurator_qualification_context_output.htm.md)> | Map of the product IDs to the qualification context. | Small, 60.0 | 60.0 |
-| `ui​Treatments` | [Configurator UI Treatment](./connect_responses_configurator_u_i_treatment_output.htm.md)[] | Details of the UI treatments that specify the product configuration rule actions to override the disable or hide behavior in the UI for product options, product attributes, and attribute picklist values. | Small, 62.0 | 62.0 |
+| `transaction​Qualification` | Map<String, [Configurator Qualification Context](./connect_responses_configurator_qualification_context_output.htm.md "Output representation of the qualification context in a product configuration.")> | Map of the product IDs to the qualification context. | Small, 60.0 | 60.0 |
+| `ui​Treatments` | [Configurator UI Treatment](./connect_responses_configurator_u_i_treatment_output.htm.md "Output representation of the details of the UI treatments of a product configurator. The details include the product configuration rule actions to override the disable or hide behavior in the UI for product options, product attributes, and attribute picklist values.")[] | Details of the UI treatments that specify the product configuration rule actions to override the disable or hide behavior in the UI for product options, product attributes, and attribute picklist values. | Small, 62.0 | 62.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_configurator_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

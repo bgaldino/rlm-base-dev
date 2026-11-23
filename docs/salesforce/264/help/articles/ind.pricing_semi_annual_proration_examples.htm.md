@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_subscription_variables.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Semi-Annual Proration Examples
@@ -42,3 +42,7 @@ Period 1: Feb '25 - Aug '25 (Touched) = 1.0
 Period 2: Aug '25 - Feb '26 (Touched) = 1.0
 Period 3: Feb '26 - Aug '26 (Touched, because the term ends on Feb 4, effectively completing the previous block, but systems often count the boundary touch. Note: Based on the provided user text saying "3.0", the logic assumes the term touches a 3rd period or the system rounds up heavily. Based on the dates (Mar '25 to Feb '26), it sits primarily in 2 periods. If 3.0 is the result, it implies the system sees the end date falling into a 3rd cycle or counts the anchor start/end inclusively across boundaries).
 Price: $400 x 3.0 = $1,200.00
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_semi_annual_proration_examples.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

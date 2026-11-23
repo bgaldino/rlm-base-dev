@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_index_and_search_of_product_catalog.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Your Product Index
@@ -42,6 +42,10 @@ Modification of the product field values.	Applicable	Applicable
 Modification of the attribute values, such as overriding the picklist values, changing the default values, excluding the picklist values, and etc.	Applicable	Applicable
 Modification of the product category assignments.	Applicable	Applicable
 Modification of the product data translation values.	Applicable	Applicable
+Adding the first price book entry for a price book to a product, such as associating the standard price book or another custom price book with the product.	Applicable	Applicable
+Adding more price book entries to a price book that's already associated with the product.	Not Applicable	Not Applicable
+Updating existing price book entries, including marking them inactive.	Not Applicable	Not Applicable
+Deleting any price book entry.	Applicable	Not Applicable
 
 By default, you can fully index up to 1,000,000 products and you can partially index up to 2,000 products.
 
@@ -59,3 +63,7 @@ Product Catalog Index Errors and Troubleshooting
 Updating the index can, at times, cause errors in products or even index failures. On the Indexes page of the Index and Search Configuration tile, review the different error scenarios and the corresponding actions you can take when updating the index.
 Configure Search Index Localization
 Localize your search by configuring the index settings. Choose supported languages and set the default language for your search index.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_index_products.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

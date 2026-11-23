@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_document_clause_library.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Document Clauses
@@ -39,3 +39,7 @@ Submit a Clause for Review
 Mark content within a contract as a clause and submit it for review from the Microsoft 365 editor, the contract record page, or the extraction results page. After approval, the clause is added to the clause library for reuse.
 Add a Reviewed Clause to Clause Library
 Review clause requests submitted by contract authors or template designers from the Clause Review Requests dashboard. Add suitable clauses to the clause library, modify clause set or clause names as needed, or delete requests that don't meet criteria.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_document_clause.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

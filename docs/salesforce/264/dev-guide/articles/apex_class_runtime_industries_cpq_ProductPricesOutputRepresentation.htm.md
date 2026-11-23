@@ -7,7 +7,7 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # ProductPricesOutputRepresentation Class
@@ -16,82 +16,38 @@ Get the price details of a product.
 
 ## Namespace
 
-[runtime_industries_cpq](./apex_namespace_runtime_industries_cpq.htm.md)
+[runtime\_industries\_cpq](./apex_namespace_runtime_industries_cpq.htm.md "The runtime_industries_cpq namespace provides classes and methods to search products or to manage products, catalogs, and categories.")
 
-- 
-**[ProductPricesOutputRepresentation Properties](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_properties)**  
-
-Learn more about the properties available with the ProductPricesOutputRepresentation     class.
-
-  
+- **[ProductPricesOutputRepresentation Properties](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_properties)**  
+  Learn more about the properties available with the ProductPricesOutputRepresentation class.
 
 ## ProductPricesOutputRepresentation Properties
 
-  
-  
-  
 Learn more about the properties available with the ProductPricesOutputRepresentation
-    class.
-
-    
-      
+class.
 
 The following are properties for `ProductPricesOutputRepresentation`.
 
-    
-
-    
-  
-
-- 
-**[currencyIsoCode](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_ricpq_ProductPricesOR_currencyIsoCode)**  
-
-Get or set the ISO currency code for the price.
-
-- 
-**[effectiveFrom](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_effectiveFrom)**  
-
-Get or set the date and time when this price becomes effective.
-
-- 
-**[effectiveTo](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_effectiveTo)**  
-
-Get or set the date and time when this price expires.
-
-- 
-**[isDefault](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_isDefault)**  
-
-Indicates whether this is the default price for the product.
-
-- 
-**[isDerived](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_isDerived)**  
-
-Indicates whether this price is derived from another price.
-
-- 
-**[isSelected](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_isSelected)**  
-
-Indicates whether this price is currently selected.
-
-- 
-**[price](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_price)**  
-
-Get or set the price value for the product.
-
-- 
-**[priceBookEntryId](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_ricpq_ProductPricesOR_priceBookEntryId)**  
-
-Get or set the ID of the price book entry.
-
-- 
-**[priceBookId](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_priceBookId)**  
-
-Get or set the ID of the price book containing this price.
-
-- 
-**[pricingModel](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_pricingModel)**  
-
-Get or set the pricing model associated with this price.
+- **[currencyIsoCode](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_ricpq_ProductPricesOR_currencyIsoCode)**  
+  Get or set the ISO currency code for the price.
+- **[effectiveFrom](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_effectiveFrom)**  
+  Get or set the date and time when this price becomes effective.
+- **[effectiveTo](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_effectiveTo)**  
+  Get or set the date and time when this price expires.
+- **[isDefault](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_isDefault)**  
+  Indicates whether this is the default price for the product.
+- **[isDerived](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_isDerived)**  
+  Indicates whether this price is derived from another price.
+- **[isSelected](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_isSelected)**  
+  Indicates whether this price is currently selected.
+- **[price](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_price)**  
+  Get or set the price value for the product.
+- **[priceBookEntryId](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_ricpq_ProductPricesOR_priceBookEntryId)**  
+  Get or set the ID of the price book entry.
+- **[priceBookId](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_priceBookId)**  
+  Get or set the ID of the price book containing this price.
+- **[pricingModel](./apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductPricesOutputRepresentation_pricingModel)**  
+  Get or set the pricing model associated with this price.
 
 ### currencyIsoCode
 
@@ -211,4 +167,8 @@ Get or set the pricing model associated with this price.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.PricingModelOutputRepresentation](./apex_class_runtime_industries_cpq_PricingModelOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_PricingModelOutputRepresentation)
+Type: [runtime\_industries\_cpq.PricingModelOutputRepresentation](./apex_class_runtime_industries_cpq_PricingModelOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_PricingModelOutputRepresentation "Contains details of a pricing model in a product configuration.")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_runtime_industries_cpq_ProductPricesOutputRepresentation.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

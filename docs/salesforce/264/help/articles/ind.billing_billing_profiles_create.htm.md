@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create Billing Profiles
@@ -26,9 +26,6 @@ Billing Operations User
 Payment Admin
 Payment Operations User
 Credit Memo Operations User
-NOTE
-
-On Account record pages in the Billing app, the Billing Profile related list on the Billing Profile tab has been updated in Winter ’26. It now displays Billing Accounts records, replacing the Account Billing Accounts records shown in Summer ’25. If you have customized the Account record pages, this change is not automatically applied during the upgrade. You will consequently encounter an error and the related list will be missing. To fix this issue, edit the customized Account record page to remove the old Account Billing Accounts related list and add the new Billing Accounts related list instead.
 
 Each billing profile corresponds to a billing account record.
 
@@ -60,9 +57,17 @@ Transaction record has the required values.	The values of the transaction are us
 Transaction record doesn't have the required values but is associated with a billing profile.	The values of the associated billing account are used.
 Transaction record doesn't have the required values and isn't associated with a billing profile.	The values of the account's default billing profile are used.
 Transaction record doesn't have the required values, isn't associated with a billing profile, and the account doesn't have a default billing profile.	The org default values are used.
-NOTE Updating an account’s billing profile doesn’t affect the existing billing schedules.
 
 Optionally, to pass the billing profile field to a transaction, complete these steps.
 
 Create a custom lookup relationship field on the order object, and associate it to the billing account object.
 In the extended BillingContext context definition, map the out-of-the-box billing profile context tag to this custom lookup field.
+
+Keep these considerations in mind when creating billing profiles.
+
+On Account record pages in the Billing app, the Billing Profile related list on the Billing Profile tab has been updated in Winter ’26. It now displays Billing Accounts records, replacing the Account Billing Accounts records shown in Summer ’25. If you have customized the Account record pages, this change is not automatically applied during the upgrade. You will consequently encounter an error and the related list will be missing. To fix this issue, edit the customized Account record page to remove the old Account Billing Accounts related list and add the new Billing Accounts related list instead.
+Updating an account’s billing profile doesn’t affect the existing billing schedules.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_billing_profiles_create.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

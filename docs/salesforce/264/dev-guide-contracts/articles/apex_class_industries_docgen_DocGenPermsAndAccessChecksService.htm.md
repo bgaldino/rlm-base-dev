@@ -7,19 +7,19 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: apex_namespace_industries_docgen.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # DocGenPermsAndAccessChecksService Class
 
 The
-      `DocGenPermsAndAccessChecksService` class contains
-    methods to check permissions and settings related to document generation and integration
-    features.
+`DocGenPermsAndAccessChecksService` class contains
+methods to check permissions and settings related to document generation and integration
+features.
 
 ## Namespace
 
-[industries_docgen](./apex_namespace_industries_docgen.htm.md)
+[industries\_docgen](./apex_namespace_industries_docgen.htm.md "The industries_docgen namespace provides classes and methods for document generation and permission management in Salesforce Industries.")
 
 ## Example
 
@@ -30,55 +30,34 @@ industries_docgen.DocGenPermsAndAccessChecksService.isRuntimeCCUser(UserInfo.get
 ```
 
 This
-        Apex code sample checks whether a user has specific docgen permissions.
+Apex code sample checks whether a user has specific docgen permissions.
 
-- 
-**[DocGenPermsAndAccessChecksService Methods](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_methods)**  
+- **[DocGenPermsAndAccessChecksService Methods](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_methods)**
 
 #### See Also
 
-- [*
-             Salesforce Help
-            *: Permission Set Licenses for Omnistudio Document Generation](https://help.salesforce.com/s/articleView?id=ind.doc_gen_Permission_Set_Licenses_for_OmniStudio_DocGen.htm&language=en_US)
+- [*Salesforce Help*: Permission Set Licenses for Omnistudio Document Generation](https://help.salesforce.com/s/articleView?id=ind.doc_gen_Permission_Set_Licenses_for_OmniStudio_DocGen.htm&language=en_US "
+               Salesforce Help
+              : Permission Set Licenses for Omnistudio Document Generation - HTML (New Window)")
 
 ## DocGenPermsAndAccessChecksService Methods
 
 The following are methods for `DocGenPermsAndAccessChecksService`.
 
-- 
-**[hasDocGenMetadataSetting(orgId, orgPreference)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_hasDocGenMetadataSetting)**  
-
-Checks whether the DocGen metadata setting is enabled for the org (`true`) or not (`false`).
-
-- 
-**[hasDocGenOrgPerm(orgId, orgPermission)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_hasDocGenOrgPerm)**  
-
-Checks whether the org has the DocGen permission (`true`) or not (`false`).
-
-- 
-**[hasMS365IntegrationSettingOrgPerm(orgId, orgPermission)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_hasMS365IntegrationSettingOrgPerm)**  
-
-Checks whether the org has a Microsoft 365 integration setting permission enabled       (`true`) or not (`false`).
-
-- 
-**[hasOmnistudioOrgPerm(orgId, orgPermission)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_hasOmniStudioOrgPerm)**  
-
-Checks whether the org has Omnistudio permission enabled (`true`) or not (`false`).
-
-- 
-**[isDesigner(orgId, userId, userPerm)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_isDesigner)**  
-
-Checks whether the user has designer permissions enabled (`true`) or not (`false`).
-
-- 
-**[isRuntimeCCUser(orgId, userId, userPerm)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_isRuntimeCCUser)**  
-
-Checks whether the user has runtime customer community user permissions (`true`) or not (`false`).
-
-- 
-**[isRuntimeUser(orgId, userId, userPerm)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_isRuntimeUser)**  
-
-Checks whether the user has runtime user permissions (`true`) or not (`false`).
+- **[hasDocGenMetadataSetting(orgId, orgPreference)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_hasDocGenMetadataSetting)**  
+  Checks whether the DocGen metadata setting is enabled for the org (`true`) or not (`false`).
+- **[hasDocGenOrgPerm(orgId, orgPermission)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_hasDocGenOrgPerm)**  
+  Checks whether the org has the DocGen permission (`true`) or not (`false`).
+- **[hasMS365IntegrationSettingOrgPerm(orgId, orgPermission)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_hasMS365IntegrationSettingOrgPerm)**  
+  Checks whether the org has a Microsoft 365 integration setting permission enabled (`true`) or not (`false`).
+- **[hasOmnistudioOrgPerm(orgId, orgPermission)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_hasOmniStudioOrgPerm)**  
+  Checks whether the org has Omnistudio permission enabled (`true`) or not (`false`).
+- **[isDesigner(orgId, userId, userPerm)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_isDesigner)**  
+  Checks whether the user has designer permissions enabled (`true`) or not (`false`).
+- **[isRuntimeCCUser(orgId, userId, userPerm)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_isRuntimeCCUser)**  
+  Checks whether the user has runtime customer community user permissions (`true`) or not (`false`).
+- **[isRuntimeUser(orgId, userId, userPerm)](./apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm.md#apex_industries_docgen_DocGenPermsAndAccessChecksService_isRuntimeUser)**  
+  Checks whether the user has runtime user permissions (`true`) or not (`false`).
 
 ### hasDocGenMetadataSetting(orgId, orgPreference)
 
@@ -90,15 +69,8 @@ Checks whether the DocGen metadata setting is enabled for the org (`true`) or no
 
 #### Parameters
 
-        
-- 
-**orgId**: Type: String ID of the org.
-
-        
-- 
-**orgPreference**: Type: String Name of the DocGen metadata setting.
-
-      
+- **orgId**: Type: String ID of the org.
+- **orgPreference**: Type: String Name of the DocGen metadata setting.
 
 #### Return Value
 
@@ -114,70 +86,31 @@ Checks whether the org has the DocGen permission (`true`) or not (`false`).
 
 #### Parameters
 
-- 
-**orgId**: Type: String ID of the org.
-
-- 
-**orgPermission**: Type: String Name of the permission.
+- **orgId**: Type: String ID of the org.
+- **orgPermission**: Type: String Name of the permission.
 
 #### Return Value
 
 Type: Boolean
 
-  
+### hasMS365IntegrationSettingOrgPerm(orgId, orgPermission)
 
-### hasMS365IntegrationSettingOrgPerm(orgId,
-    orgPermission)
-
-  
-  
-  
 Checks whether the org has a Microsoft 365 integration setting permission enabled
-      (`true`) or not (`false`).
-
-    
+(`true`) or not (`false`).
 
 #### Signature
 
-      
-      
-
 `public static Boolean hasMS365InetgrationSettingOrgPerm(String
-          orgId, String orgPermission)`
-
-      
-    
-
-    
+orgId, String orgPermission)`
 
 #### Parameters
 
-      
-      
-        
-- 
-**orgId**: Type: String ID of the org.
-
-        
-- 
-**orgPermission**: Type: String Name of the permission.
-
-      
-
-    
-
-    
+- **orgId**: Type: String ID of the org.
+- **orgPermission**: Type: String Name of the permission.
 
 #### Return Value
 
-      
-      
-
 Type: Boolean
-
-    
-
-  
 
 ### hasOmnistudioOrgPerm(orgId, orgPermission)
 
@@ -186,15 +119,12 @@ Checks whether the org has Omnistudio permission enabled (`true`) or not (`false
 #### Signature
 
 `public static Boolean hasOmnistudioOrgPerm(String orgId, String
-                    orgPermission)`
+orgPermission)`
 
 #### Parameters
 
-- 
-**orgId**: Type: String ID of the org.
-
-- 
-**orgPermission**: Type: String Name of the Omnistudio permission.
+- **orgId**: Type: String ID of the org.
+- **orgPermission**: Type: String Name of the Omnistudio permission.
 
 #### Return Value
 
@@ -210,15 +140,10 @@ Checks whether the user has designer permissions enabled (`true`) or not (`false
 
 #### Parameters
 
-- 
-**orgId**: Type: String ID of the org.
-
-- 
-**userId**: Type: String ID of the user.
-
-- 
-**userPerm**: Type: String Name of the user permission to check for designer
-                        status.
+- **orgId**: Type: String ID of the org.
+- **userId**: Type: String ID of the user.
+- **userPerm**: Type: String Name of the user permission to check for designer
+  status.
 
 #### Return Value
 
@@ -234,15 +159,10 @@ Checks whether the user has runtime customer community user permissions (`true`)
 
 #### Parameters
 
-- 
-**orgId**: Type: String ID of the org.
-
-- 
-**userId**: Type: String ID of the user.
-
-- 
-**userPerm**: Type: String Name of the user permission to check for runtime customer community user
-            status.
+- **orgId**: Type: String ID of the org.
+- **userId**: Type: String ID of the user.
+- **userPerm**: Type: String Name of the user permission to check for runtime customer community user
+  status.
 
 #### Return Value
 
@@ -258,15 +178,14 @@ Checks whether the user has runtime user permissions (`true`) or not (`false`).
 
 #### Parameters
 
-- 
-**orgId**: Type: String ID of the org.
-
-- 
-**userId**: Type: String ID of the user.
-
-- 
-**userPerm**: Type: String Name of the user permission to check for runtime user status.
+- **orgId**: Type: String ID of the org.
+- **userId**: Type: String ID of the user.
+- **userPerm**: Type: String Name of the user permission to check for runtime user status.
 
 #### Return Value
 
 Type: Boolean
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/apex_class_industries_docgen_DocGenPermsAndAccessChecksService.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

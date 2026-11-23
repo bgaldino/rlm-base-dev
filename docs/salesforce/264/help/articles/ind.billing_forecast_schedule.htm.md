@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_forecast.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Schedule Billing Forecast Runs
@@ -49,3 +49,7 @@ IMPORTANT Don’t run an invoice batch run, a forecast run, or a catch-up bill r
 NOTE
 
 To check the progress of a forecast run, open the Forecast Batch Run, then click a job ID in the Batch Management Job field. To view all Batch Management jobs, from Setup, find and select Monitor Workflow Services.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_forecast_schedule.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

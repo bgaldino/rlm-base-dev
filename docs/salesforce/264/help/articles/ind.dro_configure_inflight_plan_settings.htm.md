@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_in_flight_order_changes.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Configure Inflight Plan Settings for a Fulfillment Step
@@ -35,3 +35,7 @@ Optional: Force Plan Freeze During Execution. Select an option other than the de
 Never: The plan freezes only after the step is completed. Until then, the plan is in a Freezing state. This is the default option.
 Yes But Forcefully Complete the Step: Moves the plan to a Frozen state, forcefully completes the step, and then resumes the plan if the related line item is amended or canceled.
 Save your work.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_configure_inflight_plan_settings.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

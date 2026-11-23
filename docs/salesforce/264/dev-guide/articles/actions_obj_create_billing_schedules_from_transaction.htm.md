@@ -7,228 +7,53 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Create Standalone Billing Schedules Action
 
-Creates billing schedules for internal or external transaction
-            records by calling the Create Standalone Billing Schedules API.
-
-        
+Creates billing schedules for internal or external transaction records by calling the Create Standalone Billing Schedules API.
 
 This action is available in API version 64.0 and later.
 
-See [Create Standalone Billing
-                    Schedules (POST) API](./connect_resources_create_billing_schedules_from_any_transaction.htm.md) to know more about the mandatory and optional tags,
-                sample transaction details, and sample payloads for various types of
-                transactions.
-
-        
+See [Create Standalone Billing Schedules (POST) API](./connect_resources_create_billing_schedules_from_any_transaction.htm.md "HTML (New Window)") to know more about the mandatory and optional tags, sample transaction details, and sample payloads for various types of transactions.
 
 ## Special Access Rules
 
-This action is available in Enterprise, Unlimited, and Developer Editions with the Revenue Cloud
-                Billing license. To use this action, you need the Billing Operations permission
-                set.
-
-        
+This action is available in Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Billing license. To use this action, you need the Billing Operations permission set.
 
 ## Supported REST HTTP Methods
 
-            
-            
-                
-                    
+**URI:** `/services/data/v68.0/actions/standard/createBillingSchedulesFromTrxn`
 
-**URI**
+**Formats:** JSON, XML
 
-                    
-: `/services/data/v68.0/actions/standard/createBillingSchedulesFromTrxn`
+**HTTP Methods:** POST
 
-                
-                
-                    
-
-**Formats**
-
-                    
-: JSON, XML
-
-                
-                
-                    
-
-**HTTP Methods**
-
-                    
-: POST
-
-                
-                
-                    
-
-**Authentication**
-
-                    
-: `Authorization:
-                            Bearertoken`
-
-                
-            
-
-        
-
-        
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| contextDefinitionName | **Type** string **Description** Required. Name of the context definition that contains the mappings for the transaction record and billing schedules. |
-| readContextMappingName | **Type** string **Description** Required. Name of the context mapping with the mapping for the transaction. |
-| saveContextMappingName | **Type** string **Description** Required. Name of the context mapping with the mapping for the billing schedule and billing schedule group. The save context mapping is used to save the billing schedule. |
-| transactionDetails | **Type** string **Description** Required. A JSON string containing the ID of the transaction record that the billing schedule is created for and other additional transaction details. |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| contextDefinitionName | string | Required. Name of the context definition that contains the mappings for the transaction record and billing schedules. |
+| executeAsync | boolean | Optional. Indicates whether to process the request asynchronously (`true`). The default value is `false` (synchronous). Available in API version 68.0 and later. |
+| readContextMappingName | string | Required. Name of the context mapping with the mapping for the transaction. |
+| saveContextMappingName | string | Required. Name of the context mapping with the mapping for the billing schedule and billing schedule group. The save context mapping is used to save the billing schedule. |
+| transactionDetails | string | Required. A JSON string containing the ID of the transaction record that the billing schedule is created for and other additional transaction details. |
 
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Output | Details |
-| --- | --- |
-| requestId | **Type** string **Description** Unique request identifier that you can use to poll the asynchronous request. |
-| statusUrl | **Type** string **Description** Status URL that’s used to track the operation. |
-
-        
-
-        
-        
+| Output | Type | Description |
+| --- | --- | --- |
+| requestId | string | Unique request identifier that you can use to poll the asynchronous request. |
+| statusUrl | string | Status URL that’s used to track the operation. |
 
 ## Example
 
-            
-            
-                
-                    
-
 **POST**
 
-                    
-: 
-                        
-
-Here's a sample request for the Create Billing Schedules From Transaction
-                            action.
-
-                        
+Here's a sample request for the Create Billing Schedules From Transaction action.
 
 ```
 {
@@ -243,16 +68,7 @@ Here's a sample request for the Create Billing Schedules From Transaction
 }
 ```
 
-                    
-
-                    
-: 
-                        
-
-Here's a sample response for the Create Billing Schedules From
-                            Transaction action.
-
-                        
+Here's a sample response for the Create Billing Schedules From Transaction action.
 
 ```
 {
@@ -267,3 +83,7 @@ Here's a sample response for the Create Billing Schedules From
   "version": 1
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_create_billing_schedules_from_transaction.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

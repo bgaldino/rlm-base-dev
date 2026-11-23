@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_sales_transactions_rev_cloud.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Add Product Variations in Quotes and Orders
@@ -15,7 +15,7 @@ Sales reps can search for and add specific product variations to a quote or orde
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 Sales reps use of product variations in quotes and orders:	Product Catalog Management Viewer
 
@@ -48,3 +48,7 @@ Change a Variation Product
 To change a variation product on an existing quote or order, click the row-level action dropdown on the Sales Transaction Line Editor and select Change.
 Select the new attribute set and save your changes.
 NOTE The change action deletes the original line item and creates a new line item. New variation line items don’t have any discounts, promotions, or adjustments from the original line item carried over. Have sales reps reapply any discounts or promotions after a change action.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_product_variation_use_in_transaction_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_generation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Invoice Aging Summaries on Accounts and Orders
@@ -29,3 +29,7 @@ Average Invoice Age and Maximum Invoice Age: Measured in days.
 Aging Buckets
 
 By default, aging buckets use 30-day increments: less than 30 days, 30 to 60 days, 60 to 90 days, and more than 90 days. Your Salesforce admin can change the bucket duration to match your business requirements.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_aging.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

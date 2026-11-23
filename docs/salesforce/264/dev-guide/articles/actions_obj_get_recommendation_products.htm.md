@@ -7,383 +7,57 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_discovery_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Get Product Recommendations Action
 
-Retrieve a list of recommended products for a quote or order by using
-			the Constraint Rule Engine.
-
-		
-			
+Retrieve a list of recommended products for a quote or order by using the Constraint Rule Engine.
 
 This action is available in API version 67.0 and later.
 
-		
-
-		
-
 ## Special Access Rules
 
-			
-
-The Get Product Details action is available in Enterprise, Unlimited, and
-				Developer Editions where Product Discovery is enabled.
-
-			
+The Get Product Details action is available in Enterprise, Unlimited, and Developer Editions where Product Discovery is enabled.
 
 You can invoke this action via Apex and Flows only.
 
-		
-		
-
 ## Inputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-- 
-- 
-- 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Input | Details |
-| --- | --- |
-| additionalContextData | **Type** Apex-defined **Description** An array of Apex [`runtime_industries_cpq.AdditionalContextData`](./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md) records that contain the additional nodes used along with the context definition nodes for data hydration. The maximum number of supported nodes is 10. |
-| additionalFields | **Type** Apex-defined **Description** An Apex [`runtime_industries_cpq.AdditionalFields`](./apex_class_runtime_industries_cpq_AdditionalFields.htm.md) record that contains an array of additional standard or custom fields from the `Product2` object to include in the response. |
-| catalogId | **Type** string **Description** ID of the catalog from which to retrieve recommended products. |
-| contextDefinition | **Type** string **Description** API name of the context definition used for context creation. If you don't specify a value, the context definition selected on the Product Discovery Settings page from Setup is used. |
-| contextMapping | **Type** string **Description** API name of the context mapping used for data hydration. The value of this parameter is used only if it belongs to the specified context definition. If you don't specify a value, the default context mapping of the context definition is used. |
-| currencyCode | **Type** string **Description** Currency code used for pricing calculations and product filtering. |
-| enablePricing | **Type** boolean **Description** Indicates whether the pricing procedure must run (`true`) or not (`false`). For orgs where pricing is enabled, you can override to `false` to skip Salesforce Pricing execution. For orgs where pricing is disabled, you can't override to `true`. |
-| enableQualification | **Type** boolean **Description** Indicates whether the qualification procedure must run (`true`) or not (`false`). For orgs where qualification is enabled, you can override to `false` to skip BRE qualification rules. For orgs where qualification is disabled, you can't override to `true`. |
-| filterCriteria | **Type** Apex-defined **Description** A collection of Apex [`runtime_industries_cpq.FilterInputRepresentation`](./apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md) records used to filter products. The filterCriteria parameter supports only the `name` property. The supported operators are: `eq` `in` `contains` If this parameter contains multiple criteria, all criteria are applied using the `and` operator. |
-| nextCursor | **Type** string **Description** A unique identifier that represents the position of the product from which the next set of results are retrieved. |
-| pageSize | **Type** integer **Description** Maximum number of recommended products to return in the response. |
-| priceBookId | **Type** string **Description** ID of the pricebook from which to retrieve pricing details. |
-| pricingProcedure | **Type** string **Description** API name of the pricing procedure used to calculate product prices. If you don't specify a value, the pricing procedure selected on the Product Discovery Settings page from Setup is used. |
-| qualificationProcedure | **Type** string **Description** API name of the qualification procedure used to evaluate product eligibility. If you don't specify a value, the qualification procedure selected on the Product Discovery Settings page from Setup is used. |
-| transactionContextId | **Type** string **Description** Context ID of the transaction. |
-| transactionId | **Type** string **Description** ID of the transaction. |
-| usePromotions | **Type** boolean **Description** Indicates whether to fetch promotions for recommended products (`true`) or not (`false`). Applies only when promotions are enabled for the org. |
-| userContext | **Type** Apex-defined **Description** An Apex `ConnectApi.UserContextInputRepresentation` record that contains the user details used to evaluate product eligibility and calculate prices. |
-
-		
-
-		
+| Input | Type | Description |
+| --- | --- | --- |
+| additionalContextData | Apex-defined | An array of Apex [`runtime_industries_cpq.AdditionalContextData`](./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)") records that contain the additional nodes used along with the context definition nodes for data hydration. The maximum number of supported nodes is 10. |
+| additionalFields | Apex-defined | An Apex [`runtime_industries_cpq.AdditionalFields`](./apex_class_runtime_industries_cpq_AdditionalFields.htm.md "HTML (New Window)") record that contains an array of additional standard or custom fields from the `Product2` object to include in the response. |
+| catalogId | string | ID of the catalog from which to retrieve recommended products. |
+| contextDefinition | string | API name of the context definition used for context creation. If you don't specify a value, the context definition selected on the Product Discovery Settings page from Setup is used. |
+| contextMapping | string | API name of the context mapping used for data hydration. The value of this parameter is used only if it belongs to the specified context definition. If you don't specify a value, the default context mapping of the context definition is used. |
+| currencyCode | string | Currency code used for pricing calculations and product filtering. |
+| enablePricing | boolean | Indicates whether the pricing procedure must run (`true`) or not (`false`). For orgs where pricing is enabled, you can override to `false` to skip Salesforce Pricing execution. For orgs where pricing is disabled, you can't override to `true`. |
+| enableQualification | boolean | Indicates whether the qualification procedure must run (`true`) or not (`false`). For orgs where qualification is enabled, you can override to `false` to skip BRE qualification rules. For orgs where qualification is disabled, you can't override to `true`. |
+| filterCriteria | Apex-defined | A collection of Apex [`runtime_industries_cpq.FilterInputRepresentation`](./apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md "HTML (New Window)") records used to filter products. The filterCriteria parameter supports only the `name` property. The supported operators are `eq`, `in`, or `contains`. If this parameter contains multiple criteria, all criteria are applied using the `and` operator. |
+| nextCursor | string | A unique identifier that represents the position of the product from which the next set of results are retrieved. |
+| pageSize | integer | Maximum number of recommended products to return in the response. |
+| priceBookId | string | ID of the pricebook from which to retrieve pricing details. |
+| pricingProcedure | string | API name of the pricing procedure used to calculate product prices. If you don't specify a value, the pricing procedure selected on the Product Discovery Settings page from Setup is used. |
+| qualificationProcedure | string | API name of the qualification procedure used to evaluate product eligibility. If you don't specify a value, the qualification procedure selected on the Product Discovery Settings page from Setup is used. |
+| transactionContextId | string | Context ID of the transaction. |
+| transactionId | string | ID of the transaction. |
+| usePromotions | boolean | Indicates whether to fetch promotions for recommended products (`true`) or not (`false`). Applies only when promotions are enabled for the org. |
+| userContext | Apex-defined | An Apex `ConnectApi.UserContextInputRepresentation` record that contains the user details used to evaluate product eligibility and calculate prices. |
 
 ## Outputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Output | Details |
-| --- | --- |
-| errorMessages | **Type** Apex-defined **Description** A list of Apex `runtime_industries_cpq.ProductRecommendationErrorsOutputRepresentation` records that contain error codes and messages returned by the action. |
-| isSuccessful | **Type** boolean **Description** Indicates whether the action call succeeded (`true`) or not (`false`). |
-| nextCursor | **Type** string **Description** Unique identifier that represents the position of the next product in the dataset. Use this value as an input to retrieve the next page of results. |
-| recommendedProducts | **Type** Apex-defined **Description** A list of Apex `runtime_industries_cpq.RecommendedProductsOutputRepresentation` records that contain the recommended products returned by the Constraint Rule Engine. |
-| transactionContextId | **Type** string **Description** Context ID of the transaction. |
-
-		
-
-		
+| Output | Type | Description |
+| --- | --- | --- |
+| errorMessages | Apex-defined | A list of Apex `runtime_industries_cpq.ProductRecommendationErrorsOutputRepresentation` records that contain error codes and messages returned by the action. |
+| isSuccessful | boolean | Indicates whether the action call succeeded (`true`) or not (`false`). |
+| nextCursor | string | Unique identifier that represents the position of the next product in the dataset. Use this value as an input to retrieve the next page of results. |
+| recommendedProducts | Apex-defined | A list of Apex `runtime_industries_cpq.RecommendedProductsOutputRepresentation` records that contain the recommended products returned by the Constraint Rule Engine. |
+| transactionContextId | string | Context ID of the transaction. |
 
 ## Example
 
-			
-			
-				
-					
-: Here's a sample input to call this invocable action from Apex
-						code.
+Here's a sample input to call this invocable action from Apex code.
 
 ```
 Invocable.Action action = Invocable.Action.createStandardAction('getRecommendedProducts');
@@ -398,16 +72,9 @@ for (Invocable.Action.Result res : results) {
         System.debug(jsonOutput);
     }
 }
-
 ```
 
-					
-: 
-						
-
 Here’s a sample response for the Get Product Recommendations action.
-
-						
 
 ```
 {
@@ -598,3 +265,7 @@ Here’s a sample response for the Get Product Recommendations action.
   ]
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_get_recommendation_products.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

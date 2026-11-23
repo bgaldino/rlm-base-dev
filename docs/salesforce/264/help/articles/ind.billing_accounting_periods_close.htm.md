@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_legal_entity_accounting_periods_close_and_reopen.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Close an Accounting Period
@@ -28,3 +28,7 @@ Click Close Accounting Period and confirm that you want to close it.
 When there aren't any related open legal entity accounting periods, the accounting period's status is set to Closed.
 
 When you close an accounting period, several key metrics are updated. The Total Asset Amount, Total Liabilities Amount, Total Equities Amount, Total Revenue Amount, and Total Expenses Amount fields are recalculated. These amounts are calculated by aggregating the corresponding field values from all associated legal entity accounting periods and are shown in corporate currency configured for your Salesforce org.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_accounting_periods_close.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

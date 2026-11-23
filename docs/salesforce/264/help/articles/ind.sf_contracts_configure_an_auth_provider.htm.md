@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Configure an Auth Provider for Salesforce Contracts Using Guided Setup
@@ -54,3 +54,7 @@ To test the connection after you fix the errors, click Test Connection. To reset
 Test the connection and, when the connection is successful, click Mark as Done.
 Disable Automatic Synchronization of Username and Email Address Using Guided Setup
 By default, when you link Salesforce to Microsoft Azure, Salesforce automatically updates your Salesforce username and email address with your Microsoft Azure account details. You can turn off this automatic update to retain the username and email address that you have used in Salesforce.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_configure_an_auth_provider.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

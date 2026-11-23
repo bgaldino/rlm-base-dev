@@ -6,12 +6,12 @@ release: 264
 release_name: Winter '27
 area: rating
 parent_article: ind.rm_discover_and_explore.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # External Objects Used in Rate Management
 
-Rate management is part of a larger suite of products under Revenue Management. Because these products are closely integrated, rate management uses several objects that belong to other products within Industries and Revenue Management.
+Rate management is part of a larger suite of products under Revenue Cloud. Because these products are closely integrated, rate management uses several objects that belong to other products within Industries and Revenue Cloud.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
@@ -32,4 +32,8 @@ Price Book	A list of products and their prices. See Manage Price Books.
 
 To view the list of objects that rate management supports, see the Rate Management object documentation.
 
-In addition to other Industries and Revenue Management objects, Rate Management relies on the use of decision tables. Decision tables are complex lookup tables that read business rules with multiple inputs and return multiple outputs. See Decision Table.
+In addition to other Industries and Revenue Cloud objects, Rate Management relies on the use of decision tables. Decision tables are complex lookup tables that read business rules with multiple inputs and return multiple outputs. See Decision Table.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rm_external_objects_used_in_rate_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

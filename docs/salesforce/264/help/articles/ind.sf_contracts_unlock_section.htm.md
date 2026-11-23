@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_section_management.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Unlock Sections in a Document
@@ -56,3 +56,7 @@ Open a contract document or document template in the Microsoft 365 editor.
 From the Home tab, open the Salesforce Contracts for Word add-in.
 Click and then click Edit. Click Edit.
 To unlock a section, you can also click , and then click Edit Properties. Deselect Lock Section for Editiing and save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_unlock_section.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Create a Named Credential for Salesforce Contracts Connector for Word Add-in Manually
@@ -44,3 +44,7 @@ Configure an Auth Provider for Salesforce Contracts Microsoft Integration
 Create or Edit a Named Credential
 
 Verify that the named credential is authenticated correctly before proceeding further.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_create_a_named_credential_for_sf_connector_for_word_add-in_app.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

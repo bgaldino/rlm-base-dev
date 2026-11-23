@@ -7,124 +7,52 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: sforce_api_objects_invoiceprocessedevent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # InvoiceErrorDetailEvent
 
-Represents information about the errors that occurred during the
-         processing of a `/commerce/billing/invoices` request.
-         This object is included in an `InvoiceProcessedEvent` platform event message. You can't subscribe to `InvoiceProcessedEvent` platform event directly. This
-      object is available in API version 62.0 and later.
-
-      
+Represents information about the errors that occurred during the processing of a `/commerce/billing/invoices` request. This object is included in an `InvoiceProcessedEvent` platform event message. You can't subscribe to `InvoiceProcessedEvent` platform event directly. This object is available in API version 62.0 and later.
 
 ## Supported Calls
 
-      
-      
-
-         `describeSObjects()`
-      
-
-      
-
-      
+`describeSObjects()`
 
 ## Special Access Rules
 
-         
-         
-
 This object is available when Billing is enabled.
-
-      
-
-      
 
 ## Fields
 
-         
-         
+### ErrorCode
 
-               
-               
-            
-               
-                  
+- **Type**: string
+- **Properties**: None
+- **Description**: Reference code for the type of error that occurred.
 
-                  
+### ErrorMessage
 
-               
+- **Type**: string
+- **Properties**: None
+- **Description**: Information about the error that occurred during processing.
 
-            
+### ErrorSourceId
 
-            
-                  
-                     
+- **Type**: reference
+- **Properties**: Nillable
+- **Description**: The ID of the record where the error occurred. This record can be an invoice or a billing schedule.
 
-                     
+This field is a polymorphic relationship field.
 
-: 
+- **Relationship Name**: ErrorSource
+- **Refers To**: BillingSchedule, Invoice
 
-: 
+### EventUuid
 
-: 
+- **Type**: string
+- **Properties**: Nillable
+- **Description**: A universally unique identifier (UUID) that identifies a platform event message.
 
-                  
+---
 
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-            
-
-            
-| Field | Details |
-| --- | --- |
-| ErrorCode | **Type** string **Properties** None **Description** Reference code for the type of error that occurred. |
-| ErrorMessage | **Type** string **Properties** None **Description** Information about the error that occurred during processing. |
-| ErrorSourceId | **Type** reference **Properties** Nillable **Description** The ID of the record where the error occurred. This record can be an invoice or a billing schedule. This field is a polymorphic relationship field. **Relationship Name** ErrorSource **Refers To** BillingSchedule, Invoice |
-| EventUuid | **Type** string **Properties** Nillable **Description** A universally unique identifier (UUID) that identifies a platform event message. |
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/sforce_api_objects_invoiceerrordetailevent.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

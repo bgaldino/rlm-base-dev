@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_create_a_constraint_model.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Use Code to Define Constraints and Rules in the CML Editor
@@ -15,7 +15,7 @@ In the Constraint Builder, use Constraint Modeling Language (CML) code to define
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 USER PERMISSIONS NEEDED
 To create a constraint model:	Product Configuration Constraints Designer permission set
 
@@ -42,3 +42,7 @@ To make the constraint model available for use, select Activate.
 After you save a constraint model, you can switch back and forth between the CML Editor and the Visual Builder. Use the Visual Builder to add or edit constraints and rules with point-and-click tools.
 
 NOTE Some constraints and rules that you create in the CML Editor can't be edited in the Visual Builder because they're not part of the Visual Builder tools. If you try to edit one of those constraints or rules in the Visual Builder, a message prompts you to return to the CML Editor.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_use_the_cml_editor.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

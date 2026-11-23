@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_configuration_rules.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Configuration Rules with Business Rules Engine
@@ -15,7 +15,7 @@ Reduce configuration errors, and easily manage product validation and compatibil
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 USER PERMISSIONS
 NEEDED
 To manage configuration rules:	Manage Configurator with Business Rules Engine
@@ -46,7 +46,12 @@ Click Next.
 In the Rule Criteria page, specify these details:
 Select the rule scope. See Rule Scope.
 Specify the conditions to run the rule.
-The resource for each condition is either a product or product classification. Each rule supports up to three conditions and eight sub-conditions. Currently, the system supports only the AND logical operand between conditions. So, the rule runs only when all the conditions are met.
+
+To further refine a condition, add sub-conditions. A sub-condition evaluates a field or product attribute for the item in the parent condition. Select Add Field to add a field sub-condition, or select Add Attribute to add a product attribute sub-condition.
+
+For example, a condition can identify a product or product classification, and its sub-conditions can limit the rule to items with specific field values or product attribute values.
+
+Each rule supports up to three conditions and nine sub-conditions. Currently, the system supports only the AND logical operand between conditions. So, the rule runs only when all the conditions are met
 Specify the action to take when the conditions are met. See Actions.
 Each rule supports up to three actions. You can add a message for each action. The type of message depends on the type of action.
 Save your changes.
@@ -68,3 +73,7 @@ From the home page of the Product Catalog Management app, click Product Configur
 From the quick action menu next to the configuration rule that you want to delete, select Delete, and confirm your action.
 
 After you create configuration rules, make sure that you validate them to maintain rule integrity.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_create_a_configuration_rule.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_automate_invoice_generation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Convert Automations to Asynchronous for Invoice Batch Runs
@@ -71,3 +71,7 @@ For each Apex trigger, work with a person who has the Author Apex permission to 
 After you convert the automations, schedule the next invoice batch run. See Generate Invoices Automatically Based on Billing Schedules.
 
 If invoices from an earlier run are stuck in Draft In Progress, Posting In Progress, or Error, click Recover on the invoice batch run. Then generate invoices again.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_run_sync_process.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

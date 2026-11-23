@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_consumption_management.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Consumption Management Records
@@ -21,3 +21,7 @@ Usage Entitlement Account	A usage entitlement account is a customer instance of 
 Usage Entitlement Bucket	A usage entitlement bucket represents a wallet that records the credits and debits of a usage resource. If grants are rolled over or renewed, units are added to the bucket balance. When the customer consumes the usage resource, units are debited from the bucket balance.
 Usage Entitlement Entry	A usage entitlement entry represents a transaction entry that records each credit and debit entry for the usage entitlement bucket.
 Transaction Usage Entitlement	A transaction usage entitlement stores information about how grants are tracked and managed. The object record includes the associated usage grant rollover policy, usage grant refresh policy, drawdown order in which the grant consumption is debited, and other details.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_key_objects_in_consumption_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

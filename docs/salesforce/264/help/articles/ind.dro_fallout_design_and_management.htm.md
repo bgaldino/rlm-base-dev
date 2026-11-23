@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Fallout Design and Management
@@ -49,3 +49,7 @@ To see steps that have failed, check the fulfillment plan, fallout queues, or th
 Retry callouts and auto task steps, or mark them complete. You can do so one at a time, or in bulk. See Retry or Complete Multiple Failed Fulfillment Steps.
 SEE ALSO
 Monitor Decomposition During Fulfillment
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_fallout_design_and_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

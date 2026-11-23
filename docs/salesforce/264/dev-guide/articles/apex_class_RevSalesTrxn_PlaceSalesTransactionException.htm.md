@@ -7,50 +7,31 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: apex_namespace_RevSalesTrxn.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # PlaceSalesTransactionException Class
 
 Contains methods to hold the exception details for the place sales transaction
-    request.
+request.
 
 ## Namespace
 
-[RevSalesTrxn](./apex_namespace_RevSalesTrxn.htm.md)
+[RevSalesTrxn](./apex_namespace_RevSalesTrxn.htm.md "Create a sales transaction, such as a quote or an order, with integrated pricing and configuration. Additionally, update an order or a quote, and insert and delete order or quote line items to calculate the estimated tax.")
 
-- 
-**[PlaceSalesTransactionException Methods](./apex_class_RevSalesTrxn_PlaceSalesTransactionException.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionException_methods)**  
-
-Learn more about the methods available with the PlaceSalesTransactionException     class.
-
-  
+- **[PlaceSalesTransactionException Methods](./apex_class_RevSalesTrxn_PlaceSalesTransactionException.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionException_methods)**  
+  Learn more about the methods available with the PlaceSalesTransactionException class.
 
 ## PlaceSalesTransactionException Methods
 
-  
-  
-  
 Learn more about the methods available with the PlaceSalesTransactionException
-    class.
-
-    
-      
+class.
 
 The `PlaceSalesTransactionException` class includes these
-        methods.
+methods.
 
-    
-
-    
-  
-
-- 
-**[getErrorCode()](./apex_class_RevSalesTrxn_PlaceSalesTransactionException.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionException_getErrorCode)**  
-
-Gets the error code that’s associated to the place sales transaction request.
+- **[getErrorCode()](./apex_class_RevSalesTrxn_PlaceSalesTransactionException.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionException_getErrorCode)**  
+  Gets the error code that’s associated to the place sales transaction request.
 
 ### getErrorCode()
 
@@ -63,3 +44,7 @@ Gets the error code that’s associated to the place sales transaction request.
 #### Return Value
 
 Type: String
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RevSalesTrxn_PlaceSalesTransactionException.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

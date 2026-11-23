@@ -7,56 +7,30 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_connect_api_namespace.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
-
- 
 
 # CreditMemoApply Class
 
- 
- 
- 
 Manage credit memo applications by using the CreditMemoApply class.
-
-  
 
 ## Namespace
 
-   
-   
-
-ConnectApi
-
-  
-
- 
-
- 
+[ConnectApi](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexref.meta/apexref/apex_classes_connect_api.htm "HTML (New Window)")
 
 ## CreditMemoApply Methods
 
- These methods are for `CreditMemoApply`. All
-  methods are static.
+These methods are for `CreditMemoApply`. All
+methods are static.
 
- 
-
-- 
-**[applyCreditMemos(CreditMemoApplyInput, creditMemoId)](./apex_ConnectAPI_CreditMemoApply_static_methods.htm.md#apex_ConnectAPI_CreditMemoApply_applyCreditMemos_1)**  
-
-Adjust or correct already issued invoices by applying an existing credit memo to an     invoice.
-
-- 
-**[unapplyCreditMemos(CreditMemoUnapplyInput, creditMemoInvApplicationId)](./apex_ConnectAPI_CreditMemoApply_static_methods.htm.md#apex_ConnectAPI_CreditMemoApply_unapplyCreditMemos_1)**  
-
-Unapply a credit memo from an invoice and return the invoice and the credit memo to their     pre-application states.
+- **[applyCreditMemos(CreditMemoApplyInput, creditMemoId)](./apex_ConnectAPI_CreditMemoApply_static_methods.htm.md#apex_ConnectAPI_CreditMemoApply_applyCreditMemos_1)**  
+  Adjust or correct already issued invoices by applying an existing credit memo to an invoice.
+- **[unapplyCreditMemos(CreditMemoUnapplyInput, creditMemoInvApplicationId)](./apex_ConnectAPI_CreditMemoApply_static_methods.htm.md#apex_ConnectAPI_CreditMemoApply_unapplyCreditMemos_1)**  
+  Unapply a credit memo from an invoice and return the invoice and the credit memo to their pre-application states.
 
 ### applyCreditMemos(CreditMemoApplyInput, creditMemoId)
 
-Adjust or correct already issued invoices by applying an existing credit memo to an
-    invoice.
+Adjust or correct already issued invoices by applying an existing credit memo to an invoice.
 
 #### API Version
 
@@ -74,47 +48,31 @@ No
 
 **CreditMemoApplyInput**
 
-: Type: [ConnectApi.CreditMemoApplyInputRequest](./apex_connectapi_input_credit_memo_apply.htm.md)
+Type: [ConnectApi.CreditMemoApplyInputRequest](./apex_connectapi_input_credit_memo_apply.htm.md "Input representation of the request to apply a credit memo to an invoice.")
 
-: Input representation of the request to apply a credit memo to an invoice.
+Input representation of the request to apply a credit memo to an invoice.
 
 **creditMemoId**
 
-: Type: String
+Type: String
 
-: ID of the credit memo record.
+ID of the credit memo record.
 
 #### Return Value
 
-Type: [ConnectApi.ApplyCreditResults](./apex_connectapi_output_credit_memo_apply_list_output.htm.md)
+Type: [ConnectApi.ApplyCreditResults](./apex_connectapi_output_credit_memo_apply_list_output.htm.md "Output representation of the list of applied credit memo results.")
 
 #### Usage
 
-      
-      
+Specify the credit memo ID and the amounts to be applied, with the total of all applied amounts not exceeding the credit memo's balance.
 
-Specify the credit memo ID and the amounts to be applied, with the total of all applied
-        amounts not exceeding the credit memo's balance.
+The credit amount for each invoice can’t surpass the original charge or adjustment amount, and the overall credit amount must not exceed the invoice's outstanding balance. The exceptions include any taxes calculated by an external service.
 
-      
-
-The credit amount for each invoice can’t surpass the original charge or adjustment amount,
-        and the overall credit amount must not exceed the invoice's outstanding balance. The
-        exceptions include any taxes calculated by an external service.
-
-      
-
-For example, your organization sold 10 tablets at US$500 each, totaling $5000, to a vendor
-        who later reported that 6 tablets were defective. Using this method, your accounts
-        receivable team creates a $3000 credit memo and applies this credit to the original
-        invoice.
-
-    
+For example, your organization sold 10 tablets at US$500 each, totaling $5000, to a vendor who later reported that 6 tablets were defective. Using this method, your accounts receivable team creates a $3000 credit memo and applies this credit to the original invoice.
 
 ### unapplyCreditMemos(CreditMemoUnapplyInput, creditMemoInvApplicationId)
 
-Unapply a credit memo from an invoice and return the invoice and the credit memo to their
-    pre-application states.
+Unapply a credit memo from an invoice and return the invoice and the credit memo to their pre-application states.
 
 #### API Version
 
@@ -132,24 +90,24 @@ No
 
 **CreditMemoUnapplyInput**
 
-: Type: [ConnectApi.CreditMemoUnapplyInputRequest](./apex_connectapi_input_credit_memo_unapply.htm.md)
+Type: [ConnectApi.CreditMemoUnapplyInputRequest](./apex_connectapi_input_credit_memo_unapply.htm.md "Input representation of the request to unapply a credit memo from an invoice.")
 
-: Input representation of the request to unapply a credit memo from an invoice.
+Input representation of the request to unapply a credit memo from an invoice.
 
 **creditMemoInvApplicationId**
 
-: Type: String
+Type: String
 
-: ID of the credit memo invoice application.
+ID of the credit memo invoice application.
 
 #### Return Value
 
-Type: [ConnectApi.UnapplyCreditResult](./apex_connectapi_output_credit_memo_unapply_output.htm.md)
+Type: [ConnectApi.UnapplyCreditResult](./apex_connectapi_output_credit_memo_unapply_output.htm.md "Output representation of the details of the credit memo invoice application record with the status of the request.")
 
 #### Usage
 
-      
+Use this method if an error occurred when a credit is issued. For example, if an incorrect credit memo is applied to an invoice, or if a credit memo is created for an incorrect amount, use this method to unapply the credit memo.
 
-Use this method if an error occurred when a credit is issued. For example, if an incorrect
-        credit memo is applied to an invoice, or if a credit memo is created for an incorrect
-        amount, use this method to unapply the credit memo.
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_ConnectAPI_CreditMemoApply_static_methods.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

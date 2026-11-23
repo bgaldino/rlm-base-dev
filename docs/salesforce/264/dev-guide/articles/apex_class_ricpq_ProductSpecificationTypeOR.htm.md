@@ -7,7 +7,7 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # ProductSpecificationTypeOutputRepresentation Class
@@ -16,43 +16,23 @@ Represents a product specification type that defines the structure and attribute
 
 ## Namespace
 
-[runtime_industries_cpq](./apex_namespace_runtime_industries_cpq.htm.md)
+[runtime\_industries\_cpq](./apex_namespace_runtime_industries_cpq.htm.md "The runtime_industries_cpq namespace provides classes and methods to search products or to manage products, catalogs, and categories.")
 
-- 
-**[ProductSpecificationTypeOutputRepresentation Properties](./apex_class_ricpq_ProductSpecificationTypeOR.htm.md#apex_ricpq_ProductSpecificationTypeOR_properties)**  
-
-Learn more about the properties available with the     ProductSpecificationTypeOutputRepresentation class.
-
-  
+- **[ProductSpecificationTypeOutputRepresentation Properties](./apex_class_ricpq_ProductSpecificationTypeOR.htm.md#apex_ricpq_ProductSpecificationTypeOR_properties)**  
+  Learn more about the properties available with the ProductSpecificationTypeOutputRepresentation class.
 
 ## ProductSpecificationTypeOutputRepresentation Properties
 
-  
-  
-  
 Learn more about the properties available with the
-    ProductSpecificationTypeOutputRepresentation class.
-
-    
-      
+ProductSpecificationTypeOutputRepresentation class.
 
 The `ProductSpecificationTypeOutputRepresentation` class
-        includes these properties.
+includes these properties.
 
-    
-
-    
-  
-
-- 
-**[name](./apex_class_ricpq_ProductSpecificationTypeOR.htm.md#apex_ricpq_ProductSpecificationTypeOR_name)**  
-
-Get or set the name of the product specification type.
-
-- 
-**[productSpecificationRecordType](./apex_class_ricpq_ProductSpecificationTypeOR.htm.md#apex_ricpq_ProductSpecificationTypeOR_productSpecificationRecordType)**  
-
-Get or set the product specification record type associated with this specification type.
+- **[name](./apex_class_ricpq_ProductSpecificationTypeOR.htm.md#apex_ricpq_ProductSpecificationTypeOR_name)**  
+  Get or set the name of the product specification type.
+- **[productSpecificationRecordType](./apex_class_ricpq_ProductSpecificationTypeOR.htm.md#apex_ricpq_ProductSpecificationTypeOR_productSpecificationRecordType)**  
+  Get or set the product specification record type associated with this specification type.
 
 ### name
 
@@ -76,4 +56,8 @@ Get or set the product specification record type associated with this specificat
 
 #### Property Value
 
-Type: runtime_industries_cpq.ProductSpecificationRecordTypeOutputRepresentation
+Type: runtime\_industries\_cpq.ProductSpecificationRecordTypeOutputRepresentation
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_ricpq_ProductSpecificationTypeOR.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

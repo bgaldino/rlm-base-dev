@@ -7,98 +7,43 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Generate Account Statement (POST)
 
-Generate comprehensive account statement with transaction history and
-      balance information.
-
-    
+Generate comprehensive account statement with transaction history and balance information.
 
 An account statement includes these details.
 
-        
-- Transaction History—List of all financial transactions, such as invoices, credit
-          memos, debit memos, payments, and refunds, within a specified date range.
-
-        
+- Transaction History—List of all financial transactions, such as invoices, credit memos, debit memos, payments, and refunds, within a specified date range.
 - Open Balances—Non-zero balances for invoices and other transactions.
-
-        
-- Account Summary—Aggregated totals including beginning balance, total charges,
-          total payments, and ending balance.
-
-        
+- Account Summary—Aggregated totals including beginning balance, total charges, total payments, and ending balance.
 - Multi-currency Support—Transactions across multiple currencies.
 
-      
-
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /revenue/billing/accounts/accountId/statement
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/revenue/billing/accounts/accountId/statement
 ```
 
-          
+## Available Version
 
-        
-        
-          
+66.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 66.0
+POST
 
-        
-        
-          
+## Request Body for POST
 
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-
-**JSON example**
-
-: 
+**JSON Example**
 
 ```
 {
@@ -125,91 +70,28 @@ https://yourInstance.salesforce.com/services/data/v68.0/revenue/billing/accounts
 
 **Properties**
 
-: 
-
-                  
-                    
-
-                    
-
-                    
-
-- 
-
-```
-
-```
-
-- 
-
-```
-
-```
-
-- 
-
-```
-
-```
-
-- 
-
-```
-
-```
-
-- 
-
-```
-
-```
-
-- 
-
-```
-
-```
-
-```
-
-```
-
-                    
-
-                    
-
-                  
-
-- 
-- 
-
-- 
-- 
-- 
-- 
-- 
-- 
-
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `associatedAccountIds` | String[] | List of associated account IDs from hierarchy to include in the statement. You can specify up to 50 accounts. | Optional | 66.0 |
 | `correlationId` | String | Correlation ID for tracking the request across systems. | Optional | 66.0 |
-| `customFields` | String | JSON string specifying custom fields to include in the statement. As a best practice, we recommend that you limit the number of custom fields up to 30 fields. Valid objects to specify the associated fields are: Invoice CreditMemo Payment DebitMemo Refund Account Here's the expected format.{"Invoice": ["field1", "field2"], "Account": {"base": ["field1"], "associated": ["field2"]}} | Optional | 67.0 |
+| `customFields` | String | JSON string specifying custom fields to include in the statement. As a best practice, we recommend that you limit the number of custom fields up to 30 fields. Valid objects to specify the associated fields are `Invoice`, `CreditMemo`, `Payment`, `DebitMemo`, `Refund`, or `Account`. Here's the expected format. | Optional | 67.0 |
 | `documentTemplateId` | String | Document template ID to use for PDF generation. If you don’t specify a value, the system auto-resolves by using the default template. | Optional | 66.0 |
 | `shouldShowOpenBalancesOnly` | Boolean | Indicates whether to show open balances only (`true`) or not (`false`). If set to `true`, the API shows only accounts with non-zero balances. If set to `false`, this API shows complete transaction history within the date range from the start date. | Optional | 66.0 |
 | `sortBy` | String | Criteria for sorting transactions. The default and valid value is `Date`. | Optional | 66.0 |
-| `sortingOrder` | String | Sort order for transactions. Valid values are: `Ascending` `Descending` The default value is `Descending`. | Optional | 66.0 |
+| `sortingOrder` | String | Sort order for transactions. Valid values are `Ascending` or `Descending`. The default value is `Descending`. | Optional | 66.0 |
 | `startDate` | String | Start date for the transaction history. The required format is `YYYY-MM-DD`. The system processes records up to 90 days from this date. | Required | 66.0 |
-| `transactionTypes` | String[] | List of transaction types to include in the statement. If you don’t specify a value or the value is empty, all transaction types are included. Valid values are: `All` `CreditMemo` `DebitMemo` `Invoice` `Payment` `Refund` | Optional | 66.0 |
+| `transactionTypes` | String[] | List of transaction types to include in the statement. If you don’t specify a value or the value is empty, all transaction types are included. Valid values are `All`, `CreditMemo`, `DebitMemo`, `Invoice`, `Payment`, or `Refund`. | Optional | 66.0 |
 
-          
+Example:
 
-        
-        
-          
+```
+{"Invoice": ["field1", "field2"], "Account": {"base": ["field1"], "associated": ["field2"]}}
+```
 
-**Response body for POST**
+## Response Body for POST
 
-          
-: [Account Statement
-              Response](./connect_responses_statement_of_account_output.htm.md)
+[Account Statement Response](./connect_responses_statement_of_account_output.htm.md "Output representation of the details of the generated account statement with async tracking details.")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_generate_account_statement.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

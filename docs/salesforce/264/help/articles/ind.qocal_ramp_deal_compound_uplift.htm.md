@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.setting_up_ramp_deals.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Ramp Deals with Standard or Compound Price Uplifts
@@ -15,7 +15,7 @@ Salesforce admins configure either standard or compound price uplifts for ramp s
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 USER PERMISSIONS NEEDED
 To configure the default Ramp Uplift Type in Revenue Settings:	Customize Application
 To set the Ramp Uplift Type on quote line groups:	Create on Quotes
@@ -30,10 +30,14 @@ While in Revenue Settings, also turn on Ramp Deals for Groups in Quotes and Orde
 Standard: Each segment's uplift applies to the original list price.
 Compound: Each segment's uplift builds on the net price of the prior segment.
 
-The prebuilt Revenue Management Default Pricing Procedure doesn't update automatically. If you use the prebuilt template, clone the latest template to apply the updates.
+The prebuilt Revenue Cloud Default Pricing Procedure doesn't update automatically. If you use the prebuilt template, clone the latest template to apply the updates.
 
 Follow Use Advanced Transaction Detail Line Pricing to Map Custom Fields and add another map line item mapping ItemApplUnitPriceUpliftPct__std to itemDetailApplUnitPriceUpliftPct__std to the prebuilt template.
 
 From Setup, select Object Manager. Search for and select the quote or order object. Click Lightning Record Pages, then the quote or order record page. Click Edit to open Lightning App Builder. Select the Sales Transaction Line Editor (STLE) component to add the Ramp Uplift Type field to the quote line group and order product group. Add the Applied Unit Price Uplift field to the quote line item and the order product.
 
 Synch the context definition before using compound uplift.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_ramp_deal_compound_uplift.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

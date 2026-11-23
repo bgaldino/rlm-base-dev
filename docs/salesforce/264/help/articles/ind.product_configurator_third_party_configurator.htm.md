@@ -6,16 +6,16 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_introduction.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Third-Party Configurator
 
-Revenue Management (formerly Revenue Cloud) provides extensibility options to third-party users seeking to build integrations with the Revenue Management product. Revenue Management supports various third-party use cases. The support includes replacing the first-party configurator with the third-party configurator, integrating third-party UI components into the first-party configurator, and creating custom configurator UI using headless configurator APIs.
+Revenue Cloud provides extensibility options to third-party users seeking to build integrations with the Revenue Cloud product. Revenue Cloud supports various third-party use cases. The support includes replacing the first-party configurator with the third-party configurator, integrating third-party UI components into the first-party configurator, and creating custom configurator UI using headless configurator APIs.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 
 Product catalog admin uses the product configuration flows to link different configurators (first-party or third-party) to specific products and product classifications. By integrating third-party configurators, the product catalog admins can determine the appropriate configurator for each product, whether it's a first-party or a specialized third-party configurator. The product catalog admin can set the third-party configurator as the default configurator for all the products.
 
@@ -25,7 +25,7 @@ Within the same organization, a Product Catalog admin can make these assignments
 
 Assign the Laptop Pro Bundle product to use the ABC third-party configurator.
 Assign the Excavator 3000 product to use the xyz third-party three-dimensional configurator.
-Set all products in the Cellphone product classification to use a customized lightning flow configurator, based on the standard Revenue Management configurator components.
+Set all products in the Cellphone product classification to use a customized lightning flow configurator, based on the standard Revenue Cloud configurator components.
 All other products to use the first-party configurator.
 Create a Third-Party Configurator UI Component
 Create a Lighting web component (LWC) to use as a custom third-party configurator UI component and add the custom component to the product configuration flow.
@@ -40,6 +40,10 @@ As a third-party user, build a custom configurator UI by using the public Config
 Use Third-Party Configurator for Specific Products or Classifications
 Configure product or classifications by using the third-party configurator instead of the default configurator.
 Use Place Sales Transaction API for Data Transfer
-Transfer data from a custom configurator to a quote or order in Revenue Management by using the Place Sales Transaction API.
+Transfer data from a custom configurator to a quote or order in Revenue Cloud by using the Place Sales Transaction API.
 Data Types for Configurator User Interface
 The Apex classes contain data accessible through the user interface. The Configurator’s Data Manager acts as the primary user interface component that exports data to other components. As a third-party user you can pass the data into your own user interface component without the need for separate queries to fetch data.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_third_party_configurator.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Manage Pricing Using Proration and Subscription Elements
@@ -15,7 +15,7 @@ Use the Proration and Subscription elements in Salesforce Pricing to apply time-
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 The Subscription element calculates the total subscription price based on the input unit price and the pricing term count. When a subscription starts, changes, or ends mid-period, the Proration element calculates a multiplier based on the portion of the period used. This multiplier then adjusts the subscription price, ensuring customers are only priced based on their subscription time.
 
@@ -31,3 +31,7 @@ Configure the Proration and Subscription Element
 To calculate time-based pricing, use the Proration and Subscription elements.
 Create a Proration Policy for a Subscription
 Manage charges for partial subscription periods and choose whether remainders are applied to the first or last pricing period.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_subscription_pricing_proration.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,230 +7,44 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_discovery_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Get Catalogs Action
 
 Get a list of catalog records.
 
-        
-            
-
 This action is available in API version 64.0 and later.
-
-            
 
 You can invoke this action via Apex and Flows only.
 
-        
-
-        
-
 ## Special Access Rules
-
-            
-        
-
-        
-        
 
 ## Inputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| recordLimit | **Type** integer **Description** Number of catalog records to get. The minimum is 1, the maximum is 100, and the default is 100. |
-| recordOffset | **Type** integer **Description** Number of catalog records to skip in the request. The default is 0. |
-| correlationId | **Type** string **Description** Unique identifier for tracking requests and messages, allowing reference to a specific transaction or event chain. |
-| orderBy | **Type** string **Description** Sort records in ascending or descending order. |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| recordLimit | integer | Number of catalog records to get. The minimum is 1, the maximum is 100, and the default is 100. |
+| recordOffset | integer | Number of catalog records to skip in the request. The default is 0. |
+| correlationId | string | Unique identifier for tracking requests and messages, allowing reference to a specific transaction or event chain. |
+| orderBy | string | Sort records in ascending or descending order. |
 
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Output | Details |
-| --- | --- |
-| resultCatalogList | **Type** Apex-defined **Description** List of filtered catalog records. See [CatalogOutputRepresentation](./apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm.md). |
-| apiStatusOutputRepresentation | **Type** Apex-defined **Description** An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md) record that contains the status of the request, including the status code and message. |
-| recordLimit | **Type** integer **Description** Number of catalog records to show per page. |
-| resultListCount | **Type** integer **Description** Number of catalog records in the result. |
-| correlationId | **Type** string **Description** Unique identifier for tracking requests and messages, allowing reference to a specific transaction or event chain. |
-| recordOffset | **Type** integer **Description** Number of catalog records to skip in the request. The default is 0. |
-
-        
-
-        
-        
+| Output | Type | Description |
+| --- | --- | --- |
+| resultCatalogList | Apex-defined | List of filtered catalog records. See [CatalogOutputRepresentation](./apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm.md "HTML (New Window)"). |
+| apiStatusOutputRepresentation | Apex-defined | An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains the status of the request, including the status code and message. |
+| recordLimit | integer | Number of catalog records to show per page. |
+| resultListCount | integer | Number of catalog records in the result. |
+| correlationId | string | Unique identifier for tracking requests and messages, allowing reference to a specific transaction or event chain. |
+| recordOffset | integer | Number of catalog records to skip in the request. The default is 0. |
 
 ## Example
 
-            
-            
-                
-                    
-
 **POST**
 
-                    
-                    
-: 
-                        
-
 Here's a sample input to call this invocable action from Apex code.
-
-                        
 
 ```
 Invocable.Action action = Invocable.Action.createStandardAction('getCatalogs');
@@ -245,15 +59,7 @@ List<Invocable.Action.Result> results = action.invoke();
 System.debug('Catalog List Action + '+results);
 ```
 
-                    
-
-                    
-: 
-                        
-
 Here's a sample response when you call this action.
-
-                        
 
 ```
 [
@@ -293,3 +99,7 @@ Here's a sample response when you call this action.
   }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_get_catalogs.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_general_ledger.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # General Ledger Account Assignment Rules and Related Records
@@ -38,3 +38,7 @@ Create General Ledger Account Assignment Rules
 Define general ledger account assignment rules that assign the correct general ledger accounts to credit and debit transaction journal entries.
 Define Criteria for Transaction Types
 Edit, delete, or define the filter criteria for the transaction type on the general ledger account assignment rule you created.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_general_ledger_account_assignment_rules_and_criteria.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

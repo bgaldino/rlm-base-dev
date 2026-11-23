@@ -7,478 +7,64 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_discovery_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Get Products Action
 
-Get products from the specified catalog, category, or subcategory,
-			including product qualification and pricing details.
+Get products from the specified catalog, category, or subcategory, including product qualification and pricing details.
 
-		
-
-If a catalog, category, or subcategory isn’t specified, then this action retrieves all
-				the products from all catalogs. This action is available in API version 62.0 and
-				later.
-
-      
+If a catalog, category, or subcategory isn’t specified, then this action retrieves all the products from all catalogs. This action is available in API version 62.0 and later.
 
 You can invoke this action via Apex and Flows only.
 
-		
-
 ## Special Access Rules
 
-			
-			
-
-The Get Products action is available in Enterprise, Unlimited, and Developer Editions where
-				Product Discovery is enabled.
-
-		
-
-		
-		
+The Get Products action is available in Enterprise, Unlimited, and Developer Editions where Product Discovery is enabled.
 
 ## Inputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-- 
-- 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-- 
-- 
-- 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Input | Details |
-| --- | --- |
-| additionalContextData | **Type** Apex-defined **Description** An array of Apex [`runtime_industries_cpq.AdditionalContextData`](./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md) records that contain the additional nodes that are used along with the context definition nodes for data hydration. The maximum number of supported nodes is 10. |
-| additionalFields | **Type** Apex-defined **Description** An Apex [`runtime_industries_cpq.AdditionalFields`](./apex_class_runtime_industries_cpq_AdditionalFields.htm.md) record that contains an array of additional standard or custom fields to include in the response. The supported objects are: `Product2` `ProductAttributeDefinition`—If the fields defined for the `ProductAttributeDefinition` object aren’t available for the `ProductClassificationAttr` object, then the API request fails. |
-| catalogId | **Type** string **Description** Catalog ID that’s used to find and retrieve the products. |
-| categoryId | **Type** string **Description** ID of the category or subcategory to get the products for. |
-| contextDefinition | **Type** string **Description** API name of the context definition that’s used for context creation. If you don’t specify a value, the context selected on the Product Discovery Settings page from Setup is used. |
-| contextMapping | **Type** string **Description** API name of the context mapping that’s used for data hydration. The value of this parameter is used only if it belongs to the specified context definition. |
-| correlationId | **Type** string **Description** Unique ID that’s used to reference a series of related actions. |
-| currencyCode | **Type** string **Description** Currency code that’s used to calculate and show prices. Only the products with the currency code matching the specified currency code are fetched. |
-| cursor | **Type** string **Description** Unique identifier that represents the position of the product from which the next set of results are retrieved. |
-| enablePricing | **Type** boolean **Description** Indicates whether the pricing procedure must run (`true`) or not (`false`). The default value is `true`. To use this parameter, you must enable the Pricing Procedure setting from Setup. |
-| enableQualification | **Type** boolean **Description** Indicates whether the qualification procedure must run (`true`) or not (`false`). The default value is `true`. To use this parameter, you must enable the Qualification Procedure setting from Setup. |
-| executeConfigurationRules | **Type** boolean **Description** Indicates whether configuration rules must run (`true`) or not (`false`). Available in API version 67.0 and later. |
-| filter | **Type** Apex-defined **Description** A collection of Apex [`runtime_industries_cpq.FilterInputRepresentation`](./apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md) records where each record contains a related object and the filter criteria that’s applied on the object. The filter parameter supports only the `name` property. The supported operators are: `eq` `in` `contains` If this parameter contains multiple criteria, all the criteria are applied. |
-| includeCatalogDetails | **Type** boolean **Description** Indicates whether catalog details must be included in the response (`true`) or not (`false`). |
-| limit | **Type** integer **Description** Maximum number of results to be returned in the response. Specify a value from 1 through 100. The default value is 10. |
-| orderBy | **Type** string **Description** Comma-separated string of key-value pairs that specify how the results are sorted. Each string must contain a field name and its sort order. For example, `["name:asc",”custom_field:asc”]`. |
-| priceBookId | **Type** string **Description** ID of the pricebook that the pricing details are retrieved from. |
-| pricingProcedure | **Type** string **Description** API name of the pricing procedure to calculate product prices. If you don’t specify a value, the pricing procedure selected on the Product Discovery Settings page from Setup is used. |
-| productClassificationId | **Type** string **Description** ID of the product classification that’s used to filter the products. |
-| qualificationProcedure | **Type** string **Description** API name of the qualification procedure to evaluate product eligibility. If you don’t specify a value, the qualification procedure selected on the Product Discovery Settings page from Setup is used. |
-| transactionContextId | **Type** string **Description** Context ID of the quote or order. Available in API version 67.0 and later. |
-| transactionId | **Type** string **Description** ID of the quote or order. Available in API version 67.0 and later. |
-| relatedObjectFilters | **Type** Apex-defined **Description** A collection of Apex [`runtime_industries_cpq.RelatedObjectFilterInputRepresentation`](./apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm.md) records, where each record contains a related object and the filter criteria that’s applied on the object. |
-| userContext | **Type** Apex-defined **Description** An Apex `ConnectApi.UserContextInputRepresentation` record that contains the user details to evaluate product eligibility and calculate prices. |
-
-		
-
-		
+| Input | Type | Description |
+| --- | --- | --- |
+| additionalContextData | Apex-defined | An array of Apex [`runtime_industries_cpq.AdditionalContextData`](./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)") records that contain the additional nodes that are used along with the context definition nodes for data hydration. The maximum number of supported nodes is 10. |
+| additionalFields | Apex-defined | An Apex [`runtime_industries_cpq.AdditionalFields`](./apex_class_runtime_industries_cpq_AdditionalFields.htm.md "HTML (New Window)") record that contains an array of additional standard or custom fields to include in the response. The supported objects are `Product2` or `ProductAttributeDefinition`—If the fields defined for the `ProductAttributeDefinition` object aren’t available for the `ProductClassificationAttr` object, then the API request fails. |
+| catalogId | string | Catalog ID that’s used to find and retrieve the products. |
+| categoryId | string | ID of the category or subcategory to get the products for. |
+| contextDefinition | string | API name of the context definition that’s used for context creation. If you don’t specify a value, the context selected on the Product Discovery Settings page from Setup is used. |
+| contextMapping | string | API name of the context mapping that’s used for data hydration. The value of this parameter is used only if it belongs to the specified context definition. |
+| correlationId | string | Unique ID that’s used to reference a series of related actions. |
+| currencyCode | string | Currency code that’s used to calculate and show prices. Only the products with the currency code matching the specified currency code are fetched. |
+| cursor | string | Unique identifier that represents the position of the product from which the next set of results are retrieved. |
+| enablePricing | boolean | Indicates whether the pricing procedure must run (`true`) or not (`false`). The default value is `true`. To use this parameter, you must enable the Pricing Procedure setting from Setup. |
+| enableQualification | boolean | Indicates whether the qualification procedure must run (`true`) or not (`false`). The default value is `true`. To use this parameter, you must enable the Qualification Procedure setting from Setup. |
+| executeConfigurationRules | boolean | Indicates whether configuration rules must run (`true`) or not (`false`). Available in API version 67.0 and later. |
+| filter | Apex-defined | A collection of Apex [`runtime_industries_cpq.FilterInputRepresentation`](./apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md "HTML (New Window)") records where each record contains a related object and the filter criteria that’s applied on the object. The filter parameter supports only the `name` property. The supported operators are `eq`, `in`, or `contains`. If this parameter contains multiple criteria, all the criteria are applied. |
+| includeCatalogDetails | boolean | Indicates whether catalog details must be included in the response (`true`) or not (`false`). |
+| limit | integer | Maximum number of results to be returned in the response. Specify a value from 1 through 100. The default value is 10. |
+| orderBy | string | Comma-separated string of key-value pairs that specify how the results are sorted. Each string must contain a field name and its sort order. For example, `["name:asc",”custom_field:asc”]`. |
+| priceBookId | string | ID of the pricebook that the pricing details are retrieved from. |
+| pricingProcedure | string | API name of the pricing procedure to calculate product prices. If you don’t specify a value, the pricing procedure selected on the Product Discovery Settings page from Setup is used. |
+| productClassificationId | string | ID of the product classification that’s used to filter the products. |
+| qualificationProcedure | string | API name of the qualification procedure to evaluate product eligibility. If you don’t specify a value, the qualification procedure selected on the Product Discovery Settings page from Setup is used. |
+| transactionContextId | string | Context ID of the quote or order. Available in API version 67.0 and later. |
+| transactionId | string | ID of the quote or order. Available in API version 67.0 and later. |
+| relatedObjectFilters | Apex-defined | A collection of Apex [`runtime_industries_cpq.RelatedObjectFilterInputRepresentation`](./apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm.md "HTML (New Window)") records, where each record contains a related object and the filter criteria that’s applied on the object. |
+| userContext | Apex-defined | An Apex `ConnectApi.UserContextInputRepresentation` record that contains the user details to evaluate product eligibility and calculate prices. |
 
 ## Outputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Output | Details |
-| --- | --- |
-| apiStatus | **Type** Apex-defined **Description** An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md) record that contains a status code and message. |
-| contextId | **Type** string **Description** ID of the context that’s created by using the specified context definition. |
-| correlationId | **Type** string **Description** ID to reference a series of related actions. |
-| cursor | **Type** string **Description** Unique identifier that represents the position of the product from which the next set of results are retrieved. |
-| results | **Type** Apex-defined **Description** An Apex [`runtime_industries_cpq.ProductListRepresentation`](./apex_class_runtime_industries_cpq_ProductListRepresentation.htm.md) record that contains the retrieved products. |
-| userContext | **Type** Apex-defined **Description** An Apex `ConnectApi.UserContextRepresentation` record that includes the user details. |
-
-		
-
-		
+| Output | Type | Description |
+| --- | --- | --- |
+| apiStatus | Apex-defined | An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains a status code and message. |
+| contextId | string | ID of the context that’s created by using the specified context definition. |
+| correlationId | string | ID to reference a series of related actions. |
+| cursor | string | Unique identifier that represents the position of the product from which the next set of results are retrieved. |
+| results | Apex-defined | An Apex [`runtime_industries_cpq.ProductListRepresentation`](./apex_class_runtime_industries_cpq_ProductListRepresentation.htm.md "HTML (New Window)") record that contains the retrieved products. |
+| userContext | Apex-defined | An Apex `ConnectApi.UserContextRepresentation` record that includes the user details. |
 
 ## Example
 
-			
-			
-				
-					
-					
-					
-: 
-						
-
 Here's a sample input to call this invocable action from Apex code.
-
-						
 
 ```
 Invocable.Action action = Invocable.Action.createStandardAction('getProducts');
@@ -499,15 +85,7 @@ for (Invocable.Action.Result res : results) {
 }
 ```
 
-					
-
-					
-: 
-						
-
 Here’s a sample response for this action.
-
-						
 
 ```
 {
@@ -1678,35 +1256,13 @@ Here’s a sample response for this action.
 }
 ```
 
-					
-
-				
-			
-
-		
-
-		
-
 ## Usage of an Apex-Defined Data Type in a Flow
-
-			
-			
 
 To use an Apex-defined input parameter in a Flow, follow these guidelines.
 
-			
-				
-					
+**Create an Apex Class**
 
-**Create an Apex class**
-
-					
-: Create an Apex class defining the input and output parameters. In the flow,
-						include the Apex-defined input parameters for which you want to add the
-						details. In this example, we have created a class named ProductServiceAction
-						that takes an object’s API name and record ID as input, and returns the
-						additional context
-						data.
+Create an Apex class defining the input and output parameters. In the flow, include the Apex-defined input parameters for which you want to add the details. In this example, we have created a class named ProductServiceAction that takes an object’s API name and record ID as input, and returns the additional context data.
 
 ```
 public class ProductServiceAction {
@@ -1782,29 +1338,10 @@ public class ProductServiceAction {
 }
 ```
 
-				
-				
-					
+**Create a Flow with the Necessary Variables and Components:** Create a flow that enables users to add a search term to find products. Add the ProductService action that you’ve created above by using Apex. When a flow is invoked from a record, the flow sends the record's objectApiName and recordId to the Apex class, which then generates the flow output. The flow passes the objectApiName and recordId of the record that the flow is invoked from to the Apex class to generate the flow output. See [Example of How to Create a Flow for Product Discovery](https://help.salesforce.com/s/articleView?id=ind.product_catalog_example_create_custom_flow_for_browsing_and_adding_products.htm&type=5&language=en_US "HTML (New Window)").
 
-**Create a Flow with the necessary variables and components**
+**Configure the Action:** Configure the action (for example, Get Products action) to add values for the Apex-defined input parameters. Use the output of the created Apex class as the input of the Apex-defined parameter in the Get Products action, which users can use to get products.
 
-					
-: Create a flow that enables users to add a search term to find products. Add
-						the ProductService action that you’ve created above by using Apex. When a
-						flow is invoked from a record, the flow sends the record's objectApiName and
-						recordId to the Apex class, which then generates the flow output. The flow
-						passes the objectApiName and recordId of the record that the flow is invoked
-						from to the Apex class to generate the flow output. See [Example of How to
-							Create a Flow for Product Discovery](https://help.salesforce.com/s/articleView?id=ind.product_catalog_example_create_custom_flow_for_browsing_and_adding_products.htm&type=5&language=en_US).
+---
 
-				
-				
-					
-
-**Configure the action**
-
-					
-: Configure the action (for example, Get Products action) to add values for
-						the Apex-defined input parameters. Use the output of the created Apex class
-						as the input of the Apex-defined parameter in the Get Products action, which
-						users can use to get products.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_get_products.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

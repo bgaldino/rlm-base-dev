@@ -5,7 +5,7 @@ source_url: https://help.salesforce.com/s/articleView?id=ind.sf_contracts_salesf
 release: 264
 release_name: Winter '27
 area: salesforce_contracts
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Learn and Explore Salesforce Contracts
@@ -65,3 +65,7 @@ Salesforce Contracts Glossary
 Browse through this collection of terms, key objects, and key concepts. This collection is designed to give Salesforce admins, sales reps, and developers a clear and consistent understanding of salesforce contract concepts and helps them navigate the Salesforce Contract landscape.
 Considerations and Limitations with Salesforce Contracts
 .Understand the functional constraints and usage considerations that apply when you work with Salesforce Contracts.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_salesforce_contracts_overview.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,184 +7,95 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Decision Explainer
 parent_page: decision_explainer_tooling_api_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # BusinessProcessTypeDef
 
-      Represents a type of business process within an application domain.
-      Available in API version 54.0 and later. 
+Represents a type of business process within an application domain.
+Available in API version 54.0 and later.
 
-      
-         
+![Important](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note_important.png&folder=industries_reference)
 
 #### Important
 
- Where possible, we changed noninclusive terms to align with our
-            company value of Equality. We maintained certain terms to avoid any effect on customer
-            implementations.
-
-      
-
-      
+Where possible, we changed noninclusive terms to align with our
+company value of Equality. We maintained certain terms to avoid any effect on customer
+implementations.
 
 ## Supported SOAP API Calls
 
-         
-         
-
-            `create()`, `delete()`, `describeSObjects()`, `query()`, `retrieve()`, `update()`, `upsert()`
-         
-
-      
-
-      
+`create()`, `delete()`, `describeSObjects()`, `query()`, `retrieve()`, `update()`, `upsert()`
 
 ## Supported REST API Methods
 
-         
-         
-
 `DELETE, GET, HEAD, PATCH, POST, Query`
-         
-
-      
-
-      
 
 ## Fields
 
-         
-         
+### ApplicationUsageType
 
-               
-               
-               
-                  
-                     
+- **Type**: string
+- **Properties**: Create, Defaulted on create, Filter, Group, Nillable, Restricted
+  picklist, Sort, Update
+- **Description**: Specifies the application's domain that defines the business
+  process type definition.
+- **Default value**: `ExplainabilityService`
+- **Possible values**:
+  - `Explainability
+    Service`
 
-                     
+### Description
 
-                  
+- **Type**: string
+- **Properties**: Create, Filter, Group, Nillable, Sort, Update
+- **Description**: The description of the business process type definition.
 
-               
+### DeveloperName
 
-               
-                  
-                     
+- **Type**: string
+- **Properties**: Create, Filter, Group, Nillable, Sort, Update
+- **Description**: The unique name of the business process type definition.
 
-                     
+### Language
 
-: 
+- **Type**: string
+- **Properties**: Create, Defaulted on create, Filter, Group, Nillable, Restricted
+  picklist, Sort, Update
+- **Description**: The language of the business process type definition.
 
-: 
+### ManageableState
 
-: 
-: 
-- 
+- **Type**: string
+- **Properties**: Filter, Group, Nillable, Restricted picklist, Sort
+- **Description**: Indicates the manageable state of the specified component that is
+  contained in a package.
+- **Possible values**:
+  - `beta`—Managed-Beta
+  - `deleted`—Managed-Proposed-Deleted
+  - `deprecated`—Managed-Proposed-Deprecated
+  - `deprecatedEditable`—SecondGen-Installed-Deprecated
+  - `installed`—Managed-Installed
+  - `installedEditable`—SecondGen-Installed-Editable
+  - `released`—Managed-Released
+  - `unmanaged`—Unmanaged
 
-: 
+### MasterLabel
 
-                  
+- **Type**: string
+- **Properties**: Create, Filter, Group, Nillable, Sort, Update
+- **Description**: The UI label of the business process type definition.
 
-                  
-                     
+### NamespacePrefix
 
-                     
+- **Type**: string
+- **Properties**: Filter, Group, Nillable, Sort
+- **Description**: The namespace prefix that is associated with this object. Each
+  Developer Edition org that creates a managed package has a unique
+  namespace prefix. Limit: 15 characters. You can refer to a
+  component in a managed package by using the `namespacePrefix__componentName`
+  notation.
 
-: 
+---
 
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-               
-
-            
-| Field | Details |
-| --- | --- |
-| ApplicationUsageType | **Type** string **Properties** Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update **Description** Specifies the application's domain that defines the business process type definition. Possible values are: `Explainability Service` The default value is `ExplainabilityService`. |
-| Description | **Type** string **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** The description of the business process type definition. |
-| DeveloperName | **Type** string **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** The unique name of the business process type definition. |
-| Language | **Type** string **Properties** Create, Defaulted on create, Filter, Group, Nillable, Restricted picklist, Sort, Update **Description** The language of the business process type definition. |
-| ManageableState | **Type** string **Properties** Filter, Group, Nillable, Restricted picklist, Sort **Description** Indicates the manageable state of the specified component that is contained in a package. Possible values are: `beta`—Managed-Beta `deleted`—Managed-Proposed-Deleted `deprecated`—Managed-Proposed-Deprecated `deprecatedEditable`—SecondGen-Installed-Deprecated `installed`—Managed-Installed `installedEditable`—SecondGen-Installed-Editable `released`—Managed-Released `unmanaged`—Unmanaged |
-| MasterLabel | **Type** string **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** The UI label of the business process type definition. |
-| NamespacePrefix | **Type** string **Properties** Filter, Group, Nillable, Sort **Description** The namespace prefix that is associated with this object. Each Developer Edition org that creates a managed package has a unique namespace prefix. Limit: 15 characters. You can refer to a component in a managed package by using the `namespacePrefix__componentName` notation. |
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/tooling_api_objects_businessprocesstypedef.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

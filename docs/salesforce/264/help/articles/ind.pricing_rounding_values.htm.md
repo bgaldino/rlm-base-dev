@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Apply Price Rounding Values
@@ -15,7 +15,7 @@ Precisely calculate the price of your product using Rounding Values in your pric
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 Rounding ensures that financial calculations use the correct number of decimal places for the currency, rounding results up or down based on the applied rounding rule. The rounding rules applied are:
 
@@ -23,9 +23,15 @@ Round Up: This rule rounds the currency value of an item to the nearest higher v
 Round Down: This rule rounds the currency value of an item to the nearest lower value. For example, if a pen costs $1.60, applying this rule adjusts the price to $1.
 Half Up: This rule rounds the currency value of an item to the nearest number based on its decimal value. For example, if a pen costs $1.45 and you select the Half Up rule, the price adjusts to $1.50. However, if the pen costs $1.20, the price adjusts to $1.00.
 
-For single-currency orgs, the Rounding Values element sets the rounding precision by using the precision input parameter. If no precision value is passed, the element returns the input value unchanged, without rounding. If multicurrency is enabled, the Rounding Values element ignores the precision input parameter and automatically applies the decimal places defined in your Manage Currencies settings. The element uses the decimal places defined for the currency passed through CurrencyIsoCode context. If CurrencyIsoCode isn't passed, the element automatically applies the decimal places defined for each currency in your Manage Currencies settings. See Manage Multiple Currencies.
+For single-currency orgs, the Rounding Values element sets the rounding precision by using the precision input parameter. If no precision value is passed, the element returns the input value unchanged, without rounding.
+
+If multicurrency is enabled, the Rounding Values element ignores the precision input parameter and automatically applies the decimal places defined in your Manage Currencies settings. The element uses the decimal places defined for the currency passed through CurrencyIsoCode context tag. If CurrencyIsoCode isn't explicitly passed, the element uses the default CurrencyIsoCode value from the user info. See Manage Multiple Currencies.
 
 In addition to setting overall precision, the Rounding Values element also plays a crucial role in determining the final currency outputs from preceding pricing elements, such as Manual Discount and Volume Discount.
 
 Use the Rounding Values Element
 Use the Rounding Values element to ensure that the output of any pricing element in a pricing procedure is rounded to the specified decimal place.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_rounding_values.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

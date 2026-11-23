@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_dynamic_revenue_orchestrator.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Submit Orders for Decomposition and Order Fulfillment
@@ -29,7 +29,13 @@ View Fulfillment Step History
 Monitor the changes to a fulfillment step, such as status modifications, on its detail page by using the Fulfillment Step History related list.
 Retry or Complete Multiple Failed Fulfillment Steps
 From a list view or queue, retry or complete multiple steps at once. If you complete a step in this way, the step ignores any errors that can otherwise stop the completion of the step.
+Retry Assetization for a Dynamic Revenue Orchestrator Order
+If assetization doesn't complete after fulfillment, fix the cause of the failure and invoke the Create or Update Asset from Order action. The action retries commercial assetization for the order and starts technical assetization to create or update its fulfillment assets.
 Handle Conflicts During Asset Date Amendments by Using Submit Order with Validation Flow
 It's common to request adjustments to license subscription start dates, either moving them earlier if your users are ready to use them or delaying them if they are not. However, if the order that created the asset has incomplete steps in its fulfillment plan, submitting an asset amendment can result in two orders updating the asset simultaneously. Identify and handle incomplete steps in the fulfillment plan by using the Submit Order with Validation flow.
 Configure Custom Logic between Decomposition and Orchestration
 To insert custom logic into the fulfillment process between the decomposition and orchestration steps, invoke the two processes separately. The standard Submit Sales Transaction invocable action runs decomposition and orchestration processes sequentially. To decouple the processes, use the individual Decompose Sales Transaction and Orchestrate Sales Transaction invocable actions. Add your custom logic and compose the fulfillment plan with the necessary, up-to-date information. Custom logic is critical if certain data needed for specific validations or data enrichment is only available after decomposition. After the custom logic executes, trigger the Orchestrate Sales Transaction invocable action through various methods, such as custom platform events, Apex triggers, or direct flow actions.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_run_time_administration.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

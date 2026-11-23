@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: rating
 parent_article: ind.rm_rating_discovery_procedures.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Elements in a Rating Discovery Procedure
@@ -30,3 +30,7 @@ Get Rate Card Entries
 Select the Rate Card Entry Resolution Entries 2 lookup table to fetch the rate card entries related to the rate card fetched by using the Get Rate Card element. Then, map the variables to the relevant context tags.
 Get Tier-Based Rate Adjustments
 Select the Rate Adjustment by Tier Resolution Entries lookup table to fetch the tier-based adjustments, and then map the variables to the relevant context tags.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rm_rating_discovery_procedure_elements.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

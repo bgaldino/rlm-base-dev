@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.qocal_configure_ramp_segments.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create a Product Ramp Segment
@@ -15,7 +15,7 @@ A ramp deal is a type of sales agreement where price and volume vary across time
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 USER PERMISSIONS NEEDED
 To create a ramp segment:	Manage Product Catalog
 
@@ -37,3 +37,7 @@ To try the product at no additional cost for a specified duration, under Segment
 To create a segment for a specific number of years, select Yearly under Segment Type. Leave the Trial Duration and Duration Type fields blank.
 To create a segment for a custom duration, select Custom under Segment Type. Leave the Trial Duration and Duration Type fields blank.
 Save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_product_ramp_segments.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

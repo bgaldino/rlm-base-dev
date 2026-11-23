@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_integration_ms365_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Integrate Microsoft 365 and Azure with Salesforce Contracts Manually
@@ -37,3 +37,7 @@ Deploy Salesforce Contracts Connector for Word Add-In App to Users Manually
 Through a centralized deployment, Salesforce Admins can deploy and assign the app to all or specific users. Users can then insert the add-in into their Microsoft 365 Word.
 Update Microsoft App Registration to Use Minimum-Privilege Permissions
 If you previously set up the Microsoft Add-in by using advanced permissions such as Files.ReadWrite.All and User.ReadWrite.All, you can update your app registration to use Sites.Selected, User.Read, and User.ReadBasic.All. This reduces security risks, limits access to specific SharePoint sites, and supports simplified access management without impacting document generation.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_integrate_microsoft_365_azure_with_salesforce.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,7 +7,7 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # ProductAttributeOutputRepresentation Class
@@ -16,178 +16,77 @@ Contains details about the attribute in a product configuration.
 
 ## Namespace
 
-[runtime_industries_cpq](./apex_namespace_runtime_industries_cpq.htm.md)
+[runtime\_industries\_cpq](./apex_namespace_runtime_industries_cpq.htm.md "The runtime_industries_cpq namespace provides classes and methods to search products or to manage products, catalogs, and categories.")
 
-- 
-**[ProductAttributeOutputRepresentation Properties](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_properties)**  
-
-Learn more about the properties available with the ProductAttributeOutputRepresentation     class.
-
-  
+- **[ProductAttributeOutputRepresentation Properties](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_properties)**  
+  Learn more about the properties available with the ProductAttributeOutputRepresentation class.
 
 ## ProductAttributeOutputRepresentation Properties
 
-  
-  
-  
 Learn more about the properties available with the ProductAttributeOutputRepresentation
-    class.
-
-    
-      
+class.
 
 The `ProductAttributeOutputRepresentation` class includes
-        these properties.
+these properties.
 
-    
-
-    
-  
-
-- 
-**[additionalFields](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_additionalFields)**  
-
-Get the key-value pairs of additional standard or custom fields and their values for the product attribute.
-
-- 
-**[attributeCategoryId](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_attributeCategoryId)**  
-
-Get the ID of the attribute category.
-
-- 
-**[attributeNameOverride](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_attributeNameOverride)**  
-
-Get the name override value of the attribute.
-
-- 
-**[attributePickList](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_attributePickList)**  
-
-Get the picklist values of the attribute.
-
-- 
-**[code](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_code)**  
-
-Get the code of the attribute.
-
-- 
-**[dataType](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_dataType)**  
-
-Get the data type of the attribute.
-
-- 
-**[defaultHelpText](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_defaultHelpText)**  
-
-Get the default help text value of the attribute.
-
-- 
-**[defaultValue](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_defaultValue)**  
-
-Get the default value of the attribute.
-
-- 
-**[description](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_description)**  
-
-Get the description of the attribute.
-
-- 
-**[developerName](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_developerName)**  
-
-Get the developer name of the product attribute.
-
-- 
-**[displayTypeOverride](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_displayTypeOverride)**  
-
-Get the override value of the display type of the attribute.
-
-- 
-**[hidden](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_hidden)**  
-
-Indicates whether the attribute is hidden (true) or not (false).
-
-- 
-**[id](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_id)**  
-
-Get the ID of the attribute.
-
-- 
-**[isCloneable](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_isCloneable)**  
-
-Indicates whether the attribute is cloneable (true) or not (false).
-
-- 
-**[isConfigurable](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_isConfigurable)**  
-
-Indicates whether the attribute is configurable (true) or not (false).
-
-- 
-**[isEncrypted](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_isEncrypted)**  
-
-Indicates whether the attribute is encrypted (true) or not (false).
-
-- 
-**[isPriceImpacting](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_isPriceImpacting)**  
-
-Indicates whether this is a price impacting attribute (true) or not (false).
-
-- 
-**[isReadOnly](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_isReadOnly)**  
-
-Indicates whether the attribute is read-only (true) or not (false).
-
-- 
-**[isRequired](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_isRequired)**  
-
-Indicates whether the attribute is required (true) or not (false).
-
-- 
-**[label](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_label)**  
-
-Get the label of the attribute.
-
-- 
-**[maximumValue](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_maximumValue)**  
-
-Get the maximum value for the product attribute.
-
-- 
-**[minimumValue](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_minimumValue)**  
-
-Get the minimum value for the product attribute.
-
-- 
-**[name](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_name)**  
-
-Get the name of the attribute.
-
-- 
-**[sequence](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_sequence)**  
-
-Get the sequence values of the attribute.
-
-- 
-**[status](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_status)**  
-
-Get the status of the attribute.
-
-- 
-**[stepValue](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_stepValue)**  
-
-Get the step value for the attribute.
-
-- 
-**[unitOfMeasure](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_unitOfMeasure)**  
-
-Get details about the unit of measure associated with an attribute.
-
-- 
-**[userValue](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_userValue)**  
-
-Get the user value of the attribute.
-
-- 
-**[valueDescription](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_valueDescription)**  
-
-Get the value description of the attribute.
+- **[additionalFields](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_additionalFields)**  
+  Get the key-value pairs of additional standard or custom fields and their values for the product attribute.
+- **[attributeCategoryId](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_attributeCategoryId)**  
+  Get the ID of the attribute category.
+- **[attributeNameOverride](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_attributeNameOverride)**  
+  Get the name override value of the attribute.
+- **[attributePickList](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_attributePickList)**  
+  Get the picklist values of the attribute.
+- **[code](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_code)**  
+  Get the code of the attribute.
+- **[dataType](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_dataType)**  
+  Get the data type of the attribute.
+- **[defaultHelpText](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_defaultHelpText)**  
+  Get the default help text value of the attribute.
+- **[defaultValue](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_defaultValue)**  
+  Get the default value of the attribute.
+- **[description](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_description)**  
+  Get the description of the attribute.
+- **[developerName](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_developerName)**  
+  Get the developer name of the product attribute.
+- **[displayTypeOverride](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_displayTypeOverride)**  
+  Get the override value of the display type of the attribute.
+- **[hidden](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_hidden)**  
+  Indicates whether the attribute is hidden (true) or not (false).
+- **[id](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_id)**  
+  Get the ID of the attribute.
+- **[isCloneable](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_isCloneable)**  
+  Indicates whether the attribute is cloneable (true) or not (false).
+- **[isConfigurable](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_isConfigurable)**  
+  Indicates whether the attribute is configurable (true) or not (false).
+- **[isEncrypted](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_isEncrypted)**  
+  Indicates whether the attribute is encrypted (true) or not (false).
+- **[isPriceImpacting](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_isPriceImpacting)**  
+  Indicates whether this is a price impacting attribute (true) or not (false).
+- **[isReadOnly](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_isReadOnly)**  
+  Indicates whether the attribute is read-only (true) or not (false).
+- **[isRequired](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_isRequired)**  
+  Indicates whether the attribute is required (true) or not (false).
+- **[label](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_label)**  
+  Get the label of the attribute.
+- **[maximumValue](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_maximumValue)**  
+  Get the maximum value for the product attribute.
+- **[minimumValue](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_minimumValue)**  
+  Get the minimum value for the product attribute.
+- **[name](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_name)**  
+  Get the name of the attribute.
+- **[sequence](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_sequence)**  
+  Get the sequence values of the attribute.
+- **[status](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_status)**  
+  Get the status of the attribute.
+- **[stepValue](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_stepValue)**  
+  Get the step value for the attribute.
+- **[unitOfMeasure](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_unitOfMeasure)**  
+  Get details about the unit of measure associated with an attribute.
+- **[userValue](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductAttributeOutputRepresentation_userValue)**  
+  Get the user value of the attribute.
+- **[valueDescription](./apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm.md#apex_ricpq_ProductAttributeOR_valueDescription)**  
+  Get the value description of the attribute.
 
 ### additionalFields
 
@@ -199,7 +98,7 @@ Get the key-value pairs of additional standard or custom fields and their values
 
 #### Property Value
 
-Type: List<runtime_industries_cpq.AdditionalFieldsWrapper>
+Type: List<runtime\_industries\_cpq.AdditionalFieldsWrapper>
 
 ### attributeCategoryId
 
@@ -235,7 +134,7 @@ Get the picklist values of the attribute.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.AttributePickListOutputRepresentation](./apex_class_runtime_industries_cpq_AttributePickListOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_AttributePickListOutputRepresentation)
+Type: [runtime\_industries\_cpq.AttributePickListOutputRepresentation](./apex_class_runtime_industries_cpq_AttributePickListOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_AttributePickListOutputRepresentation "Stores details of an attribute picklist.")
 
 ### code
 
@@ -536,3 +435,7 @@ Get the value description of the attribute.
 #### Property Value
 
 Type: String
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_runtime_industries_cpq_ProductAttributeOutputRepresentation.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

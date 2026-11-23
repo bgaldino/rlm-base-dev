@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_payments.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Retry Failed Payments
@@ -81,7 +81,11 @@ Security Failure	Security violations or issues such as fraud, risk, authenticati
 Gateway Connection Error	Connectivity or communication errors between systems, including upstream gateway errors.
 Internal Validation Error	An internal error occurred due to a validation failure even before the request was sent to the gateway.
 Unknown Error	Payment gateway error code isn't recognized or isn't mapped to a specific category.
-Set Up Payment Retry Rules
+Create Payment Retry Rule Sets and Payment Retry Rules
 Define payment retry rule sets and payment retry rules and configure Billing to automatically retry failed payments for specific error categories at various time intervals.
 Examples: Configure Payment Retry Rule Sets and Retry Rules
 Let’s explore a few examples for creating and configuring payment retry rule sets and rules.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_retry_failed_payments.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,16 +6,16 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_order_submission_for_fulfillment.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Example: Automate Order Submission for Fulfillment
 
-Create a record-triggered flow to submit Revenue Management orders to Dynamic Revenue Orchestrator automatically when users activate the orders. Automation makes sure that all eligible records enter the fulfillment pipeline immediately upon meeting specified status criteria.
+Create a record-triggered flow to submit Revenue Cloud orders to Dynamic Revenue Orchestrator automatically when users activate the orders. Automation makes sure that all eligible records enter the fulfillment pipeline immediately upon meeting specified status criteria.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To open, edit, or create a flow in Flow Builder:	Manage Flow
 To submit orders to Dynamic Revenue Orchestrator and call the invocable actions:	Submit Transaction User
@@ -59,7 +59,7 @@ API Name: ApplicationUsageAssignmentRecord
 Data Type: Record
 Object: Application Usage Assignment
 Click Done.
-Add a Decision to Check for Revenue Management Records
+Add a Decision to Check for Revenue Cloud Records
 
 Verify that the record belongs to the Revenue Lifecycle Management usage type before proceeding.
 
@@ -93,3 +93,7 @@ To add the Fulfillment Plan and Orchestration Submission Status fields, edit ord
 
 SEE ALSO
 Create or Update Asset From Order Action
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_example_automate_order_submission_for_fulfillment.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

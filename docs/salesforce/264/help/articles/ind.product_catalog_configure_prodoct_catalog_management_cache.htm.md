@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_set_up_product_catalog_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configure the Product Catalog Management Cache
@@ -47,3 +47,7 @@ Save and activate the flow.
 To check the flow status, from Setup, in the Quick Find box, find and select Monitor Workflow Services. For more information, see Monitor Your Batch Jobs
 
 When a user requests information for a specific product, the system first checks the cache. If the details are found there, they are retrieved instantly. If not, the system fetches the information from the database and saves it to the cache, ensuring the data loads much faster for future requests.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_configure_prodoct_catalog_management_cache.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

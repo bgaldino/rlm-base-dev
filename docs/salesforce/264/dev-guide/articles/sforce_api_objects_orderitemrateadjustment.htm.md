@@ -7,161 +7,65 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: quote_and_order_capture_standard_objects.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # OrderItemRateAdjustment
 
-      Represents the negotiated rate adjustment for an order product. This
-      object is available in API version 62.0 and later. 
-
-      
+Represents the negotiated rate adjustment for an order product. This object is available in API version 62.0 and later.
 
 ## Supported Calls
 
-      
-      
-
-         `create()`, 
-         `delete()`, 
-         `describeLayout()`, 
-         `describeSObjects()`, 
-         `getDeleted()`,
-         `getUpdated()`,
-         `query()`, 
-         `retrieve()`, 
-         `update()`, 
-         `upsert()`
-      
-
-      
-
-      
+`create()`, `delete()`, `describeLayout()`, `describeSObjects()`, `getDeleted()`, `getUpdated()`, `query()`, `retrieve()`, `update()`, `upsert()`
 
 ## Special Access Rules
 
-This object is available with Revenue
-         Cloud.
-
-      
-
 ## Fields
 
-         
-         
+### AdjustmentType
 
-               
-               
-            
-               
-                  
+- **Type**: picklist
+- **Properties**: Create, Filter, Group, Restricted picklist, Sort, Update
+- **Description**: Specifies the type of rate adjustment.
 
-                  
+Possible values are `Amount`, `Override`, or `Percentage`
 
-               
+### AdjustmentValue
 
-            
+- **Type**: double
+- **Properties**: Create, Filter, Sort, Update
+- **Description**: The value of the adjustment.
 
-            
-                  
-                     
+### LowerBound
 
-                     
+- **Type**: double
+- **Properties**: Create, Filter, Sort, Update
+- **Description**: The minimum quantity for the adjustment to be applicable.
 
-: 
+### Name
 
-: 
+- **Type**: string
+- **Properties**: Create, Filter, Group, idLookup, Sort, Update
+- **Description**: The name of the order item rate adjustment.
 
-: 
-: 
-- 
-- 
-- 
+### OrderItemRateCardEntryId
 
-                  
+- **Type**: reference
+- **Properties**: Create, Filter, Group, Sort
+- **Description**: The parent order item rate card entry associated with the order item rate adjustment.
 
-                  
-                     
+This field is a relationship field.
 
-                     
+- **Relationship Name**: OrderItemRateCardEntry
+- **Relationship Type**: Master-detail
+- **Refers To**: OrderItemRateCardEntry (the master object)
 
-: 
+### UpperBound
 
-: 
+- **Type**: double
+- **Properties**: Create, Filter, Nillable, Sort, Update
+- **Description**: The quantity below which the adjustment must be applicable. For example, if you want the adjustment to be applicable when the quantity is 99 or less, set this value to 100.
 
-: 
+---
 
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-            
-
-            
-| Field | Details |
-| --- | --- |
-| AdjustmentType | **Type** picklist **Properties** Create, Filter, Group, Restricted picklist, Sort, Update **Description** Specifies the type of rate adjustment. Possible values are: `Amount` `Override` `Percentage` |
-| AdjustmentValue | **Type** double **Properties** Create, Filter, Sort, Update **Description** The value of the adjustment. |
-| LowerBound | **Type** double **Properties** Create, Filter, Sort, Update **Description** The minimum quantity for the adjustment to be applicable. |
-| Name | **Type** string **Properties** Create, Filter, Group, idLookup, Sort, Update **Description** The name of the order item rate adjustment. |
-| OrderItemRateCardEntryId | **Type** reference **Properties** Create, Filter, Group, Sort **Description** The parent order item rate card entry associated with the order item rate adjustment. This field is a relationship field. **Relationship Name** OrderItemRateCardEntry **Relationship Type** Master-detail **Refers To** OrderItemRateCardEntry (the master object) |
-| UpperBound | **Type** double **Properties** Create, Filter, Nillable, Sort, Update **Description** The quantity below which the adjustment must be applicable. For example, if you want the adjustment to be applicable when the quantity is 99 or less, set this value to 100. |
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/sforce_api_objects_orderitemrateadjustment.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

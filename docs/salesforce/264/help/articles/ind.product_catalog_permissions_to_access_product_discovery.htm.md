@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.qocal_product_discovery_setup.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Assign Product Discovery Permissions
@@ -77,6 +77,10 @@ Product Selling Models
 Product Specification Record Types
 Product Specification Type
 To use ramp deals, Product Ramp Segment
-NOTE The Product Ramp Segment object is available only when you have Revenue Management and Ramp Deals enabled.
+NOTE The Product Ramp Segment object is available only when you have Revenue Cloud and Ramp Deals enabled.
 To use usage-based pricing, Unit Of Measure
-NOTE The Unit of Measure object is available only when you have Revenue Management and Ramp Deals enabled.
+NOTE The Unit of Measure object is available only when you have Revenue Cloud and Ramp Deals enabled.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_permissions_to_access_product_discovery.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

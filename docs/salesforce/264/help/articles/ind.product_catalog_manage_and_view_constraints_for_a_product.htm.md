@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_create_bundled_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage and View Constraints for a Product
@@ -30,3 +30,7 @@ Here you can view and manage constraint models for the selected product.
 
 Click Add Item and select the products that you want to add to the CML editor.
 If product indexing is enabled, products appear in the Add Item drop down after a partial or full indexing process is executed.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_manage_and_view_constraints_for_a_product.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

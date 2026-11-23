@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.revenue_impl_glossary.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Product Catalog Management Essentials
@@ -94,3 +94,7 @@ Transaction Preview
 Transaction preview is an embedded panel that displays the current transaction in real time alongside the product catalog. It updates automatically as users add or remove products.
 Visibility Rule
 A visibility rule determines whether a product is displayed or hidden in the product list during product discovery. When constraint rules or disqualification rules apply to a specific product based on the current transaction, the visibility rule automatically hides the affected product from the default view.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_management_essentials.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

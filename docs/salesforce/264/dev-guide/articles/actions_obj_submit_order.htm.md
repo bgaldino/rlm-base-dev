@@ -7,272 +7,58 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Dynamic Revenue Orchestrator
 parent_page: dynamic_revenue_orchestrator_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Submit Order Action
 
-Submit an order to Dynamic Revenue Orchestrator (DRO) for
-			fulfillment.
-
-		
-			
+Submit an order to Dynamic Revenue Orchestrator (DRO) for fulfillment.
 
 By using the Submit Order action, you can perform:
 
-			
-				
 - Order decomposition
-
-				
 - Fulfillment orchestration that’s driven through message queues
-
-				
 - Dynamic plan composition that’s based on the incoming order
-
-			
-
-			
 
 This action is available in API version 61.0 and later.
 
-		
-
-		
-
 ## Special Access Rules
 
-The Submit Order action is available in Enterprise, Unlimited, and Developer Editions of Revenue
-        Cloud. See the [required permissions](https://help.salesforce.com/s/articleView?id=ind.dro_permission_sets_in_dynamic_revenue_orchestrator.htm&type=5&language=en_US) to
-        access and call this invocable action.
-
-		
+The Submit Order action is available in Enterprise, Unlimited, and Developer Editions of Revenue Cloud. See the [required permissions](https://help.salesforce.com/s/articleView?id=ind.dro_permission_sets_in_dynamic_revenue_orchestrator.htm&type=5&language=en_US "HTML (New Window)") to access and call this invocable action.
 
 ## Supported REST HTTP Methods
 
-			
-			
-				
-					
+**URI:** `/services/data/v68.0/actions/standard/submitOrder`
 
-**URI**
+**Formats:** JSON, XML
 
-					
-: `/services/data/v68.0/actions/standard/submitOrder`
+**HTTP Methods:** POST
 
-				
-				
-					
-
-**Formats**
-
-					
-: JSON, XML
-
-				
-				
-					
-
-**HTTP Methods**
-
-					
-: POST
-
-				
-				
-					
-
-**Authentication**
-
-					
-: `Authorization: Bearer
-							token`
-
-				
-			
-
-		
-
-		
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-- 
-- 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Input | Details |
-| --- | --- |
-| orderId | **Type** string **Description** Required. ID of the order to submit to DRO. |
-| callType | **Type** string **Description** Optional. Mode that the order intake must be processed in. Valid values are: `Synchronous` `Asynchronous` The default value is `Asynchronous`. |
-| contextId | **Type** string **Description** Optional. ID of the hydrated context. See [Context Service](https://developer.salesforce.com/docs/atlas.en-us.264.0.industries_reference.meta/industries_reference/context_service_overview.htm). |
-
-		
-
-		
+| Input | Type | Description |
+| --- | --- | --- |
+| orderId | string | Required. ID of the order to submit to DRO. |
+| callType | string | Optional. Mode that the order intake must be processed in. Valid values are `Synchronous` or `Asynchronous`. The default value is `Asynchronous`. |
+| contextId | string | Optional. ID of the hydrated context. See [Context Service](https://developer.salesforce.com/docs/atlas.en-us.264.0.industries_reference.meta/industries_reference/context_service_overview.htm "HTML (New Window)"). |
 
 ## Outputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-- 
-- 
-- 
-- 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Output | Details |
-| --- | --- |
-| errorCode | **Type** string **Description** Error code for the failed request, if any. |
-| fulfillmentPlanId | **Type** string **Description** ID of the orchestrated fulfillment plan that’s generated. Returned only if the callType value is `Synchronous`. |
-| requestId | **Type** string **Description** Unique ID of the invocation request that helps identify a single request. |
-| submitStatus | **Type** string **Description** Submit status of the invocation request.Valid values are: `SUCCESS` `ERROR` `SUBMITTED` `REJECTED` |
-| usedContextId | **Type** string **Description** Hydrated context ID that’s used in this request, which can be different from the contextId input. |
-
-		
-
-		
+| Output | Type | Description |
+| --- | --- | --- |
+| errorCode | string | Error code for the failed request, if any. |
+| fulfillmentPlanId | string | ID of the orchestrated fulfillment plan that’s generated. Returned only if the callType value is `Synchronous`. |
+| requestId | string | Unique ID of the invocation request that helps identify a single request. |
+| submitStatus | string | Submit status of the invocation request. Valid values are `SUCCESS`, `ERROR`, `SUBMITTED`, or `REJECTED`. |
+| usedContextId | string | Hydrated context ID that’s used in this request, which can be different from the contextId input. |
 
 ## Example
 
-			
-			
-				
-					
-
 **POST**
 
-					
-: 
-						
-
 This example shows a sample request.
-
-						
 
 ```
 {
@@ -285,12 +71,7 @@ This example shows a sample request.
 }
 ```
 
-						
-
-This example shows a sample response when the call type is
-							synchronous.
-
-						
+This example shows a sample response when the call type is synchronous.
 
 ```
 [
@@ -308,12 +89,7 @@ This example shows a sample response when the call type is
 ]
 ```
 
-						
-
-This example shows a sample response when the call type is asynchronous
-							or isn’t specified.
-
-						
+This example shows a sample response when the call type is asynchronous or isn’t specified.
 
 ```
 [
@@ -329,11 +105,7 @@ This example shows a sample response when the call type is asynchronous
 ]
 ```
 
-						
-
 This example shows a sample response when a validation error occurs.
-
-						
 
 ```
 [
@@ -356,40 +128,19 @@ This example shows a sample response when a validation error occurs.
 ]
 ```
 
-					
-
-				
-			
-
-		
-
-		
-
 ## Explainability Action Logs
 
-				
-					
-: To troubleshoot or debug errors, retrieve a list of explainability action logs. See [Action Logs](https://developer.salesforce.com/docs/atlas.en-us.264.0.industries_reference.meta/industries_reference/connect_resources_get_create_action_logs.htm).
+**:** To troubleshoot or debug errors, retrieve a list of explainability action logs. See [Action Logs](https://developer.salesforce.com/docs/atlas.en-us.264.0.industries_reference.meta/industries_reference/connect_resources_get_create_action_logs.htm "HTML (New Window)").
 
-				
-				
-					
+**GET Logs for Order Intake**
 
-**Get logs for order intake**
-
-					
-: This resource example includes sample query parameters to retrieve the action logs for an
-            order
-            intake.
+This resource example includes sample query parameters to retrieve the action logs for an order intake.
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/decision-explainer/action-logs?applicationSubType=DroSubmit&applicationType=7&processType=DroSubmit&primaryFilter=801xx000003GYzvAAG
-
 ```
 
-					
-: This example shows the sample response. The actionLog
-						property contains the action logs.
+This example shows the sample response. The actionLog property contains the action logs.
 
 ```
 {
@@ -421,28 +172,17 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/decision-explain
   ],
   "queryMore": ""
 }
-
 ```
 
-				
-				
-					
+**GET Logs for Decomposition Scope**
 
-**Get logs for decomposition scope**
-
-					
-: This resource example includes sample query parameters to retrieve the
-            decomposition-related action
-            logs.
+This resource example includes sample query parameters to retrieve the decomposition-related action logs.
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/decision-explainer/action-logs?applicationSubType=DroDcmp&applicationType=7&processType=DcmpScp&primaryFilter=801xx000003GYzvAAG
-
 ```
 
-					
-: This example shows the sample response. The actionLog
-						property contains the action logs.
+This example shows the sample response. The actionLog property contains the action logs.
 
 ```
 {
@@ -644,31 +384,17 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/decision-explain
 }
 ```
 
-				
-				
-					
+**GET Logs for Decomposition Enrichment**
 
-**Get logs for decomposition enrichment**
-
-					
-: This resource example includes sample query parameters to retrieve the logs for
-            decomposition enrichment tasks. For example, conversion of order items to fulfillment
-            order line
-            items.
+This resource example includes sample query parameters to retrieve the logs for decomposition enrichment tasks. For example, conversion of order items to fulfillment order line items.
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/decision-explainer/action-logs?applicationSubType=DroDcmp&applicationType=7&processType=DcmpEnrich&primaryFilter=801xx000003GYzvAAG&secondaryFilter=BxyDQUJ2B49CoKXiuvGI
-
 ```
 
-					
-: The secondaryFilter property is optional. If this property is
-            specified, the API returns the enrichment rule details for a decomposition rule. If this
-            property is unspecified, the API returns all enrichment rule details for the order.
+The secondaryFilter property is optional. If this property is specified, the API returns the enrichment rule details for a decomposition rule. If this property is unspecified, the API returns all enrichment rule details for the order.
 
-					
-: This example shows the sample response. The actionLog
-						property contains the action logs.
+This example shows the sample response. The actionLog property contains the action logs.
 
 ```
 {
@@ -813,24 +539,15 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/decision-explain
 }
 ```
 
-				
-				
-					
+**GET Logs for Plan Composition**
 
-**Get logs for plan composition**
-
-					
-: This resource example includes sample query parameters to retrieve the logs for plan
-            composition.
+This resource example includes sample query parameters to retrieve the logs for plan composition.
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/decision-explainer/action-logs?applicationSubType=DroPcmp&applicationType=7&processType=PcmpSteps&primaryFilter=801xx000003GYzvAAG
-
 ```
 
-					
-: This example shows the sample response. The actionLog
-						property contains the action logs.
+This example shows the sample response. The actionLog property contains the action logs.
 
 ```
 {
@@ -907,23 +624,15 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/decision-explain
 }
 ```
 
-				
-        
-          
+**Capture Logs for an Order**
 
-**Capture logs for an order**
-
-          
-: This resource example includes sample query parameters to retrieve the logs for an
-            order.
+This resource example includes sample query parameters to retrieve the logs for an order.
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/decision-explainer/action-logs?actionContextCode=801DU000000CqBJYA0&applicationType=7
 ```
 
-          
-: This example shows the sample response. The actionLog property
-            contains the action logs.
+This example shows the sample response. The actionLog property contains the action logs.
 
 ```
 {
@@ -1007,3 +716,7 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/decision-explain
   "queryMore": ""
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_submit_order.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

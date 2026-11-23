@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.setting_up_ramp_deals.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Prerequisites: Ramp Deals for Groups
@@ -15,13 +15,13 @@ Complete these essential setup steps before configuring your highly recommended 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 USER PERMISSIONS NEEDED
 To turn on the Ramp Deal for Groups in Quotes and Orders setting:	Customize Application
 In Setup, find and select Revenue Settings. Turn on both the Enable Groups in Quotes and Orders and the Clone Quotes and Orders settings.
 Update your custom flows.
 If you created a custom Product Discovery flow before Winter '25, clone the latest prebuilt Discover Products flow and customize it.
-If you customized the Transaction Management pricing procedure before Winter '25, clone the latest prebuilt Revenue Management Default Pricing Procedure and customize it.
+If you customized the Transaction Management pricing procedure before Winter '25, clone the latest prebuilt Revenue Cloud Default Pricing Procedure and customize it.
 If you customized Product Configurator flows before Winter '25, clone the Default Product Configurator Flow and customize it.
 In Setup, find and select Revenue Settings. Turn on Ramp Deals for Groups in Quotes and Orders.
 Turn on Multiple Ramp Schedules Per Transaction.
@@ -77,3 +77,7 @@ Add the Ramp Identifier column to make debugging easier.
 You can remove this field once you move to production.
 
 IMPORTANT Don't rename the Uplift formula-based pricing component. Renaming it causes the system to apply the uplift without showing the value in the price waterfall.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_set_up_ramp_deals_for_groups.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

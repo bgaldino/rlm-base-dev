@@ -7,19 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # On-Demand Document Generation Input
 
-Input representation of the details to generate a comprehensive on-demand document for
-    specified record types.
+Input representation of the details to generate a comprehensive on-demand document for specified record types.
 
-**JSON example**
-
-: 
+## JSON Example
 
 ```
 {
@@ -31,14 +26,16 @@ Input representation of the details to generate a comprehensive on-demand docume
 }
 ```
 
-**Properties**
-
-: 
+## Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `documentTemplateId` | String | Document template ID to use for PDF generation. The document template must be active with UsageType as `INVOICE` If you don't specify this value, the system auto-resolves by using the default template. | Optional | 66.0 |
+| `documentTemplateId` | String | Document template ID to use for PDF generation. The document template must be active with UsageType as `INVOICE`. If you don't specify this value, the system auto-resolves by using the default template. | Optional | 66.0 |
 | `documentTitle` | String | Custom title for the generated document. If you don't specify a value, the value is auto-generated. | Optional | 66.0 |
 | `recordId` | String | Record ID of the object the document is generated for. You can specify invoice ID only. | Required | 66.0 |
 | `shouldForceRegenerate` | Boolean | Indicates whether to regenerate the document (`true`) or not (`false`). If set to `true`, this API generates a document, replacing any existing ones. If set to `false`, this API skips the generation of document if invoice already has an associated document. The default value is `false`. | Optional | 66.0 |
 | `tokenData` | String | Token data to generate the document. | Optional | 66.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_on_demand_doc_gen_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

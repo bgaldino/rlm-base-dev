@@ -7,111 +7,55 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: connect_resources_context_mapping_parent.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Extraction Context Mappings (DELETE, GET, PATCH)
 
 Delete extraction context mapping details based on the specified
-      context use case mapping ID. Get extraction context mapping details based on the specified
-      context use case mapping ID. Update extraction context mapping details based on the specified
-      context use case mapping ID.
-
-    
+context use case mapping ID. Get extraction context mapping details based on the specified
+context use case mapping ID. Update extraction context mapping details based on the specified
+context use case mapping ID.
 
 ## Resource
-
-      
-      
 
 ```
 /connect/clm/extraction-context-mappings/${contextUseCaseMappingId}
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 61.0
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 DELETE GET PATCH
 
-    
-
-    
-
 ## Example for DELETE
-
-      
-      
 
 ```
 https://YOUR_INSTANCE.salesforce.com/services/data/v68.0/connect/clm/extraction-context-mappings/11jSB000002XTWjYAO
 ```
-
-    
-
-    
 
 ## Example for GET
 
-      
-      
-
 ```
 https://YOUR_INSTANCE.salesforce.com/services/data/v68.0/connect/clm/extraction-context-mappings/11jSB000002XTWjYAO
 ```
-
-    
-
-    
 
 ## Example for PATCH
 
-      
-      
-
 ```
 https://YOUR_INSTANCE.salesforce.com/services/data/v68.0/connect/clm/extraction-context-mappings/11jSB000002XTWjYAO
 ```
 
-    
-
-    
-
 ## Response Body for GET
 
-      
-      
-
-[Extraction Context Mapping](./connect_responses_extraction_context_mapping_output.htm.md)
-
-    
-
-    
+[Extraction Context Mapping](./connect_responses_extraction_context_mapping_output.htm.md "Output representation of extraction context mapping.")
 
 ## Request Body for PATCH
 
-      
-      
-
 **JSON Example**
-
-      
 
 ```
 {
@@ -140,24 +84,17 @@ https://YOUR_INSTANCE.salesforce.com/services/data/v68.0/connect/clm/extraction-
 }
 ```
 
-      
-
 **Properties**
-
-      
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `context​AttributeMapping` | [Extraction Context Attribute Mapping Input[]](./connect_requests_extraction_context_attribute_mapping_input.htm.md) | List of attributes and their mappings. | Yes | 61.0 |
-| `context​UseCase​Mapping` | [Extraction Context Use Case Mapping Input](./connect_requests_extraction_context_use_case_mapping_input.htm.md) | Details of the use case for which the mapping is defined. | Yes | 61.0 |
-
-    
-
-    
+| `context​AttributeMapping` | [Extraction Context Attribute Mapping Input[]](./connect_requests_extraction_context_attribute_mapping_input.htm.md "Input representation of attribute mappings used in the extraction context.") | List of attributes and their mappings. | Yes | 61.0 |
+| `context​UseCase​Mapping` | [Extraction Context Use Case Mapping Input](./connect_requests_extraction_context_use_case_mapping_input.htm.md "Input representation of the use case-mapping configuration in the extraction context.") | Details of the use case for which the mapping is defined. | Yes | 61.0 |
 
 ## Response Body for PATCH
 
-      
-      
+[Extraction Context Mappings](./connect_responses_extraction_context_mappings_output.htm.md "Output Representation to create and update extraction context mapping.")
 
-[Extraction Context Mappings](./connect_responses_extraction_context_mappings_output.htm.md)
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/connect_resources_extraction_context_mappings_get_delete_patch.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

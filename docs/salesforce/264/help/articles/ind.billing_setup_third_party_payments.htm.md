@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_setup_salesforce_payments_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Third-Party Payment Gateways
@@ -16,8 +16,8 @@ Bring your own third-party payment gateways to process payments and issue refund
 REQUIRED EDITIONS
 Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
-The Salesforce Payments feature is available with the Revenue Cloud Billing license, with a cost per transaction model for both native and Bring Your Own payment gateways. Contact your Salesforce account executive for more information.
-If you purchased the Revenue Cloud Billing license on or before July 2025, contact your Salesforce account executive to add the Salesforce Payments feature to your existing license.
+To integrate a native payment gateway, you have two options. Use Salesforce Payments, which runs on Stripe and is available with the the Revenue Cloud Billing license on a cost-per-transaction basis. Or, connect your own Adyen account, contracted directly with Adyen.
+ 
 USER PERMISSIONS NEEDED
 To configure third-party payment features:	Payment Admin permission set
 Initial Setup for Configuring Third-Party Payment Gateway
@@ -96,4 +96,8 @@ Configure support for payment methods such as Automated Clearing House (ACH), Si
 To add bank payment methods such as ACH, SEPA, BACS, and BECS, use the tokenizePaymentMethod API and set the bankType property in the bankPaymentMethod object to your chosen bank payment method.
 To add card payment methods such as credit card or debit card, use the tokenizePaymentMethod API and set the cardCategory property in the cardPaymentMethod object.
 SEE ALSO
-Process Payments and Issue Refunds in Revenue Management
+Process Payments and Issue Refunds in Revenue Cloud
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_setup_third_party_payments.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

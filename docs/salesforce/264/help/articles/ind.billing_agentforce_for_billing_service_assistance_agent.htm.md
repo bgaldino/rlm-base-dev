@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.rev_agent_overview.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Agentforce for Billing Service Assistance Agent
@@ -26,7 +26,11 @@ Deflect billing-related support cases by resolving common charge explanation que
 Improve customer clarity by providing plain-language explanations for technical or confusing invoice charges.
 Offer a consistent self-service experience where customers get help without leaving the invoice page.
 
-Billing Service Assistance Agent runs in your Experience Cloud billing portal and uses existing billing data to explain invoice charges. When a signed-in customer views an invoice, they open Embedded Messaging and ask a question such as “Explain this Slack subscription fee.” The agent uses generative AI with Revenue Management Billing data to return a short, plain-language explanation in the chat window.
+Billing Service Assistance Agent runs in your Experience Cloud billing portal and uses existing billing data to explain invoice charges. When a signed-in customer views an invoice, they open Embedded Messaging and ask a question such as “Explain this Slack subscription fee.” The agent uses generative AI with Revenue Cloud Billing data to return a short, plain-language explanation in the chat window.
 
 Set Up Billing Service Assistance Agent for Experience Cloud
 Configure service access, security, and data sharing so that external users can securely interact with Billing Service Assistance Agent through Embedded Messaging in an Experience Cloud site.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_agentforce_for_billing_service_assistance_agent.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

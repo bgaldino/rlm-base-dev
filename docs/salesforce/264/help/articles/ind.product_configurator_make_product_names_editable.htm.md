@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_set_up_flow.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Make Product Names Editable in Product Option Cards
@@ -15,7 +15,7 @@ Give sales reps access to edit product names from the product option cards durin
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 USER PERMISSIONS NEEDED
 To create and edit a product configuration flow:	Product Configurator
 To change field accessibility:	Customize Application AND Manage Profiles and Permission Sets
@@ -38,3 +38,7 @@ Open your product configurator flow.
 Edit the screen element and select the Product Configurator Option Groups component.
 To enable editing of product names on option cards, for the Read-Only Product Name attribute, select {!$GlobalConstant.False}.
 Save your changes and activate the flow.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_make_product_names_editable.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

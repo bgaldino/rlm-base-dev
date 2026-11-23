@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_previews.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Generate Invoice Previews with the Invoice Preview API
@@ -27,7 +27,7 @@ Billing Operations User
 Billing Customer Service
 IMPORTANT
 
-From Summer ’25 and onwards, you will not be able to sync existing context definitions that were either cloned or extended from the standard BillingContext context definition. To fix this issue, use the Context Attribute Mapping API to delete duplicate BSGEntitiesMapping attribute mappings.
+From Summer ’25 you can't sync existing context definitions that were either cloned or extended from the standard BillingContext context definition. To fix this issue, use the Context Attribute Mapping API to delete duplicate BSGEntitiesMapping attribute mappings.
 
 BillingTransactionSource attribute of the BillingSchedule node to Reference attribute of the BillingSchedule object.
 BillingTransactionItemSource attribute of the BillingSchedule node to the ReferenceItem attribute of the BillingSchedule object.
@@ -55,3 +55,7 @@ See Add Context Mapping.
 Activate the context definition.
 Create a custom procedure plan.
 To generate invoice previews for quotes, use the Invoice Preview API.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_preview_procedure_plan_create.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

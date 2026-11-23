@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_begin_using_product_catalog_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Product Catalog Management Editions and Permission Sets
@@ -32,7 +32,7 @@ Health Cloud	Enterprise and Unlimited
 Life Sciences Cloud	Enterprise and Unlimited
 Loyalty Management	Enterprise, Performance, Developer, and Unlimited
 Manufacturing Cloud	Enterprise, Unlimited, and Developer
-Revenue Management	Enterprise, Unlimited, and Developer
+Revenue Cloud	Enterprise, Unlimited, and Developer
 Unified Catalog	Enterprise, Unlimited, and Developer
 Product Catalog Management Permission Sets
 
@@ -58,5 +58,9 @@ Permission Customization
 To make sure that users always have the latest default permissions, we recommend the use of permission set groups instead of cloning permission sets. If you customize Product Catalog Management, for example, by adding fields, create a custom permission set. To remove user permissions from the default permission set, create a muting permission set. Then, create and use permission set groups to assign the prebuilt Product Catalog Management permission sets and your custom permission sets.
 
 SEE ALSO
-Agentforce Revenue Management License Comparison
-Assign Agentforce Revenue Management Permission Sets to Your Users
+Revenue Cloud License Comparison
+Assign Revenue Cloud Permission Sets to Your Users
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_product_catalog_management_permission_set_licenses.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

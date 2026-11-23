@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_quote_line_item_import.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Quote Line Item Import Extension
@@ -19,3 +19,7 @@ Considerations for Customizing the Quote Line Item Import Flow
 When users select import lines, Transaction Management uses a flow to provide options for downloading a CSV template and uploading a CSV file for processing. Review these requirements and limits to customize the import flow effectively.
 Customize Data Processing Engine Definitions for Quote Line Item Imports
 Modify the Data Processing Engine definition if you want users to import custom fields. Transaction Management uses this definition to process quote line items after a user uploads a CSV file.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_qli_import_extend_functionality.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

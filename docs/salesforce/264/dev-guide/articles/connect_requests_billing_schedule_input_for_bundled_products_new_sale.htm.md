@@ -7,92 +7,33 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: connect_requests_context_aware_standalone_billing_schedule_input.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # New Sale Transaction With Bundled Products
 
-Understand the required values and key considerations before you create a billing
-    schedule for a new sale transaction with bundled products.
+Understand the required values and key considerations before you create a billing schedule for a new sale transaction with bundled products.
 
 ## Considerations
 
-      
-      
+Keep these important considerations in mind when you provide the details for new sale transactions with bundled products.
 
-Keep these important considerations in mind when you provide the details for new sale
-        transactions with bundled products.
-
-      
-        
-- The `BillingActionType__std` value for any new sale
-          transaction must be `Add`.
-
-        
+- The `BillingActionType__std` value for any new sale transaction must be `Add`.
 - For new sale transactions with bundled products, the `MainTransactionId__std` value is required for all the child transactions.
-
-        
-- If you don't provide the `TaxTreatmentId__std` value,
-          the `BillingTreatmentId__std` value, or the `LegalEntityId__std` value for the transaction, the default
-            TaxTreatmentId, BillingTreatmentId, and
-            LegalEntityId of your Salesforce org is considered. If your org
-          doesn't have any default values, an error occurs.
-
-        
-- If your transaction is for an sObject record, only specify the record ID as the id value
-          in the `transactionDetails` property value. All the
-          other transaction details are automatically fetched from the sObject record if those
-          details are mapped in the context definition.
-
-        
+- If you don't provide the `TaxTreatmentId__std` value, the `BillingTreatmentId__std` value, or the `LegalEntityId__std` value for the transaction, the default TaxTreatmentId, BillingTreatmentId, and LegalEntityId of your Salesforce org is considered. If your org doesn't have any default values, an error occurs.
+- If your transaction is for an sObject record, only specify the record ID as the id value in the `transactionDetails` property value. All the other transaction details are automatically fetched from the sObject record if those details are mapped in the context definition.
 - To understand the requirements for the various selling model types, see these resources.
-            
-  - [One-Time New Sale
-              Transaction](./connect_requests_billing_schedule_input_for_one_time_new_sale.htm.md)
+  - [One-Time New Sale Transaction](./connect_requests_billing_schedule_input_for_one_time_new_sale.htm.md "Understand the required values and key considerations before you create a billing schedule for a new sale transaction with the OneTime selling model type.")
+  - [Term-Defined New Sale Transaction](./connect_requests_billing_schedule_input_for_termed_new_sale.htm.md "Understand the required values and key considerations before you create a billing schedule for a new sale transaction with the TermDefined selling model type.")
+  - [Evergreen New Sale Transaction](./connect_requests_billing_schedule_input_for_evergreen_new_sale.htm.md "Understand the required values and key considerations before you create a billing schedule for a new sale transaction with the Evergreen selling model type.")
 
-            
-  - [Term-Defined New Sale
-                Transaction](./connect_requests_billing_schedule_input_for_termed_new_sale.htm.md)
+## JSON Example
 
-            
-  - [Evergreen New Sale
-              Transaction](./connect_requests_billing_schedule_input_for_evergreen_new_sale.htm.md)
+This sample is for a new sale transaction for bundled products with two levels of nesting and with these selling model types.
 
-          
-
-      
-
-    
-
-    
-      
-        
-          
-
-**JSON example**
-
-          
-: 
-            
-
-This sample is for a new sale transaction for bundled products with two levels of
-              nesting and with these selling model types.
-
-            
-              
 - The main root product's selling model type is `OneTime`.
-
-              
 - The second root product's selling model type is `OneTime`.
-
-              
 - The child products' selling model types are `TermDefined` and `Evergreen`.
-
-            
-
-            
 
 ```
 {
@@ -199,12 +140,7 @@ This sample is for a new sale transaction for bundled products with two levels o
 }
 ```
 
-            
-
-This example shows the request payload to create a billing schedule for a new sale
-              transaction for bundled products.
-
-            
+This example shows the request payload to create a billing schedule for a new sale transaction for bundled products.
 
 ```
 {
@@ -218,346 +154,8 @@ This example shows the request payload to create a billing schedule for a new sa
 }
 ```
 
-          
+When you're creating a billing schedule for a new sale transaction with bundled products, make sure that you specify the mandatory values in the `transactionDetails` property value.
 
-        
-      
-
-    
-
-    
-      
-
-When you're creating a billing schedule for a new sale transaction with bundled products,
-        make sure that you specify the mandatory values in the `transactionDetails` property value.
-
-    
-
-        
-        
-        
-        
-        
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-        
-
-        
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-- 
-- 
-- 
-- 
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-- 
-- 
-- 
-- 
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-- 
-- 
-- 
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-- 
-- 
-- 
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-- 
-- 
-
-            
-
-            
-
-          
-
-          
-
-      
 | Context Tag in the Transaction Node of the StandaloneBillingContext Context Definition | Description | Mapped Field | Required or Optional |
 | --- | --- | --- | --- |
 | `BillToContactId__std` | The ID of the Contact record that's related to the transaction. | BillToContactId field on the BillingScheduleGroup object | Required |
@@ -569,30 +167,30 @@ When you're creating a billing schedule for a new sale transaction with bundled 
 | `SellingModelType__std` | The selling model type indicates whether the transaction is for a one-time product, a term-defined product, or an evergreen product. Specify `OneTime` as the SellingModelType for the transaction that's related to a product that's sold once. | BillingMethod on the BillingSchedule object is populated as OrderAmount. | Required |
 | `TransactionId__std` | The ID of the transaction that you want to create a billing schedule for. | If the transaction is an OrderItem, OrderItemAdjustmentLineItem, OrderItemDetail, QuoteLineDetail, or QuoteLineItem record, the ReferenceEntityItemId field on the BillingScheduleobject is populated. For other sObject records or external records, the ReferenceItem field on the BillingSchedule object is populated. | Required |
 | `ProductName__std` | The name of the product that's related to the transaction that you want to create a billing schedule for. | ProductName field on the BillingScheduleGroup object | Either the ProductName or the ProductId value is required |
-| `PeriodBoundary__std` | The period boundary determines the start and end date of the billing period. Valid values are: `AlignToCalendar` `Anniversary` `DayOfPeriod` `LastDayOfPeriod` | PeriodBoundary field on the BillingScheduleGroup object | Required for child products with the `TermDefined` or `Evergreen` selling model types. |
+| `PeriodBoundary__std` | The period boundary determines the start and end date of the billing period. Valid values are `AlignToCalendar`, `Anniversary`, `DayOfPeriod`, or `LastDayOfPeriod`. | PeriodBoundary field on the BillingScheduleGroup object | Required for child products with the `TermDefined` or `Evergreen` selling model types. |
 | `BillingDayOfMonth__std` | The day of the month on which a recurring billing process is scheduled to occur for the transaction. | BillDayOfMonth field on the BillingScheduleGroup object | Required for child products with the `TermDefined` or `Evergreen` selling model types. |
 | `BillingStartMonth__std` | The month when billing begins for an annual subscription. This value can be any number from `1` through `12`. For example, if billing starts in January, the value is `1`. If billing starts in June, the value is `6`. | BillingStartMonth field on the BillingScheduleGroup object | Required for child products with the `Evergreen` selling model type. |
 | `EndDate__std` | The end date of the transaction. | BillingScheduleEndDate field on the BillingSchedule object | Required for child products with the `TermDefined` selling model type. |
 | `StartDate__std` | The start date of the transaction. | BillingScheduleStartDate field on the BillingSchedule object | Required |
 | `Quantity__std` | The quantity of the transaction. | Quantity field on the BillingSchedule object | Required |
 | `TaxTreatmentId__std` | The ID of the tax treatment that's used to calculate tax for the transaction. If you don't specify a TaxTreatmentId, the org-default TaxTreatmentId is considered. | TaxTreatmentId field on the BillingScheduleGroup object | Required |
-| `BillingTermUnit__std` | The unit of measurement of the billing term. Valid values are: `Month` `Quarter` `Semi-Annual` `Year` | BillingTermUnit field on the BillingSchedule object | Required for child products with the `TermDefined` or `Evergreen` selling model types. |
+| `BillingTermUnit__std` | The unit of measurement of the billing term. Valid values are `Month`, `Quarter`, `Semi-Annual`, or `Year`. | BillingTermUnit field on the BillingSchedule object | Required for child products with the `TermDefined` or `Evergreen` selling model types. |
 | `BillingTreatmentId__std` | The ID of the billing treatment that's used to create the billing schedule for the transaction. If you don't specify a BillingTreatmentId, the org-default BillingTreatmentId is considered. | BillingTreatmentId field on the BillingScheduleGroup object | Required |
-| `CurrencyIsoCode__std` | The currency code of the transaction amount if your Salesforce org has multi-currency enabled. | CurrencyIsoCode field on the BillingScheduleGroup object | Required for [Salesforce orgs with multiple currencies enabled](https://help.salesforce.com/s/articleView?id=sales.admin_enable_multicurrency.htm&language=en_US). |
+| `CurrencyIsoCode__std` | The currency code of the transaction amount if your Salesforce org has multi-currency enabled. | CurrencyIsoCode field on the BillingScheduleGroup object | Required for [Salesforce orgs with multiple currencies enabled](https://help.salesforce.com/s/articleView?id=sales.admin_enable_multicurrency.htm&language=en_US "HTML (New Window)"). |
 | `BillingActionType__std` | The action that you want to perform for the transaction. Valid value is `Add`. | Category field on the BillingSchedule object is populated as Original. | Required |
 | `UnitPrice__std` | The unit price of the transaction. | UnitPrice field on the BillingSchedule object | Either the UnitPrice or the NetUnitPrice value is required |
 | `TotalPrice__std` | The total price of the transaction. | TotalAmount field on the BillingSchedule object | Required |
 | `MainTransactionId__std` | When your transaction is part of a bundle, this value is the ID of the main transaction record for all the child transactions. | MainBsgId field on the BsgRelationship object | Required for all the child products. |
-| `MainTransactionRole__std` | When your transaction is part of a bundle, this value is the role of the primary transaction in the bundle relationship. Valid values are: `AddOn` `Bundle` `Set` | MainBsgRole field on the BsgRelationship object | Required for all the child products. |
-| `AssociatedTransactionRole__std` | When your transaction is part of a bundle, this value is the role of the child transaction in the bundle relationship. Valid values are: `BundleComponent` `ClassificationComponent` | AssociatedBsgRole field on the BsgRelationship object | Required for all the child products. |
-| `AssociatedTransactionPricing__std` | When your transaction is part of a bundle, this value describes how the child transaction is priced in relation to the primary transaction. Valid values are: `IncludedInBundlePrice` `NotIncludedInBundlePrice` | AssociatedBsgPricing field on the BsgRelationship object | Required for all the child products. |
-
-  
+| `MainTransactionRole__std` | When your transaction is part of a bundle, this value is the role of the primary transaction in the bundle relationship. Valid values are `AddOn`, `Bundle`, or `Set`. | MainBsgRole field on the BsgRelationship object | Required for all the child products. |
+| `AssociatedTransactionRole__std` | When your transaction is part of a bundle, this value is the role of the child transaction in the bundle relationship. Valid values are `BundleComponent` or `ClassificationComponent`. | AssociatedBsgRole field on the BsgRelationship object | Required for all the child products. |
+| `AssociatedTransactionPricing__std` | When your transaction is part of a bundle, this value describes how the child transaction is priced in relation to the primary transaction. Valid values are `IncludedInBundlePrice` or `NotIncludedInBundlePrice`. | AssociatedBsgPricing field on the BsgRelationship object | Required for all the child products. |
 
 #### See Also
 
-- [BillingSchedule](./sforce_api_objects_billingschedule.htm.md)
+- [BillingSchedule](./sforce_api_objects_billingschedule.htm.md "BillingSchedule - HTML (New Window)")
+- [BillingScheduleGroup](./sforce_api_objects_billingschedulegroup.htm.md "BillingScheduleGroup - HTML (New Window)")
+- [BsgRelationship](./sforce_api_objects_bsgrelationship.htm.md "BsgRelationship - HTML (New Window)")
 
-- [BillingScheduleGroup](./sforce_api_objects_billingschedulegroup.htm.md)
+---
 
-- [BsgRelationship](./sforce_api_objects_bsgrelationship.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_billing_schedule_input_for_bundled_products_new_sale.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

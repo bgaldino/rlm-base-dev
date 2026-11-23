@@ -7,19 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_responses.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # PBE Derived Pricing
 
 Output representation of the response that includes the source product for the Price Book Entry (PBE) derived pricing.
 
-    
-
 ## JSON Example
-
-      
-      
 
 ```
 {
@@ -30,77 +25,12 @@ Output representation of the response that includes the source product for the P
 }
 ```
 
-    
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `error` | [Pricing Error Response](./connect_responses_pricing_error_response.htm.md)[] | Displays the error while processing the request. | Small, 61.0 | 61.0 |
+| `error` | [Pricing Error Response](./connect_responses_pricing_error_response.htm.md "Output representation of the pricing error response.")[] | Displays the error while processing the request. | Small, 61.0 | 61.0 |
 | `isSuccess` | Boolean | Indicates whether the request is successful (`true`) or not (`false`). | Small, 61.0 | 61.0 |
 | `source​ProceductId` | String | ID of the source product. | Small, 61.0 | 61.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_p_b_e_derived_pricing_out_put.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

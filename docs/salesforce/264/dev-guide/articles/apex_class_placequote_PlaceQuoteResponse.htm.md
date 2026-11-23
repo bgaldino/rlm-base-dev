@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: apex_namespace_placequote.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # PlaceQuoteResponse Class
 
@@ -18,70 +16,34 @@ Contains properties to hold the response to the place quote request.
 
 ## Namespace
 
-[PlaceQuote](./apex_namespace_placequote.htm.md)
-
-    
+[PlaceQuote](./apex_namespace_placequote.htm.md "The PlaceQuote namespace provides classes and methods to create or update quotes with pricing preferences and configuration options.")
 
 ## Example
-
-      
-      
 
 ```
 PlaceQuote.PlaceQuoteResponse resp = PlaceQuote.PlaceQuoteExecutor.execute(internalEnum,graph);
 ```
 
-    
-
-- 
-**[PlaceQuoteResponse Properties](./apex_class_placequote_PlaceQuoteResponse.htm.md#apex_placequote_PlaceQuoteResponse_properties)**  
-
-Learn more about the available properties with the `PlaceQuoteResponse` class.
-
-  
+- **[PlaceQuoteResponse Properties](./apex_class_placequote_PlaceQuoteResponse.htm.md#apex_placequote_PlaceQuoteResponse_properties)**  
+  Learn more about the available properties with the `PlaceQuoteResponse` class.
 
 ## PlaceQuoteResponse Properties
 
-  
-  
-  
 Learn more about the available properties with the `PlaceQuoteResponse` class.
 
-    
-      
-
 The `PlaceQuoteResponse` class includes these
-        properties.
+properties.
 
-    
-
-    
-  
-
-- 
-**[quoteId](./apex_class_placequote_PlaceQuoteResponse.htm.md#apex_placequote_PlaceQuoteResponse_quoteId)**  
-
-Get the ID of the quote that’s created after a successful request.
-
-- 
-**[requestIdentifier](./apex_class_placequote_PlaceQuoteResponse.htm.md#apex_placequote_PlaceQuoteResponse_requestIdentifier)**  
-
-Get the request ID of the process to query the asynchronous status of the Place Quote     Apex API.
-
-- 
-**[responseError](./apex_class_placequote_PlaceQuoteResponse.htm.md#apex_placequote_PlaceQuoteResponse_responseError)**  
-
-Get the list of errors encountered during the synchronous processing of the API     request.
-
-- 
-**[statusURL](./apex_class_placequote_PlaceQuoteResponse.htm.md#apex_placequote_PlaceQuoteResponse_statusURL)**  
-
-Get the asynchronous status URL of the request, if available.
-
-- 
-**[success](./apex_class_placequote_PlaceQuoteResponse.htm.md#apex_placequote_PlaceQuoteResponse_success)**  
-
-Get the request status of the synchronous part of the processing.
+- **[quoteId](./apex_class_placequote_PlaceQuoteResponse.htm.md#apex_placequote_PlaceQuoteResponse_quoteId)**  
+  Get the ID of the quote that’s created after a successful request.
+- **[requestIdentifier](./apex_class_placequote_PlaceQuoteResponse.htm.md#apex_placequote_PlaceQuoteResponse_requestIdentifier)**  
+  Get the request ID of the process to query the asynchronous status of the Place Quote Apex API.
+- **[responseError](./apex_class_placequote_PlaceQuoteResponse.htm.md#apex_placequote_PlaceQuoteResponse_responseError)**  
+  Get the list of errors encountered during the synchronous processing of the API request.
+- **[statusURL](./apex_class_placequote_PlaceQuoteResponse.htm.md#apex_placequote_PlaceQuoteResponse_statusURL)**  
+  Get the asynchronous status URL of the request, if available.
+- **[success](./apex_class_placequote_PlaceQuoteResponse.htm.md#apex_placequote_PlaceQuoteResponse_success)**  
+  Get the request status of the synchronous part of the processing.
 
 ### quoteId
 
@@ -98,7 +60,7 @@ Type: String
 ### requestIdentifier
 
 Get the request ID of the process to query the asynchronous status of the Place Quote
-    Apex API.
+Apex API.
 
 #### Signature
 
@@ -111,7 +73,7 @@ Type: String
 ### responseError
 
 Get the list of errors encountered during the synchronous processing of the API
-    request.
+request.
 
 #### Signature
 
@@ -146,4 +108,8 @@ Get the request status of the synchronous part of the processing.
 Type: Boolean
 
 Indicates whether the synchronous part
-        of the processing is successful (`true`) or not (`false`).
+of the processing is successful (`true`) or not (`false`).
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_placequote_PlaceQuoteResponse.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

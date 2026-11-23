@@ -7,110 +7,15 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: clm_apis_responses.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # External Document Review CC
 
 Output representation for external document version review.
 
-    
-
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `content​VersionId` | String | Record ID of content version associated with an external document. | Small, 61.0 | 61.0 |
@@ -119,14 +24,7 @@ Output representation for external document version review.
 | `isReview​Completed​ByCurrentUser` | Boolean | Indicates whether the current user has completed the review for the document (`true`) or not (`false`). | Small, 61.0 | 61.0 |
 | `url` | String | URL of the external document. | Big, 61.0 | 61.0 |
 
-    
-
-    
-
 ## Sample Response
-
-      
-      
 
 ```
 {
@@ -137,3 +35,7 @@ Output representation for external document version review.
   "isReviewCompletedByCurrentUser": "true"
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/connect_responses_external_document_review_c_c.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_sequential_numbering_for_invoices_configure.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Sequential Invoice and Credit Memo Number Assignment
@@ -46,3 +46,7 @@ An invoice with an invoice number associated with a sequence policy is deleted. 
 NOTE If the invoice or the credit memo with the invoice or credit memo number is deleted, the corresponding record is in Blocked status, so that it isn't reassigned. The record is in Unassigned status if sequence number assignment fails for an invoice or a credit memo.
 
 To see the details about these gaps, from the App Launcher, find and select Sequence Gap Reconciliation.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_sequential_number_assignment_and_sequence_gap_reconciliation.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,19 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Tax Calculation Input
 
 Input representation of the details of the request to calculate tax.
 
-**JSON example**
+## JSON Example
 
-: This example shows a tax request for a specified invoice as the reference
-            entity.
+This example shows a tax request for a specified invoice as the reference entity.
 
 ```
 {
@@ -121,9 +118,7 @@ Input representation of the details of the request to calculate tax.
 }
 ```
 
-          
-: This example shows a tax request for a specified credit memo as the reference
-            entity.
+This example shows a tax request for a specified credit memo as the reference entity.
 
 ```
 {
@@ -225,272 +220,33 @@ Input representation of the details of the request to calculate tax.
 }
 ```
 
-        
-          
+## Properties
 
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-- 
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-- 
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `addresses` | [Addresses](./connect_requests_addresses_input.htm.md) | Address details for tax calculation. | Optional | 62.0 |
+| `addresses` | [Addresses](./connect_requests_addresses_input.htm.md "Input representation of the details of the addresses for calculating tax.") | Address details for tax calculation. | Optional | 62.0 |
 | `currencyIsoCode` | String | Currency ISO code that’s used for tax calculation. | Optional | 62.0 |
-| `customerDetails` | [Customer Details](./connect_requests_customer_details_input.htm.md) | Customer details for determining the applicable tax. | Optional | 62.0 |
+| `customerDetails` | [Customer Details](./connect_requests_customer_details_input.htm.md "Input representation of the customer details for tax calculation.") | Customer details for determining the applicable tax. | Optional | 62.0 |
 | `description` | String | Description of the tax transaction. | Optional | 62.0 |
 | `documentCode` | String | Unique identifier for the tax document. If the `documentCode` property isn't specified, the tax engine auto-generates it. | Optional | 62.0 |
 | `effectiveDate` | String | Date when the tax rules are applied. If a tax rate changes on a specific date, the `effectiveDate` property ensures the correct rate is applied based on the transaction's timing. For credit-based tax callouts, specify the original invoice date. | Optional | 62.0 |
-| `isCommit` | Boolean | Indicates whether to submit the transaction to the tax engine for reporting (`true`) or not (`false`).This property value is `true` for invoices and credit memos with the `Posted` status. | Optional | 62.0 |
-| `lineItems` | [Line Item Input](./connect_requests_line_item_input.htm.md) [] | Details of the line items for calculating the applicable tax. | Required | 62.0 |
+| `isCommit` | Boolean | Indicates whether to submit the transaction to the tax engine for reporting ( `true` ) or not ( `false` ). This property value is `true` for invoices and credit memos with the `Posted` status. | Optional | 62.0 |
+| `lineItems` | [Line Item Input](./connect_requests_line_item_input.htm.md "Input representation of the details of the line item for tax calculation.") [] | Details of the line items for calculating the applicable tax. | Required | 62.0 |
 | `reference​DocumentCode` | String | Reference document code. For subsequent transactions such as a credit tax, this property value specifies the original document code. For credit-based tax callouts, specify the original invoice ID. | Optional | 62.0 |
 | `reference​EntityId` | String | ID of the related quote, invoice, and other transaction documents. | Optional | 62.0 |
-| `sellerDetails` | [Seller Details Input](./connect_requests_seller_details_input.htm.md) | Seller details for tax calculation. | Optional | 62.0 |
-| `shouldVoidTax` | Boolean | Indicates whether to void the tax transaction associated with a document that's mentioned as the `referenceDocumentCode` property value with `taxType` property value as `Actual` and `isCommit` property value set to `true`. Keep these considerations in mind when you use this property. If the `shouldVoidTax` property value is set to `true`, then the operation returns a response with `documentCode` property value updated to `referenceDocumentCode` property value that was originally sent in the request payload. The response also includes the `taxTransactionType` property value as `Void`. This indicates that the document specified in the `referenceDocumentCode` property value is voided. If document is locked or you can't void the tax transaction for any reason, then you can use the Tax Calculation request to perform another transaction such as a Credit Tax request. In this scenario, the response includes the `documentCode` property value that was sent in the request payload. If the document that's mentioned in the `referenceDocumentCode` property value isn't available in the tax engine, then an error response occurs with [ResultCode](./apex_enum_commercetax_ResultCode.htm.md) value as `ReferenceDocumentCodeMissing`. | Optional | 65.0 |
+| `sellerDetails` | [Seller Details Input](./connect_requests_seller_details_input.htm.md "Input representation of the seller details for tax calculation.") | Seller details for tax calculation. | Optional | 62.0 |
+| `shouldVoidTax` | Boolean | Indicates whether to void the tax transaction associated with a document that's mentioned as the `referenceDocumentCode` property value with `taxType` property value as `Actual` and `isCommit` property value set to `true`. Keep these considerations in mind when you use this property. | Optional | 65.0 |
 | `taxEngineId` | String | ID of the tax engine that’s used to calculate tax. | Required | 62.0 |
-| `tax​TransactionType` | String | Type of the tax transaction. Valid values are: `Debit`—Increases tax liability for the seller, requiring the seller to pay tax on the transaction. `Credit`—Decreases tax liability for the seller, resulting in a tax refund for the seller. `Void`—Reserved for internal use. The default value is `Debit`. | Optional | 62.0 |
-| `taxType` | String | Type of the tax. Valid values are: `Actual`—Exact tax amount that’s calculated based on actual sales. `Estimated`— Estimated tax amount, which is adjusted later to match actual tax calculations. For draft invoices and quote records, the tax type is marked as `Estimated`. After draft invoices are posted and the status changes to `Posted`, the tax type is updated to `Actual`. Similarly, when a quote record is finalized and converted into an actual order, the tax type is also updated to `Actual`. | Required | 62.0 |
+| `tax​TransactionType` | String | Type of the tax transaction. Valid values are `Debit`—Increases tax liability for the seller, requiring the seller to pay tax on the transaction, `Credit`—Decreases tax liability for the seller, resulting in a tax refund for the seller, or `Void`—Reserved for internal use. The default value is `Debit`. | Optional | 62.0 |
+| `taxType` | String | Type of the tax. Valid values are `Actual`—Exact tax amount that’s calculated based on actual sales or `Estimated`— Estimated tax amount, which is adjusted later to match actual tax calculations. For draft invoices and quote records, the tax type is marked as `Estimated`. After draft invoices are posted and the status changes to `Posted`, the tax type is updated to `Actual`. Similarly, when a quote record is finalized and converted into an actual order, the tax type is also updated to `Actual`. | Required | 62.0 |
 | `transactionDate` | String | Date of the transaction that appears on the invoice, order, and other transaction documents. | Required | 62.0 |
+
+Supported values:
+
+- If the `shouldVoidTax` property value is set to `true`, then the operation returns a response with `documentCode` property value updated to `referenceDocumentCode` property value that was originally sent in the request payload. The response also includes the `taxTransactionType` property value as `Void`. This indicates that the document specified in the `referenceDocumentCode` property value is voided.
+- If document is locked or you can't void the tax transaction for any reason, then you can use the Tax Calculation request to perform another transaction such as a Credit Tax request. In this scenario, the response includes the `documentCode` property value that was sent in the request payload.
+- If the document that's mentioned in the `referenceDocumentCode` property value isn't available in the tax engine, then an error response occurs with [ResultCode](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexref.meta/apexref/apex_enum_commercetax_ResultCode.htm "HTML (New Window)") value as `ReferenceDocumentCodeMissing`.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_calculate_tax_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

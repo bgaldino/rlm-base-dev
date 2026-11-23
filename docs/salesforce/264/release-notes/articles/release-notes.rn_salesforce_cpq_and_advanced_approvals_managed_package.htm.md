@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_revenue.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Review and Complete Actions for Salesforce CPQ and Advanced Approvals Managed Package Security Enhancements
@@ -18,3 +18,7 @@ Where: This change applies to the Salesforce CPQ and Advanced Approvals managed 
 When: These enhancements are available on a rolling basis starting September 3, 2026.
 
 How: Review Security Enhancements to Salesforce CPQ and Advanced Approvals Managed Packages to determine whether they affect your Salesforce org and complete the required actions that apply to your implementation. Depending on your implementation, you may need to upgrade your package, update user permissions, migrate to a supported API, or modify affected customizations.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_salesforce_cpq_and_advanced_approvals_managed_package.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

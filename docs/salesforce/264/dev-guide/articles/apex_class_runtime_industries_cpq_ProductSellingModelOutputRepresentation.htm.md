@@ -7,7 +7,7 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # ProductSellingModelOutputRepresentation Class
@@ -16,63 +16,31 @@ Represents a product selling model that defines how a product is sold, including
 
 ## Namespace
 
-[runtime_industries_cpq](./apex_namespace_runtime_industries_cpq.htm.md)
+[runtime\_industries\_cpq](./apex_namespace_runtime_industries_cpq.htm.md "The runtime_industries_cpq namespace provides classes and methods to search products or to manage products, catalogs, and categories.")
 
-- 
-**[ProductSellingModelOutputRepresentation Properties](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_ricpq_ProductSellingModelOR_properties)**  
-
-Learn more about the properties available with the     ProductSellingModelOutputRepresentation class.
-
-  
+- **[ProductSellingModelOutputRepresentation Properties](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_ricpq_ProductSellingModelOR_properties)**  
+  Learn more about the properties available with the ProductSellingModelOutputRepresentation class.
 
 ## ProductSellingModelOutputRepresentation Properties
 
-  
-  
-  
 Learn more about the properties available with the
-    ProductSellingModelOutputRepresentation class.
-
-    
-      
+ProductSellingModelOutputRepresentation class.
 
 The `ProductSellingModelOutputRepresentation` class
-        includes these properties.
+includes these properties.
 
-    
-
-    
-  
-
-- 
-**[id](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductSellingModelOutputRepresentation_id)**  
-
-Get or set the unique identifier of the product selling model.
-
-- 
-**[name](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductSellingModelOutputRepresentation_name)**  
-
-Get or set the name of the product selling model.
-
-- 
-**[pricingTerm](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_ricpq_ProductSellingModelOR_pricingTerm)**  
-
-Get or set the pricing term value, which represents the duration or quantity for the pricing term unit.
-
-- 
-**[pricingTermUnit](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_ricpq_ProductSellingModelOR_pricingTermUnit)**  
-
-Get or set the unit for the pricing term, such as "Month", "Year", or "Day".
-
-- 
-**[sellingModelType](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_ricpq_ProductSellingModelOR_sellingModelType)**  
-
-Get or set the type of selling model, such as "Subscription", "OneTime", or "Usage".
-
-- 
-**[status](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductSellingModelOutputRepresentation_status)**  
-
-Get or set the status of the product selling model, such as "Active" or "Inactive".
+- **[id](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductSellingModelOutputRepresentation_id)**  
+  Get or set the unique identifier of the product selling model.
+- **[name](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductSellingModelOutputRepresentation_name)**  
+  Get or set the name of the product selling model.
+- **[pricingTerm](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_ricpq_ProductSellingModelOR_pricingTerm)**  
+  Get or set the pricing term value, which represents the duration or quantity for the pricing term unit.
+- **[pricingTermUnit](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_ricpq_ProductSellingModelOR_pricingTermUnit)**  
+  Get or set the unit for the pricing term, such as "Month", "Year", or "Day".
+- **[sellingModelType](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_ricpq_ProductSellingModelOR_sellingModelType)**  
+  Get or set the type of selling model, such as "Subscription", "OneTime", or "Usage".
+- **[status](./apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductSellingModelOutputRepresentation_status)**  
+  Get or set the status of the product selling model, such as "Active" or "Inactive".
 
 ### id
 
@@ -145,3 +113,7 @@ Get or set the status of the product selling model, such as "Active" or "Inactiv
 #### Property Value
 
 Type: String
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_runtime_industries_cpq_ProductSellingModelOutputRepresentation.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_asset_lifecycle_considerations.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Usage Selling Assets Considerations
@@ -15,13 +15,14 @@ Understand the limitations and behaviors of usage-based assets before setting up
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 Usage Asset Lifecycle Behaviors
 
 When you manage usage-based assets, the system applies specific rules to rates and resource grants.
 
 Amended Rates: The rate for an amended asset changes to reflect the new terms.
 Unused Grants: The system forfeits any unused resource grants when you renew or cancel the asset.
+Renewal Grant Quantity: When Pricing Source is Last Transaction, the new term receives the original sold grant quantity. The remaining grant balance from the previous term doesn't transfer.
 Grant Proration: The system supports proration for these scenarios.
 Amendments: The amendment process prorates new grants amended mid-term for the remaining duration.
 Refreshes: The refresh process prorates new grants.
@@ -57,3 +58,7 @@ If you turn off the Create Quotes Without a Related Opportunity setting, the Acc
 
 SEE ALSO
 Usage Management Limits
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_considerations_usage_selling.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

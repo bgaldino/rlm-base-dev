@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_self_service_portal.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Raise Billing Inquiries and Invoice-Related Disputes
@@ -35,3 +35,7 @@ A case is created for the service process request, a tracking number is assigned
 Your billing specialist or customer service representative can then view, investigate, and resolve the submitted case.
 
 You can also use Billing Service Assistance Agent on the self-service billing portal to get quick answers for your billing inquiries.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_self_service_portal_raise_service_requests.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

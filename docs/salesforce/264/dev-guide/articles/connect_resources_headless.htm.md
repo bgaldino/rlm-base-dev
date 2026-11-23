@@ -7,89 +7,42 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_business_apis_rest_references.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Pricing (POST)
 
 Create and hydrate context instance in a single request. Provide a comprehensive response that contains final pricing details per line items and related errors, if any.
 
-    
-      
-
-If price waterfall is disabled from Salesforce Pricing Setup in your org, this API doesn't return the waterfall details. You can use the [Price Waterfall API](./connect_resources_pricing_waterfall_fetch.htm.md) to retrieve the waterfall details if price waterfall persistence is enabled in Salesforce Pricing Setup.
-
-    
-
-    
+If price waterfall is disabled from Salesforce Pricing Setup in your org, this API doesn't return the waterfall details. You can use the [Price Waterfall API](./connect_resources_pricing_waterfall_fetch.htm.md "HTML (New Window)") to retrieve the waterfall details if price waterfall persistence is enabled in Salesforce Pricing Setup.
 
 ## Resource
-
-      
-      
 
 ```
 /connect/core-pricing/pricing
 ```
 
-    
-
-    
-
 ## Resource Example
-
-      
-      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/pricing
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 60.0
 
-    
-
-    
-
 ## Requires Chatter
-
-      
-      
 
 No
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 POST
 
-    
-
-    
-
 ## Request Body for POST
 
-      
-      
-
 **JSON Example**
-
-      
 
 ```
 {
@@ -180,117 +133,20 @@ POST
 }
 ```
 
-      
-
 **Properties**
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `configuration​Overrides` | [Configuration Override Input](./connect_requests_configuration_override_input.htm.md) | Parameters to override the pricing configuration. | Optional | 60.0 |
+| `configuration​Overrides` | [Configuration Override Input](./connect_requests_configuration_override_input.htm.md "Input representation of the details to override for a Pricing API configuration.") | Parameters to override the pricing configuration. | Optional | 60.0 |
 | `context​Definition​Id` | String | ID of the context definition that defines the structure of the input data. | Required | 60.0 |
 | `context​Mapping​Id` | String | ID of the context mapping that maps the input data to the context instance. | Required | 60.0 |
 | `json​Data​String` | String | Data to hydrate the context, which must be in JSON format and passed as String. Pass the JSON data as String by using the stringify() method to convert the object to string. The keys in the jsonDataString property must be in accordance to the contextMappingId property sent in the request. Make sure that the `businessObjectType` value within this property node is set to the sObject used in the context mappings. | Required | 60.0 |
 | `pricing​Procedure​Id` | String | ID or API name of the pricing procedure used for calculating the prices. A pricing procedure is represented as an Expression Set Definition in the system. If you’re an Experience Cloud user, specify the name of the pricing procedure. | Optional | 60.0 |
 
-    
-
-    
-
 ## Response Body for POST
 
-      
-      
+[Pricing Output](./connect_responses_core_pricing_output.htm.md "Output representation of a Salesforce pricing request.")
 
-[Pricing Output](./connect_responses_core_pricing_output.htm.md)
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_headless.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

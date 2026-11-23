@@ -7,23 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Usage Management
 parent_page: usage_management_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Rate Adjustments
 
 Output representation of the details of a rate adjustment.
 
-        
-          
-
-**JSON Example**
-
-          
-: 
-            
+## JSON Example
 
 ```
       "rateAdjustments": [
@@ -41,160 +32,11 @@ Output representation of the details of a rate adjustment.
     ]
 ```
 
-          
+If the `negotiable` property value that’s associated with a rate card entry is blank, then the data is derived from Product Catalog Management. If it isn’t blank, then the data is derived from Rate Management.
 
-        
-      
-
-If the `negotiable` property value that’s associated with a
-        rate card entry is blank, then the data is derived from Product Catalog Management. If it
-        isn’t blank, then the data is derived from Rate Management.
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `fields` | Map<String, [Fields Response](./connect_responses_fields_output.htm.md)> | List of optional fields and their values that belong to the rate adjustment object. | Big, 63.0 | 63.0 |
+| `fields` | Map<String, [Fields Response](./connect_responses_fields_output.htm.md "Output representation of the details of the optional fields on the usage-based selling-related objects.")> | List of optional fields and their values that belong to the rate adjustment object. | Big, 63.0 | 63.0 |
 | `lowerBound` | Double | Minimum quantity for the adjustment to be applicable. | Small, 63.0 | 63.0 |
 | `name` | String | Name of the tier. | Small, 63.0 | 63.0 |
 | `negotiatedRate​Adjustment​Id` | String | ID of the negotiated rate adjustment. | Small, 63.0 | 63.0 |
@@ -203,3 +45,7 @@ If the `negotiable` property value that’s associated with a
 | `rateAdjustment​Value` | Double | Value of the rate adjustment. | Small, 63.0 | 63.0 |
 | `tierUnitOf​Measure` | String | Unit of measure representing the tier. | Small, 63.0 | 63.0 |
 | `upperBound` | Double | Maximum quantity for the adjustment to be applicable. | Small, 63.0 | 63.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_rate_adjustments_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

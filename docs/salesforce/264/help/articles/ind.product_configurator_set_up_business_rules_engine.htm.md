@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_setup.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Business Rules Engine for Product Configurator
@@ -15,7 +15,7 @@ Before you define product configuration rules by using Business Rules Engine, se
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 USER PERMISSIONS NEEDED
 To set up Business Rules Engine for Product Configurator:	Product Configuration Rules Designer permission set
 Create a Rule Library
@@ -49,4 +49,8 @@ See Define Rules Engine with Transaction Processing Types.
 
 This completes the setup of Business Rules Engine for Product Configurator. To learn about creating product configuration rules by using Business Rules Engine, see Define Configuration Rules with Business Rules Engine.
 
-This completes the setup for Product Configurator. To proceed with the rest of the Revenue Cloud setup, see Set Up Revenue Management.
+This completes the setup for Product Configurator. To proceed with the rest of the Revenue Cloud setup, see Set Up Revenue Cloud.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_set_up_business_rules_engine.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

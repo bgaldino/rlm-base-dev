@@ -5,7 +5,7 @@
   "doc_version": "264.0",
   "guide_title": "Industries Common Resources Developer Guide",
   "source_meta_url": "https://developer.salesforce.com/docs/get_document/atlas.en-us.industries_reference.meta",
-  "capture_method": "tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide (Playwright + atlas content API)",
+  "capture_method": "scripts/doc_snapshot dev-guide (Playwright + atlas content API)",
   "snapshot_started": "2026-08-24",
   "pages": [
     {
@@ -14,7 +14,7 @@
       "section": "Action Launcher",
       "parent_page": null,
       "status": "captured",
-      "body_length": 1440,
+      "body_length": 969,
       "file": "articles/action_launcher.htm.md"
     },
     {
@@ -23,7 +23,7 @@
       "section": "Action Launcher",
       "parent_page": "action_launcher.htm",
       "status": "captured",
-      "body_length": 1168,
+      "body_length": 838,
       "file": "articles/action_launcher_metadata_apis_parent.htm.md"
     },
     {
@@ -32,7 +32,7 @@
       "section": "Action Launcher",
       "parent_page": "action_launcher.htm",
       "status": "captured",
-      "body_length": 1209,
+      "body_length": 910,
       "file": "articles/action_launcher_tooling_apis_parent.htm.md"
     },
     {
@@ -41,7 +41,7 @@
       "section": "Context Service",
       "parent_page": "context_service_invocable_actions_parent.htm",
       "status": "captured",
-      "body_length": 5920,
+      "body_length": 3285,
       "file": "articles/actions_obj_build_context.htm.md"
     },
     {
@@ -50,7 +50,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_invocable_actions.htm",
       "status": "captured",
-      "body_length": 3026,
+      "body_length": 2375,
       "file": "articles/actions_obj_decision_matrix.htm.md"
     },
     {
@@ -59,7 +59,7 @@
       "section": "Context Service",
       "parent_page": "context_service_invocable_actions_parent.htm",
       "status": "captured",
-      "body_length": 2592,
+      "body_length": 1133,
       "file": "articles/actions_obj_delete_context_cache.htm.md"
     },
     {
@@ -68,7 +68,7 @@
       "section": "Context Service",
       "parent_page": "context_service_invocable_actions_parent.htm",
       "status": "captured",
-      "body_length": 3799,
+      "body_length": 2002,
       "file": "articles/actions_obj_delete_context_records.htm.md"
     },
     {
@@ -77,7 +77,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_invocable_actions.htm",
       "status": "captured",
-      "body_length": 8172,
+      "body_length": 5754,
       "file": "articles/actions_obj_expression_set.htm.md"
     },
     {
@@ -86,7 +86,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_actions.htm",
       "status": "captured",
-      "body_length": 6475,
+      "body_length": 5096,
       "file": "articles/actions_obj_get_assessment_response_summary.htm.md"
     },
     {
@@ -95,7 +95,7 @@
       "section": "Context Service",
       "parent_page": "context_service_invocable_actions_parent.htm",
       "status": "captured",
-      "body_length": 4508,
+      "body_length": 2283,
       "file": "articles/actions_obj_persist_context_data.htm.md"
     },
     {
@@ -104,7 +104,7 @@
       "section": "Context Service",
       "parent_page": "context_service_invocable_actions_parent.htm",
       "status": "captured",
-      "body_length": 4256,
+      "body_length": 2314,
       "file": "articles/actions_obj_query_context_tags.htm.md"
     },
     {
@@ -113,7 +113,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_mgt_actions_parent.htm",
       "status": "captured",
-      "body_length": 2707,
+      "body_length": 1746,
       "file": "articles/actions_obj_submit_failed_records_batchjob.htm.md"
     },
     {
@@ -122,7 +122,7 @@
       "section": "Context Service",
       "parent_page": "context_service_invocable_actions_parent.htm",
       "status": "captured",
-      "body_length": 3017,
+      "body_length": 1496,
       "file": "articles/actions_obj_update_context_attributes.htm.md"
     },
     {
@@ -131,7 +131,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apex_methods.htm",
       "status": "captured",
-      "body_length": 1940,
+      "body_length": 1440,
       "file": "articles/apex_ConnectAPI_DecisionTable_execute_1.htm.md"
     },
     {
@@ -140,7 +140,7 @@
       "section": "Business Rules Engine",
       "parent_page": "apex_namespace_BusinessRule.htm",
       "status": "captured",
-      "body_length": 3768,
+      "body_length": 3786,
       "file": "articles/apex_class_BusinessRule_CalculationMatrixMigrationService.htm.md"
     },
     {
@@ -149,7 +149,7 @@
       "section": "Business Rules Engine",
       "parent_page": "apex_namespace_BusinessRule.htm",
       "status": "captured",
-      "body_length": 4275,
+      "body_length": 4111,
       "file": "articles/apex_class_BusinessRule_CalculationProcedureMigrationService.htm.md"
     },
     {
@@ -158,7 +158,7 @@
       "section": "Context Service",
       "parent_page": "apex_namespace_Context.htm",
       "status": "captured",
-      "body_length": 30346,
+      "body_length": 24573,
       "file": "articles/apex_class_Context_IndustriesContext.htm.md"
     },
     {
@@ -167,7 +167,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apex_input_classes.htm",
       "status": "captured",
-      "body_length": 988,
+      "body_length": 884,
       "file": "articles/apex_connectapi_input_decision_table.htm.md"
     },
     {
@@ -176,7 +176,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apex_input_classes.htm",
       "status": "captured",
-      "body_length": 2219,
+      "body_length": 1685,
       "file": "articles/apex_connectapi_input_decision_table_condition_representatio.htm.md"
     },
     {
@@ -185,7 +185,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apex_output_classes.htm",
       "status": "captured",
-      "body_length": 1472,
+      "body_length": 1789,
       "file": "articles/apex_connectapi_output_decision_table_outcome.htm.md"
     },
     {
@@ -194,7 +194,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apex_output_classes.htm",
       "status": "captured",
-      "body_length": 882,
+      "body_length": 716,
       "file": "articles/apex_connectapi_output_decision_table_outcome_item.htm.md"
     },
     {
@@ -203,7 +203,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_parent.htm",
       "status": "captured",
-      "body_length": 1538,
+      "body_length": 1123,
       "file": "articles/apex_namespace_BusinessRule.htm.md"
     },
     {
@@ -212,7 +212,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apex_reference.htm",
       "status": "captured",
-      "body_length": 976,
+      "body_length": 524,
       "file": "articles/apex_namespace_Context.htm.md"
     },
     {
@@ -221,7 +221,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apex_reference.htm",
       "status": "captured",
-      "body_length": 531,
+      "body_length": 95,
       "file": "articles/apex_namespace_omnistudiocore.htm.md"
     },
     {
@@ -230,7 +230,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": null,
       "status": "captured",
-      "body_length": 4102,
+      "body_length": 3497,
       "file": "articles/batch.htm.md"
     },
     {
@@ -239,7 +239,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch.htm",
       "status": "captured",
-      "body_length": 1407,
+      "body_length": 865,
       "file": "articles/batch_common_setup_objects.htm.md"
     },
     {
@@ -248,7 +248,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch.htm",
       "status": "captured",
-      "body_length": 1134,
+      "body_length": 819,
       "file": "articles/batch_data_model.htm.md"
     },
     {
@@ -257,7 +257,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch.htm",
       "status": "captured",
-      "body_length": 762,
+      "body_length": 318,
       "file": "articles/batch_management_apis.htm.md"
     },
     {
@@ -266,7 +266,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 739,
+      "body_length": 293,
       "file": "articles/batch_management_apis_resources.htm.md"
     },
     {
@@ -275,7 +275,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_apis_rest_references.htm",
       "status": "captured",
-      "body_length": 649,
+      "body_length": 209,
       "file": "articles/batch_management_apis_responses.htm.md"
     },
     {
@@ -284,7 +284,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_apis.htm",
       "status": "captured",
-      "body_length": 1216,
+      "body_length": 818,
       "file": "articles/batch_management_apis_rest_references.htm.md"
     },
     {
@@ -293,7 +293,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch.htm",
       "status": "captured",
-      "body_length": 2140,
+      "body_length": 1619,
       "file": "articles/batch_management_dev_overview.htm.md"
     },
     {
@@ -302,7 +302,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch.htm",
       "status": "captured",
-      "body_length": 1427,
+      "body_length": 898,
       "file": "articles/batch_management_platform_event.htm.md"
     },
     {
@@ -311,7 +311,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_dev_overview.htm",
       "status": "captured",
-      "body_length": 1748,
+      "body_length": 1189,
       "file": "articles/batch_management_setup_object.htm.md"
     },
     {
@@ -320,7 +320,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_dev_overview.htm",
       "status": "captured",
-      "body_length": 1239,
+      "body_length": 719,
       "file": "articles/batch_management_standard_object.htm.md"
     },
     {
@@ -329,7 +329,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_dev_overview.htm",
       "status": "captured",
-      "body_length": 967,
+      "body_length": 607,
       "file": "articles/batch_metadata.htm.md"
     },
     {
@@ -338,7 +338,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_mgt_actions_parent.htm",
       "status": "captured",
-      "body_length": 2607,
+      "body_length": 1878,
       "file": "articles/batch_mgt_actions_batch_job.htm.md"
     },
     {
@@ -347,7 +347,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_dev_overview.htm",
       "status": "captured",
-      "body_length": 1271,
+      "body_length": 824,
       "file": "articles/batch_mgt_actions_parent.htm.md"
     },
     {
@@ -356,7 +356,7 @@
       "section": "Business Rules Engine",
       "parent_page": null,
       "status": "captured",
-      "body_length": 2301,
+      "body_length": 1783,
       "file": "articles/business_rules_engine.htm.md"
     },
     {
@@ -365,7 +365,7 @@
       "section": "Collections and Recovery",
       "parent_page": "collections_objects.htm",
       "status": "captured",
-      "body_length": 907,
+      "body_length": 623,
       "file": "articles/collections_data_model.htm.md"
     },
     {
@@ -374,7 +374,7 @@
       "section": "Collections and Recovery",
       "parent_page": null,
       "status": "captured",
-      "body_length": 1030,
+      "body_length": 553,
       "file": "articles/collections_objects.htm.md"
     },
     {
@@ -383,7 +383,7 @@
       "section": "Collections and Recovery",
       "parent_page": "collections_objects.htm",
       "status": "captured",
-      "body_length": 2058,
+      "body_length": 1491,
       "file": "articles/collections_standard_objects.htm.md"
     },
     {
@@ -392,7 +392,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_requests.htm",
       "status": "captured",
-      "body_length": 2306,
+      "body_length": 771,
       "file": "articles/connect_requests_assessment_links_input.htm.md"
     },
     {
@@ -401,7 +401,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_requests.htm",
       "status": "captured",
-      "body_length": 3933,
+      "body_length": 2152,
       "file": "articles/connect_requests_assessment_responses_assessment_details_input.htm.md"
     },
     {
@@ -410,7 +410,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_requests.htm",
       "status": "captured",
-      "body_length": 2812,
+      "body_length": 951,
       "file": "articles/connect_requests_assessment_responses_assessment_reason_input.htm.md"
     },
     {
@@ -419,7 +419,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_requests.htm",
       "status": "captured",
-      "body_length": 5466,
+      "body_length": 2831,
       "file": "articles/connect_requests_assessment_responses_assessment_values_input.htm.md"
     },
     {
@@ -428,7 +428,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_requests.htm",
       "status": "captured",
-      "body_length": 3890,
+      "body_length": 2677,
       "file": "articles/connect_requests_assessment_responses_input.htm.md"
     },
     {
@@ -437,7 +437,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 2828,
+      "body_length": 1703,
       "file": "articles/connect_requests_business_rules_input.htm.md"
     },
     {
@@ -446,7 +446,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_requests.htm",
       "status": "captured",
-      "body_length": 6660,
+      "body_length": 3367,
       "file": "articles/connect_requests_calculation_procedure_step_input.htm.md"
     },
     {
@@ -455,7 +455,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_requests.htm",
       "status": "captured",
-      "body_length": 5417,
+      "body_length": 4951,
       "file": "articles/connect_requests_calculation_procedure_version_definition_input.htm.md"
     },
     {
@@ -464,7 +464,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 1538,
+      "body_length": 837,
       "file": "articles/connect_requests_context_attr_hydration_details_input.htm.md"
     },
     {
@@ -473,7 +473,7 @@
       "section": "Context Service",
       "parent_page": "context_service_overview.htm",
       "status": "captured",
-      "body_length": 1791,
+      "body_length": 754,
       "file": "articles/connect_requests_context_attribute_input.htm.md"
     },
     {
@@ -482,7 +482,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 5183,
+      "body_length": 2713,
       "file": "articles/connect_requests_context_attribute_mappings_input.htm.md"
     },
     {
@@ -491,7 +491,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 1879,
+      "body_length": 1475,
       "file": "articles/connect_requests_context_attributes_input.htm.md"
     },
     {
@@ -500,7 +500,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 2435,
+      "body_length": 1953,
       "file": "articles/connect_requests_context_definition_filter_input.htm.md"
     },
     {
@@ -509,7 +509,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 1337,
+      "body_length": 952,
       "file": "articles/connect_requests_context_definition_filter_list_input.htm.md"
     },
     {
@@ -518,7 +518,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 1024,
+      "body_length": 543,
       "file": "articles/connect_requests_context_definition_input.htm.md"
     },
     {
@@ -527,7 +527,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 2468,
+      "body_length": 608,
       "file": "articles/connect_requests_context_definition_upgrade.htm.md"
     },
     {
@@ -536,7 +536,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 3784,
+      "body_length": 3337,
       "file": "articles/connect_requests_context_definitions_input.htm.md"
     },
     {
@@ -545,7 +545,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 1491,
+      "body_length": 959,
       "file": "articles/connect_requests_context_input.htm.md"
     },
     {
@@ -554,7 +554,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 4590,
+      "body_length": 1662,
       "file": "articles/connect_requests_context_mappings_input.htm.md"
     },
     {
@@ -563,7 +563,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 1320,
+      "body_length": 744,
       "file": "articles/connect_requests_context_meta_data_input.htm.md"
     },
     {
@@ -572,7 +572,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 1576,
+      "body_length": 535,
       "file": "articles/connect_requests_context_node_id_input.htm.md"
     },
     {
@@ -581,7 +581,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 2313,
+      "body_length": 1995,
       "file": "articles/connect_requests_context_nodes_input.htm.md"
     },
     {
@@ -590,7 +590,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 1305,
+      "body_length": 791,
       "file": "articles/connect_requests_context_tag_input.htm.md"
     },
     {
@@ -599,7 +599,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis_requests.htm",
       "status": "captured",
-      "body_length": 1843,
+      "body_length": 657,
       "file": "articles/connect_requests_data_mapper_details.htm.md"
     },
     {
@@ -608,7 +608,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis_requests.htm",
       "status": "captured",
-      "body_length": 1483,
+      "body_length": 442,
       "file": "articles/connect_requests_data_mapper_execute_input_data.htm.md"
     },
     {
@@ -617,7 +617,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis_requests.htm",
       "status": "captured",
-      "body_length": 1356,
+      "body_length": 1054,
       "file": "articles/connect_requests_data_mapper_execution_input.htm.md"
     },
     {
@@ -626,7 +626,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis_requests.htm",
       "status": "captured",
-      "body_length": 2453,
+      "body_length": 1864,
       "file": "articles/connect_requests_data_mapper_execution_options.htm.md"
     },
     {
@@ -635,7 +635,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis_requests.htm",
       "status": "captured",
-      "body_length": 1826,
+      "body_length": 1367,
       "file": "articles/connect_requests_datamapper_cache_input_param.htm.md"
     },
     {
@@ -644,7 +644,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_requests_1.htm",
       "status": "captured",
-      "body_length": 3291,
+      "body_length": 1258,
       "file": "articles/connect_requests_decision_matrix_column.htm.md"
     },
     {
@@ -653,7 +653,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_requests_1.htm",
       "status": "captured",
-      "body_length": 1531,
+      "body_length": 1039,
       "file": "articles/connect_requests_decision_matrix_columns_input.htm.md"
     },
     {
@@ -662,7 +662,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_requests.htm",
       "status": "captured",
-      "body_length": 816,
+      "body_length": 457,
       "file": "articles/connect_requests_decision_matrix_input.htm.md"
     },
     {
@@ -671,7 +671,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_requests.htm",
       "status": "captured",
-      "body_length": 2264,
+      "body_length": 1174,
       "file": "articles/connect_requests_decision_matrix_lookup.htm.md"
     },
     {
@@ -680,7 +680,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_requests.htm",
       "status": "captured",
-      "body_length": 1000,
+      "body_length": 553,
       "file": "articles/connect_requests_decision_matrix_options.htm.md"
     },
     {
@@ -689,7 +689,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_requests_1.htm",
       "status": "captured",
-      "body_length": 2281,
+      "body_length": 853,
       "file": "articles/connect_requests_decision_matrix_row_input.htm.md"
     },
     {
@@ -698,7 +698,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_requests_1.htm",
       "status": "captured",
-      "body_length": 2887,
+      "body_length": 1601,
       "file": "articles/connect_requests_decision_matrix_rows_input.htm.md"
     },
     {
@@ -707,7 +707,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_requests.htm",
       "status": "captured",
-      "body_length": 830,
+      "body_length": 383,
       "file": "articles/connect_requests_decision_matrix_variable.htm.md"
     },
     {
@@ -716,7 +716,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_requests.htm",
       "status": "captured",
-      "body_length": 1042,
+      "body_length": 460,
       "file": "articles/connect_requests_decision_model_export_input.htm.md"
     },
     {
@@ -725,7 +725,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_requests.htm",
       "status": "captured",
-      "body_length": 2877,
+      "body_length": 1408,
       "file": "articles/connect_requests_decision_table_bulk_input.htm.md"
     },
     {
@@ -734,7 +734,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis_requests.htm",
       "status": "captured",
-      "body_length": 3474,
+      "body_length": 2434,
       "file": "articles/connect_requests_decision_table_condition.htm.md"
     },
     {
@@ -743,7 +743,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_requests.htm",
       "status": "captured",
-      "body_length": 1655,
+      "body_length": 499,
       "file": "articles/connect_requests_decision_table_condition_list_input.htm.md"
     },
     {
@@ -752,7 +752,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_requests.htm",
       "status": "captured",
-      "body_length": 12470,
+      "body_length": 5091,
       "file": "articles/connect_requests_decision_table_definition_input.htm.md"
     },
     {
@@ -761,7 +761,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis_requests.htm",
       "status": "captured",
-      "body_length": 2778,
+      "body_length": 1311,
       "file": "articles/connect_requests_decision_table_input.htm.md"
     },
     {
@@ -770,7 +770,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_requests.htm",
       "status": "captured",
-      "body_length": 2769,
+      "body_length": 2159,
       "file": "articles/connect_requests_decision_table_parameter_input.htm.md"
     },
     {
@@ -779,7 +779,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis_requests.htm",
       "status": "captured",
-      "body_length": 2029,
+      "body_length": 688,
       "file": "articles/connect_requests_decision_table_row_list_input.htm.md"
     },
     {
@@ -788,7 +788,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis_requests.htm",
       "status": "captured",
-      "body_length": 1634,
+      "body_length": 700,
       "file": "articles/connect_requests_decision_table_rows_list_input.htm.md"
     },
     {
@@ -797,7 +797,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_requests.htm",
       "status": "captured",
-      "body_length": 1420,
+      "body_length": 938,
       "file": "articles/connect_requests_decision_table_source_criteria_input.htm.md"
     },
     {
@@ -806,7 +806,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_requests.htm",
       "status": "captured",
-      "body_length": 935,
+      "body_length": 489,
       "file": "articles/connect_requests_document_decision_input.htm.md"
     },
     {
@@ -815,7 +815,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_apis_requests.htm",
       "status": "captured",
-      "body_length": 5893,
+      "body_length": 3620,
       "file": "articles/connect_requests_explainability_action_log_input.htm.md"
     },
     {
@@ -824,7 +824,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 1652,
+      "body_length": 1266,
       "file": "articles/connect_requests_expression_set_advanced_condition_step.htm.md"
     },
     {
@@ -833,7 +833,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 1411,
+      "body_length": 826,
       "file": "articles/connect_requests_expression_set_aggregation_step.htm.md"
     },
     {
@@ -842,7 +842,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 1248,
+      "body_length": 665,
       "file": "articles/connect_requests_expression_set_assignment_step.htm.md"
     },
     {
@@ -851,7 +851,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 1767,
+      "body_length": 1303,
       "file": "articles/connect_requests_expression_set_condition_criteria.htm.md"
     },
     {
@@ -860,7 +860,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 1310,
+      "body_length": 702,
       "file": "articles/connect_requests_expression_set_condition_expression_step.htm.md"
     },
     {
@@ -869,7 +869,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 2188,
+      "body_length": 1580,
       "file": "articles/connect_requests_expression_set_custom_element_parameter.htm.md"
     },
     {
@@ -878,7 +878,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 1527,
+      "body_length": 1147,
       "file": "articles/connect_requests_expression_set_custom_element_step.htm.md"
     },
     {
@@ -887,7 +887,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 1375,
+      "body_length": 920,
       "file": "articles/connect_requests_expression_set_des_token_mapping.htm.md"
     },
     {
@@ -896,7 +896,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 3756,
+      "body_length": 3018,
       "file": "articles/connect_requests_expression_set_input.htm.md"
     },
     {
@@ -905,7 +905,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 1169,
+      "body_length": 715,
       "file": "articles/connect_requests_expression_set_lookup_table_step.htm.md"
     },
     {
@@ -914,7 +914,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 1126,
+      "body_length": 540,
       "file": "articles/connect_requests_expression_set_sub_expression_step.htm.md"
     },
     {
@@ -923,7 +923,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 5730,
+      "body_length": 5411,
       "file": "articles/connect_requests_expression_set_version.htm.md"
     },
     {
@@ -932,7 +932,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 11104,
+      "body_length": 7895,
       "file": "articles/connect_requests_expression_set_version_step.htm.md"
     },
     {
@@ -941,7 +941,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 4496,
+      "body_length": 4031,
       "file": "articles/connect_requests_expression_set_version_variable.htm.md"
     },
     {
@@ -950,7 +950,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis_requests.htm",
       "status": "captured",
-      "body_length": 2193,
+      "body_length": 1820,
       "file": "articles/connect_requests_integration_procedure_cache_input.htm.md"
     },
     {
@@ -959,7 +959,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis_requests.htm",
       "status": "captured",
-      "body_length": 2101,
+      "body_length": 762,
       "file": "articles/connect_requests_integration_procedure_cache_input_data.htm.md"
     },
     {
@@ -968,7 +968,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis_requests.htm",
       "status": "captured",
-      "body_length": 1426,
+      "body_length": 389,
       "file": "articles/connect_requests_integration_procedure_cache_keys_list.htm.md"
     },
     {
@@ -977,7 +977,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis_requests.htm",
       "status": "captured",
-      "body_length": 1993,
+      "body_length": 1030,
       "file": "articles/connect_requests_integration_procedure_service_run_input.htm.md"
     },
     {
@@ -986,7 +986,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis_requests.htm",
       "status": "captured",
-      "body_length": 1505,
+      "body_length": 464,
       "file": "articles/connect_requests_integration_procedure_service_run_input_list.htm.md"
     },
     {
@@ -995,7 +995,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis_requests.htm",
       "status": "captured",
-      "body_length": 3967,
+      "body_length": 3506,
       "file": "articles/connect_requests_integration_procedure_service_run_options.htm.md"
     },
     {
@@ -1004,7 +1004,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 2802,
+      "body_length": 1014,
       "file": "articles/connect_requests_node_path_and_tag_values.htm.md"
     },
     {
@@ -1013,7 +1013,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_requests.htm",
       "status": "captured",
-      "body_length": 3756,
+      "body_length": 2099,
       "file": "articles/connect_requests_options.htm.md"
     },
     {
@@ -1021,9 +1021,10 @@
       "title": "Query Context Record Input",
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 1064,
-      "file": "articles/connect_requests_query_context_record_input.htm.md"
+      "file": "articles/connect_requests_query_context_record_input.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "connect_requests_query_data_input.htm",
@@ -1031,7 +1032,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 1687,
+      "body_length": 645,
       "file": "articles/connect_requests_query_data_input.htm.md"
     },
     {
@@ -1040,7 +1041,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_requests.htm",
       "status": "captured",
-      "body_length": 1677,
+      "body_length": 1205,
       "file": "articles/connect_requests_question_responses_input.htm.md"
     },
     {
@@ -1049,7 +1050,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_requests.htm",
       "status": "captured",
-      "body_length": 2970,
+      "body_length": 2570,
       "file": "articles/connect_requests_resource_input.htm.md"
     },
     {
@@ -1058,7 +1059,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_requests.htm",
       "status": "captured",
-      "body_length": 1654,
+      "body_length": 840,
       "file": "articles/connect_requests_simulation_config_input.htm.md"
     },
     {
@@ -1067,7 +1068,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_requests.htm",
       "status": "captured",
-      "body_length": 1012,
+      "body_length": 420,
       "file": "articles/connect_requests_simulation_context_input.htm.md"
     },
     {
@@ -1076,7 +1077,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_requests.htm",
       "status": "captured",
-      "body_length": 4052,
+      "body_length": 2527,
       "file": "articles/connect_requests_simulation_eval_service_input.htm.md"
     },
     {
@@ -1085,7 +1086,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_requests.htm",
       "status": "captured",
-      "body_length": 1254,
+      "body_length": 888,
       "file": "articles/connect_requests_simulation_variable_input.htm.md"
     },
     {
@@ -1094,7 +1095,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_requests.htm",
       "status": "captured",
-      "body_length": 1946,
+      "body_length": 923,
       "file": "articles/connect_requests_simulation_version_info_input.htm.md"
     },
     {
@@ -1103,7 +1104,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_requests.htm",
       "status": "captured",
-      "body_length": 2515,
+      "body_length": 636,
       "file": "articles/connect_requests_tag_values_input.htm.md"
     },
     {
@@ -1112,7 +1113,7 @@
       "section": "Context Service",
       "parent_page": "context_attribute_management.htm",
       "status": "captured",
-      "body_length": 11335,
+      "body_length": 6308,
       "file": "articles/connect_resources_attribute_mapping.htm.md"
     },
     {
@@ -1121,7 +1122,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_apis_resources.htm",
       "status": "captured",
-      "body_length": 1929,
+      "body_length": 1223,
       "file": "articles/connect_resources_batch_job_cancel.htm.md"
     },
     {
@@ -1130,7 +1131,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_resources.htm",
       "status": "captured",
-      "body_length": 4644,
+      "body_length": 3550,
       "file": "articles/connect_resources_bre_create_expression_set.htm.md"
     },
     {
@@ -1139,7 +1140,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_table_resources.htm",
       "status": "captured",
-      "body_length": 3186,
+      "body_length": 1426,
       "file": "articles/connect_resources_bre_decision_matrix.htm.md"
     },
     {
@@ -1148,7 +1149,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_table_resources.htm",
       "status": "captured",
-      "body_length": 2168,
+      "body_length": 1300,
       "file": "articles/connect_resources_bre_decision_model_entity.htm.md"
     },
     {
@@ -1157,7 +1158,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_table_resources.htm",
       "status": "captured",
-      "body_length": 3773,
+      "body_length": 1790,
       "file": "articles/connect_resources_bre_decision_table.htm.md"
     },
     {
@@ -1166,7 +1167,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_resources.htm",
       "status": "captured",
-      "body_length": 3722,
+      "body_length": 2203,
       "file": "articles/connect_resources_bre_expression_set.htm.md"
     },
     {
@@ -1175,7 +1176,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_resources.htm",
       "status": "captured",
-      "body_length": 1347,
+      "body_length": 621,
       "file": "articles/connect_resources_bre_expression_set_id_delete_get.htm.md"
     },
     {
@@ -1184,7 +1185,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_resources.htm",
       "status": "captured",
-      "body_length": 4540,
+      "body_length": 3458,
       "file": "articles/connect_resources_bre_expression_set_id_patch.htm.md"
     },
     {
@@ -1193,7 +1194,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_resources.htm",
       "status": "captured",
-      "body_length": 2509,
+      "body_length": 1167,
       "file": "articles/connect_resources_bre_guardrail.htm.md"
     },
     {
@@ -1202,7 +1203,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_table_resources.htm",
       "status": "captured",
-      "body_length": 3198,
+      "body_length": 1583,
       "file": "articles/connect_resources_bre_search_lookup_tables.htm.md"
     },
     {
@@ -1211,7 +1212,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_resources.htm",
       "status": "captured",
-      "body_length": 1381,
+      "body_length": 932,
       "file": "articles/connect_resources_calculation_procedure.htm.md"
     },
     {
@@ -1220,7 +1221,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_resources.htm",
       "status": "captured",
-      "body_length": 1682,
+      "body_length": 896,
       "file": "articles/connect_resources_calculation_procedures.htm.md"
     },
     {
@@ -1229,7 +1230,7 @@
       "section": "Context Service",
       "parent_page": "context_node_mapping_management.htm",
       "status": "captured",
-      "body_length": 2511,
+      "body_length": 1137,
       "file": "articles/connect_resources_configure_relationship_node.htm.md"
     },
     {
@@ -1238,7 +1239,7 @@
       "section": "Context Service",
       "parent_page": "context_attribute_management.htm",
       "status": "captured",
-      "body_length": 3581,
+      "body_length": 2595,
       "file": "articles/connect_resources_context_attribute.htm.md"
     },
     {
@@ -1247,7 +1248,7 @@
       "section": "Context Service",
       "parent_page": "context_attribute_management.htm",
       "status": "captured",
-      "body_length": 1535,
+      "body_length": 738,
       "file": "articles/connect_resources_context_attribute_id.htm.md"
     },
     {
@@ -1256,7 +1257,7 @@
       "section": "Context Service",
       "parent_page": "context_mapping_management.htm",
       "status": "captured",
-      "body_length": 1659,
+      "body_length": 868,
       "file": "articles/connect_resources_context_attribute_mapping_id.htm.md"
     },
     {
@@ -1265,7 +1266,7 @@
       "section": "Context Service",
       "parent_page": "context_service_context_definition_management.htm",
       "status": "captured",
-      "body_length": 5017,
+      "body_length": 4176,
       "file": "articles/connect_resources_context_definition.htm.md"
     },
     {
@@ -1274,7 +1275,7 @@
       "section": "Context Service",
       "parent_page": "context_service_context_definition_management.htm",
       "status": "captured",
-      "body_length": 3479,
+      "body_length": 2732,
       "file": "articles/connect_resources_context_definition_filter_by_id.htm.md"
     },
     {
@@ -1283,7 +1284,7 @@
       "section": "Context Service",
       "parent_page": "context_service_context_definition_management.htm",
       "status": "captured",
-      "body_length": 2546,
+      "body_length": 1896,
       "file": "articles/connect_resources_context_definition_filters.htm.md"
     },
     {
@@ -1292,7 +1293,7 @@
       "section": "Context Service",
       "parent_page": "context_service_context_definition_management.htm",
       "status": "captured",
-      "body_length": 2151,
+      "body_length": 1134,
       "file": "articles/connect_resources_context_definition_id.htm.md"
     },
     {
@@ -1301,7 +1302,7 @@
       "section": "Context Service",
       "parent_page": "context_service_context_definition_management.htm",
       "status": "captured",
-      "body_length": 3677,
+      "body_length": 1199,
       "file": "articles/connect_resources_context_definition_upgrades.htm.md"
     },
     {
@@ -1310,7 +1311,7 @@
       "section": "Context Service",
       "parent_page": "context_mapping_management.htm",
       "status": "captured",
-      "body_length": 6819,
+      "body_length": 3258,
       "file": "articles/connect_resources_context_mapping.htm.md"
     },
     {
@@ -1319,7 +1320,7 @@
       "section": "Context Service",
       "parent_page": "context_mapping_management.htm",
       "status": "captured",
-      "body_length": 1552,
+      "body_length": 748,
       "file": "articles/connect_resources_context_mapping_id.htm.md"
     },
     {
@@ -1328,7 +1329,7 @@
       "section": "Context Service",
       "parent_page": "context_node_management.htm",
       "status": "captured",
-      "body_length": 3949,
+      "body_length": 3036,
       "file": "articles/connect_resources_context_node.htm.md"
     },
     {
@@ -1337,7 +1338,7 @@
       "section": "Context Service",
       "parent_page": "context_node_management.htm",
       "status": "captured",
-      "body_length": 1531,
+      "body_length": 729,
       "file": "articles/connect_resources_context_node_id.htm.md"
     },
     {
@@ -1346,7 +1347,7 @@
       "section": "Context Service",
       "parent_page": "context_node_mapping_management.htm",
       "status": "captured",
-      "body_length": 1581,
+      "body_length": 786,
       "file": "articles/connect_resources_context_node_mapping_id.htm.md"
     },
     {
@@ -1355,7 +1356,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_resources.htm",
       "status": "captured",
-      "body_length": 2728,
+      "body_length": 1222,
       "file": "articles/connect_resources_context_query_lean_tag.htm.md"
     },
     {
@@ -1364,7 +1365,7 @@
       "section": "Context Service",
       "parent_page": "runtime_context_intance_management.htm",
       "status": "captured",
-      "body_length": 2454,
+      "body_length": 1023,
       "file": "articles/connect_resources_context_runtime_schema.htm.md"
     },
     {
@@ -1373,7 +1374,7 @@
       "section": "Context Service",
       "parent_page": "runtime_context_intance_management.htm",
       "status": "captured",
-      "body_length": 1317,
+      "body_length": 584,
       "file": "articles/connect_resources_context_service_runtime.htm.md"
     },
     {
@@ -1382,7 +1383,7 @@
       "section": "Context Service",
       "parent_page": "context_tag_managament.htm",
       "status": "captured",
-      "body_length": 3536,
+      "body_length": 2382,
       "file": "articles/connect_resources_context_tag.htm.md"
     },
     {
@@ -1391,7 +1392,7 @@
       "section": "Context Service",
       "parent_page": "context_tag_managament.htm",
       "status": "captured",
-      "body_length": 1520,
+      "body_length": 722,
       "file": "articles/connect_resources_context_tag_id.htm.md"
     },
     {
@@ -1400,7 +1401,7 @@
       "section": "Context Service",
       "parent_page": "runtime_context_intance_management.htm",
       "status": "captured",
-      "body_length": 2465,
+      "body_length": 1590,
       "file": "articles/connect_resources_create_context.htm.md"
     },
     {
@@ -1409,7 +1410,7 @@
       "section": "Context Service",
       "parent_page": "runtime_context_intance_management.htm",
       "status": "captured",
-      "body_length": 2424,
+      "body_length": 885,
       "file": "articles/connect_resources_create_query_tag.htm.md"
     },
     {
@@ -1418,7 +1419,7 @@
       "section": "Context Service",
       "parent_page": "runtime_context_intance_management.htm",
       "status": "captured",
-      "body_length": 3418,
+      "body_length": 1680,
       "file": "articles/connect_resources_create_update_query_data_record_status.htm.md"
     },
     {
@@ -1427,7 +1428,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis_resources.htm",
       "status": "captured",
-      "body_length": 2765,
+      "body_length": 1712,
       "file": "articles/connect_resources_data_mapper_clear_cache.htm.md"
     },
     {
@@ -1436,7 +1437,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis_resources.htm",
       "status": "captured",
-      "body_length": 3368,
+      "body_length": 420,
       "file": "articles/connect_resources_data_mapper_execution.htm.md"
     },
     {
@@ -1445,7 +1446,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_table_resources.htm",
       "status": "captured",
-      "body_length": 3786,
+      "body_length": 1964,
       "file": "articles/connect_resources_decisionTableId.htm.md"
     },
     {
@@ -1454,7 +1455,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_resources_1.htm",
       "status": "captured",
-      "body_length": 1349,
+      "body_length": 867,
       "file": "articles/connect_resources_decision_matrices.htm.md"
     },
     {
@@ -1463,7 +1464,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_resources_1.htm",
       "status": "captured",
-      "body_length": 993,
+      "body_length": 518,
       "file": "articles/connect_resources_decision_matrix.htm.md"
     },
     {
@@ -1472,7 +1473,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_resources_1.htm",
       "status": "captured",
-      "body_length": 2985,
+      "body_length": 1973,
       "file": "articles/connect_resources_decision_matrix_columns.htm.md"
     },
     {
@@ -1481,7 +1482,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_resources_1.htm",
       "status": "captured",
-      "body_length": 5570,
+      "body_length": 3037,
       "file": "articles/connect_resources_decision_matrix_version_rows.htm.md"
     },
     {
@@ -1490,7 +1491,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis_resources.htm",
       "status": "captured",
-      "body_length": 4998,
+      "body_length": 2385,
       "file": "articles/connect_resources_decision_table_csv_based_dt.htm.md"
     },
     {
@@ -1499,7 +1500,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_table_resources.htm",
       "status": "captured",
-      "body_length": 1524,
+      "body_length": 483,
       "file": "articles/connect_resources_decision_table_definition_details.htm.md"
     },
     {
@@ -1508,7 +1509,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_table_resources.htm",
       "status": "captured",
-      "body_length": 14434,
+      "body_length": 427,
       "file": "articles/connect_resources_decision_table_definition_details_patch.htm.md"
     },
     {
@@ -1517,7 +1518,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_table_resources.htm",
       "status": "captured",
-      "body_length": 16635,
+      "body_length": 447,
       "file": "articles/connect_resources_decision_table_definition_details_post.htm.md"
     },
     {
@@ -1526,7 +1527,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis_resources.htm",
       "status": "captured",
-      "body_length": 3654,
+      "body_length": 1854,
       "file": "articles/connect_resources_decision_table_execution.htm.md"
     },
     {
@@ -1535,7 +1536,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_resources.htm",
       "status": "captured",
-      "body_length": 2451,
+      "body_length": 1700,
       "file": "articles/connect_resources_document_decision.htm.md"
     },
     {
@@ -1544,7 +1545,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_apis_resources.htm",
       "status": "captured",
-      "body_length": 3724,
+      "body_length": 1787,
       "file": "articles/connect_resources_explainability_detailed_action_log.htm.md"
     },
     {
@@ -1553,7 +1554,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_resources.htm",
       "status": "captured",
-      "body_length": 1326,
+      "body_length": 636,
       "file": "articles/connect_resources_expression_set_dependencies.htm.md"
     },
     {
@@ -1562,7 +1563,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_resources.htm",
       "status": "captured",
-      "body_length": 1898,
+      "body_length": 930,
       "file": "articles/connect_resources_get_activate_calc_procedure_version.htm.md"
     },
     {
@@ -1571,7 +1572,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_apis_resources.htm",
       "status": "captured",
-      "body_length": 8386,
+      "body_length": 6005,
       "file": "articles/connect_resources_get_create_action_logs.htm.md"
     },
     {
@@ -1580,7 +1581,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis_resources.htm",
       "status": "captured",
-      "body_length": 4037,
+      "body_length": 410,
       "file": "articles/connect_resources_integration_procedure.htm.md"
     },
     {
@@ -1589,7 +1590,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis_resources.htm",
       "status": "captured",
-      "body_length": 3153,
+      "body_length": 2182,
       "file": "articles/connect_resources_integration_procedure_clear_cache.htm.md"
     },
     {
@@ -1598,7 +1599,7 @@
       "section": "Context Service",
       "parent_page": "context_node_mapping_management.htm",
       "status": "captured",
-      "body_length": 5129,
+      "body_length": 2134,
       "file": "articles/connect_resources_node_mapping.htm.md"
     },
     {
@@ -1607,7 +1608,7 @@
       "section": "Context Service",
       "parent_page": "persistence_context_management.htm",
       "status": "captured",
-      "body_length": 3274,
+      "body_length": 1765,
       "file": "articles/connect_resources_persist_context.htm.md"
     },
     {
@@ -1616,7 +1617,7 @@
       "section": "Context Service",
       "parent_page": "runtime_context_intance_management.htm",
       "status": "captured",
-      "body_length": 1410,
+      "body_length": 749,
       "file": "articles/connect_resources_query_context_interface_by_name.htm.md"
     },
     {
@@ -1625,7 +1626,7 @@
       "section": "Context Service",
       "parent_page": "runtime_context_intance_management.htm",
       "status": "captured",
-      "body_length": 1197,
+      "body_length": 591,
       "file": "articles/connect_resources_query_context_interfaces.htm.md"
     },
     {
@@ -1633,9 +1634,10 @@
       "title": "Query Context Record (POST)",
       "section": "Context Service",
       "parent_page": "runtime_context_intance_management.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 2818,
-      "file": "articles/connect_resources_query_context_record.htm.md"
+      "file": "articles/connect_resources_query_context_record.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "connect_resources_rules_engine_explainability_logs.htm",
@@ -1643,7 +1645,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_resources.htm",
       "status": "captured",
-      "body_length": 4427,
+      "body_length": 2149,
       "file": "articles/connect_resources_rules_engine_explainability_logs.htm.md"
     },
     {
@@ -1652,7 +1654,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_resources.htm",
       "status": "captured",
-      "body_length": 1350,
+      "body_length": 655,
       "file": "articles/connect_resources_rules_engine_message_template_detail.htm.md"
     },
     {
@@ -1661,7 +1663,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_resources.htm",
       "status": "captured",
-      "body_length": 3231,
+      "body_length": 1633,
       "file": "articles/connect_resources_rules_engine_message_templates_list.htm.md"
     },
     {
@@ -1670,7 +1672,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_resources.htm",
       "status": "captured",
-      "body_length": 5063,
+      "body_length": 3037,
       "file": "articles/connect_resources_save_assessment_responses.htm.md"
     },
     {
@@ -1679,7 +1681,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_resources.htm",
       "status": "captured",
-      "body_length": 6190,
+      "body_length": 5091,
       "file": "articles/connect_resources_save_update_calc_procedure_version.htm.md"
     },
     {
@@ -1688,7 +1690,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_resources.htm",
       "status": "captured",
-      "body_length": 5961,
+      "body_length": 3366,
       "file": "articles/connect_resources_simulations.htm.md"
     },
     {
@@ -1697,7 +1699,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_resources.htm",
       "status": "captured",
-      "body_length": 2300,
+      "body_length": 1083,
       "file": "articles/connect_resources_store_discovery_framework_structure.htm.md"
     },
     {
@@ -1706,7 +1708,7 @@
       "section": "Context Service",
       "parent_page": "runtime_context_intance_management.htm",
       "status": "captured",
-      "body_length": 2918,
+      "body_length": 1174,
       "file": "articles/connect_resources_update_context_attribute.htm.md"
     },
     {
@@ -1715,7 +1717,7 @@
       "section": "Context Service",
       "parent_page": "runtime_context_intance_management.htm",
       "status": "captured",
-      "body_length": 2715,
+      "body_length": 1483,
       "file": "articles/connect_resources_write_through_tags.htm.md"
     },
     {
@@ -1724,7 +1726,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_responses.htm",
       "status": "captured",
-      "body_length": 3692,
+      "body_length": 1212,
       "file": "articles/connect_responses_additional_attributes.htm.md"
     },
     {
@@ -1733,7 +1735,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_responses.htm",
       "status": "captured",
-      "body_length": 898,
+      "body_length": 462,
       "file": "articles/connect_responses_assessment_responses_output.htm.md"
     },
     {
@@ -1742,7 +1744,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_apis_responses.htm",
       "status": "captured",
-      "body_length": 2564,
+      "body_length": 1420,
       "file": "articles/connect_responses_batch_job_cancel.htm.md"
     },
     {
@@ -1751,7 +1753,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_responses.htm",
       "status": "captured",
-      "body_length": 1734,
+      "body_length": 946,
       "file": "articles/connect_responses_bre_decision_matrix_lookup_result.htm.md"
     },
     {
@@ -1760,7 +1762,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 1546,
+      "body_length": 821,
       "file": "articles/connect_responses_bre_guardrails.htm.md"
     },
     {
@@ -1769,7 +1771,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 1735,
+      "body_length": 990,
       "file": "articles/connect_responses_bre_guardrails_result.htm.md"
     },
     {
@@ -1778,7 +1780,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 1357,
+      "body_length": 644,
       "file": "articles/connect_responses_business_rule_aggregation_results_output.htm.md"
     },
     {
@@ -1787,7 +1789,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 2318,
+      "body_length": 1506,
       "file": "articles/connect_responses_business_rules_result.htm.md"
     },
     {
@@ -1796,7 +1798,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1668,
+      "body_length": 1158,
       "file": "articles/connect_responses_calculation_procedure_activation_output.htm.md"
     },
     {
@@ -1805,7 +1807,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 2264,
+      "body_length": 1988,
       "file": "articles/connect_responses_calculation_procedure_detail_output.htm.md"
     },
     {
@@ -1814,7 +1816,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1825,
+      "body_length": 1499,
       "file": "articles/connect_responses_calculation_procedure_list_output.htm.md"
     },
     {
@@ -1823,7 +1825,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1457,
+      "body_length": 1051,
       "file": "articles/connect_responses_calculation_procedure_output.htm.md"
     },
     {
@@ -1832,7 +1834,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1212,
+      "body_length": 929,
       "file": "articles/connect_responses_calculation_procedure_step_map_output.htm.md"
     },
     {
@@ -1841,7 +1843,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 7311,
+      "body_length": 4715,
       "file": "articles/connect_responses_calculation_procedure_step_output.htm.md"
     },
     {
@@ -1850,7 +1852,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1262,
+      "body_length": 844,
       "file": "articles/connect_responses_calculation_procedure_variable_output.htm.md"
     },
     {
@@ -1859,7 +1861,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 5517,
+      "body_length": 5493,
       "file": "articles/connect_responses_calculation_procedure_version_definition_output.htm.md"
     },
     {
@@ -1868,7 +1870,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1711,
+      "body_length": 1230,
       "file": "articles/connect_responses_context_attr_hydration_detail.htm.md"
     },
     {
@@ -1877,7 +1879,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1625,
+      "body_length": 1239,
       "file": "articles/connect_responses_context_attribute.htm.md"
     },
     {
@@ -1886,7 +1888,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 995,
+      "body_length": 609,
       "file": "articles/connect_responses_context_attribute_list.htm.md"
     },
     {
@@ -1895,7 +1897,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 2256,
+      "body_length": 1059,
       "file": "articles/connect_responses_context_attribute_mapping.htm.md"
     },
     {
@@ -1904,7 +1906,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1042,
+      "body_length": 664,
       "file": "articles/connect_responses_context_attribute_mapping_list.htm.md"
     },
     {
@@ -1913,7 +1915,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1726,
+      "body_length": 558,
       "file": "articles/connect_responses_context_attribute_tag.htm.md"
     },
     {
@@ -1922,7 +1924,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 3364,
+      "body_length": 2075,
       "file": "articles/connect_responses_context_data_record.htm.md"
     },
     {
@@ -1931,7 +1933,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1028,
+      "body_length": 540,
       "file": "articles/connect_responses_context_data_record_status.htm.md"
     },
     {
@@ -1940,7 +1942,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 2946,
+      "body_length": 2084,
       "file": "articles/connect_responses_context_definition.htm.md"
     },
     {
@@ -1949,7 +1951,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 3668,
+      "body_length": 3151,
       "file": "articles/connect_responses_context_definition_filter.htm.md"
     },
     {
@@ -1958,7 +1960,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 3481,
+      "body_length": 2400,
       "file": "articles/connect_responses_context_definition_filter_list.htm.md"
     },
     {
@@ -1967,7 +1969,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 2632,
+      "body_length": 2177,
       "file": "articles/connect_responses_context_definition_info.htm.md"
     },
     {
@@ -1976,7 +1978,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 3261,
+      "body_length": 2399,
       "file": "articles/connect_responses_context_definition_interface.htm.md"
     },
     {
@@ -1985,7 +1987,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 2846,
+      "body_length": 1376,
       "file": "articles/connect_responses_context_definition_interface_attribute_tag.htm.md"
     },
     {
@@ -1994,7 +1996,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 3135,
+      "body_length": 1558,
       "file": "articles/connect_responses_context_definition_interface_metadata.htm.md"
     },
     {
@@ -2003,7 +2005,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 2441,
+      "body_length": 1489,
       "file": "articles/connect_responses_context_definition_interface_metadata_list.htm.md"
     },
     {
@@ -2012,7 +2014,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 3496,
+      "body_length": 2315,
       "file": "articles/connect_responses_context_definition_interface_node_tag.htm.md"
     },
     {
@@ -2021,7 +2023,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1007,
+      "body_length": 629,
       "file": "articles/connect_responses_context_definition_list.htm.md"
     },
     {
@@ -2030,7 +2032,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 816,
+      "body_length": 374,
       "file": "articles/connect_responses_context_definition_output.htm.md"
     },
     {
@@ -2039,7 +2041,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 2606,
+      "body_length": 733,
       "file": "articles/connect_responses_context_definition_reference.htm.md"
     },
     {
@@ -2048,7 +2050,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1731,
+      "body_length": 1395,
       "file": "articles/connect_responses_context_definition_version.htm.md"
     },
     {
@@ -2057,7 +2059,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 790,
+      "body_length": 354,
       "file": "articles/connect_responses_context_error.htm.md"
     },
     {
@@ -2066,7 +2068,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1676,
+      "body_length": 1006,
       "file": "articles/connect_responses_context_info.htm.md"
     },
     {
@@ -2075,7 +2077,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 2897,
+      "body_length": 1432,
       "file": "articles/connect_responses_context_mapping.htm.md"
     },
     {
@@ -2084,7 +2086,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1642,
+      "body_length": 1240,
       "file": "articles/connect_responses_context_mapping_list.htm.md"
     },
     {
@@ -2093,7 +2095,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 4100,
+      "body_length": 2246,
       "file": "articles/connect_responses_context_node.htm.md"
     },
     {
@@ -2102,7 +2104,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 2573,
+      "body_length": 1572,
       "file": "articles/connect_responses_context_node_list.htm.md"
     },
     {
@@ -2111,7 +2113,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 2102,
+      "body_length": 963,
       "file": "articles/connect_responses_context_node_mapping.htm.md"
     },
     {
@@ -2120,7 +2122,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1014,
+      "body_length": 631,
       "file": "articles/connect_responses_context_node_mapping_list.htm.md"
     },
     {
@@ -2129,7 +2131,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1108,
+      "body_length": 335,
       "file": "articles/connect_responses_context_output.htm.md"
     },
     {
@@ -2138,7 +2140,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 2339,
+      "body_length": 1710,
       "file": "articles/connect_responses_context_query_record.htm.md"
     },
     {
@@ -2147,7 +2149,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 920,
+      "body_length": 530,
       "file": "articles/connect_responses_context_tag_data.htm.md"
     },
     {
@@ -2156,7 +2158,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 2148,
+      "body_length": 1102,
       "file": "articles/connect_responses_context_tag_data_leaner.htm.md"
     },
     {
@@ -2165,7 +2167,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1063,
+      "body_length": 570,
       "file": "articles/connect_responses_context_tag_list.htm.md"
     },
     {
@@ -2174,7 +2176,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 908,
+      "body_length": 464,
       "file": "articles/connect_responses_current_value.htm.md"
     },
     {
@@ -2183,7 +2185,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_responses.htm",
       "status": "captured",
-      "body_length": 1488,
+      "body_length": 767,
       "file": "articles/connect_responses_custom_type_details.htm.md"
     },
     {
@@ -2192,7 +2194,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis_responses.htm",
       "status": "captured",
-      "body_length": 2043,
+      "body_length": 1095,
       "file": "articles/connect_responses_data_mapper_execution_output.htm.md"
     },
     {
@@ -2201,7 +2203,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis_responses.htm",
       "status": "captured",
-      "body_length": 1860,
+      "body_length": 798,
       "file": "articles/connect_responses_data_mapper_execution_response_output.htm.md"
     },
     {
@@ -2210,7 +2212,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis_responses.htm",
       "status": "captured",
-      "body_length": 1375,
+      "body_length": 935,
       "file": "articles/connect_responses_datamapper_clear_cache_output.htm.md"
     },
     {
@@ -2219,7 +2221,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis_responses.htm",
       "status": "captured",
-      "body_length": 1477,
+      "body_length": 526,
       "file": "articles/connect_responses_datamapper_clear_cache_response.htm.md"
     },
     {
@@ -2228,7 +2230,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses_1.htm",
       "status": "captured",
-      "body_length": 1113,
+      "body_length": 615,
       "file": "articles/connect_responses_decision_matrix_basic.htm.md"
     },
     {
@@ -2237,7 +2239,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses_1.htm",
       "status": "captured",
-      "body_length": 1461,
+      "body_length": 724,
       "file": "articles/connect_responses_decision_matrix_column_output.htm.md"
     },
     {
@@ -2246,7 +2248,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses_1.htm",
       "status": "captured",
-      "body_length": 1582,
+      "body_length": 1137,
       "file": "articles/connect_responses_decision_matrix_columns_output.htm.md"
     },
     {
@@ -2255,7 +2257,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_responses.htm",
       "status": "captured",
-      "body_length": 909,
+      "body_length": 540,
       "file": "articles/connect_responses_decision_matrix_lookup_basic_result.htm.md"
     },
     {
@@ -2264,7 +2266,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses_1.htm",
       "status": "captured",
-      "body_length": 1004,
+      "body_length": 562,
       "file": "articles/connect_responses_decision_matrix_output.htm.md"
     },
     {
@@ -2273,7 +2275,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses_1.htm",
       "status": "captured",
-      "body_length": 2327,
+      "body_length": 2071,
       "file": "articles/connect_responses_decision_matrix_result.htm.md"
     },
     {
@@ -2282,7 +2284,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses_1.htm",
       "status": "captured",
-      "body_length": 1500,
+      "body_length": 1096,
       "file": "articles/connect_responses_decision_matrix_result_list.htm.md"
     },
     {
@@ -2291,7 +2293,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses_1.htm",
       "status": "captured",
-      "body_length": 902,
+      "body_length": 460,
       "file": "articles/connect_responses_decision_matrix_row_output.htm.md"
     },
     {
@@ -2300,7 +2302,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses_1.htm",
       "status": "captured",
-      "body_length": 1351,
+      "body_length": 910,
       "file": "articles/connect_responses_decision_matrix_rows_output.htm.md"
     },
     {
@@ -2309,7 +2311,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses_1.htm",
       "status": "captured",
-      "body_length": 1073,
+      "body_length": 571,
       "file": "articles/connect_responses_decision_matrix_variable.htm.md"
     },
     {
@@ -2318,7 +2320,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_responses.htm",
       "status": "captured",
-      "body_length": 1005,
+      "body_length": 563,
       "file": "articles/connect_responses_decision_model_export_error.htm.md"
     },
     {
@@ -2327,7 +2329,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_responses.htm",
       "status": "captured",
-      "body_length": 1557,
+      "body_length": 1031,
       "file": "articles/connect_responses_decision_model_export_output.htm.md"
     },
     {
@@ -2336,7 +2338,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_responses.htm",
       "status": "captured",
-      "body_length": 816,
+      "body_length": 433,
       "file": "articles/connect_responses_decision_table_bulk_outcome.htm.md"
     },
     {
@@ -2345,7 +2347,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis_responses.htm",
       "status": "captured",
-      "body_length": 1434,
+      "body_length": 508,
       "file": "articles/connect_responses_decision_table_data_output.htm.md"
     },
     {
@@ -2354,7 +2356,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_responses.htm",
       "status": "captured",
-      "body_length": 3263,
+      "body_length": 2723,
       "file": "articles/connect_responses_decision_table_definition_output.htm.md"
     },
     {
@@ -2363,7 +2365,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_responses.htm",
       "status": "captured",
-      "body_length": 2812,
+      "body_length": 1555,
       "file": "articles/connect_responses_decision_table_document_decision.htm.md"
     },
     {
@@ -2372,7 +2374,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis_responses.htm",
       "status": "captured",
-      "body_length": 3135,
+      "body_length": 1545,
       "file": "articles/connect_responses_decision_table_outcome.htm.md"
     },
     {
@@ -2381,7 +2383,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis_responses.htm",
       "status": "captured",
-      "body_length": 921,
+      "body_length": 481,
       "file": "articles/connect_responses_decision_table_outcome_item.htm.md"
     },
     {
@@ -2390,7 +2392,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_responses.htm",
       "status": "captured",
-      "body_length": 2995,
+      "body_length": 2617,
       "file": "articles/connect_responses_decision_table_output.htm.md"
     },
     {
@@ -2399,7 +2401,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_responses.htm",
       "status": "captured",
-      "body_length": 2341,
+      "body_length": 1788,
       "file": "articles/connect_responses_decision_table_parameter_output.htm.md"
     },
     {
@@ -2408,7 +2410,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis_responses.htm",
       "status": "captured",
-      "body_length": 1476,
+      "body_length": 570,
       "file": "articles/connect_responses_decision_table_row_output.htm.md"
     },
     {
@@ -2417,7 +2419,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis_responses.htm",
       "status": "captured",
-      "body_length": 1630,
+      "body_length": 804,
       "file": "articles/connect_responses_decision_table_rows_list_output.htm.md"
     },
     {
@@ -2426,7 +2428,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_responses.htm",
       "status": "captured",
-      "body_length": 1402,
+      "body_length": 947,
       "file": "articles/connect_responses_decision_table_source_criteria_output.htm.md"
     },
     {
@@ -2435,7 +2437,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 1299,
+      "body_length": 849,
       "file": "articles/connect_responses_dependency_detail_output.htm.md"
     },
     {
@@ -2444,7 +2446,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_responses.htm",
       "status": "captured",
-      "body_length": 1684,
+      "body_length": 731,
       "file": "articles/connect_responses_document_decision_response.htm.md"
     },
     {
@@ -2453,7 +2455,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_responses.htm",
       "status": "captured",
-      "body_length": 1896,
+      "body_length": 906,
       "file": "articles/connect_responses_document_types.htm.md"
     },
     {
@@ -2462,7 +2464,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 993,
+      "body_length": 457,
       "file": "articles/connect_responses_error_result.htm.md"
     },
     {
@@ -2471,7 +2473,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_apis_responses.htm",
       "status": "captured",
-      "body_length": 1124,
+      "body_length": 611,
       "file": "articles/connect_responses_explainability_action_log_create.htm.md"
     },
     {
@@ -2480,7 +2482,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_apis_responses.htm",
       "status": "captured",
-      "body_length": 3878,
+      "body_length": 2006,
       "file": "articles/connect_responses_explainability_action_log_detail.htm.md"
     },
     {
@@ -2489,7 +2491,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_apis_responses.htm",
       "status": "captured",
-      "body_length": 1753,
+      "body_length": 1308,
       "file": "articles/connect_responses_explainability_action_logs.htm.md"
     },
     {
@@ -2498,7 +2500,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_apis_responses.htm",
       "status": "captured",
-      "body_length": 7258,
+      "body_length": 6563,
       "file": "articles/connect_responses_explainability_detailed_action_log_detail.htm.md"
     },
     {
@@ -2507,7 +2509,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_responses.htm",
       "status": "captured",
-      "body_length": 1842,
+      "body_length": 1401,
       "file": "articles/connect_responses_explainability_log_detail.htm.md"
     },
     {
@@ -2516,7 +2518,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_responses.htm",
       "status": "captured",
-      "body_length": 1439,
+      "body_length": 988,
       "file": "articles/connect_responses_explainability_logs.htm.md"
     },
     {
@@ -2525,7 +2527,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 1186,
+      "body_length": 814,
       "file": "articles/connect_responses_expression_set_advanced_condition_step_output.htm.md"
     },
     {
@@ -2534,7 +2536,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 1076,
+      "body_length": 634,
       "file": "articles/connect_responses_expression_set_aggregation_step_output.htm.md"
     },
     {
@@ -2543,7 +2545,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 922,
+      "body_length": 482,
       "file": "articles/connect_responses_expression_set_assignment_step_output.htm.md"
     },
     {
@@ -2552,7 +2554,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 1436,
+      "body_length": 985,
       "file": "articles/connect_responses_expression_set_condition_criteria_output.htm.md"
     },
     {
@@ -2561,7 +2563,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 882,
+      "body_length": 442,
       "file": "articles/connect_responses_expression_set_condition_expression_step_output.htm.md"
     },
     {
@@ -2570,7 +2572,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 1520,
+      "body_length": 873,
       "file": "articles/connect_responses_expression_set_custom_element_parameter_output.htm.md"
     },
     {
@@ -2579,7 +2581,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 866,
+      "body_length": 500,
       "file": "articles/connect_responses_expression_set_custom_element_step_output.htm.md"
     },
     {
@@ -2588,7 +2590,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 2054,
+      "body_length": 862,
       "file": "articles/connect_responses_expression_set_des_token_mapping.htm.md"
     },
     {
@@ -2597,7 +2599,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 722,
+      "body_length": 286,
       "file": "articles/connect_responses_expression_set_error.htm.md"
     },
     {
@@ -2606,7 +2608,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 937,
+      "body_length": 495,
       "file": "articles/connect_responses_expression_set_lookup_table_step_output.htm.md"
     },
     {
@@ -2615,7 +2617,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 3167,
+      "body_length": 1702,
       "file": "articles/connect_responses_expression_set_output.htm.md"
     },
     {
@@ -2624,7 +2626,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 781,
+      "body_length": 339,
       "file": "articles/connect_responses_expression_set_sub_expression_step_output.htm.md"
     },
     {
@@ -2633,7 +2635,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 1011,
+      "body_length": 545,
       "file": "articles/connect_responses_expression_set_version_dependency_output.htm.md"
     },
     {
@@ -2642,7 +2644,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 1993,
+      "body_length": 1689,
       "file": "articles/connect_responses_expression_set_version_output.htm.md"
     },
     {
@@ -2651,7 +2653,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 10540,
+      "body_length": 6152,
       "file": "articles/connect_responses_expression_set_version_step_output.htm.md"
     },
     {
@@ -2660,7 +2662,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 2406,
+      "body_length": 1952,
       "file": "articles/connect_responses_expression_set_version_variable_output.htm.md"
     },
     {
@@ -2669,7 +2671,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 1119,
+      "body_length": 749,
       "file": "articles/connect_responses_guardrail_current_value.htm.md"
     },
     {
@@ -2678,7 +2680,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 3065,
+      "body_length": 1593,
       "file": "articles/connect_responses_guardrails.htm.md"
     },
     {
@@ -2687,7 +2689,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis_responses.htm",
       "status": "captured",
-      "body_length": 1407,
+      "body_length": 967,
       "file": "articles/connect_responses_integration_procedure_cache_output.htm.md"
     },
     {
@@ -2696,7 +2698,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis_responses.htm",
       "status": "captured",
-      "body_length": 1488,
+      "body_length": 537,
       "file": "articles/connect_responses_integration_procedure_cache_response.htm.md"
     },
     {
@@ -2705,7 +2707,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis_responses.htm",
       "status": "captured",
-      "body_length": 1340,
+      "body_length": 809,
       "file": "articles/connect_responses_integration_procedure_service_run_output.htm.md"
     },
     {
@@ -2714,7 +2716,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 3049,
+      "body_length": 1967,
       "file": "articles/connect_responses_leaner_query_tags_result.htm.md"
     },
     {
@@ -2723,7 +2725,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_responses.htm",
       "status": "captured",
-      "body_length": 2187,
+      "body_length": 1115,
       "file": "articles/connect_responses_lookup_table_details.htm.md"
     },
     {
@@ -2732,7 +2734,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_responses.htm",
       "status": "captured",
-      "body_length": 1496,
+      "body_length": 1047,
       "file": "articles/connect_responses_lookup_tables_result_list.htm.md"
     },
     {
@@ -2741,7 +2743,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 957,
+      "body_length": 427,
       "file": "articles/connect_responses_mapped_attribute_data_type_info.htm.md"
     },
     {
@@ -2750,7 +2752,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_responses.htm",
       "status": "captured",
-      "body_length": 2132,
+      "body_length": 1521,
       "file": "articles/connect_responses_message_template_detail_output.htm.md"
     },
     {
@@ -2759,7 +2761,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_responses.htm",
       "status": "captured",
-      "body_length": 2530,
+      "body_length": 2084,
       "file": "articles/connect_responses_message_templates_list_output.htm.md"
     },
     {
@@ -2768,7 +2770,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_responses.htm",
       "status": "captured",
-      "body_length": 10000,
+      "body_length": 8118,
       "file": "articles/connect_responses_omniscript_elements_list.htm.md"
     },
     {
@@ -2777,7 +2779,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_responses.htm",
       "status": "captured",
-      "body_length": 10256,
+      "body_length": 8156,
       "file": "articles/connect_responses_omniscript_output.htm.md"
     },
     {
@@ -2786,7 +2788,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_responses.htm",
       "status": "captured",
-      "body_length": 3119,
+      "body_length": 1697,
       "file": "articles/connect_responses_os_element_discovery_framework_output.htm.md"
     },
     {
@@ -2795,7 +2797,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_apis_responses.htm",
       "status": "captured",
-      "body_length": 4606,
+      "body_length": 2381,
       "file": "articles/connect_responses_os_element_property_set_output.htm.md"
     },
     {
@@ -2804,7 +2806,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1208,
+      "body_length": 369,
       "file": "articles/connect_responses_persist_context_output.htm.md"
     },
     {
@@ -2813,7 +2815,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 2774,
+      "body_length": 1812,
       "file": "articles/connect_responses_query_context_record_result.htm.md"
     },
     {
@@ -2822,7 +2824,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1169,
+      "body_length": 787,
       "file": "articles/connect_responses_query_record_status_result.htm.md"
     },
     {
@@ -2831,7 +2833,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 3332,
+      "body_length": 1363,
       "file": "articles/connect_responses_query_tags.htm.md"
     },
     {
@@ -2840,7 +2842,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_responses.htm",
       "status": "captured",
-      "body_length": 1067,
+      "body_length": 676,
       "file": "articles/connect_responses_query_tags_result.htm.md"
     },
     {
@@ -2849,7 +2851,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1142,
+      "body_length": 888,
       "file": "articles/connect_responses_resource_list_output.htm.md"
     },
     {
@@ -2858,7 +2860,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 2083,
+      "body_length": 1725,
       "file": "articles/connect_responses_resource_output.htm.md"
     },
     {
@@ -2867,7 +2869,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1241,
+      "body_length": 789,
       "file": "articles/connect_responses_root_step_list_output.htm.md"
     },
     {
@@ -2876,7 +2878,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 1439,
+      "body_length": 720,
       "file": "articles/connect_responses_rule_result.htm.md"
     },
     {
@@ -2885,7 +2887,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1134,
+      "body_length": 782,
       "file": "articles/connect_responses_simulation_error_output.htm.md"
     },
     {
@@ -2894,7 +2896,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 7007,
+      "body_length": 6613,
       "file": "articles/connect_responses_simulation_eval_service_output.htm.md"
     },
     {
@@ -2903,7 +2905,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1798,
+      "body_length": 1247,
       "file": "articles/connect_responses_simulation_input_variable_basic.htm.md"
     },
     {
@@ -2912,7 +2914,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 2031,
+      "body_length": 1756,
       "file": "articles/connect_responses_simulation_input_variables_result_list.htm.md"
     },
     {
@@ -2921,7 +2923,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1008,
+      "body_length": 566,
       "file": "articles/connect_responses_simulation_runtime_output.htm.md"
     },
     {
@@ -2930,7 +2932,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1432,
+      "body_length": 980,
       "file": "articles/connect_responses_simulation_step_additional_info_output.htm.md"
     },
     {
@@ -2939,7 +2941,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1649,
+      "body_length": 1100,
       "file": "articles/connect_responses_simulation_step_explainability_message_output.htm.md"
     },
     {
@@ -2948,7 +2950,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1623,
+      "body_length": 1475,
       "file": "articles/connect_responses_simulation_step_result_output.htm.md"
     },
     {
@@ -2957,7 +2959,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis_responses.htm",
       "status": "captured",
-      "body_length": 1655,
+      "body_length": 1081,
       "file": "articles/connect_responses_simulation_variable_output.htm.md"
     },
     {
@@ -2966,7 +2968,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 872,
+      "body_length": 336,
       "file": "articles/connect_responses_variable_map_output.htm.md"
     },
     {
@@ -2975,7 +2977,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_responses.htm",
       "status": "captured",
-      "body_length": 786,
+      "body_length": 344,
       "file": "articles/connect_responses_variable_output.htm.md"
     },
     {
@@ -2984,7 +2986,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_resources.htm",
       "status": "captured",
-      "body_length": 1012,
+      "body_length": 565,
       "file": "articles/context_attribute_management.htm.md"
     },
     {
@@ -2993,7 +2995,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_resources.htm",
       "status": "captured",
-      "body_length": 1009,
+      "body_length": 562,
       "file": "articles/context_mapping_management.htm.md"
     },
     {
@@ -3002,7 +3004,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_resources.htm",
       "status": "captured",
-      "body_length": 796,
+      "body_length": 350,
       "file": "articles/context_node_management.htm.md"
     },
     {
@@ -3011,7 +3013,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_resources.htm",
       "status": "captured",
-      "body_length": 1057,
+      "body_length": 606,
       "file": "articles/context_node_mapping_management.htm.md"
     },
     {
@@ -3020,7 +3022,7 @@
       "section": "Context Service",
       "parent_page": "context_service_overview.htm",
       "status": "captured",
-      "body_length": 767,
+      "body_length": 317,
       "file": "articles/context_service_apex_reference.htm.md"
     },
     {
@@ -3029,7 +3031,7 @@
       "section": "Context Service",
       "parent_page": "context_service_overview.htm",
       "status": "captured",
-      "body_length": 1596,
+      "body_length": 1191,
       "file": "articles/context_service_apis.htm.md"
     },
     {
@@ -3038,7 +3040,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis.htm",
       "status": "captured",
-      "body_length": 3460,
+      "body_length": 4383,
       "file": "articles/context_service_apis_requests.htm.md"
     },
     {
@@ -3047,7 +3049,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis.htm",
       "status": "captured",
-      "body_length": 2268,
+      "body_length": 1759,
       "file": "articles/context_service_apis_resources.htm.md"
     },
     {
@@ -3056,7 +3058,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis.htm",
       "status": "captured",
-      "body_length": 6902,
+      "body_length": 6903,
       "file": "articles/context_service_apis_responses.htm.md"
     },
     {
@@ -3065,7 +3067,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_resources.htm",
       "status": "captured",
-      "body_length": 1898,
+      "body_length": 1417,
       "file": "articles/context_service_context_definition_management.htm.md"
     },
     {
@@ -3074,7 +3076,7 @@
       "section": "Context Service",
       "parent_page": "context_service_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 1811,
+      "body_length": 1090,
       "file": "articles/context_service_flow_metadata_api.htm.md"
     },
     {
@@ -3083,7 +3085,7 @@
       "section": "Context Service",
       "parent_page": "context_service_overview.htm",
       "status": "captured",
-      "body_length": 1675,
+      "body_length": 1198,
       "file": "articles/context_service_invocable_actions_parent.htm.md"
     },
     {
@@ -3092,7 +3094,7 @@
       "section": "Context Service",
       "parent_page": "context_service_overview.htm",
       "status": "captured",
-      "body_length": 1158,
+      "body_length": 1174,
       "file": "articles/context_service_metadata_api_parent.htm.md"
     },
     {
@@ -3101,7 +3103,7 @@
       "section": "Context Service",
       "parent_page": null,
       "status": "captured",
-      "body_length": 2312,
+      "body_length": 1827,
       "file": "articles/context_service_overview.htm.md"
     },
     {
@@ -3110,7 +3112,7 @@
       "section": "Context Service",
       "parent_page": "context_service_overview.htm",
       "status": "captured",
-      "body_length": 4797,
+      "body_length": 4032,
       "file": "articles/context_service_tooling_api_parent.htm.md"
     },
     {
@@ -3119,7 +3121,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_resources.htm",
       "status": "captured",
-      "body_length": 838,
+      "body_length": 393,
       "file": "articles/context_tag_managament.htm.md"
     },
     {
@@ -3128,7 +3130,7 @@
       "section": "Context Service",
       "parent_page": "context_service_overview.htm",
       "status": "captured",
-      "body_length": 1358,
+      "body_length": 803,
       "file": "articles/contextpersistenceevent_platform_event.htm.md"
     },
     {
@@ -3137,7 +3139,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch.htm",
       "status": "captured",
-      "body_length": 2323,
+      "body_length": 1801,
       "file": "articles/data_processing_engine_dev_overview.htm.md"
     },
     {
@@ -3146,7 +3148,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "data_processing_engine_dev_overview.htm",
       "status": "captured",
-      "body_length": 1241,
+      "body_length": 729,
       "file": "articles/data_processing_engine_setup_object.htm.md"
     },
     {
@@ -3155,7 +3157,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "data_processing_engine_dev_overview.htm",
       "status": "captured",
-      "body_length": 1272,
+      "body_length": 759,
       "file": "articles/data_processing_engine_standard_object.htm.md"
     },
     {
@@ -3164,7 +3166,7 @@
       "section": "Decision Explainer",
       "parent_page": null,
       "status": "captured",
-      "body_length": 1332,
+      "body_length": 865,
       "file": "articles/decision_explainer.htm.md"
     },
     {
@@ -3173,7 +3175,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_business_apis.htm",
       "status": "captured",
-      "body_length": 665,
+      "body_length": 229,
       "file": "articles/decision_explainer_apis_requests.htm.md"
     },
     {
@@ -3182,7 +3184,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_business_apis.htm",
       "status": "captured",
-      "body_length": 917,
+      "body_length": 470,
       "file": "articles/decision_explainer_apis_resources.htm.md"
     },
     {
@@ -3191,7 +3193,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_business_apis.htm",
       "status": "captured",
-      "body_length": 1221,
+      "body_length": 768,
       "file": "articles/decision_explainer_apis_responses.htm.md"
     },
     {
@@ -3200,7 +3202,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_parent.htm",
       "status": "captured",
-      "body_length": 1789,
+      "body_length": 1555,
       "file": "articles/decision_explainer_bre_connect_apis.htm.md"
     },
     {
@@ -3209,7 +3211,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_parent.htm",
       "status": "captured",
-      "body_length": 984,
+      "body_length": 763,
       "file": "articles/decision_explainer_bre_metadata_api_parent.htm.md"
     },
     {
@@ -3218,7 +3220,7 @@
       "section": "Business Rules Engine",
       "parent_page": "business_rules_engine.htm",
       "status": "captured",
-      "body_length": 1818,
+      "body_length": 1412,
       "file": "articles/decision_explainer_bre_parent.htm.md"
     },
     {
@@ -3227,7 +3229,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_connect_apis.htm",
       "status": "captured",
-      "body_length": 1146,
+      "body_length": 689,
       "file": "articles/decision_explainer_bre_resources.htm.md"
     },
     {
@@ -3236,7 +3238,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_connect_apis.htm",
       "status": "captured",
-      "body_length": 1152,
+      "body_length": 694,
       "file": "articles/decision_explainer_bre_responses.htm.md"
     },
     {
@@ -3245,7 +3247,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_parent.htm",
       "status": "captured",
-      "body_length": 1125,
+      "body_length": 564,
       "file": "articles/decision_explainer_bre_standard_objects.htm.md"
     },
     {
@@ -3254,7 +3256,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_parent.htm",
       "status": "captured",
-      "body_length": 1710,
+      "body_length": 1193,
       "file": "articles/decision_explainer_bre_tooling_objects_parent.htm.md"
     },
     {
@@ -3263,7 +3265,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer.htm",
       "status": "captured",
-      "body_length": 976,
+      "body_length": 922,
       "file": "articles/decision_explainer_business_apis.htm.md"
     },
     {
@@ -3272,7 +3274,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer.htm",
       "status": "captured",
-      "body_length": 1715,
+      "body_length": 1246,
       "file": "articles/decision_explainer_metadata_api_parent.htm.md"
     },
     {
@@ -3281,7 +3283,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer.htm",
       "status": "captured",
-      "body_length": 2143,
+      "body_length": 1536,
       "file": "articles/decision_explainer_tooling_api_parent.htm.md"
     },
     {
@@ -3290,7 +3292,7 @@
       "section": "Business Rules Engine",
       "parent_page": "business_rules_engine.htm",
       "status": "captured",
-      "body_length": 2178,
+      "body_length": 1583,
       "file": "articles/decision_table.htm.md"
     },
     {
@@ -3299,7 +3301,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apex_reference.htm",
       "status": "captured",
-      "body_length": 803,
+      "body_length": 366,
       "file": "articles/decision_table_apex_input_classes.htm.md"
     },
     {
@@ -3308,7 +3310,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apex_reference.htm",
       "status": "captured",
-      "body_length": 636,
+      "body_length": 200,
       "file": "articles/decision_table_apex_methods.htm.md"
     },
     {
@@ -3317,7 +3319,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apex_reference.htm",
       "status": "captured",
-      "body_length": 831,
+      "body_length": 386,
       "file": "articles/decision_table_apex_output_classes.htm.md"
     },
     {
@@ -3326,7 +3328,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_parent.htm",
       "status": "captured",
-      "body_length": 1327,
+      "body_length": 885,
       "file": "articles/decision_table_apex_reference.htm.md"
     },
     {
@@ -3335,7 +3337,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table.htm",
       "status": "captured",
-      "body_length": 1291,
+      "body_length": 841,
       "file": "articles/decision_table_apis.htm.md"
     },
     {
@@ -3344,7 +3346,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis.htm",
       "status": "captured",
-      "body_length": 1183,
+      "body_length": 732,
       "file": "articles/decision_table_apis_requests.htm.md"
     },
     {
@@ -3353,7 +3355,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis.htm",
       "status": "captured",
-      "body_length": 846,
+      "body_length": 405,
       "file": "articles/decision_table_apis_resources.htm.md"
     },
     {
@@ -3362,7 +3364,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table_apis.htm",
       "status": "captured",
-      "body_length": 1328,
+      "body_length": 874,
       "file": "articles/decision_table_apis_responses.htm.md"
     },
     {
@@ -3371,7 +3373,7 @@
       "section": "Business Rules Engine",
       "parent_page": "dt_setup_objects.htm",
       "status": "captured",
-      "body_length": 868,
+      "body_length": 495,
       "file": "articles/decision_table_data_model.htm.md"
     },
     {
@@ -3380,7 +3382,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table.htm",
       "status": "captured",
-      "body_length": 1309,
+      "body_length": 959,
       "file": "articles/decision_table_metadata_api.htm.md"
     },
     {
@@ -3389,7 +3391,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_connect_apis.htm",
       "status": "captured",
-      "body_length": 1683,
+      "body_length": 1228,
       "file": "articles/dfdt_apis_requests.htm.md"
     },
     {
@@ -3398,7 +3400,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_connect_apis.htm",
       "status": "captured",
-      "body_length": 1161,
+      "body_length": 695,
       "file": "articles/dfdt_apis_resources.htm.md"
     },
     {
@@ -3407,7 +3409,7 @@
       "section": "Discovery Framework",
       "parent_page": "dfdt_connect_apis.htm",
       "status": "captured",
-      "body_length": 2165,
+      "body_length": 1692,
       "file": "articles/dfdt_apis_responses.htm.md"
     },
     {
@@ -3416,7 +3418,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework.htm",
       "status": "captured",
-      "body_length": 1186,
+      "body_length": 704,
       "file": "articles/dfdt_connect_apis.htm.md"
     },
     {
@@ -3425,7 +3427,7 @@
       "section": "Discovery Framework",
       "parent_page": null,
       "status": "captured",
-      "body_length": 2942,
+      "body_length": 2469,
       "file": "articles/discovery_framework.htm.md"
     },
     {
@@ -3434,7 +3436,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework.htm",
       "status": "captured",
-      "body_length": 772,
+      "body_length": 330,
       "file": "articles/discovery_framework_actions.htm.md"
     },
     {
@@ -3443,7 +3445,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 6947,
+      "body_length": 5676,
       "file": "articles/discovery_framework_channels.htm.md"
     },
     {
@@ -3452,7 +3454,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 1704,
+      "body_length": 958,
       "file": "articles/discovery_framework_flow_metadata_api.htm.md"
     },
     {
@@ -3461,7 +3463,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework.htm",
       "status": "captured",
-      "body_length": 2470,
+      "body_length": 3104,
       "file": "articles/discovery_framework_metadata_api_parent.htm.md"
     },
     {
@@ -3470,7 +3472,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework.htm",
       "status": "captured",
-      "body_length": 4780,
+      "body_length": 406,
       "file": "articles/discovery_framework_standard_objects.htm.md"
     },
     {
@@ -3479,7 +3481,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework.htm",
       "status": "captured",
-      "body_length": 1569,
+      "body_length": 1170,
       "file": "articles/discovery_framework_tooling_api_objects.htm.md"
     },
     {
@@ -3488,7 +3490,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework.htm",
       "status": "captured",
-      "body_length": 6336,
+      "body_length": 4516,
       "file": "articles/discoveryframework_prefill_integration_procedure.htm.md"
     },
     {
@@ -3497,7 +3499,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "data_processing_engine_dev_overview.htm",
       "status": "captured",
-      "body_length": 1087,
+      "body_length": 641,
       "file": "articles/dpe_actions_parent.htm.md"
     },
     {
@@ -3506,7 +3508,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "dpe_actions_parent.htm",
       "status": "captured",
-      "body_length": 4298,
+      "body_length": 3345,
       "file": "articles/dpe_actions_run_data_processing_engine.htm.md"
     },
     {
@@ -3515,7 +3517,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "data_processing_engine_dev_overview.htm",
       "status": "captured",
-      "body_length": 942,
+      "body_length": 592,
       "file": "articles/dpe_metadata.htm.md"
     },
     {
@@ -3524,7 +3526,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_table.htm",
       "status": "captured",
-      "body_length": 1153,
+      "body_length": 702,
       "file": "articles/dt_actions_parent.htm.md"
     },
     {
@@ -3533,7 +3535,7 @@
       "section": "Business Rules Engine",
       "parent_page": "dt_actions_parent.htm",
       "status": "captured",
-      "body_length": 3083,
+      "body_length": 2128,
       "file": "articles/dt_actions_refresh_decision_table.htm.md"
     },
     {
@@ -3542,7 +3544,7 @@
       "section": "Business Rules Engine",
       "parent_page": "dt_actions_parent.htm",
       "status": "captured",
-      "body_length": 5823,
+      "body_length": 4724,
       "file": "articles/dt_actions_run_decision_table.htm.md"
     },
     {
@@ -3551,7 +3553,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_parent.htm",
       "status": "captured",
-      "body_length": 2950,
+      "body_length": 2310,
       "file": "articles/dt_setup_objects.htm.md"
     },
     {
@@ -3560,7 +3562,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_parent.htm",
       "status": "captured",
-      "body_length": 1224,
+      "body_length": 957,
       "file": "articles/expression_set_connect_apis.htm.md"
     },
     {
@@ -3569,7 +3571,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 1665,
+      "body_length": 919,
       "file": "articles/expression_set_flow_metadata_api.htm.md"
     },
     {
@@ -3578,7 +3580,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_parent.htm",
       "status": "captured",
-      "body_length": 1128,
+      "body_length": 731,
       "file": "articles/expression_set_invocable_actions.htm.md"
     },
     {
@@ -3587,7 +3589,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_parent.htm",
       "status": "captured",
-      "body_length": 1644,
+      "body_length": 1874,
       "file": "articles/expression_set_metadata_api_parent.htm.md"
     },
     {
@@ -3596,7 +3598,7 @@
       "section": "Business Rules Engine",
       "parent_page": "business_rules_engine.htm",
       "status": "captured",
-      "body_length": 1780,
+      "body_length": 1367,
       "file": "articles/expression_set_parent.htm.md"
     },
     {
@@ -3605,7 +3607,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_connect_apis.htm",
       "status": "captured",
-      "body_length": 3488,
+      "body_length": 2958,
       "file": "articles/expression_set_requests.htm.md"
     },
     {
@@ -3614,7 +3616,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_connect_apis.htm",
       "status": "captured",
-      "body_length": 1537,
+      "body_length": 1074,
       "file": "articles/expression_set_resources.htm.md"
     },
     {
@@ -3623,7 +3625,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_connect_apis.htm",
       "status": "captured",
-      "body_length": 5487,
+      "body_length": 4892,
       "file": "articles/expression_set_responses.htm.md"
     },
     {
@@ -3632,7 +3634,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_parent.htm",
       "status": "captured",
-      "body_length": 2618,
+      "body_length": 1960,
       "file": "articles/expression_set_standard_objects.htm.md"
     },
     {
@@ -3641,7 +3643,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_parent.htm",
       "status": "captured",
-      "body_length": 1787,
+      "body_length": 1278,
       "file": "articles/expression_set_tooling_objects_parent.htm.md"
     },
     {
@@ -3650,7 +3652,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_connect_apis.htm",
       "status": "captured",
-      "body_length": 2419,
+      "body_length": 1930,
       "file": "articles/lookup_table_resources.htm.md"
     },
     {
@@ -3659,7 +3661,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_parent.htm",
       "status": "captured",
-      "body_length": 1331,
+      "body_length": 1008,
       "file": "articles/lookup_tables_connect_apis.htm.md"
     },
     {
@@ -3668,7 +3670,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_parent.htm",
       "status": "captured",
-      "body_length": 824,
+      "body_length": 617,
       "file": "articles/lookup_tables_decision_matrix_data_model.htm.md"
     },
     {
@@ -3677,7 +3679,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 1667,
+      "body_length": 925,
       "file": "articles/lookup_tables_flow_metadata_api.htm.md"
     },
     {
@@ -3686,7 +3688,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_parent.htm",
       "status": "captured",
-      "body_length": 1392,
+      "body_length": 992,
       "file": "articles/lookup_tables_invocable_actions.htm.md"
     },
     {
@@ -3695,7 +3697,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_parent.htm",
       "status": "captured",
-      "body_length": 1738,
+      "body_length": 1954,
       "file": "articles/lookup_tables_metadata_api_parent.htm.md"
     },
     {
@@ -3704,7 +3706,7 @@
       "section": "Business Rules Engine",
       "parent_page": "business_rules_engine.htm",
       "status": "captured",
-      "body_length": 2821,
+      "body_length": 2436,
       "file": "articles/lookup_tables_parent.htm.md"
     },
     {
@@ -3713,7 +3715,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_connect_apis.htm",
       "status": "captured",
-      "body_length": 2884,
+      "body_length": 2367,
       "file": "articles/lookup_tables_requests.htm.md"
     },
     {
@@ -3722,7 +3724,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_connect_apis.htm",
       "status": "captured",
-      "body_length": 3219,
+      "body_length": 2710,
       "file": "articles/lookup_tables_responses.htm.md"
     },
     {
@@ -3731,7 +3733,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_parent.htm",
       "status": "captured",
-      "body_length": 2101,
+      "body_length": 1479,
       "file": "articles/lookup_tables_standard_objects.htm.md"
     },
     {
@@ -3740,7 +3742,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_parent.htm",
       "status": "captured",
-      "body_length": 1556,
+      "body_length": 1057,
       "file": "articles/lookup_tables_tooling_objects_parent.htm.md"
     },
     {
@@ -3749,7 +3751,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 2859,
+      "body_length": 2287,
       "file": "articles/meta_applicationsubtypedefinition.htm.md"
     },
     {
@@ -3757,36 +3759,40 @@
       "title": "AssessmentQuestion",
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_metadata_api_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 8584,
-      "file": "articles/meta_assessmentquestion.htm.md"
+      "file": "articles/meta_assessmentquestion.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_assessmentquestionset.htm",
       "title": "AssessmentQuestionSet",
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_metadata_api_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 4553,
-      "file": "articles/meta_assessmentquestionset.htm.md"
+      "file": "articles/meta_assessmentquestionset.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_batchcalcjobdefinition.htm",
       "title": "BatchCalcJobDefinition",
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "dpe_metadata.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 68120,
-      "file": "articles/meta_batchcalcjobdefinition.htm.md"
+      "file": "articles/meta_batchcalcjobdefinition.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_batchprocessjobdefinition.htm",
       "title": "BatchProcessJobDefinition",
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_metadata.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 15924,
-      "file": "articles/meta_batchprocessjobdefinition.htm.md"
+      "file": "articles/meta_batchprocessjobdefinition.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_businessprocesstypedefinition.htm",
@@ -3794,7 +3800,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 3190,
+      "body_length": 2618,
       "file": "articles/meta_businessprocesstypedefinition.htm.md"
     },
     {
@@ -3802,63 +3808,70 @@
       "title": "ContextDefinition",
       "section": "Context Service",
       "parent_page": "context_service_metadata_api_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 28254,
-      "file": "articles/meta_contextdefinition.htm.md"
+      "file": "articles/meta_contextdefinition.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_decisionmatrixdefinition.htm",
       "title": "DecisionMatrixDefinition",
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_metadata_api_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 9431,
-      "file": "articles/meta_decisionmatrixdefinition.htm.md"
+      "file": "articles/meta_decisionmatrixdefinition.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_decisiontable.htm",
       "title": "DecisionTable",
       "section": "Business Rules Engine",
       "parent_page": "decision_table_metadata_api.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 21910,
-      "file": "articles/meta_decisiontable.htm.md"
+      "file": "articles/meta_decisiontable.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_decisiontabledatasetlink.htm",
       "title": "DecisionTableDatasetLink",
       "section": "Business Rules Engine",
       "parent_page": "decision_table_metadata_api.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 5824,
-      "file": "articles/meta_decisiontabledatasetlink.htm.md"
+      "file": "articles/meta_decisiontabledatasetlink.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_documentcategory.htm",
       "title": "DocumentCategory",
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_metadata_api_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 2450,
-      "file": "articles/meta_documentcategory.htm.md"
+      "file": "articles/meta_documentcategory.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_documentcategorydocumenttype.htm",
       "title": "DocumentCategoryDocumentType",
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_metadata_api_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 3103,
-      "file": "articles/meta_documentcategorydocumenttype.htm.md"
+      "file": "articles/meta_documentcategorydocumenttype.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_documenttype.htm",
       "title": "DocumentType",
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_metadata_api_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 2420,
-      "file": "articles/meta_documenttype.htm.md"
+      "file": "articles/meta_documenttype.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_explainabilityactiondefinition.htm",
@@ -3866,7 +3879,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 5032,
+      "body_length": 4377,
       "file": "articles/meta_explainabilityactiondefinition.htm.md"
     },
     {
@@ -3875,7 +3888,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 4461,
+      "body_length": 3758,
       "file": "articles/meta_explainabilityactionversion.htm.md"
     },
     {
@@ -3883,36 +3896,40 @@
       "title": "ExplainabilityMsgTemplate",
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_metadata_api_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 4559,
-      "file": "articles/meta_explainabilitymsgtemplate.htm.md"
+      "file": "articles/meta_explainabilitymsgtemplate.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_expressionsetdefinition.htm",
       "title": "ExpressionSetDefinition",
       "section": "Business Rules Engine",
       "parent_page": "expression_set_metadata_api_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 47151,
-      "file": "articles/meta_expressionsetdefinition.htm.md"
+      "file": "articles/meta_expressionsetdefinition.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_expressionsetmessagetoken.htm",
       "title": "ExpressionSetMessageToken",
       "section": "Business Rules Engine",
       "parent_page": "expression_set_metadata_api_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 3201,
-      "file": "articles/meta_expressionsetmessagetoken.htm.md"
+      "file": "articles/meta_expressionsetmessagetoken.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_expressionsetobjectalias.htm",
       "title": "ExpressionSetObjectAlias",
       "section": "Business Rules Engine",
       "parent_page": "expression_set_metadata_api_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 4786,
-      "file": "articles/meta_expressionsetobjectalias.htm.md"
+      "file": "articles/meta_expressionsetobjectalias.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "meta_omnidatatransform.htm",
@@ -3920,7 +3937,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 21083,
+      "body_length": 18407,
       "file": "articles/meta_omnidatatransform.htm.md"
     },
     {
@@ -3929,7 +3946,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 8004,
+      "body_length": 7607,
       "file": "articles/meta_omniexttrackingdef.htm.md"
     },
     {
@@ -3938,7 +3955,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 14189,
+      "body_length": 12210,
       "file": "articles/meta_omniintegrationprocedure.htm.md"
     },
     {
@@ -3947,7 +3964,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 5923,
+      "body_length": 4583,
       "file": "articles/meta_omniinteractionaccessconfig.htm.md"
     },
     {
@@ -3956,7 +3973,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 11040,
+      "body_length": 9473,
       "file": "articles/meta_omniinteractionconfig.htm.md"
     },
     {
@@ -3965,7 +3982,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 26583,
+      "body_length": 23680,
       "file": "articles/meta_omniscript.htm.md"
     },
     {
@@ -3974,7 +3991,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 68945,
+      "body_length": 45930,
       "file": "articles/meta_omniscriptdefinition.htm.md"
     },
     {
@@ -3983,7 +4000,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 8051,
+      "body_length": 7666,
       "file": "articles/meta_omnistudiosettings.htm.md"
     },
     {
@@ -3992,7 +4009,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 7699,
+      "body_length": 7278,
       "file": "articles/meta_omnitrackinggroup.htm.md"
     },
     {
@@ -4000,9 +4017,10 @@
       "title": "RecordActionDeployment",
       "section": "Action Launcher",
       "parent_page": "action_launcher_metadata_apis_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 15775,
-      "file": "articles/meta_recordactiondeployment.htm.md"
+      "file": "articles/meta_recordactiondeployment.htm.md",
+      "error": "SyntaxError: Unexpected end of JSON input"
     },
     {
       "page_id": "monitor_workflow_services_dev_overview.htm",
@@ -4010,7 +4028,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch.htm",
       "status": "captured",
-      "body_length": 1806,
+      "body_length": 1260,
       "file": "articles/monitor_workflow_services_dev_overview.htm.md"
     },
     {
@@ -4019,7 +4037,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_overview.htm",
       "status": "captured",
-      "body_length": 928,
+      "body_length": 479,
       "file": "articles/omnistudio_apex_reference.htm.md"
     },
     {
@@ -4028,7 +4046,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_overview.htm",
       "status": "captured",
-      "body_length": 3054,
+      "body_length": 2652,
       "file": "articles/omnistudio_apis.htm.md"
     },
     {
@@ -4037,7 +4055,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_calculation_procedure_apis_resources.htm",
       "status": "captured",
-      "body_length": 2188,
+      "body_length": 1774,
       "file": "articles/omnistudio_apis_requests.htm.md"
     },
     {
@@ -4046,7 +4064,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_decision_matrix_apis_resources.htm",
       "status": "captured",
-      "body_length": 1353,
+      "body_length": 886,
       "file": "articles/omnistudio_apis_requests_1.htm.md"
     },
     {
@@ -4055,7 +4073,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_calculation_procedure_apis_resources.htm",
       "status": "captured",
-      "body_length": 1930,
+      "body_length": 1432,
       "file": "articles/omnistudio_apis_resources.htm.md"
     },
     {
@@ -4064,7 +4082,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_decision_matrix_apis_resources.htm",
       "status": "captured",
-      "body_length": 1521,
+      "body_length": 1038,
       "file": "articles/omnistudio_apis_resources_1.htm.md"
     },
     {
@@ -4073,7 +4091,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_calculation_procedure_apis_resources.htm",
       "status": "captured",
-      "body_length": 4433,
+      "body_length": 3955,
       "file": "articles/omnistudio_apis_responses.htm.md"
     },
     {
@@ -4082,7 +4100,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_decision_matrix_apis_resources.htm",
       "status": "captured",
-      "body_length": 1978,
+      "body_length": 1494,
       "file": "articles/omnistudio_apis_responses_1.htm.md"
     },
     {
@@ -4091,7 +4109,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis.htm",
       "status": "captured",
-      "body_length": 1932,
+      "body_length": 1484,
       "file": "articles/omnistudio_calculation_procedure_apis_resources.htm.md"
     },
     {
@@ -4100,7 +4118,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis.htm",
       "status": "captured",
-      "body_length": 1977,
+      "body_length": 1464,
       "file": "articles/omnistudio_data_mapper_apis.htm.md"
     },
     {
@@ -4109,7 +4127,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis.htm",
       "status": "captured",
-      "body_length": 1378,
+      "body_length": 930,
       "file": "articles/omnistudio_data_mapper_apis_requests.htm.md"
     },
     {
@@ -4118,7 +4136,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis.htm",
       "status": "captured",
-      "body_length": 880,
+      "body_length": 439,
       "file": "articles/omnistudio_data_mapper_apis_resources.htm.md"
     },
     {
@@ -4127,7 +4145,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_data_mapper_apis.htm",
       "status": "captured",
-      "body_length": 1244,
+      "body_length": 797,
       "file": "articles/omnistudio_data_mapper_apis_responses.htm.md"
     },
     {
@@ -4136,7 +4154,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis.htm",
       "status": "captured",
-      "body_length": 1115,
+      "body_length": 653,
       "file": "articles/omnistudio_decision_matrix_apis_resources.htm.md"
     },
     {
@@ -4145,7 +4163,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_metadata_api_parent.htm",
       "status": "captured",
-      "body_length": 1473,
+      "body_length": 738,
       "file": "articles/omnistudio_flow_metadata_api.htm.md"
     },
     {
@@ -4154,7 +4172,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_apis.htm",
       "status": "captured",
-      "body_length": 1277,
+      "body_length": 827,
       "file": "articles/omnistudio_integration_procedure_apis.htm.md"
     },
     {
@@ -4163,7 +4181,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis.htm",
       "status": "captured",
-      "body_length": 1792,
+      "body_length": 1331,
       "file": "articles/omnistudio_integration_procedure_apis_requests.htm.md"
     },
     {
@@ -4172,7 +4190,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis.htm",
       "status": "captured",
-      "body_length": 893,
+      "body_length": 452,
       "file": "articles/omnistudio_integration_procedure_apis_resources.htm.md"
     },
     {
@@ -4181,7 +4199,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_integration_procedure_apis.htm",
       "status": "captured",
-      "body_length": 1121,
+      "body_length": 679,
       "file": "articles/omnistudio_integration_procedure_apis_responses.htm.md"
     },
     {
@@ -4190,7 +4208,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_overview.htm",
       "status": "captured",
-      "body_length": 3014,
+      "body_length": 3664,
       "file": "articles/omnistudio_metadata_api_parent.htm.md"
     },
     {
@@ -4199,7 +4217,7 @@
       "section": "Omnistudio",
       "parent_page": null,
       "status": "captured",
-      "body_length": 2239,
+      "body_length": 1700,
       "file": "articles/omnistudio_overview.htm.md"
     },
     {
@@ -4208,7 +4226,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_overview.htm",
       "status": "captured",
-      "body_length": 3219,
+      "body_length": 2655,
       "file": "articles/omnistudio_standard_objects_parent.htm.md"
     },
     {
@@ -4217,7 +4235,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_resources.htm",
       "status": "captured",
-      "body_length": 637,
+      "body_length": 201,
       "file": "articles/persistence_context_management.htm.md"
     },
     {
@@ -4226,7 +4244,7 @@
       "section": "Context Service",
       "parent_page": "context_service_apis_resources.htm",
       "status": "captured",
-      "body_length": 2521,
+      "body_length": 2143,
       "file": "articles/runtime_context_intance_management.htm.md"
     },
     {
@@ -4235,7 +4253,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 15718,
+      "body_length": 11787,
       "file": "articles/sforce_api_objects_assessment.htm.md"
     },
     {
@@ -4244,7 +4262,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 5998,
+      "body_length": 3795,
       "file": "articles/sforce_api_objects_assessmentdefinition.htm.md"
     },
     {
@@ -4253,7 +4271,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 5729,
+      "body_length": 3843,
       "file": "articles/sforce_api_objects_assessmentqstnverchoice2.htm.md"
     },
     {
@@ -4262,7 +4280,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 8612,
+      "body_length": 6186,
       "file": "articles/sforce_api_objects_assessmentquestion.htm.md"
     },
     {
@@ -4271,7 +4289,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 5200,
+      "body_length": 3475,
       "file": "articles/sforce_api_objects_assessmentquestionassignment.htm.md"
     },
     {
@@ -4280,7 +4298,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 10896,
+      "body_length": 7515,
       "file": "articles/sforce_api_objects_assessmentquestionresponse.htm.md"
     },
     {
@@ -4289,7 +4307,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 4456,
+      "body_length": 2926,
       "file": "articles/sforce_api_objects_assessmentquestionset.htm.md"
     },
     {
@@ -4298,7 +4316,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 10128,
+      "body_length": 7261,
       "file": "articles/sforce_api_objects_assessmentquestionversion.htm.md"
     },
     {
@@ -4307,7 +4325,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 4205,
+      "body_length": 2609,
       "file": "articles/sforce_api_objects_assessmentreason.htm.md"
     },
     {
@@ -4316,7 +4334,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 2673,
+      "body_length": 1391,
       "file": "articles/sforce_api_objects_assessmentsavedsession.htm.md"
     },
     {
@@ -4325,7 +4343,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 6254,
+      "body_length": 4117,
       "file": "articles/sforce_api_objects_assessmentsignature.htm.md"
     },
     {
@@ -4334,7 +4352,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 5614,
+      "body_length": 3726,
       "file": "articles/sforce_api_objects_assessmentstageddata.htm.md"
     },
     {
@@ -4343,7 +4361,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "data_processing_engine_standard_object.htm",
       "status": "captured",
-      "body_length": 10556,
+      "body_length": 9072,
       "file": "articles/sforce_api_objects_batchcalcjobdefinitionview.htm.md"
     },
     {
@@ -4352,7 +4370,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "monitor_workflow_services_dev_overview.htm",
       "status": "captured",
-      "body_length": 10895,
+      "body_length": 8384,
       "file": "articles/sforce_api_objects_batchjob.htm.md"
     },
     {
@@ -4361,7 +4379,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "monitor_workflow_services_dev_overview.htm",
       "status": "captured",
-      "body_length": 9151,
+      "body_length": 6785,
       "file": "articles/sforce_api_objects_batchjobpart.htm.md"
     },
     {
@@ -4370,7 +4388,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "monitor_workflow_services_dev_overview.htm",
       "status": "captured",
-      "body_length": 4661,
+      "body_length": 3275,
       "file": "articles/sforce_api_objects_batchjobpartfailedrecord.htm.md"
     },
     {
@@ -4379,7 +4397,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_platform_event.htm",
       "status": "captured",
-      "body_length": 2962,
+      "body_length": 2010,
       "file": "articles/sforce_api_objects_batchjobstatuschangedevent.htm.md"
     },
     {
@@ -4388,7 +4406,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_standard_object.htm",
       "status": "captured",
-      "body_length": 4601,
+      "body_length": 3339,
       "file": "articles/sforce_api_objects_batchprocessjobdefview.htm.md"
     },
     {
@@ -4397,7 +4415,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_standard_objects.htm",
       "status": "captured",
-      "body_length": 2810,
+      "body_length": 1600,
       "file": "articles/sforce_api_objects_calcmatrixcolumnrange.htm.md"
     },
     {
@@ -4406,7 +4424,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_standard_objects.htm",
       "status": "captured",
-      "body_length": 6673,
+      "body_length": 4715,
       "file": "articles/sforce_api_objects_calculationmatrix.htm.md"
     },
     {
@@ -4415,7 +4433,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_standard_objects.htm",
       "status": "captured",
-      "body_length": 4029,
+      "body_length": 2373,
       "file": "articles/sforce_api_objects_calculationmatrixcolumn.htm.md"
     },
     {
@@ -4424,7 +4442,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_standard_objects.htm",
       "status": "captured",
-      "body_length": 3484,
+      "body_length": 1995,
       "file": "articles/sforce_api_objects_calculationmatrixrow.htm.md"
     },
     {
@@ -4433,7 +4451,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_standard_objects.htm",
       "status": "captured",
-      "body_length": 6793,
+      "body_length": 4651,
       "file": "articles/sforce_api_objects_calculationmatrixversion.htm.md"
     },
     {
@@ -4442,7 +4460,7 @@
       "section": "Collections and Recovery",
       "parent_page": "collections_standard_objects.htm",
       "status": "captured",
-      "body_length": 8239,
+      "body_length": 6358,
       "file": "articles/sforce_api_objects_caseproceeding.htm.md"
     },
     {
@@ -4451,7 +4469,7 @@
       "section": "Collections and Recovery",
       "parent_page": "collections_standard_objects.htm",
       "status": "captured",
-      "body_length": 6500,
+      "body_length": 4994,
       "file": "articles/sforce_api_objects_caseproceedingparticipant.htm.md"
     },
     {
@@ -4460,7 +4478,7 @@
       "section": "Collections and Recovery",
       "parent_page": "collections_standard_objects.htm",
       "status": "captured",
-      "body_length": 13658,
+      "body_length": 10910,
       "file": "articles/sforce_api_objects_collectionplan.htm.md"
     },
     {
@@ -4469,7 +4487,7 @@
       "section": "Collections and Recovery",
       "parent_page": "collections_standard_objects.htm",
       "status": "captured",
-      "body_length": 4964,
+      "body_length": 3979,
       "file": "articles/sforce_api_objects_collectionplanitem.htm.md"
     },
     {
@@ -4478,7 +4496,7 @@
       "section": "Collections and Recovery",
       "parent_page": "collections_standard_objects.htm",
       "status": "captured",
-      "body_length": 4895,
+      "body_length": 4227,
       "file": "articles/sforce_api_objects_collectionplanreason.htm.md"
     },
     {
@@ -4487,7 +4505,7 @@
       "section": "Context Service",
       "parent_page": "contextpersistenceevent_platform_event.htm",
       "status": "captured",
-      "body_length": 2838,
+      "body_length": 1840,
       "file": "articles/sforce_api_objects_contextpersistenceevent.htm.md"
     },
     {
@@ -4496,7 +4514,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 5638,
+      "body_length": 3787,
       "file": "articles/sforce_api_objects_documentdecisionrequirement.htm.md"
     },
     {
@@ -4505,7 +4523,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_standard_objects.htm",
       "status": "captured",
-      "body_length": 7129,
+      "body_length": 6471,
       "file": "articles/sforce_api_objects_explainabilitymsgtemplatelocalization.htm.md"
     },
     {
@@ -4514,7 +4532,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_standard_objects.htm",
       "status": "captured",
-      "body_length": 4917,
+      "body_length": 3369,
       "file": "articles/sforce_api_objects_expressionset.htm.md"
     },
     {
@@ -4523,7 +4541,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_standard_objects.htm",
       "status": "captured",
-      "body_length": 2520,
+      "body_length": 1455,
       "file": "articles/sforce_api_objects_expressionsetdefinitioncontextdefinition.htm.md"
     },
     {
@@ -4532,7 +4550,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_standard_objects.htm",
       "status": "captured",
-      "body_length": 7896,
+      "body_length": 5505,
       "file": "articles/sforce_api_objects_expressionsetversion.htm.md"
     },
     {
@@ -4541,7 +4559,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_standard_objects.htm",
       "status": "captured",
-      "body_length": 6116,
+      "body_length": 4363,
       "file": "articles/sforce_api_objects_expressionsetview.htm.md"
     },
     {
@@ -4550,7 +4568,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_standard_objects.htm",
       "status": "captured",
-      "body_length": 7364,
+      "body_length": 5491,
       "file": "articles/sforce_api_objects_expssetobjectaliasfieldvw.htm.md"
     },
     {
@@ -4559,7 +4577,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 5306,
+      "body_length": 3342,
       "file": "articles/sforce_api_objects_externalassessmentdefinition.htm.md"
     },
     {
@@ -4568,7 +4586,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 725,
+      "body_length": 270,
       "file": "articles/sforce_api_objects_omnicomponenterrorlog.htm.md"
     },
     {
@@ -4577,7 +4595,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 715,
+      "body_length": 261,
       "file": "articles/sforce_api_objects_omnidatapack.htm.md"
     },
     {
@@ -4586,7 +4604,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 712,
+      "body_length": 266,
       "file": "articles/sforce_api_objects_omnidatatransform.htm.md"
     },
     {
@@ -4595,7 +4613,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 724,
+      "body_length": 270,
       "file": "articles/sforce_api_objects_omnidatatransformitem.htm.md"
     },
     {
@@ -4604,7 +4622,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 717,
+      "body_length": 263,
       "file": "articles/sforce_api_objects_omniesignature.htm.md"
     },
     {
@@ -4613,7 +4631,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 4639,
+      "body_length": 3470,
       "file": "articles/sforce_api_objects_omniexttrackingdef.htm.md"
     },
     {
@@ -4622,7 +4640,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 5089,
+      "body_length": 3843,
       "file": "articles/sforce_api_objects_omniexttrackingeventdef.htm.md"
     },
     {
@@ -4631,7 +4649,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 730,
+      "body_length": 276,
       "file": "articles/sforce_api_objects_omniinteractionaccessconfig.htm.md"
     },
     {
@@ -4640,7 +4658,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 724,
+      "body_length": 270,
       "file": "articles/sforce_api_objects_omniinteractionconfig.htm.md"
     },
     {
@@ -4649,7 +4667,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 714,
+      "body_length": 260,
       "file": "articles/sforce_api_objects_omniprocess.htm.md"
     },
     {
@@ -4658,7 +4676,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 6825,
+      "body_length": 4837,
       "file": "articles/sforce_api_objects_omniprocessasmtquestionver.htm.md"
     },
     {
@@ -4667,7 +4685,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 725,
+      "body_length": 271,
       "file": "articles/sforce_api_objects_omniprocesscompilation.htm.md"
     },
     {
@@ -4676,7 +4694,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 721,
+      "body_length": 267,
       "file": "articles/sforce_api_objects_omniprocesselement.htm.md"
     },
     {
@@ -4685,7 +4703,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 727,
+      "body_length": 273,
       "file": "articles/sforce_api_objects_omniprocesstransientdata.htm.md"
     },
     {
@@ -4694,7 +4712,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 725,
+      "body_length": 271,
       "file": "articles/sforce_api_objects_omniscriptsavedsession.htm.md"
     },
     {
@@ -4703,7 +4721,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 4425,
+      "body_length": 3349,
       "file": "articles/sforce_api_objects_omnitrackingcomponentdef.htm.md"
     },
     {
@@ -4712,7 +4730,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 5654,
+      "body_length": 4263,
       "file": "articles/sforce_api_objects_omnitrackinggroup.htm.md"
     },
     {
@@ -4721,7 +4739,7 @@
       "section": "Omnistudio",
       "parent_page": "omnistudio_standard_objects_parent.htm",
       "status": "captured",
-      "body_length": 713,
+      "body_length": 259,
       "file": "articles/sforce_api_objects_omniuicard.htm.md"
     },
     {
@@ -4730,7 +4748,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 5157,
+      "body_length": 3365,
       "file": "articles/sforce_api_objects_suggestedassessmentdef.htm.md"
     },
     {
@@ -4739,7 +4757,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_standard_objects.htm",
       "status": "captured",
-      "body_length": 4445,
+      "body_length": 2808,
       "file": "articles/sforce_api_objects_suggestedassessmentreason.htm.md"
     },
     {
@@ -4748,7 +4766,7 @@
       "section": "Timeline",
       "parent_page": "timeline_standard_objects.htm",
       "status": "captured",
-      "body_length": 7350,
+      "body_length": 6822,
       "file": "articles/sforce_api_objects_timelineobjectdefinitionlocalization.htm.md"
     },
     {
@@ -4757,7 +4775,7 @@
       "section": "Timeline",
       "parent_page": null,
       "status": "captured",
-      "body_length": 1437,
+      "body_length": 1072,
       "file": "articles/timeline.htm.md"
     },
     {
@@ -4766,7 +4784,7 @@
       "section": "Timeline",
       "parent_page": "timeline.htm",
       "status": "captured",
-      "body_length": 851,
+      "body_length": 393,
       "file": "articles/timeline_standard_objects.htm.md"
     },
     {
@@ -4775,7 +4793,7 @@
       "section": "Timeline",
       "parent_page": "timeline.htm",
       "status": "captured",
-      "body_length": 1123,
+      "body_length": 675,
       "file": "articles/timeline_tooling_api_object.htm.md"
     },
     {
@@ -4784,7 +4802,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 4032,
+      "body_length": 2687,
       "file": "articles/tooling_api_objects_applicationsubtypedefinition.htm.md"
     },
     {
@@ -4793,7 +4811,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_tooling_api_objects.htm",
       "status": "captured",
-      "body_length": 3497,
+      "body_length": 2415,
       "file": "articles/tooling_api_objects_assessmentquestionconfig.htm.md"
     },
     {
@@ -4802,7 +4820,7 @@
       "section": "Discovery Framework",
       "parent_page": "discovery_framework_tooling_api_objects.htm",
       "status": "captured",
-      "body_length": 3513,
+      "body_length": 2431,
       "file": "articles/tooling_api_objects_assessmentquestionsetconfig.htm.md"
     },
     {
@@ -4811,7 +4829,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "data_processing_engine_setup_object.htm",
       "status": "captured",
-      "body_length": 11546,
+      "body_length": 9888,
       "file": "articles/tooling_api_objects_batchcalcjobdefinition.htm.md"
     },
     {
@@ -4820,7 +4838,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_setup_object.htm",
       "status": "captured",
-      "body_length": 3613,
+      "body_length": 2215,
       "file": "articles/tooling_api_objects_batchdatasource.htm.md"
     },
     {
@@ -4829,7 +4847,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_setup_object.htm",
       "status": "captured",
-      "body_length": 4531,
+      "body_length": 2978,
       "file": "articles/tooling_api_objects_batchdatasrcfiltercriteria.htm.md"
     },
     {
@@ -4838,7 +4856,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_common_setup_objects.htm",
       "status": "captured",
-      "body_length": 7296,
+      "body_length": 6517,
       "file": "articles/tooling_api_objects_batchjobdefinition.htm.md"
     },
     {
@@ -4847,7 +4865,7 @@
       "section": "Data Processing Engine, Batch Management, and Monitor Workflow Services",
       "parent_page": "batch_management_setup_object.htm",
       "status": "captured",
-      "body_length": 9010,
+      "body_length": 7364,
       "file": "articles/tooling_api_objects_batchprocessjobdefinition.htm.md"
     },
     {
@@ -4856,7 +4874,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 4037,
+      "body_length": 2692,
       "file": "articles/tooling_api_objects_businessprocesstypedef.htm.md"
     },
     {
@@ -4865,7 +4883,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 3747,
+      "body_length": 2399,
       "file": "articles/tooling_api_objects_contextattrhydrationdetail.htm.md"
     },
     {
@@ -4874,7 +4892,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 5567,
+      "body_length": 3740,
       "file": "articles/tooling_api_objects_contextattribute.htm.md"
     },
     {
@@ -4883,7 +4901,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 3381,
+      "body_length": 2109,
       "file": "articles/tooling_api_objects_contextattributemapping.htm.md"
     },
     {
@@ -4892,7 +4910,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 6539,
+      "body_length": 4382,
       "file": "articles/tooling_api_objects_contextdefinition.htm.md"
     },
     {
@@ -4901,7 +4919,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 2934,
+      "body_length": 1765,
       "file": "articles/tooling_api_objects_contextdefinitionreference.htm.md"
     },
     {
@@ -4910,7 +4928,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 3220,
+      "body_length": 1809,
       "file": "articles/tooling_api_objects_contextdefinitionsync.htm.md"
     },
     {
@@ -4919,7 +4937,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 3960,
+      "body_length": 2469,
       "file": "articles/tooling_api_objects_contextdefinitionversion.htm.md"
     },
     {
@@ -4928,7 +4946,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 3429,
+      "body_length": 2077,
       "file": "articles/tooling_api_objects_contextmapping.htm.md"
     },
     {
@@ -4937,7 +4955,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 2038,
+      "body_length": 1018,
       "file": "articles/tooling_api_objects_contextmappingintent.htm.md"
     },
     {
@@ -4946,7 +4964,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 4740,
+      "body_length": 3105,
       "file": "articles/tooling_api_objects_contextnode.htm.md"
     },
     {
@@ -4955,7 +4973,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 2643,
+      "body_length": 1418,
       "file": "articles/tooling_api_objects_contextnodeattrdictionary.htm.md"
     },
     {
@@ -4964,7 +4982,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 3646,
+      "body_length": 2297,
       "file": "articles/tooling_api_objects_contextnodemapping.htm.md"
     },
     {
@@ -4973,7 +4991,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 2631,
+      "body_length": 1444,
       "file": "articles/tooling_api_objects_contexttag.htm.md"
     },
     {
@@ -4982,7 +5000,7 @@
       "section": "Context Service",
       "parent_page": "context_service_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 2330,
+      "body_length": 1214,
       "file": "articles/tooling_api_objects_ctxattrhydrationctx.htm.md"
     },
     {
@@ -4991,7 +5009,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_tooling_objects_parent.htm",
       "status": "captured",
-      "body_length": 3958,
+      "body_length": 2585,
       "file": "articles/tooling_api_objects_decisionmatrixdefinition.htm.md"
     },
     {
@@ -5000,7 +5018,7 @@
       "section": "Business Rules Engine",
       "parent_page": "lookup_tables_tooling_objects_parent.htm",
       "status": "captured",
-      "body_length": 5184,
+      "body_length": 3513,
       "file": "articles/tooling_api_objects_decisionmatrixdefinitionversion.htm.md"
     },
     {
@@ -5009,7 +5027,7 @@
       "section": "Business Rules Engine",
       "parent_page": "dt_setup_objects.htm",
       "status": "captured",
-      "body_length": 12523,
+      "body_length": 10607,
       "file": "articles/tooling_api_objects_decisiontable.htm.md"
     },
     {
@@ -5018,7 +5036,7 @@
       "section": "Business Rules Engine",
       "parent_page": "dt_setup_objects.htm",
       "status": "captured",
-      "body_length": 6134,
+      "body_length": 4913,
       "file": "articles/tooling_api_objects_decisiontabledatasetlink.htm.md"
     },
     {
@@ -5027,7 +5045,7 @@
       "section": "Business Rules Engine",
       "parent_page": "dt_setup_objects.htm",
       "status": "captured",
-      "body_length": 5759,
+      "body_length": 5437,
       "file": "articles/tooling_api_objects_decisiontableparameter.htm.md"
     },
     {
@@ -5036,7 +5054,7 @@
       "section": "Business Rules Engine",
       "parent_page": "dt_setup_objects.htm",
       "status": "captured",
-      "body_length": 4029,
+      "body_length": 2259,
       "file": "articles/tooling_api_objects_decisiontablesourcecriteria.htm.md"
     },
     {
@@ -5045,7 +5063,7 @@
       "section": "Business Rules Engine",
       "parent_page": "dt_setup_objects.htm",
       "status": "captured",
-      "body_length": 3128,
+      "body_length": 2188,
       "file": "articles/tooling_api_objects_decisiontbldatasetparameter.htm.md"
     },
     {
@@ -5054,7 +5072,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 6333,
+      "body_length": 4662,
       "file": "articles/tooling_api_objects_explainabilityactiondef.htm.md"
     },
     {
@@ -5063,7 +5081,7 @@
       "section": "Decision Explainer",
       "parent_page": "decision_explainer_tooling_api_parent.htm",
       "status": "captured",
-      "body_length": 5391,
+      "body_length": 3687,
       "file": "articles/tooling_api_objects_explainabilityactionversion.htm.md"
     },
     {
@@ -5072,7 +5090,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_tooling_objects_parent.htm",
       "status": "captured",
-      "body_length": 7625,
+      "body_length": 6256,
       "file": "articles/tooling_api_objects_explainabilitymsgtemplate.htm.md"
     },
     {
@@ -5081,7 +5099,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_tooling_objects_parent.htm",
       "status": "captured",
-      "body_length": 4656,
+      "body_length": 3113,
       "file": "articles/tooling_api_objects_expressionsetdefinition.htm.md"
     },
     {
@@ -5090,7 +5108,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_tooling_objects_parent.htm",
       "status": "captured",
-      "body_length": 5148,
+      "body_length": 3512,
       "file": "articles/tooling_api_objects_expressionsetdefinitionversion.htm.md"
     },
     {
@@ -5099,7 +5117,7 @@
       "section": "Business Rules Engine",
       "parent_page": "decision_explainer_bre_tooling_objects_parent.htm",
       "status": "captured",
-      "body_length": 5266,
+      "body_length": 4094,
       "file": "articles/tooling_api_objects_expressionsetmessagetoken.htm.md"
     },
     {
@@ -5108,7 +5126,7 @@
       "section": "Business Rules Engine",
       "parent_page": "expression_set_tooling_objects_parent.htm",
       "status": "captured",
-      "body_length": 5766,
+      "body_length": 3960,
       "file": "articles/tooling_api_objects_expressionsetobjectalias.htm.md"
     },
     {
@@ -5116,9 +5134,10 @@
       "title": "RecordActionDeployment",
       "section": "Action Launcher",
       "parent_page": "action_launcher_tooling_apis_parent.htm",
-      "status": "captured",
+      "status": "error",
       "body_length": 9968,
-      "file": "articles/tooling_api_objects_recordactiondeployment.htm.md"
+      "file": "articles/tooling_api_objects_recordactiondeployment.htm.md",
+      "error": "SyntaxError: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
     },
     {
       "page_id": "tooling_api_objects_timelineobjectdefinition.htm",
@@ -5126,16 +5145,16 @@
       "section": "Timeline",
       "parent_page": "timeline_tooling_api_object.htm",
       "status": "captured",
-      "body_length": 6345,
+      "body_length": 4887,
       "file": "articles/tooling_api_objects_timelineobjectdefinition.htm.md"
     }
   ],
-  "last_updated": "2026-08-24T21:01:05Z",
+  "last_updated": "2026-11-23T12:16:16Z",
   "stats": {
     "discovered": 569,
-    "captured": 569,
+    "captured": 550,
     "pending": 0,
-    "errored": 0,
-    "total_captured_body_chars": 2016747
+    "errored": 19,
+    "total_captured_body_chars": 1178847
   }
 }

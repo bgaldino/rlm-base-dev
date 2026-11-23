@@ -7,230 +7,51 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Rate Management
 parent_page: rate_management_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Invoke Rating Service Action
 
 Invoke the rating service to rate the usage records.
 
-		
-			
-
-The Invoke Rating Service action acts as a connector between batch management and the rating
-				service. This action is available in API version 62.0 and later.
-
-		
-
-		
+The Invoke Rating Service action acts as a connector between batch management and the rating service. This action is available in API version 62.0 and later.
 
 ## Special Access Rules
 
-			
-			
-
-The Invoke Rating Service action is available in  Enterprise, Unlimited, and
-				Developer Editions where Rate Management is enabled.
-
-		
-
-		
+The Invoke Rating Service action is available in Enterprise, Unlimited, and Developer Editions where Rate Management is enabled.
 
 ## Supported REST HTTP Methods
 
-			
-			
-				
-					
+**URI:** `/services/data/v68.0/actions/standard/invokeRatingService`
 
-**URI**
+**Formats:** JSON, XML
 
-					
-: `/services/data/v68.0/actions/standard/invokeRatingService`
+**HTTP Methods:** POST
 
-				
-				
-					
-
-**Formats**
-
-					
-: JSON, XML
-
-				
-				
-					
-
-**HTTP Methods**
-
-					
-: POST
-
-				
-				
-					
-
-**Authentication**
-
-					
-: `Authorization: Bearer
-							token`
-
-				
-			
-
-		
-
-		
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Input | Details |
-| --- | --- |
-| attributeRateCardID | **Type** string **Description** ID of the rate card that’s used to define adjustments based on the attributes that impact the rate. |
-| baseRateCardID | **Type** string **Description** ID of the rate card that includes the base rate for the resource to be rated, based on its consumption. |
-| contextDefinitionId | **Type** string **Description** Required. ID of the context definition that’s used to create the context instance. |
-| contextMappingID | **Type** string **Description** ID of the context mapping that maps a standard object, context definition object, or any other input data source to the node that’s defined in the context definition. |
-| isSkipWaterfall | **Type** boolean **Description** Indicates whether to skip the generation of price waterfall data (`true`) or not (`false`). |
-| procedureName | **Type** string **Description** Name of the rating procedure that’s used to calculate the rates. |
-| recordID | **Type** reference **Description** Required. ID of the usage ratable summary record to be rated. |
-| tierRateCardID | **Type** string **Description** ID of the rate card that’s used to define adjustments for different tiers of a resource. |
-
-		
-
-		
+| Input | Type | Description |
+| --- | --- | --- |
+| attributeRateCardID | string | ID of the rate card that’s used to define adjustments based on the attributes that impact the rate. |
+| baseRateCardID | string | ID of the rate card that includes the base rate for the resource to be rated, based on its consumption. |
+| contextDefinitionId | string | Required. ID of the context definition that’s used to create the context instance. |
+| contextMappingID | string | ID of the context mapping that maps a standard object, context definition object, or any other input data source to the node that’s defined in the context definition. |
+| isSkipWaterfall | boolean | Indicates whether to skip the generation of price waterfall data (`true`) or not (`false`). |
+| procedureName | string | Name of the rating procedure that’s used to calculate the rates. |
+| recordID | reference | Required. ID of the usage ratable summary record to be rated. |
+| tierRateCardID | string | ID of the rate card that’s used to define adjustments for different tiers of a resource. |
 
 ## Outputs
 
 None
 
-		
-
 ## Example
-
-			
-			
-				
-					
 
 **POST**
 
-					
-: 
-						
-
 This example shows a sample request for the Invoke Rating Service action.
-
-						
 
 ```
 {
@@ -249,15 +70,7 @@ This example shows a sample request for the Invoke Rating Service action.
 }
 ```
 
-					
-
-					
-: 
-						
-
 This example shows a sample response for the Invoke Rating Service action.
-
-						
 
 ```
 [
@@ -269,3 +82,7 @@ This example shows a sample response for the Invoke Rating Service action.
     }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_invoke_rating_service.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

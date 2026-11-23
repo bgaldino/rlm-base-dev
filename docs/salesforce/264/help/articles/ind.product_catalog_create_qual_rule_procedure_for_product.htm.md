@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_qualification_rules.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create a Qualification Rule Procedure
@@ -53,3 +53,7 @@ Attribute Mapping in Qualification Rule Procedures
 In your qualification rule procedures, you must map specific attributes from the context definition to the corresponding decision table fields based on the type of the qualification element. In addition, you must map your custom attributes that must be used to evaluate qualification.
 SEE ALSO
 Simulate and Active a Qualification Rule Procedure
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_create_qual_rule_procedure_for_product.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

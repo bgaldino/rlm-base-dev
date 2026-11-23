@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_time_aware_fulfillment.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Orchestrate Orders with Time-Awareness
@@ -26,3 +26,7 @@ A fulfillment step whose sources span multiple time periods can remain shared ac
 Example: Fulfillment Across Time Periods
 
 Consider an order with a two-year ramp for Sales Cloud and Service Cloud. In year 1, the plan runs Provision Tenant, Activate License, and Notify Customer according to their configured dependencies and scopes. Steps without dependencies between them run in parallel. DRO sequences the groups of instantiated steps according to the start and end dates and times of their sources. The applicable year 2 steps start only after the required Year 1 steps finish.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_time_aware_plan_sequence.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

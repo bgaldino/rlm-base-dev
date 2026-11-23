@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_price_tracking_actions.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Ensure Price Transparency Using the Price Tracking Element
@@ -62,3 +62,7 @@ The price waterfall shows the manual discounts used to calculate the final price
 When a pricing procedure runs or is simulated, every result is saved in the Product Price History Log entity. For each pricing calculation, if the new price is higher than the previously stored maximum price for maximum price tracking, the existing entry in the Product Price History Log entity for that specific product, product selling model, and price book combination is overwritten. This ensures that at the end of each day, only the highest price for a given product and its combination is recorded in the Product Price History Log entity.
 
 The Product Price Range entity then stores this maximum price for a specified duration, specifically for a product, product selling model, and price book combination. This table is the primary source used when fetching price history using the Get or Get & Save actions within the system.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_ensure_price_transparency_using_the_price_tracking_element.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

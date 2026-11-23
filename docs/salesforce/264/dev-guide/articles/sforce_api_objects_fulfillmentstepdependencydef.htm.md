@@ -7,243 +7,106 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Dynamic Revenue Orchestrator
 parent_page: dynamic_revenue_orchestrator_std_objects_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # FulfillmentStepDependencyDef
 
-Represents a dependency that must be created between two fulfillment
-         step records. This object is available in API version 62.0 and later.
+Represents a dependency that must be created between two fulfillment step records. This object is available in API version 62.0 and later.
 
-      
-         
+![Important](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note_important.png&folder=revenue_lifecycle_management_dev_guide)
 
 #### Important
 
-Where possible, we changed noninclusive terms to align with our
-            company value of Equality. We maintained certain terms to avoid any effect on customer
-            implementations.
-
-      
-
-      
+Where possible, we changed noninclusive terms to align with our company value of Equality. We maintained certain terms to avoid any effect on customer implementations.
 
 ## Supported Calls
 
-         
-         
-
-            `create()`, `delete()`, `describeLayout()`, `describeSObjects()`, `getDeleted()`, `getUpdated()`, `query()`, `retrieve()`, `undelete()`, `update()`, `upsert()`
-         
-
-      
-
-      
+`create()`, `delete()`, `describeLayout()`, `describeSObjects()`, `getDeleted()`, `getUpdated()`, `query()`, `retrieve()`, `undelete()`, `update()`, `upsert()`
 
 ## Fields
 
-         
-         
+### CustomScope
 
-               
-               
-               
-                  
-                     
+- **Type**: string
+- **Properties**: Create, Filter, Group, Nillable, Sort, Update
+- **Description**: The name of the custom scope when the dependency scope is set to custom. This field is available in API version 68.0 and later.
 
-                     
+### DependencyScope
 
-                  
+- **Type**: picklist
+- **Properties**: Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update
+- **Description**: The scope of the fulfillment step dependency definition. For example, Order or Order Item.
 
-               
+Valid values are:
 
-               
-                  
-                     
+- `Bundle`
+- `LineItem`
+- `Plan`
+- `CrossPlan`
+- `Custom`
 
-                     
+The default value is `Plan`.
 
-: 
+### DependsOnStepDefinitionId
 
-: 
+- **Type**: reference
+- **Properties**: Create, Filter, Group, Nillable, Sort, Update
+- **Description**: The fulfillment step definition that must be executed before this step.
 
-: 
+This field is a relationship field.
 
-                  
+- **Relationship Name**: DependsOnStepDefinition
+- **Refers To**: FulfillmentStepDefinition
 
-                  
-                     
+### FulfillmentStepDefinitionId
 
-                     
+- **Type**: reference
+- **Properties**: Create, Filter, Group, Sort
+- **Description**: The identifier of the fulfillment step definition.
 
-: 
+This field is a relationship field.
 
-: 
+- **Relationship Name**: FulfillmentStepDefinition
+- **Relationship Type**: Master-detail
+- **Refers To**: FulfillmentStepDefinition (the master object)
 
-: 
-: 
-- 
-- 
-- 
-- 
-- 
+### IsCompensateInReverse
 
-: 
+- **Type**: boolean
+- **Properties**: Create, Defaulted on create, Filter, Group, Sort, Update
+- **Description**: Indicates whether the order to insert the compensated group steps is reversed when a fulfillment step is canceled (`true`) or not (`false`).
 
-                  
+The default value is `false`. This field is available in API version 63.0 and later.
 
-                  
-                     
+### Name
 
-                     
+- **Type**: string
+- **Properties**: Create, Filter, Group, idLookup, Sort, Update
+- **Description**: The name of the fulfillment step dependency definition.
 
-: 
+### PropagateStateToDependentStep
 
-: 
+- **Type**: picklist
+- **Properties**: Create, Filter, Group, Nillable, Restricted picklist, Sort, Update
+- **Description**: The state that’s propagated to the dependent fulfillment step when the source fulfillment step is amended or canceled in the fulfillment plan.
 
-: 
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-: 
-- 
-- 
-- 
-- 
-
-                  
-
-               
-
-            
-| Field | Details |
-| --- | --- |
-| CustomScope | **Type** string **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** The name of the custom scope when the dependency scope is set to custom. This field is available in API version 68.0 and later. |
-| DependencyScope | **Type** picklist **Properties** Create, Defaulted on create, Filter, Group, Restricted picklist, Sort, Update **Description** The scope of the fulfillment step dependency definition. For example, Order or Order Item. Valid values are: `Bundle` `LineItem` `Plan` `CrossPlan` `Custom` The default value is `Plan`. |
-| DependsOnStepDefinitionId | **Type** reference **Properties** Create, Filter, Group, Nillable, Sort, Update **Description** The fulfillment step definition that must be executed before this step. This field is a relationship field. **Relationship Name** DependsOnStepDefinition **Refers To** FulfillmentStepDefinition |
-| FulfillmentStepDefinitionId | **Type** reference **Properties** Create, Filter, Group, Sort **Description** The identifier of the fulfillment step definition. This field is a relationship field. **Relationship Name** FulfillmentStepDefinition **Relationship Type** Master-detail **Refers To** FulfillmentStepDefinition (the master object) |
-| IsCompensateInReverse | **Type** boolean **Properties** Create, Defaulted on create, Filter, Group, Sort, Update **Description** Indicates whether the order to insert the compensated group steps is reversed when a fulfillment step is canceled (`true`) or not (`false`). The default value is `false`. This field is available in API version 63.0 and later. |
-| Name | **Type** string **Properties** Create, Filter, Group, idLookup, Sort, Update **Description** The name of the fulfillment step dependency definition. |
-| PropagateStateToDependentStep | **Type** picklist **Properties** Create, Filter, Group, Nillable, Restricted picklist, Sort, Update **Description** The state that’s propagated to the dependent fulfillment step when the source fulfillment step is amended or canceled in the fulfillment plan. Valid values are: `Amended` `Both` `Canceled` `None` This field is available in API version 63.0 and later. |
-
-      
-
-      
+Valid values are `Amended`, `Both`, `Canceled`, or `None`. This field is available in API version 63.0 and later.
 
 ## Associated Objects
 
-         
-         
+This object has the following associated objects. If the API version isn’t specified, they’re available in the same API versions as this object. Otherwise, they’re available in the specified API version and later.
 
-This object has the following associated objects. If the API version isn’t specified,
-            they’re available in the same API versions as this object. Otherwise, they’re available
-            in the specified API version and later.
+**[FulfillmentStepDependencyDefChangeEvent](./sforce_api_associated_objects_change_event.htm.md "A ChangeEvent object is available for each object that supports Change Data Capture. You can subscribe to a stream of change events using Change Data Capture to receive data tied to record changes in Salesforce. Changes include record creation, updates to an existing record, deletion of a record, and undeletion of a record. A change event isn’t a Salesforce object—it doesn’t support CRUD operations or queries. It’s included in the object reference so you can discover which Salesforce objects support change events."):** Change events are available for the object.
 
-         
-            
-               
+**[FulfillmentStepDependencyDefFeed](./sforce_api_associated_objects_feed.htm.md "StandardObjectNameFeed is the model for all feed objects associated with standard objects. These objects represent the posts and feed-tracked changes of a standard object."):** Feed tracking is available for the object.
 
-**[FulfillmentStepDependencyDefChangeEvent](./sforce_api_associated_objects_change_event.htm.md)**
+**[FulfillmentStepDependencyDefHistory](./sforce_api_associated_objects_history.htm.md "StandardObjectNameHistory is the model for all history objects associated with standard objects. These objects represent the history of changes to the values in the fields of a standard object."):** History is available for tracked fields of the object.
 
-               
-: Change events are available for the object.
+**[FulfillmentStepDependencyDefOwnerSharingRule](./sforce_api_associated_objects_ownersharingrule.htm.md "StandardObjectNameOwnerSharingRule is the model for all owner sharing rule objects associated with standard objects. These objects represent a rule for sharing a standard object with users other than the owner."):** Sharing rules are available for the object.
 
-            
-            
-               
+**[FulfillmentStepDependencyDefShare](./sforce_api_associated_objects_share.htm.md "StandardObjectNameShare is the model for all share objects associated with standard objects. These objects represent a sharing entry on the standard object."):** Sharing is available for the object.
 
-**[FulfillmentStepDependencyDefFeed](./sforce_api_associated_objects_feed.htm.md)**
+---
 
-               
-: Feed tracking is available for the object.
-
-            
-            
-               
-
-**[FulfillmentStepDependencyDefHistory](./sforce_api_associated_objects_history.htm.md)**
-
-               
-: History is available for tracked fields of the object.
-
-            
-            
-               
-
-**[FulfillmentStepDependencyDefOwnerSharingRule](./sforce_api_associated_objects_ownersharingrule.htm.md)**
-
-               
-: Sharing rules are available for the object.
-
-            
-            
-               
-
-**[FulfillmentStepDependencyDefShare](./sforce_api_associated_objects_share.htm.md)**
-
-               
-: Sharing is available for the object.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/sforce_api_objects_fulfillmentstepdependencydef.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

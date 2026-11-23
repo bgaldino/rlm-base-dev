@@ -7,104 +7,46 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_node_management.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Node (POST, PATCH)
 
 Create and update context node.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
-/connect/context-definitions/${contextDefinitionId}/context-nodes
+/connect/context-definitions/contextDefinitionId/context-nodes
 ```
 
-          
-
-        
-        
-          
-
-**Example for POST**
-
-          
-: 
-            
+## Example for POST
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/${contextDefinitionId}/context-nodes
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/contextDefinitionId/context-nodes
 ```
 
-          
-
-        
-        
-          
-
-**Example for PATCH**
-
-          
-: 
-            
+## Example for PATCH
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/${contextDefinitionId}/context-nodes
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/contextDefinitionId/context-nodes
 ```
 
-          
+## Available Version
 
-        
-        
-          
+59.0
 
-**Available version**
+## Requires Chatter
 
-          
-: 59.0
+No
 
-        
-        
-          
+## HTTP Methods
 
-**Requires Chatter**
+POST, PATCH
 
-          
-: No
+## Request Body for POST
 
-        
-        
-          
-
-**HTTP methods**
-
-          
-: POST, PATCH
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-
-**JSON example**
-
-: 
+### JSON Example
 
 ```
 {
@@ -141,48 +83,25 @@ https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definiti
 }
 ```
 
-**Properties**
-
-: 
+### Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `attributes` | [Context Attributes Input](./connect_requests_context_attributes_input.htm.md)[] | List of context attributes. | Optional | 59.0 |
-| `childNodes` | [Context Nodes Input](./connect_requests_context_nodes_input.htm.md)[] | List of child context nodes. | Optional | 59.0 |
+| `attributes` | [Context Attributes Input](./connect_requests_context_attributes_input.htm.md "Input representation of context attribute.") [] | List of context attributes. | Optional | 59.0 |
+| `childNodes` | [Context Nodes Input](./connect_requests_context_nodes_input.htm.md "Input representation of context node.")[] | List of child context nodes. | Optional | 59.0 |
 | `contextNodeId` | String | ID of the context node. | Required | 59.0 |
 | `isTransposable` | Boolean | Specifies if the context node is used for the transposable feature (`true`) or not (`false`). | Optional | 59.0 |
 | `name` | String | Name of the context node. | Required | 59.0 |
 | `parentNodeId` | String | ID of (parent) context node. | Optional | 59.0 |
-| `tags` | [Context Tag Input](./connect_requests_context_tag_input.htm.md)[] | List of context tags. | Optional | 59.0 |
+| `tags` | [Context Tag Input](./connect_requests_context_tag_input.htm.md "Input representation of the context tag.")[] | List of context tags. | Optional | 59.0 |
 
-          
+## Response Body for POST
 
-        
-        
-          
+[Context Node List Output](./connect_responses_context_node_list.htm.md "Output representation of the list of context nodes.")
 
-**Response body for POST**
+## Request Body for PATCH
 
-          
-: [Context Node List Output](./connect_responses_context_node_list.htm.md)
-
-        
-        
-          
-
-**Request body for PATCH**
-
-          
-: 
-            
-              
-                
-
-**JSON example**
-
-                
-: 
-                  
+### JSON Example
 
 ```
 {
@@ -195,18 +114,10 @@ https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definiti
 }
 ```
 
-                
+## Response Body for PATCH
 
-              
-            
+[Context Node List Output](./connect_responses_context_node_list.htm.md "Output representation of the list of context nodes.")
 
-          
+---
 
-        
-        
-          
-
-**Response body for PATCH**
-
-          
-: [Context Node List Output](./connect_responses_context_node_list.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_context_node.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

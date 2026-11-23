@@ -7,184 +7,49 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: dt_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Decision Table Refresh Action
 
 Refresh business rules for an active decision table.
 
-  
-   
-
 For more information about refreshing an active decision table, see [Refresh Decision Tables in Flows](https://help.salesforce.com/articleView?id=task_refresh_decision_table_flow.htm&language=en_US) in Salesforce Help. This
-    object is available in API version 51.0 and later.
-
-  
-
-  
+object is available in API version 51.0 and later.
 
 ## Supported REST HTTP Methods
 
-   
-   
-    
-     
+**URI:**
+`/services/data/vXX.X/actions/standard/refreshDecisionTable`
 
-**URI**
+Where `XX.X` is the latest API version.
 
-     
-: ``/services/data/vXX.X/`actions/standard/refreshDecisionTable`
+**Formats:** JSON
 
-    
-    
-     
+**HTTP Methods:** GET, POST
 
-**Formats**
+**Authentication:**
+`Authorization: Bearer TOKEN`
 
-     
-: JSON
-
-    
-    
-     
-
-**HTTP Methods**
-
-     
-: GET, POST
-
-    
-    
-     
-
-**Authentication**
-
-     
-: `Authorization: Bearer token`
-
-    
-   
-
-  
-
-  
+Where `TOKEN` is a variable.
 
 ## Inputs
 
-   
-   
-
-     
-     
-     
-      
-       
-
-       
-
-      
-
-     
-
-     
-      
-       
-
-       
-
-: 
-
-: 
-
-      
-
-      
-       
-
-       
-
-: 
-
-: 
-
-      
-
-     
-
-    
-| Input | Details |
-| --- | --- |
-| decisionTable​ApiName | **Type** string **Description** Required. API name of an active decision table that you want to refresh. |
-| isDecisionTable​Incremental | **Type** boolean **Description** Specifies whether to trigger an incremental refresh (`true`) or not (`false`). If set to true, this field triggers an update only on changes made to the recent sObject data instead of performing a full refresh. The default value is `false`. This feature requires a full refresh to be performed initially. After a full refresh is done, you can proceed with incremental refreshes. However, if the changes exceed 2,000 records, the incremental refresh fails. In such cases, a full refresh is necessary to update the Decision Table with the latest sObject data. An incremental refresh updates `LastIncrementalSyncDate` only. A full refresh updates `LastRefreshedDate` and `LastSyncDate`. |
-
-  
-
-  
+| Input | Type | Description |
+| --- | --- | --- |
+| decisionTable​ApiName | string | Required. API name of an active decision table that you want to refresh. |
+| isDecisionTable​Incremental | boolean | Specifies whether to trigger an incremental refresh (`true`) or not (`false`). If set to true, this field triggers an update only on changes made to the recent sObject data instead of performing a full refresh. The default value is `false`.  This feature requires a full refresh to be performed initially. After a full refresh is done, you can proceed with incremental refreshes. However, if the changes exceed 2,000 records, the incremental refresh fails. In such cases, a full refresh is necessary to update the Decision Table with the latest sObject data.  An incremental refresh updates `LastIncrementalSyncDate` only. A full refresh updates `LastRefreshedDate` and `LastSyncDate`. |
 
 ## Outputs
 
-   
-   
-
-     
-     
-     
-      
-       
-
-       
-
-      
-
-     
-
-     
-      
-       
-
-       
-
-: 
-
-: 
-
-      
-
-      
-       
-
-       
-
-: 
-
-: 
-
-      
-
-     
-
-    
-| Output | Details |
-| --- | --- |
-| errorMessage | **Type** string **Description** Error message to indicate why the request wasn't successful. |
-| status | **Type** string **Description** Indicates whether the decision table is queued for refresh. Valid values are `Queued` or `Failed`. |
-
-  
-
-  
+| Output | Type | Description |
+| --- | --- | --- |
+| errorMessage | string | Error message to indicate why the request wasn't successful. |
+| status | string | Indicates whether the decision table is queued for refresh. Valid values are `Queued` or `Failed`. |
 
 ## Usage
 
-   
-   
-
 **Sample Request**
-
-   
-    
 
 ```
 {
@@ -197,20 +62,15 @@ For more information about refreshing an active decision table, see [Refresh Dec
 }
 ```
 
-   
-
-   
-
 **Sample Response**
 
-   
-    
-
 ```
-
 {
    "status":"Queued",//Queued or Failed
    "errorMessage":"" //in case any failure
 }
-
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/dt_actions_refresh_decision_table.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

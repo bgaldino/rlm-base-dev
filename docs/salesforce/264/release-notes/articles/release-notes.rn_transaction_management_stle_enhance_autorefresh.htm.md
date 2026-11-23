@@ -6,14 +6,14 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_transaction_management.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Edit Accurate Quotes and Orders in Sales Transaction Line Editor with Autorefresh
 
 Sales Transaction Line Editor (STLE) and Transaction Summary now refresh automatically when a custom flow, Apex trigger, or Agentforce action changes the quote or order your sales reps are viewing. Sales reps see the latest line items without reloading the page manually, so their work on quotes and orders always reflects the most current data. The Refresh tab now reliably reloads the STLE data.
 
-Where: This change applies to Lightning Experience in Enterprise, Unlimited, and Developer editions of Revenue Management, formerly Revenue Cloud, with the Revenue Cloud Growth or the Revenue Cloud Advanced license.
+Where: This change applies to Lightning Experience in Enterprise, Unlimited, and Developer editions of Revenue Cloud, with the Revenue Cloud Growth or the Revenue Cloud Advanced license.
 
 Why: A record-triggered flow updates quote lines after a pricing recalculation. An Apex trigger updates order lines after an external system callback. An Agentforce action runs Apex that changes quote lines. Previously, sales reps reloaded the entire browser page to see those changes in STLE or Transaction Summary. Now, when a rep's own automation changes the quote or order they're viewing, the STLE and Transaction Summary pick up the change automatically. Sales reps stay focused on the deal instead of the browser tab. This update doesn’t require changes to existing Apex or flows.
 
@@ -23,3 +23,7 @@ How: From Setup, in the Quick Find box, enter Change Data Capture, and then sele
 
 SEE ALSO
 Change Data Capture
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_transaction_management_stle_enhance_autorefresh.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

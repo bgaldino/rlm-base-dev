@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_legal_entity_accounting_periods_close.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Example: Automatically Capture Unrealized Foreign Exchange Unrealized Gains or Losses
@@ -46,3 +46,7 @@ A transaction journal is created for the 01-800-8001 Unrealized Loss account wit
 A transaction journal is created for the 01-100-1001 Accounts Receivable account with the unrealized loss amount as the credit amount for INR-2025-2026-August1-August31 legal entity accounting period.
 A reversal transaction journal is created for the 01-800-8001 Unrealized Loss account with the unrealized loss amount as the credit amount for INR-2025-2026-September1-September30 legal entity accounting period.
 A reversal transaction journal is created for the 01-100-1001 Accounts Receivable account with the unrealized loss amount as the debit amount for INR-2025-2026-September1-September30 legal entity accounting period.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_fgn_exch_unrealized_gains_losses_use_case.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

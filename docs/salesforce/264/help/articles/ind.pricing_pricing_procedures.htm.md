@@ -6,16 +6,16 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_salesforce_pricing.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Build Your Pricing Procedures Using Salesforce Pricing
 
-Pricing procedures are fundamental to all pricing strategies in Revenue Management (formerly Revenue Cloud), enabling businesses to implement dynamic pricing rules and efficiently calculate a product's final net price. They act as the core engine for pricing calculations in Salesforce Pricing, providing a flexible and powerful way to manage both simple and complex pricing scenarios.
+Pricing procedures are fundamental to all pricing strategies in Revenue Cloud , enabling businesses to implement dynamic pricing rules and efficiently calculate a product's final net price. They act as the core engine for pricing calculations in Salesforce Pricing, providing a flexible and powerful way to manage both simple and complex pricing scenarios.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 Pricing procedures calculate prices using your data. They pull information from wherever the relevant data is, for example, from decision tables, formulas, and custom objects. These procedures are made up of rules, conditions, and formulas, and you can easily configure them to create smart, flexible pricing strategies that change as your business does. Furthermore, they provide a visual representation of calculations using Price Waterfall, simplifying the understanding and management of complex pricing scenarios.
 
@@ -23,7 +23,7 @@ While you technically can create custom pricing procedures, we strongly recommen
 
 NOTE For help troubleshooting pricing procedure issues, see Troubleshooting Pricing Procedure Issues.
 Understand Pricing Elements
-Pricing elements are the primary components that make up a pricing procedure in Salesforce Pricing within Revenue Management. They are the building blocks, where each element represents a step in the calculation of a product's final price. Understanding pricing elements is essential for successfully defining and calculating product prices and creating customized pricing strategies.
+Pricing elements are the primary components that make up a pricing procedure in Salesforce Pricing within Revenue Cloud. They are the building blocks, where each element represents a step in the calculation of a product's final price. Understanding pricing elements is essential for successfully defining and calculating product prices and creating customized pricing strategies.
 Prerequisites to Build Pricing Procedures
 Before you begin creating pricing procedures and adding elements to them, ensure you have completed these prerequisites. Understanding the fundamentals is crucial for successful implementation and operation of your pricing strategies.
 Configure Your Pricing Procedure
@@ -40,3 +40,7 @@ Set Up Parallel Pricing Element Execution
 Run multiple pricing procedures concurrently or use parallel processing within a single pricing procedure to ensure faster and more efficient pricing, especially in complex scenarios.
 Decision Explainer for Salesforce Pricing
 Use Decision Explainer to customize the Salesforce Pricing waterfall structure and generate dynamic explanations for the resulting pricing outcomes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_pricing_procedures.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

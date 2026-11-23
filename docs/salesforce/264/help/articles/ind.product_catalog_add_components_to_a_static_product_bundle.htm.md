@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_creation_of_a_bundled_product_structure.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Add Components to a Static Product Bundle
@@ -52,3 +52,7 @@ Ensure that Allow quantity changes is deselected.
 When Allow Quantity Changes is deselected, you can’t enter a minimum and maximum quantity.
 If the price of the bundled product includes the price of this product component, select Price Includes component. In this case, ensure that you deselect Allow quantity changes.
 Save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_add_components_to_a_static_product_bundle.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

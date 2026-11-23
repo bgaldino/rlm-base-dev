@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_product_classifications.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Assign Attributes to a Product Classification
@@ -46,3 +46,7 @@ You can preview a product classification to see how it will look and function fo
 
 Considerations While Assigning Attributes to Product Classifications
 Here are a few scenarios you can run into when assigning attributes to product classifications.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_assign_attributes_to_a_product_classification.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,118 +7,67 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_types.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Group Type
 
 In Constraint Modeling Language (CML), a Group Type is used to logically containerize
-    related components within a bundle configuration, primarily when product component groups are
-    imported from Product Catalog Management (PCM).
-
-    
-      
+related components within a bundle configuration, primarily when product component groups are
+imported from Product Catalog Management (PCM).
 
 The Group Type uses specific annotations to control the total quantity of components
-        selected from that group, regardless of the individual component type.
-
-      
+selected from that group, regardless of the individual component type.
 
 Bundles and Group Types (also known as Product Component Groups or PCGs) represent different levels of a product hierarchy and serve distinct functional roles in configuration logic.
 
-      
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=revenue_lifecycle_management_dev_guide)
 
 #### Note
 
 When you organize components in Product Component Groups, the
-        Group Type becomes an intermediate parent in the hierarchy. To reach the bundle root, use
-          `parent(attribute, 1)` to skip the group, or use the
-        dot-notation pattern from the bundle level,  `groupVariable.childRelation.attribute`, instead of `parent()`.
-
-    
-
-    
+Group Type becomes an intermediate parent in the hierarchy. To reach the bundle root, use
+`parent(attribute, 1)` to skip the group, or use the
+dot-notation pattern from the bundle level, `groupVariable.childRelation.attribute`, instead of `parent()`.
 
 ## Conceptual Hierarchy
 
-      
-      
-        
 - Bundles are high-level parent products that contain multiple child products sold together as a package. In CML, they are defined as "root types" that encapsulate the properties, relationships, and constraints for the entire entity.
-
-        
 - Group Types are structural containers within a bundle. They act as intermediate folders that organize related components imported from Product Catalog Management (PCM). Instances of these Group Types are declared as variables inside the root Bundle type.
-
-      
-
-    
-
-    
 
 ## Role in Cardinality and Selection
 
-      
-      
-        
 - Bundles establish the primary relationship between a root product and its broad categories of components.
-
-        
 - Group Types are specifically designed to enforce cardinality rules for a collection of
-          products. They use the `@(minInstanceQty)` and `@(maxInstanceQty)` annotations to control exactly how many
-          instances can be selected from a specific set of options (for example, "select at
-          least 1 but no more than 2 accessories"). While the selected component can have a
-          high quantity, the Group Type restricts the number of unique instances chosen from that
-          group.
-
-      
-
-    
-
-    
+  products. They use the `@(minInstanceQty)` and `@(maxInstanceQty)` annotations to control exactly how many
+  instances can be selected from a specific set of options (for example, "select at
+  least 1 but no more than 2 accessories"). While the selected component can have a
+  high quantity, the Group Type restricts the number of unique instances chosen from that
+  group.
 
 ## Syntactic Implementation
 
-      
-      
-        
 - Accessing Components: For standard bundles, you reference components directly via their
-          relation name. For components within a Group Type, you must use dot notation starting with
-          the group variable name defined in the root type (for example, `accessoryGroup.mouse.Wireless == true`).
-
-        
+  relation name. For components within a Group Type, you must use dot notation starting with
+  the group variable name defined in the root type (for example, `accessoryGroup.mouse.Wireless == true`).
 - Constraint Limitations: You cannot write a constraint directly on a Group Type's attribute to apply it to all components within that group; constraints must reference the specific child components.
-
-        
 - Identification: Group Types are automatically identified by a Group suffix and the presence of instance cardinality annotations during the import from PCM.
 
-      
-
-      
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=revenue_lifecycle_management_dev_guide)
 
 #### Note
 
 The following examples are partial. See the complete code in the final CML
-        code sample.
-
-    
-
-    
+code sample.
 
 ## Example 1: Defining Generator Set Group Types
 
-      
-      
-
 We can define two group types for a Generator Set configuration: `CoreModelGroup` (mandatory selection of a primary generator
-        model) and `EnclosureGroup` (optional selection of a
-        specific enclosure type).
-
-      
+model) and `EnclosureGroup` (optional selection of a
+specific enclosure type).
 
 For the `CoreModelGroup`, setting `minInstanceQty` to 1 and `maxInstanceQty` to 1 means that at least 1 is required, and a maximum of 1 is
-        permitted.
-
-      
+permitted.
 
 ```
 @(minInstanceQty=1, maxInstanceQty=1)
@@ -131,13 +80,9 @@ int powerKW;
 }
 ```
 
-      
-
 For the `EnclosureGroup`, setting `minInstanceQty` to 0 and `maxInstanceQty` to 1 means that selecting an enclosure is optional, but if
-        selected, the user can add at most one instance of an enclosure component (such as
-        WeatherproofEnclosure).
-
-      
+selected, the user can add at most one instance of an enclosure component (such as
+WeatherproofEnclosure).
 
 ```
 @(minInstanceQty=0, maxInstanceQty=1)
@@ -149,20 +94,11 @@ type Enclosure : LineItem;
 type ControlCabinetHeater : LineItem;
 ```
 
-    
-
-    
-
 ## Example 2: Referencing Group Types in the Root Bundle
 
-      
-      
-
 Once defined, instances of these group types are used as variables within the root type,
-        which represents the entire bundle. In this example, the `coreModelGroup` and `enclosureGroup` are
-        instances of the respective group types, defined within the root type `GeneratorSetBundle`.
-
-      
+which represents the entire bundle. In this example, the `coreModelGroup` and `enclosureGroup` are
+instances of the respective group types, defined within the root type `GeneratorSetBundle`.
 
 ```
 type GeneratorSetBundle {
@@ -171,23 +107,12 @@ EnclosureGroup enclosureGroup;
 }
 ```
 
-    
-
-    
-
 ## Example 3: Writing Constraints on Group Components
-
-      
-      
 
 To write constraints or rules that reference components inside a group, use dot notation starting with the group variable name defined in the root type.
 
-      
-
 This example shows how a constraint might be defined within the `GeneratorSetBundle` type to enforce business logic on components within the
-        groups.
-
-      
+groups.
 
 ```
 // If the selected generator model has a powerKW greater than 1500,
@@ -200,76 +125,14 @@ enclosureGroup.enclosure[Enclosure],
 "Enclosure required for seismic certification");
 ```
 
-    
-
-    
-
 ## Final CML Code Sample with Group Types
-
-      
-      
 
 This structure defines the complete model, showing the component hierarchy and the relationship constraints.
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Parent Type | Relation Name | Child Type | Cardinality | Key Attribute Usage |
 | --- | --- | --- | --- | --- |
 | `GeneratorSetBundle` | `coreModelGroup` (Group Instance) | `CoreModelGroup` | Group Cardinality: 1 | The group type defined by `@minInstanceQty=1, maxInstanceQty=1`. This enforces that exactly one component choice must be made from the internal generalModel relation. |
 | `GeneratorSetBundle` | `enclosureGroup` (Group Instance) | `EnclosureGroup` | Group Cardinality: [0..1] | The group type defined by `@minInstanceQty=0, maxInstanceQty=1`. This enforces that selecting components from this group is optional (min 0) and at most one total component instance can be selected (max 1). |
-
-      
 
 ```
 /**
@@ -323,34 +186,23 @@ type ReinforcedEnclosure : Enclosure; // Subtype of Enclosure
 type ControlCabinetHeater;
 ```
 
-    
-
-    
-
 ## Key Considerations
-
-      
-      
 
 When reviewing Group Types in the context of the Generator Set model, keep these architectural points in mind.
 
-      
-        
 - Group Cardinality Enforcement: The annotations `@(minInstanceQty)` (minimum instance quantity) and `@(maxInstanceQty)` (maximum instance quantity) are defined on the Group Type
-          itself (`ElectricalSafetyGroup`). These annotations
-          control the overall cardinality for all the components contained within that group,
-          regardless of the individual relation cardinality defined (for example `[0..1]`, `[1..2]`).
-
-        
+  itself (`ElectricalSafetyGroup`). These annotations
+  control the overall cardinality for all the components contained within that group,
+  regardless of the individual relation cardinality defined (for example `[0..1]`, `[1..2]`).
 - Root Reference: The `GeneratorSetBundle` includes the
-          groups as variables (`coreModelGroup` and `enclosureGroup`).
-
-        
+  groups as variables (`coreModelGroup` and `enclosureGroup`).
 - Constraint Syntax for Group Components: Constraints access attributes or components
-          inside the groups using dot notation starting with the group variable name (for example,
-            `coreModelGroup.generalModel.powerKW`).
-
-        
+  inside the groups using dot notation starting with the group variable name (for example,
+  `coreModelGroup.generalModel.powerKW`).
 - Limitation on Group Attributes: You cannot write a constraint directly on a group's
-          attribute and expect it to apply to all components within that group (for example, `constraint(enclosureGroup.color == "Black")`) is
-          not a valid constraint).
+  attribute and expect it to apply to all components within that group (for example, `constraint(enclosureGroup.color == "Black")`) is
+  not a valid constraint).
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_group_type.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

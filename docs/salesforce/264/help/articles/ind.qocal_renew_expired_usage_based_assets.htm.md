@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_amending_rates_and_grants_on_usage_based_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Renew Expired Usage-Based Assets
@@ -15,7 +15,7 @@ Continue a customer's subscription after a usage-based asset expires by setting 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Advanced license.
 USER PERMISSIONS NEEDED
 To renew expired usage-based assets:	InitiateRenewal API permission set AND Sales Rep persona permissions
 NOTE Renewal of expired usage-based assets is available in orgs with the Revenue Cloud Advanced license. If an org has the Revenue Cloud Advanced and Revenue Cloud Billing licenses, or if the Revenue Cloud Billing license is added later, you can't renew expired usage-based assets.
@@ -26,7 +26,7 @@ When a customer wants to continue a usage-based product after its subscription e
 
 If a gap exists between the asset's lifecycle end date and the renewal start date, a zero-quantity Asset State Period is added for the gap.
 
-NOTE When you renew an expired ramp usage-based asset, the renewed asset is non-ramped. Creating new ramp segments during late renewal isn't supported.
+NOTE When you renew an expired ramp usage-based asset, the renewed asset is non-ramped. Creating new ramp segments during late renewal isn't supported. If Pricing Source is Last Transaction, the renewal quote uses the rates and grants from the asset's last active ramp segment.
 
 To renew assets through the Managed Asset Viewer, see Renew Assets with the Managed Asset Viewer.
 
@@ -42,7 +42,7 @@ To save your changes, click Submit.
 
 The renewal quote opens for the asset.
 
-Review and negotiate the rates and grants for the new term, and then finalize the quote.
+Review the rates and grants for the new term, adjust them as needed, and then finalize the quote. If the asset's Pricing Source is Last Transaction, the quote starts with the negotiated rates and original sold grant quantities from the asset's last active term. Otherwise, the quote starts with active catalog values.
 
 The renewed term begins on the renewal start date. The asset's usage entitlements and rate cards are updated for the new term.
 
@@ -53,3 +53,7 @@ EXAMPLE
 A customer's usage-based subscription ended on March 31, and the customer signs a new deal on May 15. You select the expired asset, click Renew, click Override Renewal Term, and then set the renewal start date to May 15. Because the renewal starts after the asset's lifecycle end date, a zero-quantity Asset State Period is added for the gap between the lifecycle end date and the renewal start date. The renewed term begins on May 15.
 
 For rate and grant negotiation on usage-based products, see Usage-Based Assets.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_renew_expired_usage_based_assets.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

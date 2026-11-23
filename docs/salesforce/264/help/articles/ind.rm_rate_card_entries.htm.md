@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: rating
 parent_article: ind.rm_rate_cards_and_rate_card_entries.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Rate Card Entries
@@ -15,7 +15,7 @@ Use rate card entries to set rates and rate adjustments that are used to calcula
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management Advanced
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud Advanced
 
 You can configure Rate Card Entries (RCEs) by using either a currency or tokens. However, the Product Usage Resource (PUR) settings for a sellable product determine which rate (currency or token-based) is used during the Usage Selling process. Make sure your PUR configuration aligns with how you want to price the product for sale.
 
@@ -27,3 +27,7 @@ Create a Rate Card Entry for Base Rate Cards
 Define a per-unit rate applicable to the usage resource. When creating a new rate card entry for Base Rate Cards, you define the per-unit rate that will be applied to the usage resource. This per-unit rate specifies the cost or charge for each unit of the resource consumed.
 Create a Rate Card Entry For Tier Rate Cards
 Define different tiers of consumption for a usage resource and set a rate for each of these tiers. With tier-based adjusted rates, provide discounts to customers who have varying consumptions.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rm_rate_card_entries.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_set_up_contract_search_for_contract_ai.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Search, Summarize, and Interact with Contracts Using AI
@@ -56,3 +56,7 @@ Sample Contract Queries and Follow-Up Questions for AI Interactions
 Use the following examples to help you write effective natural-language prompts when using Contract Search with AI. These samples include queries that retrieve relevant contracts and follow-up questions you can ask to explore contract details. The AI maintains context across interactions, so you can continue asking questions without repeating information.
 Use Case: Extract Key Terms from Contracts Using AI
 As a Sales Representative reviewing an agreement with Cloud Kicks, use AI-powered contract tools to locate the MSA, extract renewal, pricing, and termination terms, ask clarifying questions, and share a summary with your team for internal alignment.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_search_summarize_and_interact_with_contracts_using_ai.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

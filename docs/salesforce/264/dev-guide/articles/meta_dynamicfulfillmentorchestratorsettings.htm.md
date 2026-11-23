@@ -7,177 +7,49 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Dynamic Revenue Orchestrator
 parent_page: dynamic_revenue_orchestrator_metadata_api_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # DynamicFulfillmentOrchestratorSettings
 
 Represents the settings for Dynamic
-			Revenue Orchestrator.
-	
+Revenue Orchestrator.
 
-	
+## Parent Type and Manifest Access
 
-	
-
-## Parent Type and Manifest	Access
-
-		
-		
-
-This type extends the [Metadata](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/metadata.htm) metadata type and inherits its fullName
-				field.
-
-		
+This type extends the [Metadata](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/metadata.htm "HTML (New Window)") metadata type and inherits its fullName
+field.
 
 In the package manifest, all the settings metadata types for the org are accessed using the
-				“Settings” name. See [Settings](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/meta_settings.htm) for more details.
-
-	
-
-	
+“Settings” name. See [Settings](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/meta_settings.htm "HTML (New Window)") for more details.
 
 ## File Suffix and Directory Location
 
-		
-		
-
 DynamicFulfillmentOrchestratorSettings values are stored in the
-					DynamicFulfillmentOrchestratorSettings.settings file in the
-					settings folder. The .settings files
-				are different from other named components, because there is only one settings file
-				for each settings component.
-
-	
-
-	
+DynamicFulfillmentOrchestratorSettings.settings file in the
+settings folder. The .settings files
+are different from other named components, because there is only one settings file
+for each settings component.
 
 ## Version
 
-		
-		
-
 DynamicFulfillmentOrchestratorSettings components are available in API version 61.0 and
-				later.
-
-	
-
-	
-
-	
+later.
 
 ## Fields
 
-		
-
-		
-
-			
-			
-			
-				
-					
-
-					
-
-				
-
-			
-
-			
-
-				
-					
-
-				
-
-: 
-
-: 
-
-				
-
-				
-					
-
-				
-
-: 
-
-: 
-
-				
-
-				
-					
-
-				
-
-: 
-
-: 
-
-				
-
-				
-					
-
-				
-
-: 
-
-: 
-
-				
-
-				
-					
-
-				
-
-: 
-
-: 
-
-				
-
-				
-					
-
-				
-
-: 
-
-: 
-
-				
-
-				
-
-			
-| Field Name | Description |
-| --- | --- |
-| enableDFOFallout | **Field Type** boolean **Description** Indicates whether to enable fallout management to handle fallouts and retry policies (`true`) or not (`false`). The default value is `false`. See [Turn On Feature to Manage Fallout](https://help.salesforce.com/s/articleView?id=ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements.htm&language=en_US). |
-| enableDFOJeopardy | **Field Type** boolean **Description** Indicates whether to enable management of Service Level Agreements (`true`) or not (`false`). The default value is `false`. See [Turn On Feature to Manage Service Level Agreements](https://help.salesforce.com/s/articleView?id=ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements.htm&language=en_US). |
-| enableDFOPref | **Field Type** boolean **Description** Indicates whether to enable features of Dynamic Revenue Orchestrator (`true`) or not (`false`). The default value is `false`. See [Turn On Dynamic Revenue Orchestrator](https://help.salesforce.com/s/articleView?id=ind.dro_turn_on_dynamic_revenue_orchestrator.htm&language=en_US). |
-| enableDROFutureDatedTasks | **Field Type** boolean **Description** Indicates whether to enable the Future Dated Steps feature (`true`) or not (`false`). The default value is `false`. See [Enable Future Dated Steps](https://help.salesforce.com/s/articleView?id=ind.enable_future_dated_steps.htm&language=en_US). Available in API version 63.0 and later. |
-| enableDROInflightRequest | **Field Type** boolean **Description** Indicates whether to allow changes to fulfillment requests that are in progress (`true`) or not (`false`). The default value is `false`. Available in API version 64.0 and later. |
-| enableDROTaskSource | **Field Type** boolean **Description** Indicates whether to link a Salesforce manual task to a fulfillment step source (`true`) or not (`false`). The default value is `false`. See [Enable the Linking of Task to Step Source](https://help.salesforce.com/s/articleView?id=ind.dro_turn_on_feature_to_link_task_to_step_source.htm&language=en_US). Available in API version 63.0 and later. |
-
-	
-
-		
+| Field Name | Field Type | Description |
+| --- | --- | --- |
+| enableDFOFallout | boolean | Indicates whether to enable fallout management to handle fallouts and retry policies (`true`) or not (`false`). The default value is `false`. See [Turn On Feature to Manage Fallout](https://help.salesforce.com/s/articleView?id=ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements.htm&language=en_US "HTML (New Window)"). |
+| enableDFOJeopardy | boolean | Indicates whether to enable management of Service Level Agreements (`true`) or not (`false`). The default value is `false`. See [Turn On Feature to Manage Service Level Agreements](https://help.salesforce.com/s/articleView?id=ind.dro_turn_on_features_to_manage_fallout_and_service_level_agreements.htm&language=en_US "HTML (New Window)"). |
+| enableDFOPref | boolean | Indicates whether to enable features of Dynamic Revenue Orchestrator (`true`) or not (`false`). The default value is `false`. See [Turn On Dynamic Revenue Orchestrator](https://help.salesforce.com/s/articleView?id=ind.dro_turn_on_dynamic_revenue_orchestrator.htm&language=en_US "HTML (New Window)"). |
+| enableDROFutureDatedTasks | boolean | Indicates whether to enable the Future Dated Steps feature (`true`) or not (`false`). The default value is `false`. See [Enable Future Dated Steps](https://help.salesforce.com/s/articleView?id=ind.enable_future_dated_steps.htm&language=en_US). Available in API version 63.0 and later. |
+| enableDROInflightRequest | boolean | Indicates whether to allow changes to fulfillment requests that are in progress (`true`) or not (`false`). The default value is `false`. Available in API version 64.0 and later. |
+| enableDROTaskSource | boolean | Indicates whether to link a Salesforce manual task to a fulfillment step source (`true`) or not (`false`). The default value is `false`. See [Enable the Linking of Task to Step Source](https://help.salesforce.com/s/articleView?id=ind.dro_turn_on_feature_to_link_task_to_step_source.htm&language=en_US "HTML (New Window)"). Available in API version 63.0 and later. |
 
 ## Declarative Metadata Sample Definition
 
-		
-			
-
 The following is an example of a DynamicFulfillmentOrchestratorSettings component.
-
-			
 
 ```
 <DynamicFulfillmentOrchestratorSettings xmlns="http://soap.sforce.com/2006/04/metadata">
@@ -190,12 +62,8 @@ The following is an example of a DynamicFulfillmentOrchestratorSettings componen
 </DynamicFulfillmentOrchestratorSettings>
 ```
 
-			
-
 The following is an example `package.xml` that
-			references the previous definition.
-
-			
+references the previous definition.
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
@@ -208,16 +76,13 @@ The following is an example `package.xml` that
 </Package>
 ```
 
-		
-
-		
-
 ## Wildcard Support in the Manifest File
 
-			
-			
-
 The wildcard character `*` (asterisk) in the
-					package.xml manifest file doesn’t apply to metadata types
-				for feature settings. The wildcard applies only when retrieving all settings, not
-				for an individual setting. For details, see [Settings](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/meta_settings.htm). For information about using the manifest file, see [Deploying and Retrieving Metadata with the Zip File](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/file_based_zip_file.htm).
+package.xml manifest file doesn’t apply to metadata types
+for feature settings. The wildcard applies only when retrieving all settings, not
+for an individual setting. For details, see [Settings](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/meta_settings.htm "HTML (New Window)"). For information about using the manifest file, see [Deploying and Retrieving Metadata with the Zip File](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/file_based_zip_file.htm "HTML (New Window)").
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/meta_dynamicfulfillmentorchestratorsettings.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

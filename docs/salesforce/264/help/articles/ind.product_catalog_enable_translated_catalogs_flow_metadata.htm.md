@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_data_translation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Use Flow Metadata to Enable Translated Product Catalogs
@@ -14,7 +14,7 @@ fetched_at: 2026-09-04
 One method for enabling translated product catalogs is to download an updated version of the Discover Products flow and use its metadata to create a new flow.
 
 REQUIRED EDITIONS
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To open, edit, or create a flow in Flow Builder:	Manage Flow
 To enable translations:	Manage Product Catalog
@@ -50,3 +50,7 @@ Locate and select the flow Discover Products With Translations.
 In the flow, select Activate.
 
 To check your work, go to any quote or order and select Browse Catalogs to see the translated product catalog names.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_enable_translated_catalogs_flow_metadata.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

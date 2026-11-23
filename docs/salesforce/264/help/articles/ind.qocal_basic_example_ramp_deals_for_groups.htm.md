@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.ramp_deals_examples.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Basic Example of Ramp Deals for Groups
@@ -15,7 +15,7 @@ See how sales reps can structure a simple, multiyear deal with phased rollouts, 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 
 First, create a ramp deal to deploy products and services incrementally. Then, we apply segment-specific adjustments by applying discounts and price uplifts. Finally, we see how Transaction Management tracks consolidated assets for simplified management.
 
@@ -100,3 +100,7 @@ The Asset Action related list shows one asset action for the initial sale. The A
 
 Click the Dashboard tab.
 The Dashboard shows how quantity and monthly recurring revenue change over time.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_basic_example_ramp_deals_for_groups.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

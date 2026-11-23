@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_set_up_constraints_engine.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create Custom Field and Define Apex Triggers
@@ -15,7 +15,7 @@ Create the necessary custom fields and define Apex triggers on the Quote Line It
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 Create the ConstraintEngineNodeStatus Custom Field
 
 Create a custom field on the Quote Line Item, Order Product, and Asset Action Source objects to store data that Constraint Rules Engine uses for internal processing.
@@ -195,3 +195,7 @@ trigger OrderItemTrigger on OrderItem  (before insert) {
 See Define Apex Triggers.
 
 After you define the Apex triggers, set up constraint rules engine.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_set_up_constraint_engine_prerequisites.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

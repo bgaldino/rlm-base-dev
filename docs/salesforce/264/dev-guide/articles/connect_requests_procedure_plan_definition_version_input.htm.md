@@ -7,19 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_requests.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Procedure Plan Definition Version Input
 
 Input representation of the details of a procedure plan definition version.
 
-    
-
 ## JSON Example
-
-      
-      
 
 ```
 {
@@ -79,200 +74,10 @@ Input representation of the details of a procedure plan definition version.
 }
 ```
 
-      
-
 **Note:** The properties that aren’t specified in the input are deleted when updating the record.
-
-    
-
-    
 
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `active` | Boolean | Indicates whether this procedure plan definition version is active (`true`) or not (`false`). You can’t edit or delete a procedure plan version that’s in the active state. | Required | 62.0 |
@@ -281,9 +86,13 @@ Input representation of the details of a procedure plan definition version.
 | `effective​From` | String | Date and time from when the procedure plan definition version comes into effect. | Required | 62.0 |
 | `effective​To` | String | Date and time from when the procedure plan definition version is no longer in effect. | Required | 62.0 |
 | `inherited​From` | String | Template this procedure plan definition version is created from. | This property is read-only. | 62.0 |
-| `procedure​PlanSections` | [Procedure Plan Section Input](./connect_requests_procedure_plan_section_input.htm.md)[] | Procedure setup sections for a procedure plan definition. Each section enables the setup of a procedure type by using a rule-based criteria. Keep these considerations in mind when you modify this property. You can edit or delete a procedure plan section if it isn’t associated with an active procedure plan version or You can create a procedure plan section with rule-based resolution type if the primary object isn’t empty in the definition. | Required | 62.0 |
+| `procedure​PlanSections` | [Procedure Plan Section Input](./connect_requests_procedure_plan_section_input.htm.md "Input representation of the details of a procedure plan section.")[] | Procedure setup sections for a procedure plan definition. Each section enables the setup of a procedure type by using a rule-based criteria. Keep these considerations in mind when you modify this property. You can edit or delete a procedure plan section if it isn’t associated with an active procedure plan version or You can create a procedure plan section with rule-based resolution type if the primary object isn’t empty in the definition. | Required | 62.0 |
 | `rank` | Integer | Current rank of the procedure plan definition version that’s used to decide the sequence of execution of a procedure plan definition version. | Required | 62.0 |
 | `readContext​Mapping` | String | Mapping that’s used to read data from the mapped object and populate the context definition. This property value must be associated with a context definition. | Optional | 62.0 |
 | `recordId` | String | ID of the procedure plan definition version record. | Required | 62.0 |
 | `saveContext​Mapping` | String | Mapping that’s used to save data from the context definition and populate the mapped object. This property value must be associated with a context definition. | Optional | 62.0 |
 | `status` | String | Status of the procedure plan definition version record. | Optional | 62.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_procedure_plan_definition_version_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

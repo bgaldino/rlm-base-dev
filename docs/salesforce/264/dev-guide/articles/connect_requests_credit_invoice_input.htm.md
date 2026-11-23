@@ -7,19 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Credit Invoice Input
 
 Input representation of the details of the request to create a credit memo.
 
-**JSON example**
+## JSON Example
 
-: This example shows a sample request with the `Calculate` tax
-            strategy.
+This example shows a sample request with the `Calculate` tax strategy.
 
 ```
 {
@@ -37,9 +34,7 @@ Input representation of the details of the request to create a credit memo.
 }
 ```
 
-          
-: This example shows a sample request with the `CopyFromInvoiceLine` tax
-            strategy.
+This example shows a sample request with the `CopyFromInvoiceLine` tax strategy.
 
 ```
 {
@@ -57,9 +52,7 @@ Input representation of the details of the request to create a credit memo.
 }
 ```
 
-          
-: This example shows a sample request with the `ManualOverride` and `CopyFromInvoiceLine`
-            tax strategies.
+This example shows a sample request with the `ManualOverride` and `CopyFromInvoiceLine` tax strategies.
 
 ```
 {
@@ -112,20 +105,28 @@ Input representation of the details of the request to create a credit memo.
 }
 ```
 
-**Properties**
-
-: 
-
-- 
-- 
-- 
-- 
+## Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `description` | String | Description for the credit memo to be created. | Optional | 62.0 |
 | `effective​Date` | String | Date when the credit memo takes effect. | Optional | 62.0 |
-| `invoice​Lines` | [Credit Invoice Line Input](./connect_requests_credit_invoice_line_input.htm.md)[] | List of the invoice lines to be credited. The invoice line IDs must be related to the invoice ID specified in the API request. If invoice lines aren’t specified, the API request results in an error. | Required | 62.0 |
+| `invoice​Lines` | [Credit Invoice Line Input](./connect_requests_credit_invoice_line_input.htm.md "Input representation of the details of the invoice lines to be credited.")[] | List of the invoice lines to be credited. The invoice line IDs must be related to the invoice ID specified in the API request. If invoice lines aren’t specified, the API request results in an error. | Required | 62.0 |
 | `taxEffective​Date` | String | Date when the tax takes effect to recalculate the taxes. | Optional | 62.0 |
-| `tax​Strategy` | String | Tax strategy to be applied across invoice lines. You can override the tax strategy at the individual invoice line level or at the tax line level. Valid values are: `Ignore`—Specifies that the creation of tax lines must be ignored. `ManualOverride`—Specifies that the provided tax values must be considered for taxes. `CopyFromInvoiceLine`—Specifies that tax values must be copied from the invoice line. `Calculate`—Specifies that tax must be calculated by using the API. | Required | 62.0 |
-| `type` | String | Type of credit memo to be created. Valid values are `Posted` and `Draft`. Specify `Draft` as a value in your request to create draft credit memos. | Optional | 62.0 |
+| `tax​Strategy` | String |  | Required | 62.0 |
+| `type` | String |  | Optional | 62.0 |
+
+Supported values:
+
+- `Ignore`—Specifies that the creation of tax
+  lines must be ignored.
+- `ManualOverride`—Specifies that the provided
+  tax values must be considered for taxes.
+- `CopyFromInvoiceLine`—Specifies that tax
+  values must be copied from the invoice line.
+- `Calculate`—Specifies that tax must be
+  calculated by using the API.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_credit_invoice_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

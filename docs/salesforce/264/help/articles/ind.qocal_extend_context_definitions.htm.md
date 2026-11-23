@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_extend_your_transactions_with_custom_field_support.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Link Context Definitions to Pricing Procedures
@@ -29,3 +29,7 @@ Context definition has both ClonedFrom and InheritedFrom populated
 If a context definition record has values in both the ClonedFrom and InheritedFrom fields, it can cause pricing errors. If you find affected records, delete them and recreate the context definition extension.
 Something went wrong while hydrating additional context fields
 This error can occur when the context definition is out of sync with the pricing procedure, when the context definition was cloned instead of extended, or when the context definition was created without the required permissions. Verify that you extended (not cloned) the context definition and that the pricing procedure references the correct extended context definition.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_extend_context_definitions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

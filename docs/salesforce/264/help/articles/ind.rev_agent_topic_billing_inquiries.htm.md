@@ -6,16 +6,16 @@ release: 264
 release_name: Winter '27
 area: agents
 parent_article: ind.billing_agentforce_billing_agent.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Subagent: Billing Inquiries
 
-Use Agentforce to help internal teams quickly access and understand key billing information. The Billing Inquiries subagent answers questions about account balances, payment plans, upcoming payment dates, invoice details, and downloadable invoice documents. Users can ask about an account or a specific invoice, and the agent automatically identifies the right billing flow to run. The subagent consolidates information from Revenue Management Billing so teams can resolve billing questions efficiently and confidently.
+Use Agentforce to help internal teams quickly access and understand key billing information. The Billing Inquiries subagent answers questions about account balances, payment plans, upcoming payment dates, invoice details, and downloadable invoice documents. Users can ask about an account or a specific invoice, and the agent automatically identifies the right billing flow to run. The subagent consolidates information from Revenue Cloud Billing so teams can resolve billing questions efficiently and confidently.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management with the Revenue Cloud Advanced license and the Revenue Cloud Billing license with the Agentforce Employee Agent add-on.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Advanced license and the Revenue Cloud Billing license with the Agentforce Employee Agent add-on.
 Topic Details
 API Name	BillingInquiries
 Included actions	
@@ -29,7 +29,7 @@ Generate Payment Plan Details
 Get Invoice Document PDF
 
 
-Required Setup	Set Up Agentforce for Revenue Management
+Required Setup	Set Up Agentforce for Revenue Cloud
 Examples of Utterances Classified to This Topic
 USER SAMPLE INPUT	ACTIONS ENGAGED	AGENT RESPONSE
 “How much do I currently owe?”	Get Account Balance	The agent summarizes the net amount due across outstanding invoices, including debit memos, credit memos, payments, and refunds.
@@ -40,3 +40,7 @@ USER SAMPLE INPUT	ACTIONS ENGAGED	AGENT RESPONSE
 “Get the payment plan for invoice DOC-12345.”	Generate Payment Plan Details	The agent reads the invoice details and returns the full payment schedule.
 “Can you show me my latest bill?”	Get Invoice Document PDF	The agent retrieves the most recent posted invoice and provides a downloadable PDF link.
 “Download the latest invoice for this account.”	Get Invoice Document PDF	The agent fetches the latest invoice and provides the file link in Markdown format.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rev_agent_topic_billing_inquiries.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create Payment Terms
@@ -65,3 +65,7 @@ Go to the Order records and specify the relevant payment term.
 NOTE If you don't specify payment terms for orders, the default payment term for your Salesforce org is used.
 
 The same payment terms are autopopulated for the billing schedules that are generated for these orders, and eventually used to determine the due dates of the invoices.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_payment_terms.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

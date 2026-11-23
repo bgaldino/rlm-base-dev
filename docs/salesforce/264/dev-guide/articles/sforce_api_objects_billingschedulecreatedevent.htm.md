@@ -7,230 +7,74 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_pfrm_evnt_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # BillingScheduleCreatedEvent
 
-Notifies subscribers when the `/commerce/invoicing/billing-schedules/actions/create` request is complete.
-      This object is available in API version 63.0 and later.
-
-      
+Notifies subscribers when the `/commerce/invoicing/billing-schedules/actions/create` request is complete. This object is available in API version 63.0 and later.
 
 ## Supported Calls
 
-      
-      
-
-         `describeSObjects()`
-      
-
-      
-
-      
+`describeSObjects()`
 
 ## Supported Subscribers
 
-         
-         
-
-               
-               
-               
-                  
-                     
-
-                     
-
-                  
-
-               
-
-               
-                  
-                     
-
-                     
-
-                  
-
-                  
-                     
-
-                     
-
-                  
-
-                  
-                     
-
-                     
-
-                  
-
-                  
-                     
-
-                     
-
-                  
-
-                  
-                     
-
-                     
-
-                  
-
-               
-
-            
 | Subscriber | Supported? |
 | --- | --- |
-| Apex Triggers |  |
-| Flows |  |
-| Processes |  |
-| Pub/Sub API |  |
-| Streaming API (CometD) |  |
-
-      
-
-      
+| Apex Triggers | Yes |
+| Flows | Yes |
+| Processes | Yes |
+| Pub/Sub API | Yes |
+| Streaming API (CometD) | Yes |
 
 ## Subscription Channel
 
-         
-         
-
-`/event/billingschedulecreatedevent`
-
-      
-
-      
+`/event/billingschedulecreatedevent`.
 
 ## Event Delivery Allocation Enforced
 
-         
-         
-
 No
-
-      
-
-      
 
 ## Special Access Rules
 
-         
-         
-
 This object is available when Billing is enabled.
 
-      
-
-      
+- **[BillSchdCreatedEventDetail](./sforce_api_objects_billschdcreatedeventdetail.htm.md)**  
+  Contains details about each order item in the `/commerce/invoicing/billing-schedules/actions/create` request and any errors that occurred while processing the request. This object is included in an `BillingScheduleCreatedEvent` message. You can't subscribe to the `BillSchdCreatedEventDetail` platform event directly. This object is available in API version 63.0 and later.
 
 ## Fields
 
-         
-         
+### BillingScheduleCreatedEventDetail
 
-               
-               
-               
-                  
-                     
+- **Type**: [BillSchdCreatedEventDetail](./sforce_api_objects_billschdcreatedeventdetail.htm.md "Contains details about each order item in the /commerce/invoicing/billing-schedules/actions/create request and any errors that occurred while processing the request. This object is included in an BillingScheduleCreatedEvent message. You can't subscribe to the BillSchdCreatedEventDetail platform event directly. This object is available in API version 63.0 and later.")
+- **Properties**: Nillable
+- **Description**: One `BillingScheduleCreatedEventDetail` entry is created for each order item in the `BillingScheduleCreatedEvent` request. One `BillSchdCreatedEventDetail` entry is created for each error that occurred.
 
-                     
+### CorrelationIdentifier
 
-                  
+- **Type**: string
+- **Properties**: Nillable
+- **Description**: Reserved for future use.
 
-               
+### EventUuid
 
-               
-                  
-                     
+- **Type**: string
+- **Properties**: Nillable
+- **Description**: A universally unique identifier (UUID) that identifies a platform event message.
 
-                     
+### ReplayId
 
-: 
+- **Type**: string
+- **Properties**: Nillable
+- **Description**: Represents an ID value that is populated by the system and refers to the position of the event in the event stream. Replay ID values aren’t guaranteed to be contiguous for consecutive events. A subscriber can store a replay ID value and use it on resubscription to retrieve missed events that are within the retention window.
 
-: 
+### RequestIdentifier
 
-: 
+- **Type**: string
+- **Properties**: Nillable
+- **Description**: ID returned in the `CreateBillingScheduleFromOrderItem` response. Use this ID to identify the `BillingScheduleCreatedEvent` for a specific request.
 
-                  
+---
 
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-                  
-                     
-
-                     
-
-: 
-
-: 
-
-: 
-
-                  
-
-               
-
-            
-| Field | Details |
-| --- | --- |
-| BillingScheduleCreatedEventDetail | **Type** [BillSchdCreatedEventDetail](./sforce_api_objects_billschdcreatedeventdetail.htm.md) **Properties** Nillable **Description** One `BillingScheduleCreatedEventDetail` entry is created for each order item in the `BillingScheduleCreatedEvent` request. One `BillSchdCreatedEventDetail` entry is created for each error that occurred. |
-| CorrelationIdentifier | **Type** string **Properties** Nillable **Description** Reserved for future use. |
-| EventUuid | **Type** string **Properties** Nillable **Description** A universally unique identifier (UUID) that identifies a platform event message. |
-| ReplayId | **Type** string **Properties** Nillable **Description** Represents an ID value that is populated by the system and refers to the position of the event in the event stream. Replay ID values aren’t guaranteed to be contiguous for consecutive events. A subscriber can store a replay ID value and use it on resubscription to retrieve missed events that are within the retention window. |
-| RequestIdentifier | **Type** string **Properties** Nillable **Description** ID returned in the `CreateBillingScheduleFromOrderItem` response. Use this ID to identify the `BillingScheduleCreatedEvent` for a specific request. |
-
-      
-
-   
-
-- 
-**[BillSchdCreatedEventDetail](./sforce_api_objects_billschdcreatedeventdetail.htm.md)**  
-
-Contains details about each order item in the `/commerce/invoicing/billing-schedules/actions/create` request and any errors          that occurred while processing the request. This object is included in an `BillingScheduleCreatedEvent` message. You can't subscribe to          the `BillSchdCreatedEventDetail` platform event          directly. This object is available in API version 63.0 and later.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/sforce_api_objects_billingschedulecreatedevent.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

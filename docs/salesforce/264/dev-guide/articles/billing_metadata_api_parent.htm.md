@@ -7,31 +7,25 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_overview.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Billing Metadata API Types
 
 Metadata API enables you to access some types and feature settings that you can
-    customize in the user interface.
+customize in the user interface.
 
-- 
-**[BillingSettings](./meta_billingsettings.htm.md)**  
-
-Represents the settings for Salesforce 		Billing.
-
-- 
-**[Flow for Billing](./billing_flow_metadata_api.htm.md)**  
-
-Represents the metadata associated with a flow. With Flow, you can create an     application that navigates users through a series of screens to query and update records in the     database. You can also execute logic and provide branching capability based on user input to     build dynamic applications.
-
-- 
-**[PaymentsSharingSettings](./meta_paymentssharingsettings.htm.md)**  
-
-Represents the settings to enable account-based sharing 			to view details related to Revenue Cloud Billing on the objects for Payments and 			Refunds.
+- **[BillingSettings](./meta_billingsettings.htm.md)**  
+  Represents the settings for Salesforce Billing.
+- **[Flow for Billing](./billing_flow_metadata_api.htm.md)**  
+  Represents the metadata associated with a flow. With Flow, you can create an application that navigates users through a series of screens to query and update records in the database. You can also execute logic and provide branching capability based on user input to build dynamic applications.
+- **[PaymentsSharingSettings](./meta_paymentssharingsettings.htm.md)**  
+  Represents the settings to enable account-based sharing to view details related to Revenue Cloud Billing on the objects for Payments and Refunds.
 
 #### See Also
 
-- [*Metadata API Developer Guide*: Understanding Metadata API](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/meta_intro.htm)
+- [*Metadata API Developer Guide*: Understanding Metadata API](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/meta_intro.htm "Metadata API Developer Guide: Understanding Metadata API - HTML (New Window)")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/billing_metadata_api_parent.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

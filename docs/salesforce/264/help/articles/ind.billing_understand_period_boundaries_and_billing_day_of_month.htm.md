@@ -6,12 +6,12 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_frequency_change_flow_impact.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # About Period Boundaries and Billing Day of Month
 
-You can adjust when billing periods start and how charges are calculated by using flexible date settings that align with your business model and customer preferences. You can use the Period Boundary, Period Boundary Day, and Period Boundary Start Month fields on the order product, to define when billing begins, how billing periods are segmented, and how proration is applied. The period boundary on the order product ‌defines how the billing period is calculated. The Billing Day of the Month field on the Billing Schedule record specifies the day you expect to bill the customer. Together, these fields define how billing periods align with the transaction timeline and how Billing in Revenue Management calculates and groups charges on invoice lines.
+You can adjust when billing periods start and how charges are calculated by using flexible date settings that align with your business model and customer preferences. You can use the Period Boundary, Period Boundary Day, and Period Boundary Start Month fields on the order product, to define when billing begins, how billing periods are segmented, and how proration is applied. The period boundary on the order product ‌defines how the billing period is calculated. The Billing Day of the Month field on the Billing Schedule record specifies the day you expect to bill the customer. Together, these fields define how billing periods align with the transaction timeline and how Billing in Revenue Cloud calculates and groups charges on invoice lines.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
@@ -77,3 +77,7 @@ The billing day of the month on the billing schedule determines the day invoices
 
 If billed in advance, invoices are generated at the start of each billing period.
 If billed in arrears, invoices are generated on the last day of each billing period.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_understand_period_boundaries_and_billing_day_of_month.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

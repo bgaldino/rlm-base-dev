@@ -7,29 +7,17 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Omnistudio
 parent_page: omnistudio_apis_requests_1.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Decision Matrix Rows Input
 
 Input representation of the information to manage rows in relation to
-      the decision matrix version.
+the decision matrix version.
 
-      
-        
-          
-
-**JSON Example**
-
-          
-: 
-            
+## JSON Example
 
 Add a row:
-
-            
 
 ```
 {
@@ -43,18 +31,9 @@ Add a row:
     }
   ]
 }
-
 ```
 
-          
-
-          
-: 
-            
-
 Delete a row:
-
-            
 
 ```
 {
@@ -70,18 +49,9 @@ Delete a row:
     }
   ]
 }
-
 ```
 
-          
-
-          
-: 
-            
-
 Update a row:
-
-            
 
 ```
 {
@@ -97,22 +67,9 @@ Update a row:
     }
   ]
 }
-
 ```
 
-          
-
-          
-: 
-            
-
 Add row using a CSV file:
-
-          
-
-          
-: 
-            
 
 ```
 {
@@ -120,72 +77,13 @@ Add row using a CSV file:
 }
 ```
 
-          
+## Properties
 
-        
-        
-          
-
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-#### 
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `fileId` | String | The ID of the [Content Document Version](https://developer.salesforce.com/docs/atlas.en-us.264.0.object_reference.meta/object_reference/sforce_api_objects_contentversion.htm) that contains the rows details to be added or updated in a decision matrix version. | Optional Note This field is required if you’re using a CVS file to add or update rows. | 53.0 |
-| `rows` | [Decision Matrix Row Input](./connect_requests_decision_matrix_row_input.htm.md)[] | List of rows to be added, updated, or deleted in a decision matrix version. | Required | 53.0 |
+| `fileId` | String | The ID of the [Content Document Version](https://developer.salesforce.com/docs/atlas.en-us.264.0.object_reference.meta/object_reference/sforce_api_objects_contentversion.htm) that contains the rows details to be added or updated in a decision matrix version. | Optional Note: This field is required if you’re using a CVS file to add or update rows. | 53.0 |
+| `rows` | [Decision Matrix Row Input](./connect_requests_decision_matrix_row_input.htm.md "Input representation of the information required to add, update, or delete rows in a decision matrix version.")[] | List of rows to be added, updated, or deleted in a decision matrix version. | Required | 53.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_requests_decision_matrix_rows_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

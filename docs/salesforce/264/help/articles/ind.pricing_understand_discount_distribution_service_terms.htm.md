@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_discount_spread_service.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Understand Discount Distribution Service Terms
@@ -38,3 +38,7 @@ When you set floor limits, you’ll need to map these tags in the procedure.
 VARIABLE	DESCRIPTION
 Minimum Net Unit Price	This variable indicates the minimum net unit price that can be set for a line item. No discount can be applied below this price. This must be of currency type.
 Total Remainder Amount	This variable stores the remainder amount after applying all the discounts. This must be of currency type.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_understand_discount_distribution_service_terms.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

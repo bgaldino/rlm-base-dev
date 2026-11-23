@@ -1,15 +1,15 @@
 ---
 article_id: ind.rm_rating_elements.htm
-title: Explore Available Rating Elements in Revenue Management
+title: Explore Available Rating Elements in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.rm_rating_elements.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: rating
 parent_article: ind.rm_rating_procedures.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
-# Explore Available Rating Elements in Revenue Management
+# Explore Available Rating Elements in Revenue Cloud
 
 Rating elements are the building blocks of a rating procedure. A new rating procedure is always blank, and each added element forms a step in the rating procedure. Use the available rating elements to form logical steps in the rating procedure.
 
@@ -60,3 +60,7 @@ Stop Rating
 Use the Stop Rating element to stop the execution of the rating procedure for a particular line item. During simulation, the Waterfall view shows the element that the rating procedure stopped at.
 Get Rate Cards
 Use the Get Rate Cards element to fetch the rate cards that you need for your rating procedure.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rm_rating_elements.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

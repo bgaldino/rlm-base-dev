@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.pricing_apply_policy_driven_price_revisions.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Use Consumer Price Index for Automated Renewal Price Uplifts
@@ -15,7 +15,7 @@ Automate the calculation of renewal price increases by using the consumer price 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To use CPI for renewal price uplifts:	Renew Assets user permission
 
@@ -34,7 +34,7 @@ Sales reps who are negotiating a deal at the quote line item or order item level
 
 At renewal time, the system automatically calculates the correct price based on the price revision policy, index rate, and unit price uplift. For example, CPI-adjusted uplift for a renewal in July 2025 is 7.7% because US CPI was 2.7% and the agreed-upon spread was +5%.
 
-To implement CPI-based renewal uplift, configure data objects and fields within Revenue Management to capture and apply relevant inflation data.
+To implement CPI-based renewal uplift, configure data objects and fields within Revenue Cloud to capture and apply relevant inflation data.
 
 Configure a price revision policy.
 With a price revision policy, a Pricing design-time user or Salesforce admin can define the CPI policy and the formula to be applied when calculating renewal uplift.
@@ -73,7 +73,7 @@ EXAMPLE
 
 Sales reps can use CPI in several scenarios to determine the final renewal price.
 
-Standard CPI calculation: Revenue Management calculates the renewal price by applying the CPI rate plus an additional defined uplift percentage to the LTP.
+Standard CPI calculation: Revenue Cloud calculates the renewal price by applying the CPI rate plus an additional defined uplift percentage to the LTP.
 
 Last Transaction Price: $100
 CPI Percentage: 3.5%
@@ -85,7 +85,7 @@ Asset renewal with a defined CPI type: The renewal flow checks the asset for spe
 
 Asset configuration: A Sales Cloud asset has an LTP of $150 per user per month, a CPI type of US CPI, and an additional 3% uplift with an uplift type of CPI/Variable.
 CPI data match: The renewal process finds and uses a US CPI record for the effective renewal date with a 4.50% CPI value.
-Net unit price calculation: Revenue Management calculates the new net unit price as $150\times (1 + \text{CPI} + \text{Renewal Uplift}). Result: $150\times (1 + 0.045 + 0.03) = 150\times 1.075 =\mathbf($161.25).
+Net unit price calculation: Revenue Cloud calculates the new net unit price as $150\times (1 + \text{CPI} + \text{Renewal Uplift}). Result: $150\times (1 + 0.045 + 0.03) = 150\times 1.075 =\mathbf($161.25).
 
 Regional/international uplift: CPI uplift supports defining different inflation rates for localized sales.
 
@@ -95,3 +95,7 @@ Automated periodic price amendments: Sales reps can use CPI to automatically adj
 
 For a three-year contract with a CPI anniversary clause, CPI automatically updates the prices for year two and year three at the first and second anniversary dates.
 The system automatically sends a notification to the customer informing them of the price change.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_consumer_price_index_and_price_uplifts.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,25 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Line Item
 
 Output representation of the details of the line item.
 
-    
-
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -77,153 +66,19 @@ Output representation of the details of the line item.
     }
   ]
 }
-
 ```
 
-          
-
-        
-      
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `addresses` | [Addresses](./connect_responses_addresses_output.htm.md) | Different types of addresses that are used for the transaction of the line item. | Big, 62.0 | 62.0 |
-| `amountDetails` | [Tax Amount Details](./connect_responses_tax_amount_details_output.htm.md) | Details of the transaction amount and the taxes applicable for the line item. | Big, 62.0 | 62.0 |
+| `addresses` | [Addresses](./connect_responses_addresses_output.htm.md "Output representation of the details of the addresses that are used for calculating tax.") | Different types of addresses that are used for the transaction of the line item. | Big, 62.0 | 62.0 |
+| `amountDetails` | [Tax Amount Details](./connect_responses_tax_amount_details_output.htm.md "Output representation of the details of the tax amount.") | Details of the transaction amount and the taxes applicable for the line item. | Big, 62.0 | 62.0 |
 | `effectiveDate` | String | Date when the tax rules are applied on the line item. | Big, 62.0 | 62.0 |
 | `lineNumber` | String | Unique identifier of the line item. | Big, 62.0 | 62.0 |
 | `productCode` | String | Product code of the line item as defined by the tax engine. | Big, 62.0 | 62.0 |
 | `quantity` | Double | Quantity of the line item. | Big, 62.0 | 62.0 |
 | `taxCode` | String | Tax code of the line item according to the tax engine. | Big, 62.0 | 62.0 |
-| `taxes` | [Tax Details](./connect_responses_tax_details_output.htm.md) [] | Tax details of the line item. | Big, 62.0 | 62.0 |
+| `taxes` | [Tax Details](./connect_responses_tax_details_output.htm.md "Output representation of the tax details for each line item.") [] | Tax details of the line item. | Big, 62.0 | 62.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_line_item_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

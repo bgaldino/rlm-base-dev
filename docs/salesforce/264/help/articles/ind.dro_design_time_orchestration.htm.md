@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_dynamic_revenue_orchestrator.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Design Your Order Orchestration
@@ -44,3 +44,7 @@ Configure Steps for Future Execution
 Fulfillment designers can configure the steps to be executed at a future date and time. They can set a delay for the execution of steps based on the start date of the source line item, the execution time of the previous steps, or a custom date based on a context definition field.
 Apply Custom Scopes to Fulfillment Steps and Dependencies
 Use custom scopes to group fulfillment steps and resolve step dependencies based on a business value that you define, such as a tenant group, ramp segment, service location, or sales transaction item group. Standard scopes use a fixed level, such as Plan, Bundle, or Line Item.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_design_time_orchestration.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

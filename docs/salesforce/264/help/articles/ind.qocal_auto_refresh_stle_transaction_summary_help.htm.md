@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_customize_transaction_line_editor.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Turn On Auto-Refresh for the Sales Transaction Line Editor and Transaction Summary
@@ -15,7 +15,7 @@ Keep your sales reps focused on closing deals instead of reloading pages. To tur
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 
 Suppose a server-side process, such as an Apex trigger, an auto-launched or record-triggered flow, or an Agentforce action, updates a quote or order. STLE and the Transaction Summary automatically reflect the updated line items. You don't reload the browser to see the latest data.
 
@@ -51,4 +51,8 @@ When a sales rep is mid-edit or a save is still processing, STLE holds incoming 
 The transaction summary refreshes the same way. Because it's read-only, it refreshes the data without a save or discard prompt.
 
 Sales Transaction Line Editor and Transaction Summary Auto-Refresh Considerations
-Auto-refresh keeps data up to date across the Transaction Line Editor (TLE), Sales Transaction Line Editor (STLE), and Transaction Summary as sales reps make changes.
+Auto-refresh keeps data up to date across Sales Transaction Line Editor (STLE) and Transaction Summary as sales reps make changes. Auto-refresh isn't supported for Transaction Line Editor (TLE).
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_auto_refresh_stle_transaction_summary_help.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

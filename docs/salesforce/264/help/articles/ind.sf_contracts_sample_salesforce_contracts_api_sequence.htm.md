@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_na_1.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Sample Salesforce Contracts API Sequence
@@ -226,3 +226,7 @@ Additional APIs
 SCENARIO	METHOD TYPE	API PATH	DESCRIPTION
 Get List of Contract Document Versions	GET	<your domain URL>/services/data/{API version}/connect/clm/contract/<contractid>/contract-document-version	To view the list of contract document version that are already available in the contract.
 Get SpecificContract Document Version	GET	<your domain URL>/services/data/{API version}/connect/clm/contract/{ContractId}/contract-document-version?contractDocumentVersionId={ContractDocumentVersionId}	To view a specific contract document version that is already available in the contract.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_sample_salesforce_contracts_api_sequence.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

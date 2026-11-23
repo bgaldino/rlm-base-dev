@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # List Group and List Operation
@@ -15,7 +15,7 @@ Efficiently process lists of data and implement complex pricing logic and calcul
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS
 NEEDED
 To create, update, and delete pricing procedures:	Salesforce Pricing Design Time
@@ -66,3 +66,7 @@ IMPORTANT
 We recommend adding another filter condition to your List Group element, specifying that the value of the context tag isn’t a null. When pricing is executed on a quote or an order, if the tag doesn’t have a value or is null, the procedure will return an error.
 
 For example, if you add a filter condition to a line item indicating that the line item’s value is 100, then you must add a condition indicating that the line item’s value is not a null value. Your condition would look like this: {LineItem equals isNotNull} AND {LineItem equals 100}.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_list_group_list_operation.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_credit_memos.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Automatic Conversion of Negative Invoice Lines into Credit Memo Lines
@@ -44,3 +44,7 @@ The next time you generate an invoice for this order, an invoice line is created
 If Convert Negative Invoice Lines to Credit Memo Lines is turned on, this negative invoice line is automatically converted into a credit memo line within a new, posted credit memo.
 The new credit memo line has a line amount of $100.
 This credit memo's balance of $100 is applied to the original invoice, reducing its balance from $400 to $300.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_setup_negative_invoice_lines_conversion_to_credit_memo_lines.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

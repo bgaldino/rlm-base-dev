@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_salesforce_contracts_analytics_post-installation_steps.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Create Other Versions of Salesforce Contracts Analytics
@@ -26,3 +26,7 @@ Review the app preview page, and click Continue to open the configuration flow.
 Select Create a brand new app and click Continue. The app runs a compatibility check against your org to ensure it includes the data to successfully create the app’s datasets, recipes, and dashboards. If it doesn’t, follow the instructions in the error message to add the required data and start the app creation process again.
 When the org compatibility check succeeds, click Looks good, next.
 Name your app, and click Create.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_create_other_versions_of_salesforce_contracts_analytics.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

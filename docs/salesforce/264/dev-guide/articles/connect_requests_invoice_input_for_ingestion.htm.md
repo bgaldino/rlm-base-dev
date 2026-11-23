@@ -7,27 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Invoice Input for Ingestion
 
-Input representation of the details of the invoice that must be generated for or
-    ingested into Billing.
+Input representation of the details of the invoice that must be generated for or ingested into Billing.
 
-    
-      
-        
-          
-
-**
-JSON example to ingest a draft invoice with a tax callout**
-
-          
-: 
-            
+## JSON Example to Ingest a Draft Invoice With a Tax Callout
 
 ```
 {
@@ -222,17 +209,7 @@ JSON example to ingest a draft invoice with a tax callout**
 }
 ```
 
-          
-
-        
-        
-          
-
-**JSON example to ingest a draft invoice without a tax callout**
-
-          
-: 
-            
+## JSON Example to Ingest a Draft Invoice Without a Tax Callout
 
 ```
 {
@@ -416,17 +393,7 @@ JSON example to ingest a draft invoice with a tax callout**
 }
 ```
 
-          
-
-        
-        
-          
-
-**JSON example to ingest posted invoices**
-
-          
-: 
-            
+## JSON Example to Ingest Posted Invoices
 
 ```
 {
@@ -591,17 +558,7 @@ JSON example to ingest a draft invoice with a tax callout**
 }
 ```
 
-          
-
-        
-        
-          
-
-**JSON example to generate invoices from debit memos**
-
-          
-: 
-            
+## JSON Example to Generate Invoices From Debit Memos
 
 ```
 {
@@ -635,56 +592,12 @@ JSON example to ingest a draft invoice with a tax callout**
 }
 ```
 
-          
+## Properties
 
-        
-        
-          
-
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `invoices` | [Invoice Ingestion Input](./connect_requests_invoice_ingestion_input.htm.md)[] | List of invoices to be generated or ingested, enabling the submission and processing of multiple invoices in a single request. This API supports one invoice per request. To send 25 requests at a time, see the [Composite Batch request](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_rest.meta/api_rest/requests_composite_batch.htm). | Required | 63.0 |
+| `invoices` | [Invoice Ingestion Input](./connect_requests_invoice_ingestion_input.htm.md "Input representation of the details of the invoice to be processed. The details include the tax processing status, user preferences for tax callouts, and associated object graph representation.")[] | List of invoices to be generated or ingested, enabling the submission and processing of multiple invoices in a single request. This API supports one invoice per request. To send 25 requests at a time, see the [Composite Batch request](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_rest.meta/api_rest/requests_composite_batch.htm "HTML (New Window)"). | Required | 63.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_invoice_input_for_ingestion.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

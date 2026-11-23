@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_rounding_values.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Use the Rounding Values Element
@@ -71,3 +71,7 @@ Finally, set your preferences to view pricing information, profile access, and r
 Save your procedure.
 Click Simulate to test your procedure. Enter the input values for your printer bundle product and click Simulate again.
 The price waterfall shows the formula used to calculate the total cost of the printer bundles with a discount of 10%. You can also see that the rounded price has been applied to the Net Amount to the first decimal.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_apply_the_rounding_values_element.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

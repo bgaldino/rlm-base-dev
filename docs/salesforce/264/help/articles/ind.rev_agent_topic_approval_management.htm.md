@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: agents
 parent_article: ind.rev_agent_approval_agent.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Subagent: Approval Management
@@ -38,3 +38,7 @@ USER SAMPLE INPUT	ACTION ENGAGED	AGENT RESPONSE
 “Reject this work item with the comment 'budget exceeded.'"	Review Approval Work Item	The agent confirms the rejected decision and exact comment text, then submits the rejection.
 "I need to withdraw the approval I submitted for this quote."	Recall Approval Submission	The agent finds the approval submission related to the current quote, confirms the recall, asks for an optional comment, and recalls the submission.
 "Recall the approval submission for this lead."	Recall Approval Submission	The agent finds the approval submission related to the current lead, confirms the recall, asks for an optional comment, and recalls the submission.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rev_agent_topic_approval_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

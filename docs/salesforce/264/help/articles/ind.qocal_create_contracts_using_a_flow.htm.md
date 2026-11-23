@@ -6,16 +6,16 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_contract_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Automate Contract Creation from Quotes and Orders
 
-Use flows to automatically create contracts from a quote or an order. Create a flow that invokes the Create Contracts from Quote flow action when Revenue Management quotes are changed to Accepted status. You can also add more conditions or customize the flow to perform other actions. Create contracts from orders by using a similar flow.
+Use flows to automatically create contracts from a quote or an order. Create a flow that invokes the Create Contracts from Quote flow action when Revenue Cloud quotes are changed to Accepted status. You can also add more conditions or customize the flow to perform other actions. Create contracts from orders by using a similar flow.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To open, edit, or create a flow in Flow Builder:	Manage Flow
 From Setup, in the Quick Find box, enter Flows, and then select Flows.
@@ -40,3 +40,7 @@ After you complete the flow setup, add the Contract field to the Quote Details P
 
 SEE ALSO
 Automate Asset Creation from Orders by Using Flows
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_create_contracts_using_a_flow.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

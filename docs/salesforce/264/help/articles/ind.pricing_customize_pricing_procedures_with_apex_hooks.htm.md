@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_procedure_plan_framework.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Customize Your Procedure Plans With Apex Hooks
@@ -15,14 +15,14 @@ To support unique pricing scenarios, add custom Apex logic to your pricing proce
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Advanced license.
 USER
 PERMISSIONS NEEDED
 To create, update, and delete pricing procedures and procedure plans:	Salesforce Pricing Design Time User or Procedure Plan Access
 To use pricing procedures:	Salesforce Pricing Run Time User
 To define, edit, delete, set security, and set version settings for Apex classes:	Author Apex
 IMPORTANT
-When using the Revenue Management (formerly Revenue Cloud) process type, any Apex logic you add must be the first or last element in the Procedure Plan execution sequence.
+When using the Revenue Cloud process type, any Apex logic you add must be the first or last element in the Procedure Plan execution sequence.
 External callouts from an Apex hook are supported only when the Place Sales Transaction request is triggered through the Salesforce user interface or Place Sales Transaction API. They aren’t supported when the request is triggered from Apex or Flow.
 External callouts in Apex hooks aren’t supported when Double Persist mode is enabled. For additional guidance, contact Salesforce Customer Support.
 External callouts in Apex hooks can affect performance. So, predictable Service Level Objectives (SLOs) can’t be guaranteed.
@@ -1025,3 +1025,7 @@ Example: Use Apex Hooks to Extend Pricing Logic
 See how Apex hooks interact with Pricing sections when configured as pre- or post-hooks in a Product Discovery procedure plan.
 Best Practices for Apex Pricing Hooks
 Follow these best practices when implementing Apex hooks in your pricing procedure plans to optimize performance and avoid unexpected results.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_customize_pricing_procedures_with_apex_hooks.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

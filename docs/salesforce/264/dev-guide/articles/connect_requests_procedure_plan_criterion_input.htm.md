@@ -7,19 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_requests.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Procedure Plan Criterion Input
 
 Input representation of the details of a procedure plan criterion.
 
-    
-
 ## JSON Example
-
-      
-      
 
 ```
          "procedurePlanCriterion": [
@@ -50,131 +45,8 @@ Input representation of the details of a procedure plan criterion.
           ]
 ```
 
-    
-
-    
-
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `condition​Sequence` | Integer | Sequence to be followed to process the conditions defined in the procedure plan option. This property value must be unique within a procedure plan option. | Required | 62.0 |
@@ -184,3 +56,7 @@ Input representation of the details of a procedure plan criterion.
 | `literal​Value` | String | User-defined value that’s compared to the value of the sObject field value. | Optional | 62.0 |
 | `operator` | String | Operator that’s used by the procedure plan criterion. | Required | 62.0 |
 | `recordId` | String | ID of the procedure plan criterion record. | Required | 62.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_procedure_plan_criterion_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

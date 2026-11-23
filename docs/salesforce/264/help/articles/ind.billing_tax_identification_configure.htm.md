@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_partner_or_custom_tax_engine.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configure Additional Tax Identification Details
@@ -42,3 +42,7 @@ Delivery Terms
 After adding the required fields, you can open a Billing Account and verify the changes. When Billing calculates taxes, it automatically retrieves additional tax identification details from the default Billing Account associated with the Account. This information is passed to the configured external tax engine as part of the tax calculation request.
 
 Tax identification support applies only to invoices, credit memos, and debit memos. Tax identification information isn’t used during tax calculation for quotes or orders.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_tax_identification_configure.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

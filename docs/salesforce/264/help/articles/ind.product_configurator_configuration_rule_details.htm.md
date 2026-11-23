@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_configuration_rules.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configuration Rules in Business Rules Engine
@@ -15,7 +15,7 @@ Configuration rules streamline the product configuration experience and reduce c
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 Rule Scope
 
 You can apply configuration rules at three levels.
@@ -52,3 +52,7 @@ You eliminate fallout due to faulty product configurations when you use the vali
 Messages
 
 When you set up configuration rules, you can also define the messages that your sales reps see when the rule runs. Your sales reps can use the messages to rectify product selections and significantly reduce the time to market of the product.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_configuration_rule_details.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

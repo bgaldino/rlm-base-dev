@@ -7,172 +7,84 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Revenue Management Associated Objects
 parent_page: sforce_api_associated_objects_list.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
 
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
-
-# 
-StandardObjectNameChangeEvent
+# StandardObjectNameChangeEvent
 
 A ChangeEvent object is available for each object that supports Change Data Capture.
-    You can subscribe to a stream of change events using Change Data Capture to receive data tied to
-    record changes in Salesforce. Changes include record creation, updates to an existing record,
-    deletion of a record, and undeletion of a record. A change event isn’t a Salesforce
-    object—it doesn’t support CRUD operations or queries. It’s included in the object
-    reference so you can discover which Salesforce objects support change events.
-
-    
+You can subscribe to a stream of change events using Change Data Capture to receive data tied to
+record changes in Salesforce. Changes include record creation, updates to an existing record,
+deletion of a record, and undeletion of a record. A change event isn’t a Salesforce
+object—it doesn’t support CRUD operations or queries. It’s included in the object
+reference so you can discover which Salesforce objects support change events.
 
 ## Supported Calls
 
-      
-      
-
 `describeSObjects()`
-
-    
-
-    
 
 ## Special Access Rules
 
-      
-      
-        
 - All objects may not be available in your org. Some objects require specific feature
-          settings and permissions to be enabled.
-
-        
+  settings and permissions to be enabled.
 - For more special access rules, if any, see the documentation for the standard object.
-          For example, for AccountChangeEvent, see the special access rules for Account.
-
-      
-
-    
-
-    
+  For example, for AccountChangeEvent, see the special access rules for Account.
 
 ## Change Event Support
 
-      
-      
-
 Change events are available for all custom objects and a subset of standard objects. Change
-        events that correspond to custom settings are partially supported. They aren't supported in
-        Apex triggers but are supported in other types of subscribers. For more information about
-        standard object support, see the Objects That Support Change Events section below.
-
-    
-
-    
+events that correspond to custom settings are partially supported. They aren't supported in
+Apex triggers but are supported in other types of subscribers. For more information about
+standard object support, see the Objects That Support Change Events section below.
 
 ## Change Event Name
 
-      
-      
-
 The name of a change event is based on the name of the corresponding object for which it
-        captures the changes.
-
-      
-        
-          
+captures the changes.
 
 **Standard Object Change Event Name**
-
-          
-: 
-            
 
 ```
 <Standard_Object_Name>ChangeEvent
 ```
 
-          
-
-          
-: Example: `AccountChangeEvent`
-
-        
-        
-          
+Example: `AccountChangeEvent`
 
 **Custom Object Change Event Name**
-
-          
-: 
-            
 
 ```
 <Custom_Object_Name>__ChangeEvent
 ```
 
-          
-
-          
-: Example: `MyCustomObject__ChangeEvent`
-
-        
-      
-
-    
-
-    
+Example: `MyCustomObject__ChangeEvent`
 
 ## Change Event Fields
 
-      
-      
-
 The fields that a change event can include correspond to the fields on the associated
-        parent Salesforce object, with a few exceptions. For example, AccountChangeEvent fields
-        correspond to the fields on Account.
-
-      
+parent Salesforce object, with a few exceptions. For example, AccountChangeEvent fields
+correspond to the fields on Account.
 
 The fields that a change event doesn’t include are:
 
-      
-        
 - The IsDeleted system field.
-
-        
 - The SystemModStamp system field.
-
-        
 - Any field whose value isn’t on the record and is derived from another record or from a
-          formula, except roll-up summary fields, which are included. Examples are formula fields.
-          Examples of fields with derived values include LastActivityDate and
-            PhotoUrl.
-
-      
-
-      
+  formula, except roll-up summary fields, which are included. Examples are formula fields.
+  Examples of fields with derived values include LastActivityDate and
+  PhotoUrl.
 
 Each change event also contains header fields. The header fields are included inside the
-          `ChangeEventHeader` field. They contain information
-        about the event, such as whether the change was an update or delete and the name of the
-        object, like Account.
-
-      
+`ChangeEventHeader` field. They contain information
+about the event, such as whether the change was an update or delete and the name of the
+object, like Account.
 
 In addition to the event payload, the event schema ID is included in the
-          schema field. Also included is the event-specific field,
-          replayId, which is used for retrieving past events.
-
-    
-
-    
+schema field. Also included is the event-specific field,
+replayId, which is used for retrieving past events.
 
 ## Event Message Example
 
-      
-      
-
 This example is an event message in JSON format for a new account record creation.
-
-      
 
 ```
 {
@@ -205,28 +117,18 @@ This example is an event message in JSON format for a new account record creatio
 }
 ```
 
-    
-
-    
-
 ## API Version and Schema
 
-      
-      
-
 When you subscribe to change events, the subscription uses the latest API version and the
-        event messages received reflect the latest field definitions. For more information, see
-          [API Version and Event Schema](https://developer.salesforce.com/docs/atlas.en-us.264.0.change_data_capture.meta/change_data_capture/cdc_message_structure.htm#cdc_event_schema.htm) in
-        the Change Data Capture Developer Guide.
-
-    
-
-    
+event messages received reflect the latest field definitions. For more information, see
+[API Version and Event Schema](https://developer.salesforce.com/docs/atlas.en-us.264.0.change_data_capture.meta/change_data_capture/cdc_message_structure.htm#cdc_event_schema.htm) in
+the Change Data Capture Developer Guide.
 
 ## Usage
 
-      
-      
-
 For more information about Change Data Capture, see [Change Data Capture Developer
-          Guide](https://developer.salesforce.com/docs/atlas.en-us.264.0.change_data_capture.meta/change_data_capture/cdc_intro.htm).
+Guide](https://developer.salesforce.com/docs/atlas.en-us.264.0.change_data_capture.meta/change_data_capture/cdc_intro.htm).
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/sforce_api_associated_objects_change_event.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_authoring.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Modify the Clauses in Contract Documents
@@ -30,3 +30,7 @@ Add: To insert a clause, from Insert New, select Clause.
 After updating the clauses and content, click Check In. The updated contract document version is checked in Salesforce. Click Refresh to view the updated clauses in the pane.
 
 Refresh the contract page in Salesforce to preview the updated version of the contract document.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_update_contract_document_with_clauses.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

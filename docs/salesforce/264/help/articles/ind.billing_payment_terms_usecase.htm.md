@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_payment_terms.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Examples: Payment Terms
@@ -37,3 +37,7 @@ Payment Timeframe: Standard
 Period Unit: Days
 
 The admin then activates the payment term and assigns it to the relevant order. When invoices are posted for that order, the due date is calculated by adding 45 to the last day of the month in which the invoice is posted. For example, if an invoice is posted on April 15, the system first finds the last day of the month (April 30) and then adds 45 days. This makes the payment due by June 14.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_payment_terms_usecase.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

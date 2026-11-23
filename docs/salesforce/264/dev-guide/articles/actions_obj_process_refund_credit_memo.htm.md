@@ -7,134 +7,31 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_invocable_actions_parent.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Process Refund Credit Memo Action
 
 Initiates a refund against a posted credit memo. This action locks the credit memo, calls the Commerce Refund API, and returns the refund and application record IDs.
 
-    
-      
-
 This action is available in API version 68.0 and later.
-
-    
-
-    
 
 ## Special Access Rules
 
-      
-      
-
 The Process Refund Credit Memo action is available in Enterprise, Unlimited, and Developer Editions where Billing is enabled. To use this action, your org needs the Payment Run Advance permission.
-
-    
-
-    
 
 ## Supported REST HTTP Methods
 
-      
-      
-
 **URI:**`/services/data/v68.0/actions/standard/processUnreferencedRefund`
-
-      
 
 **Formats:** JSON, XML
 
-      
-
 **HTTP Methods:** POST
-
-      
 
 **Authentication:**`Authorization: Bearer token`
 
-    
-
-    
-
 ## Inputs
 
-      
-      
-
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Input | Type | Description |
 | --- | --- | --- |
 | appliedToId | reference | Required. ID of the posted credit memo to refund against. |
@@ -144,63 +41,17 @@ The Process Refund Credit Memo action is available in Enterprise, Unlimited, and
 | refundAmount | double | Required. Amount to refund. The value must be greater than 0 and less than or equal to the remaining balance of the credit memo. |
 | refundReason | string | Optional. Reason for the refund. |
 
-    
-
-    
-
 ## Outputs
 
-      
-      
-
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Output | Type | Description |
 | --- | --- | --- |
 | processRefundResponse | Apex-defined (`ProcessRefundCreditMemoResponse`) | Result of the refund operation. Contains these fields `success` (boolean)—Indicates whether the refund was processed successfully ( `true` ) or not ( `false` ); `refundId` (string)—ID of the created refund record; `applicationId` (string)—ID of the created application junction record (`CreditMemoRefund` or `CreditMemoLineRefund` ) that links the refund to the credit memo; or `errors` (list of Apex-defined `ProcessRefundCreditMemoErrorResponse` )—List of errors returned if the refund wasn’t processed successfully. Each error contains an `errorCode` and a `message`. Possible error codes are `INVALID_CREDIT_MEMO`—The specified credit memo isn’t in a valid state for refund processing, `AMOUNT_EXCEEDS_BALANCE`—The refund amount exceeds the remaining balance on the credit memo, `CREDIT_MEMO_LOCKED`—The credit memo is locked by another operation, `LIMIT_EXCEEDED`—The number of requests exceeds the maximum allowed (50), `MISSING_REQUIRED_FIELD`—A required input parameter is missing, or `EXTERNAL_SERVICE_EXCEPTION`—The Commerce Refund API call failed without a more specific error. |
 
-    
-
-    
-
 ## Example
-
-      
-      
 
 **POST**
 
-      
-
 This sample request is for the Process Refund Credit Memo action.
-
-      
 
 ```
 {
@@ -217,11 +68,7 @@ This sample request is for the Process Refund Credit Memo action.
 }
 ```
 
-      
-
 This sample response shows a successful invocation.
-
-      
 
 ```
 [
@@ -245,11 +92,7 @@ This sample response shows a successful invocation.
 ]
 ```
 
-      
-
 This sample shows an error response for a credit memo already locked by another operation.
-
-      
 
 ```
 [
@@ -271,3 +114,7 @@ This sample shows an error response for a credit memo already locked by another 
   }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_process_refund_credit_memo.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

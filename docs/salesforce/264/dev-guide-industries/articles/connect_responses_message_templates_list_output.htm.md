@@ -7,25 +7,15 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: decision_explainer_bre_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Message Templates List
 
 Output representation of the list of explainability message
-      templates.
+templates.
 
-      
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -66,17 +56,17 @@ Output representation of the list of explainability message
     "resultType" : "Passed"
   } ]
 }
-
 ```
 
-          
-
-        
-      
+## Properties
 
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `code` | String | The API response code when there’s a failure in retrieving the list of explainability message templates. | Small, 56.0 | 56.0 |
 | `isSuccess` | Boolean | Identifies whether the request is successful (`true`) or not (`false`). | Small, 56.0 | 56.0 |
 | `message` | String | The error message when there’s a failure in retrieving the list of explainability message templates. | Small, 56.0 | 56.0 |
-| `message​Templates` | [Message Template Detail](./connect_responses_message_template_detail_output.htm.md) [] | The list of explainability message templates. | Small, 56.0 | 56.0 |
+| `message​Templates` | [Message Template Detail](./connect_responses_message_template_detail_output.htm.md "Output representation of explainability message template details.") [] | The list of explainability message templates. | Small, 56.0 | 56.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_responses_message_templates_list_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_steps_to_create_a_custom_context_definition.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Enable Permission for Context Service Users
@@ -26,3 +26,7 @@ On the Permission Set License Assignment and Permission Set Assignments tabs, tu
 SEE ALSO
 Create Custom Context Definition and Map Attribute to Field
 Create Custom Context Definition and Map Business Objects
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_enable_permission_for_users.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

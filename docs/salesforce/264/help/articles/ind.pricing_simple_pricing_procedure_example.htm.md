@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_procedures.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Simple Pricing Procedure Example
@@ -15,7 +15,7 @@ Let’s configure and simulate a simple pricing procedure using some common pric
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS
 NEEDED
 To create, update, and delete pricing procedures:	Salesforce Pricing Design Time User
@@ -24,7 +24,7 @@ To use pricing procedures:	Salesforce Pricing Run Time User
 To follow this example, make sure your organization is set up with the following.
 
 Decision tables
-Context Service enabled, with a defined context definition. You can also use one from Revenue Management.
+Context Service enabled, with a defined context definition. You can also use one from Revenue Cloud.
 Two simple products called Laptop and Printer configured with necessary attributes and classifications. To learn how to create a simple product see, Create Simple Products.
 Added the products as a price book entries to a price book. To learn more about price books and price book entries, see Cost Books and Price Books.
 The required price adjustment schedule record created. To create a price adjustment schedule record, see Create Price Adjustment Schedules.
@@ -84,4 +84,8 @@ Click Simulate to test your procedure. Enter the input values for your laptop pr
 The price waterfall shows the volume and manual discounts used to calculate the final price of the laptop and printer, confirming that your procedure is working as expected. 
 IMPORTANT If your simulation fails or you can't see the waterfall view, we recommend refreshing your decision tables and verifying if the input values entered are accurate.
 
-Looking for a hands-on way to practice with Pricing Procedures? We've got just the thing! We recommend checking out this Trailhead resource: Price Management with Revenue Management.
+Looking for a hands-on way to practice with Pricing Procedures? We've got just the thing! We recommend checking out this Trailhead resource: Price Management with Revenue Cloud.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_simple_pricing_procedure_example.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

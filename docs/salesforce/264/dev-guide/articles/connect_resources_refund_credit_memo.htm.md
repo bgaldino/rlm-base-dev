@@ -7,78 +7,38 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_resources.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Refund Credit Memo (POST)
 
 Initiate a refund against a credit memo.
 
-    
-      
-
 Initiates a refund for a credit memo. Locks the credit memo, calls the Commerce Refund API, and applies the refund inline (sync) or defers the apply until the payment gateway event is received (async).
 
-    
-
-    
-
 ## Resource
-
-      
-      
 
 ```
 /revenue/billing/refunds/unreferenced-refunds/actions/process
 ```
 
-    
-
-    
-
 ## Resource Example
-
-      
-      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/revenue/billing/refunds/unreferenced-refunds/actions/process
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 68.0
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 POST
 
-    
-
-    
-
 ## Request Body for POST
 
-      
-      
-
 **JSON Example**
-
-      
 
 ```
 {
@@ -91,115 +51,8 @@ POST
 }
 ```
 
-      
-
 **Properties**
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `applied​To​Id` | String | ID of the credit memo that the refund is applied to. | Required | 68.0 |
@@ -209,13 +62,10 @@ POST
 | `refund​Notes` | String | Optional notes that are stored in the comments of the refund entity. | Optional | 68.0 |
 | `refund​Reason` | String | Reason for the refund. | Required | 68.0 |
 
-    
-
-    
-
 ## Response Body for POST
 
-      
-      
+[Refund Credit Memo](./connect_responses_refund_credit_memo_output.htm.md "Output representation for the process refund against a credit memo API.")
 
-[Refund Credit Memo](./connect_responses_refund_credit_memo_output.htm.md)
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_refund_credit_memo.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

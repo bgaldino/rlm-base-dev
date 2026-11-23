@@ -7,310 +7,43 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Omnistudio
 parent_page: omnistudio_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Calculation Procedure Step Input
 
 Input representation for the expression set version
-    steps.
+steps.
 
-      
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=industries_reference)
 
 #### Note
 
 This API has been deprecated as of API version 55.0.
-        In API version 55.0 and later, use the new [Business APIs in Business Rules Engine](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/business_rules_engine_connect_apis.htm).
+In API version 55.0 and later, use the new [Business APIs in Business Rules Engine](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/business_rules_engine_connect_apis.htm).
 
-        
-          
+## Properties
 
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-#### 
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-#### 
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-#### 
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-#### 
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-#### 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-- 
-- 
-- 
-- 
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `calculationMatrixId` | String | The ID of the decision matrix record. | Optional Note This field is required when the step type is `MatrixLookup`. | 53.0 |
+| `calculationMatrixId` | String | The ID of the decision matrix record. | Optional Note: This field is required when the step type is `MatrixLookup`. | 53.0 |
 | `childStepId` | String[] | The IDs of the child steps in the parent expression set version record step. | Optional | 53.0 |
 | `conditionsExpressionText` | String | The user-defined expression text used in a condition step. | Optional | 53.0 |
 | `conditionsUiFormattedText` | String | Additional information required to render the condition expression text. For example, when the current step has a subset of `childStepIds` that is marked to bypass. Specify `"conditionsUiFormattedText":"{\"bypass\":[\"0mqx000000000f6AAA\"]}"` in the field to enable navigation outside the branch. | Optional | 53.0 |
 | `description` | String | The description of the expression set version record step. | Optional | 53.0 |
 | `formulaExpressionText` | String | The formula used in a calculation step. | Optional | 53.0 |
 | `formulaUiFormattedText` | String | Reserved for future use. | Optional | 53.0 |
-| `id` | String | The ID of the expression set version record step. | Required Note This field is required for the update request. | 53.0 |
+| `id` | String | The ID of the expression set version record step. | Required Note: This field is required for the update request. | 53.0 |
 | `inputVariablesFormatText` | String | The input variables in JSON format required to execute an expression set version record step. | Required | 53.0 |
 | `isResultIncluded` | Boolean | Indicates whether the result of a step execution is returned to the user. The default is `false`. | Optional | 53.0 |
 | `name` | String | The name of the expression set version record step. | Optional | 53.0 |
 | `outputVariablesFormatText` | String | The output variables in JSON format returned by an expression set version record step. | Required | 53.0 |
-| `outputVariablesMappingText` | String | The mapping between the output variable of a step and the input variable for a sub-calculation procedure version record or a sub-decision matrix record. | Optional Note This field is required when the step type is `MatrixLookup` or `ReferenceProcedure`. | 53.0 |
-| `referenceCalculationProcedureId` | String | The ID of the sub-calculation procedure version record. | Optional Note This field is required when the step type is `ReferenceProcedure`. | 53.0 |
+| `outputVariablesMappingText` | String | The mapping between the output variable of a step and the input variable for a sub-calculation procedure version record or a sub-decision matrix record. | Optional Note: This field is required when the step type is `MatrixLookup` or `ReferenceProcedure`. | 53.0 |
+| `referenceCalculationProcedureId` | String | The ID of the sub-calculation procedure version record. | Optional Note: This field is required when the step type is `ReferenceProcedure`. | 53.0 |
 | `returnMessageValueSet` | String | User-configured messages for the result of the current step. | Optional | 53.0 |
-| `stage` | String | Specify whether the expression set version step is a calculation or an aggregation. Note In version 53.0 and later, only calculation is supported. | Required | 53.0 |
-| `stepType` | String | Specify the step type in the expression set version. Possible values are: `Condition` `Calculation` `MatrixLookup` `ReferenceProcedure` `Branch` `ConditionalGroup` | Required | 53.0 |
+| `stage` | String | Specify whether the expression set version step is a calculation or an aggregation. Note: In version 53.0 and later, only calculation is supported. | Required | 53.0 |
+| `stepType` | String | Specify the step type in the expression set version. Possible values are:  - `Condition` - `Calculation` - `MatrixLookup` - `ReferenceProcedure` - `Branch` - `ConditionalGroup` | Required | 53.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_requests_calculation_procedure_step_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

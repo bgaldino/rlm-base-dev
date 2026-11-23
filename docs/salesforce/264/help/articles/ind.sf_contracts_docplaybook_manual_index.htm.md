@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_docplaybook_setup.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Manually Configure Document Playbook Data Streams and Search Index
@@ -67,3 +67,7 @@ Manually Configure Document Playbook Data Streams
 Create and map the data streams that ingest Document Playbook content and file metadata into Data 360 (Data Cloud). Complete this task after you give the Data Cloud Salesforce Connector the required permissions.
 Manually Create a Document Playbook Search Index
 Create the hybrid search index that Salesforce uses to match contract sections against document playbook content during risk analysis. Complete this task after you configure the Document Playbook data streams.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_docplaybook_manual_index.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

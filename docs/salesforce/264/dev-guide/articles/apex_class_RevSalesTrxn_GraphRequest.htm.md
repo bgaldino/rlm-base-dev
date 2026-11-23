@@ -7,97 +7,68 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: apex_namespace_RevSalesTrxn.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # GraphRequest Class
 
 Contains constructors and properties to set the graph ID and a list of records to be
-    ingested. The list of records is specified in a key-value map format that contains field
-    values.
+ingested. The list of records is specified in a key-value map format that contains field
+values.
 
 ## Namespace
 
-[RevSalesTrxn](./apex_namespace_RevSalesTrxn.htm.md)
+[RevSalesTrxn](./apex_namespace_RevSalesTrxn.htm.md "Create a sales transaction, such as a quote or an order, with integrated pricing and configuration. Additionally, update an order or a quote, and insert and delete order or quote line items to calculate the estimated tax.")
 
-- 
-**[GraphRequest Constructors](./apex_class_RevSalesTrxn_GraphRequest.htm.md#apex_RevSalesTrxn_GraphRequest_constructors)**  
-
-Learn more about the available constructors with the GraphRequest class.
-
-- 
-**[GraphRequest Properties](./apex_class_RevSalesTrxn_GraphRequest.htm.md#apex_RevSalesTrxn_GraphRequest_properties)**  
-
-Learn more about the available properties with the GraphRequest class.
-
-  
+- **[GraphRequest Constructors](./apex_class_RevSalesTrxn_GraphRequest.htm.md#apex_RevSalesTrxn_GraphRequest_constructors)**  
+  Learn more about the available constructors with the GraphRequest class.
+- **[GraphRequest Properties](./apex_class_RevSalesTrxn_GraphRequest.htm.md#apex_RevSalesTrxn_GraphRequest_properties)**  
+  Learn more about the available properties with the GraphRequest class.
 
 ## GraphRequest Constructors
 
-  
-  
-  
 Learn more about the available constructors with the GraphRequest class.
-
-    
-      
 
 The `GraphRequest` class includes these constructors.
 
-    
-
-    
-  
-
-- 
-**[GraphRequest(graphId, records)](./apex_class_RevSalesTrxn_GraphRequest.htm.md#apex_RevSalesTrxn_GraphRequest_ctor)**  
-
-Creates an instance of the GraphRequest class to assign the graph ID and a list of     records to be ingested.
+- **[GraphRequest(graphId, records)](./apex_class_RevSalesTrxn_GraphRequest.htm.md#apex_RevSalesTrxn_GraphRequest_ctor)**  
+  Creates an instance of the GraphRequest class to assign the graph ID and a list of records to be ingested.
 
 ### GraphRequest(graphId, records)
 
-Creates an instance of the GraphRequest class to assign the graph ID and a list of
-    records to be ingested.
+Creates an instance of the GraphRequest class to assign the graph ID and a list of records to be ingested.
 
 #### Signature
 
-`public GraphRequest(String graphId,
-          List<RevSalesTrxn.RecordWithReferenceRequest> records)`
+`public GraphRequest(String graphId, List<RevSalesTrxn.RecordWithReferenceRequest> records)`
 
 #### Parameters
 
 **graphId**
 
-: Type: String
+Type: String
 
-: ID of the graph.
+ID of the graph.
 
 **records**
 
-: Type: List<[revsalestrxn.RecordWithReferenceRequest](./apex_class_RevSalesTrxn_RecordWithReferenceRequest.htm.md#apex_class_RevSalesTrxn_RecordWithReferenceRequest)>
+Type: List<[revsalestrxn.RecordWithReferenceRequest](./apex_class_RevSalesTrxn_RecordWithReferenceRequest.htm.md#apex_class_RevSalesTrxn_RecordWithReferenceRequest "Contains constructors and properties to associate a record object with a reference identifier.")>
 
-          
-: List of records to be ingested.
+List of records to be ingested.
 
 ## GraphRequest Properties
 
-  
 Learn more about the available properties with the GraphRequest class.
 
 The `GraphRequest` class includes these properties.
 
-- 
-**[graphId](./apex_class_RevSalesTrxn_GraphRequest.htm.md#apex_RevSalesTrxn_GraphRequest_graphId)**  
-
-Set the `graphId` property to assign the ID value of     the graph.
+- **[graphId](./apex_class_RevSalesTrxn_GraphRequest.htm.md#apex_RevSalesTrxn_GraphRequest_graphId)**  
+  Set the `graphId` property to assign the ID value of the graph.
 
 ### graphId
 
-  
 Set the `graphId` property to assign the ID value of
-    the graph.
+the graph.
 
 #### Signature
 
@@ -106,3 +77,7 @@ Set the `graphId` property to assign the ID value of
 #### Property Value
 
 Type: String
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RevSalesTrxn_GraphRequest.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

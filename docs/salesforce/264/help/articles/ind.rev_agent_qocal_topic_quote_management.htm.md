@@ -6,16 +6,16 @@ release: 264
 release_name: Winter '27
 area: agents
 parent_article: ind.qocal_agentforce_quote_mgmt.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Subagent: Quote Management
 
-Create and modify quotes and their quote line items in Revenue Management.
+Create and modify quotes and their quote line items in Revenue Cloud.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management with the Revenue Cloud Advanced license with the Agentforce Employee Agent add-on.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Advanced license with the Agentforce Employee Agent add-on.
 Topic Details
 API Name	quoteManagement
 Included Revenue Actions	
@@ -59,7 +59,7 @@ Update Record
 Required Setup	Set Up Agentforce for Revenue Management
 Considerations
 The agent is available to authenticated users in Lightning Experience. Customers and partners who use Experience Cloud don’t yet have access to external digital agents.
-The agent supports only one currency in quotes. To provide support for multiple currencies, modify the Add QuoteLineItem to Quote flow to check if the Currency ISO Code field is available on the product record. See Set Up Agentforce for Revenue Management.
+The agent supports only one currency in quotes. To provide support for multiple currencies, modify the Add QuoteLineItem to Quote flow to check if the Currency ISO Code field is available on the product record. See Set Up Agentforce for Revenue Cloud.
 You can modify up to 10 quote line items at a time in an agent request. For example, you can create a quote with 10 quote line items, add 10 quote line items to an existing quote, or apply a discount on 10 quote line items in a single request.
 Examples of Utterances Classified to This Topic
 USER SAMPLE INPUT	ACTIONS ENGAGED	AGENT RESPONSE
@@ -89,3 +89,7 @@ Update Record Fields
 Get Record Details
 Update Record Fields
 	The agent stops syncing the Acme quote to its related opportunity.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rev_agent_qocal_topic_quote_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

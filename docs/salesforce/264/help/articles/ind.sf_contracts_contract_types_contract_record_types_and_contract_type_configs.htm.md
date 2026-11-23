@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_system_administration_for_salesforce_contracts.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Contract Types, Contract Record Types, and Contract Type Configs
@@ -42,3 +42,7 @@ Create Contract Type and Map to a Contract Record Type
 Using contract type, you can manage different types of contracts within an org. From Setup, you can create a contract type or clone an existing contract type and modify it and map the contract type to one or more record types.
 Edit or Delete a Contract Type
 You can modify a contract type by associating additional record types or you can replace the existing record type with another record type. You can also delete a contract type from Setup.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_contract_types_contract_record_types_and_contract_type_configs.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

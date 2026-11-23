@@ -7,23 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Usage Management
 parent_page: usage_management_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Binding Object Resource Grant And Policy Detail
 
 Output representation of the details of resource grants and binding policies.
 
-        
-          
+## JSON Example
 
-**JSON example**
-
-          
-: This example includes the details of resource grants and binding policies for a
-            specified binding object.
+This example includes the details of resource grants and binding policies for a specified binding object.
 
 ```
 {
@@ -80,61 +73,11 @@ Output representation of the details of resource grants and binding policies.
 }
 ```
 
-        
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `bindingObject​Grant​Detail` | [Binding Object Grant Detail](./connect_responses_binding_object_grant_detail_output.htm.md)[] | Details of the negotiated resource grants for the specified binding object. | Big, 65.0 | 65.0 |
-| `bindingObject​ResourcePolicy​Detail` | [Binding Object Resource Policy Detail](./connect_responses_binding_object_resource_policy_detail_output.htm.md) | Detail of the binding policies. | Big, 65.0 | 65.0 |
+| `bindingObject​Grant​Detail` | [Binding Object Grant Detail](./connect_responses_binding_object_grant_detail_output.htm.md "Output representation of the details of usage resource grants for a specified binding object.")[] | Details of the negotiated resource grants for the specified binding object. | Big, 65.0 | 65.0 |
+| `bindingObject​ResourcePolicy​Detail` | [Binding Object Resource Policy Detail](./connect_responses_binding_object_resource_policy_detail_output.htm.md "Output representation of the details of a usage resource policy.") | Detail of the binding policies. | Big, 65.0 | 65.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_binding_object_resource_grant_and_policy_detail_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

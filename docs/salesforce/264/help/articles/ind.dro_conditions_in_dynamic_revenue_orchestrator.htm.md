@@ -6,12 +6,12 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_dynamic_revenue_orchestrator_concepts_and_references.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Understand Execution Conditions for Order Fulfillment
 
-When you configure fulfillment plans, Dynamic Revenue Orchestrator directs you to create conditions that control when those fulfillment steps are executed.
+Create conditions to control when a fulfillment step, step group, scenario, or a task assignment rule applies.
 
 REQUIRED EDITIONS
 Available in: Enterprise, Unlimited, and Developer Editions
@@ -20,7 +20,7 @@ For example, set a condition so that a representative follows up by phone only i
 
 When an entity in DRO requires, or allows, conditions to be set, it launches the Condition Builder pane.
 
-To configure logic for your fulfillment processes, use the Condition Builder. To set up these rules, seeDefine Execution Rules for a Decomposition Rule
+To configure logic for your fulfillment processes, use the Condition Builder. To set up conditions for a decomposition rule, see Define Execution Rules for a Decomposition Rule
 
 EXAMPLE This image shows three conditions.
 Condition #1: There's a fulfillment order line item tag called FulfillmentItemAction that equals Add.
@@ -45,3 +45,7 @@ OriginalQuantity equals 90. Condition two isn't met. The condition requires the 
 FulfillmentOrderID is 1000. Condition three is met. The condition requires the value type to be anything except 1221, and it is.
 
 This set of conditions is met according to the custom logic and the entity associated with this rule runs.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_conditions_in_dynamic_revenue_orchestrator.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

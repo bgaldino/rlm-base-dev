@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_payment_schedules_and_payment_schedule_items_auto_manual.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manually Create Payment Schedules and Payment Schedule Items
@@ -15,9 +15,9 @@ Instead of automatically creating payment schedules and payment schedule items, 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions with Revenue Management
-The Salesforce Payments feature is available with the Revenue Management Billing license, with a cost per transaction model for both native and Bring Your Own payment gateways. Contact your Salesforce account executive for more information.
-If you purchased the Revenue Management Billing license on or before July 2025, contact your Salesforce account executive to add the Salesforce Payments feature to your existing license.
+Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
+The Salesforce Payments feature is available with the Revenue Cloud Billing license, with a cost per transaction model for both native and Bring Your Own payment gateways. Contact your Salesforce account executive for more information.
+If you purchased the Revenue Cloud Billing license on or before July 2025, contact your Salesforce account executive to add the Salesforce Payments feature to your existing license.
 USER PERMISSIONS NEEDED
 To create payment schedules and payment schedule items:	Payment Admin permission set
 Manually Create Payment Schedules
@@ -33,7 +33,7 @@ If the payment schedule is ready to be processed by a payment batch run, select 
 If a payment batch run successfully processes the payment schedule, the status changes to Completed. If a payment batch run fails to process the payment schedule, the status changes to Canceled.
 Select a saved payment method as the default payment method for the payment schedule.
 The saved payment method is used to collect payments for all the payment schedule items that are related to the payment schedule.
-You can’t specify a card payment method as the default payment method in Salesforce orgs with the Revenue Management Billing license.
+You can’t specify a card payment method as the default payment method in Salesforce orgs with the Revenue Cloud Billing license.
 Enter any additional details about the payment schedule as comments.
 Enter the total amount that you want the payment schedule to process as a payment for the reference record.
 Save your work.
@@ -64,10 +64,14 @@ If you haven’t selected a default payment method for the payment schedule, sel
 
 If you’ve specified a saved payment method for the Payment Schedule record, the Payment Schedule Item record has the same value.
 
-You can’t specify a card payment method as the default payment method in Salesforce orgs with the Revenue Management Billing license.
+You can’t specify a card payment method as the default payment method in Salesforce orgs with the Revenue Cloud Billing license.
 
 To group all the payment schedule items that you want to process together, select a payment run matching value.
 When you schedule payment batch runs, you can select a payment run matching value to process all the payment schedule items with the same value.
 Select the date on which you want the payment batch run to process the payment schedule item.
 Enter the amount that must be paid for the reference record by processing the payment schedule item.
 Save your work.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_payment_schedules_and_payment_schedule_items.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

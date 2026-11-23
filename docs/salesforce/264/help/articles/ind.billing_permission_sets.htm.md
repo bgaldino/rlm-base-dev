@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_setup.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Assign Permissions to Access Billing Features
@@ -15,16 +15,16 @@ Assign your users the required permission sets based on their persona, and for t
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions with Revenue Management
+Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
 
 
-The Billing Collections and Recovery Specialist permission set, the Payment Admin permission set, and the Payment Operations User permission set are available only with the the Revenue Management Billing license. Contact your Salesforce account executive for more information.
+The Billing Collections and Recovery Specialist permission set, the Payment Admin permission set, and the Payment Operations User permission set are available only with the the Revenue Cloud Billing license. Contact your Salesforce account executive for more information.
 
-All the other permission sets are available with the Revenue Management Advanced license or the Revenue Management Billing license.
+All the other permission sets are available with the Revenue Cloud Advanced license or the Revenue Cloud Billing license.
 
 Create Users and Profiles
 
-To begin, create users for Billing in Revenue Management. Then assign users the appropriate permission sets. To help you plan, use the permission set table for Billing. When you create a user, you must also assign a profile to define the default settings for users. Some organizations create their own profiles, while others choose to use profiles included with Salesforce.
+To begin, create users for Billing in Revenue Cloud. Then assign users the appropriate permission sets. To help you plan, use the permission set table for Billing. When you create a user, you must also assign a profile to define the default settings for users. Some organizations create their own profiles, while others choose to use profiles included with Salesforce.
 
 Remember, users can have only one profile, but can have many permission sets assigned to them.
 
@@ -57,3 +57,7 @@ SEE ALSO
 View and Manage Users
 Create or Clone Profiles
 Manage Permission Set Assignments
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_permission_sets.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,19 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_responses.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Pricing Output
 
 Output representation of a Salesforce pricing request.
 
-    
-
 ## JSON Example
-
-      
-      
 
 ```
 {
@@ -72,119 +67,15 @@ Output representation of a Salesforce pricing request.
 }
 ```
 
-    
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `apiExecutionId` | String | Unique ID that's generated each time a pricing API is executed. | Small, 63.0 | 63.0 |
-| `error` | [Pricing Error Response](./connect_responses_pricing_error_response.htm.md) | Displays the error encountered when the request is processed. For example, a pricing procedure isn’t found. | Small, 60.0 | 60.0 |
+| `error` | [Pricing Error Response](./connect_responses_pricing_error_response.htm.md "Output representation of the pricing error response.") | Displays the error encountered when the request is processed. For example, a pricing procedure isn’t found. | Small, 60.0 | 60.0 |
 | `pricingExecutionId` | String | Unique ID that's generated each time a pricing process is executed. | Small, 63.0 | 63.0 |
-| `pricing​Result` | [Pricing Result](./connect_responses_core_pricing_result.htm.md) | Represents the outcomes associated with the output tags defined in the contextual definition for which the pricing engine establishes values. The initial attribute name is substituted for the output tag's designation. For instance, if the original attribute name specified in the Context Definition is "Subtotal," but during contextual setup, the output tag is denoted as "Total Price," the API output exhibits the initial attribute name "Subtotal" in the response. | Small, 60.0 | 60.0 |
-| `pricing​Result​Errors` | [Pricing Result Error[]](./connect_responses_core_pricing_result_error.htm.md) | Errors from the pricing request, if any. | Small, 60.0 | 60.0 |
+| `pricing​Result` | [Pricing Result](./connect_responses_core_pricing_result.htm.md "Output representation of the pricing result.") | Represents the outcomes associated with the output tags defined in the contextual definition for which the pricing engine establishes values. The initial attribute name is substituted for the output tag's designation. For instance, if the original attribute name specified in the Context Definition is "Subtotal," but during contextual setup, the output tag is denoted as "Total Price," the API output exhibits the initial attribute name "Subtotal" in the response. | Small, 60.0 | 60.0 |
+| `pricing​Result​Errors` | [Pricing Result Error[]](./connect_responses_core_pricing_result_error.htm.md "Output representation of the pricing result error.") | Errors from the pricing request, if any. | Small, 60.0 | 60.0 |
 | `status` | String | Status of the pricing request. Valid values are `Completed` — Pricing is completed for all the line items, `Partially Completed` — Pricing is completed for some line items, or `Failed` — Pricing isn’t completed for the line items. | Small, 60.0 | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_core_pricing_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

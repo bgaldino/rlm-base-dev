@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.understanding_ramp_deals.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configure Ramp Segments in Ramp Deals for Lines
@@ -15,7 +15,7 @@ Divide transaction lines into ramp segments with varying prices and quantities o
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 USER PERMISSIONS
 NEEDED
 To configure ramp segments in quotes:	Create on Quotes
@@ -40,3 +40,7 @@ View pricing in the Line Item Details tab or hover over Total Price in Transacti
 
 Create a Product Ramp Segment
 A ramp deal is a type of sales agreement where price and volume vary across time periods. A ramp segment is a specific period within a ramp deal during which certain prices and volume are in effect.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_configure_ramp_segments.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

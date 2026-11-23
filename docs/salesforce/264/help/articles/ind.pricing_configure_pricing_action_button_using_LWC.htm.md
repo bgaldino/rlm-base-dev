@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_action_parameters.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Customize the Pricing Action Button by Using Lightning Components
@@ -34,3 +34,7 @@ On the Builder page, from the Components panel, drag Pricing Calculation to the 
 Use the Page panel to give your action a name.
 Select the context definition, the context mapping, and the pricing procedure.
 Save your changes, and exit Lightning App Builder.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_configure_pricing_action_button_using_LWC.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

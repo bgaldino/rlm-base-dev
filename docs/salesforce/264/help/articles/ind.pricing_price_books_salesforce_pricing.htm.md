@@ -1,29 +1,28 @@
 ---
 article_id: ind.pricing_price_books_salesforce_pricing.htm
-title: Cost Books and Price Books
+title: We couldn't find the page you're looking for.
 source_url: https://help.salesforce.com/s/articleView?id=ind.pricing_price_books_salesforce_pricing.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_salesforce_pricing.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
-# Cost Books and Price Books
+# We couldn't find the page you're looking for.
 
-Track the expenses associated with manufacturing a product in a cost book, and record the product's selling price in a price book. You can have multiple price books and cost books in your Salesforce org.
+We couldn't find the page you're looking for.
 
-REQUIRED EDITIONS
-Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Searching for something? Agentforce can help.
 
-Salesforce Pricing provides a predefined standard price book; however, you can create your own standard price book using the Price Management app. An organization must have a price book to track its products, but a cost book is optional.
-
-It’s important to distinguish between cost books and price books. The primary difference is:
-
-Cost Books focus on internal expenses incurred by the business.
-Price Books define the selling prices of products and services for various customer segments or channels.
-Define Costs in Cost Books
-A cost book acts as a detailed expense tracker for your products. Think of it as the place where you record every cost associated with creating or delivering a product or service. Within a cost book, you create individual entries for each specific expense, such as the cost of raw materials, manufacturing, or shipping. These detailed cost entries are then linked directly to the corresponding product in your catalog, giving you a clear, itemized view of what it truly costs to bring that item to market.
+May we also suggest
 Define Prices in Price Books
-A price book is essentially your company's master product catalog, containing a complete list of your products and services along with their specific selling prices.
+(opens in a new tab)
+Price Books and Cost Books
+(opens in a new tab)
+Define Costs in Cost Books
+(opens in a new tab)
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_price_books_salesforce_pricing.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

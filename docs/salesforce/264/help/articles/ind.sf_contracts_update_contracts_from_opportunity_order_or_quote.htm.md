@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_creation.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Update Contracts from Opportunity, Order, or Quote
@@ -30,3 +30,7 @@ Available in: Lightning Experience
 Available in: Enterprise, Unlimited, Professional, and Developer Editions
 On the opportunity, order, or quote record page, click Update Contracts.
 The update contracts API fetches all the changes made to the object and updates the associated contracts that are in the draft status and were created using Create Contract action button.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_update_contracts_from_opportunity_order_or_quote.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

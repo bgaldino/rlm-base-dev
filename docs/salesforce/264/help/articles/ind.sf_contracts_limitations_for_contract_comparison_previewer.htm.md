@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_comparison_of_contract_document_versions.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Limitations of Contract Comparison Previewer
@@ -19,3 +19,7 @@ The preview supports documents up to 25 MB.
 The files up to 2 MB and 50 pages result in faster preview generation and a better user experience.
 The default page count supported for previewing the document with differences depends on the Salesforce infrastructure. Salesforce supports up to 500 pages in First-party infrastructure and 100 pages in Hyperforce infrastructure. To adjust these limits, contact Salesforce Customer Support.
 The Comparison Document Preview displays document version differences in balloon style only. To view changes inline, download the document using the Download icon and open it in Microsoft Word.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_limitations_for_contract_comparison_previewer.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

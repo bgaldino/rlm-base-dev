@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_salesforce_pricing.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Salesforce Pricing Limits
@@ -15,7 +15,7 @@ Review the default limits for Salesforce Pricing’s components and their usage.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 Discovery Procedures
 VALUE	DEFAULT	MINIMUM	MAXIMUM
 The number of discovery procedures in an org	2000	1	10000
@@ -50,3 +50,7 @@ Pricing element functionality is restricted to context tags at the Transaction I
 For values of the Number data type that are 10,000,000 or greater, the Connect REST API returns standard decimal notation instead of scientific notation. For example, the API returns 10000000 instead of 1.0E7. Additionally, standard decimal values do not include a trailing .0. For example, the API returns 10000000 instead of 10000000.0.
 The Invocable Headless API returns values smaller than 0.000001 in scientific notation, while other Connect REST API endpoints return them in standard decimal notation
 For stored values with trailing zeros, the API always returns the value at its full stored precision. For example, as 10.000 instead of trimming the zeros to 10.0.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_limits.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: rating
 parent_article: ind.rm_rating_elements.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Assignment
@@ -34,3 +34,7 @@ Save, simulate, and activate your rating procedure.
 EXAMPLE Override the calculated net unit rate when the quantity consumed is over a specific limit. Let’s assume the customer was granted 100 SMS with the mobile plan. By the end of the month, the user consumed 250 SMS. In this scenario, you want to override the net unit rate for the SMS consumed beyond 100 SMS.
 
 To override the net unit rate, use the List Operation element and create a condition to verify whether the value in the OverageQuantity context tag is greater than 100. When the condition is met, the assignment element copies the OVERRIDE_NET_RATE constant value and assigns it to the NetUnitRate variable.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rm_element_add_assignment.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

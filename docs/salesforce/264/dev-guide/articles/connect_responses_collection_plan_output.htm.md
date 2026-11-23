@@ -7,20 +7,15 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_responses.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Collection Plan
 
 Output representation of the result of a single collection plan
-      creation request.
-
-    
+creation request.
 
 ## JSON Example
-
-      
-      
 
 ```
 {
@@ -34,91 +29,13 @@ Output representation of the result of a single collection plan
 }
 ```
 
-    
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `collection​PlanId` | String | ID of the created collection plan. This value is null if the creation failed. | Big, 68.0 | 68.0 |
 | `collection​Plan​ItemIds` | String[] | IDs of the created collection plan items. This value is null if the creation failed. | Big, 68.0 | 68.0 |
-| `errors` | [Collection Plan Error](./connect_responses_collection_plan_error.htm.md)[] | List of errors that occurred while creating the collection plan. This value is null if the creation succeeded. | Big, 68.0 | 68.0 |
+| `errors` | [Collection Plan Error](./connect_responses_collection_plan_error.htm.md "Output representation of an error that occurred while creating a collection plan.")[] | List of errors that occurred while creating the collection plan. This value is null if the creation succeeded. | Big, 68.0 | 68.0 |
 | `isSuccess` | Boolean | Indicates whether collection plan creation was successful (`true`) or not (`false`). | Big, 68.0 | 68.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_collection_plan_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

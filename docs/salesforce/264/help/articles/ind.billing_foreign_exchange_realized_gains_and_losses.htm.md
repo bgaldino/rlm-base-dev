@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_financial_accounting.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Foreign Exchange Realized Gains and Losses
@@ -27,3 +27,7 @@ In case of partial invoice settlement, unrealized gain and loss calculations are
 
 Example: Automatically Capture Foreign Exchange Realized Gains or Losses
 Explore an example to understand how general ledger accounts are set up and how dual transaction journals are created when Payments or Credit Memo records are created and applied to the invoices.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_foreign_exchange_realized_gains_and_losses.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

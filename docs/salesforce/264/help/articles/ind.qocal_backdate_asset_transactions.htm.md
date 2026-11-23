@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_specialized_asset_considerations.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Backdate Asset Transactions
@@ -15,7 +15,7 @@ Apply an amendment, renewal, or cancellation to an asset with a past effective d
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS NEEDED
 To amend, transfer, or swap assets:	
 
@@ -60,3 +60,7 @@ EXAMPLE
 Today is November 12, 2025. A customer canceled a product effective November 1, 2025, so that they aren't billed for access after that date. You select the asset in the Managed Asset viewer, select Cancel, and enter a cancellation date of November 1, 2025. Then, you create the cancellation order and activate it. The asset reflects the cancellation as of November 1, 2025, even though you entered the change on November 12, 2025.
 
 To make a change that takes effect today or later, see Future-Dated Changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_backdate_asset_transactions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

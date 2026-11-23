@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_customize_quote_and_order_capture.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configure Header-Level Action Buttons in Sales Transaction Line Editor
@@ -15,11 +15,11 @@ To provide an intuitive experience for sales reps, you can customize the placeme
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To customize the Transaction Line Editor or Sales Transaction Line Editor:	
 Customize Application
-Manage Revenue Management system permission
+Manage Revenue Cloud system permission
 
 To view Transaction Line Editor or Sales Transaction Line Editor on the Orders page:	
 Field-level security to these OrderItem fields:
@@ -66,3 +66,7 @@ CreateRampSchedule	Create a ramp schedule.	Create Ramp Schedule	CreateRampSchedu
 ManageHeaderAdjustment	Manage header changes.	Manage Header Adjustment	HeaderAdjustment
 Action Button Group Considerations
 Learn how action button groups behave in the Transaction Line Editor (TLE) and Sales Transaction Line Editor (STLE) to design an efficient experience for your sales team.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_configure_placement_of_action_buttons.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

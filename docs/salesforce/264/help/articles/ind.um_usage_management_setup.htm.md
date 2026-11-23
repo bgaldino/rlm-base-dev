@@ -1,15 +1,15 @@
 ---
 article_id: ind.um_usage_management_setup.htm
-title: Set Up Usage Management in Revenue Management
+title: Set Up Usage Management in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.um_usage_management_setup.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_usage_management.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
-# Set Up Usage Management in Revenue Management
+# Set Up Usage Management in Revenue Cloud
 
 Usage Management provides the essential components for tracking and managing the consumption of your usage-based products. To implement this framework effectively, first set up usage management objects, such as usage resources, product usage grants, and their units of measure. This setup represents the foundational layer of your configuration and is a prerequisite for creating usage management policies. The policies ensure that consumption data can be accurately aggregated, grant policies can be correctly applied, and overall usage can be managed with efficiency.
 
@@ -37,3 +37,7 @@ Configure Usage Management Records Manually
 Use manual configuration when your setup requires direct control over individual records or involves product types that the guided workflow doesn't support.
 Validate Your Usage Product Setup
 Run the product validator after you complete your usage management setup by using the guided workflow or manual configuration. The validator checks your configuration for errors and identifies the specific record to resolve before you activate them.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_usage_management_setup.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

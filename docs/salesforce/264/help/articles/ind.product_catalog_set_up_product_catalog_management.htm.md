@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_introduction.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Product Catalog Management Set Up
@@ -19,7 +19,7 @@ Set Up Objects for Product Catalog Management
 To complete the setup of Product Catalog Management, adjust the page layout and field access on the product catalog objects.
 Record Sharing in Product Catalog Management
 Set up record sharing and grant all runtime users of Product Catalog Management read access to all child records and related object records for a given product.
-Create Product Specifications in Revenue Management
+Create Product Specifications in Revenue Cloud
 With Product Catalog Management, you can define a specification type for the products that are unique to your industry. A product specification type is associated with a product specification record type.
 Customize and Extend the Product Catalog Management Home Page
 Manage attributes, products, catalogs, and rules on the Product Catalog Management app’s home page. Your admin can use the Lightning App Builder to customize and extend the home page for your users.
@@ -35,3 +35,7 @@ Turn On Price Book Filtering
 Price book filtering addresses incomplete product results in large catalogs when the price book and catalog overlap are minimal. Price book filtering retrieves only the products that are associated with the selected price book, so you see relevant results without going through the entire catalog.
 Product Discovery Setup
 To populate the information that users see when they use Product Discovery, select a context definition, and if necessary, select a qualification procedure and a pricing procedure.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_set_up_product_catalog_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_product_classifications.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Explore Product Classification with an Example
@@ -114,3 +114,7 @@ Exclude White from the Color attribute.
 Save your changes.
 
 You have successfully engineered a product classification hierarchy. Any product record created by using the Sedan classification automatically inherits a restriction to 2.5 L or 3.5 L engines and won’t offer Black as a color option, significantly reducing manual data entry errors. Similarly, any product record created by using the SUV classification automatically inherits a restriction to a 4.0 L engine and won’t offer White as a color option.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_end_to_end_product_classification_example.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

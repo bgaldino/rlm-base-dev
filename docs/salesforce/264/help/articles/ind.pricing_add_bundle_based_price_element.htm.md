@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Bundle-Based Price
@@ -15,7 +15,7 @@ Define and manage bundle-based discounts for a group of products that are sold a
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 Bundling products and services offers significant advantages for sales representatives, streamlining the sales process and boosting revenue. By combining products into a single offering, sales reps provide a clear price advantage over individual purchases, encouraging customers to buy more than initially intended. This strategy increases sales volume and achieves a higher average order value per transaction.
 
@@ -25,3 +25,7 @@ Create Bundle Based Adjustments
 Define bundle based adjustments to calculate discounts for products being sold as a bundle.
 Calculate Bundle-Based Discounts
 Determine the price of a product based on the discounts configured for a set of products sold as a bundle.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_add_bundle_based_price_element.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

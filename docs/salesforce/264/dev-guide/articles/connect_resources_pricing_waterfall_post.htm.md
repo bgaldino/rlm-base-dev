@@ -7,74 +7,38 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_business_apis_rest_references.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Pricing Waterfall (POST)
 
 Create a log of price waterfall. Price waterfall provides insights into every step of the pricing process.
 
-    
-
 ## Resource
-
-      
-      
 
 ```
 /connect/core-pricing/waterfall
 ```
 
-    
-
-    
-
 ## Resource Example
-
-      
-      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/core-pricing/waterfall
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 60.0
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 POST
 
-    
-
-    
-
 ## Request Body for POST
-
-      
-      
 
 **JSON Example**
 
-      
-
 ```
-
 {
       "currencyCode": "USD",
       "executionEndTimestamp": "2023-07-31T20:11:29.625Z",
@@ -155,170 +119,10 @@ POST
       }
   ]
 }
-
 ```
-
-      
 
 **Properties**
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `context​Definition​VersionId` | String | Context definition version ID of the pricing procedure. | Optional | 60.0 |
@@ -330,15 +134,12 @@ POST
 | `execution​Start​Timestamp` | String | Start timestamp of procedure execution. | Optional | 60.0 |
 | `lineItem​Id` | String | Line item ID for which the price is being calculated. | Required | 60.0 |
 | `output` | Map<String, Object> | Output of the pricing procedure. | Optional | 60.0 |
-| `waterfall` | [Pricing Waterfall Input](./connect_requests_pricing_waterfall_input.htm.md)[] | Details of the pricing waterfall. | Required | 60.0 |
-
-    
-
-    
+| `waterfall` | [Pricing Waterfall Input](./connect_requests_pricing_waterfall_input.htm.md "Input representation of the pricing waterfall details.")[] | Details of the pricing waterfall. | Required | 60.0 |
 
 ## Response Body for POST
 
-      
-      
+[Pricing Generic Response](./connect_responses_pricing_generic_response.htm.md "Output representation of a pricing data sync request.")
 
-[Pricing Generic Response](./connect_responses_pricing_generic_response.htm.md)
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_pricing_waterfall_post.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_manage_contract_pricing_in_revenue_lifecycle_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Set Up Tiered Contract Pricing
@@ -15,7 +15,7 @@ Negotiate prices and discounts based on purchase quantities to encourage larger 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To set up tiered volume adjustments to pricing in contracts:	Salesforce Pricing Design Time User
 Verify Decision Tables
@@ -74,3 +74,7 @@ Before you begin, verify that your contract manager configured a field to overri
 Open a quote or order.
 For each line item in the transaction, enter a sequence number starting with one in the field configured for sequencing tiered volume discounts. If you specify partial or no sequence numbers, the system sequences line items by quantity by default.
 Save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_use_tiered_volume_and_pricing_in_contract_pricing.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_set_up_contract_search_for_contract_ai.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Billing Considerations for Contract Search
@@ -26,6 +26,8 @@ Data Services	Data Queries
 Usage is calculated based on the number of records processed.
 
 The count of records processed depends on the structure of a query as well as other related factors such as the total number of records in the objects being queried.
+
+When an object is queried in the context of a data space, the number of rows processed is based on the total number of processed rows in the source object, not the number of rows pertaining to the particular data space.
 
 	See Data Cloud Billable Usage Types.
 Data Services	Data Spaces	Usage is calculated based on the number of data spaces beyond the default data space.	See Data Cloud Billable Usage Types.
@@ -59,3 +61,7 @@ NOTE Use of some standard agent actions require that a subscription has been pur
 For more information on how usage is billed, refer to your contract or contact your account executive.
 
 When you use the contract search, credits can be consumed in usage types on other consumption cards by related features such as or Audit and Feedback.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_billing_considerations_for_contract_agent.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

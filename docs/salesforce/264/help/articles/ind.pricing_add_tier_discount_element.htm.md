@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_add_volume_discount_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Understand the Difference Between Volume and Tier Discounts
@@ -15,7 +15,7 @@ Distinguishing between volume and tiered discounts is crucial for applying the m
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 Volume Discounts
 Provides a single, reduced price per unit once a customer reaches a specified quantity threshold. For example, if a customer buys 60 units and the volume discount activates at 40 units, all 60 units will be priced at the lower rate. This method offers a simple and straightforward way to apply discounts based on the total quantity purchased.
 Tiered Discounts
@@ -43,3 +43,7 @@ No discounts applied for the first 9 laptops
 	(9 x $200) + (10 x $180) + (6 x $170) = $4620
 
 To conclude, volume discounts offer one reduced price for all units once a quantity threshold is met, while tiered discounts apply progressively lower prices to units as the quantity purchased increases across different ranges.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_add_tier_discount_element.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

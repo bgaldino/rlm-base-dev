@@ -7,42 +7,21 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_api_requests.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Usage-Based Product Input
 
 Understand the sample request structure to specify and manage usage-based products within a sales transaction.
 
-    
-
 ## JSON Example to Create a Quote Record With Default Rates and Default Grants
-
-      
-      
 
 The example shows a sample request to creates these records with these updates.
 
-      
-        
-- 
-`Quote`—Creates the main quote record with default rates and default grants.
-
-        
-- 
-`Quote Line Item`—Adds a product to the quote.
-
-        
-- 
-`Rate Card Entry`—Links default pricing from rate card. When `NegotiatedRate` property value is null, the rate card price is used.
-
-        
-- 
-`Usage Grant`—Allocates all default grants.
-
-      
-
-      
+- `Quote`—Creates the main quote record with default rates and default grants.
+- `Quote Line Item`—Adds a product to the quote.
+- `Rate Card Entry`—Links default pricing from rate card. When `NegotiatedRate` property value is null, the rate card price is used.
+- `Usage Grant`—Allocates all default grants.
 
 ```
 {
@@ -107,33 +86,14 @@ The example shows a sample request to creates these records with these updates.
 }
 ```
 
-    
-
-    
-
 ## JSON Example to Specify Negotiated Grants
-
-      
-      
 
 This example shows a sample response to create a QuotLineItmUseRsrcGrant record that links a quote line item to a product usage grant for usage-based products. This request performs these updates.
 
-      
-        
 - Associates a usage grant with a quote line item.
-
-        
 - Allocates a quantity of usage resources.
-
-        
 - Applies a usage policy that defines how the resources can be consumed.
-
-        
 - Links to a base product usage grant that defines the grant structure.
-
-      
-
-      
 
 ```
 {
@@ -168,11 +128,7 @@ This example shows a sample response to create a QuotLineItmUseRsrcGrant record 
 }
 ```
 
-      
-
 This example shows a sample response to update the previously created QuotLineItmUseRsrcGrant record with additional units, which is specified by using the `GrantQuantity` property. The quote line item now has 97 units of usage resource allocation.
-
-      
 
 ```
 {
@@ -205,40 +161,17 @@ This example shows a sample response to update the previously created QuotLineIt
 }
 ```
 
-    
-
-    
-
 ## JSON Example to Specify Tiered Pricing and Usage Grants
-
-      
-      
 
 This example shows a sample request to update an existing quote with tiered pricing and usage grants. This request sets up a multi-tier rate structure and updates a usage grant quantity along with these additional updates.
 
-      
-        
 - Creates a base rate card entry with a negotiated rate of 10. Sets the base price for the quote line item.
-
-        
 - Creates a second rate card entry for tiered pricing without any negotiated rate. The default rate card is used. This rate card entry is the base for tier adjustments.
-
-        
 - Creates a tier adjustment for quantities 0 through 50 and adds $5 adjustment to the base rate.
-
-        
 - Creates a tier adjustment for quantities 50 through 100 and adds an adjustment of $10.
-
-        
 - Updates an existing usage resource grant record to set grant quantity to 150 units.
 
-      
-
-      
-
 For example, if an order is placed for 75 units, the base rate is $10. As tier 2 is applicable for this order, an adjustment of $10 is applicable. The final price per unit is $20 with a total of $1500 for 75 units.
-
-      
 
 ```
 {
@@ -348,3 +281,7 @@ For example, if an order is placed for 75 units, the base rate is $10. As tier 2
   }
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_usage_based_product_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

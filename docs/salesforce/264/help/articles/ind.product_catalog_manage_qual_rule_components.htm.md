@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_qualification_rules.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Qualification Rule Components
@@ -52,7 +52,7 @@ To add nodes and attributes to a context definition, edit the context definition
 Deactivate the decision table, update the decision table to use the new fields, and then activate the decision table.
 To create a new version of the qualification rule procedure, update the qualification rule procedure and add mappings to the new fields.
 Simulate the updated qualification procedure version, and then activate it if it meets your requirements.
-Deactivate a Decision Table in Revenue Management
+Deactivate a Decision Table in Revenue Cloud
 
 You can’t edit active decision tables. Deactivate a decision table, add new rules or modify existing rules, and then activate the decision table. The changes don't take effect until you deactivate and activate the decision table.
 
@@ -77,3 +77,7 @@ From the Product Catalog Management app’s home page, click Qualification Rules
 From the Qualification Decision Tables list view page, click the decision table that you want to deactivate.
 Click Deactivate.
 You can now edit the decision table to add new qualification rules, or delete or edit existing qualification rules. After you save your changes, activate the decision table. When you activate the decision table, the changes to the rules are applied to the objects, and the decision table shows the new rules.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_manage_qual_rule_components.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

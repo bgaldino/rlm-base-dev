@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_add_attribute_based_price_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Attribute-Based Pricing Limits
@@ -17,3 +17,7 @@ When you configure adjustments by using numeric data types (Number, Currency, Pe
 While attribute-based pricing supports picklists for all other data types, you can't use a picklist with a Boolean data type (for example, mapping custom text like "Available" or "N/A" to true or false values). If you try to save an adjustment configured with a Boolean picklist, you get a design-time error. Instead, create an attribute of type Checkbox or Boolean.
 When configuring price-impacting attributes, use only attributes that belong directly to the selected product classification (or subclassification). While attributes inherited from a parent product classification can appear in the configuration UI, selecting them causes a validation error when you save the adjustment.
 The pricing engine doesn't support attribute-based adjustments for attributes with an overridden bundle context. For a product within a bundle, define the attribute once instead of creating an overridden attribute. The override prevents the adjustment from applying.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_attribute_based_pricing_limits.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

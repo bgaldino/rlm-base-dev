@@ -7,62 +7,39 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: apex_namespace_InvoiceWriteOff.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # WriteOffInvoiceInput Class
 
 Contains invoice details that are used for the request to write off an
-    invoice.
+invoice.
 
 ## Namespace
 
-[InvoiceWriteOff](./apex_namespace_InvoiceWriteOff.htm.md)
+[InvoiceWriteOff](./apex_namespace_InvoiceWriteOff.htm.md "Create credit memos with the total charge amount on the invoice as the write-off amount and close the invoice.")
 
-- 
-**[WriteOffInvoiceInput Constructors](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_constructors)**  
-
-Learn more about the constructors available with the WriteOffInvoiceInput     class.
-
-- 
-**[WriteOffInvoiceInput Properties](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_properties)**  
-
-Learn more about the properties available with the WriteOffInvoiceInput     class.
-
-  
+- **[WriteOffInvoiceInput Constructors](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_constructors)**  
+  Learn more about the constructors available with the WriteOffInvoiceInput class.
+- **[WriteOffInvoiceInput Properties](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_properties)**  
+  Learn more about the properties available with the WriteOffInvoiceInput class.
 
 ## WriteOffInvoiceInput Constructors
 
-  
-  
-  
 Learn more about the constructors available with the WriteOffInvoiceInput
-    class.
-
-    
-      
+class.
 
 The `WriteOffInvoiceInput` class includes these
-        constructors.
+constructors.
 
-    
-
-- 
-**[WriteOffInvoiceInput(invoiceId, reasonCode, reason)](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_ctor)**  
-
-Initializes the WriteOffInvoiceInput class that stores the invoice details and reason for     writing off invoices.
-
-- 
-**[WriteOffInvoiceInput()](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_ctor_2)**  
-
-Initializes the WriteOffInvoiceInput class.
+- **[WriteOffInvoiceInput(invoiceId, reasonCode, reason)](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_ctor)**  
+  Initializes the WriteOffInvoiceInput class that stores the invoice details and reason for writing off invoices.
+- **[WriteOffInvoiceInput()](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_ctor_2)**  
+  Initializes the WriteOffInvoiceInput class.
 
 ### WriteOffInvoiceInput(invoiceId, reasonCode, reason)
 
-Initializes the WriteOffInvoiceInput class that stores the invoice details and reason for
-    writing off invoices.
+Initializes the WriteOffInvoiceInput class that stores the invoice details and reason for writing off invoices.
 
 #### Signature
 
@@ -72,27 +49,19 @@ Initializes the WriteOffInvoiceInput class that stores the invoice details and r
 
 **invoiceId**
 
-: Type: String
-
-: 
+Type: String
 
 ID of the invoice record that you want to write off.
 
 **reasonCode**
 
-: Type: String
+Type: String
 
-: 
-
-Code that categorizes the write-off reason. For example, if the reason for the
-                        invoice write-off is a disputed amount, the reason code can be Disputed
-                        Amount (DA).
+Code that categorizes the write-off reason. For example, if the reason for the invoice write-off is a disputed amount, the reason code can be Disputed Amount (DA).
 
 **reason**
 
-: Type: String
-
-: 
+Type: String
 
 Reason for writing off invoices.
 
@@ -104,38 +73,20 @@ Initializes the WriteOffInvoiceInput class.
 
 `public WriteOffInvoiceInput()`
 
-  
-
 ## WriteOffInvoiceInput Properties
 
-  
-  
-  
 Learn more about the properties available with the WriteOffInvoiceInput
-    class.
-
-    
-      
+class.
 
 The `WriteOffInvoiceInput` class includes these
-        properties.
+properties.
 
-    
-
-- 
-**[invoiceId](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_invoiceId)**  
-
-Sets the ID of the invoice record that must be written off.
-
-- 
-**[reason](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_reason)**  
-
-Sets the reason for writing off invoices.
-
-- 
-**[reasonCode](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_reasonCode)**  
-
-Sets the code that categorizes the write-off reason.
+- **[invoiceId](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_invoiceId)**  
+  Sets the ID of the invoice record that must be written off.
+- **[reason](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_reason)**  
+  Sets the reason for writing off invoices.
+- **[reasonCode](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md#apex_InvoiceWriteOff_WriteOffInvoiceInput_reasonCode)**  
+  Sets the code that categorizes the write-off reason.
 
 ### invoiceId
 
@@ -172,3 +123,7 @@ Sets the code that categorizes the write-off reason.
 #### Property Value
 
 Type: String
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

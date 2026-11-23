@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: approvals
 parent_article: ind.approvals_approval_delegation.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Create Approval Delegation Records
@@ -32,3 +32,7 @@ Save your changes.
 NOTE A reviewer can have only 1 active delegation at a time. To assign different delegates for different periods, create non-overlapping approval delegation records.
 SEE ALSO
 Considerations for Advanced Approval Delegations
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.approvals_create_delegation_records.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_documnet_actions_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # How Contract Risk Analysis Works
@@ -46,3 +46,7 @@ Set Up Contract Risk Analysis
 Contract Risk Analysis compares each modified clause in a contract against your approved playbook. After a reviewer makes changes to a version of the contract, the author runs the analysis using the Microsoft 365 Word add-in. A generative AI model scores each modified clause, explains the risk, and recommends the mitigation content to add to the contract.
 Analyze Contract Risks After a Review
 After an internal or external reviewer adds changes to a contract document version, run a risk analysis to see how the modified clauses deviate from your approved playbook. Review the severity, and apply the recommended mitigation content.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_riskanalysis_how.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,18 +6,18 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_procedure_plan_framework.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Understand the Order of Execution for Place Sales Transaction
 
-When you create or update a quote or order using the Place Sales Transaction API, Revenue Management (formerly Revenue Cloud)processes the request through a defined order of execution. This order describes how configuration, pricing, Apex hooks, and automation run during transaction processing. Understanding this order helps you determine where pricing logic runs and how context data is processed when using Place Sales Transaction.
+When you create or update a quote or order using the Place Sales Transaction API, Revenue Cloud processes the request through a defined order of execution. This order describes how configuration, pricing, Apex hooks, and automation run during transaction processing. Understanding this order helps you determine where pricing logic runs and how context data is processed when using Place Sales Transaction.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Advanced license.
 
-When Place Sales Transaction processes a request, Revenue Management performs these steps in sequence.
+When Place Sales Transaction processes a request, Revenue Cloud performs these steps in sequence.
 
 Saves the sales transaction header.
 Executes triggers associated with the transaction header.
@@ -35,3 +35,7 @@ Persists data from the transaction context.
 Executes triggers for affected records.
 Synchronizes supported context data back into the response when context data is included in the request payload.
 Executes record-triggered flows and other custom logic based on the persisted data.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_understand_the_order_of_execution_for_place_sales_transaction.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

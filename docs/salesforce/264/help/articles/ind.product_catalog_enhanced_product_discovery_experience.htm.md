@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_product_discovery.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Product Discovery with Constraint Rules
@@ -51,3 +51,7 @@ Preview Transactions While Browsing the Catalog
 Use the transaction preview to review product selections, quantities, and pricing in real time without leaving Product Discovery. The preview shows up to the 50 most recently added items in the transaction. For bundled products, the preview displays only the main product.
 Product Visibility and Recommendations in Real Time
 As you browse the catalog, Product Discovery evaluates the current transaction against configuration rules. Based on the rules you configure, Product Discovery shows messages, disables products, and recommended products directly in the browsing experience.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_enhanced_product_discovery_experience.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

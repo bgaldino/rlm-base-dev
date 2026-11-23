@@ -7,27 +7,24 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: apex_namespace_BusinessRule.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # CalculationMatrixMigrationService Class
 
 Contains methods for migrating calculation matrices from the Vlocity
-      package to the Business Rules Engine as decision matrices.
+package to the Business Rules Engine as decision matrices.
 
 ## Namespace
 
-[BusinessRule](./apex_namespace_BusinessRule.htm.md)
+[BusinessRule](./apex_namespace_BusinessRule.htm.md "The BusinessRule namespace provides classes for migrating calculation matrices and calculation procedures from Vlocity to the Business Rules Engine in Salesforce.")
 
 ## Example
 
-      This example converts a list of calculation matrix IDs to decision matrix IDs and logs the
-        result in the debug log.
+This example converts a list of calculation matrix IDs to decision matrix IDs and logs the
+result in the debug log.
 
 ```
-
 List<String> ids = new List<String>();
 ids.add('a03xx000004WhvkAAC');
 ids.add('a03xx000004WhxMAAS');
@@ -35,40 +32,31 @@ ids.add('a03xx000004WhyyAAC');
 
 System.debug('TO MIGRATE A LIST OF CALCULATION MATRICES');
 System.debug(BusinessRule.CalculationMatrixMigrationService.migrate(ids, 'vlocity_ins'));
-
 ```
 
-      This example converts a calculation matrix ID to a decision matrix ID and logs the result
-        in the debug log.
+This example converts a calculation matrix ID to a decision matrix ID and logs the result
+in the debug log.
 
 ```
-
 System.debug('TO MIGRATE A CALCULATION MATRIX');
 System.debug(BusinessRule.CalculationMatrixMigrationService.migrate('a03xx000004Wi0aAAC', 'vlocity_ins'));
-
 ```
 
-- 
-**[CalculationMatrixMigrationService Methods](./apex_class_BusinessRule_CalculationMatrixMigrationService.htm.md#apex_BusinessRule_CalculationMatrixMigrationService_methods)**  
+- **[CalculationMatrixMigrationService Methods](./apex_class_BusinessRule_CalculationMatrixMigrationService.htm.md#apex_BusinessRule_CalculationMatrixMigrationService_methods)**
 
 ## CalculationMatrixMigrationService Methods
 
 The following are methods for `CalculationMatrixMigrationService`.
 
-- 
-**[migrate(calculationMatrixIds, namespace)](./apex_class_BusinessRule_CalculationMatrixMigrationService.htm.md#apex_BusinessRule_CalculationMatrixMigrationService_migrate)**  
-
-Migrate calculation matrices from the Vlocity package to the Business       Rules Engine as decision matrices.
-
-- 
-**[migrate(calculationMatrixId, namespace)](./apex_class_BusinessRule_CalculationMatrixMigrationService.htm.md#apex_BusinessRule_CalculationMatrixMigrationService_migrate_2)**  
-
-Migrate a calculation matrix from the Vlocity package as a decision       matrix to the Business Rules Engine.
+- **[migrate(calculationMatrixIds, namespace)](./apex_class_BusinessRule_CalculationMatrixMigrationService.htm.md#apex_BusinessRule_CalculationMatrixMigrationService_migrate)**  
+  Migrate calculation matrices from the Vlocity package to the Business Rules Engine as decision matrices.
+- **[migrate(calculationMatrixId, namespace)](./apex_class_BusinessRule_CalculationMatrixMigrationService.htm.md#apex_BusinessRule_CalculationMatrixMigrationService_migrate_2)**  
+  Migrate a calculation matrix from the Vlocity package as a decision matrix to the Business Rules Engine.
 
 ### migrate(calculationMatrixIds, namespace)
 
 Migrate calculation matrices from the Vlocity package to the Business
-      Rules Engine as decision matrices.
+Rules Engine as decision matrices.
 
 #### Signature
 
@@ -76,29 +64,25 @@ Migrate calculation matrices from the Vlocity package to the Business
 
 #### Parameters
 
-**calculationMatrixIds**
+calculationMatrixIds
+:   Type: List<[String](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexcode.meta/apexcode/apex_methods_system_string.htm#apex_methods_system_string)>
+:   The 18-character IDs of the calculation matrices in the Vlocity managed package to be migrated
+    to the Business Rules Engine as decision matrices.
 
-: Type: List<String>
-
-: The 18-character IDs of the calculation matrices in the Vlocity managed package to be migrated
-            to the Business Rules Engine as decision matrices.
-
-**namespace**
-
-: Type: String
-
-: The namespace in which Vlocity is deployed as a managed package. For example,
-                `vlocity_ins`. This contains the calculation
-              matrix custom objects.
+namespace
+:   Type: [String](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexcode.meta/apexcode/apex_methods_system_string.htm#apex_methods_system_string)
+:   The namespace in which Vlocity is deployed as a managed package. For example,
+    `vlocity_ins`. This contains the calculation
+    matrix custom objects.
 
 #### Return Value
 
-Type: Map<String,Object>
+Type: Map<[String](https://developer.salesforce.com/docs/atlas.en-us.264.0.apexcode.meta/apexcode/apex_methods_system_string.htm#apex_methods_system_string),Object>
 
 ### migrate(calculationMatrixId, namespace)
 
 Migrate a calculation matrix from the Vlocity package as a decision
-      matrix to the Business Rules Engine.
+matrix to the Business Rules Engine.
 
 #### Signature
 
@@ -106,21 +90,20 @@ Migrate a calculation matrix from the Vlocity package as a decision
 
 #### Parameters
 
-**calculationMatrixId**
+calculationMatrixId
+:   Type: String
+:   The 18-character ID of the calculation matrix in the Vlocity managed package to be migrated to
+    the Business Rules Engine as a decision matrix.
 
-: Type: String
-
-: The 18-character ID of the calculation matrix in the Vlocity managed package to be migrated to
-            the Business Rules Engine as a decision matrix.
-
-**namespace**
-
-: Type: String
-
-          
-: The namespace in which Vlocity is deployed as a managed package. For example, `vlocity_ins`. This contains the calculation matrix
-            custom objects.
+namespace
+:   Type: String
+:   The namespace in which Vlocity is deployed as a managed package. For example, `vlocity_ins`. This contains the calculation matrix
+    custom objects.
 
 #### Return Value
 
 Type: Map<String,Object>
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/apex_class_BusinessRule_CalculationMatrixMigrationService.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_define_orchestration_components.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Clone a Fulfillment Workspace
@@ -36,3 +36,7 @@ The workspace name is prefilled with the source workspace name and a prefix.
 The Deep Clone Fulfillment Workspace window confirms that cloning succeeded and lists the copied object types and record counts.
 
 To continue designing the cloned workspace, click View Cloned Fulfillment Workspace.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_clone_a_fulfillment_workspace.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

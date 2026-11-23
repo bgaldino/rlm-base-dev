@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_create_a_constraint_model.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Load Product Defaults from PCM to a Constraint Model
@@ -15,7 +15,7 @@ Include product defaults defined in Product Catalog Management (PCM), such as at
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 USER PERMISSIONS NEEDED
 To import object data:	Product Configuration Constraints Designer permission set
 
@@ -30,3 +30,7 @@ In the Apps section of the setup page for Constraint Rules Engine Licenseless pe
 For the Products object, turn on Read permission for Object Permissions and for the fields that you want to reference in the CML constraint.
 To reference product field values in a constraint by using CML Editor, include the productField attribute annotation in the constraint to map a CML attribute to the corresponding product field.
 NOTE When you use Visual Builder to import products from PCM, Constraint Rules Engine automatically includes field values.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_load_product_defaults.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

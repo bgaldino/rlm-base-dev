@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_milestone_plans.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Milestone Billing Example
@@ -50,3 +50,7 @@ A fifth billing milestone plan item with the remainder of the 5% with milestone 
 For example, the requirement gathering and planning milestone is finalized 2 months after the billing schedule start date. At this stage, the billing admin can manually mark the milestone as completed. When you save the milestone plan item, its status changes from Waiting for Milestone Accomplishment to Ready for Invoicing, and the milestone completion date is recorded. When the billing schedule is processed for invoicing, an invoice line is generated for the first milestone plan item, charging 25% of the total billable amount. At this point, the status of the milestone changes to Invoiced.
 
 The remainder billing milestone plan item is always invoiced with the final milestone. If the final milestone is an event billing milestone plan item, the milestone type for the remainder line is updated to event.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_milestone_usecase.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

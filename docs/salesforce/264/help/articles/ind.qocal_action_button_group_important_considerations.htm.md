@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_configure_placement_of_action_buttons.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Action Button Group Considerations
@@ -15,7 +15,7 @@ Learn how action button groups behave in the Transaction Line Editor (TLE) and S
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 
 Keep these requirements and system limits in mind when configuring your button layouts.
 
@@ -25,3 +25,7 @@ You can’t include Salesforce admin-created custom actions at the header or row
 You can drag actions to reorder them within a group, but you can't drag entire button groups into a different order.
 Each action can belong to only 1 button group at a time.
 You can create up to 10 button groups, with each group having up to 10 actions. Only the first 10 actions appear on the STLE header at run time. The more button groups you add, the fewer buttons are visible.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_action_button_group_important_considerations.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

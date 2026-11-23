@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_review.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Reviewer Type and Access Mode in Salesforce Contracts
@@ -30,3 +30,7 @@ Reply to comments	No	Yes
 Add/Update document content	No	Yes
 Add/Update clauses	No	Yes
 Add/Edit/Delete Sections	No	Yes
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_reviewer_type_and_access_mode.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

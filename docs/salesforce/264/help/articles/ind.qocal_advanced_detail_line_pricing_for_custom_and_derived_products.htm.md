@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.pricing_unique_pricing_scenarios.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Use Advanced Transaction Detail Line Pricing to Map Custom Fields
@@ -15,7 +15,7 @@ Users can update custom fields on sales transaction items or sales transaction i
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To set up and use advanced detail line pricing:	
 
@@ -33,6 +33,8 @@ Add Context Tag Mappings to the Pricing Procedure Map Line Item Element Using JS
 To configure a pricing procedure to use advanced detail line pricing, copy and paste the map line item JSON to a pricing procedure in Revenue Pricing.
 Add Context Tag Mappings to the Discovery Procedure Map Line Item Element Using JSON
 To configure a discovery procedure to use advanced detail line pricing with derived-pricing products, copy and paste the map line item for derived pricing JSON to a discovery procedure in Revenue Pricing.
+Advanced Detail Line Pricing Limits
+Before you add the Advanced Detail Line Pricing element to a pricing procedure, review these limitations and configuration requirements.
 Update Revenue Pricing Procedure
 
 To configure advanced detail line pricing, modify your revenue pricing procedure.
@@ -378,3 +380,7 @@ global class ApexCustomFieldHandler implements RevSignaling.SignalingApexProcess
 }
 
 IMPORTANT To add custom field information to Asset State Period and Asset Action Source, create appropriate cross-context mappings.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_advanced_detail_line_pricing_for_custom_and_derived_products.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

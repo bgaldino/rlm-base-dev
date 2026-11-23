@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_define_field_and_attribute_mapping.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Configure List Mapping
@@ -47,3 +47,7 @@ The target technical product has a Bandwidth attribute with two values: 50 Mbps 
 Create a mapping so that if the source product has a Speed value of Fast, then the target product has a Bandwidth value of 50 Mbps. And if the Speed is Ultra Fast, then the Bandwidth is 100 Mbps.
 
 When a user submits an order with a speed attribute of Fast, the Broadband attribute gets the value of 50 Mbps.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_configure_list_mapping.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

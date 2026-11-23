@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_quote_and_order_capture.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Sell Usage-Based Products
@@ -16,7 +16,7 @@ Sell products that are billed based on the consumption. When you create quotes a
 REQUIRED EDITIONS
 Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
-Set Up Usage Selling in Revenue Management
+Set Up Usage Selling in Revenue Cloud
 Before you begin selling usage-based products and services, make sure that you’ve completed the required set up. You must define usage products, resources, and the grants, commitments, and entitlements offered with the products. Define policies that govern these products and services. Then, set up rates for each of these products and services.
 Usage Selling Advanced Concepts
 Determine the scope of resource pooling with grant binding, and manage resource consumption and rating using anchors and packs. You can also define drawdown logic, rate applicability rules, and discounted commitment models.
@@ -24,3 +24,7 @@ Build a Quote for Usage-Based Products
 Create quotes for usage-based products that meet your customer’s needs. Review the resources included with the product, including the granted quantity and rates.
 Sell Commitment-Based Usage Products
 For selling commitment-based usage products, a sales rep must follow a three-step process—creating the anchor product, creating the commitment product, and linking the anchor and commitment products together.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_usage_selling.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

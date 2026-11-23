@@ -7,88 +7,47 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: apex_namespace_RevSalesTrxn.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # PlaceSalesTransactionResponse Class
 
 Contains properties to hold the response to the place sales transaction
-    request.
+request.
 
 ## Namespace
 
-[RevSalesTrxn](./apex_namespace_RevSalesTrxn.htm.md)
-
-    
+[RevSalesTrxn](./apex_namespace_RevSalesTrxn.htm.md "Create a sales transaction, such as a quote or an order, with integrated pricing and configuration. Additionally, update an order or a quote, and insert and delete order or quote line items to calculate the estimated tax.")
 
 ## Example
-
-      
-      
 
 ```
 RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(graph, pricingPrefEnum, configurationExecutionEnum, new RevSalesTrxn.ConfigurationOptionsInput(), null);
 ```
 
-    
-
-- 
-**[PlaceSalesTransactionResponse Properties](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_properties)**  
-
-Learn more about the available properties with the PlaceSalesTransactionResponse     class.
-
-  
+- **[PlaceSalesTransactionResponse Properties](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_properties)**  
+  Learn more about the available properties with the PlaceSalesTransactionResponse class.
 
 ## PlaceSalesTransactionResponse Properties
 
-  
-  
-  
 Learn more about the available properties with the PlaceSalesTransactionResponse
-    class.
-
-    
-      
+class.
 
 The `PlaceSalesTransactionResponse` class includes these
-        properties.
+properties.
 
-    
-
-    
-  
-
-- 
-**[contextDetails](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_contextDetails)**  
-
-Get the details of the context that’s created for the sales transaction.
-
-- 
-**[errorResponse](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_errorResponse)**  
-
-Get the list of errors encountered during the synchronous processing of the API     request.
-
-- 
-**[isSuccess](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_isSuccess)**  
-
-Get the request status of the synchronous part of the processing.
-
-- 
-**[salesTransactionId](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_salesTransactionId)**  
-
-Get the ID of the sales transaction, such as a quote or an order.
-
-- 
-**[statusUrl](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_statusUrl)**  
-
-Get the asynchronous status URL of the request, if available.
-
-- 
-**[trackerId](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_trackerId)**  
-
-Get the unique identifier assigned to a specific operation or request that's used for     tracking and referencing the operation.
+- **[contextDetails](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_contextDetails)**  
+  Get the details of the context that’s created for the sales transaction.
+- **[errorResponse](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_errorResponse)**  
+  Get the list of errors encountered during the synchronous processing of the API request.
+- **[isSuccess](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_isSuccess)**  
+  Get the request status of the synchronous part of the processing.
+- **[salesTransactionId](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_salesTransactionId)**  
+  Get the ID of the sales transaction, such as a quote or an order.
+- **[statusUrl](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_statusUrl)**  
+  Get the asynchronous status URL of the request, if available.
+- **[trackerId](./apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm.md#apex_RevSalesTrxn_PlaceSalesTransactionResponse_trackerId)**  
+  Get the unique identifier assigned to a specific operation or request that's used for tracking and referencing the operation.
 
 ### contextDetails
 
@@ -105,7 +64,7 @@ Type: ConnectApi.ContextDetails
 ### errorResponse
 
 Get the list of errors encountered during the synchronous processing of the API
-    request.
+request.
 
 #### Signature
 
@@ -125,17 +84,10 @@ Get the request status of the synchronous part of the processing.
 
 #### Property Value
 
-      
-      
-
 Type: Boolean
 
-      
-
 Indicates whether the synchronous part of the processing is successful
-          (`true`) or not (`false`).
-
-    
+(`true`) or not (`false`).
 
 ### salesTransactionId
 
@@ -164,7 +116,7 @@ Type: String
 ### trackerId
 
 Get the unique identifier assigned to a specific operation or request that's used for
-    tracking and referencing the operation.
+tracking and referencing the operation.
 
 #### Signature
 
@@ -173,3 +125,7 @@ Get the unique identifier assigned to a specific operation or request that's use
 #### Property Value
 
 Type: String
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RevSalesTrxn_PlaceSalesTransactionResponse.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

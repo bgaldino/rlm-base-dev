@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_quote_and_order_capture.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Transaction Management Considerations
@@ -15,7 +15,7 @@ Review essential requirements and behaviors before using Transaction Management 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 UI and Button Configurations
 Revenue Management excludes support for Add Products and Edit Products buttons on quote and order related lists.
 Turn off these buttons on quote and order page layouts.
@@ -35,11 +35,16 @@ Any update to Order or Order Product records outside the Transaction Line Editor
 Similarly, any update to Quote Line Items outside the line editors invalidates the pricing status and triggers a Reprice All requirement. If your org has automations or triggers that modify Quote Line Item or Order Product fields, ensure they run within the supported transaction flow to avoid pricing validation errors.
 The Asset object doesn’t support the Quote Action related list because Revenue Management creates assets from finalized orders rather than quotes.
 To view amendments, renewals, or cancellations, use the associated order records.
+Attribute Query Limit for Virtual Objects
+Quote Line Item Attribute (QuoteLineItemAttribute), Order Product Attribute (OrderItemAttributes), and Asset State Period Attribute are virtual objects that read attribute data stored in the standard AttributeValueStore object.
+When filtered by a parent relationship, queries in Workbench, Salesforce Object Query Language (SOQL), and Apex return attributes for only the first 2,000 records.
+The same limit applies to SELECT COUNT(), so the returned count can be lower than the actual total. For example, if a quote has 2,500 line items with attributes, this query returns a count of only 2,000: SELECT COUNT() FROM QuoteLineItemAttribute WHERE QuoteLineItem.QuoteId = 'quoteId'.
+To get the full attribute count, use the Revenue Lifecycle Management Context APIs. Call Context Init to get a contextId, and then call queryTags with the SalesTransactionItemAttribute and SalesTransactionItem tags.
 Feature Compatibility and Permissions
-Users with Subscription Management permissions use existing standalone products, bundles, and generate assets in both Subscription Management and Revenue Management.
-Revenue Management shows these fields after enablement: Include component by default (set to true for static bundles), Allow qty changes, Min qty, Max qty, and Group.
+Users with Subscription Management permissions use existing standalone products, bundles, and generate assets in both Subscription Management and Revenue Cloud.
+Revenue Cloud shows these fields after enablement: Include component by default (set to true for static bundles), Allow qty changes, Min qty, Max qty, and Group.
 Contact Salesforce Customer Support to resolve validation errors resulting from modifications to an existing bundle.
-Subscription Management users manage standalone products, bundles, and assets in both Subscription Management and Revenue Management.
+Subscription Management users manage standalone products, bundles, and assets in both Subscription Management and Revenue Cloud.
 More Resources
 Customize Related Lists
 Refresh a Decision Table
@@ -47,3 +52,7 @@ Product Discovery Setup
 Customize Page Layouts with the Enhanced Page Layout Editor
 Field Permissions
 Sync Pricing Data
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_limitations_for_using_quote_and_order_capture.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

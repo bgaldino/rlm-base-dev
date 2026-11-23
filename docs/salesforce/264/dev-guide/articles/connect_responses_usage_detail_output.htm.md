@@ -7,25 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Usage Management
 parent_page: usage_management_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Usage Details
 
 Output representation of the usage details of a quote, an order, or an asset.
 
-      
-        
-          
+## JSON Example
 
-**JSON example**
-
-          
-: This sample response shows resources that include grants, if applicable, and resources
-            without rates when you retrieve the usage details of an order
-            item.
+This sample response shows resources that include grants, if applicable, and resources without rates when you retrieve the usage details of an order item.
 
 ```
 {
@@ -124,9 +115,7 @@ Output representation of the usage details of a quote, an order, or an asset.
 }
 ```
 
-          
-: This example shows a sample response without negotiated rates when you retrieve the
-            usage details of an order item.
+This example shows a sample response without negotiated rates when you retrieve the usage details of an order item.
 
 ```
 {
@@ -237,29 +226,14 @@ Output representation of the usage details of a quote, an order, or an asset.
 }
 ```
 
-          
-: This sample response shows negotiated rates when you retrieve the usage details of an
-            order item. The negotiated rates are derived from these objects for assets, order items,
-            or quote line items. 
-              
+This sample response shows negotiated rates when you retrieve the usage details of an order item. The negotiated rates are derived from these objects for assets, order items, or quote line items.
+
 - AssetRateCardEntry
-
-              
 - AssetRateAdjustment
-
-              
 - OrderItemRateCardEntry
-
-              
 - OrderItemRateAdjustment
-
-              
 - QuoteLineRateCardEntry
-
-              
 - QuoteLineRateAdjustment
-
-            
 
 ```
 {
@@ -370,9 +344,7 @@ Output representation of the usage details of a quote, an order, or an asset.
 }
 ```
 
-          
-: This sample response shows details of the custom fields when you retrieve the usage
-            details of an order item.
+This sample response shows details of the custom fields when you retrieve the usage details of an order item.
 
 ```
 {
@@ -497,12 +469,7 @@ Output representation of the usage details of a quote, an order, or an asset.
 }
 ```
 
-                    
-: This sample response shows values for the type and target type of a binding
-            instance if the `BindingInstanceTargetId` value is
-            available in the QuoteLineItem, OrderItem, and AssetStatePeriod objects. Additionally,
-            the rate, negotiated rates, and rate card entry values show the associated details of
-            the binding object.
+This sample response shows values for the type and target type of a binding instance if the `BindingInstanceTargetId` value is available in the QuoteLineItem, OrderItem, and AssetStatePeriod objects. Additionally, the rate, negotiated rates, and rate card entry values show the associated details of the binding object.
 
 ```
 {
@@ -613,10 +580,11 @@ Output representation of the usage details of a quote, an order, or an asset.
 }
 ```
 
-        
-      
-
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `errors` | [Usage Detail Error Response](./connect_responses_usage_detail_error_response.htm.md)[] | List of errors encountered during the processing of the API request. | Small, 63.0 | 63.0 |
-| `records` | [Rate Card Entry](./connect_responses_rate_card_entry_output.htm.md)[] | List of rate card entry records. | Small, 63.0 | 63.0 |
+| `errors` | [Usage Detail Error Response](./connect_responses_usage_detail_error_response.htm.md "Output representation of the details of an error related to usage details.")[] | List of errors encountered during the processing of the API request. | Small, 63.0 | 63.0 |
+| `records` | [Rate Card Entry](./connect_responses_rate_card_entry_output.htm.md "Output representation of the details of a rate card entry.")[] | List of rate card entry records. | Small, 63.0 | 63.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_usage_detail_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_accounting_periods.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # What are Accounting Periods?
@@ -26,7 +26,7 @@ Example: Streamlining Financial Closes for a Global Company
 
 Imagine Innovate Solutions Corp., a global SaaS company with US, EU, and APAC legal entities, which struggled with manual financial closes, processing thousands of monthly billing transactions like invoices and payments. This led to extended monthly closes and audit challenges.
 
-By using Revenue Management's accounting period features, Innovate Solutions creates required records to automate their process:
+By using Revenue Cloud's accounting period features, Innovate Solutions creates required records to automate their process:
 
 Creating Accounting Periods: Innovate Solutions defines monthly, quarterly, and annual accounting periods to align with internal and external reporting cycles. For example, they create an Accounting Period for Q1 2027 with the start date as January 1, 2027, the end date as March 31, 2027, and the financial period as FY 2027.
 Assigning Legal Entities to Accounting Periods: They assign specific legal entity to an accounting period for each subsidiary. For example, a Legal Entity Accounting Period record is created for Innovate Solutions EU - Jan 2027 linking to the Innovate Solutions EU legal entity and the Jan 2027 accounting period.
@@ -36,3 +36,7 @@ At the end of each month, Innovate Solutions Corp finalize and close their accou
 
 SEE ALSO
 Legal Entity Accounting Periods Closure and Reopening
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_accounting_periods_explain.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

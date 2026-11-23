@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_learn_about_and_implement_salesforce_contracts.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Understand the Salesforce Contracts Lifecycle
@@ -27,3 +27,7 @@ Activation
 Activate executed contracts and create contracts directly from quotes, orders, or opportunities using the Quote to Contract feature. Context Service mappings automatically populate contract fields from the source record.
 Compliance
 Track contractual commitments using obligations management and monitor contract performance with Contract Analytics dashboards. Together, these features give teams visibility into compliance status and help identify risks before they become problems.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_key_capabilities.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_and_clause_extraction_with_contracts_ai.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Contract Extraction Results
@@ -25,3 +25,7 @@ The status changes to Review in Progress when you click Save on the Extracted Co
 Review in Progress	Continue the review of the extracted contract fields and clauses.
 Review Completed	Add the extracted clause to the clause library, if necessary.
 Extraction Failed	Delete the extraction record and reinitiate the PDF extraction.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_contract_extraction_results.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

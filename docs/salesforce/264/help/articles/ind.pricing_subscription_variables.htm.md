@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_subscription_pricing_proration.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Common Proration Examples
@@ -15,7 +15,7 @@ These examples demonstrate how various proration settings impact the final subsc
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 Key terminologies
 AlignToCalendar: The billing period starts on the first day of the calendar period (e.g., the 1st of the month for monthly subscriptions, or January 1st for annual subscriptions). If a business wants all monthly subscriptions to be billed from the 1st of the month, they would set this to AlignToCalendar.
 Anniversary: The billing period starts on the subscription start date (the Effective From date).
@@ -35,3 +35,7 @@ Monthly Proration Examples for Leap Years
 Review calculations for monthly billing cycles, and learn how the total days adapt to leap years and varying month lengths. For a monthly product selling model, Salesforce Pricing anchors exactly to the numerical start date. If an anniversary subscription starts on the 29th, 30th, or 31st, and that exact date doesn't exist in the following month, Salesforce Pricing uses a design convention: it aligns the next period to the latest available day of that subsequent month. All full periods behave as "month-end to month-end minus one.
 Weekly Proration Examples
 Demonstrates how the system calculates pricing based on a 7-day billing cycle, for subscription and consumption products.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_subscription_variables.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

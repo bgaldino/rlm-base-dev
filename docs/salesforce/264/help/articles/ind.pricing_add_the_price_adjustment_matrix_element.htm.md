@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Dynamic Pricing With Price Adjustment Matrix
@@ -15,7 +15,7 @@ Determine custom discounts and adjustments that go beyond the predefined options
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 The Price Adjustment Matrix element helps businesses set dynamic prices. It goes beyond simple volume discounts, letting you create complex pricing rules for different sales situations. This can be done by creating custom decision tables that hold pricing criteria and adjustments with or without custom objects. This allows for contextual pricing, tailoring offers based on quote details, customer info, or product features, ensuring precise, scenario-based pricing.
 
@@ -27,3 +27,7 @@ Integrate these tables into your pricing procedure, linking them to relevant quo
 Finally, when processing a quote, the quoting system uses this information to dynamically calculate and apply accurate price adjustments.
 Calculate Product Prices Using Price Adjustment Matrix
 Let's look at a scenario where we want to apply custom percentage-based discounts using the Price Adjustment Matrix element.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_add_the_price_adjustment_matrix_element.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

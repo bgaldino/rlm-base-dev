@@ -7,19 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_requests.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Configurator Added Node Input
 
 Input representation of the nodes to be added to a product configuration.
 
-    
-
 ## JSON Example
-
-      
-      
 
 ```
 {
@@ -62,11 +57,7 @@ Input representation of the nodes to be added to a product configuration.
 }
 ```
 
-      
-
 This example shows a sample request for orders.
-
-      
 
 ```
 {
@@ -109,11 +100,7 @@ This example shows a sample request for orders.
 }
 ```
 
-      
-
 This example shows a single-call request that adds a parent bundle, a child product, a relationship, and an attribute in one payload. Use this pattern to minimize API round-trips when building cart flows. When a constraint model is active, include `AttributeName` and set it to the attribute’s developer name.
-
-      
 
 ```
 {
@@ -189,75 +176,17 @@ This example shows a single-call request that adds a parent bundle, a child prod
 }
 ```
 
-      
-
 **Note:** Ordering constraint: within a single `addedNodes` array, an attribute node's `SalesTransactionItemAttrParent` must reference a parent that either already exists on the transaction or appears earlier in the same array. Attribute nodes (`businessObjectType: "OrderItemAttribute"` or `"QuoteLineItemAttribute"`) are never placed inline on the parent's `addedObject`; each attribute requires its own entry in the `addedNodes` array.
 
-      
-
-**Note:** When `businessObjectType` is `OrderItemAttribute` or `QuoteLineItemAttribute` and a constraint model is active, `addedObject` must include `AttributeName`. Set `AttributeName` to the product attribute’s developer name so the constraint engine can match the CML variable. `AttributeKey` doesn’t replace `AttributeName`. For matching behavior and default fallback, see [Configurator API: Include the Attribute Developer Name When Creating or Updating Attributes](./cml_best_practice_attribute_name.htm.md).
-
-    
-
-    
+**Note:** When `businessObjectType` is `OrderItemAttribute` or `QuoteLineItemAttribute` and a constraint model is active, `addedObject` must include `AttributeName`. Set `AttributeName` to the product attribute’s developer name so the constraint engine can match the CML variable. `AttributeKey` doesn’t replace `AttributeName`. For matching behavior and default fallback, see [Configurator API: Include the Attribute Developer Name When Creating or Updating Attributes](./cml_best_practice_attribute_name.htm.md "When a constraint model is active, include the attribute developer name in Product Configurator API requests that create or update a product attribute.").
 
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `added​Object` | Map<String, Object> | Details of the object that’s being added. This property supports fields of objects from the Sales Transaction context definition, including custom objects and fields in your extended context definition. When `businessObjectType` is `OrderItemAttribute` or `QuoteLineItemAttribute` and a constraint model is active, include `AttributeName` and set it to the product attribute’s developer name. `AttributeKey` doesn’t replace `AttributeName`. | Required | 60.0 |
 | `path` | String[] | Path to the node that’s being added. The path includes the unique ID of the context node in the data structure. This ID must match the ID of the sales transaction item source such as a quote line or an order line item. Keep these considerations in mind when setting the `path` value. If the `businessObjectType` property value is `QuoteLineItem` or `OrderItem`, the path must contain 2 IDs. The first ID is the transaction ID (quote or order), and the second ID is the line item ID; If the `businessObjectType` property value is `QuoteLineItem` or `OrderItem`, the `addedObject` must contain `SalesTransactionItemSource` and `SalesTransactionItemParent`; If the `businessObjectType` property value is `QuoteLineRelationship` or `OrderItemRelationship`, the path must contain 3 IDs. The first ID is the transaction ID. The second ID is the associated line item ID. The third ID is the relationship node ID; or If the `businessObjectType` property value is `QuoteLineItemAttribute` or `OrderItemAttribute`, the path must contain 3 IDs. The first ID is the transaction ID. The second ID is the parent line item ID. The third ID is the attribute node ID. The `addedObject` must contain `SalesTransactionItemAttrParent` set to the parent line item ID. | Required | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_configurator_added_node_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

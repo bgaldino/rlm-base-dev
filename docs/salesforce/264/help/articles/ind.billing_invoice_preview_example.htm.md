@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_previews.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Example: Preview Invoices for an Order
@@ -38,3 +38,7 @@ API Access billed at $50
 NOTE The annual products were billed in the first invoice preview and their next billing is on March 1, 2026. Therefore, the second invoice preview has only monthly subscription products.
 
 The Acme Software Innovations Billing team generates a PDF for each invoice preview, downloads them, and emails them to Growth Digital Marketing Pro for reconfirmation.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_preview_example.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

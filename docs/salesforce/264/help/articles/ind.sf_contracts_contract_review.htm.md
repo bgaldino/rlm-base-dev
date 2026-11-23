@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_authoring.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Contract Review in Microsoft 365
@@ -39,3 +39,7 @@ Internal and External Reviewer Statuses in Salesforce Contracts
 Salesforce Contracts supports various reviewer statuses to enable contract authors to monitor and evaluate document review progress.
 External Reviewer Type in Salesforce Contracts
 Salesforce Contracts enables different types of external reviewers with varying access permissions to collaborate on the documents.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_contract_review.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

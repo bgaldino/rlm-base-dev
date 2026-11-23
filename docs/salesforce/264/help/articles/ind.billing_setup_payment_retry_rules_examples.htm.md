@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_retry_failed_payments.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Examples: Configure Payment Retry Rule Sets and Retry Rules
@@ -83,3 +83,7 @@ Payment Gateway Error Code: payment_method_invalid_parameter
 When saved, the new payment retry rule (“PRR-000000722”) is created with the retry interval type (“Staggered”), the interval unit (“Minutes”), and interval value (“1,2,3,4”), overriding the default values of the payment retry rule set.
 
 Similarly, you can create more payment retry rules for other payment gateway error categories of the Stripe3P payment gateway. The Related tab of the payment retry rule set displays the list of all payment retry rules created as part of the rule set.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_setup_payment_retry_rules_examples.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

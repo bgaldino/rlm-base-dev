@@ -6,16 +6,16 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_salesforce_pricing.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Use Pricing Elements in Pricing Procedures
 
-Pricing elements are the fundamental building blocks used to construct a pricing procedure. Use these elements to define how prices are calculated and applied in Revenue Management (formerly Revenue Cloud).
+Pricing elements are the fundamental building blocks used to construct a pricing procedure. Use these elements to define how prices are calculated and applied in Revenue Cloud .
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 When a pricing procedure is executed, most elements query relevant decision tables based on input parameters to retrieve pricing rules and values. Other elements rely on formulaic calculations, or assist with mapping relevant context tags within a procedure.
 
@@ -53,3 +53,7 @@ Stop Pricing
 Use the Stop Pricing element to stop the execution of the pricing procedure for a particular line item. This element acts as a conditional flow control mechanism. With it, you can create pricing logic where certain conditions trigger an early exit from the pricing procedure.
 Price Propagation
 Enable complex, hierarchical pricing logic by propagating values across different levels of a transaction from line items to groups and back. Use the Price Propagation element to perform sequential calculations and roll up totals from children to parents.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_pricing_element.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

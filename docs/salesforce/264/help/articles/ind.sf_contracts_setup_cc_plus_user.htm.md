@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_setup_digital_experience_sites.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Set Up Salesforce Contracts Customer Community Plus User
@@ -68,3 +68,7 @@ Create an Experience Cloud Site for Customer Community Plus Users
 Create an Experience Cloud site so that external users can view contract documents, check e-signature status, and access signed contracts.
 Actions Available for Customer Community Plus Users in Salesforce Contracts
 Users with the CLM Digital Experience Partner or CLM Runtime User permission set can share contract documents with Customer Community Plus users. After the contract documents are shared, Customer Community Plus users can access the documents through the Customer Community portal. Within the portal, they can perform a range of actions on the shared documents.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_setup_cc_plus_user.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,119 +7,47 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: runtime_context_intance_management.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Query Record Status (PATCH, POST)
 
 Update the processing status and related error messages of query data records. Create
-    the processing status and related error messages of query data records
+the processing status and related error messages of query data records
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /connect/contexts/query-record-status
 ```
 
-          
-
-        
-        
-          
-
-**Example for PATCH**
-
-          
-: 
-            
+## Example for PATCH
 
 ```
-https://yourInstance.salesforce.com/services/data/v67.0/connect/contexts/query-record-status/18732dfd
+https://yourInstance.salesforce.com/services/data/v68.0/connect/contexts/query-record-status/18732dfd
 ```
 
-          
-
-        
-        
-          
-
-**Example for POST**
-
-          
-: 
-            
+## Example for POST
 
 ```
-https://yourInstance.salesforce.com/services/data/v67.0/connect/contexts/query-record-status/18732dfd
+https://yourInstance.salesforce.com/services/data/v68.0/connect/contexts/query-record-status/18732dfd
 ```
 
-          
+## Available Version
 
-        
-        
-          
+59.0
 
-**Available version**
+## Requires Chatter
 
-          
-: 59.0
+No
 
-        
-        
-          
+## HTTP Methods
 
-**Requires Chatter**
+PATCH, POST
 
-          
-: No
+## Request Body for POST
 
-        
-        
-          
-
-**HTTP methods**
-
-          
-: PATCH, POST
-
-        
-        
-          
-
-**Response body for PATCH**
-
-          
-: [Context
-            Output](./connect_responses_context_output.htm.md)
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-              
-                
-
-**JSON example**
-
-                
-: 
-                  
+### JSON example
 
 ```
 {
@@ -134,79 +62,15 @@ https://yourInstance.salesforce.com/services/data/v67.0/connect/contexts/query-r
         ]
     }
 }
-
 ```
 
-                
+### Properties
 
-              
-              
-                
-
-**Properties**
-
-                
-: 
-                  
-
-                      
-                      
-                      
-                      
-                      
-                      
-                        
-                          
-
-                          
-
-                          
-
-                          
-
-                          
-
-                        
-
-                      
-
-                      
-                        
-                          
-
-                          
-
-                          
-
-                          
-
-                          
-
-                        
-
-                      
-
-                    
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `queryRecordStatusInput` | Object | Input representation for context ID and the list of paths for querying the status. | Required | 59.0 |
 
-                
-
-              
-            
-
-          
-
-        
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+### JSON example
 
 ```
 {
@@ -221,14 +85,16 @@ https://yourInstance.salesforce.com/services/data/v67.0/connect/contexts/query-r
 }
 ```
 
-          
+## Response Body for PATCH
 
-        
-        
-          
+[Context
+Output](./connect_responses_context_output.htm.md "Output Representation of attributes associated with defined context.")
 
-**Response body for POST**
+## Response Body for POST
 
-          
-: [Query
-              Record Status Result](./connect_responses_query_record_status_result.htm.md)
+[Query
+Record Status Result](./connect_responses_query_record_status_result.htm.md "Output representation of query result status of context data records.")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_create_update_query_data_record_status.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

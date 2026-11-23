@@ -7,104 +7,52 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: connect_resources_clm_resources.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Details of Contract Document Versions
 
 Get and create contract document versions.
 
-    
-
 ## Resource
-
-      
-      
 
 ```
 /connect/clm/contract/$CONTRACT_ID/contract-document-version
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 56.0
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 GET, POST
 
-    
-
-    
-
 ## Example for GET
-
-      
-      
 
 ```
 https://YOUR_INSTANCE.salesforce.com/services/data/v56.0/connect/clm/contract/${contractId}/contract-document-version
 ```
 
-      
-
 ```
 https://YOUR_INSTANCE.salesforce.com/services/data/v56.0/connect/clm/contract/${contractId}/contract-document-version?contractDocumentVersionId=${contractDocumentVersionId}
 ```
 
-    
-
-    
-
 ## Example for POST
-
-      
-      
 
 ```
 https://YOUR_INSTANCE.salesforce.com/services/data/v56.0/connect/clm/contract/{contractId}/contract-document-version
 ```
 
-    
-
-    
-
 ## Response Body for GET
 
-      
-      
-
-[Contract Document Versions List Representation](./connect_responses_contract_document_versions_list.htm.md)
-
-    
-
-    
+[Contract Document Versions List Representation](./connect_responses_contract_document_versions_list.htm.md "Contract document versions record list.")
 
 ## Request Body for POST
 
-      
-      
-
 **JSON Example**
 
-      
-
 ```
-
 {
   "templateId": "2dtxx000000004rAAA",
   "isExternalReviewImport": false,
@@ -112,102 +60,8 @@ https://YOUR_INSTANCE.salesforce.com/services/data/v56.0/connect/clm/contract/{c
 }
 ```
 
-      
-
 **Properties**
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `external​Review​Type` | String | Type of external review. Possible values are `OnlineMicrosoft365` or `OfflineMicrosoftWord`. | Optional | 60.0 |
@@ -216,13 +70,10 @@ https://YOUR_INSTANCE.salesforce.com/services/data/v56.0/connect/clm/contract/{c
 | `templateId` | String | Template ID with key prefix 2dt used to generate document. | Required | 56.0 |
 | `word​Document​Id` | String | ID for Contract word document. | Optional | 56.0 |
 
-    
-
-    
-
 ## Response Body for POST
 
-      
-      
+[Document Generate Representation](./connect_responses_document_generate.htm.md "Output Representation of document generation record.")
 
-[Document Generate Representation](./connect_responses_document_generate.htm.md)
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/connect_resources_details_doc_version.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

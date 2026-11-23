@@ -5,7 +5,7 @@ source_url: https://help.salesforce.com/s/articleView?id=ind.pricing_procedure_p
 release: 264
 release_name: Winter '27
 area: pricing
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Build and Manage Your Procedure Execution
@@ -26,7 +26,7 @@ Save Context Mapping	This mapping is used at the end of the procedure. It saves 
 IMPORTANT
 Before you begin creating your procedure plan definitions, you must enable Context Service in your org. To enable Context Service, go to Setup, in the Quick Find box, search and select Context Service Settings. Turn on Context Definitions.
 Understand the Order of Execution for Place Sales Transaction
-When you create or update a quote or order using the Place Sales Transaction API, Revenue Management (formerly Revenue Cloud)processes the request through a defined order of execution. This order describes how configuration, pricing, Apex hooks, and automation run during transaction processing. Understanding this order helps you determine where pricing logic runs and how context data is processed when using Place Sales Transaction.
+When you create or update a quote or order using the Place Sales Transaction API, Revenue Cloud processes the request through a defined order of execution. This order describes how configuration, pricing, Apex hooks, and automation run during transaction processing. Understanding this order helps you determine where pricing logic runs and how context data is processed when using Place Sales Transaction.
 Create Procedure Plans
 To create a flexible and comprehensive workflow that adapts to your business needs, use a Procedure Plan Definition to combine and sequence individual procedures into a single, unified plan. You can start quickly with a predefined template or customize one from scratch to meet your unique requirements.
 Customize Your Procedure Plans With Apex Hooks
@@ -36,4 +36,8 @@ To ensure your procedures run in the correct order and pricing is applied consis
 Export and Import Procedure Plans
 Package procedure plans to export and import them across Salesforce orgs.
 Procedure Plan Limits
-Don't stitch multiple pricing procedures together within a single procedure plan. Sequencing multiple procedures can result in data loss and calculation errors. If you need to configure multiple procedures sequentially, consider these limitations.
+Multiple pricing procedures can be stitched together within a single procedure plan. If you need to configure multiple procedures sequentially, consider these limitations.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_procedure_plan_framework.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

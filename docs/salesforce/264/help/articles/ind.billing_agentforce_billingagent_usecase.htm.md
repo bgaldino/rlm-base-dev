@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.rev_agent_billing_topic_invoice_line_explanation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Billing Employee Assistance Use Case
@@ -15,7 +15,7 @@ At Acme, the billing team spent hours digging through orders, amendments, and ca
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management with the Revenue Cloud Advanced license and the Revenue Cloud Billing license with the Agentforce Employee Agent add-on.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Advanced license and the Revenue Cloud Billing license with the Agentforce Employee Agent add-on.
 
 Things changed when Acme introduced Billing Employee Assistance. Suddenly, the admin no longer had to chase data across records. The agent became the single place to ask questions and uncover the reasoning behind any charge.
 
@@ -28,3 +28,7 @@ Milestone-based work has created its own challenges. When a customer questioned 
 Even usage-based billing, often the trickiest to explain, became easier. A customer once disputed an API overage charge of $5,370. With a single query, the agent displayed the granted quantities, actual consumption, and how tiered rates applied.
 
 For Acme, the shift was clear. What used to be hours of detective work turned into confident, timely explanations. Customers received quick, transparent answers, disputes dropped, and trust grew stronger. Billing Employee Assistance didn’t just save time, it gave both admins and customers clarity they could rely on.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_agentforce_billingagent_usecase.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

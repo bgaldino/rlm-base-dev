@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_specialized_transaction_types.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Renew Expired Assets
@@ -15,7 +15,7 @@ To maintain customer relationships and close deals faster, renew assets and subs
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To renew expired assets:	
 
@@ -33,3 +33,7 @@ From the Assets tab of an account's page, select the asset you want to review.
 Select Renew.
 To select a new renewal term start date, on the Set Renewal Term prompt, select Override Renewal Term and a date.
 To save your changes, click Submit.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_renew_expired_assets.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

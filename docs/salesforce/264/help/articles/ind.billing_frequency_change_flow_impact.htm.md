@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_schedules_and_schedule_groups.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Billing Frequencies
@@ -50,8 +50,14 @@ You can’t change the billing term on the quote line item or order products dur
 You can’t change the billing term on existing billing schedules.
 For an evergreen subscription, consider the following behavior before changing the billing frequency. For example, a product priced at $100 per year when billed monthly prorates to $8.3333 per month, which Billing bills as $8.33. Over 12 months, the total billed amount adds up to $99.96, which is $0.04 less than the $100 original annual price.
 About Period Boundaries and Billing Day of Month
-You can adjust when billing periods start and how charges are calculated by using flexible date settings that align with your business model and customer preferences. You can use the Period Boundary, Period Boundary Day, and Period Boundary Start Month fields on the order product, to define when billing begins, how billing periods are segmented, and how proration is applied. The period boundary on the order product ‌defines how the billing period is calculated. The Billing Day of the Month field on the Billing Schedule record specifies the day you expect to bill the customer. Together, these fields define how billing periods align with the transaction timeline and how Billing in Revenue Management calculates and groups charges on invoice lines.
+You can adjust when billing periods start and how charges are calculated by using flexible date settings that align with your business model and customer preferences. You can use the Period Boundary, Period Boundary Day, and Period Boundary Start Month fields on the order product, to define when billing begins, how billing periods are segmented, and how proration is applied. The period boundary on the order product ‌defines how the billing period is calculated. The Billing Day of the Month field on the Billing Schedule record specifies the day you expect to bill the customer. Together, these fields define how billing periods align with the transaction timeline and how Billing in Revenue Cloud calculates and groups charges on invoice lines.
 Change Billing Frequency on New and Existing Subscriptions
 You can update the billing frequency of a subscription at any time, such as by switching from monthly to annual or from annual to monthly. On active subscriptions, you can update the billing frequency from any cadence to any other, such as monthly to annual billing or vice versa, without canceling or recreating the subscription. To achieve this, sales reps make a zero-quantity, field amendment for the asset, to update the billing frequency, Billing automatically prorates the charges and applies the new billing cadence from the effective date.
 Field Combination Requirements
 The combination of billing frequency, period boundary, period boundary day, and period boundary start month determines billing behavior.
+SEE ALSO
+Proration
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_frequency_change_flow_impact.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

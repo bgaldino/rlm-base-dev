@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_create_template_using_microsoft_365_word.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Modify the Clauses in Document Templates
@@ -30,3 +30,7 @@ Add: To add a clause, select Clause from the Insert New dropdown.
 Alternatively, use clause tokens to modify referencing clauses in your template. For example, when designing, edit a clause token directly in the document template by copying it from the respective document clause. Salesforce resolves the change the next time the document is generated.
 
 After updating the clauses and content, save your changes. This uploads the updated document to the template designer.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_update_document_template_with_clauses.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

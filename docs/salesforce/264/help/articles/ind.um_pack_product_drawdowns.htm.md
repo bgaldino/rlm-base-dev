@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_buckets_and_drawdowns.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Pack Product Drawdowns
@@ -22,3 +22,7 @@ When a pack is added, it doesn’t overwrite the anchor product. Instead, Consum
 In this instance, the parent bucket now has multiple child buckets to choose from. Therefore, Consumption Management uses the Drawdown Order you specified to decide the bucket to deduct the consumption from first.
 
 EXAMPLE A customer determines during an existing plan cycle that their anchor plan's 4,000 text messages are insufficient and purchases a temporary add-on pack for 2,000 additional units. Consumption Management creates a second child bucket for the new grant, linking it to the anchor’s parent bucket with a total aggregated balance of 6,000 units. As the add-on pack is set to expire at the end of the week, the default Expiring First drawdown order ensures that usage is deducted from the 2,000-message pack first.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_pack_product_drawdowns.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

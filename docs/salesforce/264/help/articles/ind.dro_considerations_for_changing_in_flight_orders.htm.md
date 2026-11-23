@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_in_flight_order_changes.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Considerations for Changing In-Flight Orders
@@ -15,12 +15,15 @@ When you set up Dynamic Revenue Orchestrator (DRO) for in-flight order changes, 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management where Dynamic Revenue Orchestrator is enabled
-Amend and Cancel In-Flight Orders
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Dynamic Revenue Orchestrator is enabled
+Amend or Cancel an In-Flight Order
 
-Amend and Cancel are the types of changes that can be made to an in-flight order. A fulfillment designer can configure how a fulfillment step is compensated or rolled back when the step is amended or canceled because of an in-flight change to the order. These compensations and cancellations are defined by the Amend Step Group and Cancel Step Group, respectively, in the fulfillment step definition.
+A fulfillment designer defines how a fulfillment step is compensated or rolled back when the step is amended or canceled by configuring the Amend Step Group and Cancel Step Group in the fulfillment step definition.
 
-NOTE You can't amend or cancel an in-flight order through an autotask or callout if the step is part of the same fulfillment plan as the submitted order.
+NOTE You can't partially or fully cancel an in-flight order in Revenue Cloud. If a line item reaches Point of No Return (PONR), DRO rejects the cancel request unless you override PONR when you submit the supplemental order to DRO.
+
+If a step is part of the same fulfillment plan as the submitted order, you can't amend an in-flight order through an autotask or callout.
+
 Compensation and Rollback Steps
 
 When an in-flight change amends or cancels a fulfillment order, DRO activates the compensatory or rollback step group linked to the step that the plan has reached. The steps in each group compensate for the amended or canceled steps in the initial plan.
@@ -70,3 +73,7 @@ Configure the Force Plan Freeze During Execution option to determine whether the
 SEE ALSO
 Configure Inflight Plan Settings for a Fulfillment Step
 In-Flight Order Change Example
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_considerations_for_changing_in_flight_orders.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

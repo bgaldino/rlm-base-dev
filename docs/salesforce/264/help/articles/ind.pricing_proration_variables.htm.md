@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_subscription_pricing_proration.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Learn About the Proration Multiplier
@@ -15,7 +15,7 @@ The proration multiplier is used to adjust the price of a product or service bas
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 TIP Salesforce Pricing supports month-plus-day ‌proration types for any frequency term.
 
 Here's how Salesforce Pricing calculates prorated subscription costs.
@@ -30,3 +30,7 @@ To calculate the proration multiplier, use this formula - Proration Multiplier =
 In this case: 15 days/ 30 days = 0.5
 
 To calculate the adjusted price: $50 X 0.5 = $25.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_proration_variables.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

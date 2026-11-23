@@ -7,22 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_responses.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Procedure Plan Evaluation
 
 Output representation of the evaluation details of a procedure plan definition.
 
-    
-
 ## JSON Example
 
-      
-      
-
 ```
-
   "procedurePlanEvaluations":[
   {
     "errorMessage":"",
@@ -37,105 +31,14 @@ Output representation of the evaluation details of a procedure plan definition.
   ]
 ```
 
-    
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `errorMessage` | String | Message indicating the error details, if any. | Small, 62.0 | 62.0 |
 | `id` | String | ID of the object used for evaluation. | Small, 62.0 | 62.0 |
 | `isSuccess` | Boolean | Indicates whether the API request is successful (`true`) or not (`false`). | Small, 62.0 | 62.0 |
 | `primaryObject` | String | Name of the object used for evaluation. | Small, 62.0 | 62.0 |
-| `result` | [Procedure Plan Evaluation Result](./connect_responses_procedure_plan_evaluation_result.htm.md)[] | Results from the procedure plan evaluation. | Small, 62.0 | 62.0 |
+| `result` | [Procedure Plan Evaluation Result](./connect_responses_procedure_plan_evaluation_result.htm.md "Output representation of the evaluation result of a procedure plan definition.")[] | Results from the procedure plan evaluation. | Small, 62.0 | 62.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_procedure_plan_evaluation.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,233 +7,85 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: expression_set_invocable_actions.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Expression Set Actions
 
 Invoke an active expression set. An expression set is a user-defined
-      rule that accepts an input and returns the output based on the configured
-    function.
-
-    
-      
+rule that accepts an input and returns the output based on the configured
+function.
 
 The configured function of an expression set can be a simple decision matrix lookup, a
-        calculation based on a mathematical formula, a condition, or another expression set.
-
-      
+calculation based on a mathematical formula, a condition, or another expression set.
 
 When a Flow is invoked using Batch management (for example, for processing 200 records),
-        the calls to expression sets are automatically bulkified, which allows the execution of
-        multiple inputs in a single request.
-
-      
+the calls to expression sets are automatically bulkified, which allows the execution of
+multiple inputs in a single request.
 
 These actions are available in API version 55.0 and later.
 
-    
-
-  
-
 ## Supported REST HTTP Methods
 
-      
-      
-        
-          
-            
+**URI:**
+`/services/data/vXX.X/actions/custom/runExpressionSet/{ApiName}`
 
-**URI**
+Where `XX.X` is the latest API version.
 
-            
-: 
-`/services/data/v55.0/actions/custom/runExpressionSet/{ApiName}`
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=industries_reference)
 
 #### Note
 
 The
-                API name of an expression set is unique within your Salesforce instance.
+API name of an expression set is unique within your Salesforce instance.
 
-          
-          
-            
+**Formats:** JSON
 
-**Formats**
+**HTTP Methods:** POST
 
-            
-: JSON
+**Authentication:**
+`Authorization: Bearer TOKEN`
 
-          
-          
-            
-
-**HTTP Methods**
-
-            
-: POST
-
-          
-          
-            
-
-**Authentication**
-
-            
-: `Authorization: Bearer token`
-
-          
-        
-
-      
-
-    
-
-    
+Where `TOKEN` is a variable.
 
 ## Inputs
 
-      
-      
-
 Inputs vary depending on the selected expression set. For expression sets tied to a context
-        definition, you can build and persist context data using additional inputs.
+definition, you can build and persist context data using additional inputs.
 
-      
-
-          
-          
-          
-            
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-: 
-
-: 
-
-            
-
-            
-              
-
-              
-
-: 
-
-: 
-
-            
-
-            
-              
-
-              
-
-: 
-
-: 
-
-            
-
-            
-              
-
-              
-
-: 
-
-: 
-
-            
-
-          
-
-        
-| Input | Details |
-| --- | --- |
-| __<ContextNode>​RecordIds | **Type** List<String> **Description** Optional. A collection of context node record IDs to be built. |
-| __mappingName | **Type** String **Description** Optional. The default context mapping available in the context definition. |
-| __persist​ContextData | **Type** Boolean **Description** Optional. Indicates whether to save context data to the database (`true`) or not (`false`). |
-| __buildContext | **Type** String **Description** Optional. Indicates whether to build the context using the IDs of context definition records in the database. |
-
-      
+| Input | Type | Description |
+| --- | --- | --- |
+| \_\_<ContextNode>​RecordIds | List<String> | Optional. A collection of context node record IDs to be built. |
+| \_\_mappingName | String | Optional. The default context mapping available in the context definition. |
+| \_\_persist​ContextData | Boolean | Optional. Indicates whether to save context data to the database (`true`) or not (`false`). |
+| \_\_buildContext | String | Optional. Indicates whether to build the context using the IDs of context definition records in the database. |
 
 For context-based expression sets, provide either the context ID or the build context
-        parameters. If both are provided and `__buildContext` is
-          `true`, the context ID is ignored and the context is
-        built from the input record IDs.
-
-    
-
-    
+parameters. If both are provided and `__buildContext` is
+`true`, the context ID is ignored and the context is
+built from the input record IDs.
 
 ## Outputs
 
-      
-      
-
 Vary depending on the inputs of the selected expression set.
-
-    
-
-    
 
 ## Usage
 
-        
-          
-
 **When the expression set is not linked with a context**
 
-          
-: 
-            
-
 This section has the sample request and response for invoking an expression set with
-              these steps.
+these steps.
 
-            
-              
 1. Find the tax percentage and the premium corresponding to specific age and salary
-                using a decision matrix lookup.
-
-              
+   using a decision matrix lookup.
 2. Check the age criterion to calculate the total tax.
-
-              
 3. Calculate the total tax to be paid based on the age group, salary, and the tax
-                percentage.
-
-            
-
-            
-              
-                
+   percentage.
 
 **Sample request**
 
-                
-: 
-                  
-
 Here’s an example POST request that has the inputs, such as, age and
-                    salary.
-
-                  
+salary.
 
 ```
 {
@@ -254,22 +106,10 @@ Here’s an example POST request that has the inputs, such as, age and
 }
 ```
 
-                
-
-              
-              
-                
-
 **Sample response**
 
-                
-: 
-                  
-
 Here’s an example response that has the premium and tax values based on the
-                    inputs provided in the example request.
-
-                  
+inputs provided in the example request.
 
 ```
 [
@@ -312,41 +152,16 @@ Here’s an example response that has the premium and tax values based on the
 ]
 ```
 
-                
-
-              
-            
-
-          
-
-        
-        
-          
-
 **When the expression set is linked with a context**
 
-          
-: 
-            
-
 An expression set can be configured with a context definition. In this case, the
-              expression set runs using context data that is either provided directly or built at
-              runtime.
-
-            
-              
-                
+expression set runs using context data that is either provided directly or built at
+runtime.
 
 **Sample request when context ID is available**
 
-                
-: 
-                  
-
 Here's an example request that runs a context-based expression set using an
-                    existing context ID.
-
-                  
+existing context ID.
 
 ```
 {
@@ -359,21 +174,9 @@ Here's an example request that runs a context-based expression set using an
 }
 ```
 
-                
-
-              
-              
-                
-
 **Sample response**
 
-                
-: 
-                  
-
 Here's an example response for a context-based expression set execution.
-
-                  
 
 ```
 [
@@ -389,32 +192,15 @@ Here's an example response for a context-based expression set execution.
 ]
 ```
 
-                
-
-              
-            
-
-            
-              
-                
-
 **Sample request when context ID is not available**
 
-                
-: 
-                  
-
 When an expression set is tied to a context definition and a context ID isn't
-                    available, use the `__buildContext` parameter
-                    to build the context before the expression set runs. You can also persist the
-                    context data to the database after execution by setting `__persistContextData` to `true`.
-
-                  
+available, use the `__buildContext` parameter
+to build the context before the expression set runs. You can also persist the
+context data to the database after execution by setting `__persistContextData` to `true`.
 
 Here's an example POST request that builds the context, runs the expression
-                    set, and persists the context data.
-
-                  
+set, and persists the context data.
 
 ```
 {
@@ -430,22 +216,10 @@ Here's an example POST request that builds the context, runs the expression
 }
 ```
 
-                
-
-              
-              
-                
-
 **Sample response**
 
-                
-: 
-                  
-
 Here's an example response that includes the context ID that was built during
-                    execution.
-
-                  
+execution.
 
 ```
 [
@@ -460,3 +234,7 @@ Here's an example response that includes the context ID that was built during
   }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/actions_obj_expression_set.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

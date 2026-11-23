@@ -7,93 +7,37 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_service_apis_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Query Tags Leaner (POST)
 
 Query tags and return a memory-optimized (leaner) result suitable for Apex and low-heap
-    clients. Eliminate redundant metadata to reduce heap usage and payload size.
+clients. Eliminate redundant metadata to reduce heap usage and payload size.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /connect/contexts/query-tags-leaner
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
-https://yourInstance.salesforce.com/services/data/v67.0/connect/contexts/query-tags-leaner
+https://yourInstance.salesforce.com/services/data/v68.0/connect/contexts/query-tags-leaner
 ```
 
-          
+## Available Version
 
-        
-        
-          
+68.0
 
-**Available version**
+## HTTP Methods
 
-          
-: 67.0
+POST
 
-        
-        
-          
+## Request Body for POST
 
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-        
-          
-
-**Root XML tag**
-
-          
-: `<LeanerQueryTagsInputRepresentation>`
-
-        
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+### JSON Example
 
 ```
 {
@@ -105,86 +49,17 @@ https://yourInstance.salesforce.com/services/data/v67.0/connect/contexts/query-t
 }
 ```
 
-          
+### Properties
 
-        
-        
-          
-
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `contextId` | String | ID of the context to query. | Required | 66.0 |
 | `tags` | String[] | List of tag names to query from the context. Tags can include both attribute-level and node-level. | Required | 66.0 |
 
-          
+## Response Body for POST
 
-        
-      
+[Leaner Query Tags Result](./connect_responses_leaner_query_tags_result.htm.md "Output representation of the leaner query tags result. The result includes compact tag data mapped to tag names and a shared list of record IDs.")
 
-          
+---
 
-        
-        
-          
-
-**Response body for POST**
-
-          
-: [Leaner Query Tags Result](./connect_responses_leaner_query_tags_result.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_context_query_lean_tag.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

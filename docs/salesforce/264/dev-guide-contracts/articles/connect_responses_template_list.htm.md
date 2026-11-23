@@ -7,15 +7,19 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: clm_apis_responses.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
-# Template List 
+# Template List
 
 List of configured templates.
 
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `code` | String | API code. | Small, 56.0 | 56.0 |
-| `data` | [Template[]](./connect_responses_template_record.htm.md) | List of templates. | Big, 56.0 | 56.0 |
+| `data` | [Template[]](./connect_responses_template_record.htm.md "Template record.") | List of templates. | Big, 56.0 | 56.0 |
 | `message` | String | API message. | Small, 56.0 | 56.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/connect_responses_template_list.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

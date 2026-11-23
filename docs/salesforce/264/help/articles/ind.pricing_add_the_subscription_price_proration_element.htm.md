@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_subscription_pricing_proration.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Configure the Proration and Subscription Element
@@ -15,7 +15,7 @@ To calculate time-based pricing, use the Proration and Subscription elements.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS
 NEEDED
 To create, update, and delete pricing procedures:	Salesforce Pricing Design Time
@@ -66,3 +66,7 @@ Partial Period (Leap Year)	Feb 10, 2024 – May 9, 2024	81/ 90	Mixed (3 periods:
 Full Period (Leap Year)	Jan 18, 2024 – May 17, 2024	121	1.0000 (all months)	$150	5	$3,000.00
 
 The price waterfall shows where subscription pricing was applied based on a full leap year's pricing period, confirming your procedure is working as expected.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_add_the_subscription_price_proration_element.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

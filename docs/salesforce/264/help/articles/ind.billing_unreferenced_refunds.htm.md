@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_refunds_overview.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Refund Available Credit Balances to Customer Accounts
@@ -18,7 +18,7 @@ Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Billing license. Contact your Salesforce account executive for more information.
 Header-Level and Line-Level Application
 
-The refund application level determines how Billing applies a refund to a credit memo. In Setup, find and select Billing Settings. In the Credits, Payments, and Refunds section, set Credit, Payment, and Refund Application to the level you want. Select Header Level to refund against credit memos, or Line Level to refund against credit memo lines.
+The refund application level determines how Billing applies a refund to a credit memo. In Setup, find and select Billing Settings. In the Credit, Payment, and Refund Application section, set Credit, Payment, and Refund Application Level to header or line level. Select Header Level to refund against credit memos, or Line Level to refund against credit memo lines.
 
 With header-level application, the refund amount applies to the credit memo as a whole. Billing creates a junction record, reduces the credit memo’s pending balance by the refund amount, and sets the refund balance to zero.
 With line-level application, Billing distributes the refund amount across the credit memo lines that have an open balance, starting with the line that has the largest open balance, and reduces each line’s balance to zero. Because line-level application distributes the refund automatically, you enter the total refund amount once and Billing allocates it across the lines.
@@ -35,3 +35,7 @@ The payment gateway determines when a refund reaches its final status. A synchro
 
 Issue Refund Against a Credit Memo
 Return an available credit balance to a customer by issuing a refund against a credit memo, paid to a saved payment method on a third-party gateway.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_unreferenced_refunds.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

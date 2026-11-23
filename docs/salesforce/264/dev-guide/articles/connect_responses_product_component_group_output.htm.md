@@ -7,24 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_catalog_management_api_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Product Component Group
 
 Output representation of the product component group.
 
-      
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 "productComponentGroups":[
@@ -141,174 +131,13 @@ Output representation of the product component group.
           ]
 ```
 
-          
-
-        
-      
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
+## Properties
 
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `code` | String | Unique code of the product component group, which is used only during design time. | Small, 60.0 | 60.0 |
-| `components` | [Product](./connect_responses_product_output.htm.md)[] | List of the product details. | Small, 60.0 | 60.0 |
-| `childGroups` | [Product Component Group](#)[] | List of child product components groups. | Small, 62.0 | 62.0 |
+| `components` | [Product](./connect_responses_product_output.htm.md "Output representation of the product definition.")[] | List of the product details. | Small, 60.0 | 60.0 |
+| `childGroups` | [Product Component Group](# "Output representation of the product component group.")[] | List of child product components groups. | Small, 62.0 | 62.0 |
 | `description` | String | Description of the product component group. | Small, 60.0 | 60.0 |
 | `id` | String | ID of the record. | Small, 60.0 | 60.0 |
 | `isExcluded` | Boolean | Indicates whether the product component group is excluded from the product bundle for selection in the run time (`true`) or not (`false`). | Small, 60.0 | 60.0 |
@@ -318,3 +147,7 @@ Output representation of the product component group.
 | `parent​Product​Id` | String | ID associated with the parent product record. | Small, 60.0 | 60.0 |
 | `parent​GroupId` | String | ID of the parent group record. | Small, 62.0 | 62.0 |
 | `sequence` | Integer | Order in which the groups are listed in the bundle. | Small, 60.0 | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_product_component_group_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

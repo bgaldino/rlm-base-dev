@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_amending_rates_and_grants_on_usage_based_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Renew Usage-Based Assets Early
@@ -15,12 +15,12 @@ Change pricing on an active usage-based asset before the asset's end date by set
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Advanced license.
 USER PERMISSIONS NEEDED
 For early renewal of usage-based assets:	InitiateRenewal API permission set AND Sales Rep persona permissions
-NOTE Early renewal of usage-based assets is available in orgs with the Revenue Cloud Advanced license. If an org has the Revenue Cloud Advanced and Revenue Cloud Billing licenses, or if the Revenue Cloud Billing license is added later, you can't renew usage-based assets early.
+IMPORTANT Early renewal of usage-based assets is only available in orgs with the Revenue Cloud Advanced license. If an org has the Revenue Cloud Advanced and Revenue Cloud Billing licenses, or if the Revenue Cloud Billing license is added later, you can't renew usage-based assets early.
 
-Confirm that the asset is active and uses a term-defined product selling model. Early renewal is available for assets that use the Anchor, Pack, and Commitment usage models, but not for assets that use the one-time or evergreen product selling model.
+Confirm that the asset is active and uses a term-defined product selling model. Early renewal is available for supported Anchor, Pack, Commitment, and ramp usage products. Early renewal isn't available for assets that use a one-time or evergreen product selling model.
 
 Early renewal replaces an active asset's current term with a new term instead of creating a new asset. The renewal start date must be in the future and on or before the asset's end date. Early renewal ends the current term on the day before the renewal start date and begins the renewed term on the renewal start date.
 
@@ -38,10 +38,12 @@ To save your changes, click Submit.
 
 The renewal quote opens for the asset.
 
-Review and negotiate the rates and grants for the new term, and then finalize the quote.
+Review the rates and grants for the new term, adjust them as needed, and then finalize the quote. If the asset's Pricing Source is Last Transaction, the quote starts with the negotiated rates and original sold grant quantities that are effective on the renewal date. Otherwise, the quote starts with active catalog values.
 Activate the renewal order to create the renewed asset.
 
 The current term ends and the renewed term begins on the renewal start date. The asset's usage entitlements and rate cards are updated for the new term.
+
+For a supported ramp product, each renewal segment uses the asset rates and grants that are effective for the segment's dates. A segment that extends beyond the asset's final segment uses the last active rates and grants.
 
 EXAMPLE
 
@@ -50,3 +52,7 @@ A customer's usage-based subscription runs from January 1, 2026, through Decembe
 For rate and grant negotiation on usage-based products, see Usage-Based Assets.
 
 To renew a usage-based asset after its term ends, see Renew Expired Usage-Based Assets.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_renew_usage_based_assets_early.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

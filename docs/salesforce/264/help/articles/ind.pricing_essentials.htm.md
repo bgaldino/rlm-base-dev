@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.revenue_impl_glossary.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Salesforce Pricing Essentials
@@ -48,7 +48,7 @@ Use Parallel Element Execution to process elements concurrently during the execu
 Enable Compound Uplift
 Enable Compound Uplift lets you calculate compounding uplifts for group-ramped lines when a price revision element applies flat and index rate uplifts to non-ramped lines. Each uplift percentage is calculated by compounding the preceding segment's uplift percentage.
 Formula Pricing
-Formula Pricing is the pricing element that allows users to define a custom pricing formula that they can apply to the prices of specified products. Formulas support arithmetic operators (+, -, *, /), comparison operators (==, !=, <, >, <=, >=), and the IF() function for conditional logic. You can add up to five formulas within a single Formula-Based Pricing element. For more information, see Build Pricing Rules with Formula-Based Pricing. For a complete list of formula functions supported on the Salesforce platform, see All Formula Operators and Functions.
+Formula Pricing is the pricing element that allows users to define a custom pricing formula that they can apply to the prices of specified products. Formulas support arithmetic operators (+, -, *, /), comparison operators (==, !=, <, >, <=, >=), and the IF() function for conditional logic. You can add up to five formulas within a single Formula-Based Pricing element. For more information, see Build Pricing Rules with Formula-Based Pricing. For a complete list of formula functions supported on the Salesforce Platform, see All Formula Operators and Functions.
 Get List Price
 Get List Price is the pricing element where the base price of a product is calculated in the pricing procedure.
 List Group
@@ -111,3 +111,7 @@ Tiered Discount
 Tiered Discount is the pricing element where tiered adjustments, also known as slab-based discounts, are calculated for products in the pricing procedure.
 Volume Discount
 Volume Discount is the pricing element where volume-based adjustments are calculated for products in the pricing procedure.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_essentials.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

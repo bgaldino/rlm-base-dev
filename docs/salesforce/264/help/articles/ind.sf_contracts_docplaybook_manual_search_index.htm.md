@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_docplaybook_manual_index.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Manually Create a Document Playbook Search Index
@@ -59,3 +59,7 @@ Return to Document Playbook Settings. In Document Playbook Indexing, select the 
 Save your changes.
 TIP Before you use a manually configured index in production, test it with playbooks and contract documents that have tracked changes, and verify risk analysis results.
 NOTE After the index is built, Document Playbook Version chunk and Document Playbook Version index DLOs are created. Segmented content is stored in the chunk object, and numeric relevance scores are stored in the index object.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_docplaybook_manual_search_index.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

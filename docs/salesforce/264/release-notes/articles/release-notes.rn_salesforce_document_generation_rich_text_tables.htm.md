@@ -6,11 +6,15 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_salesforce_document_generation.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Generate Documents That Include Tables in Rich Text Fields
 
 Include tabular content, such as pricing tables, comparison charts, or data summaries, in your generated documents. When you copy a static table from an external source into a rich text field, the formatting, structure, and colors persist in the generated Word document. Only static table content is supported. You can’t use dynamic tokens in the table.
 
-Where: This change applies to Lightning Experience in Enterprise, Performance, Unlimited, and Developer editions of Agentforce Revenue Management, formerly Revenue Cloud, with the Revenue Events Starter Pack license, and the Revenue Cloud Advanced or Revenue Cloud Billing license.
+Where: This change applies to Lightning Experience in Enterprise, Performance, Unlimited, and Developer editions of Agentforce Revenue Cloud, formerly Revenue Cloud, with the Revenue Events Starter Pack license, and the Revenue Cloud Advanced or Revenue Cloud Billing license.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_salesforce_document_generation_rich_text_tables.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

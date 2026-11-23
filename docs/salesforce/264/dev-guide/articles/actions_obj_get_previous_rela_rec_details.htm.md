@@ -7,190 +7,47 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Advanced Approvals
 parent_page: advanced_approvals_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Get Previous Related Record Details Action
 
-Get the related record details submitted for approval before the
-            current approval submission. The details are required for approval steps that use custom
-            logic for auto-approvals.
-
-        
-            
+Get the related record details submitted for approval before the current approval submission. The details are required for approval steps that use custom logic for auto-approvals.
 
 This Apex action is available in API version 66.0 and later.
 
-        
-
-        
-        
-
 ## Supported REST HTTP Methods
 
-            
-            
-                
-                    
+**URI:** `/services/data/v68.0/actions/standard/getPreviousRelaRecDetails`
 
-**URI**
+**Formats:** JSON, XML
 
-                    
-: `/services/data/v68.0/actions/standard/getPreviousRelaRecDetails`
+**HTTP Methods:** POST
 
-                
-                
-                    
-
-**Formats**
-
-                    
-: JSON, XML
-
-                
-                
-                    
-
-**HTTP Methods**
-
-                    
-: POST
-
-                
-                
-                    
-
-**Authentication**
-
-                    
-: `Authorization:
-                            Bearertoken`
-
-                
-            
-
-        
-
-        
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| flowOrchestrationInstanceId | **Type** string **Description** Required. The ID of the flow orchestration instance associated with the approval submission. |
-| stepApiNamesList | **Type** string **Description** Required. The comma-delimited list of step API names to retrieve previous related record details for. |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| flowOrchestrationInstanceId | string | Required. The ID of the flow orchestration instance associated with the approval submission. |
+| stepApiNamesList | string | Required. The comma-delimited list of step API names to retrieve previous related record details for. |
 
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Output | Details |
-| --- | --- |
-| previousRelatedRecordDetails | **Type** sObject **Description** The collection of previous related record details for approval steps that use custom logic for auto-approvals. |
-
-        
-
-        
+| Output | Type | Description |
+| --- | --- | --- |
+| previousRelatedRecordDetails | sObject. | The collection of previous related record details for approval steps that use custom logic for auto-approvals. |
 
 ## Usage
 
-To use this Apex action in approval workflows, see [Define Rules and
-                    Conditions for Auto-Approval Resubmissions](https://help.salesforce.com/s/articleView?id=ind.approvals_define_custom_logic_auto_approvals.htm&language=en_US).
-
-        
+To use this Apex action in approval workflows, see [Define Rules and Conditions for Auto-Approval Resubmissions](https://help.salesforce.com/s/articleView?id=ind.approvals_define_custom_logic_auto_approvals.htm&language=en_US "HTML (New Window)").
 
 ## Example
 
-            
-            
-                
-                    
-
 **POST**
 
-                    
-: 
-                        
-
-Here's a sample request for the Get Previous Related Record Details
-                            action.
-
-                        
+Here's a sample request for the Get Previous Related Record Details action.
 
 ```
 {
@@ -201,3 +58,7 @@ Here's a sample request for the Get Previous Related Record Details
   ]
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_get_previous_rela_rec_details.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

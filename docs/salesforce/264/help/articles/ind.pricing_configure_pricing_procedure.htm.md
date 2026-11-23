@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_procedures.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Configure Your Pricing Procedure
@@ -15,7 +15,7 @@ Assemble a pricing procedure using pricing elements and ensure accurate pricing 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS NEEDED
 To create, update, and delete pricing procedures:	Salesforce Pricing Design Time User
 To use pricing procedures:	Salesforce Pricing Run Time User
@@ -44,7 +44,7 @@ In the Lookup Table Details field, select the decision table and enter the value
 Depending on whether you want to show or hide the pricing information in the Waterfall view, select or deselect the price waterfall view for your element.
 IMPORTANT
 
-The Exclude Price Waterfall option isn't supported by Quotes in Revenue Management.
+The Exclude Price Waterfall option isn't supported by Quotes in Revenue Cloud.
 
 You can't exclude price waterfall for the Pricing Setting, Aggregate Price, Price Tracking, Stop Pricing, and Discovery Procedure elements.
 
@@ -76,6 +76,8 @@ The pricing engine does not support passing local list variables as inputs or in
 Standard actions like renaming and modifying the variable's data type are not supported at any time. Data types can only be deleted. Deleting a local list variable automatically clears all its active mappings throughout the pricing procedure version to prevent reference errors.
 The system does not support local list variables within the Map Line Item element or the Propagation element.
 Local list variables migrate automatically when you deploy or migrate pricing procedures across Salesforce orgs, eliminating manual recreation steps in target orgs.
+Changes made by a pricing procedure to the ProductSellingModel and PriceBookEntry context tags apply only to that pricing run. Salesforce Pricing doesn't save these changes to the quote line, and the line retains its original price book entry.
+The default pricing procedure sets InputUnitPrice from the looked-up list price only when InputUnitPrice is empty (Is Null). If a price is already sent with the quote line, that price takes precedence over the list price.
 Refresh Your Decision Tables
 
 We recommend refreshing your decision tables to ensure that the latest pricing data is available.
@@ -90,3 +92,7 @@ Next, verify if the decision able has been refreshed and has the latest pricing 
 From the App Launcher, search for and open Lookup Tables.
 Find and select Volume Discount Entries.
 You can either check the Last Refreshed Date or you can search for the newly created price adjustment tier records.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_configure_pricing_procedure.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

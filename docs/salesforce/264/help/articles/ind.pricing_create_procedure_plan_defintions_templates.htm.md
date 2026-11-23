@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_create_procedure_plans.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Create Procedure Plan Definitions by Using Templates
@@ -15,7 +15,7 @@ A procedure plan definition template only stores the sequence of the procedure p
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Advanced license.
 USER PERMISSIONS
 NEEDED
 To create and update procedure plan definitions:	
@@ -47,3 +47,7 @@ To set the execution order of your procedures, select  and drag your procedure s
 Save your template as a new procedure plan definition record.
 
 Your new procedure plan definition record appears in the Procedure Plan Definitions list. To view the list, go to Setup, in the Quick Find box, enter Procedure Plan Definitions, and then select Procedure Plan Definitions.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_create_procedure_plan_defintions_templates.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

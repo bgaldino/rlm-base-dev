@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_system_administration_for_salesforce_contracts.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Contract Approval Processes in Salesforce Contracts
@@ -27,3 +27,7 @@ Standard Approval Workflow for Salesforce Contracts
 A contract approval workflow routes draft contracts to internal stakeholders for review. The workflow triggers when a user selects Submit for Approval and sends email notifications to the configured approvers.
 Advanced Approval Workflow for Salesforce Contracts
 Use advanced approvals to manage contract review workflows by associating approval flows with contract types and controlling approval actions that update the contract lifecycle.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_approvals_concept.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

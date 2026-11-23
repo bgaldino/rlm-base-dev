@@ -7,517 +7,68 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_discovery_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Search Product with Guided Selection Action
 
-Use guided product selection to search for
-        products.
-
-        
+Use guided product selection to search for products.
 
 This action is available in API version 64.0 and later.
 
-            
-
 You can invoke this action via Apex and Flows only.
-
-        
 
 ## Special Access Rules
 
-            
-            
-
-The Search Product with Guided Selection action is available in Enterprise,
-                Unlimited, and Developer Editions where Product Discovery is enabled.
-
-        
-
-        
-        
+The Search Product with Guided Selection action is available in Enterprise, Unlimited, and Developer Editions where Product Discovery is enabled.
 
 ## Inputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| additionalContextData | **Type** Apex-defined **Description** Collection of Apex [`runtime_industries_cpq.AdditionalContextData`](./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md) records that contain the nodes used in addition to context definition nodes for data hydration. This parameter can contain up to 10 nodes. |
-| additionalFields | **Type** Apex-defined **Description** An Apex [`runtime_industries_cpq.AdditionalFields`](./apex_class_runtime_industries_cpq_AdditionalFields.htm.md) record that contains the collection of additional fields to be included in the response. This parameter supports only the fields from the Product2 and ProductAttributeDefinition objects. The fields defined for the ProductAttributeDefinition object must also be available on the ProductClassificationAttr object. |
-| catalogId | **Type** string **Description** ID of the catalog to find and retrieve products. |
-| categoryId | **Type** string **Description** ID of the category or subcategory to find and retrieve products. |
-| contextDefinition | **Type** string **Description** API name of the context definition that's used for context creation. If you don’t specify a value, the context selected on the **Product Discovery Settings** page is used. |
-| contextMapping | **Type** string **Description** API name of the context mapping that's used for data hydration. The value of this parameter is used only if it belongs to the specified context definition. |
-| correlationId | **Type** string **Description** Unique ID that’s used to reference a series of related actions. |
-| currencyCode | **Type** string **Description** Currency code that’s used to calculate and show prices. Only the products with the currency code matching the entered currency code are fetched. |
-| executeConfigurationRules | **Type** boolean **Description** Indicates whether configuration rules must run (`true`) or not (`false`). Available in API version 67.0 and later. |
-| enablePricing | **Type** boolean **Description** Indicates whether pricing procedure must run (`true`) or not (`false`). The default value is `true`. To use this parameter, the **Pricing Procedure** setting must be enabled. |
-| enableQualification | **Type** boolean **Description** Indicates whether qualification procedure must run (`true`) or not (`false`). The default value is `true`. To use this parameter, the** Qualification Procedure** setting must be enabled. |
-| filterInputRepresentation | **Type** Apex-defined **Description** An Apex [`runtime_industries_cpq.FilterInputRepresentation`](./apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md) record that contains the filter criteria. This parameter supports only the `name` property and the `eq`, `in`, or `contains` operators. If it contains multiple criteria, all the criteria are applied. |
-| guidedSelectionResponseId | **Type** string **Description** Response identifier that stores user responses specified in the guided product selection window. |
-| includeCatalogDetails | **Type** boolean **Description** Indicates whether catalog details must be included in the response (`true`) or not (`false`). |
-| orderBy | **Type** string **Description** Comma-delimited string of key-value pairs that specify how results are sorted. Each string must contain a field name and its sort order. For example, ["name:asc",”custom_field:asc”]. |
-| priceBookId | **Type** string **Description** ID of the pricebook that the pricing information is retrieved from. |
-| pricingProcedure | **Type** string **Description** API name of the pricing procedure to calculate product prices. If you don’t specify a value, the pricing procedure selected on the **Product Discovery Settings** page is used. |
-| productClassificationId | **Type** string **Description** ID of the product classification that's used to filter products. |
-| productCursor | **Type** string **Description** Unique identifier that represents the position of the product from which the next set of results are retrieved. |
-| qualificationProcedure | **Type** string **Description** API name of the qualification procedure to evaluate product eligibility. If you don’t specify a value, the qualification procedure selected on the **Product Discovery Settings** page is used. |
-| recordLimit | **Type** integer **Description** Maximum number of results to be returned in the response. Specify a value from 1 through 100. Default value is 10. |
-| relatedObjectFilters | **Type** Apex-defined **Description** Collection of Apex [`runtime_industries_cpq.RelatedObjectFilterInputRepresentation`](./apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm.md) records, each containing a related object and the filter criteria that’s applied on the object. |
-| searchTerms | **Type** Apex-defined **Description** Collection of terms that are used to search products. See [GuidedSelectionSearchTerm](./apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm.md). |
-| transactionContextId | **Type** string **Description** Context ID of the quote or order. Available in API version 67.0 and later. |
-| transactionId | **Type** string **Description** ID of the quote or order. Available in API version 67.0 and later. |
-| userContext | **Type** Apex-defined **Description** An Apex ConnectApi.UserContextInputRepresentation record containing user information to evaluate product eligibility and calculate pricing. |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| additionalContextData | Apex-defined | Collection of Apex [`runtime_industries_cpq.AdditionalContextData`](./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)") records that contain the nodes used in addition to context definition nodes for data hydration. This parameter can contain up to 10 nodes. |
+| additionalFields | Apex-defined | An Apex [`runtime_industries_cpq.AdditionalFields`](./apex_class_runtime_industries_cpq_AdditionalFields.htm.md "HTML (New Window)") record that contains the collection of additional fields to be included in the response. This parameter supports only the fields from the Product2 and ProductAttributeDefinition objects. The fields defined for the ProductAttributeDefinition object must also be available on the ProductClassificationAttr object. |
+| catalogId | string | ID of the catalog to find and retrieve products. |
+| categoryId | string | ID of the category or subcategory to find and retrieve products. |
+| contextDefinition | string | API name of the context definition that's used for context creation. If you don’t specify a value, the context selected on the **Product Discovery Settings** page is used. |
+| contextMapping | string | API name of the context mapping that's used for data hydration. The value of this parameter is used only if it belongs to the specified context definition. |
+| correlationId | string | Unique ID that’s used to reference a series of related actions. |
+| currencyCode | string | Currency code that’s used to calculate and show prices. Only the products with the currency code matching the entered currency code are fetched. |
+| executeConfigurationRules | boolean | Indicates whether configuration rules must run ( `true` ) or not ( `false` ). Available in API version 67.0 and later. |
+| enablePricing | boolean | Indicates whether pricing procedure must run ( `true` ) or not ( `false` ). The default value is `true`. To use this parameter, the **Pricing Procedure** setting must be enabled. |
+| enableQualification | boolean | Indicates whether qualification procedure must run ( `true` ) or not ( `false` ). The default value is `true`. To use this parameter, the  **Qualification Procedure** setting must be enabled. |
+| filterInputRepresentation | Apex-defined | An Apex [`runtime_industries_cpq.FilterInputRepresentation`](./apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md "HTML (New Window)") record that contains the filter criteria. This parameter supports only the `name` property and the `eq` , `in` , or `contains` operators. If it contains multiple criteria, all the criteria are applied. |
+| guidedSelectionResponseId | string | Response identifier that stores user responses specified in the guided product selection window. |
+| includeCatalogDetails | boolean | Indicates whether catalog details must be included in the response ( `true` ) or not ( `false` ). |
+| orderBy | string | Comma-delimited string of key-value pairs that specify how results are sorted. Each string must contain a field name and its sort order. For example, ["name:asc",”custom\_field:asc”]. |
+| priceBookId | string | ID of the pricebook that the pricing information is retrieved from. |
+| pricingProcedure | string | API name of the pricing procedure to calculate product prices. If you don’t specify a value, the pricing procedure selected on the **Product Discovery Settings** page is used. |
+| productClassificationId | string | ID of the product classification that's used to filter products. |
+| productCursor | string | Unique identifier that represents the position of the product from which the next set of results are retrieved. |
+| qualificationProcedure | string | API name of the qualification procedure to evaluate product eligibility. If you don’t specify a value, the qualification procedure selected on the **Product Discovery Settings** page is used. |
+| recordLimit | integer | Maximum number of results to be returned in the response. Specify a value from 1 through 100. Default value is 10. |
+| relatedObjectFilters | Apex-defined | Collection of Apex [`runtime_industries_cpq.RelatedObjectFilterInputRepresentation`](./apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm.md "HTML (New Window)") records, each containing a related object and the filter criteria that’s applied on the object. |
+| searchTerms | Apex-defined | Collection of terms that are used to search products. See [GuidedSelectionSearchTerm](./apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm.md). |
+| transactionContextId | string | Context ID of the quote or order. Available in API version 67.0 and later. |
+| transactionId | string | ID of the quote or order. Available in API version 67.0 and later. |
+| userContext | Apex-defined | An Apex ConnectApi.UserContextInputRepresentation record containing user information to evaluate product eligibility and calculate pricing. |
 
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Output | Details |
-| --- | --- |
-| apiStatusOutputRepresentation | **Type** Apex-defined **Description** An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md) record that contains the status of the request, including the status code and message. |
-| contextId | **Type** string **Description** ID of the context that’s created by using the specified context definition. |
-| correlationId | **Type** string **Description** Unique identifier attached to requests and messages, allowing reference to a specific transaction or event chain. |
-| productCursor | **Type** string **Description** Unique identifier that represents the position of the product from which the next set of results are retrieved. |
-| productListOutputRepresentations | **Type** Apex-defined **Description** Collection of Apex [ProductListOutputRepresentation](./apex_class_runtime_industries_cpq_ProductListRepresentation.htm.md) records that contain details about the product shown by the Guided Product Selection. |
-| recordOffset | **Type** integer **Description** Number of catalog records to skip in the request. The default is 0. |
-| searchTerms | **Type** Apex-defined **Description** Collection of terms that are used to search products. See [GuidedSelectionSearchTerm](./apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm.md). |
-| userContext | **Type** Apex-defined **Description** An Apex ConnectApi.UserContextRepresentation record containing user information. |
-
-        
-
-        
-        
+| Output | Type | Description |
+| --- | --- | --- |
+| apiStatusOutputRepresentation | Apex-defined | An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains the status of the request, including the status code and message. |
+| contextId | string | ID of the context that’s created by using the specified context definition. |
+| correlationId | string | Unique identifier attached to requests and messages, allowing reference to a specific transaction or event chain. |
+| productCursor | string | Unique identifier that represents the position of the product from which the next set of results are retrieved. |
+| productListOutputRepresentations | Apex-defined | Collection of Apex [ProductListOutputRepresentation](./apex_class_runtime_industries_cpq_ProductListRepresentation.htm.md "HTML (New Window)") records that contain details about the product shown by the Guided Product Selection. |
+| recordOffset | integer | Number of catalog records to skip in the request. The default is 0. |
+| searchTerms | Apex-defined | Collection of terms that are used to search products. See [GuidedSelectionSearchTerm](./apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm.md). |
+| userContext | Apex-defined | An Apex ConnectApi.UserContextRepresentation record containing user information. |
 
 ## Example
 
-            
-            
-                
-                    
-                    
-: 
-                        
-
 Here's a sample input to call this invocable action from Apex code.
-
-                        
 
 ```
 Invocable.Action action = Invocable.Action.createStandardAction('searchPrdctWithGuidedSelection');
@@ -556,15 +107,7 @@ List<Invocable.Action.Result> results = action.invoke();
 System.debug('Guided Selection result = ' + results);
 ```
 
-                    
-
-                    
-: 
-                        
-
 Here's a sample response when you call this action.
-
-                        
 
 ```
 {
@@ -1119,3 +662,7 @@ Here's a sample response when you call this action.
   ]
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_search_products_with_guided_selection.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

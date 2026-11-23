@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_dynamic_attributes.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Reorder Attribute Categories and Attributes
@@ -34,3 +34,7 @@ Click Next to proceed to attribute-level sequencing.
 In the Reorder Attributes window, drag a row to your preferred position by using its drag handle. The other attributes renumber automatically. Expand categories to manage attributes independently and reorder uncategorized attributes the same way.
 NOTE If a category has only one attribute, you can't rearrange it independently. Reordering an inherited attribute turns it into an override attribute. If you later delete that override attribute, make sure that its original inherited sequence doesn't conflict with the display order of any other attribute. Uncategorized attributes appear in the Uncategorized section. Because they lack a category sequence, reorder them individually.
 Save your changes. If you assign a new attribute to a product classification, refresh your browser before you reorder attributes again.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_reorder_attribute_categories.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

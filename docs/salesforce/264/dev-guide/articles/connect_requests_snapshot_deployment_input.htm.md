@@ -7,22 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_catalog_management_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Snapshot Deployment Input
 
 Input representation of the request to deploy a run-time catalog snapshot.
 
-**JSON example**
+**JSON Example**
 
-          
-: This example shows a sample request to build a new snapshot with immediate
-            activation.
-
-: 
+This example shows a sample request to build a new snapshot with immediate activation.
 
 ```
 {
@@ -33,12 +27,7 @@ Input representation of the request to deploy a run-time catalog snapshot.
 }
 ```
 
-          
-: This example shows a sample request to rebuild a snapshot in the `active` status.
-
-          
-: 
-            
+This example shows a sample request to rebuild a snapshot in the `active` status.
 
 ```
 {
@@ -50,16 +39,13 @@ Input representation of the request to deploy a run-time catalog snapshot.
 }
 ```
 
-          
-
 **Properties**
-
-: 
-
-- 
-- 
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `buildType` | String | Build type of the snapshot index. Valid value is: `FULL`—Specifies a full index build. `INCREMENTAL`—Specifies an incremental index build. Available from API version 63.0 and later. | Required | 62.0 |
-| `snapshot` | [Run-time Catalog Snapshot Input](./connect_requests_runtime_catalog_snapshot_input.htm.md)[] | Snapshot to deploy. | Required | 62.0 |
+| `buildType` | String | Build type of the snapshot index. Valid value is `FULL`—Specifies a full index build or `INCREMENTAL`—Specifies an incremental index build. Available from API version 63.0 and later. | Required | 62.0 |
+| `snapshot` | [Run-time Catalog Snapshot Input](./connect_requests_runtime_catalog_snapshot_input.htm.md "Input representation of the details of a run-time catalog snapshot for deployment.")[] | Snapshot to deploy. | Required | 62.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_snapshot_deployment_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

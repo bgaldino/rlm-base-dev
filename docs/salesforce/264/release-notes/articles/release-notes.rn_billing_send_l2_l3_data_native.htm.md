@@ -6,14 +6,14 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_billing_payments_refunds.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Send Level 2 and Level 3 Payment Data Through a Native Payment Gateway
 
 Pass Level 2 and Level 3 enhanced transaction data in your payment requests to Stripe and Adyen native payment gateways. The payment batch run automatically includes the enhanced metadata in the payment gateway logs.
 
-Where: This change applies to Lightning Experience in Enterprise, Unlimited, and Developer editions of Revenue Management, formerly Revenue Cloud, with the Revenue Cloud Billing license.
+Where: This change applies to Lightning Experience in Enterprise, Unlimited, and Developer editions of Revenue Cloud, with the Revenue Cloud Billing license.
 
 Who: To send Level 2 and Level 3 payment data, you need the Payment Admin or the Payment Operations User permission set.
 
@@ -21,3 +21,7 @@ How: In Setup, find and select Billing Settings, and then turn on Level 2 and Le
 
 SEE ALSO
 Salesforce Help: Send Level 2 and Level 3 Payment Data Through Your Payment Gateways
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_billing_send_l2_l3_data_native.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

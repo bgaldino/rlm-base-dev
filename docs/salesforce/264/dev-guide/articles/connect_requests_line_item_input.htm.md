@@ -7,18 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Line Item Input
 
 Input representation of the details of the line item for tax calculation.
 
-**JSON example**
-
-: 
+## JSON Example
 
 ```
 {
@@ -75,171 +71,11 @@ Input representation of the details of the line item for tax calculation.
 }
 ```
 
-**Properties**
-
-: 
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
+## Properties
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `addresses` | [Addresses Input](./connect_requests_addresses_input.htm.md) | Address types that specify different locations associated with the transaction of the line item. | Optional | 62.0 |
+| `addresses` | [Addresses Input](./connect_requests_addresses_input.htm.md "Input representation of the details of the addresses for calculating tax.") | Address types that specify different locations associated with the transaction of the line item. | Optional | 62.0 |
 | `amount` | Double | Total amount for the line item. | Required | 62.0 |
 | `description` | String | Description of the line item. | Optional | 62.0 |
 | `effectiveDate` | String | Date that tax rules are applicable from. This property value overrides the global effective date. | Optional | 62.0 |
@@ -251,3 +87,7 @@ Input representation of the details of the line item for tax calculation.
 | `quantity` | Double | Quantity of the line item. | Required | 62.0 |
 | `taxCode` | String | Tax code of the line item according to the tax treatment rules of the tax engine. | Optional | 62.0 |
 | `unitPrice` | Double | Unit price of the product. | Optional | 63.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_line_item_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

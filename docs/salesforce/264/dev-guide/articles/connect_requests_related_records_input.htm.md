@@ -7,26 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_catalog_management_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Related Records Input
 
-Input representation of the request to retrieve related ProductRampSegment or
-    ProductUsageGrant records for Product2 object.
+Input representation of the request to retrieve related ProductRampSegment or ProductUsageGrant records for Product2 object.
 
-    
-      
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+**JSON Example**
 
 ```
 {
@@ -67,84 +55,14 @@ Input representation of the request to retrieve related ProductRampSegment or
 }
 ```
 
-          
-
-        
-        
-          
-
 **Properties**
 
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `correlation​Id` | String | Unique token to track and associate related events or transactions across different components of the application. If unspecified, a Universally Unique Identifier (UUID) is generated. | Optional | 62.0 |
 | `recordIds` | String[] | List of record IDs to return the relatedObjects records for. The maximum number of record IDs supported is 20. | Required | 62.0 |
-| `related​ObjectNodes` | [Related Object Node Input](./connect_requests_related_object_node_input.htm.md)[] | List of nodes for the related objects. The maximum number of related object nodes supported is two. | Required | 62.0 |
+| `related​ObjectNodes` | [Related Object Node Input](./connect_requests_related_object_node_input.htm.md "Input representation of the details of a related object node.")[] | List of nodes for the related objects. The maximum number of related object nodes supported is two. | Required | 62.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_related_records_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

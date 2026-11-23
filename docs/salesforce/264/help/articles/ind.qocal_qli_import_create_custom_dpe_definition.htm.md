@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_qli_import_extend_functionality.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Customize Data Processing Engine Definitions for Quote Line Item Imports
@@ -15,7 +15,7 @@ Modify the Data Processing Engine definition if you want users to import custom 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To create a Data Processing Engine definition:	
 
@@ -1071,3 +1071,7 @@ Expression fields identify blank selling models and determine default values for
     } ]
   }
 }
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_qli_import_create_custom_dpe_definition.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

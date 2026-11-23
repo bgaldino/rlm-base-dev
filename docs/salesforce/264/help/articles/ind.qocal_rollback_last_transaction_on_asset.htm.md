@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_advanced_amendment_and_renewal_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Roll Back the Last Transaction for an Asset
@@ -15,7 +15,7 @@ To reverse the most recent future-dated amendment or renewal due to errors or ch
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To roll back the last transaction for an asset:	InitiateAmend user permission
 
@@ -34,3 +34,7 @@ Asset Action, Asset Action Source, and Asset State Period records update automat
 A new asset action provides a Rolledback Asset Action lookup link to the original reversed action.
 
 Review the asset history to confirm the rollback processed correctly. Check the asset action related to the asset for a new record with type Amend and subtype Rollback. Verify that this record points to the reversed asset action and that the asset state matches its condition before the rollback transaction.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_rollback_last_transaction_on_asset.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

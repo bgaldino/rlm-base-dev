@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_search_datakit_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Deploy the Contract Document Data Kit for Contract Search
@@ -50,3 +50,7 @@ A hybrid search index to enable fast and accurate contract search
 The Contract Document data kit is deployed to your org. Data Cloud components and mappings are provisioned automatically, and Contract Search is ready to use without any additional configuration. In the Deployment History section, the deployment status changes to Successful.
 
 After you deploy the data kit, you need to Set up a Contract Search integration user for data kit deployment.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_contract_search_datakit_deploy.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Billing Schedules and Billing Schedule Groups
@@ -20,11 +20,9 @@ NOTE For details about how billing schedules are triggered and how invoices are 
 Generate Billing Schedules from External Transactions or Salesforce Objects
 Use the Create Standalone Billing Schedules API to generate billing schedules directly from transactions in external systems, or from any Salesforce object.
 Generate Billing Schedules from Orders
-Generate billing schedules from orders by using a flow or an API.
+Generate billing schedules from orders by using a flow or an API. To automatically trigger the generation of billing schedules when the order is activated, use the Order to Billing Schedule flow. To generate billing schedules for orders by using API, use Create Billing Schedules for Orders API or Create Standalone Billing Schedules API.
 Generated Billing Schedule Details
 View all the key billing schedule and invoice details in the Billing Schedule Group records.
-Add the Billing Schedule Details Component to a Group Page
-Give billing operations and sales teams a timeline and summary metrics on the Billing Schedule Group page. In Lightning App Builder, drag Billing Schedule Details onto the page, then save and activate the page.
 Manage Billing Frequencies
 You can set a product’s billing frequency to be different from its pricing frequency. For example, you can bill a customer on an annual basis even if the order or subscription is priced monthly.
 Bill for Multiple Terms in a Billing Period
@@ -33,3 +31,9 @@ Update Billing Schedule Groups
 Update billing schedule group fields at any time. You can update the billing day of month, next billing date override, billing and shipping addresses, tax treatment, and the payment term of a billing schedule group.
 Define Invoice Grouping on a Billing Schedule
 Generate grouped or split invoices by configuring default, custom, or billing schedule group types on billing schedules.
+Add the Billing Schedule Details Component to a Group Page
+Give billing operations and sales teams a timeline and summary metrics on the Billing Schedule Group page. In Lightning App Builder, drag Billing Schedule Details onto the page, then save and activate the page.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_schedules_and_schedule_groups.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

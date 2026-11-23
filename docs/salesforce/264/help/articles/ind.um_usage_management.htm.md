@@ -1,14 +1,14 @@
 ---
 article_id: ind.um_usage_management.htm
-title: Manage and Track Usage-Based Products in Revenue Management
+title: Manage and Track Usage-Based Products in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.um_usage_management.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: usage
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
-# Manage and Track Usage-Based Products in Revenue Management
+# Manage and Track Usage-Based Products in Revenue Cloud
 
 With a consumption-based product, a customer pays based on usage rather than a fixed subscription or upfront fee. Usage Management provides a comprehensive solution to define, rate, sell, track, and bill consumption-based products.
 
@@ -30,7 +30,7 @@ Wallet Management
 Manage wallets for every purchased usage resource tied to an account. Wallet Management provides a consolidated view that lists and tracks resources by account.
 Begin Using Usage Management
 Turn on Usage Management to efficiently set up, track and manage consumption-based products. Customize the experience of using Usage Management for all users using permission sets to give them precise access to what they need.
-Set Up Usage Management in Revenue Management
+Set Up Usage Management in Revenue Cloud
 Usage Management provides the essential components for tracking and managing the consumption of your usage-based products. To implement this framework effectively, first set up usage management objects, such as usage resources, product usage grants, and their units of measure. This setup represents the foundational layer of your configuration and is a prerequisite for creating usage management policies. The policies ensure that consumption data can be accurately aggregated, grant policies can be correctly applied, and overall usage can be managed with efficiency.
 Manage Consumption for Usage-Based Products
 Track and manage consumption data, rate consumption accurately, and generate invoice-ready summaries for billing. Consumption management provides standard flows that you can schedule to run. You can also create usage and ratable summaries as needed. The ad hoc summary generation helps account executives generate reports to forecast consumption of a resource or resolve customer disputes.
@@ -39,8 +39,12 @@ For usage-based products, Billing considers late usage and extra orders.
 Usage Management Limits
 Before you plan and set up usage management, sell consumption-based products, or process their consumption, review the supported limits and features.
 SEE ALSO
-Set Up Usage Management in Revenue Management
+Set Up Usage Management in Revenue Cloud
 Rate Management
 Usage Selling
 Consumption Management
 Unified Usage Dashboard
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_usage_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

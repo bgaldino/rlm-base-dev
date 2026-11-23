@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_billing.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Invoice Management
@@ -25,3 +25,9 @@ Set Invoice Target Dates by Calendar Day or Billing Period Count
 Adapt invoice processing for complex billing scenarios with dynamic target dates in invoice batch runs and Invoice API. Set target dates based on a specific calendar day of the month or a fixed number of billing periods instead of static day offsets.
 Preview Future Invoice Charges with Billing Forecast
 Get full transparency into projected billing charges before invoices are created. Run scheduled forecasts for one-time and subscription charge types and categories. Use forecast data to align with customers on upcoming charges and report on projected billing.
+See Product Charges Together on an Invoice
+See invoice lines grouped by product, including usage resources that belong to the same usage product. Invoice Line Summary rolls related lines into one hierarchy, so you can understand and explain one-time, recurring, usage, overage, and milestone charges without scanning the invoice line by line.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_billing_invoices.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

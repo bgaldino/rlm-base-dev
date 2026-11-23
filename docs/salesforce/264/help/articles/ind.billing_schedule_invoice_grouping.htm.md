@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_schedules_and_schedule_groups.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Define Invoice Grouping on a Billing Schedule
@@ -31,7 +31,7 @@ From the App Launcher, find and select Billing Schedule Groups.
 Open the billing schedule group that your billing schedule belongs to.
 Go to the Billing Schedules related list and open the billing schedule.
 On the Detail tab of the Billing Schedule record, go to the Invoice Group Information section and select an invoice group type:
-To generate a consolidated invoice based on the default group, select Default. The billing account, bill-to-contact, currency ISO code, payment term, tax engine, legal entity, and saved payment method of the billing schedule group make up the default group.
+To generate a consolidated invoice based on the default group, select Default. The billing account, bill-to-contact, billing arrangement, currency ISO code, payment term, tax engine, legal entity, and saved payment method of the billing schedule group make up the default group.
 To generate a separate invoice for the billing schedule, select Billing Schedule.
 To generate a consolidated invoice based on your own grouping criteria, select Custom.
 If you select Custom as the invoice group type, enter a custom invoice group key.
@@ -61,3 +61,7 @@ Three separate invoices are generated based on the Invoice Group Type field, and
 A consolidated invoice is generated for Billing Schedule 1 and Billing Schedule 4 because both of them have the same default invoice group.
 A separate invoice is generated for Billing Schedule 2 because its invoice group type is Billing Schedule, which results in generating an individual invoice.
 A consolidated invoice is generated for Billing Schedule 3 and Billing Schedule 5 because both of them have the same default invoice group and custom invoice group key.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_schedule_invoice_grouping.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

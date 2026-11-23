@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_revenue.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Product Catalog Management
@@ -15,6 +15,8 @@ Set attribute display orders across levels to guide reps through configurations,
 
 Simplify Product Configuration with Custom Attribute and Category Ordering
 Help your sales reps navigate complex configurations by arranging attribute categories and attributes in a logical sequence. Previously, you couldn’t control the display order of attribute categories, and attributes appeared alphabetically by name. You can now set or change the display order at the Product Classification, Product Subclassification, or Product level. Products inherit the ordering from their classification, and sales reps see the sequence in the Configurator UI.
+Reuse Existing Simple Products as Bundles
+Convert your existing simple products into bundles with a quick update to the product type. Previously, transitioning a simple product into a bundle required building a separate product record.
 Guide Sales Reps Through Product Setup with Dynamic UI Controls
 Give your sales reps a clear starting point for configuring products by replacing the generic cog wheel icon with a custom text button. A text button provides clear, immediate direction that is easier to spot than the standard icon. You can also hide the Add button for static or configurable products or both, which prevents sales reps from adding products incorrectly. With UI and performance enhancements, product discovery is more intuitive, and you can track the progress of adding or deleting a product.
 Discover Products Faster by Using Price Book Filters
@@ -31,3 +33,7 @@ Changed Connect REST APIs in Product Catalog Management
 Present a product's attribute categories in a consistent, predetermined order. The single and bulk Product Detail APIs now return the display sequence of each attribute category in the response.
 runtime_industries_cpq Namespace
 Work with product variations and units of measure during product discovery and selection. The runtime_industries_cpq namespace includes new classes and properties that represent a product's variation attributes, variation class, child variations, and units of measure.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_product_catalog_management.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_configuration_of_fields_for_extraction_from_a_file.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Manage and Test Contract Extraction Instructions
@@ -72,3 +72,7 @@ In the prompt response, you can see each mapped field and its extracted values.
 Save your changes.
 You can now use the prompt template during runtime to extract entity values.
 The prompt instructions are saved to context mapping.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_manage_and_test_contract_extraction_instructions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

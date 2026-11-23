@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_setup_digital_experience_sites.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Set Up Salesforce Contracts Partner Community User
@@ -148,3 +148,7 @@ Object State Definition
 This sharing rule provides the partner users to access the contract state transition from one state to the other state.
 
 Before you generate documents, make sure Field-Level Security (FLS) is enabled on the community user's profile or on a permission set assigned to that user. For the list of objects and fields that require FLS, see FLS Requirements for Contract Document Generation.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_setup_clm_partner_community_user.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

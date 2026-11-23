@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_pdf_document_delivery_through_email.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Define Invoice Email Delivery Configuration and Preferences
@@ -22,14 +22,14 @@ Before you send invoice emails, your Billing Admin must configure these settings
 
 If you want to send invoice emails from Invoice records, turn on Document Generation for Billing.
 
-See Turn On Invoice PDF Document Generation and Account Statement.
+See Turn On PDF Document Generation for Billing.
 
 If you want to send invoice emails from Invoice Batch Run records, turning on Document Generation for Billing is optional.
 
 Turn on Configure Email Delivery Settings and select a default email template. Optionally, create custom email templates and select one as the default template instead.
 See Turn On Email Delivery of Invoices, Invoice Email Prerequisites, and Create Email Templates.
 Define the email preferences on Legal Entity records.
-See Create Legal Entities in Revenue Management.
+See Create Legal Entities in Revenue Cloud.
 Enable Customer User for a Bill to Contact record to provide access to Experience Cloud sites.
 
 See Create Experience Cloud Site Users.
@@ -53,3 +53,7 @@ See Opting Out of Email.
 Only the contacts that have self-service access to the Experience Cloud site can opt themselves out of receiving emails.
 
 After you define these values, send invoice emails from Invoice records or Invoice Batch Run records.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoices_email_prerequisites.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

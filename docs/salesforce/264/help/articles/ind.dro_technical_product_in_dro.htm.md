@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_design_time_decomposition.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Build Your Technical Product Catalog for Dynamic Revenue Orchestrator
@@ -74,3 +74,7 @@ Create a Technical Product
 To create technical products in Dynamic Revenue Orchestrator (DRO), follow these instructions.
 Decomposition Scope
 Set the decomposition scope to limit how many instances of a fulfillment order line item appear in fulfillment.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_technical_product_in_dro.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

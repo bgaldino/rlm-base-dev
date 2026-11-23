@@ -7,19 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: connect_requests_billing_checkout_input.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Billing Checkout Payment Details Input
 
 Input representation of payment details used during checkout, referencing a saved payment method.
 
-    
-
 ## JSON Example
-
-      
-      
 
 ```
 {
@@ -29,104 +24,18 @@ Input representation of payment details used during checkout, referencing a save
 }
 ```
 
-    
-
-    
-
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `idempotency​Key` | String | Unique key used to retry the checkout payment safely without creating a duplicate charge. | Optional | 68.0 |
 | `payment​Gateway​Id` | String | Unique ID of the preconfigured payment gateway. | Optional | 68.0 |
-| `saved​Payment​Method​Details` | [Saved Payment Method Details Input](./connect_requests_billing_checkout_saved_payment_method_details_input.htm.md) | Details required to create a saved payment method during checkout. | Optional | 68.0 |
+| `saved​Payment​Method​Details` | [Saved Payment Method Details Input](./connect_requests_billing_checkout_saved_payment_method_details_input.htm.md "Input representation of the details required to create a saved payment method during checkout.") | Details required to create a saved payment method during checkout. | Optional | 68.0 |
 | `saved​Payment​Method​Id` | String | Unique ID of the saved payment method to use during checkout. | Optional | 68.0 |
 
-    
+- **[Saved Payment Method Details Input](./connect_requests_billing_checkout_saved_payment_method_details_input.htm.md)**  
+  Input representation of the details required to create a saved payment method during checkout.
 
-  
+---
 
-- 
-**[Saved Payment Method Details Input](./connect_requests_billing_checkout_saved_payment_method_details_input.htm.md)**  
-
-Input representation of the details required to create a saved payment method during checkout.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_billing_checkout_payment_details_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

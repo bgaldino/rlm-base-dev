@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: approvals
 parent_article: ind.approvals_building_blocks_of_advanced_approvals.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Smart Approvals and Rule-Based Auto-Approvals
@@ -50,3 +50,7 @@ Smart Approvals
 To eliminate approval bottlenecks, Smart Approvals routes requests by auto-approving pre-qualified data changes and not reviewing unchanged data. When a record is resubmitted for approval, Smart Approvals compares the new conditions against the previous submission. If the values remain within the defined range, it skips re-approval.
 Rule-Based Auto-Approvals
 Set your own rules and conditions on specific fields for auto-approving resubmissions. Compare the current submission’s record details against the previously submitted record so that only significant changes require manual review.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.approvals_smart_or_rule_based_approvals.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

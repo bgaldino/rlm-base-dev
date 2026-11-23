@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_general_ledger_account_assignment_rules_and_criteria.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create General Ledger Account Assignment Rules
@@ -61,3 +61,7 @@ Default Transaction Amount Fields
 If you don't select a transaction amount field when defining the criteria, the default transaction amount field is populated as the credit or debit amount in transaction journals.
 Record Creation for the General Ledger Account Assignment Rule
 When billing transactions are Posted, Canceled, Voided, or Processed and they match the defined filter criteria and journal entry rules, then dual transaction journals are created for the defined general ledger accounts for each general ledger journal entry rule.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_general_ledger_account_assignment_rules_create.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

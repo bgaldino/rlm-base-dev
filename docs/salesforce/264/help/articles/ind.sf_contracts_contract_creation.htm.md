@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_documnet_actions_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Create and Manage Contracts in Salesforce Contracts
@@ -54,3 +54,7 @@ Attachments in Salesforce Contracts
 The Contract Attachments allow you to upload, delete, search, and download the files from the list of attachments.
 Retry Contract Document Generation
 Salesforce Contracts allows you to retry or cancel the contract document generation if the generation is incomplete due to any failure or time-out issues in generating the document.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_contract_creation.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_extend_your_transactions_with_custom_field_support.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Before you Begin
@@ -50,3 +50,7 @@ Asset Action Source	Order Item Detail
 Quote to Contract	Quote	Contract	Y
 Order to Contract	Order	Contract	Y
 NOTE You can't map a QuoteLineItem or OrderItem object to an Asset object.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_before_you_begin_extending_your_transactions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,29 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_api_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Sales Transaction Input
 
-Input representation of the details of the request to place a sales transaction, such as
-    a quote or an order.
+Input representation of the details of the request to place a sales transaction, such as a quote or an order.
 
-      
-        
-          
+## JSON Example
 
-**JSON example**
-
-          
-: This is a sample request to create a sales transaction for a quote. This example also
-            skips tax calculation by specifying a value for the optional `taxPref` property.
-
-          
-: 
-            
+This is a sample request to create a sales transaction for a quote. This example also skips tax calculation by specifying a value for the optional `taxPref` property.
 
 ```
 {
@@ -123,13 +110,7 @@ Input representation of the details of the request to place a sales transaction,
 }
 ```
 
-          
-
-          
-: This sample request assigns a TransactionProcessingType record to a quote without any
-            additional preferences. In this example, the TransactionType value for a record is set
-            to a TransactionProcessingType record. See [TransactionProcessingType](./tooling_api_objects_transactionprocessingtype.htm.md) tooling
-            object for more details.
+This sample request assigns a TransactionProcessingType record to a quote without any additional preferences. In this example, the TransactionType value for a record is set to a TransactionProcessingType record. See [TransactionProcessingType](./tooling_api_objects_transactionprocessingtype.htm.md "Represents the settings to configure the processing constraints for a request.. This object is available in API version 63.0 and later.") tooling object for more details.
 
 ```
 {
@@ -173,9 +154,7 @@ Input representation of the details of the request to place a sales transaction,
 }
 ```
 
-          
-: This is a sample request to insert, update, or delete a quote line
-            item.
+This is a sample request to insert, update, or delete a quote line item.
 
 ```
 {
@@ -223,9 +202,7 @@ Input representation of the details of the request to place a sales transaction,
 }
 ```
 
-          
-: This is a sample request to define grouping of quote line
-            items.
+This is a sample request to define grouping of quote line items.
 
 ```
 {
@@ -272,10 +249,7 @@ Input representation of the details of the request to place a sales transaction,
 }
 ```
 
-          
-: This is s a sample request for the initial grouping of the quote with all the quote
-            lines assigned to the first
-            group.
+This is s a sample request for the initial grouping of the quote with all the quote lines assigned to the first group.
 
 ```
 {
@@ -311,9 +285,7 @@ Input representation of the details of the request to place a sales transaction,
 }
 ```
 
-          
-: This is a sample request to ungroup a quote but retain the quote
-            lines.
+This is a sample request to ungroup a quote but retain the quote lines.
 
 ```
 {
@@ -349,9 +321,7 @@ Input representation of the details of the request to place a sales transaction,
 }
 ```
 
-          
-: This is a sample request to create a new
-            group.
+This is a sample request to create a new group.
 
 ```
 {
@@ -387,9 +357,7 @@ Input representation of the details of the request to place a sales transaction,
 }
 ```
 
-          
-: This example shows a sample request to delete a
-            group.
+This example shows a sample request to delete a group.
 
 ```
 {
@@ -425,9 +393,7 @@ Input representation of the details of the request to place a sales transaction,
 }
 ```
 
-          
-: This is a sample request to group order items based on
-            criteria.
+This is a sample request to group order items based on criteria.
 
 ```
 {
@@ -481,10 +447,7 @@ Input representation of the details of the request to place a sales transaction,
 }
 ```
 
-          
-: This is a sample request to save changes to a ramp deal by using context ID. The
-            context ID is returned by the Ramp Deal APIs. See [Create Ramp Deal
-            (POST)](./connect_resources_create_ramp_deal.htm.md).
+This is a sample request to save changes to a ramp deal by using context ID. The context ID is returned by the Ramp Deal APIs. See [Create Ramp Deal (POST)](./connect_resources_create_ramp_deal.htm.md "HTML (New Window)").
 
 ```
 {
@@ -511,171 +474,40 @@ Input representation of the details of the request to place a sales transaction,
 }
 ```
 
-          
-: To see examples that specify actions to create ramp deals for groups, see [Group Ramp Action Input](./connect_requests_group_ramp_action_input.htm.md).
+To see examples that specify actions to create ramp deals for groups, see [Group Ramp Action Input](./connect_requests_group_ramp_action_input.htm.md "Understand the sample request to specify group ramp actions during initial sale.").
 
-          
-          
-: To see examples that apply to usage-based products, see [Usage-Based Product Input](./connect_requests_usage_based_product_input.htm.md).
+To see examples that apply to usage-based products, see [Usage-Based Product Input](./connect_requests_usage_based_product_input.htm.md "Understand the sample request structure to specify and manage usage-based products within a sales transaction.").
 
-        
-        
-          
+## Properties
 
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                  
-                    
-
-                    
-
-                    
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-- 
-- 
-- 
-- 
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                  
-                    
-
-                    
-
-                    
-- 
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `catalogRates​Pref` | String | Rate card entries defined in the catalog that must be fetched for sales items with usage-based pricing during the creation of the sales transaction. Valid values are: `Fetch`—Retrieves the rate card entries defined in the catalog for sales items during the creation of the sales transaction. `Skip`—Skips the retrieval of rate card entries for sales items during the creation of the sales transaction.The default value is `Skip`. This property is available when the Usage-Based Selling feature is enabled. | Optional | 63.0 |
-| `configuration​Pref` | [Configurator Preference Input](./connect_requests_configurator_preference_input.htm.md) | Configuration preference during the quote process. These preferences ensure that quotes are defined as per the requirement. | Optional | 63.0 |
-| `contextDetails` | [Context Input](./connect_requests_context_info_input.htm.md) | Context details that are created for a sales transaction. | Required if the `graph` property isn’t specified. | 63.0 |
-| `graph` | [Object Graph Input](./connect_requests_object_graph_input.htm.md) | The sObject graph of the sales transaction to be ingested. You can perform create, update, or delete operations on objects from the Sales Transaction context definition by using this property. Additionally, perform create, update, or delete operations on custom objects and fields in your extended context definition. To create custom objects that are at the grandchildren level from a line item, you must create the hierarchy of objects until the grandchild object in the same request. | Required if the `contextDetails` property isn’t specified. | 63.0 |
-| `groupRampAction` | String | Specifies the action ‌that you want to perform on group ramp segments. You can also convert a non-ramped group into a ramped group. Valid values are: `AddProducts`—Adds rampable products to group ramp segments. `DeleteProducts`—Deletes ramped products. `EditGroup`—Converts a non-ramped group into a group ramp segment, or edit group ramp segment attributes such as name and description, except the start and end dates. `EditRampSchedule`—Edits details of the group ramp segments, including start and end dates. `DeleteSegment`—Deletes the first or last segment in a group ramp schedule. `ConvertToNonRampedGroup`—Converts the first or last group ramp segment into a non-ramped group. To add or delete ramped line items from multiple group ramp segments, specify the applicable values in the `graph` property. See [Group Ramp Action Input](./connect_requests_group_ramp_action_input.htm.md) to refer to examples. | Optional | 65.0 |
-| `pricingPref` | String | Pricing preference during the creation of a sales transaction. Valid values are: `Force`—Enforces pricing during the creation of sales transactions. `Skip`—Skips pricing during the creation of sales transactions. `System`—Determines whether a pricing calculation is required. The default value is `System`. | Optional | 63.0 |
+| `catalogRates​Pref` | String | Rate card entries defined in the catalog that must be fetched for sales items with usage-based pricing during the creation of the sales transaction. Valid values are `Fetch` —Retrieves the rate card entries defined in the catalog for sales items during the creation of the sales transaction; or `Skip` —Skips the retrieval of rate card entries for sales items during the creation of the sales transaction. The default value is `Skip`. This property is available when the Usage-Based Selling feature is enabled. | Optional | 63.0 |
+| `configuration​Pref` | [Configurator Preference Input](./connect_requests_configurator_preference_input.htm.md "Input representation of the configuration preference for the place sales transaction request.") | Configuration preference during the quote process. These preferences ensure that quotes are defined as per the requirement. | Optional | 63.0 |
+| `contextDetails` | [Context Input](./connect_requests_context_info_input.htm.md "Input representation of the context that's associated with a sales transaction for a quote or an order.") | Context details that are created for a sales transaction. | Required if the `graph` property isn’t specified. | 63.0 |
+| `graph` | [Object Graph Input](./connect_requests_object_graph_input.htm.md "Input representation of an sObject with a graph ID.") | The sObject graph of the sales transaction to be ingested. You can perform create, update, or delete operations on objects from the Sales Transaction context definition by using this property. Additionally, perform create, update, or delete operations on custom objects and fields in your extended context definition. To create custom objects that are at the grandchildren level from a line item, you must create the hierarchy of objects until the grandchild object in the same request. | Required if the `contextDetails` property isn’t specified. | 63.0 |
+| `groupRampAction` | String | Specifies the action ‌that you want to perform on group ramp segments. You can also convert a non-ramped group into a ramped group. To add or delete ramped line items from multiple group ramp segments, specify the applicable values in the `graph` property. See [Group Ramp Action Input](./connect_requests_group_ramp_action_input.htm.md "Understand the sample request to specify group ramp actions during initial sale.") to refer to examples. | Optional | 65.0 |
+| `pricingPref` | String | Pricing preference during the creation of a sales transaction. The default value is `System`. | Optional | 63.0 |
 | `taxPref` | String | Specifies whether to execute or skip the tax calculation step for each sales transaction record. Valid value is `Skip`. If you don't specify this value, then tax calculation request is performed by default. | Optional | 65.0 |
 
-          
+Valid `groupRampAction` values:
 
-        
-      
+- `AddProducts`—Adds rampable products to group ramp segments.
+- `DeleteProducts`—Deletes ramped products.
+- `EditGroup`—Converts a non-ramped group into a group ramp segment, or edit group ramp segment attributes such as name and description, except the start and end dates.
+- `EditRampSchedule`—Edits details of the group ramp segments, including start and end dates.
+- `DeleteSegment`—Deletes the first or last segment in a group ramp schedule.
+- `ConvertToNonRampedGroup`—Converts the first or last group ramp segment into a non-ramped group.
 
-    
+Valid `pricingPref` values:
 
-- 
-**[Group Ramp Action Input](./connect_requests_group_ramp_action_input.htm.md)**  
+- `Force`—Enforces pricing during the creation of sales transactions.
+- `Skip`—Skips pricing during the creation of sales transactions.
+- `System`—Determines whether a pricing calculation is required.
 
-Understand the sample request to specify group ramp actions during initial     sale.
+- **[Group Ramp Action Input](./connect_requests_group_ramp_action_input.htm.md)**  
+  Understand the sample request to specify group ramp actions during initial sale.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_place_sales_transaction_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

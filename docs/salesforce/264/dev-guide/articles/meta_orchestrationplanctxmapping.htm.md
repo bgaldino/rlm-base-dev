@@ -7,188 +7,41 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Dynamic Revenue Orchestrator
 parent_page: dynamic_revenue_orchestrator_metadata_api_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # OrchestrationPlanCtxMapping
 
-Represents the context mapping that Dynamic
-			Revenue Orchestrator (DRO) uses to generate and orchestrate a plan for an object, such
-			as a non-sales transaction for billing or another generic business process.
-	
-
-		
+Represents the context mapping that Dynamic Revenue Orchestrator (DRO) uses to generate and orchestrate a plan for an object, such as a non-sales transaction for billing or another generic business process.
 
 ## Parent Type
 
- This type extends the [Metadata](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/metadata.htm) metadata type and inherits its fullName
-			field.
-
-		
+[Metadata](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/metadata.htm "HTML (New Window)")
+fullName
 
 ## File Suffix and Directory Location
 
-			
-			
-
-OrchestrationPlanCtxMapping components have the suffix
-					.orchestrationPlanCtxMapping and are stored in the
-					orchestrationPlanCtxMappings folder.
-
-		
-
-		
+OrchestrationPlanCtxMapping components have the suffix .orchestrationPlanCtxMapping and are stored in the orchestrationPlanCtxMappings folder.
 
 ## Version
 
-			
-			
-
-OrchestrationPlanCtxMapping components are available in API version 67.0 and
-				later.
-
-		
-
-		
-		
+OrchestrationPlanCtxMapping components are available in API version 67.0 and later.
 
 ## Fields
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-
-						
-
-						
-							
-
-							
-
-: 
-
-: 
-: 
-: 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-
-						
-
-					
-
-				
-| Field Name | Description |
-| --- | --- |
-| context​Definition | **Field Type** string **Description** Required. [ContextDefinition](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/meta_contextdefinition.htm) that the orchestration use case is based on. |
-| contextItem​Node | **Field Type** string **Description** Name of the item-level node in the context definition. The item node represents the line items or child records of the root node, such as the items in an order. |
-| contextMapping | **Field Type** string **Description** Required. Name of the context mapping that maps the source object fields to the nodes in the context definition. |
-| context​RootNode | **Field Type** string **Description** Required. Name of the root node in the context definition. The root node represents the parent record that the orchestration plan is generated for, such as an order. |
-| label | **Field Type** string **Description** Required. UI label for the orchestration plan context mapping. |
-| objectName | **Field Type** string **Description** Required. API name of the object that the orchestration plan is generated for. The combination of objectName and orchestrationType must be unique. |
-| orchestration​Type | **Field Type** PlanUsageType (enumeration of type string) **Description** Required. Type of orchestration plan that this context mapping applies to. Valid values are: `Billing` `Fulfillment` `Generic` `IntegrationOrchestrator` `InsuranceRuleAction` `OrderFulfillment` `StageManagement` |
-
-		
-
-		
+| Field Name | Field Type | Description |
+| --- | --- | --- |
+| context​Definition | string | Required. [ContextDefinition](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/meta_contextdefinition.htm) that the orchestration use case is based on. |
+| contextItem​Node | string | Name of the item-level node in the context definition. The item node represents the line items or child records of the root node, such as the items in an order. |
+| contextMapping | string | Required. Name of the context mapping that maps the source object fields to the nodes in the context definition. |
+| context​RootNode | string | Required. Name of the root node in the context definition. The root node represents the parent record that the orchestration plan is generated for, such as an order. |
+| label | string | Required. UI label for the orchestration plan context mapping. |
+| objectName | string | Required. API name of the object that the orchestration plan is generated for. The combination of objectName and orchestrationType must be unique. |
+| orchestration​Type | PlanUsageType (enumeration of type string) | Required. Type of orchestration plan that this context mapping applies to. Valid values are `Billing`, `Fulfillment`, `Generic`, `IntegrationOrchestrator`, `InsuranceRuleAction`, `OrderFulfillment`, or `StageManagement`. |
 
 ## Declarative Metadata Sample Definition
 
-			
-			
-
-This sample shows the definition of an OrchestrationPlanCtxMapping component for a
-				fulfillment plan that orchestrates an order.
-
-			
+This sample shows the definition of an OrchestrationPlanCtxMapping component for a fulfillment plan that orchestrates an order.
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
@@ -203,12 +56,7 @@ This sample shows the definition of an OrchestrationPlanCtxMapping component for
 </OrchestrationPlanCtxMapping>
 ```
 
-			
-
-This sample `package.xml` references the previous
-				definition.
-
-			
+This sample `package.xml` references the previous definition.
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
@@ -221,14 +69,10 @@ This sample `package.xml` references the previous
 </Package>
 ```
 
-		
-
-		
-
 ## Wildcard Support in the Manifest File
 
-			
-			
+This metadata type supports the wildcard character `*` (asterisk) in the package.xml manifest file. For information about using the manifest file, see [Deploying and Retrieving Metadata with the Zip File](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/file_based.htm "HTML (New Window)").
 
-This metadata type supports the wildcard character `*` (asterisk) in the package.xml manifest file.
-				For information about using the manifest file, see [Deploying and Retrieving Metadata with the Zip File](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/file_based.htm).
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/meta_orchestrationplanctxmapping.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

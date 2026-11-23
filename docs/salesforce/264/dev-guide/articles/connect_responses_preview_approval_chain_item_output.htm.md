@@ -7,24 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Advanced Approvals
 parent_page: advanced_approvals_api_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Preview Approval Chain Item
 
-Output representation of the details of an approval chain item for a specific
-    group.
+Output representation of the details of an approval chain item for a specific group.
 
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -102,63 +92,11 @@ Output representation of the details of an approval chain item for a specific
 }
 ```
 
-          
-
-        
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `approvalChain​Name` | String | Name of the approval chain. | Small, 65.0 | 65.0 |
-| `approval​Items` | [Preview Approval Item](./connect_responses_preview_approval_item_output.htm.md)[] | Details of the approval items. | Small, 65.0 | 65.0 |
+| `approval​Items` | [Preview Approval Item](./connect_responses_preview_approval_item_output.htm.md "Output representation of the details of a specific approval item with an approval chain.")[] | Details of the approval items. | Small, 65.0 | 65.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_preview_approval_chain_item_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

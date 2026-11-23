@@ -1,21 +1,21 @@
 ---
 article_id: ind.qocal_view_and_manage_assets.htm
-title: Manage Assets in Revenue Management
+title: Manage Assets in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.qocal_view_and_manage_assets.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_view_and_manage_assets_in_revenue_cloud.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# Manage Assets in Revenue Management
+# Manage Assets in Revenue Cloud
 
 To track and oversee your purchased products, use the Assets tab on account and contract pages to view and edit asset records. From this centralized view, you can perform essential lifecycle tasks like changing renewal terms or enabling auto-renewal. Transaction Management copies the auto-renewal status to subsequent stages, such as copying the status from a contract's assets to corresponding quote line items.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To view accounts:	View on Account
 To view contracts:	View on Contract
@@ -46,3 +46,7 @@ For more information, see How Lifecycle Management Works
 
 SEE ALSO
 View Applicable Rates for Individual Assets
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_view_and_manage_assets.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

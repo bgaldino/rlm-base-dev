@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: apex_namespace_RulesAppln.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # RulesApplicationResponse Class
 
@@ -18,48 +16,25 @@ Contains properties to store the response details for the rules application requ
 
 ## Namespace
 
-[RulesAppln](./apex_namespace_RulesAppln.htm.md)
+[RulesAppln](./apex_namespace_RulesAppln.htm.md "Apply payments and credits to posted invoices by adhering to the specified rules.")
 
-- 
-**[RulesApplicationResponse Constructors](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_constructors)**  
-
-Learn more about the constructors available with the RulesApplicationResponse     class.
-
-- 
-**[RulesApplicationResponse Properties](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_properties)**  
-
-Learn more about the properties available with the RulesApplicationResponse     class.
-
-  
+- **[RulesApplicationResponse Constructors](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_constructors)**  
+  Learn more about the constructors available with the RulesApplicationResponse class.
+- **[RulesApplicationResponse Properties](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_properties)**  
+  Learn more about the properties available with the RulesApplicationResponse class.
 
 ## RulesApplicationResponse Constructors
 
-  
-  
-  
 Learn more about the constructors available with the RulesApplicationResponse
-    class.
-
-    
-      
+class.
 
 The `RulesApplicationResponse` class includes these
-        constructors.
+constructors.
 
-    
-
-    
-  
-
-- 
-**[RulesApplicationResponse(isSuccess, appliedRules, rulesApplicationSummary, errors)](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_ctor)**  
-
-Initializes the RulesApplicationResponse class that stores the response details for the rules application request.
-
-- 
-**[RulesApplicationResponse()](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_ctor_2)**  
-
-Initializes an empty instance of the RulesApplicationResponse class.
+- **[RulesApplicationResponse(isSuccess, appliedRules, rulesApplicationSummary, errors)](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_ctor)**  
+  Initializes the RulesApplicationResponse class that stores the response details for the rules application request.
+- **[RulesApplicationResponse()](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_ctor_2)**  
+  Initializes an empty instance of the RulesApplicationResponse class.
 
 ### RulesApplicationResponse(isSuccess, appliedRules, rulesApplicationSummary, errors)
 
@@ -77,46 +52,29 @@ RulesAppln.RulesApplicationResponse, newinstance, [Boolean, List<String>, RulesA
 
 **isSuccess**
 
-: Type: Boolean
+Type: Boolean
 
-: 
-
-Indicates whether the rules are applied (`true`) or not
-                (`false`).
+Indicates whether the rules are applied (`true`) or not (`false`).
 
 **appliedRules**
 
-: Type: List<String>
-
-: 
+Type: List<String>
 
 Comma-delimited list of applied rules.
 
 **rulesApplicationSummary**
 
-: Type: [RulesAppln.RulesApplicationSummaryResponse](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_class_RulesAppln_RulesApplicationSummaryResponse)
-
-: 
+Type: [RulesAppln.RulesApplicationSummaryResponse](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_class_RulesAppln_RulesApplicationSummaryResponse "Contains properties to store the summary details of the rules application, including payment and credit memo counts and application statistics.")
 
 Details of the rules application that includes these details.
 
-            
-              
 - Payment and credit memo count for the account
-
-              
 - Payment and credit memo count that's applied to invoices or invoice lines
-
-              
 - Details of rules
-
-            
 
 **errors**
 
-: Type: List<[RulesAppln.RulesApplicationErrorResponse](./apex_class_RulesAppln_RulesApplicationErrorResponse.htm.md#apex_class_RulesAppln_RulesApplicationErrorResponse)>
-
-: 
+Type: List<[RulesAppln.RulesApplicationErrorResponse](./apex_class_RulesAppln_RulesApplicationErrorResponse.htm.md#apex_class_RulesAppln_RulesApplicationErrorResponse "Contains properties to store error details that occurred during the rules application.")>
 
 List of error responses that occurred during the rules application.
 
@@ -132,46 +90,22 @@ Initializes an empty instance of the RulesApplicationResponse class.
 RulesAppln.RulesApplicationResponse, newinstance, [], RulesAppln.RulesApplicationResponse
 ```
 
-  
-
 ## RulesApplicationResponse Properties
 
-  
-  
-  
 Learn more about the properties available with the RulesApplicationResponse
-    class.
-
-    
-      
+class.
 
 The `RulesApplicationResponse` class includes these
-        properties.
+properties.
 
-    
-
-    
-  
-
-- 
-**[appliedRules](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_appliedRules)**  
-
-Get the comma-delimited list of rules that were applied.
-
-- 
-**[errors](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_errors)**  
-
-Get the list of error responses that occurred during the rules application.
-
-- 
-**[isSuccess](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_isSuccess)**  
-
-Get the boolean value that indicates whether the rules were applied (true) or not     (false).
-
-- 
-**[rulesApplicationSummary](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_rulesApplicationSummary)**  
-
-Get the details of the rules application that includes payment and credit memo count for     the account, payment and credit memo count that's applied to invoices or invoice lines, and     whether the exact amount rule is applied.
+- **[appliedRules](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_appliedRules)**  
+  Get the comma-delimited list of rules that were applied.
+- **[errors](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_errors)**  
+  Get the list of error responses that occurred during the rules application.
+- **[isSuccess](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_isSuccess)**  
+  Get the boolean value that indicates whether the rules were applied (true) or not (false).
+- **[rulesApplicationSummary](./apex_class_RulesAppln_RulesApplicationResponse.htm.md#apex_RulesAppln_RulesApplicationResponse_rulesApplicationSummary)**  
+  Get the details of the rules application that includes payment and credit memo count for the account, payment and credit memo count that's applied to invoices or invoice lines, and whether the exact amount rule is applied.
 
 ### appliedRules
 
@@ -203,12 +137,12 @@ RulesAppln.RulesApplicationResponse, errors
 
 #### Property Value
 
-Type: List<[RulesAppln.RulesApplicationErrorResponse](./apex_class_RulesAppln_RulesApplicationErrorResponse.htm.md#apex_class_RulesAppln_RulesApplicationErrorResponse)>
+Type: List<[RulesAppln.RulesApplicationErrorResponse](./apex_class_RulesAppln_RulesApplicationErrorResponse.htm.md#apex_class_RulesAppln_RulesApplicationErrorResponse "Contains properties to store error details that occurred during the rules application.")>
 
 ### isSuccess
 
 Get the boolean value that indicates whether the rules were applied (true) or not
-    (false).
+(false).
 
 #### Signature
 
@@ -225,8 +159,8 @@ Type: Boolean
 ### rulesApplicationSummary
 
 Get the details of the rules application that includes payment and credit memo count for
-    the account, payment and credit memo count that's applied to invoices or invoice lines, and
-    whether the exact amount rule is applied.
+the account, payment and credit memo count that's applied to invoices or invoice lines, and
+whether the exact amount rule is applied.
 
 #### Signature
 
@@ -238,4 +172,8 @@ RulesAppln.RulesApplicationResponse, rulesApplicationSummary
 
 #### Property Value
 
-Type: [RulesAppln.RulesApplicationSummaryResponse](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_class_RulesAppln_RulesApplicationSummaryResponse)
+Type: [RulesAppln.RulesApplicationSummaryResponse](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_class_RulesAppln_RulesApplicationSummaryResponse "Contains properties to store the summary details of the rules application, including payment and credit memo counts and application statistics.")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RulesAppln_RulesApplicationResponse.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

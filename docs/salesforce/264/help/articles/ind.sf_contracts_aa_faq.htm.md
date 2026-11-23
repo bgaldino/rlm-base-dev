@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_aa_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Advanced Approvals Troubleshooting and FAQ for Salesforce Contracts
@@ -29,3 +29,7 @@ Smart Approvals	Why did a step skip when I wanted a manual rereview?	Smart Appro
 Email	I replied to the approval email, but the status didn’t update.	Place the keyword Approved or Reject in the first line of the email response for processing.
 Email	Why are the approval emails generic and missing contract data?	Use text templates in the Flow to define dynamic content, mapping fields like Contract ID and Total Price into the message.
 Permissions	Can an approval designer also reject a request?	Yes. Consolidate designer and admin roles under the CLM Admin profile in this integration. Grant full administrative control to users with this profile.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_aa_faq.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

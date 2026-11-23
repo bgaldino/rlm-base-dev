@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_introduction.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Product Catalog Management Limits
@@ -28,11 +28,14 @@ A product bundle hierarchy can have up to 10 product component overrides.
 A product bundle hierarchy can have up to 10 group component overrides.
 Category and Catalog Limits
 A category hierarchy can have up to 5 levels, excluding the root category.
-A category can have up to 100,000 products.
+A category can have up to 1,800,000 products.
 You can search catalogs with up to 20 million products using the product field search option.
+Indexing Limits
 You can select a combined total of up to 87 searchable and filterable fields and attributes. There is no specific limit for each type, provided the combined total doesn't exceed 87.
 You can index up to 1,000,000 products. To increase this limit, contact Salesforce Customer Support.
 You can partially index up to 2,000 products.
+Product Discovery Limits
+You can select up to 20 products. To increase this limit to 100 products, contact Salesforce Customer Support.
 API Limits
 The Bulk Product Details API can take up to 100 product IDs in the request.
 NOTE With Indexed product feature enabled, when defining constraints from product definition, the Add Item lookup displays all products as opposed to displaying the current product. You must search for the product to add to the Constraint Model.
@@ -42,3 +45,7 @@ Qualification within product details is unavailable if the configurator invokes 
 Large transactions require the use of Product Catalog Management Cache. Because Product Catalog Management Cache doesn’t support localization, your organization can’t have data translation enabled while using Large transactions.
 Due to the mandatory use of Product Catalog Management Cache, Field-Level Security (FLS) and Record-Level Security (RLS) aren’t supported in Large transactions.
 Large transactions support Advanced decision tables. Modifying the pricing procedure to use Standard or Custom decision tables is unsupported and will cause the procedure to fail.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_product_catalog_management_limits.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: rating
 parent_article: ind.rm_rate_management_setup.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Rate Cards and Rate Card Entries
@@ -23,3 +23,7 @@ Create a Rate Card
 A rate card defines the group of rules that are applicable to rate the usage resources granted with the sold product.
 Rate Card Entries
 Use rate card entries to set rates and rate adjustments that are used to calculate and control the final net rate of each usage resource. The setup ensures that your deals are accurately rated. To make sure products are accurately charged during usage selling, define the pricing for your products in both standard currency and tokens.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rm_rate_cards_and_rate_card_entries.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

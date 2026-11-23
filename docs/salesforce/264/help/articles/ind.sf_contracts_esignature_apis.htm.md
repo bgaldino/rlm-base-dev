@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_na_1.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # E-Signature APIs
@@ -73,7 +73,7 @@ public class GetEsignRecipients implements ind_docgen_api.OpenInterface {
         Map<String, Object> additionalFields = new Map<String, Object>();
         additionalFields.put('routingOrder', '1');
         additionalFields.put('routingNumber', '1');
-        additionalFields.put('signerRole', '1');
+        additionalFields.put('signerRole', 'signer1');
         additionalFields.put('recipientType','Signer'); // Case Sensitive
         additionalFields.put('recipientLocale','English (U.S.)');
         //We need to send recipientLocale as same as What we see in the Salesforce UI While Manually Adding Recipient Locale 
@@ -221,3 +221,7 @@ If both the DocGen and CLM (Salesforce Contracts) permissions are enabled, and t
 sendEnvelope	Use this method to enable a new DocuSign transaction.
 voidEnvelope	Use this method to expire or void envelopes associated with an object.
 updateEnvelope	Use this method to send an ad hoc request to DocuSign to update the envelope status.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_esignature_apis.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

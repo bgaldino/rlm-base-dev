@@ -7,92 +7,36 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_catalog_management_api_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Product Related Records List (POST)
 
-Retrieve related ProductRampSegment or ProductUsageGrant records for
-      Product2 object.
-
-    
-      
-        
-          
+Retrieve related ProductRampSegment or ProductUsageGrant records for Product2 object.
 
 **Resource**
-
-          
-: 
-            
 
 ```
 /connect/pcm/relatedRecords/entityName
 ```
 
-          
+The supported entity or object is Product2.
 
-          
-: The supported entity or object is Product2.
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+**Resource Example**
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/relatedRecords/product2
 ```
 
-          
+**Available Version:** 62.0
 
-        
-        
-          
+**HTTP Methods:** POST
 
-**Available version**
+**Note:** POST methods typically create an item, but for this resource POST is used to retrieve information.
 
-          
-: 62.0
+**Request Body for POST**
 
-        
-        
-          
-
-**HTTP methods**
-
-          
-: POST
-
-#### Note
-
-POST methods typically create an item, but for this resource POST is used to
-              retrieve information.
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+**JSON Example**
 
 ```
 {
@@ -133,101 +77,16 @@ POST methods typically create an item, but for this resource POST is used to
 }
 ```
 
-          
-
-        
-        
-          
-
 **Properties**
 
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `correlation​Id` | String | Unique token to track and associate related events or transactions across different components of the application. If unspecified, a Universally Unique Identifier (UUID) is generated. | Optional | 62.0 |
 | `recordIds` | String[] | List of record IDs to return the relatedObjects records for. The maximum number of record IDs supported is 20. | Required | 62.0 |
-| `related​ObjectNodes` | [Related Object Node Input](./connect_requests_related_object_node_input.htm.md)[] | List of nodes for the related objects. The maximum number of related object nodes supported is two. | Required | 62.0 |
+| `related​ObjectNodes` | [Related Object Node Input](./connect_requests_related_object_node_input.htm.md "Input representation of the details of a related object node.")[] | List of nodes for the related objects. The maximum number of related object nodes supported is two. | Required | 62.0 |
 
-          
+**Response Body for POST:** [Related Records List](./connect_responses_related_records_list_output.htm.md "Output representation of the list of related records.")
 
-        
-      
+---
 
-          
-
-        
-        
-          
-
-**Response body for POST**
-
-          
-: [Related Records
-              List](./connect_responses_related_records_list_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_related_records.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,133 +7,56 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_service_context_definition_management.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Definition Id (GET, PATCH, DELETE)
 
 Query, update, and delete a context definition using an ID.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
-/connect/context-definitions/${contextDefinitionId}
+/connect/context-definitions/contextDefinitionId
 ```
 
-          
-
-        
-        
-          
-
-**Example for GET**
-
-          
-: 
-            
+## Example for GET
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/${contextDefinitionId}
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/contextDefinitionId
 ```
 
-          
-
-        
-        
-          
-
-**Example for PATCH **
-
-          
-: 
-            
+## Example for PATCH
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/${contextDefinitionId}
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/contextDefinitionId
 ```
 
-          
-
-        
-        
-          
-
-**Example for DELETE **
-
-          
-: 
-            
+## Example for DELETE
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/${contextDefinitionId}
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definitions/contextDefinitionId
 ```
 
-          
+## Available Version
 
-        
-        
-          
+59.0
 
-**Available version**
+## Requires Chatter
 
-          
-: 59.0
+No
 
-        
-        
-          
+## HTTP Methods
 
-**Requires Chatter**
+GET, PATCH, DELETE
 
-          
-: No
+## Response Body for GET
 
-        
-        
-          
+[Context Definition Output](./connect_responses_context_definition.htm.md "Output representation of context definition.")
 
-**HTTP methods**
+## Request Body for PATCH
 
-          
-: GET, PATCH, DELETE
-
-        
-        
-          
-
-**Response body for GET**
-
-          
-: [Context Definition Output](./connect_responses_context_definition.htm.md)
-
-        
-        
-          
-
-**Request body for PATCH**
-
-          
-: 
-
-              
-                
-
-**JSON example**
-
-                
-: 
-                  
+### JSON Example
 
 ```
 {
@@ -142,16 +65,10 @@ https://yourInstance.salesforce.com/services/data/v59.0/connect/context-definiti
 }
 ```
 
-                
+## Response Body for PATCH
 
-              
-            
+[Context Definition Information](./connect_responses_context_definition_info.htm.md "Output representation of context definition information.")
 
-        
-        
-          
+---
 
-**Response body for PATCH**
-
-          
-: [Context Definition Information](./connect_responses_context_definition_info.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_context_definition_id.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,38 +7,21 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Discovery Framework
 parent_page: dfdt_apis_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Assessment Links Input
 
 Associated assessments including id, category, reason and
-      sequence.
+sequence.
 
-    
-      
-        
-          
+## Root XML tag
 
-**Root XML tag**
+`<assessmentLinks>`
 
-          
-: `<assessmentLinks>`
-
-        
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
-
   {
     "id": "0U3SG00000068Cb0AI",
     "category": "0iPSG0000024n0z2AA",
@@ -48,98 +31,15 @@ Associated assessments including id, category, reason and
 ]
 ```
 
-          
+## Properties
 
-        
-        
-          
-
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required | Available Version |
 | --- | --- | --- | --- | --- |
 | `category` | String | The category that the supporting content belongs to. | No | 63.0 |
 | `id` | String | The assessment used as the supporting content. | Yes | 55.0 |
 | `reason` | String | The reason why the supporting content is required. | No | 63.0 |
 | `sequence` | String | The sequence number of the content when multiple contents are available. | No | 63.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_requests_assessment_links_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

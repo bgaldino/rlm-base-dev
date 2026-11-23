@@ -7,25 +7,15 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: lookup_tables_requests.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Decision Matrix Lookup Input
 
 Input representation of the input for a decision matrix
-    lookup.
+lookup.
 
-      
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -53,77 +43,17 @@ Input representation of the input for a decision matrix
 }
 ```
 
-          
+## Properties
 
-        
-        
-          
-: Here, `Premium` and `Tenure` are column
-            headers in the matrix, and `2400` and `10` are
-            values of a cell in the column.
-
-        
-        
-          
-
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `inputs` | [Decision Matrix Input](./connect_requests_decision_matrix_input.htm.md) | List of inputs passed to a decision matrix. An input may contain multiple variables. | Required | 55.0 |
-| `options` | [Decision Matrix Options Input](./connect_requests_decision_matrix_options.htm.md) | The lookup options for a decision matrix. | Optional | 55.0 |
+| `inputs` | [Decision Matrix Input](./connect_requests_decision_matrix_input.htm.md "Input representation of the inputs passed to a decision matrix for lookup.") | List of inputs passed to a decision matrix. An input may contain multiple variables. | Required | 55.0 |
+| `options` | [Decision Matrix Options Input](./connect_requests_decision_matrix_options.htm.md "Input representation of the options used to look up a decision matrix.") | The lookup options for a decision matrix. | Optional | 55.0 |
+
+Here, `Premium` and `Tenure` are column
+headers in the matrix, and `2400` and `10` are
+values of a cell in the column.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_requests_decision_matrix_lookup.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,48 +7,24 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Data Processing Engine, Batch Management, and Monitor Workflow Services
 parent_page: batch.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Common Platform Event
 
 Batch Management jobs and Data Processing Engine definitions are run using invocable
-   actions in Flows. Use the BatchJobStatusChanged event to notify subscribers after a Batch
-   Management job or a Data Processing Engine definition is processed in a flow.
+actions in Flows. Use the BatchJobStatusChanged event to notify subscribers after a Batch
+Management job or a Data Processing Engine definition is processed in a flow.
 
-  
-
-    
-     
-      
-
-     
-
-     
-      
-
-     
-
-     
-      
-
-     
-
-    
-
-   
-| Available in: Lightning Experience |
+|  |
 | --- |
+| Available in: Lightning Experience |
 | Available in: [View product and edition availability for Data Processing Engine.](https://help.salesforce.com/s/articleView?id=ind.dpe_editions.htm&language=en_US) |
 | Available in: [View product and edition availability for Batch Management.](https://help.salesforce.com/s/articleView?id=ind.concept_batch_management_editions.htm&language=en_US) |
 
-  
+- **[BatchJobStatusChangedEvent](./sforce_api_objects_batchjobstatuschangedevent.htm.md)**  
+  Notifies subscribers of when a batch job is completed in a flow. This object is available in API version 51.0 and later.
 
- 
+---
 
-- 
-**[BatchJobStatusChangedEvent](./sforce_api_objects_batchjobstatuschangedevent.htm.md)**  
-
-Notifies subscribers of when a batch job is completed in a 			flow. This object is available in API version 51.0 and later.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/batch_management_platform_event.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

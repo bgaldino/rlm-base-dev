@@ -7,95 +7,41 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: expression_set_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Expression Set Invocation (POST)
 
 Invokes expression sets in Business Rule Engine.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
-/connect/business-rules/expressionSet/${expressionSetName}
+/connect/business-rules/expressionSet/expressionSetName
 ```
 
-          
-
-        
-        
-          
-
-**Resource Example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/vXX.X/connect
-/business-rules/expressionSet/${expressionSetName}
+/business-rules/expressionSet/expressionSetName
 ```
 
-            
-            
-          
+## Available Version
 
-        
-        
-          
+55.0
 
-**Available version**
+## Requires Chatter
 
-          
-: 55.0
+No
 
-        
-        
-          
+## HTTP Methods
 
-**Requires Chatter**
+POST
 
-          
-: No
+## Request Body for POST
 
-        
-        
-          
-
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-        
-          
-
-**JSON example 1**
-
-          
-: 
-            
+### JSON Example
 
 ```
 {
@@ -115,18 +61,6 @@ https://yourInstance.salesforce.com/services/data/vXX.X/connect
 }
 ```
 
-          
-
-        
-        
-          
-
-**JSON example 2**
-
-          
-: 
-            
-
 ```
 {
   "inputs": [
@@ -142,101 +76,26 @@ https://yourInstance.salesforce.com/services/data/vXX.X/connect
     "useDatesOnly": "true"
   }
 }
-
 ```
 
-            
+![Note](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note.png&folder=industries_reference)
 
 #### Note
 
 You can use more than one `actionContextCode`
-              for multiple sets of inputs, passed in a single API call. 
+for multiple sets of inputs, passed in a single API call.
 
-          
+### Properties
 
-        
-        
-          
-
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-#### 
-
-- 
-- 
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `inputs` | Map<String, Object>[] | List of inputs passed to an expression set. An input may contain multiple variables. Note If the expression set uses a field alias as a variable, append Id to the object alias to which the field alias belongs, and pass the ID of the source object linked to the object alias. If the expression set uses a context definition, append Id to the context definition developer name and pass the context ID as the value. | Required | 55.0 |
-| `options` | [Expression Set Options Input](./connect_requests_options.htm.md) | The options for executing an expression set. | Optional | 55.0 |
+| `inputs` | Map<String, Object>[] | List of inputs passed to an expression set. An input may contain multiple variables. Note:  - If the expression set uses a field alias as a variable, append Id to   the object alias to which the field alias belongs, and pass the ID of   the source object linked to the object alias. - If the expression set uses a context definition, append Id to the   context definition developer name and pass the context ID as the   value. | Required | 55.0 |
+| `options` | [Expression Set Options Input](./connect_requests_options.htm.md "Input representation of the options for executing an expression set.") | The options for executing an expression set. | Optional | 55.0 |
 
-          
+## Response Body for POST
 
-        
-      
+[Business Rules Result](./connect_responses_business_rules_result.htm.md "Output representation of executing an expression set.")
 
-          
+---
 
-        
-        
-          
-
-**Response body for POST**
-
-          
-: [Business Rules Result](./connect_responses_business_rules_result.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_bre_expression_set.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

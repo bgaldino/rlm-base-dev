@@ -6,16 +6,20 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_salesforce_pricing.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Keep Calculated Values in Context with Local List Variables
 
 Define local list variables directly within a pricing procedure to store and reuse calculated values across elements. Previously, storing a calculated value required creating a context tag or constant within the Pricing Procedure Builder ahead of time. Now, create, edit, and map list variables as you build your procedure, and reference them in the Price Waterfall.
 
-Where: This change applies to Lightning Experience in Enterprise, Unlimited, and Developer editions of Revenue Management, formerly Revenue Cloud, with the Revenue Cloud Growth or the Revenue Cloud Advanced license.
+Where: This change applies to Lightning Experience in Enterprise, Unlimited, and Developer editions of Revenue Cloud, with the Revenue Cloud Growth or the Revenue Cloud Advanced license.
 
 How: From the App Launcher, find and select Pricing Procedures. Edit a pricing procedure to add a list variable and map it in any pricing element, just as you map a context tag or constant.
 
 SEE ALSO
 Salesforce Help: Configure Your Pricing Procedure
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_pricing_keep_calculated_values_in_context_with_local_list_variables.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

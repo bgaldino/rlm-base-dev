@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_ms365_minimum_pri_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Configure an Auth Provider for Microsoft App Manually Through Minimum Privilege Setup
@@ -35,7 +35,7 @@ In Default Scopes, enter Sites.Selected offline_access openid User.Read User.Rea
 NOTE Ensure that Default Scopes matches the API permissions that you added to your Microsoft Azure account. See Configure a Microsoft Azure App Manually Through Minimum Privilege Setup.
 Ensure Send client credentials in header is unselected.
 Select Send access token in header and Include Consumer Secret in SOAP API Responses.
-For Registration Handler, click Automatically create a registration handler template.
+For Registration Handler Type, select Apex, and then click Automatically create a registration handler template.
 In Execute Registration As, select your Salesforce admin account.
 Save your changes.
 Your auth provider details are saved, and Salesforce Configuration URLs are generated.
@@ -96,3 +96,7 @@ From the Salesforce Configuration section, copy the Test-Only Initialization URL
 Paste the URL in the address bar, and press Enter.
 
 This is a sample text that appears:
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_ms365_minimum_pri_auth_provider.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

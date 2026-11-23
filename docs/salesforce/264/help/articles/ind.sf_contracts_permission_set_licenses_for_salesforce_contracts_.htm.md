@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_salesforce_contracts_licenses.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Personas and Permission Set Licenses for Salesforce Contracts
@@ -147,3 +147,7 @@ Contract Management and DocGen access updates for Digital Experience users start
 Partner Community and Customer Community Plus base licenses now include Contract Management access. No separate community add-on SKUs are required for RCA and other non-industry SKUs.
 Existing Salesforce Contracts customers with Partner Community or Customer Community Plus Industry add-on SKUs retain full entitlements.
 Context Services support removes the hard dependency on Omnistudio for document generation. An Omnistudio license can still be used if already provisioned.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_permission_set_licenses_for_salesforce_contracts_.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

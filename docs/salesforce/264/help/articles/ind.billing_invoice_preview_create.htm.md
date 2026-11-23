@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_preview_invoice.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Generate Invoice Previews for Orders and Accounts
@@ -26,7 +26,15 @@ Billing Admin
 Billing Operations User
 Billing Customer Service
 
-To generate invoice preview PDF documents:	DocGen User permission set
+To generate invoice preview PDF documents:	
+
+DocGen User permission set
+
+AND
+
+Omnistudio User permission set
+
+For the personas and permission sets for Omnistudio Document Generation, see Personas and Permission Set Licenses for Omnistudio Document Generation.
 
 The Preview Invoices quick action is available by default on both the Order page layout and the Account page layout.
 
@@ -34,7 +42,7 @@ Open the Account or Order record that you want to generate an invoice preview fo
 From the quick actions menu, click Preview Invoices.
 Select a preview date.
 
-The default preview date is the current date and the default number of billing periods is 2. The preview date is the target date for generating an invoice preview for the first billing period. If you select 2 as the number of billing periods, the target date for generating an invoice preview for the second billing period is calculated by adding the transaction's shortest billing frequency to the previous invoice preview's target date.
+The default preview date is the current date and the default number of billing periods is 1. The preview date is the target date for generating an invoice preview for the first billing period. If you select 2 as the number of billing periods, the target date for generating an invoice preview for the second billing period is calculated by adding the transaction's shortest billing frequency to the previous invoice preview's target date.
 
 For example, if you select March 3, 2025 as the preview date and the number of billing periods as 2, and the shortest billing frequency is monthly, invoice previews are generated for March 3, 2025 and April 3, 2025.
 Select up to two as the number of billing periods.
@@ -43,3 +51,7 @@ To generate a PDF for the invoice preview, click Generate PDF.
 The generated PDF appears in the Notes & Attachments related list.
 Open the PDF that you want to download and click Download.
 NOTE Preview Invoices quick action is available out-of-the-box for draft and activate orders, accounts, and billing schedule groups. To preview invoices for quotes, see Generate Invoice Previews with the Invoice Preview API.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_preview_create.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

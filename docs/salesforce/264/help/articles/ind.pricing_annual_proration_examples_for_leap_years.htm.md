@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_subscription_variables.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Annual Proration Examples for Leap Years
@@ -52,3 +52,7 @@ Total Days in Period: 366
 Utilized Duration: 28-Feb-2027 to 28-Feb-2028 (366 Days)
 Pricing Term Count: 366 / 366 = 1.0
 Subscription Price: $1,000 x 1.0 = $1,000.00
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_annual_proration_examples_for_leap_years.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

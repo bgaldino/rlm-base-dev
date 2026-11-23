@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_generation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Invoices by Using APIs or Flow Actions
@@ -45,3 +45,7 @@ Recover records associated with a failed invoice run. Recovery is required only 
 Void a posted invoice to rebill the customer.	Void a Posted Invoice API
 Send emails for the posted invoices of a specified invoice batch run ID.	Send Emails for Posted Invoices API
 IMPORTANT When generating invoices by using the Invoice Creation API or invoice batch runs, implement custom automation on generated invoices as asynchronous processes, such as asynchronous flow paths or asynchronous Apex triggers. Synchronous automation in this context can cause performance issues, timeouts, or failures.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoices_apis_and_actions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,262 +7,110 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: clm_metadata_api_parent.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # ESignatureEnvelopeConfig
 
 Represents the notification-specific settings for integrating with external eSignature providers.
 
-    
-      
+![Important](/docs/resources/img/en-us/264.0?doc_id=images%2Ficon_note_important.png&folder=clm_developer_guide)
 
 #### Important
 
 Where possible, we changed noninclusive terms to align with our company value of Equality. We maintained certain terms to avoid any effect on customer implementations.
 
-    
-
-    
-
 ## Parent Type
 
-      
-      
-
-This type extends the [Metadata](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/metadata.htm) metadata type and inherits its fullName field.
-
-    
-
-    
+This type extends the [Metadata](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/metadata.htm "HTML (New Window)") metadata type and inherits its fullName field.
 
 ## File Suffix and Directory Location
 
-      
-      
-
 ESignatureEnvelopeConfig components have the suffix .eSignatureEnvelopeConfig and are stored in the eSignatureEnvelopeConfigs folder.
-
-    
-
-    
 
 ## Version
 
-      
-      
-
 ESignatureEnvelopeConfig components are available in API version 54.0 and later.
-
-    
-
-    
 
 ## Special Access Rules
 
-      
-      
-    
-
-  
-
-    
-
 ## Fields
-
-    
-      
 
 ### expirationPeriod
 
-        
-        
-
 **Type:** integer
-
-        
 
 **Description:** The expiration period for signing.
 
-      
-
-      
-
 ### expirationWarningPeriod
 
-        
-        
-
 **Type:** integer
-
-        
 
 **Description:** The number of days before expiration for warning notifications.
 
-      
-
-      
-
 ### firstReminderPeriod
 
-        
-        
-
 **Type:** integer
-
-        
 
 **Description:** The number of days between envelope delivery and the first reminder email.
 
-      
-
-      
-
 ### isExpirationEnabled
 
-        
-        
-
 **Type:** boolean
-
-        
 
 **Description:** Indicates whether expiration is enabled.
 
-      
-
-      
-
 ### isReminderEnabled
 
-        
-        
-
 **Type:** boolean
-
-        
 
 **Description:** Indicates whether reminders are enabled.
 
-      
-
-      
-
 ### isVendorDefaultNtfcnEnabled
-
-        
-        
 
 **Type:** boolean
 
-        
-
 **Description:** Indicates whether the envelope uses account default notification settings.
-
-      
-
-      
 
 ### masterLabel
 
-        
-        
-
 **Type:** string
 
-        
-
 **Description:** Required.
-
-        
 
 The name of the setting.
 
-      
-
-      
-
 ### reminderIntervalPeriod
-
-        
-        
 
 **Type:** integer
 
-        
-
 **Description:** The interval in days between reminder emails.
-
-      
-
-      
 
 ### targetObjectName
 
-        
-        
-
 **Type:** string
 
-        
-
 **Description:** Required.
-
-        
 
 The object to which the eSignature applies, such as an Opportunity, Quote, or Order.
 
-      
-
-      
-
 ### vendor
-
-        
-        
 
 **Type:** Vendor (enumeration of type string)
 
-        
-
 **Description:** Required.
-
-        
 
 The provider type to which the configuration setting belongs. Currently only `DocuSign` is supported.
 
-      
-
-      
-
 ### vendorAccountIdentifier
-
-        
-        
 
 **Type:** string
 
-        
-
 **Description:** The eSignature branding identifier.
-
-      
-
-    
-
-  
-
-    
 
 ## Declarative Metadata Sample Definition
 
-    
-      
-        
-
 The following is an example of an ESignatureEnvelopeConfig component.
-
-        
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
@@ -281,11 +129,7 @@ The following is an example of an ESignatureEnvelopeConfig component.
 </ESignatureEnvelopeConfig>
 ```
 
-        
-
 The following is an example `package.xml` that references the previous definition.
-
-        
 
 ```
 <?xml version="1.0" encoding="UTF-8"?>
@@ -298,26 +142,16 @@ The following is an example `package.xml` that references the previous definitio
 </Package>
 ```
 
-      
-
-    
-
-  
-
-    
-
 ## Wildcard Support in the Manifest File
-
-    
-      
 
 ### Wildcard Support in the Manifest File
 
-        
-        
-
 This metadata type supports the wildcard character
-            `*` (asterisk) in the
-            package.xml manifest file. For information about using the manifest
-          file, see [Deploying and Retrieving Metadata with the Zip
-            File](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/file_based_zip_file.htm).
+`*` (asterisk) in the
+package.xml manifest file. For information about using the manifest
+file, see [Deploying and Retrieving Metadata with the Zip
+File](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/file_based_zip_file.htm).
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/meta_esignatureenvelopeconfig.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

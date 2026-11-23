@@ -7,24 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Usage Management
 parent_page: usage_management_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Product Activation Result
 
-Output representation of the activation outcome for a single product, including any
-    errors that occurred while activating the product or its associated usage records.
+Output representation of the activation outcome for a single product, including any errors that occurred while activating the product or its associated usage records.
 
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
 {
@@ -43,63 +33,11 @@ Output representation of the activation outcome for a single product, including 
 }
 ```
 
-          
-
-        
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `errors` | [Usage Activation Error](./connect_responses_usage_activation_error_output.htm.md)[] | List of errors that occurred while activating the product or its associated usage records. | Big, 67.0 | 67.0 |
+| `errors` | [Usage Activation Error](./connect_responses_usage_activation_error_output.htm.md "Output representation of a single error encountered while activating a usage product or one of its related records.")[] | List of errors that occurred while activating the product or its associated usage records. | Big, 67.0 | 67.0 |
 | `productId` | String | ID of the Product2 record that this activation outcome describes. | Big, 67.0 | 67.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_product_activation_result_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

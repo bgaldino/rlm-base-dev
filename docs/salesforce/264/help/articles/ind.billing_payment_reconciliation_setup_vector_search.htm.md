@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_payment_reconciliation_setup.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create a Vector Search Index
@@ -30,3 +30,7 @@ Click Next twice.
 Review the configuration and target data model objects, and then save the search index.
 Track the status of the search index and make sure it’s in Ready state.
 NOTE Though the creation of a vector search index is a one-time task, make sure that you rebuild the vector search index when new accounts are added to the data streams.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_payment_reconciliation_setup_vector_search.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

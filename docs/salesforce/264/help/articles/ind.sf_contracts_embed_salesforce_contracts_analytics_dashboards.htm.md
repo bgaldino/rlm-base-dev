@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_salesforce_contracts_analytics_post-installation_steps.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Salesforce Contracts Analytics Dashboard Attributes
@@ -28,3 +28,7 @@ Contracts Quote Embedded	Contracts_Quote_Embedded	No	{"datasets":{"CLM_Sales_Con
 B2B Sales Home Embedded	B2B_Sales_Home_Embedded	No	not applicable
 Records That Need My Attention	Records_That_Need_My_Attention	Yes	not applicable
 Records That Need My Attention Sales	Records_That_Need_My_Attention_Sales	Yes	not applicable
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_embed_salesforce_contracts_analytics_dashboards.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

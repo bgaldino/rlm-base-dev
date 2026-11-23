@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: usage
 parent_article: ind.um_configure_usage_records.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Create Usage Product Grant Binding Policy
@@ -30,8 +30,12 @@ Self	Apply the product's usage grant to a single asset so that each purchased pr
 Target	Share usage grants across multiple assets, such as an account, contract, or custom object. This binding type requires an associated grant binding target.
 Select a grant binding target if the grant binding type is Target.
 	
-Product	A sellable product within the Revenue Management to which the grant is to be associated.
-Custom	An external product outside the Revenue Management to which the grant is to be associated.
-Contract	A specific agreement or service contract within Revenue Management to which the usage grant is to be associated.
-Account	A customer or organization within Revenue Management to which the usage grant is to be associated.
+Product	A sellable product within the Revenue Cloud to which the grant is to be associated.
+Custom	An external product outside the Revenue Cloud to which the grant is to be associated.
+Contract	A specific agreement or service contract within Revenue Cloud to which the usage grant is to be associated.
+Account	A customer or organization within Revenue Cloud to which the usage grant is to be associated.
 Save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.um_create_a_usage_product_grant_binding_policy.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

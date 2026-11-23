@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_contract_management_essentials.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create Asset Contract Relationships
@@ -15,14 +15,14 @@ Manually link assets to a contract to track which products-specific customer agr
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS
 NEEDED
 To create an asset contract relationship:	Sales Operations Rep permission set
  	 
 IMPORTANT Verify that the asset and the contract belong to the same account. Make sure that your Salesforce admin has added the Asset Contract Relationship component to your Asset and Contract page layouts.
 
-If an order is linked to a contract with a Revenue Management application usage assignment, the system automatically creates asset contract relationships. This automation occurs when the Create or Update Asset from Order API or Order Product API runs. These automated records default the start and end dates to match the parent asset's lifecycle dates, though the relationship end date can’t exceed the contract's end date.
+If an order is linked to a contract with a Revenue Cloud application usage assignment, the system automatically creates asset contract relationships. This automation occurs when the Create or Update Asset from Order API or Order Product API runs. These automated records default the start and end dates to match the parent asset's lifecycle dates, though the relationship end date can’t exceed the contract's end date.
 
 In the App Launcher, find and select Assets or Contracts.
 Select an asset name or contract number.
@@ -40,3 +40,7 @@ After linking your assets, use the Managed Assets Viewer on the contract record 
 SEE ALSO
 Add a Related List to an Object
 Customize Related Lists
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_create_asset_contract_relationship.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

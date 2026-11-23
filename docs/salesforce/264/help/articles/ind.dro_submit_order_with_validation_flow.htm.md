@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_run_time_administration.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Handle Conflicts During Asset Date Amendments by Using Submit Order with Validation Flow
@@ -43,3 +43,7 @@ Replace the Get Steps from Order subflow step in the Submit Order with Validatio
 Assign the same input and output variables that were used in the old subflow.
 Activate the Submit Order with Validation flow.
 When you call the Submit Order with Validation flow using the orderId of an order with an incomplete fulfillment plan, the incomplete steps found in the order are shown. Review the steps and remove those that you don’t want to discard. Then, you can choose to discard the remaining incomplete steps and submit the order. Now, any future amendments to the asset can be processed without issues.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_submit_order_with_validation_flow.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

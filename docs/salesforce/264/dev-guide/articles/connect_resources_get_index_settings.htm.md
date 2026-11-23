@@ -7,90 +7,34 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_catalog_management_api_resources.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Index Setting (GET, PATCH)
 
-Fetch and update settings related to indexing and
-    search.
-
-    
-      
-        
-          
+Fetch and update settings related to indexing and search.
 
 **Resource**
-
-          
-: 
-            
 
 ```
 /connect/pcm/index/setting
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+**Resource Example**
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/index/setting
 ```
 
-          
+**Available Version:** 63.0
 
-        
-        
-          
+**HTTP Methods:** GET, PATCH
 
-**Available version**
+**Response Body for GET:** [Index Setting Results](./connect_responses_index_setting_output.htm.md "Output representation of the retrieved index settings.")
 
-          
-: 63.0
+**Request Body for PATCH**
 
-        
-        
-          
-
-**HTTP methods**
-
-          
-: GET, PATCH
-
-        
-        
-          
-
-**Response body for GET**
-
-          
-: [Index Setting
-              Results](./connect_responses_index_setting_output.htm.md)
-
-        
-        
-          
-
-**Request body for PATCH**
-
-          
-: 
-            
-
-**JSON example**
-
-: 
+**JSON Example**
 
 ```
 {
@@ -104,74 +48,18 @@ https://yourInstance.salesforce.com/services/data/v68.0/connect/pcm/index/settin
 
 **Properties**
 
-: 
-
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `setting` | [Setting Input](./connect_requests_setting_input.htm.md)[] | Object containing the setting-related details. | Required | 63.0 |
+| `setting` | [Setting Input](./connect_requests_setting_input.htm.md "Input representation of the details of the index setting.")[] | Object containing the setting-related details. | Required | 63.0 |
 
-          
+**Request Parameters for PATCH**
 
-        
-        
-          
-
-**Request parameters for PATCH**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `settingId` | String | ID of the setting to update the details for. | Required | 63.0 |
 
-          
+**Response Body for PATCH:** [Index Setting Update](./connect_responses_index_setting_patch_output.htm.md "Output representation of the details of the updated index setting.")
 
-        
-        
-          
+---
 
-**Response body for PATCH**
-
-          
-: [Index Setting
-              Update](./connect_responses_index_setting_patch_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_get_index_settings.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

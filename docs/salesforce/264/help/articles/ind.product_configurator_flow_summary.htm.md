@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_flow_screen_components.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Summary
@@ -15,15 +15,13 @@ Summary is a UI display component that renders the pricing summary section in Pr
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 Summary Responsibilities
 Display prices, including one-time, monthly, and annual
 Display nested product pricing structure
 Update pricing data based on the user’s current navigation route
 Calculate and display subtotals for product groups
-Support custom fields in pricing footer and pane
 Handle Asset Renewal Configuration (ARC), also called delta pricing
-Switch between standard and custom layouts
 Summary API Name
 
 S01_Summary
@@ -41,3 +39,7 @@ isDesignTime	Boolean	No	Whether in design or preview mode
 layoutMode	String	No	
 
 Layout mode (standard or compact)
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_flow_summary.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

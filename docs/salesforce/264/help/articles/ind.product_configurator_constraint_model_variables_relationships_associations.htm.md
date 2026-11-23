@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_create_a_constraint_model.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Variables, Relationships, and Associations in Constraint Models
@@ -15,7 +15,7 @@ To define how a constraint model configures products, create variables, relation
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 
 Constraint models use constraint modeling language (CML) to define variables, relatioships, and associations. For more information on CML, see the Constraint Modeling Language (CML) User Guide.
 
@@ -39,3 +39,7 @@ Assocations are required in constraint models. Create an association to connect 
 To create a type association, in the Add Type Association window, select the object category (product, product classification, or product component group), and then select the product record that you want to connect to the type. After you create the type association, the type association data table displays the ID for the type and the associated product record.
 
 With relationship associations, you can connect a relationship of the type you’re modifying to a product or product classification within a bundle in the catalog. In the Add Relationship Association window, select the type relationship (one of the types that has a relationship with the type you're modifying). Then, select a product or product classification from the bundle for the type you’re modifying. After you create a relationship association, the relationship association data table displays the ID for the type relationship and the associated product records.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_constraint_model_variables_relationships_associations.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

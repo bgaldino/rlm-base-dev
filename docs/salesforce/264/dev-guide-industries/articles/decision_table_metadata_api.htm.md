@@ -7,45 +7,27 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: decision_table.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Decision Table Metadata API
 
 You can create, edit, and activate a decision table using a Metadata API.
 
-  
-
-        
-          
-            
-
-          
-
-          
-            
-
-          
-
-        
-
-      
-| Available in: Lightning Experience |
+|  |
 | --- |
+| Available in: Lightning Experience |
 | Available in: Decision Table is available with Enterprise, Unlimited, and Performance Editions with Loyalty Management or Rebate Management |
 
-  
+The following list links to reference information for these metadata types.
 
- 
+- [DecisionTable](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/meta_decisiontable.htm)
 
-- 
-**[DecisionTable](./meta_decisiontable.htm.md)**  
+  Represents the information about a decision table.
+- [DecisionTableDatasetLink](https://developer.salesforce.com/docs/atlas.en-us.264.0.api_meta.meta/api_meta/meta_decisiontabledatasetlink.htm)
 
-Represents the information about a decision     table.
+  Represents the information about a dataset link associated with a decision table. In a dataset link, select an object for whose records, the decision table must provide an outcome. This type extends the Metadata metadata type and inherits its fullName field.
 
-- 
-**[DecisionTableDatasetLink](./meta_decisiontabledatasetlink.htm.md)**  
+---
 
-Represents the information about a dataset link       associated with a decision table. In a dataset link, select an object for whose records, the       decision table must provide an outcome. This type extends the       Metadata metadata type and inherits its fullName field.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/decision_table_metadata_api.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

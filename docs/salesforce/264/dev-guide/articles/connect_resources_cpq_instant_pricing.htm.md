@@ -7,103 +7,42 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_business_apis_rest_references.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Instant Pricing (POST)
 
-Fetch instant pricing data on the quote or order line data grid and
-      associated summary component. This API offers capabilities to either create a context or
-      update the existing one based on the provided context ID.
+Fetch instant pricing data on the quote or order line data grid and associated summary component. This API offers capabilities to either create a context or update the existing one based on the provided context ID.
 
-    
-      
+You can also group quote line items or order items based on location, work types, or departments, if groups are enabled for your org. Groups provide a visualization of the products to view large quotes.
 
-You can also group quote line items or order items based on location, work types, or
-        departments, if groups are enabled for your org. Groups provide a visualization of the
-        products to view large quotes.
-
-    
-
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
 /industries/cpq/quotes/actions/get-instant-price
 ```
 
-          
-
-        
-        
-          
-
-**Resource example**
-
-          
-: 
-            
+## Resource Example
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/industries/cpq/quotes/actions/get-instant-price
 ```
 
-          
+## Available Version
 
-        
-        
-          
+60.0
 
-**Available version**
+## Requires Chatter
 
-          
-: 60.0
+No
 
-        
-        
-          
+## HTTP Methods
 
-**Requires Chatter**
+POST
 
-          
-: No
+## Request Body for POST
 
-        
-        
-          
-
-**HTTP methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Request body for POST**
-
-          
-: 
-            
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+**JSON Example**
 
 ```
 {
@@ -144,11 +83,7 @@ https://yourInstance.salesforce.com/services/data/v68.0/industries/cpq/quotes/ac
 }
 ```
 
-          
-
-          
-: This example shows a sample request to specify grouping of lines based on
-                        criteria.
+This example shows a sample request to specify grouping of lines based on criteria.
 
 ```
 {
@@ -214,10 +149,7 @@ https://yourInstance.salesforce.com/services/data/v68.0/industries/cpq/quotes/ac
 }
 ```
 
-          
-: This example shows a sample request for the initial grouping of the quote with the
-                        quote lines assigned to the first
-                        group.
+This example shows a sample request for the initial grouping of the quote with the quote lines assigned to the first group.
 
 ```
 {
@@ -248,9 +180,7 @@ https://yourInstance.salesforce.com/services/data/v68.0/industries/cpq/quotes/ac
 }
 ```
 
-          
-: This example shows a sample request to ungroup a quote but retain the quote
-                        lines.
+This example shows a sample request to ungroup a quote but retain the quote lines.
 
 ```
 {
@@ -291,9 +221,7 @@ https://yourInstance.salesforce.com/services/data/v68.0/industries/cpq/quotes/ac
 }
 ```
 
-          
-: This example shows a sample request to create a new
-                        group.
+This example shows a sample request to create a new group.
 
 ```
 {
@@ -323,9 +251,7 @@ https://yourInstance.salesforce.com/services/data/v68.0/industries/cpq/quotes/ac
 }
 ```
 
-          
-: This example shows a sample request to delete a
-                        group.
+This example shows a sample request to delete a group.
 
 ```
 {
@@ -356,9 +282,7 @@ https://yourInstance.salesforce.com/services/data/v68.0/industries/cpq/quotes/ac
 }
 ```
 
-          
-: This example shows a sample request to move a
-                        group.
+This example shows a sample request to move a group.
 
 ```
 {
@@ -389,49 +313,18 @@ https://yourInstance.salesforce.com/services/data/v68.0/industries/cpq/quotes/ac
 }
 ```
 
-        
-
 **Properties**
-
-: 
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                        
-
-                                    
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `contextId` | String | ID generated by the context service. If you don’t specify a context ID, a new context is created. | Optional | 59.0 |
 | `correlationId` | String | Client-generated ID for tracking multiple related API requests. | Optional | 59.0 |
-| `records` | [Object with Reference Input](./connect_requests_object_with_reference_input.htm.md)[] | List of pricing data to be fetched. | Required | 59.0 |
+| `records` | [Object with Reference Input](./connect_requests_object_with_reference_input.htm.md "Input representation of a list of records to be inserted or updated. To update a record, specify the record ID.")[] | List of pricing data to be fetched. | Required | 59.0 |
 
-          
+## Response Body for POST
 
-        
-        
-          
+[Instant Pricing](./connect_responses_get_instant_pricing_output.htm.md "Output representation containing the results of the instant pricing request.")
 
-**Response body for POST**
+---
 
-          
-: [Instant Pricing](./connect_responses_get_instant_pricing_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_cpq_instant_pricing.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

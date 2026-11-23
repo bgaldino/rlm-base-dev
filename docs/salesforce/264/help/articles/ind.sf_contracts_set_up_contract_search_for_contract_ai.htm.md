@@ -5,7 +5,7 @@ source_url: https://help.salesforce.com/s/articleView?id=ind.sf_contracts_set_up
 release: 264
 release_name: Winter '27
 area: salesforce_contracts
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Configure Contract Search
@@ -68,3 +68,7 @@ Search, Summarize, and Interact with Contracts Using AI
 Use Contract Search with AI to query and analyze contract documents using natural language. You can view matching contracts, ask questions, summarize content, and preview or download contract documents.
 Billing Considerations for Contract Search
 Use of the Summarize Contract Document and Query Contract Document actions impacts credit consumption. These actions rely on Data Cloud for document indexing and querying, and invoke generative AI through Agentforce to deliver summaries and answers.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_set_up_contract_search_for_contract_ai.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

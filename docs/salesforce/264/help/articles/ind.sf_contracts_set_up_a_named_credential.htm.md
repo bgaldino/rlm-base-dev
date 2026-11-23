@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_set_up_microsoft_365_and_azure_integration_using_guided_setup.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Set Up a Named Credential for Salesforce Contracts Using Guided Setup
@@ -41,3 +41,7 @@ If the authentication status is configured, proceed to next step.
 If the Authentication Status is other than configured or you get an error, click Refresh to get the latest authentication status from Azure. After the authentication status updates to Configured, proceed to next step. See Microsoft 365 Frequently Asked Questions (FAQs) for answers to common questions.
 Assign Microsoft 365 Guided Setup Permission set:
 The system automatically creates the Microsoft 365 Guided Setup Permission set when the admin completes the guided setup. It initially assigns the permission set only to the user who runs the setup. The admin must then identify users who need to use the Microsoft 365 add-in, and manually assign the Microsoft 365 Guided Setup Permission to them.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_set_up_a_named_credential.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

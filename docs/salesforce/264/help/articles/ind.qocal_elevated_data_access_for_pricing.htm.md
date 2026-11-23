@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_quote_and_order_features_in_revenue_cloud.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Secure Data Access for Pricing with Elevated Permissions
@@ -15,7 +15,7 @@ Protect sensitive data from unauthorized access and have business continuity dur
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To configure data access in quotes and orders:	
 
@@ -59,3 +59,7 @@ Open a quote or order and trigger pricing.
 Confirm that the price calculates successfully and the correct output values appear on the transaction.
 Confirm that the sales rep can’t see the restricted fields in the record detail, in list views, or through reports.
 As a Salesforce admin, run a test to confirm that the Apex hook fires, for both pre-pricing and post-pricing stages, without errors.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_elevated_data_access_for_pricing.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

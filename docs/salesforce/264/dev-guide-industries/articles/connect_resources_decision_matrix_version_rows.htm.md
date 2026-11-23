@@ -7,199 +7,62 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Omnistudio
 parent_page: omnistudio_apis_resources_1.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Decision Matrix Version Rows
 
 Retrieve a paginated list of or manage rows in a decision matrix
-      version. Use this resource to add new rows, or update or delete existing rows in a decision
-      matrix version.
+version. Use this resource to add new rows, or update or delete existing rows in a decision
+matrix version.
 
-**Resource**
-
-: 
+## Resource
 
 ```
 /connect/omnistudio/decision-matrices/${matrixId}/versions/${versionId}/rows
 ```
 
-        
-          
-
-**Example**
-
-          
-: 
-            
+## Example
 
 ```
 /services/data/v53.0/connect/omnistudio/decision-matrices/0lIR000000000u0MAA
 /versions/0lNR000000000rFMAQ/rows
 ```
 
-          
+## Available Version
 
-        
+53.0
 
-**Available version**
+## Requires Chatter
 
-: 53.0
+No
 
-**Requires Chatter**
+## HTTP Methods
 
-: No
+GET, POST
 
-**HTTP methods**
+## Path parameters for GET
 
-: GET, POST
-
-        
-          
-
-**Path parameters for GET**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `matrixId` | String | The ID of the decision matrix record. | Required | 53.0 |
 | `versionId` | String | The ID of the decision matrix version record. | Required | 53.0 |
 
-          
+## Request Parameters for GET
 
-        
-        
-          
-
-**Query parameters for GET**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Parameter Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `file` | Boolean | Indicates whether to get the rows by generating a CSV file for downloading (`true`) or fetching the rows in JSON format (`false`). The default value is `false`. | Optional | 53.0 |
 
-          
+## Response Body for GET
 
-        
+[Decision Matrix Rows Output](./connect_responses_decision_matrix_rows_output.htm.md "Output representation of rows of a decision matrix version.")
 
-**Response body for GET**
+## Request Body for POST
 
-: [Decision Matrix Rows Output](./connect_responses_decision_matrix_rows_output.htm.md)
-
-**Request body for POST**
-
-          
-: 
-            
-        
-          
-
-**JSON Example**
-
-          
-: 
-            
+### JSON Example
 
 Add a row:
-
-            
 
 ```
 {
@@ -213,18 +76,9 @@ Add a row:
     }
   ]
 }
-
 ```
 
-          
-
-          
-: 
-            
-
 Delete a row:
-
-            
 
 ```
 {
@@ -240,18 +94,9 @@ Delete a row:
     }
   ]
 }
-
 ```
 
-          
-
-          
-: 
-            
-
 Update a row:
-
-            
 
 ```
 {
@@ -267,22 +112,9 @@ Update a row:
     }
   ]
 }
-
 ```
 
-          
-
-          
-: 
-            
-
 Add row using a CSV file:
-
-          
-
-          
-: 
-            
 
 ```
 {
@@ -290,83 +122,17 @@ Add row using a CSV file:
 }
 ```
 
-          
+### Properties
 
-        
-        
-          
-
-**Properties**
-
-          
-: 
-            
-
-                
-                
-                
-                
-                
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-                
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-#### 
-
-                    
-
-                  
-
-                  
-                    
-
-                    
-
-                    
-
-                    
-
-                    
-
-                  
-
-                
-
-              
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `fileId` | String | The ID of the [Content Document Version](https://developer.salesforce.com/docs/atlas.en-us.264.0.object_reference.meta/object_reference/sforce_api_objects_contentversion.htm) that contains the rows details to be added or updated in a decision matrix version. | Optional Note This field is required if you’re using a CVS file to add or update rows. | 53.0 |
-| `rows` | [Decision Matrix Row Input](./connect_requests_decision_matrix_row_input.htm.md)[] | List of rows to be added, updated, or deleted in a decision matrix version. | Required | 53.0 |
+| `fileId` | String | The ID of the [Content Document Version](https://developer.salesforce.com/docs/atlas.en-us.264.0.object_reference.meta/object_reference/sforce_api_objects_contentversion.htm) that contains the rows details to be added or updated in a decision matrix version. | Optional Note: This field is required if you’re using a CVS file to add or update rows. | 53.0 |
+| `rows` | [Decision Matrix Row Input](./connect_requests_decision_matrix_row_input.htm.md "Input representation of the information required to add, update, or delete rows in a decision matrix version.")[] | List of rows to be added, updated, or deleted in a decision matrix version. | Required | 53.0 |
 
-          
+## Response Body for POST
 
-        
-      
+[Decision Matrix Output](./connect_responses_decision_matrix_output.htm.md "Output representation the action performed on a decision matrix version.")
 
-          
+---
 
-**Response body for POST**
-
-: [Decision Matrix Output](./connect_responses_decision_matrix_output.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_decision_matrix_version_rows.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

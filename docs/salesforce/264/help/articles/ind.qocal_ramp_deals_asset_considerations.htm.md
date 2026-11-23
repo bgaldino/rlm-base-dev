@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.understanding_ramp_deals.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Ramp Deal Structure for Groups
@@ -15,7 +15,7 @@ Ramp deals contain time-bounded segments with distinct pricing, quantities, and 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 Single-Level Structure (Default)
 
 When only Ramp Deals for Groups in Quotes and Orders setting is turned on, the entire transaction is one implicit ramp schedule. Segments appear as a flat list of groups in the quote or order.
@@ -55,3 +55,7 @@ Early renewal generating an auto-structured quote	Determined by the Multiple Ram
 NOTE All segments in a ramp schedule must share the same segment type. You can't combine Yearly and Custom segments in one schedule. The segment type you select for the first segment sets the type for the entire schedule.
 
 To change it later, use Edit Ramp Schedule window to convert the whole schedule from Yearly to Custom, or from Custom to Yearly.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_ramp_deals_asset_considerations.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

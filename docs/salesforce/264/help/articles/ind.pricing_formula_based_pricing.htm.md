@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_element.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Build Pricing Rules with Formula-Based Pricing
@@ -15,7 +15,7 @@ Perform functions and mathematical calculations to generate the price of a produ
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS
 NEEDED
 To create, update, and delete pricing procedures:	Salesforce Pricing Design Time
@@ -73,3 +73,7 @@ The quantity of the purchased product	LineItemQuantity	ItemProductAmount	Adds it
 Add rebate to the final amount	ItemNetTotalPrice + ItemTotalAdjDistAmount - 20	TotalLineAmount	Applies a flat discount of $20.
 To test your procedure, click Simulate. Enter the input values for your printer product, and click Simulate again.
 The price waterfall shows the formulas used to apply discounts and determine the price of the printers, confirming your procedure is working as expected.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_formula_based_pricing.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

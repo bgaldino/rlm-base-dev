@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_introduction.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Organize Your Products with Catalogs and Categories
@@ -25,7 +25,11 @@ Create Catalog Categories and Subcategories
 Organize and group products in your catalog by creating catalog categories and catalog subcategories. Assign products to more than one catalog category and subcategory.
 Sort Categories in a Catalog
 Make the browsing experience consistent and predictable for your buyers by defining category display order in Product Catalog Management (PCM) at design time. The same order appears in Product Discovery (PD) at runtime.
-Assign Products to Catalog Categories in Revenue Management
+Assign Products to Catalog Categories in Revenue Cloud
 Organize products by assigning them to catalog categories and subcategories. You must create your product records first before assigning products to catalogs or categories.
 Set a Default Product Catalog
 Set a default catalog for your product list page to show the most relevant products for your users. For complex orders, configure your product list page in Lightning App Builder or flows to help users to easily switch catalogs.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_catalogs.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

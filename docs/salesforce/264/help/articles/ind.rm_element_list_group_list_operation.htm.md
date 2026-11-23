@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: rating
 parent_article: ind.rm_rating_elements.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # List Group and List Operation
@@ -30,3 +30,7 @@ In this image, we see that the list operation applied has the condition that the
 If a customer consumes fewer than 100 units of the usage resource, it doesn’t meet the condition, and the rating procedure skips this step altogether. When a customer consumes more than 100 units of usage resource, the procedure applies a discount of 10% to the net unit rate.
 
 Simulate and verify the data that’s queried. When you activate the rating procedure, the Waterfall view shows every step of the rating calculation and the discounts applied.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.rm_element_list_group_list_operation.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

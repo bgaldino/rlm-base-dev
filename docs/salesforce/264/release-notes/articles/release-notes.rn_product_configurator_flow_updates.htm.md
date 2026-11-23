@@ -6,14 +6,14 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_product_configurator.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Updates in Default Product Configurator Flow
 
 The Default Product Configurator flow has new attributes. If you cloned the Default Product Configurator flow before Winter ’27, manually map the new attributes in your customized flow, or clone the default flow and apply your customizations again.
 
-Where: This change applies to Lightning Experience in Enterprise, Unlimited, and Developer editions of Revenue Management, formerly Revenue Cloud, with the Revenue Cloud Growth or the Revenue Cloud Advanced license.
+Where: This change applies to Lightning Experience in Enterprise, Unlimited, and Developer editions of Revenue Cloud, with the Revenue Cloud Growth or the Revenue Cloud Advanced license.
 
 Why: Update your Configurator flow with the latest attributes so that new features work as expected and you get a seamless configuration experience.
 
@@ -31,3 +31,7 @@ A boolean value that indicates whether the product name field on the option card
 Use the new Read-Only Product Name attribute of the Input type on the Product Configurator Option Groups flow component.
 SEE ALSO
 Salesforce Help: Clone and Customize the Default Product Configurator Flow
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_product_configurator_flow_updates.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,23 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_requests.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Configurator Updated Node Input
 
 Input representation of the nodes to be updated in a product configuration.
 
-    
-
 ## JSON Example
 
-      
-      
-
 This example updates a field on an already-added sales transaction item. The path uses the persistent Salesforce record ID, not a `ref_*` reference. Only include the changed fields in `updatedAttributes`.
-
-      
 
 ```
 {
@@ -39,11 +32,7 @@ This example updates a field on an already-added sales transaction item. The pat
 }
 ```
 
-      
-
 This example updates an attribute value on an already-added sales transaction item attribute. The path uses the persistent attribute record ID. Only include the changed fields in `updatedAttributes`. When a constraint model is active, include `AttributeName` and set it to the attribute’s developer name.
-
-      
 
 ```
 {
@@ -61,67 +50,13 @@ This example updates an attribute value on an already-added sales transaction it
 }
 ```
 
-    
-
-    
-
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `path` | String[] | Path to the node that’s being updated. | Required | 60.0 |
-| `updated​Attributes` | Map<String, Object> | Details of the object that’s being updated. This property supports fields of objects from the Sales Transaction context definition, including custom objects and fields in your extended context definition. When you update an `OrderItemAttribute` or `QuoteLineItemAttribute` node and a constraint model is active, include `AttributeName` and set it to the product attribute’s developer name. For matching behavior and default fallback, see [Configurator API: Include the Attribute Developer Name When Creating or Updating Attributes](./cml_best_practice_attribute_name.htm.md). | Required | 60.0 |
+| `updated​Attributes` | Map<String, Object> | Details of the object that’s being updated. This property supports fields of objects from the Sales Transaction context definition, including custom objects and fields in your extended context definition. When you update an `OrderItemAttribute` or `QuoteLineItemAttribute` node and a constraint model is active, include `AttributeName` and set it to the product attribute’s developer name. For matching behavior and default fallback, see [Configurator API: Include the Attribute Developer Name When Creating or Updating Attributes](./cml_best_practice_attribute_name.htm.md "When a constraint model is active, include the attribute developer name in Product Configurator API requests that create or update a product attribute."). | Required | 60.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_requests_configurator_updated_node_input.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

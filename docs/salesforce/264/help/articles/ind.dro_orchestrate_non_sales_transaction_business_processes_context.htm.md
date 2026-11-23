@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_orchestrate_non_sales_transaction_business_processes.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Considerations for Creating a Non-Sales Transaction Context Definition
@@ -15,7 +15,7 @@ To orchestrate a non-sales transaction business process, create a context defini
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud
 USER PERMISSIONS NEEDED
 To create or extend the context definition:	DRO Admin User
 
@@ -32,3 +32,7 @@ Add appropriate mappings with the root and child nodes mapped to their respectiv
 NOTE
 For every attribute tag in a rule condition, define a corresponding object field mapping to prevent execution failures during rule evaluation or fulfillment.
 To maintain data consistency across the orchestration lifecycle and to provision multiple mappings, map all the root nodes and applicable child nodes to their respective objects.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_orchestrate_non_sales_transaction_business_processes_context.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

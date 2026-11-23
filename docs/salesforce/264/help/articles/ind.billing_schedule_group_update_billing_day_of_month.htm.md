@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_schedule_group_update.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Bill Day of Month
@@ -97,3 +97,7 @@ An invoice is generated for the complete period of 01/25/2025 to 02/24/2025.
 The next billing date is updated to 03/25/2025 and the next charge date is updated to 02/25/2025.
 
 The subsequent invoice is generated for the period of 02/25/2025 to 03/24/2025.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_schedule_group_update_billing_day_of_month.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

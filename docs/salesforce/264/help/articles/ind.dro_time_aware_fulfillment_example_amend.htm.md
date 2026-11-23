@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_time_aware_fulfillment.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Example: Mid-Year Amendment with Split Fulfillment Asset State Periods
@@ -40,3 +40,7 @@ The Renew action applies in two situations: to insert a new FASP between two exi
 DRO marks the baseline License Provisioning and Tenant FASPs as superseded and replaces them with the newly generated FASPs that reflect the split time periods and the derived actions.
 
 NOTE This example doesn't demonstrate the Cancel action. Cancel applies when a FASP that existed before technical assetization no longer exists afterward, such as when a customer terminates a specific term of a subscription.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_time_aware_fulfillment_example_amend.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

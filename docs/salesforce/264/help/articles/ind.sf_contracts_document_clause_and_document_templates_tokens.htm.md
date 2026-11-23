@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_document_clause.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Tokens for Document Clauses and Document Templates
@@ -32,8 +32,9 @@ Reference Clauses in Document Templates
 
 If document templates contain clause tokens, Salesforce Document Generation can reference them from the clause library to fetch the latest version or a configured version. Salesforce supports two types of clause tokens.
 
-Clause Template Identifier: Copied into a document template in the format {{CL_<ClauseSetName>_<ClauseName>_<language>}}, this token resolves to a document clause's latest active version at document generation.
-Clause Template Version Identifier: Copied into a document template in the format {{CL_<ClauseSetName>_<ClauseName>_<language>_<ClauseVersion>}}, this token resolves to one specific version of a document clause.
+Latest Clause Template Identifier: Copied into a document template in the format {{CL_<ClauseSetName>_<ClauseName>_<language>}}, this token resolves to a document clause's latest active version at document generation. For example, CL_Sample Test Clause_Test_en_US.
+Clause Template Version Identifier: Copied into a document template in the format {{CL_<ClauseSetName>_<ClauseName>_<language>_<ClauseVersion>}}, this token resolves to one specific version of a document clause. For example, CL_Sample Test Clause_Test_en_US_v1.
+Once you create your document clause, Salesforce populates these two read-only fields: Latest Clause Template Identifier and Clause Template Version Identifier. Copy the value that you need into the document template during template creation.
 NOTE For successful document generation, preserve the clause token format exactly as it's derived from the document clause. Altering the clause token causes resolution failure, resulting in blank clause content that requires manual correction.
 How Tokens Flow from the Clause Library to the Generated Document
 
@@ -43,3 +44,7 @@ Clause designers build library content and add content tokens, such as merge or 
 Template designers assemble Microsoft 365 templates by manually inserting clause content, clause tokens, or both.
 During document generation, Salesforce resolves merge tokens and clause tokens. If you set placeholder defaults, the system applies them, and users fill in any remaining placeholder values during supported authoring flows.
 Data true-up tokens are supported within clauses. See Data True-Up Tokens in Document Templates.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_document_clause_and_document_templates_tokens.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

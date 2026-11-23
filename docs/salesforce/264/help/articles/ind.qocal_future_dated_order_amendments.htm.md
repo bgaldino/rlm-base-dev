@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_specialized_asset_considerations.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Future-Dated Changes
@@ -15,7 +15,7 @@ To adjust assets that have scheduled future transactions, such as upsells, downs
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To amend, transfer, or use swaps in orders with future-dated asset state periods:	Initiate Amend user permission or initiateAmendment API access
 To renew and cancel orders:	
@@ -26,7 +26,7 @@ OR
 
 initiateRenew API and initiateCancel API access
 
-sThe transaction system creates a regular amend, renew, or cancel transaction if the transaction has only one ASP or occurs in the last ASP. Changing an asset before a future ASP on a quote or order creates a single quote line item (QLI) or order item (OI) per asset transaction. The create order process resets the ASP timeline to reflect the new transaction through the end of the subscription period.
+The transaction system creates a regular amend, renew, or cancel transaction if the transaction has only one ASP or occurs in the last ASP. Changing an asset before a future ASP on a quote or order creates a single quote line item (QLI) or order item (OI) per asset transaction. The create order process resets the ASP timeline to reflect the new transaction through the end of the subscription period.
 
 For the account that you want to change, go to the Assets tab and open the Managed Assets viewer.
 Select the assets and click Amend, Renew, or Cancel.
@@ -36,3 +36,7 @@ Click Create Order, and then click Create Single Order.
 Select the new order, activate it, and set the status to complete.
 Future-Dated Amendment Types and Results
 Familiarize yourself with the various types of future-dated amendments and their impact on your asset records. Understanding these behaviors ensures that you accurately manage upsells, reductions, and attribute changes within your asset lifecycle.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_future_dated_order_amendments.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

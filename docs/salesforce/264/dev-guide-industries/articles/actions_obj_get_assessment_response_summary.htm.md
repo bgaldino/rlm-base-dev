@@ -7,184 +7,62 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Discovery Framework
 parent_page: discovery_framework_actions.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Get Assessment Response Summary
 
 Get Assessment Response Summary makes it easy to use a flow to trigger
-      server-side document generation using Document Generation.
-
-    
-      
+server-side document generation using Document Generation.
 
 In the Discovery Framework, the responses from an assessment are stored in the
-        AssessmentQuestionResponse object and the form metadata stays in the OmniScript. You can use
-        this invocable action to pass assessment summary data to downstream processes. This
-        invocable action provides summary JSON code that can be consumed in Document Generation
-        workflows to generate documents.
-
-      
+AssessmentQuestionResponse object and the form metadata stays in the OmniScript. You can use
+this invocable action to pass assessment summary data to downstream processes. This
+invocable action provides summary JSON code that can be consumed in Document Generation
+workflows to generate documents.
 
 The Get Assessment Response Summary invocable action takes an assessment ID as input to get
-        the OmniScript (OmniProcess) ID, which is used to retrieve the OmniScript. The assessment ID
-        also retrieves the assessment response and merges the response with the OmniScript to create
-        an assessment summary response in the summary JSON code.
-
-      
+the OmniScript (OmniProcess) ID, which is used to retrieve the OmniScript. The assessment ID
+also retrieves the assessment response and merges the response with the OmniScript to create
+an assessment summary response in the summary JSON code.
 
 This object is available in API version 56.0 and later.
 
-    
-
-    
-
 ## Supported REST HTTP Methods
 
-      
-      
-        
-          
+**URI**:
+`/services/data/vXX.X/actions/standard/getAssessmentResponseSummary`
 
-**URI**
+Where `XX.X` is the latest API version.
 
-          
-: `/services/data/v56.0/actions/standard/getAssessmentResponseSummary`
+**Formats**: JSON
 
-        
-        
-          
+**HTTP Methods**: POST
 
-**Formats**
+**Authentication**:
+`Authorization: Bearer TOKEN`
 
-          
-: JSON
-
-        
-        
-          
-
-**HTTP Methods**
-
-          
-: POST
-
-        
-        
-          
-
-**Authentication**
-
-          
-: `Authorization: Bearer token`
-
-        
-      
-
-    
-
-    
+Where `TOKEN` is a variable.
 
 ## Inputs
 
-      
-      
-
-          
-          
-          
-            
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-: 
-
-: 
-
-            
-
-          
-
-        
-| Input | Details |
-| --- | --- |
-| assessmentId | **Type** ID **Description** Required. The ID of the assessment record for which to summarize responses. |
-
-    
-
-    
+| Input | Type | Description |
+| --- | --- | --- |
+| assessmentId | ID | Required. The ID of the assessment record for which to summarize responses. |
 
 ## Outputs
 
-      
-      
-
-          
-          
-          
-            
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-: 
-
-: 
-
-            
-
-          
-
-        
-| Output | Details |
-| --- | --- |
-| assessmentResponseSummary | **Type** string **Description** A JSON string containing the summary assessment question texts and responses for the specified assessment record. The response summary structure follows the structure of the OmniScript. |
-
-    
-
-    
+| Output | Type | Description |
+| --- | --- | --- |
+| assessmentResponseSummary | string | A JSON string containing the summary assessment question texts and responses for the specified assessment record. The response summary structure follows the structure of the OmniScript. |
 
 ## Usage
 
-      
-      
-        
-          
-
 **Sample Input**
 
-          
-: 
-            
-
-When exposing the Get Assessment Response Summary invocable action in a REST API, you
-              can use the following format to pass input, which includes the assessmentId and its
-              value. 
-
-            
+When exposing the Get Assessment Response
+Summary invocable action in a REST API, you can use the following format to pass input,
+which includes the assessmentId and its value.
 
 ```
 {
@@ -192,24 +70,12 @@ When exposing the Get Assessment Response Summary invocable action in a REST API
 }
 ```
 
-          
-
-        
-        
-          
-
 **Sample Output**
 
-          
-: 
-            
-
-In this example, the first line indicates the OmniScript type, subtype, and language.
-              For each step, there are multiple questions that appear in the OmniScript. You can use
-              this information in a downstream process, such as PDF file rendering using Document
-              Generation. 
-
-            
+In this example, the first line indicates the OmniScript
+type, subtype, and language. For each step, there are multiple questions that appear in the
+OmniScript. You can use this information in a downstream process, such as PDF file rendering
+using Document Generation.
 
 ```
   "KYC_Individual_English": {
@@ -317,3 +183,7 @@ account details.",
   }
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/actions_obj_get_assessment_response_summary.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

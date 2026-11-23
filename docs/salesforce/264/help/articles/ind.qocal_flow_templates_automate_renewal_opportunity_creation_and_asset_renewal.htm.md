@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_set_up_asset_management_features_in_revenue_cloud.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Asset Renewal Automation Templates
@@ -15,7 +15,7 @@ Prebuilt flow templates automatically create renewal opportunities for forecasti
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 
 For example, update Text Template resources to capture more information or match your company's voice, and enter values in the Configure Sender Details section to specify the outgoing email address.
 
@@ -45,3 +45,7 @@ Product designers and sales reps use these fields to selet products for automati
 Edit the NumberOfDaysInTheFuture variable to change how many days before expiration the asset renews.
 Edit the RetryCount variable to change how many times the flow tries order activation again.
 Set a condition to prevent the renewal of discontinued products.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_flow_templates_automate_renewal_opportunity_creation_and_asset_renewal.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

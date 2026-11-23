@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_manage_assets_in_revenue_lifecycle_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Specialized Transaction Types
@@ -15,9 +15,13 @@ Streamline sales operations by transferring asset quantities between accounts or
 
 Transfer Assets Between Accounts
 To maintain compliance and streamline operations, your users can move asset quantities, product licenses, or subscriptions between different accounts or contracts.
-Swap, Upgrade, or Downgrade Assets
+Swap Assets
 To maintain accurate records and streamline your sales process, use specific asset actions to capture the relationships between swapped-out and swapped-in assets.
 Use Lot-Based Renewals to Preserve Original Prices
 To honor existing prices at renewal time, use lot-based or As-Is renewals to renew asset lot quantities at their original purchase prices. For example, if a sales rep sells an asset across multiple transactions, a lot-based renewal includes both the initial sale and subsequent amendments. The system applies a price uplift individually to each lot based on the renewal uplift.
 Renew Expired Assets
 To maintain customer relationships and close deals faster, renew assets and subscriptions after their original end date. Enabling late renewals and trial extensions provides flexibility when customers want to repurchase products.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_specialized_transaction_types.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

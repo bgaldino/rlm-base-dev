@@ -7,146 +7,23 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Revenue Management Deployment
 parent_page: deployment_contracts_additional_info.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Clause Validations and Migration Constraints
 
-Validation rules, data model constraints, and known migration behaviors that affect
-    clause records during migration. Review this reference to understand sequencing, status
-    handling, and dependency requirements that can impact migration success.
-
-    
+Validation rules, data model constraints, and known migration behaviors that affect clause records during migration. Review this reference to understand sequencing, status handling, and dependency requirements that can impact migration success.
 
 ## Clause Migration Validations
 
-      
-      
+These validations apply during insert, update, and delete operations on clause records. Operations fail when a validation is violated.
 
-These validations apply during insert, update, and delete operations on clause records.
-        Operations fail when a validation is violated.
-
-      
-
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-- 
-- 
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Operation | Validation | Description |
 | --- | --- | --- |
 | Insert | Draft-only creation | Allows only Draft clauses during initial insert operations. |
 | Insert | Version conflict prevention | Prevents inserting a clause when a Draft version exists for the same clause. |
 | Insert | Clause set requirement | Requires each clause to reference a valid DocumentClauseSet that exists in the target org. |
-| Insert | Main and alternate clause hierarchy | Requires an existing main clause before inserting alternate clauses and allows only one main clause per clause group. Allows only one main clause per language within a clause set, and allows multiple alternate clauses for the same language. |
+| Insert | Main and alternate clause hierarchy | Requires an existing main clause before inserting alternate clauses and allows only one main clause per clause group or Allows only one main clause per language within a clause set, and allows multiple alternate clauses for the same language. |
 | Update | Restricted fields | Prevents updating the DocumentClauseSet, Language, IsAlternateClause, and Version fields after clause creation. |
 | Update | Status transition rules | Allows changing an Active clause only to Draft (without modifying other fields) or to Archived. |
 | Update | Archived clause immutability | Prevents updates to Archived clauses. |
@@ -154,68 +31,10 @@ These validations apply during insert, update, and delete operations on clause r
 | Delete | Status-based deletion | Allows deletion of Draft and Archived clauses only. |
 | Delete | Main clause protection | Prevents deleting a main clause while alternate clauses still exist. |
 
-    
-
-    
-
 ## Clause Status Mapping During Migration
 
-      
-      
+Clauses insert only in Draft status, regardless of their source status. Run a subsequent migration with status mapping to update the clause statuses. For example, a clause in the source org has three versions: Version 1 is Archived, Version 2 is Active, and Version 3 is Draft. When the clause is inserted, all three versions are created in Draft status in the target org. Perform a follow-up upsert migration with status mapping to align each clause version with its source org status.
 
-Clauses insert only in Draft status, regardless of their source status. Run a subsequent
-        migration with status mapping to update the clause statuses. For example, a clause in the
-        source org has three versions: Version 1 is Archived, Version 2 is Active, and Version 3 is
-        Draft. When the clause is inserted, all three versions are created in Draft status in the
-        target org. Perform a follow-up upsert migration with status mapping to align each clause
-        version with its source org status.
-
-      
-
-          
-          
-          
-            
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-            
-
-          
-
-        
 | Source Org Status (Pre-Migration) | Guidance |
 | --- | --- |
 | Archived | Archived clauses insert as Draft. Run a subsequent migration with status mapping to restore the Archived status. After a clause is archived, you can’t change its status. |
@@ -223,132 +42,10 @@ Clauses insert only in Draft status, regardless of their source status. Run a su
 | Draft | Draft clauses insert as Draft, so no status change is required. |
 | In Approval | You must not migrate In Approval clauses because their workflows don’t migrate. However, if In Approval clauses are migrated, they’re inserted in Draft status, and the approval process must be reinitiated from the UI. |
 
-    
-
-    
-
 ## Clause Migration Constraints
 
-      
-      
+These constraints describe behavioral rules, sequencing requirements, and tooling limitations that affect clause migration, especially during iterative and incremental migrations.
 
-These constraints describe behavioral rules, sequencing requirements, and tooling
-        limitations that affect clause migration, especially during iterative and incremental
-        migrations.
-
-    
-
-    
-
-        
-        
-        
-        
-          
-            
-
-            
-
-            
-
-          
-
-        
-
-        
-          
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-          
-
-          
-            
-
-            
-
-            
-
-          
-
-        
-
-      
 | Category | Constraint | Description |
 | --- | --- | --- |
 | Tooling | No automated migration | Requires that you use supported data migration tools, such as Data Loader, because no automated clause migration utility exists. |
@@ -361,3 +58,7 @@ These constraints describe behavioral rules, sequencing requirements, and toolin
 | Template Dependency | Missing clause references | Prevents template migration when referenced clauses, versions, or languages don’t exist in the target org. |
 | Template Dependency | Duplicate clauses | Can cause clause reference mismatches during template migration when duplicate clauses exist in the target org. |
 | Template Dependency | Office Open XML failures | Can cause template migration to fail when Office Open XML updates fail during document import. |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/deployment_contracts_clause_validation_migration_constraints.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

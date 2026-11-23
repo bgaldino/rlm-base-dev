@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_search_options_for_product_catalog_management.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Semantic Search
@@ -33,3 +33,7 @@ Enable Semantic Search for Product Discovery
 Enable Einstein semantic search in Product Discovery to interpret search intent and surface relevant results based on synonyms, variations, and attributes.
 Explore Examples of Semantic Search
 See how Einstein semantic search improves results across different types of queries, including synonyms, abbreviations, misspellings, and product features.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_semantic_search.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

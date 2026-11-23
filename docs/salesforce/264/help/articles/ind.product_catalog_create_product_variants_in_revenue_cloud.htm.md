@@ -1,15 +1,15 @@
 ---
 article_id: ind.product_catalog_create_product_variants_in_revenue_cloud.htm
-title: Create Product Variants in Revenue Management
+title: Create Product Variants in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.product_catalog_create_product_variants_in_revenue_cloud.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_introduction.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# Create Product Variants in Revenue Management
+# Create Product Variants in Revenue Cloud
 
 Use product variants to group related products that share a common identity but differ by specific characteristics. Instead of creating separate, disconnected entries in your catalog for every minor difference, variants help you organize these options logically under a single umbrella record.
 
@@ -64,3 +64,7 @@ Create a Variation Parent
 Group related product variants and simplify your catalog management. The parent variant stores shared attributes across a product’s different variants to eliminate redundant data entry for admins. Sales reps go to this parent variant in product discovery before selecting the exact specifications a customer needs.
 Create a Variation Product
 Define specific, sellable configurations of a parent product. Each variation product represents a unique set of attribute values and has its own product code.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_create_product_variants_in_revenue_cloud.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

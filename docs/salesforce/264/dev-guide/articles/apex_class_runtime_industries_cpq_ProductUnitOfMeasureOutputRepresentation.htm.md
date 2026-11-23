@@ -7,7 +7,7 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: apex_namespace_runtime_industries_cpq.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # ProductUnitOfMeasureOutputRepresentation Class
@@ -16,41 +16,21 @@ Represents a unit of measure that's available for a product, including whether i
 
 ## Namespace
 
-[runtime_industries_cpq](./apex_namespace_runtime_industries_cpq.htm.md)
+[runtime\_industries\_cpq](./apex_namespace_runtime_industries_cpq.htm.md "The runtime_industries_cpq namespace provides classes and methods to search products or to manage products, catalogs, and categories.")
 
-- 
-**[ProductUnitOfMeasureOutputRepresentation Constructor](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_constructors)**  
-
-Learn more about the constructor that's available with the ProductUnitOfMeasureOutputRepresentation class.
-
-- 
-**[ProductUnitOfMeasureOutputRepresentation Properties](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_properties)**  
-
-Contains properties to include unit of measure details for products.
-
-  
+- **[ProductUnitOfMeasureOutputRepresentation Constructor](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_constructors)**  
+  Learn more about the constructor that's available with the ProductUnitOfMeasureOutputRepresentation class.
+- **[ProductUnitOfMeasureOutputRepresentation Properties](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_properties)**  
+  Contains properties to include unit of measure details for products.
 
 ## ProductUnitOfMeasureOutputRepresentation Constructor
 
-  
-  
-  
 Learn more about the constructor that's available with the ProductUnitOfMeasureOutputRepresentation class.
-
-    
-      
 
 The `ProductUnitOfMeasureOutputRepresentation` class includes this constructor.
 
-    
-
-    
-  
-
-- 
-**[ProductUnitOfMeasureOutputRepresentation(apexObj)](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_ctor)**  
-
-Constructor to create a ProductUnitOfMeasureOutputRepresentation instance from a ConnectApi.CPQProductUnitOfMeasureOutputRepresentation object.
+- **[ProductUnitOfMeasureOutputRepresentation(apexObj)](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_ctor)**  
+  Constructor to create a ProductUnitOfMeasureOutputRepresentation instance from a ConnectApi.CPQProductUnitOfMeasureOutputRepresentation object.
 
 ### ProductUnitOfMeasureOutputRepresentation(apexObj)
 
@@ -62,61 +42,29 @@ Constructor to create a ProductUnitOfMeasureOutputRepresentation instance from a
 
 #### Parameters
 
-**apexObj**
-
-: Type: ConnectApi.CPQProductUnitOfMeasureOutputRepresentation
-
-: The ConnectApi CPQProductUnitOfMeasureOutputRepresentation object to convert to ProductUnitOfMeasureOutputRepresentation.
-
-  
+apexObj
+:   Type: ConnectApi.CPQProductUnitOfMeasureOutputRepresentation
+:   The ConnectApi CPQProductUnitOfMeasureOutputRepresentation object to convert to ProductUnitOfMeasureOutputRepresentation.
 
 ## ProductUnitOfMeasureOutputRepresentation Properties
 
-  
-  
-  
 Contains properties to include unit of measure details for products.
 
-    
-      
-
 The `ProductUnitOfMeasureOutputRepresentation` class includes these
-        properties.
+properties.
 
-    
-
-    
-  
-
-- 
-**[id](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_id)**  
-
-Get the ID of the product unit of measure.
-
-- 
-**[isBaseUnit](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_isBaseUnit)**  
-
-Get whether the unit of measure is the base unit of measure for the product.
-
-- 
-**[isDefaultUnit](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_isDefaultUnit)**  
-
-Get whether the unit of measure is the default unit of measure for the product.
-
-- 
-**[isOrderable](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_isOrderable)**  
-
-Get whether the product can be ordered in this unit of measure.
-
-- 
-**[sequence](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_sequence)**  
-
-Get the sequence of the unit of measure.
-
-- 
-**[unitOfMeasureInfo](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_unitOfMeasureInfo)**  
-
-Get the details of the unit of measure.
+- **[id](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_id)**  
+  Get the ID of the product unit of measure.
+- **[isBaseUnit](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_isBaseUnit)**  
+  Get whether the unit of measure is the base unit of measure for the product.
+- **[isDefaultUnit](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_isDefaultUnit)**  
+  Get whether the unit of measure is the default unit of measure for the product.
+- **[isOrderable](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_isOrderable)**  
+  Get whether the product can be ordered in this unit of measure.
+- **[sequence](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_sequence)**  
+  Get the sequence of the unit of measure.
+- **[unitOfMeasureInfo](./apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm.md#apex_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation_unitOfMeasureInfo)**  
+  Get the details of the unit of measure.
 
 ### id
 
@@ -188,4 +136,8 @@ Get the details of the unit of measure.
 
 #### Property Value
 
-Type: [runtime_industries_cpq.UnitOfMeasureOutputRepresentation](./apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation)
+Type: [runtime\_industries\_cpq.UnitOfMeasureOutputRepresentation](./apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation.htm.md#apex_class_runtime_industries_cpq_UnitOfMeasureOutputRepresentation "Represents the unit of measure for a product. This class contains information about how product quantities are measured, including the unit code, name, scale, and rounding method.")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_runtime_industries_cpq_ProductUnitOfMeasureOutputRepresentation.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_pricing_adjustment_batch_jobs.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Perform a Pricing Adjustment Batch Job
@@ -39,3 +39,7 @@ To increase the value of your record, add a whole number. To decrease the value 
 If you’re making changes to a price adjustment schedule, then you’ll need to provide effective dates.
 Price book entries only store the price of a product and don’t have effective dates associated with their records.
 Save your changes.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_perform_pricing_adjustment_batch_job.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_setup.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configure Context Definitions for Billing
@@ -19,3 +19,7 @@ Select Context Definition and Mapping for Create Billing Schedules for Orders AP
 The Create Billing Schedules for Orders API uses Context Service to hydrate the data of orders to create billing schedules. Before using this API, select a context definition and its mapping that you want the API to use.
 Capture Preferred Transaction Details by Using Custom Fields
 To meet specific business requirements, populate custom field data from orders or external transactions to corresponding billing schedule, billing schedule group, and billing schedule group relationship records. Use Context Service to define how data must be transferred by configuring a custom intracontext mapping. Then, use the Create Billing Schedules for Orders API or the Create Standalone Billing Schedules API to generate billing schedules and billing schedule groups. You can also use custom fields to override the standard fields in billing nodes by using the custom intracontext mapping.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_configure_context_definitions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

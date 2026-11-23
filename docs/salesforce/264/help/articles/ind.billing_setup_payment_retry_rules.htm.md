@@ -1,15 +1,15 @@
 ---
 article_id: ind.billing_setup_payment_retry_rules.htm
-title: Set Up Payment Retry Rules
+title: Create Payment Retry Rule Sets and Payment Retry Rules
 source_url: https://help.salesforce.com/s/articleView?id=ind.billing_setup_payment_retry_rules.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_retry_failed_payments.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# Set Up Payment Retry Rules
+# Create Payment Retry Rule Sets and Payment Retry Rules
 
 Define payment retry rule sets and payment retry rules and configure Billing to automatically retry failed payments for specific error categories at various time intervals.
 
@@ -18,6 +18,9 @@ Available in: Lightning Experience
 Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Billing license. Contact your Salesforce account executive for more information.
 USER PERMISSIONS NEEDED
 To retry failed payments:	Billing Admin permission set
+
+To automatically retry failed payments, add at least one default payment retry rule set and then turn on Retry Failed Payments on the Billing Settings page.
+
 Create Payment Retry Rule Sets
 
 Payment retry rule sets specify how the failed payments must be retried based on the error codes across various retry categories. A payment retry rule set contains one or more payment retry rules. All payment rules in a payment retry rule set inherit the values of retry interval type, interval unit, and interval values, by default. You can, however, override the default values by specifying the same in the payment retry rule.
@@ -46,7 +49,6 @@ To retry failed payments four times, every first, fifth, tenth, and fifteenth da
 
 After you create a payment retry rule set, create one or more payment retry rules.
 
-IMPORTANT To automatically retry failed payments, add at least one default payment retry rule set and then turn on Retry Failed Payments on the Billing Settings page.
 Create Payment Retry Rules
 
 Payment retry rules define actionable parameters such as the maximum number of retries for the failed records and time intervals between subsequent retry attempts. Create payment retry rules specific to payment gateways and payment gateway error categories. All payment retry rules in a payment retry rule set inherit the default values for interval type, interval time, interval unit, and maximum retry count provided in the rule set. You can, however, override the default values of the payment retry rule set by specifying the values in the payment retry rule.
@@ -66,4 +68,8 @@ Enter one or more positive numbers for the interval value to indicate the time i
 If you selected the fixed interval type, enter a positive number less than or equal to 60. If you selected a staggered retry interval type, enter one or more positive numbers less than or equal to 60, separated by commas. Make sure that there are no whitespaces before or after the comma.
 Save your changes.
 
-Alternatively, if you already have an existing payment retry rule set, create a new payment retry rule by clicking New on the Related tab of the payment retry rule set. The configuration steps are the same.
+If you already have an existing payment retry rule set, create a new payment retry rule by clicking New on the Related tab of the payment retry rule set. The configuration steps are the same.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_setup_payment_retry_rules.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

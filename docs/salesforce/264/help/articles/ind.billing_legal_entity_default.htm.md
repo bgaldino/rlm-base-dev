@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_legal_entities_manage.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Legal Entity Automatic Population, Usage, and Considerations
@@ -73,3 +73,7 @@ If you edit the Legal Entity field on billing transaction records for which tran
 Manually update the Legal Entity field on the transaction journals created for the general ledger accounting assignment rule.
 Manually update the existing foreign exchange realized gain and loss transaction journals that are created for the Payment Line Invoice, Payment Line Invoice Line, and Credit Memo Line Invoice Line records.
 Reopen and close Legal Entity Accounting Period record to update the legal entity field for the foreign exchange unrealized gain and loss transaction journals.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_legal_entity_default.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

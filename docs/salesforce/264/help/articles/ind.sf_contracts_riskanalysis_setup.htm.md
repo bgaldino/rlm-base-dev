@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_riskanalysis_how.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Set Up Contract Risk Analysis
@@ -55,3 +55,7 @@ Check in an updated contract document version with a status of either InReview o
 In the Microsoft 365 Word add-in, open the contract document.
 Open the editor's side panel, and check that the Risk Analysis icon appears and that Run Risk Analysis is available.
 Run Risk Analysis appears only when the user is the contract author for the contract document version (CDV), the CDV status is InReview or InExternalReview, and the user has the permission sets listed in step 3.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_riskanalysis_setup.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

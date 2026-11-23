@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_configure_dunning_orchestration.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Initiate and Monitor Dunning Orchestration
@@ -25,3 +25,7 @@ This action creates an orchestration plan with an In Progress status and trigger
 When you initiate dunning orchestration, the orchestration plan shows the status of each step based on the collection plan’s milestones. You can check which steps are in waiting status before the due date or when the next milestone is reached. You can also check whether reminder emails have been sent to the customers, and if any manual escalation task has been assigned.
 
 NOTE If the Initiate Dunning Orchestration quick action button isn’t available, add it by editing the Collection Plan object’s page layout.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_initiate_dunning_orchestration.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

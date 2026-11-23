@@ -1,15 +1,15 @@
 ---
 article_id: ind.product_catalog_dyn_create_attribute_categories.htm
-title: Create Attribute Categories in Revenue Management
+title: Create Attribute Categories in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.product_catalog_dyn_create_attribute_categories.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_dynamic_attributes.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# Create Attribute Categories in Revenue Management
+# Create Attribute Categories in Revenue Cloud
 
 Organize product attributes into logical groups called attribute categories. Attribute categories help users easily find and use the right attributes when they create product classifications. You can assign attributes individually or through an attribute category to product classifications.
 
@@ -31,7 +31,7 @@ In the New Attribute Category window, enter these field values:
 Enter a name and description for the attribute category.
 Enter a unique code for the attribute category.
 Save your changes.
-Assign Attributes to Attribute Categories in Revenue Management
+Assign Attributes to Attribute Categories in Revenue Cloud
 
 After creating your attributes, you can group attributes by assigning them to attribute categories. You can then assign these attribute categories to product classifications to quickly assign the entire group of attributes.
 
@@ -44,3 +44,7 @@ You can also use the Attributes section within the Attribute Category related li
 NOTE Before you unassign attributes from an attribute category, make sure that the attribute to attribute category combination isn’t used by any product classification or product.
 Use Related Product Classification Attributes and Related Product Attributes related lists to determine the product classifications or products to which such attributes are assigned.
 Delete these attributes from the product classification or products, and then unassign the attributes from the category.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_dyn_create_attribute_categories.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_salesforce_pricing.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Access Your Pricing Information
@@ -15,7 +15,7 @@ View your product pricing either in a simple list view or using custom grid comp
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
 You can view pricing data through a dynamic grid component that populates with information created to define your product pricing. For flexibility, dedicated Lightning components allow you to see this data in either the grid-like layout or switch back to a traditional list view.
 
@@ -25,3 +25,7 @@ Pricing Discount Calendar
 Pricing analysts can easily see and understand the diverse discounts associated with a product through the pricing discount calendar.
 View Pricing Data Using Lightning Components
 Use dedicated Lightning components to view your data in either grid-like layout or move it back to list view.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_access_your_pricing_information.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

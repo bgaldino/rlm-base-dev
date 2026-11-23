@@ -7,177 +7,48 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Create or Update Asset From Order Action
 
-Create an asset for each order item in the specified order. New
-			assets are created for a new order. Modify existing assets for change order requests,
-			such as a renewal or a cancellation.
+Create an asset for each order item in the specified order. New assets are created for a new order. Modify existing assets for change order requests, such as a renewal or a cancellation.
 
-		
+When the custom product name for an order line item has a value, the asset name is set to custom product name.
 
-When the custom product name for an order line item has a value, the asset name is set
-				to custom product name.
-
-This action is available in API version 60.0 and
-				later.
-
-		
+This action is available in API version 60.0 and later.
 
 ## Special Access Rules
 
-You need the Assetize Order permission set to use
-				this invocable action.
-
-		
+You need the Assetize Order permission set to use this invocable action.
 
 ## Supported REST HTTP Methods
 
-			
-			
-				
-					
+**URI:** `/services/data/v68.0/actions/standard/createOrUpdateAssetFromOrder`
 
-**URI**
+**Formats:** JSON, XML
 
-					
-: `/services/data/v68.0/actions/standard/createOrUpdateAssetFromOrder`
+**HTTP Methods:** POST
 
-				
-				
-					
-
-**Formats**
-
-					
-: JSON, XML
-
-				
-				
-					
-
-**HTTP Methods**
-
-					
-: POST
-
-				
-				
-					
-
-**Authentication**
-
-					
-: `Authorization: Bearer
-							token`
-
-				
-			
-
-		
-
-		
+**Authentication:** `Authorization: Bearer token`
 
 ## Inputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Input | Details |
-| --- | --- |
-| orderId | **Type** string **Description** Required. ID of the order. |
-
-		
-
-		
+| Input | Type | Description |
+| --- | --- | --- |
+| orderId | string | Required. ID of the order. |
 
 ## Outputs
 
-			
-			
-
-					
-					
-					
-						
-							
-
-							
-
-						
-
-					
-
-					
-						
-							
-
-							
-
-: 
-
-: 
-
-						
-
-					
-
-				
-| Output | Details |
-| --- | --- |
-| requestId | **Type** string **Description** ID of the request to create an asset. |
-
-		
-
-		
+| Output | Type | Description |
+| --- | --- | --- |
+| requestId | string | ID of the request to create an asset. |
 
 ## Example
 
-			
-			
-				
-					
-
 **POST**
 
-					
-: 
-						
-
 This sample request is for the Create or Update Asset From Order action.
-
-						
 
 ```
 {
@@ -189,11 +60,7 @@ This sample request is for the Create or Update Asset From Order action.
 }
 ```
 
-						
-
 This sample response is for the Create or Update Asset From Order action.
-
-						
 
 ```
 [
@@ -207,3 +74,7 @@ This sample response is for the Create or Update Asset From Order action.
     }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_create_update_asset_from_order.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

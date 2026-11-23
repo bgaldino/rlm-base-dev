@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_context_use_case_mapping_to_create_and_update_contracts.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Use Case Mapping Parameters To Create and Update Contracts
@@ -25,3 +25,7 @@ Context Definition Name	The name of the context definition that stores the hydra
 Mapping Type	Specifies the mapping type used for the context use case mappings, such as hydration and persistence. The dropdown lists the mapping types associated with the selected context definition name.
 Mapping Name	The name of the mapping that's associated with the MappingType. For example, OppToCntrHydrationMapping and OppToCntrPersistenceMapping.
 Use Case Type	Specifies the usage that the context definition and mapping are defined for. Select Create Contract or Update Contract.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_use_case_mapping_parameters_for_contracts.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

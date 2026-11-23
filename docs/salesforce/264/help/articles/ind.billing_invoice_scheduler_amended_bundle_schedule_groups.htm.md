@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_generation.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Generated Invoice Details
@@ -15,12 +15,12 @@ View the relationship between invoice lines in invoice line bundles generated fo
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions with Revenue Management
+Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
 
 
-This feature is available with the Revenue Management Advanced license or the Revenue Management Billing license.
+This feature is available with the Revenue Cloud Advanced license or the Revenue Cloud Billing license.
 
-The Usage Management feature is available only with the the Revenue Management Billing license. Contact your Salesforce account executive for more information.
+The Usage Management feature is available only with the the Revenue Cloud Billing license. Contact your Salesforce account executive for more information.
 
 Invoices for Amended, Renewed, or Canceled Assets
 
@@ -77,3 +77,7 @@ Quantum Bit Subscription Pro	Dec 1, 2026 – Dec 31, 2026	1	$120
 Since the parent product is billed monthly, it generates three separate invoice lines: one each for October, November, and December. The child product, billed quarterly, generates a single invoice line covering the entire quarter, October through December.
 
 Because the Data Storage invoice line spans all three months, it overlaps with all three parent invoice lines. In this case, the October invoice line, the earliest billing period, is displayed as the associated parent invoice line.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_scheduler_amended_bundle_schedule_groups.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

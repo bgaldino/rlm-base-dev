@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_collections.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Collections Specialist Console
@@ -77,3 +77,7 @@ Resolve Case	Select a single dispute, then click Resolve Case to open the case r
 Create Task	Select a single invoice or dispute, then click Create Task to open the task composer and log a follow-up task.
 Set Up the Collections Specialist Console
 Grant your collections team access to the Collections Specialist Console: turn on the tab and add the console to the Collections app.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_collections_specialist_console.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

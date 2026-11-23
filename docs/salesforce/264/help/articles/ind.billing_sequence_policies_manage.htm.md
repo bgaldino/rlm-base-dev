@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_sequential_numbering_for_invoices_configure.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configure Sequence Policies
@@ -60,3 +60,7 @@ Save the changes.
 Sequential numbering is applied to invoice or credit memo records when they are posted. When you set up sequence policies, make sure to define a unique policy that resolves for invoice or credit memo records that meet a specific set of conditions.
 
 You can edit a sequence policy only when it’s in draft status. After activation, you can't edit the Increment Number, Sequence Pattern, and Target Object fields. You can also delete a deactivated sequence policy if it isn’t associated with any invoice and credit memo record.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_sequence_policies_manage.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

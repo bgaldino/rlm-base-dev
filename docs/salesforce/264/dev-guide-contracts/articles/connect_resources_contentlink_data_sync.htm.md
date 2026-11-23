@@ -7,72 +7,37 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: connect_resources_data_true_up_resources.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Data Sync (POST)
 
 Synchronize and save the updated values for a specified reference ID
-      and a set of content link IDs.
-
-    
+and a set of content link IDs.
 
 ## Resource
-
-      
-      
 
 ```
 /connect/content-link/data-sync
 ```
 
-    
-
-    
-
 ## Resource Example
-
-      
-      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/content-link/data-sync
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 65.0
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 POST
 
-    
-
-    
-
 ## Request Body for POST
 
-      
-      
-
 **JSON Example**
-
-      
 
 ```
 {
@@ -92,80 +57,19 @@ POST
 }
 ```
 
-      
-
 **Properties**
-
-      
-
-                        
-                          
-
-                          
-
-                          
-
-                          
-
-                          
-
-                        
-
-                        
-                          
-
-                          
-
-                          
-
-                          
-
-                          
-
-                        
-
-                        
-                          
-
-                          
-
-                          
-
-                          
-
-                          
-
-                        
-
-                        
-                          
-
-                          
-
-                          
-
-                          
-
-                          
-
-                        
-
-                      
 
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
-| `contentLink​DetailsList` | [Content Link Details Input](./connect_requests_content_link_details_input.htm.md)[] | List of content link records with their IDs and updated values. Each object includes a contentLinkId and a contentValue property value. | Required | 65.0 |
+| `contentLink​DetailsList` | [Content Link Details Input](./connect_requests_content_link_details_input.htm.md "Input representation of the request to synchronize content token data from a document to sObjects. It specifies the ID of an individual content link and its corresponding new value to be updated.")[] | List of content link records with their IDs and updated values. Each object includes a contentLinkId and a contentValue property value. | Required | 65.0 |
 | `isBulk​Request` | Boolean | Indicates whether fields associated with the same object ID are grouped and fetched together in a single bulk request (`true`) or not (`false`). | Optional | 66.0 |
 | `partialCommit` | Boolean | Indicates whether successful records should be committed in case of partial errors (`true`) or not (`false`). The default value is `false`. | Optional | 65.0 |
 | `reference​ObjectId` | String | ID of the target Salesforce object that must be updated, such as a Contract record. | Optional | 65.0 |
 
-    
-
-    
-
 ## Response Body for POST
 
-      
-      
+[Content Link Data Sync](./connect_responses_content_link_data_sync_output.htm.md "Output representation that contains the details of data synchronization with success and failure information.")
 
-[Content Link Data Sync](./connect_responses_content_link_data_sync_output.htm.md)
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/connect_resources_contentlink_data_sync.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

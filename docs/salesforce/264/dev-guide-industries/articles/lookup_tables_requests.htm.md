@@ -7,81 +7,42 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: lookup_tables_connect_apis.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Request Bodies
 
 Lookup Table API includes these request bodies.
 
-- 
-**[Decision Matrix Input](./connect_requests_decision_matrix_input.htm.md)**  
+- **[Decision Matrix Input](./connect_requests_decision_matrix_input.htm.md)**  
+  Input representation of the inputs passed to a decision matrix for lookup.
+- **[Decision Matrix Lookup Input](./connect_requests_decision_matrix_lookup.htm.md)**  
+  Input representation of the input for a decision matrix lookup.
+- **[Decision Matrix Options Input](./connect_requests_decision_matrix_options.htm.md)**  
+  Input representation of the options used to look up a decision matrix.
+- **[Decision Matrix Variable Input](./connect_requests_decision_matrix_variable.htm.md)**  
+  Input representation of the variables in an input passed to a decision matrix lookup.
+- **[Decision Model Export Input](./connect_requests_decision_model_export_input.htm.md)**  
+  Input representation of the request to export decision matrix data.
+- **[Decision Table Bulk Input](./connect_requests_decision_table_bulk_input.htm.md)**  
+  Input representation of the Decision Table bulk lookup.
+- **[Decision Table Condition Input](./connect_requests_decision_table_condition.htm.md)**  
+  Input representation of the decision table condition.
+- **[Decision Table Condition List Input](./connect_requests_decision_table_condition_list_input.htm.md)**  
+  Input representation of the Decision Table condition list.
+- **[Decision Table Input](./connect_requests_decision_table_input.htm.md)**  
+  Input representation of a decision table.
+- **[Decision Table Definition Input](./connect_requests_decision_table_definition_input.htm.md)**  
+  Input representation of a decision table definition.
+- **[Decision Table Parameter Input](./connect_requests_decision_table_parameter_input.htm.md)**  
+  Input representation of parameters defined for the decision table.
+- **[Decision Table Source Criteria Input](./connect_requests_decision_table_source_criteria_input.htm.md)**  
+  Input representation of source criteria for the decision table.
+- **[Decision Table Row List Input](./connect_requests_decision_table_row_list_input.htm.md)**  
+  Input representation of the data for a row in the CSV based decision table that has to be added or updated.
+- **[Decision Table Rows List Input](./connect_requests_decision_table_rows_list_input.htm.md)**  
+  Input representation of the request to update rows in a CSV based decision table.
 
-Input representation of the inputs passed to a decision matrix for       lookup.
+---
 
-- 
-**[Decision Matrix Lookup Input](./connect_requests_decision_matrix_lookup.htm.md)**  
-
-Input representation of the input for a decision matrix     lookup.
-
-- 
-**[Decision Matrix Options Input](./connect_requests_decision_matrix_options.htm.md)**  
-
-Input representation of the options used to look up a decision       matrix.
-
-- 
-**[Decision Matrix Variable Input](./connect_requests_decision_matrix_variable.htm.md)**  
-
-Input representation of the variables in an input passed to a decision       matrix lookup.
-
-- 
-**[Decision Model Export Input](./connect_requests_decision_model_export_input.htm.md)**  
-
-Input representation of the request to export decision matrix       data.
-
-- 
-**[Decision Table Bulk Input](./connect_requests_decision_table_bulk_input.htm.md)**  
-
-Input representation of the Decision Table bulk       lookup.
-
-- 
-**[Decision Table Condition Input](./connect_requests_decision_table_condition.htm.md)**  
-
-Input representation of the decision table condition.
-
-- 
-**[Decision Table Condition List Input](./connect_requests_decision_table_condition_list_input.htm.md)**  
-
-Input representation of the Decision Table condition       list.
-
-- 
-**[Decision Table Input](./connect_requests_decision_table_input.htm.md)**  
-
-Input representation of a decision table.
-
-- 
-**[Decision Table Definition Input](./connect_requests_decision_table_definition_input.htm.md)**  
-
-Input representation of a decision table       definition.
-
-- 
-**[Decision Table Parameter Input](./connect_requests_decision_table_parameter_input.htm.md)**  
-
-Input representation of parameters defined for the decision       table.
-
-- 
-**[Decision Table Source Criteria Input](./connect_requests_decision_table_source_criteria_input.htm.md)**  
-
-Input representation of source criteria for the decision     table.
-
-- 
-**[Decision Table Row List Input](./connect_requests_decision_table_row_list_input.htm.md)**  
-
-Input representation of the data for a row in the CSV based decision       table that has to be added or updated.
-
-- 
-**[Decision Table Rows List Input](./connect_requests_decision_table_rows_list_input.htm.md)**  
-
-Input representation of the request to update rows in a CSV based       decision table.
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/lookup_tables_requests.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

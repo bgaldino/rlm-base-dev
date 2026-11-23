@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_contract_types_contract_record_types_and_contract_type_configs.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Edit or Delete a Contract Type
@@ -29,3 +29,7 @@ Click Contract Type.
 Click the down arrow next to the contract type that you want to delete and then click Delete.
 
 You can't delete a contract type if one or more contracts are associated with the contract type.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_edit_or_delete_a_contract_type.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_set_up_salesforce_pricing.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Configure Record Sharing for Salesforce Pricing
@@ -15,7 +15,7 @@ For runtime users to access the data created by product designers or catalog adm
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 USER PERMISSIONS
 NEEDED
 To create and edit sharing settings:	
@@ -33,3 +33,7 @@ Save your changes.
 NOTE Pricing API access is managed via permission sets, which grant read access to entities and allow execution of pricing logic. This makes sharing rules optional for API calls, though sharing rules are still needed for UI access. Run time users have Run Decision Matrices and Run Expression Sets permissions by default.
 
 This completes the basic setup for Salesforce Pricing. To enable other features, see Understand Advanced Pricing Setup.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_record_sharing_pricing.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

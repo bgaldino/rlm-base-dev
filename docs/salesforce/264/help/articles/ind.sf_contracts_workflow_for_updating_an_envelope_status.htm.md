@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_e-signature_overview.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Workflow for Updating an Envelope Status
@@ -24,3 +24,7 @@ If envelope is signed, the contract state changes to Signed and the pdf version 
 If any of the signers decline to sign then the state will be changed to Signature Declined.
 
 For more information on scheduling a docusign job, see Schedule a DocuSign Job to Poll for Document Signed Status.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_workflow_for_updating_an_envelope_status.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

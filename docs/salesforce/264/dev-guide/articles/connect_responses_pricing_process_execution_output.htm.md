@@ -7,22 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Salesforce Pricing
 parent_page: pricing_api_responses.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Pricing Process Execution List
 
 Output representation of the execution details for different types of the pricing processes.
 
-    
-
 ## JSON Example
 
-      
-      
-
 ```
-
  {
   "pricingProcessExecutionList": [
     {
@@ -66,101 +60,6 @@ Output representation of the execution details for different types of the pricin
 }
 ```
 
-    
-
-    
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
 | `executionId` | String | Unique ID that's generated each time a pricing process is executed. | Small, 63.0 | 63.0 |
@@ -168,3 +67,7 @@ Output representation of the execution details for different types of the pricin
 | `executionTypeId` | String | Unique execution type ID that's generated internally for process executions, such as pricing or discovery procedures. | Small, 63.0 | 63.0 |
 | `message` | String | Message that's generated when a pricing process is executed. | Small, 63.0 | 63.0 |
 | `status` | String | Execution process status for a line item. Valid values are `Failure`, `Partial_Success`—Applies to `Pricing` and `Discovery` procedures when execution for some line items fails, or `Success`. | Small, 63.0 | 63.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_pricing_process_execution_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

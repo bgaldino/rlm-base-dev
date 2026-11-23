@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_revenue.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Dynamic Revenue Orchestrator
@@ -27,5 +27,11 @@ Clone and Reuse Fulfillment Workspaces
 Maintain consistent logic, rapidly scale operations, and standardize orchestration across your product catalog by cloning a fulfillment workspace in a single step. Duplicating a workspace copies its step definition groups, step definitions, and dependencies into a new workspace record.
 Navigate Orders Easily with the Enhanced Decomposition Viewer
 See order decomposition details clearly on the Decomposition Viewer. Line items list their subactions, and decomposition details show attribute names instead of code. When you turn on time-awareness, the time segments for each product are in chronological order while preserving bundle hierarchies, so multiyear orders are easier to validate.
+Optimize License Spend with Read-Only Access to Dynamic Revenue Orchestrator
+Assign the Dynamic Revenue Orchestrator Read-Only permission set so that Salesforce and integration users can view order fulfillment pipelines without a paid seat. The permission set is based on the Dynamic Revenue Orchestrator Read-Only permission set license that comes at no cost. Users can access the Orchestration Plan Viewer, Decomposition Viewer, and Decomposition Workspace and Dynamic Revenue Orchestrator runtime objects and fields. The permission set doesn't include Create, Edit, Delete, View All Records, or transactional permissions such as Submit Transactions.
 Changed Objects in Dynamic Revenue Orchestrator
 Do more with these changed Dynamic Revenue Orchestrator objects.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_dynamic_revenue_orchestrator.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

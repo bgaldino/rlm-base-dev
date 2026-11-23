@@ -7,156 +7,27 @@ release_name: Winter '27
 deliverable: clm_developer_guide
 section: Salesforce Contracts
 parent_page: clm_apis_responses.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Contract Document Version CC Response
 
 Output representation of the latest details of a contract document version, including its
-    ID, status, and associated documents and attachments.
-
-    
+ID, status, and associated documents and attachments.
 
 ## Properties
 
-      
-      
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `attachments` | [Content Document Response](./connect_responses_connect_api._content_document_respons.htm.md)[] | Details of the list of attachments associated with the contract document version. | Big, 60.0 | 60.0 |
-| `contract​Documents` | [Content Document Response](./connect_responses_connect_api._content_document_respons.htm.md)[] | Details of the list of documents associated with the contract. | Big, 60.0 | 60.0 |
+| `attachments` | [Content Document Response](./connect_responses_connect_api._content_document_respons.htm.md "Output representation of the individual content documents.")[] | Details of the list of attachments associated with the contract document version. | Big, 60.0 | 60.0 |
+| `contract​Documents` | [Content Document Response](./connect_responses_connect_api._content_document_respons.htm.md "Output representation of the individual content documents.")[] | Details of the list of documents associated with the contract. | Big, 60.0 | 60.0 |
 | `contract​Document​VersionId` | String | Record ID of the associated contract document version. | Small, 60.0 | 60.0 |
-| `contract​Documents` | [Content Document Response](./connect_responses_connect_api._content_document_respons.htm.md)[] | Details of the list of documents associated with the contract. | Big, 60.0 | 60.0 |
+| `contract​Documents` | [Content Document Response](./connect_responses_connect_api._content_document_respons.htm.md "Output representation of the individual content documents.")[] | Details of the list of documents associated with the contract. | Big, 60.0 | 60.0 |
 | `contract​Id` | String | Record ID of the parent contract. | Small, 60.0 | 60.0 |
 | `name` | String | Version name of the contract document version. | Small, 60.0 | 60.0 |
 | `status` | String | Status of the contract document version. | Small, 60.0 | 60.0 |
 
-    
-
-    
-
 ## JSON Sample
-
-      
-      
 
 ```
 {
@@ -187,3 +58,7 @@ Output representation of the latest details of a contract document version, incl
   ]
 }
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/connect_responses_contract_document_version_c_c.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_design_time_orchestration.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # In-Flight Order Changes
@@ -15,7 +15,7 @@ Sometimes customers request modifications to their orders after the order is sub
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management where Dynamic Revenue Orchestrator is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Dynamic Revenue Orchestrator is enabled
 
 Dynamic Revenue Orchestrator (DRO) accepts amended or canceled in-flight orders, decomposes the orders, reconciles changes, updates the orchestration plan, and runs the plan until fulfillment is complete.
 
@@ -41,3 +41,7 @@ Point of No Return State Propagation
 After an order item reaches Point of No Return (PONR), you can’t cancel or amend the order. When a PONR-marked fulfillment step transitions to an In Progress status, the PONR state change applies to the related commercial and technical products within the bundle, depending on the product type.
 In-Flight Order Change Example
 To help fulfillment designers understand how in-flight order changes work, refer to this example scenario.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_in_flight_order_changes.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

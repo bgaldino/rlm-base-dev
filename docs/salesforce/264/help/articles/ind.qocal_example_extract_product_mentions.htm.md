@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_extract_product_mentions.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Example: Extract Products from Opportunity Descriptions
@@ -38,3 +38,7 @@ Open an opportunity containing product details in its description.
 Enter Extract product details for this opportunity in the agent chat window.
 The agent retrieves product names, quantities, and attributes.
 Add the extracted products to a new or existing quote.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_example_extract_product_mentions.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

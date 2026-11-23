@@ -7,23 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Usage Management
 parent_page: usage_management_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Binding Object Resource Policy Detail
 
 Output representation of the details of a usage resource policy.
 
-        
-          
+## JSON Example
 
-**JSON example**
-
-          
-: This example includes the details of a usage resource
-            policy.
+This example includes the details of a usage resource policy.
 
 ```
 {
@@ -50,117 +43,15 @@ Output representation of the details of a usage resource policy.
 }
 ```
 
-        
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `drawdown​Order` | String | Specifies the order or way to process the drawdown. See [Usage Management Essentials](https://help.salesforce.com/s/articleView?id=ind.usage_management_essentials.htm&language=en_US) to know more about a drawdown process. | Big, 65.0 | 65.0 |
+| `drawdown​Order` | String | Specifies the order or way to process the drawdown. See [Usage Management Essentials](https://help.salesforce.com/s/articleView?id=ind.usage_management_essentials.htm&language=en_US "HTML (New Window)") to know more about a drawdown process. | Big, 65.0 | 65.0 |
 | `id` | String | ID of the `Binding Object Usage Resource Policy` record. | Big, 65.0 | 65.0 |
-| `ratingFrequency​Policy` | [Policy Detail](./connect_responses_policy_detail_output.htm.md) | Details of the rating frequency policy. | Big, 65.0 | 65.0 |
-| `usageAggregation​Policy` | [Policy Detail](./connect_responses_policy_detail_output.htm.md) | Details of the usage aggregation policy. | Big, 65.0 | 65.0 |
-| `usageCommitment​Policy` | [Policy Detail](./connect_responses_policy_detail_output.htm.md) | Details of the commitment policy of the usage resource. | Big, 65.0 | 65.0 |
-| `usageOverage​Policy` | [Policy Detail](./connect_responses_policy_detail_output.htm.md) | Details of the overage policy of the usage resource. | Big, 65.0 | 65.0 |
+| `ratingFrequency​Policy` | [Policy Detail](./connect_responses_policy_detail_output.htm.md "Output representation of the details of a policy.") | Details of the rating frequency policy. | Big, 65.0 | 65.0 |
+| `usageAggregation​Policy` | [Policy Detail](./connect_responses_policy_detail_output.htm.md "Output representation of the details of a policy.") | Details of the usage aggregation policy. | Big, 65.0 | 65.0 |
+| `usageCommitment​Policy` | [Policy Detail](./connect_responses_policy_detail_output.htm.md "Output representation of the details of a policy.") | Details of the commitment policy of the usage resource. | Big, 65.0 | 65.0 |
+| `usageOverage​Policy` | [Policy Detail](./connect_responses_policy_detail_output.htm.md "Output representation of the details of a policy.") | Details of the overage policy of the usage resource. | Big, 65.0 | 65.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_binding_object_resource_policy_detail_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

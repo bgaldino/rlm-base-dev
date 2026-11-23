@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_flow_screen_components.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Product Header
@@ -15,7 +15,7 @@ Product Header shows product information at the top of each product or option in
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 Product Header Responsibilities
 Display product information including name, description, image, quantity, and price
 Handle user input including quantity changes, PSM selection, and custom product name editing
@@ -63,3 +63,7 @@ The Product Header fires the Lightning Message Service (LMS) event shown in this
 
 EVENT ACTION	WHEN IS IT FIRED	PURPOSE
 LMS_EVENTS.VALUE_CHANGE	User changes fields	Notify Data Manager of the changes
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_flow_product_header.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

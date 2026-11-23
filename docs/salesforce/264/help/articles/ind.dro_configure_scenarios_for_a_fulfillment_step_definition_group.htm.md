@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_design_time_orchestration.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Configure a Fulfillment Scenario
@@ -15,7 +15,7 @@ Use a fulfillment scenario to define when Dynamic Revenue Orchestrator (DRO) add
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud
 USER PERMISSIONS
 NEEDED
 To set conditions for fulfillment step groups:	
@@ -37,7 +37,7 @@ Configuration	Select a product.	Select a product classification.	Leave Product a
 Applies To	An order that contains the selected product.	An order that contains a product in the selected product classification.	The entire order, regardless of its products.
 Execution Rule Fields	Supports product attributes, order line item fields, and order-level fields.	Supports product attributes, order line item fields, and order-level fields.	Supports only order-level fields. Product-specific and order line item fields aren't available.
 Changes After Order Submission	Supported. You can modify steps after the order is submitted.	Supported. You can modify steps after the order is submitted.	Not supported. You can't modify steps after the order is submitted.
-Example Usecases	Specialized handling or delivery for a specific product. =	Warehouse processing or other common requirements for a group of products. =	Credit checks, approval workflows, and regional requirements for the entire order.
+Example Usecases	Specialized handling or delivery for a specific product.	Warehouse processing or other common requirements for a group of products.	Credit checks, approval workflows, and regional requirements for the entire order.
 
 For example, you have a laptop bundle and fetching the laptop from the warehouse is a common fulfillment step. For this situation, define a fulfillment scenario with the condition that when the laptop bundle is added to an order, DRO adds a step to fetch the laptop from the warehouse.
 
@@ -71,3 +71,7 @@ This product-specific fulfillment scenario overrides the more general, class-bas
 
 Define Conditions for a Product Fulfillment Scenario
 After you've created a product fulfillment scenario, you can define conditions to determine whether the scenario is used during fulfillment.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_configure_scenarios_for_a_fulfillment_step_definition_group.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

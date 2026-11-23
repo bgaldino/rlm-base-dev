@@ -6,12 +6,12 @@ release: 264
 release_name: Winter '27
 area: revenue
 parent_article: release-notes.rn_billing.htm
-fetched_at: 2026-09-30
+fetched_at: 2026-11-23
 ---
 
 # Payments and Refunds
 
-Pass Level 2 and Level 3 payment data via Stripe and Adyen. Support flexible customer payment options through saved digital wallets and regional payment methods. Add Billing Self-Service components on LWR Experience Cloud sites, refund available credit balances back to the account, and automatically reconcile payment advice records with bank statements.
+Pass Level 2 and Level 3 payment data via Stripe and Adyen. Support flexible customer payment options through saved digital wallets and regional payment methods. Add Billing Self-Service components on LWR and Aura Experience Cloud sites, refund available credit balances back to the account, automatically reconcile payment advice records with bank statements, and undo refund line applications.
 
 Send Level 2 and Level 3 Payment Data Through a Native Payment Gateway
 Pass Level 2 and Level 3 enhanced transaction data in your payment requests to Stripe and Adyen native payment gateways. The payment batch run automatically includes the enhanced metadata in the payment gateway logs.
@@ -21,7 +21,15 @@ Accept Regional Payment Methods in the Self-Service Billing Portal Through Nativ
 Your customers can pay invoices by using regional payment methods from the Self-Service Billing Portal. Supported methods include Bancontact, Klarna, Affirm, Canadian Pre-Authorized Debit, and New Zealand BECS through Stripe and Adyen. These payment options expand coverage across different regions and payment preferences.
 Add Billing Self-Service Components in LWR Experience Cloud Sites
 Add billing capabilities to any Experience Cloud site built on Lightning Web Runtime (LWR) templates. The Posted Invoices, Invoice Line Viewer, Self-Service Payment Sheet, Self-Service Payment Confirmation, and Manage Saved Payment Methods components now appear in the Experience Cloud palette. Customers can view invoices, pay outstanding balances, save payment methods for future use, and manage saved payment methods from your branded site. Customize the page layout and component placement to match your site design. Add these components to existing LWR sites or build your own sites.
+Manage Saved Payment Methods in Aura Experience Sites
+Add the Saved Payment Methods for Aura component to any Experience Cloud site built by using Aura templates. Your customers can add, view, delete, or set a saved payment method as the default for their account on the site for faster and frictionless payments.
 Refund Available Credit Balances to Customer Accounts
 Your accounts receivable or collections team can now issue refunds for credit balances available on an account. Billing automatically reduces the outstanding credit balance when a refund is issued. Previously, you could only issue referenced refunds against payments, but with this enhancement, you can issue an available credit balance as a refund to a customer’s preferred payment method. You can issue refunds against credit memos or credit memo lines.
 Reconcile Payment Advice and Bank Data with Lockbox Processing
 Accelerate cash collection by automating payment reconciliation between payment advice records and bank statements. Billing uses Document AI to extract payment data from payment advice documents, checks, emails, or other payment advice records and automatically matches the payment data against available bank statements. Your accounts receivable team can then review all matched and unmatched transactions in the reconciled payment records.
+Undo Refund Line Applications with Unapply Support
+Correct a refund application without starting over. Unapply a refund line payment to reduce the refund balance automatically and update the total unapplied amount on the refund. The original refund line payment shows that it has been unapplied.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=release-notes.rn_billing_payments_refunds.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

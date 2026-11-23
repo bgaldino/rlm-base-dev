@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_partner_or_custom_tax_engine.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create a Tax Engine Provider and Tax Engine
@@ -57,3 +57,7 @@ Save your changes.
 Create tax policies and treatments. If the tax treatment is taxable, select this tax engine on the tax treatment. Then assign the tax policy to the relevant products. When Billing calculates tax for an order product, it uses the tax engine on the product’s tax treatment.
 
 NOTE Make sure that your tax engine supports tax calculation for credits used for negative invoice lines and credit memos. If the tax engine doesn’t support credits, Billing can’t process negative invoice lines and invoice void operations fail.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_tax_engine_and_engine_providers_create.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

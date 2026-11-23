@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pricing
 parent_article: ind.pricing_discover_and_explore.htm
-fetched_at: 2026-09-07
+fetched_at: 2026-11-23
 ---
 
 # Salesforce Pricing Editions, Permission Sets, and Personas
@@ -15,9 +15,9 @@ Salesforce Pricing uses permission sets to ensure different user roles have the 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license.
 
-Before you being creating users and profiles, and assigning them, we recommend checking out these resources.
+Before you begin creating users and profiles, and assigning them, we recommend checking out these resources.
 
 View and Manage Users
 Create or Clone Profiles
@@ -31,14 +31,13 @@ Supported Products and Editions
 Here's a list of products that provide access to Salesforce Pricing.
 
 PRODUCT	EDITIONS
-Health Cloud	Enterprise, Performance, and Unlimited
-Communications Cloud	Enterprise, Performance, and Unlimited
-Energy & Utilities Cloud	Enterprise, Performance, and Unlimited
-Insurance Cloud	Enterprise, Performance, and Unlimited
-Financial Services Cloud	Enterprise, Performance, and Unlimited
-Media Cloud	Enterprise, Performance, and Unlimited
-Asset Service Lifecycle Management	Enterprise, Performance, and Unlimited
-Revenue Management	Enterprise, Performance, and Unlimited
+Health Cloud	Enterprise, Unlimited, and Developer
+Communications Cloud	Enterprise, Unlimited, and Developer
+Energy & Utilities Cloud	Enterprise, Unlimited, and Developer
+Insurance Cloud	Enterprise, Unlimited, and Developer
+Financial Services Cloud	Enterprise, Unlimited, and Developer
+Media Cloud	Enterprise, Unlimited, and Developer
+Asset Service Lifecycle Management	Enterprise, Unlimited, and Developer
 Create Users and Profiles
 
 To begin, create users for Salesforce Pricing. Then assign users the appropriate permission sets. To help you plan, refer to the Salesforce Pricing Personas table.
@@ -52,7 +51,7 @@ Assign Permission Sets
 Assign permission sets to your users. Refer to this table for guidance on what permission sets are required for common Salesforce Pricing personas.
 
 PERSONA	DESCRIPTION	PERMISSION SET LICENSE NAME
-Pricing Admin	
+Salesforce Pricing Admin	
 
 The pricing admin can:
 
@@ -67,10 +66,14 @@ Salesforce Pricing Admin
 Salesforce Pricing Design Time User
 
 
-Pricing Design Time User	The pricing designer has access to all pricing elements and the pricing procedure feature.
-Salesforce Pricing Run Time	The pricing run time designer has read-only access to pricing data and can call Salesforce Pricing APIs.	
+Salesforce Pricing Design Time User	The pricing designer has access to all pricing elements and the pricing procedure feature.
+Salesforce Pricing Run Time User	The pricing run time designer has read-only access to pricing data and can call Salesforce Pricing APIs.	
 
 Salesforce Pricing Run Time User
 
 
-Pricing Analyst	The pricing analyst can access the Price Management app. They also have the create, read, update, and delete access to the records created on Salesforce Pricing.
+Salesforce Pricing Analyst	The pricing analyst can access the Price Management app. They also have the create, read, update, and delete access to the records created on Salesforce Pricing.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.pricing_permissions_salesforce_pricing.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

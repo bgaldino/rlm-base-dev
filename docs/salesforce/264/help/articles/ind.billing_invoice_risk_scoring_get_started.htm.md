@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_invoice_risk_scoring.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Get Started with Data 360 for Invoice Risk Score Predictions (Pilot)
@@ -15,7 +15,7 @@ Before you install and configure Invoice Risk Scoring, complete the prerequisite
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Performance, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
+Available in: Enterprise, Unlimited, and Developer Editions with the Revenue Cloud Advanced license or the Revenue Cloud Billing license
 USER PERMISSIONS
 NEEDED
 To access Data 360 setup:	Data Cloud Architect permission set
@@ -35,3 +35,7 @@ In the Standard Data Bundles section, select Advanced Billing Bundle Data Kit an
 Review the data fields and click Next.
 Click Deploy.
 If you have data in Data 360 in other orgs, you can import that data by setting up a CRM Salesforce Org connection.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_invoice_risk_scoring_get_started.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

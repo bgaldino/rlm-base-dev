@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_run_time_administration.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Create and Submit an Order
@@ -46,6 +46,10 @@ From the Add Products page, search for and select the products that you want to 
 Enter the product quantity and save your changes.
 Update the Order status to Activated and submit the order.
 To make the Submit Sales Transaction invocable action button available on the Order page, you must create a flow for submitting an order and then add that flow to the Order page. For more information, see Automate Order Submission to Dynamic Revenue Orchestrator.
-NOTE Some companies use additional Revenue Management features such as Product Catalog Management, Pricing, and Transaction Management. If this is the case, refer to Manage Quote and Order Lifecycle Actions.
+NOTE Some companies use additional Revenue Cloud features such as Product Catalog Management, Pricing, and Transaction Management. If this is the case, refer to Manage Quote and Order Lifecycle Actions.
 SEE ALSO
 Developer Documentation: Submit Sales Transactions (API)
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_create_and_submit_standard_orders.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

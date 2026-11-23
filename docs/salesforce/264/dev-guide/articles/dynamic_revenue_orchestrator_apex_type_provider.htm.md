@@ -7,57 +7,32 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Dynamic Revenue Orchestrator
 parent_page: dynamic_revenue_orchestrator_callouts_overview.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Apex Type Provider
 
 Implement custom integration logic via Apex by using the Apex Type Provider. This
-    provider requires an Apex Integration Developer to implement a custom Apex adapter
-    interface.
-
-    
+provider requires an Apex Integration Developer to implement a custom Apex adapter
+interface.
 
 Use a custom Apex adapter to:
 
-    
-      
 - Include and use integration parameters in adapter implementations such as timeouts,
-        credentials, and path.
-
-      
+  credentials, and path.
 - Generate and transform requests and responses via Omnistudio Integration Procedures or
-        Extract, Transform, Load (ETL) libraries.
-
-      
+  Extract, Transform, Load (ETL) libraries.
 - Enable asynchronous interaction pattern.
-
-      
 - Enable request and response logging by implementing a specific Apex interface.
-
-      
 - Handle errors, and integrate with fallout rules.
 
-    
-
-    
-
-To ‌configure the callout settings for Apex Type Provider, see [Configuration Steps](./dynamic_revenue_orchestrator_callout_configuration_steps.htm.md).
-
-    
+To ‌configure the callout settings for Apex Type Provider, see [Configuration Steps](./dynamic_revenue_orchestrator_callout_configuration_steps.htm.md "Before you set up a callout provider, configure the callout settings. The settings include the creation of a named credential and an external credential, the creation of an integration definition, and the configuration of a fulfillment step definition.").
 
 ## Integration Adapter Implementation
 
-      
-      
-
 Implement the `industriesintegrationfwk.ProcessIntegrationProvider` Apex interface. Use the
-          `industriesintegrationfwk.ApexProviderAttr ` class to
-        define and access the attribute values in the integration provider definition.
-
-      
+`industriesintegrationfwk.ApexProviderAttr`  class to
+define and access the attribute values in the integration provider definition.
 
 ```
 global with sharing class DROSampleOrderAdapter implements industriesintegrationfwk.ProcessIntegrationProvider {
@@ -129,19 +104,10 @@ global with sharing class DROSampleOrderAdapter implements industriesintegration
 }
 ```
 
-    
-
-    
-
 ## Error Handling
 
-      
-      
-
 This sample shows how to pass errors from response to orchestration via the `IntegrationResponse` interface in the Apex provider
-        implementation. See [ProcessIntegrationProvider Interface](https://help.salesforce.com/s/articleView?id=ind.consumption_framework_process_integration_provider_interface.htm&type=5&language=en_US).
-
-      
+implementation. See [ProcessIntegrationProvider Interface](https://help.salesforce.com/s/articleView?id=ind.consumption_framework_process_integration_provider_interface.htm&type=5&language=en_US "HTML (New Window)").
 
 ```
 public static industriesintegrationfwk.IntegrationCalloutResponse handleResponse(HttpResponse response) { 
@@ -192,36 +158,19 @@ public static industriesintegrationfwk.IntegrationCalloutResponse handleResponse
     }
 ```
 
-      
-
 The fulfillment step state changes to `Fatally Failed`,
-        and the error message is saved in the Execution Message field.
+and the error message is saved in the Execution Message field.
 
-      
-        
-      
+![A change of state in the Filfillment Step record page with Apex Service Type Provider.](/docs/resources/img/en-us/264.0?doc_id=dev_guides%2Frev_lifecycle_mgmt%2Fdynamic_revenue_orchestrator%2Fimages%2Fdynamic_revenue_orchestrator_callout_fulfillment_step.png&folder=revenue_lifecycle_management_dev_guide)
 
-      
-        
-      
-
-    
-
-    
+![A change of state in the Filfillment Plan record page with Apex Service Type Provider.](/docs/resources/img/en-us/264.0?doc_id=dev_guides%2Frev_lifecycle_mgmt%2Fdynamic_revenue_orchestrator%2Fimages%2Fdynamic_revenue_orchestrator_callout_fulfillment_plan.png&folder=revenue_lifecycle_management_dev_guide)
 
 ## Apex Advanced Interface Implementation
 
-      
-      
-
 To use advanced features such as logging, the Apex provider must implement the Apex
-        Provider Advanced interface. You must use the HttpBaseProvider client for HTTP requests.
-
-      
+Provider Advanced interface. You must use the HttpBaseProvider client for HTTP requests.
 
 This example shows a sample of the `ProcessIntegrationProviderAdvanced` Apex interface implementation.
-
-      
 
 ```
 global with sharing class DFOApexVlocMockWithDelay
@@ -242,47 +191,32 @@ request.setBody(msgBody);
 // Send request
 //HttpResponse response = httpProvider.httpCallout(request);
 HttpResponse response = new Http().send(request);
-
 ```
-
-    
-
-    
 
 ## Integration Definition Configuration
 
-      
-      
-
-Select the
-              **Save
-              the request and response as attachments to the record** checkbox for the
-            integration definition to save request and response payloads as attachments to the
-            Integration Provider Execution record. Content publish limits apply when saving request
-            and response payloads as attachments. Use [Shield
-              Platform Encryption](https://help.salesforce.com/s/articleView?id=xcloud.security_pe_overview.htm&type=5&language=en_US) for secure storage of sensitive information.
-
-      
+Select the **Save the request and response as attachments to the
+record** checkbox for the integration definition to save request and response
+payloads as attachments to the Integration Provider Execution record. Content publish limits
+apply when saving request and response payloads as attachments. Use [Shield Platform
+Encryption](https://help.salesforce.com/s/articleView?id=xcloud.security_pe_overview.htm&type=5&language=en_US "HTML (New Window)") for secure storage of sensitive information.
 
 See [Create an
-          Integration Definition](https://help.salesforce.com/s/articleView?id=ind.consumption_framework_integration_definitions.htm&type=5&language=en_US).
-
-    
-
-    
+Integration Definition](https://help.salesforce.com/s/articleView?id=ind.consumption_framework_integration_definitions.htm&type=5&language=en_US "HTML (New Window)").
 
 ## Log Records
 
-      
-      
-
 Integration Provider execution records are created on every request and associated with the
-        fulfillment step. The referenced object identifier is set to order item or fulfillment order
-        line item ID. See[IntegrationProviderExecution](https://developer.salesforce.com/docs/atlas.en-us.264.0.sfFieldRef.meta/sfFieldRef/salesforce_field_reference_IntegrationProviderExecution.htm).
-
-      
+fulfillment step. The referenced object identifier is set to order item or fulfillment order
+line item ID. See[IntegrationProviderExecution](https://developer.salesforce.com/docs/atlas.en-us.264.0.sfFieldRef.meta/sfFieldRef/salesforce_field_reference_IntegrationProviderExecution.htm).
 
 To view the Integration Provider execution records, configure the Fulfillment Step record
-        page to include the Integration Provider Executions related list by using Lightning App
-        Builder. See [Lightning App
-          Builder](https://help.salesforce.com/s/articleView?id=platform.lightning_app_builder_overview.htm&type=5&language=en_US).
+page to include the Integration Provider Executions related list by using Lightning App
+Builder. See [Lightning App
+Builder](https://help.salesforce.com/s/articleView?id=platform.lightning_app_builder_overview.htm&type=5&language=en_US "HTML (New Window)").
+
+![The Lightning App Builder page to add the Integration Provider Executions related list to the Fulfillment Step record page.](/docs/resources/img/en-us/264.0?doc_id=dev_guides%2Frev_lifecycle_mgmt%2Fdynamic_revenue_orchestrator%2Fimages%2Fdynamic_revenue_orchestrator_fulfillment_step_record_page.png&folder=revenue_lifecycle_management_dev_guide)
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/dynamic_revenue_orchestrator_apex_type_provider.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

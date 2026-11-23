@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: apex_namespace_RulesAppln.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # RulesApplicationSummaryResponse Class
 
@@ -18,48 +16,25 @@ Contains properties to store the summary details of the rules application, inclu
 
 ## Namespace
 
-[RulesAppln](./apex_namespace_RulesAppln.htm.md)
+[RulesAppln](./apex_namespace_RulesAppln.htm.md "Apply payments and credits to posted invoices by adhering to the specified rules.")
 
-- 
-**[RulesApplicationSummaryResponse Constructors](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_constructors)**  
-
-Learn more about the constructors available with the RulesApplicationSummaryResponse     class.
-
-- 
-**[RulesApplicationSummaryResponse Properties](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_properties)**  
-
-Learn more about the properties available with the RulesApplicationSummaryResponse     class.
-
-  
+- **[RulesApplicationSummaryResponse Constructors](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_constructors)**  
+  Learn more about the constructors available with the RulesApplicationSummaryResponse class.
+- **[RulesApplicationSummaryResponse Properties](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_properties)**  
+  Learn more about the properties available with the RulesApplicationSummaryResponse class.
 
 ## RulesApplicationSummaryResponse Constructors
 
-  
-  
-  
 Learn more about the constructors available with the RulesApplicationSummaryResponse
-    class.
-
-    
-      
+class.
 
 The `RulesApplicationSummaryResponse` class includes these
-        constructors.
+constructors.
 
-    
-
-    
-  
-
-- 
-**[RulesApplicationSummaryResponse(fetchedPaymentsCount, fetchedCreditMemosCount, totalPaymentApplications, totalCreditMemoApplications, areAllInvoicesConsidered)](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_ctor)**  
-
-Initializes the RulesApplicationSummaryResponse class that stores the summary details of the rules application.
-
-- 
-**[RulesApplicationSummaryResponse()](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_ctor_2)**  
-
-Initializes an empty instance of the RulesApplicationSummaryResponse class.
+- **[RulesApplicationSummaryResponse(fetchedPaymentsCount, fetchedCreditMemosCount, totalPaymentApplications, totalCreditMemoApplications, areAllInvoicesConsidered)](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_ctor)**  
+  Initializes the RulesApplicationSummaryResponse class that stores the summary details of the rules application.
+- **[RulesApplicationSummaryResponse()](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_ctor_2)**  
+  Initializes an empty instance of the RulesApplicationSummaryResponse class.
 
 ### RulesApplicationSummaryResponse(fetchedPaymentsCount, fetchedCreditMemosCount, totalPaymentApplications, totalCreditMemoApplications, areAllInvoicesConsidered)
 
@@ -77,44 +52,33 @@ RulesAppln.RulesApplicationSummaryResponse, newinstance, [Integer, Integer, Inte
 
 **fetchedPaymentsCount**
 
-: Type: Integer
-
-: 
+Type: Integer
 
 Number of payment records retrieved for an account.
 
 **fetchedCreditMemosCount**
 
-: Type: Integer
-
-: 
+Type: Integer
 
 Number of credit memo or credit memo line records retrieved for an account.
 
 **totalPaymentApplications**
 
-: Type: Integer
-
-: 
+Type: Integer
 
 Number of payments that are applied to invoices and invoice lines.
 
 **totalCreditMemoApplications**
 
-: Type: Integer
-
-: 
+Type: Integer
 
 Number of credit memos that are applied to the invoice or invoice lines.
 
 **areAllInvoicesConsidered**
 
-: Type: Boolean
+Type: Boolean
 
-: 
-
-Indicates whether all invoices are considered (`true`) or not
-                (`false`).
+Indicates whether all invoices are considered (`true`) or not (`false`).
 
 ### RulesApplicationSummaryResponse()
 
@@ -128,51 +92,24 @@ Initializes an empty instance of the RulesApplicationSummaryResponse class.
 RulesAppln.RulesApplicationSummaryResponse, newinstance, [], RulesAppln.RulesApplicationSummaryResponse
 ```
 
-  
-
 ## RulesApplicationSummaryResponse Properties
 
-  
-  
-  
 Learn more about the properties available with the RulesApplicationSummaryResponse
-    class.
-
-    
-      
+class.
 
 The `RulesApplicationSummaryResponse` class includes these
-        properties.
+properties.
 
-    
-
-    
-  
-
-- 
-**[areAllInvoicesConsidered](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_areAllInvoicesConsidered)**  
-
-Indicates whether all invoices are considered (true) or not (false).
-
-- 
-**[fetchedCreditMemosCount](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_fetchedCreditMemosCount)**  
-
-Get the number of credit memo or credit memo line records retrieved for an     account.
-
-- 
-**[fetchedPaymentsCount](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_fetchedPaymentsCount)**  
-
-Get the number of payment records retrieved for an account.
-
-- 
-**[totalCreditMemoApplications](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_totalCreditMemoApplications)**  
-
-Get the number of credit memos that are applied to the invoice or invoice     lines.
-
-- 
-**[totalPaymentApplications](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_totalPaymentApplications)**  
-
-Get the number of payments that are applied to invoices and invoice lines.
+- **[areAllInvoicesConsidered](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_areAllInvoicesConsidered)**  
+  Indicates whether all invoices are considered (true) or not (false).
+- **[fetchedCreditMemosCount](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_fetchedCreditMemosCount)**  
+  Get the number of credit memo or credit memo line records retrieved for an account.
+- **[fetchedPaymentsCount](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_fetchedPaymentsCount)**  
+  Get the number of payment records retrieved for an account.
+- **[totalCreditMemoApplications](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_totalCreditMemoApplications)**  
+  Get the number of credit memos that are applied to the invoice or invoice lines.
+- **[totalPaymentApplications](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md#apex_RulesAppln_RulesApplicationSummaryResponse_totalPaymentApplications)**  
+  Get the number of payments that are applied to invoices and invoice lines.
 
 ### areAllInvoicesConsidered
 
@@ -193,7 +130,7 @@ Type: Boolean
 ### fetchedCreditMemosCount
 
 Get the number of credit memo or credit memo line records retrieved for an
-    account.
+account.
 
 #### Signature
 
@@ -226,7 +163,7 @@ Type: Integer
 ### totalCreditMemoApplications
 
 Get the number of credit memos that are applied to the invoice or invoice
-    lines.
+lines.
 
 #### Signature
 
@@ -255,3 +192,7 @@ RulesAppln.RulesApplicationSummaryResponse, totalPaymentApplications
 #### Property Value
 
 Type: Integer
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RulesAppln_RulesApplicationSummaryResponse.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

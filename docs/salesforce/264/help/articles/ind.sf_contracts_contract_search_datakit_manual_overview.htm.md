@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_set_up_contract_search_for_contract_ai.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Manually Configure Contract Search
@@ -33,3 +33,7 @@ Create a Vector Search Index for Contract Documents for Manual Contract Search S
 Use the Search Index Builder to create a vector search index on Contract Document Version. This index powers AI-driven contract search using semantic matching and document filtering.
 Configure an Integration User for Manual Contract Search Set Up
 Create and configure an integration user to control access to contract data in Data Cloud. This user is required to support secure contract search operations.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_contract_search_datakit_manual_overview.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

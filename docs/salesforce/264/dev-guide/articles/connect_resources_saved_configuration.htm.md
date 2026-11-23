@@ -7,75 +7,38 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: product_configurator_business_apis_resources.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Saved Configuration (DELETE, PUT)
 
 Update or delete a record's saved configuration by using the configuration ID.
 
-    
-
 ## Resource
-
-      
-      
 
 ```
 /connect/cpq/configurator/saved-configuration/id
 ```
 
-      
-
 The id parameter is the ID of the configuration that you want to update or delete.
 
-    
-
-    
-
 ## Resource Example
-
-      
-      
 
 ```
 https://yourInstance.salesforce.com/services/data/v68.0/connect/cpq/configurator/saved-configuration/5KPxx0025063GSmSAX
 ```
 
-    
-
-    
-
 ## Available Version
-
-      
-      
 
 63.0
 
-    
-
-    
-
 ## HTTP Methods
-
-      
-      
 
 DELETE, PUT
 
-    
-
-    
-
 ## Request Body for PUT
 
-      
-      
-
 **JSON Example**
-
-      
 
 ```
 {
@@ -86,97 +49,22 @@ DELETE, PUT
 }
 ```
 
-      
-
 **Properties**
 
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |
 | `data` | String | JSON object that contains the details of the sales transaction, formatted as a string. | Required | 63.0 |
 | `description` | String | Description of the configuration. | Required | 63.0 |
 | `name` | String | Name of the configuration. | Required | 63.0 |
 
-    
-
-    
-
 ## Response Body for PUT
 
-      
-      
-
-[Configuration Update](./connect_responses_update_favorite_output.htm.md)
-
-    
-
-  
+[Configuration Update](./connect_responses_update_favorite_output.htm.md "Output representation of the details of the updated configuration.")
 
 #### See Also
 
-- [*Salesforce Help*: Considerations to Save and Reuse Configurations](https://help.salesforce.com/s/articleView?id=ind.product_configurator_considerations_to_save_and_reuse_configurations.htm&language=en_US)
+- [*Salesforce Help*: Considerations to Save and Reuse Configurations](https://help.salesforce.com/s/articleView?id=ind.product_configurator_considerations_to_save_and_reuse_configurations.htm&language=en_US "Salesforce Help: Considerations to Save and Reuse Configurations - HTML (New Window)")
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_saved_configuration.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

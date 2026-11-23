@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_time_aware_fulfillment.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # Example: Add Action with Time-Awareness Turned On
@@ -39,3 +39,7 @@ Tenant: Three FOLIs that maintain a quantity of 1 across all three years. Becaus
 Each FOLI produces an Add action because no prior Fulfillment Asset or FASP records existed for these technical products on this account.
 
 Because the FOLIs are sliced by time, DRO creates FASP 1, FASP 2, and FASP 3 for each FA. This structure prevents data overwrites and makes sure that the asset configuration that is active at any point in time drives orchestration.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_time_aware_fulfillment_example_add.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

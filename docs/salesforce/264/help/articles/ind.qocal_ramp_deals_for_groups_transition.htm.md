@@ -6,16 +6,16 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.understanding_ramp_deals.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Ramp Deals for Lines vs. Ramp Deals for Groups
 
-There are two types of ramp deals in Revenue Management - Ramp Deals for Lines and Ramp Deals for Groups.
+There are two types of ramp deals in Revenue Cloud - Ramp Deals for Lines and Ramp Deals for Groups.
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 Ramp Deals for Groups
 
 Apply ramp segments at the group level, covering all eligible products within a group together. This is the recommended approach for new implementations. All subscription products that meet the requirements are eligible by default — no per-product configuration in Product Catalog Management is needed. To provide trials at no additional cost with ramp deals for groups, sales reps apply a 100% manual discount to segments at the group or line level.
@@ -37,3 +37,7 @@ Ramp Deals for Lines
 Apply ramp segments at the individual transaction line level. A subscription-based product appears as a single quote line item divided into segments, each with its own price, quantity, and discount. To use this approach, admins configure product ramp segments in Product Catalog Management — only products explicitly set up with ramp segments are eligible. To provide trials at no additional cost with ramp deals for lines, you create product segments with the Free Trial segment type.
 
 IMPORTANT Salesforce recommends that you use Ramp Deals for Groups only.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_ramp_deals_for_groups_transition.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

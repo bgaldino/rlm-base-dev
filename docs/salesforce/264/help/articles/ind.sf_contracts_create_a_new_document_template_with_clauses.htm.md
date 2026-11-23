@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_create_template_using_microsoft_365_word.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Create a Document Template by Using Clauses
@@ -28,3 +28,7 @@ To insert a clause into the document, select the clause, and then click Insert C
 The add-in panel shows the added clause. You can also select the clause in the add-in panel to locate the content in the document. Alternatively, you can link to a clause instead of inserting a static copy. Copy a clause token, such as {{CL_ClauseSetName_ClauseName_en_US}}, directly into the document from the Latest Clause Template Identifier or Clause Template Version Identifier field on your clause record. See Tokens for Document Clauses and Document Templates.
 After adding the clauses and document content, save your changes.
 This uploads the document to the template designer.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_create_a_new_document_template_with_clauses.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

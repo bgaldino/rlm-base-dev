@@ -7,96 +7,47 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Context Service
 parent_page: context_attribute_management.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context Attribute ID (GET, DELETE)
 
 Query and delete a context attribute using an ID.
 
-    
-      
-        
-          
-
-**Resource**
-
-          
-: 
-            
+## Resource
 
 ```
-/connect/context-nodes/${contextNodeId}/context-attributes/${contextAttributeId}
+/connect/context-nodes/contextNodeId/context-attributes/contextAttributeId
 ```
 
-          
-
-        
-        
-          
-
-**Example for GET**
-
-          
-: 
-            
+## Example for GET
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-nodes/${contextNodeId}/context-attributes/${contextAttributeId}
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-nodes/contextNodeId/context-attributes/contextAttributeId
 ```
 
-          
-
-        
-        
-          
-
-**Example for DELETE **
-
-          
-: 
-            
+## Example for DELETE
 
 ```
-https://yourInstance.salesforce.com/services/data/v59.0/connect/context-nodes/${contextNodeId}/context-attributes/${contextAttributeId}
+https://yourInstance.salesforce.com/services/data/v59.0/connect/context-nodes/contextNodeId/context-attributes/contextAttributeId
 ```
 
-          
+## Available Version
 
-        
-        
-          
+59.0
 
-**Available version**
+## Requires Chatter
 
-          
-: 59.0
+No
 
-        
-        
-          
+## HTTP Methods
 
-**Requires Chatter**
+GET, DELETE
 
-          
-: No
+## Response Body for GET
 
-        
-        
-          
+[Context Attribute Output](./connect_responses_context_attribute.htm.md "Output representation of the context attribute.")
 
-**HTTP methods**
+---
 
-          
-: GET, DELETE
-
-        
-        
-          
-
-**Response body for GET**
-
-          
-: [Context Attribute Output](./connect_responses_context_attribute.htm.md)
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_resources_context_attribute_id.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

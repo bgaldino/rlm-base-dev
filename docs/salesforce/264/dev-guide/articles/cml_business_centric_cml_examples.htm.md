@@ -7,26 +7,17 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Configurator
 parent_page: cml_business-centric_cml_guidelines_quantity_and_aggregation_fun.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Business-Centric CML Examples
 
 These Constraint Modeling Language (CML) structures implement quantity aggregation and
-    resolve calculation dependencies.
-
-    
+resolve calculation dependencies.
 
 ## Example 1: Derived Aggregates (Total Quantity or Sum)
 
-      
-      
-
 This CML example shows how to model bundle rollups by separating aggregation from validation, ensuring correct calculation order, solver stability, and business-rule consistency
-
-      
 
 ```
 type LineItem;
@@ -52,48 +43,28 @@ type GeneralModel900 : ModelClassification {
 }
 ```
 
-    
-
-    
-
 ## Example Description and Configurator Result
 
-      
-      
-
 In example 1, the `GeneratorSet` type contains the
-          `totalItemPowerKW` variable that is assigned with the
-          `totalPowerKW`. The model specifies a relationship
-        based on the product classification (`modelClassification`). This relationship includes aggregation using the sum()
-        function that calculates the `totalPowerKW` from the
-        products selected in the `modelClassification` during
-        bundle configuration. The model contains a message for displaying the `totalItemPowerKW` with the `modelClassification.totalPowerKW` on the Product Configuration.
-
-      
+`totalItemPowerKW` variable that is assigned with the
+`totalPowerKW`. The model specifies a relationship
+based on the product classification (`modelClassification`). This relationship includes aggregation using the sum()
+function that calculates the `totalPowerKW` from the
+products selected in the `modelClassification` during
+bundle configuration. The model contains a message for displaying the `totalItemPowerKW` with the `modelClassification.totalPowerKW` on the Product Configuration.
 
 ```
 message(true, "GeneratorSet totalItemPowerKW = {} kW (calculated roll-up). Sum of selected ModelClassification powerKW values = {} kW.", totalItemPowerKW, modelclassification.totalPowerKW);
 ```
 
-      
-
 As a result, the engine calculates the `totalPowerKW` of
-        user selected products in the `modelClassification` and
-        assigns this value to the `totalItemPowerKW`. The system
-        displays both values in the information message on the Product Configuration.
-
-    
-
-    
+user selected products in the `modelClassification` and
+assigns this value to the `totalItemPowerKW`. The system
+displays both values in the information message on the Product Configuration.
 
 ## Example 2: Resolving Circular Dependencies
 
-      
-      
-
 This pattern breaks unsolvable loops by enforcing unidirectional data flow (Parent dictates Child quantity based on Child aggregates).
-
-      
 
 ```
 type LineItem;
@@ -122,36 +93,20 @@ type VoltageConnection_240_416 : VoltageClassification;
 type VoltageConnection_255_440 : VoltageClassification;
 ```
 
-    
-
-    
-
 ## Example Description and Configurator Result
 
-      
-      
-
 In example 2, the relationship includes aggregation using the `total()` function that calculates the `sumOfChildPower` from the selected products in the `voltageclassification`. The `GeneratorSet`
-        type contains the `totalDistributionValue` with the
-        explicit domain ([0.00..1000.00]). The model contains two constraints with corresponding
-          `@sequence` annotation to enforce the logical order for
-        calculation of the `calcTotalDistribution` (using child
-        products data) and defining the quantity for the `voltageclassification` child items.
-
-    
-
-    
+type contains the `totalDistributionValue` with the
+explicit domain ([0.00..1000.00]). The model contains two constraints with corresponding
+`@sequence` annotation to enforce the logical order for
+calculation of the `calcTotalDistribution` (using child
+products data) and defining the quantity for the `voltageclassification` child items.
 
 ## Example 3: Grouped Aggregation (Sum of Users Across Regions)
 
-      
-      
-
 This advanced pattern uses the `@(groupBy=attribute)`
-        annotation to create virtual components (`RegionGroup`)
-        for aggregation, referencing the source data relation in the parent type (`SubscriptionOrder.licenses`) using the `sourceContextNode` annotation.
-
-      
+annotation to create virtual components (`RegionGroup`)
+for aggregation, referencing the source data relation in the parent type (`SubscriptionOrder.licenses`) using the `sourceContextNode` annotation.
 
 ```
 // 1. Base Product Type (e.g., Regional License)
@@ -180,16 +135,13 @@ type SubscriptionOrder {
 }
 ```
 
-    
-
-    
-
 ## Example Description and Configurator Result
 
-      
-      
-
 In example 3, the `licenses` relationship that is
-        brought as an external source by `@(sourceContextNode="SubscriptionOrder.licenses")`, includes an aggregation using
-        the `sum()` function that calculates the `groupTotalUsers` from the selected products in the `RegionalLicense`. The `RegionGroup` type contains the `groupTotalUsers` variable that serves the aggregation. The `SubscriptionOrder` type contains the aggregate metric `totalUsers` which is calculated by summing all `groupTotalUsers`. The model contains one core constraint on
-          `RegionGroup` to enforce that `groupTotalUsers` equals the sum of all `userCount` from its member licenses.
+brought as an external source by `@(sourceContextNode="SubscriptionOrder.licenses")`, includes an aggregation using
+the `sum()` function that calculates the `groupTotalUsers` from the selected products in the `RegionalLicense`. The `RegionGroup` type contains the `groupTotalUsers` variable that serves the aggregation. The `SubscriptionOrder` type contains the aggregate metric `totalUsers` which is calculated by summing all `groupTotalUsers`. The model contains one core constraint on
+`RegionGroup` to enforce that `groupTotalUsers` equals the sum of all `userCount` from its member licenses.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/cml_business_centric_cml_examples.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

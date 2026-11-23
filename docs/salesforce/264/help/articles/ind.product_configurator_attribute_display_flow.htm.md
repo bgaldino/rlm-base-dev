@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_set_up_flow.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Configure Attribute Display on Product Option Cards
@@ -15,7 +15,7 @@ Show product attributes on the product option cards, where sales reps can edit t
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 USER PERMISSIONS NEEDED
 To create and edit a product configuration flow:	Product Configurator
 From Setup, in the Quick Find box, enter Flow, and then select Flows.
@@ -27,3 +27,7 @@ You can show up to 5 attributes.
 Save your changes and activate the flow.
 
 The attributes that appear on each option card are determined by the sequence you define for the product attributes. Set the sequence by updating the Sequence field in the Attribute Definition Information section when you edit the product attribute or the product classification attribute. For example, if you set the attributes limit to 5, only the product attributes with sequence numbers 1 through 5 appear on the option card.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_attribute_display_flow.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

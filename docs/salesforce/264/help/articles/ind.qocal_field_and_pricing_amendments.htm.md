@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_advanced_amendment_and_renewal_features.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Manage Assets with Field and Price Amendments
@@ -15,7 +15,7 @@ Update asset details and adjust pricing without changing quantities, attributes,
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) where Transaction Management is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Transaction Management is enabled
 USER PERMISSIONS NEEDED
 To apply field and pricing amendments:	
 
@@ -64,3 +64,7 @@ EXAMPLE Decrease the Sales Price
 A customer owns 50 CloudSQL seats at a sales price of $50 per user per month for a 3-month subscription. During the term, the sales rep agrees to lower the price to $45 per user per month.
 
 The rep starts a price amendment, sets the effective date, changes the sales price to $45, and leaves the quantity unchanged. The amendment reprices the 50 seats at $45 per user per month for the remainder of the term. The quote line item detail records show a credit for the previous price and a charge for the new price, and the totals roll up to the quote line item and subtotal levels.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_field_and_pricing_amendments.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,15 +7,13 @@ release_name: Winter '27
 deliverable: industries_reference
 section: Business Rules Engine
 parent_page: decision_explainer_bre_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Explainability Log Detail
 
-Output representation of the list of  explainability
-    logs.
+Output representation of the list of explainability
+logs.
 
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
@@ -26,3 +24,7 @@ Output representation of the list of  explainability
 | `application​Type` | String | The name of the application for which the explainability service is run. This matches one of the valid values in the ExplainabilityActionDef `ApplicationType` field. | Small, 56.0 | 56.0 |
 | `name` | String | A name to identify the explainability log record. | Small, 56.0 | 56.0 |
 | `processType` | String | The process type of the associated application for which the explainability action log is generated. This matches one of the valid values in the `ProcessType` field. | Small, 56.0 | 56.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/connect_responses_explainability_log_detail.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

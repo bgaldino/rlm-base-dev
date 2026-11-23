@@ -7,26 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Context-Aware Billing Schedule
 
 Output representation of the context-aware billing schedule.
 
-        
-          
+## JSON Example
 
-**JSON example**
-
-          
-: This request shows a sample success response.
-
-          
-: 
-            
+This request shows a sample success response.
 
 ```
 { 
@@ -37,14 +27,7 @@ Output representation of the context-aware billing schedule.
 }
 ```
 
-          
-
-          
-: This request shows a sample error response.
-
-          
-: 
-            
+This request shows a sample error response.
 
 ```
 { 
@@ -61,91 +44,13 @@ Output representation of the context-aware billing schedule.
 }
 ```
 
-          
-
-        
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `errors` | [Context Aware Billing Schedule Error](./connect_responses_context_aware_billing_schedule_error.htm.md)[] | Error response if the generation of the billing schedule fails. | Big, 62.0 | 62.0 |
+| `errors` | [Context Aware Billing Schedule Error](./connect_responses_context_aware_billing_schedule_error.htm.md "Output representation of the error response related to the generation of the billing schedule.")[] | Error response if the generation of the billing schedule fails. | Big, 62.0 | 62.0 |
 | `request​Identifier` | String | Unique request identifier that you can use to poll the asynchronous request. | Big, 62.0 | 62.0 |
 | `statusURL` | String | Status URL to track the operation. | Big, 62.0 | 62.0 |
 | `success` | Boolean | Indicates whether the processing of the billing schedule is successful (`true`) or not (`false`). | Big, 62.0 | 62.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_context_aware_billing_schedule_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

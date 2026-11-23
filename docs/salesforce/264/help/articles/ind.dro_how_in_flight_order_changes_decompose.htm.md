@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: dro
 parent_article: ind.dro_in_flight_order_changes.htm
-fetched_at: 2026-09-05
+fetched_at: 2026-11-23
 ---
 
 # In-Flight Order Change Example
@@ -15,7 +15,7 @@ To help fulfillment designers understand how in-flight order changes work, refer
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management where Dynamic Revenue Orchestrator is enabled
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud where Dynamic Revenue Orchestrator is enabled
 
 After in-flight changes are applied and submitted to Dynamic Revenue Orchestrator (DRO), DRO decomposes the supplemental order and generates fulfillment lines.
 
@@ -63,3 +63,7 @@ However, the security company has an Override PONR facility for exceptional case
 Outcome
 
 Even though the Smart Front Door Camera had reached PONR, the Override PONR facility helped the security company accommodate Sarah's request. DRO updates the fulfillment plan to reflect the cancellation, and any necessary reverse logistics or adjustments are initiated.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.dro_how_in_flight_order_changes_decompose.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

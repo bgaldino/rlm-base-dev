@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_legal_entity_accounting_periods_close_and_reopen.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Importance of Legal Entity Accounting Period Closure
@@ -15,7 +15,7 @@ Closing an accounting period, both at the legal entity level and the enterprise 
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions with Revenue Management (formerly Revenue Cloud)
+Available in: Enterprise, Unlimited, and Developer Editions with Revenue Cloud
 
 
 The feature is available for the Invoice and Credit memo records, and their related records with the Revenue Cloud Advanced license or the Revenue Cloud Billing license.
@@ -35,3 +35,7 @@ Streamlined Legal Entity Accounting Period Closure: At the end of the month, acc
 Accounting Period Closure: After all legal entity accounting periods for a period were closed across all legal entities, the accounting period itself is closed, indicating the accounting period is closed as well in there enterprise general ledger.
 
 This comprehensive process significantly reduces time to reconcile and improves audit readiness for Innovate Solutions Corp.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_legal_entity_accounting_period_closure_importance.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,23 +7,16 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Transaction Management
 parent_page: qoc_api_responses.htm
-fetched_at: 2026-09-29
+fetched_at: 2026-11-23
 ---
 
 # Clone Sales Transaction
 
 Output representation for the result of cloning records within a sales transaction.
 
-    
-
 ## JSON Example
 
-      
-      
-
 This example shows a sample of a successful response.
-
-      
 
 ```
 {
@@ -34,11 +27,7 @@ This example shows a sample of a successful response.
 }
 ```
 
-      
-
 This example shows a sample error response.
-
-      
 
 ```
 {
@@ -55,84 +44,15 @@ This example shows a sample error response.
 }
 ```
 
-    
-
-    
-
 ## Properties
 
-      
-      
-
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Name | Type | Description | Available Version |
 | --- | --- | --- | --- |
 | `requestId` | String | Request ID of the process that can be used to query the async status. | 64.0 |
 | `salesTransactionId` | String | ID of the quote line item, order item, quote line group, or order item group record. | 64.0 |
 | `success` | Boolean | Indicates whether the synchronous part of the processing is successful (`true`) or not (`false`). | 64.0 |
-| `errors` | [Clone Sales Transaction Error Response](./connect_responses_clone_sales_transaction_error_response.htm.md)[] | List of errors encountered during synchronous processing. | 64.0 |
+| `errors` | [Clone Sales Transaction Error Response](./connect_responses_clone_sales_transaction_error_response.htm.md "Output representation of the errors that occur during the clone sales transaction operation.")[] | List of errors encountered during synchronous processing. | 64.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_clone_sales_transaction_output.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -7,171 +7,39 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Product Catalog Management
 parent_page: product_discovery_invocable_actions_parent.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Get Catalog Details Action
 
 Get details of a catalog record.
 
-        
-            
-
 This action is available in API version 64.0 and later.
-
-            
 
 You can invoke this action via Apex and Flows only.
 
-        
-
-        
-
 ## Special Access Rules
 
-            
-            
-
-The Get Catalog Details action is available in Enterprise, Unlimited, and Developer
-                Editions where Product Discovery is enabled.
-
-        
-
-        
-        
+The Get Catalog Details action is available in Enterprise, Unlimited, and Developer Editions where Product Discovery is enabled.
 
 ## Inputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Input | Details |
-| --- | --- |
-| catalogId | **Type** string **Description** Required. ID of the catalog record. |
-| correlationId | **Type** string **Description** Unique identifier attached to requests and messages, enabling reference to a specific transaction or event chain. |
-
-        
-
-        
+| Input | Type | Description |
+| --- | --- | --- |
+| catalogId | string | Required. ID of the catalog record. |
+| correlationId | string | Unique identifier attached to requests and messages, enabling reference to a specific transaction or event chain. |
 
 ## Outputs
 
-            
-            
-
-                    
-                    
-                    
-                        
-                            
-
-                            
-
-                        
-
-                    
-
-                    
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                        
-                            
-
-                            
-
-: 
-
-: 
-
-                        
-
-                    
-
-                
-| Output | Details |
-| --- | --- |
-| apiStatusOutputRepresentation | **Type** Apex-defined **Description** An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md) record that contains the status of the request, including the status code and message. |
-| catalogDetailsResult | **Type** Apex-defined **Description** Details of the catalog record. |
-| correlationId | **Type** string **Description** Unique identifier attached to requests and messages, allowing reference to a specific transaction or event chain. |
-
-        
-
-        
-        
+| Output | Type | Description |
+| --- | --- | --- |
+| apiStatusOutputRepresentation | Apex-defined | An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains the status of the request, including the status code and message. |
+| catalogDetailsResult | Apex-defined | Details of the catalog record. |
+| correlationId | string | Unique identifier attached to requests and messages, allowing reference to a specific transaction or event chain. |
 
 ## Example
 
-            
-            
-                
-                    
-                    
-: 
-                        
-
 Here's a sample input to call this invocable action from Apex code.
-
-                        
 
 ```
 Invocable.Action action = Invocable.Action.createStandardAction('getCatalogDetails');
@@ -183,15 +51,7 @@ List<Invocable.Action.Result> results = action.invoke();
 System.debug('Catalog Details Action + '+results);
 ```
 
-                    
-
-                    
-: 
-                        
-
 Here's a sample response when you call this action.
-
-                        
 
 ```
 [
@@ -226,3 +86,7 @@ Here's a sample response when you call this action.
   }
 ]
 ```
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/actions_obj_get_catalog_details.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

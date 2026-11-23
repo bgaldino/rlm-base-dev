@@ -1,15 +1,15 @@
 ---
 article_id: ind.product_catalog_configure_product_attributes.htm
-title: Configure Product Attributes in Revenue Management
+title: Configure Product Attributes in Revenue Cloud
 source_url: https://help.salesforce.com/s/articleView?id=ind.product_catalog_configure_product_attributes.htm&type=5&release=264
 release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
-# Configure Product Attributes in Revenue Management
+# Configure Product Attributes in Revenue Cloud
 
 Products that are based on a product classification inherit all the attributes from the product classification. You can configure the inherited attributes to make them product-specific. You can override the configured and inherited attributes in the context of a product bundle.
 
@@ -31,3 +31,7 @@ You can display attributes of the currency, number, and percent data types as sl
 Enter a default value.
 Save your changes.
 EXAMPLE Consider an iPhone that has attributes such as model, color, and display. The iPhone has inherited all these attributes from the product classification Phones. When a user purchases this iPhone as part of the Apple phones product bundle, you want the iPhone to be available in red color by default. To create this configuration, you can override the default attribute value of color and set it to red for iPhone in the context of the Apple Phones bundle.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_configure_product_attributes.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

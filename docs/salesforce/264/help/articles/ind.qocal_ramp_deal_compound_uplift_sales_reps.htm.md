@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: transaction_mgmt
 parent_article: ind.qocal_ramp_deals_for_groups_considerations.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create Ramp Deals with Standard or Compound Price Uplifts
@@ -15,7 +15,7 @@ Ramp deals break a multi-year contract into segments so that price, quantity, an
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license, the Revenue Cloud Advanced license, or the Revenue Cloud Billing license.
 USER PERMISSIONS NEEDED
 For sales reps to use Ramp Uplift Type:	
 
@@ -64,3 +64,7 @@ Year 3	$50.00	10%	1.1000 × 1.10 = 1.2100	21%	$60.50
 In standard mode, Year 3 yields $55.00. In compound mode, Year 3 yields $60.50. The 21% applied unit price uplift in Year 3 reflects the geometric effect of two compounded 10% uplifts: (1.10 × 1.10) − 1 = 21%.
 
 A segment with a zero percent compound uplift is a carryover. The prior cumulative multiplier remains rather than resetting, so the segment maintains the compounded gain from earlier segments.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.qocal_ramp_deal_compound_uplift_sales_reps.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

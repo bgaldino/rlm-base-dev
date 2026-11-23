@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: salesforce_contracts
 parent_article: ind.sf_contracts_system_administration_for_salesforce_contracts.htm
-fetched_at: 2026-10-13
+fetched_at: 2026-11-23
 ---
 
 # Configure Contract Creation and Updates for Salesforce Contracts
@@ -23,3 +23,7 @@ Configure Context Service to Create and Update Contracts
 Context Service provides a mapping interface for creating and updating contracts from standard and custom objects. Context Service replaces the XML field mapping framework with a configurable, point-and-click approach.
 Limitations for Create Contract and Update Contracts APIs
 Current limitations for the create and update APIs that use Context Service.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.sf_contracts_create_contract_and_update_contracts.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

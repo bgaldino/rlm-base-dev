@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: configurator
 parent_article: ind.product_configurator_third_party_configurator.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create a Third-Party Configurator UI Component
@@ -15,7 +15,7 @@ Create a Lighting web component (LWC) to use as a custom third-party configurato
 
 REQUIRED EDITIONS
 Available in: Lightning Experience
-Available in: Enterprise, Unlimited, and Developer Editions of Revenue Management (formerly Revenue Cloud) with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
+Available in: Enterprise, Unlimited, and Developer Editions of Revenue Cloud with the Revenue Cloud Growth license or the Revenue Cloud Advanced license
 USER PERMISSIONS NEEDED
 To add a custom component to a product configuration flow	Product Configurator
 Use Salesforce Developer Experience (Salesforce DX) to create an LWC to use as a custom UI component. See Create Lightning Web Components.
@@ -27,3 +27,7 @@ SEE ALSO
 Third-Party Configurator UI Component HTML File
 Third-Party Configurator UI Component JavaScript File
 Third-Party Configurator UI Component Metadata Configuration File
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_configurator_third_party_configurator_ui_component_create.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

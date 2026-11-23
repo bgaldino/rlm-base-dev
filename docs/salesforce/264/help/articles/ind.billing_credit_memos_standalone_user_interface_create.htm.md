@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: billing
 parent_article: ind.billing_credit_memos.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Create and Apply Standalone Credit Memos
@@ -59,3 +59,7 @@ Click Apply.
 The system automatically applies the credit to the invoice or invoice line based on the credit application level. If the total amount of the invoice lines exceeds the credit memo amount to be applied, the system applies the credit to matching invoice lines in descending order. If the invoice line amount is higher than the remaining credit, a partial credit amount is applied to the invoice line. You can view the remaining credit balance from the Balance field on the Credit Memo record. The Balance field isn’t available by default and you can add it from Page Layouts.
 
 Alternatively, you can apply credit memos by using Apply Credit Memo API or Apply Credit Memo Line API.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.billing_credit_memos_standalone_user_interface_create.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

@@ -6,7 +6,7 @@ release: 264
 release_name: Winter '27
 area: pcm
 parent_article: ind.product_catalog_products.htm
-fetched_at: 2026-09-04
+fetched_at: 2026-11-23
 ---
 
 # Data Import Through CSV Files in Product Catalog Management
@@ -74,3 +74,7 @@ Upload the CSV file, select the corresponding data processing engine definition,
 NOTE  A Data Processing Engine definition processes data from each row. If a CSV file contains multiple objects with varying record counts, empty cells are sent to the Writeback Object node, and result in errors.
  If a CSV file has 30 product qualification records and 20 product disqualification records, then empty values are sent to the Product Disqualification Writeback Object node 10 times, and 10 errors are written to the failure log.
 The import process begins. After the import process is complete, a log is generated and appears on the CSV File Import page.
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce Help content ([source](https://help.salesforce.com/s/articleView?id=ind.product_catalog_data_import_by_using_csv_files.htm&type=5&release=264)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

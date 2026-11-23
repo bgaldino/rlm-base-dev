@@ -7,25 +7,14 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: billing_business_apis_responses.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # Revenue Async Line Level
 
-Output representation of the result of the API request for the async line level
-    operations.
+Output representation of the result of the API request for the async line level operations.
 
-      
-        
-          
-
-**JSON example**
-
-          
-: 
-            
+## JSON Example
 
 ```
   {
@@ -35,11 +24,7 @@ Output representation of the result of the API request for the async line level
 }
 ```
 
-          
-
-          
-: If the API request fails, the `referenceLineErrorResults` property contains a list of errors grouped by the
-            invoice line IDs.
+If the API request fails, the `referenceLineErrorResults` property contains a list of errors grouped by the invoice line IDs.
 
 ```
 [
@@ -55,119 +40,15 @@ Output representation of the result of the API request for the async line level
 ]
 ```
 
-        
-      
-
-      
-
-          
-          
-          
-          
-          
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-          
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-            
-              
-
-              
-
-              
-
-              
-
-              
-
-            
-
-          
-
-        
 | Property Name | Type | Description | Filter Group and Version | Available Version |
 | --- | --- | --- | --- | --- |
-| `errors` | [Error Response](https://developer.salesforce.com/docs/atlas.en-us.264.0.chatterapi.meta/chatterapi/connect_responses_error_response.htm) | Details of errors, if any. | Big, 62.0 | 62.0 |
-| `referenceLine​Error​Results` | [Reference Line Error](./connect_responses_reference_line_error.htm.md)[] | List of errors grouped by the invoice line IDs if the API request fails. | Big, 62.0 | 62.0 |
+| `errors` | [Error Response](https://developer.salesforce.com/docs/atlas.en-us.264.0.chatterapi.meta/chatterapi/connect_responses_error_response.htm "HTML (New Window)") | Details of errors, if any. | Big, 62.0 | 62.0 |
+| `referenceLine​Error​Results` | [Reference Line Error](./connect_responses_reference_line_error.htm.md "Output representation of the details of the line level errors.")[] | List of errors grouped by the invoice line IDs if the API request fails. | Big, 62.0 | 62.0 |
 | `reference​Line​Type` | String | Reference type for the reference line entity in the `referenceLineErrorResults` property. | Big, 62.0 | 62.0 |
 | `request​Identifier` | String | Unique identifier of the request. | Big, 62.0 | 62.0 |
 | `status​URL` | String | URL to track the status of the operation. | Big, 62.0 | 62.0 |
 | `success` | Boolean | Indicates whether the API request is successful (`true`) or not (`false`). | Big, 62.0 | 62.0 |
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_responses_revenue_async_line_level.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.

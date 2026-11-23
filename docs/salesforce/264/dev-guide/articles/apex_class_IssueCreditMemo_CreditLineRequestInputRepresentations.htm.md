@@ -7,10 +7,8 @@ release_name: Winter '27
 deliverable: revenue_lifecycle_management_dev_guide
 section: Billing
 parent_page: apex_namespace_IssueCreditMemo.htm
-fetched_at: 2026-08-24
+fetched_at: 2026-11-23
 ---
-
-Note: This release is in preview. Features described here don’t become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can’t guarantee general availability within any particular time frame or at all. Make your purchase decisions only on the basis of generally available products and features.
 
 # CreditLineRequestInputRepresentations Class
 
@@ -18,40 +16,20 @@ Represents a single line-level credit request. Specifies the invoice line to cre
 
 ## Namespace
 
-[IssueCreditMemo](./apex_namespace_IssueCreditMemo.htm.md)
+[IssueCreditMemo](./apex_namespace_IssueCreditMemo.htm.md "Issue credit memos from disputed invoices. Use this namespace to create and apply credit memos against invoices or invoice lines based on dispute adjustments.")
 
-- 
-**[CreditLineRequestInputRepresentations Constructors](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_constructors)**  
-
-- 
-**[CreditLineRequestInputRepresentations Properties](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_properties)**  
-
-  
+- **[CreditLineRequestInputRepresentations Constructors](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_constructors)**
+- **[CreditLineRequestInputRepresentations Properties](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_properties)**
 
 ## CreditLineRequestInputRepresentations Constructors
 
-  
-  
-    
-      
-
 The `CreditLineRequestInputRepresentations` class includes
-        these constructors.
+these constructors.
 
-    
-
-    
-  
-
-- 
-**[CreditLineRequestInputRepresentations(invoiceLineId, creditLineAmount, description)](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_ctor)**  
-
-Creates a credit line request for the specified invoice line, amount, and description.
-
-- 
-**[CreditLineRequestInputRepresentations()](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_ctor_2)**  
-
-Creates an empty credit line request.
+- **[CreditLineRequestInputRepresentations(invoiceLineId, creditLineAmount, description)](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_ctor)**  
+  Creates a credit line request for the specified invoice line, amount, and description.
+- **[CreditLineRequestInputRepresentations()](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_ctor_2)**  
+  Creates an empty credit line request.
 
 ### CreditLineRequestInputRepresentations(invoiceLineId, creditLineAmount, description)
 
@@ -65,21 +43,21 @@ Creates a credit line request for the specified invoice line, amount, and descri
 
 **invoiceLineId**
 
-: Type: String
+Type: String
 
-: The ID of the invoice line to which the credit applies.
+The ID of the invoice line to which the credit applies.
 
 **creditLineAmount**
 
-: Type: Double
+Type: Double
 
-: The monetary amount to credit for this invoice line.
+The monetary amount to credit for this invoice line.
 
 **description**
 
-: Type: String
+Type: String
 
-: Optional description or reason for the credit line.
+Optional description or reason for the credit line.
 
 ### CreditLineRequestInputRepresentations()
 
@@ -89,37 +67,17 @@ Creates an empty credit line request.
 
 `public CreditLineRequestInputRepresentations()`
 
-  
-
 ## CreditLineRequestInputRepresentations Properties
 
-  
-  
-    
-      
-
 The `CreditLineRequestInputRepresentations` class includes
-        these properties.
+these properties.
 
-    
-
-    
-  
-
-- 
-**[creditLineAmount](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_creditLineAmount)**  
-
-The monetary amount to credit for this invoice line.
-
-- 
-**[description](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_description)**  
-
-Optional description or reason for the credit line.
-
-- 
-**[invoiceLineId](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_invoiceLineId)**  
-
-The ID of the invoice line to which the credit applies.
+- **[creditLineAmount](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_creditLineAmount)**  
+  The monetary amount to credit for this invoice line.
+- **[description](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_description)**  
+  Optional description or reason for the credit line.
+- **[invoiceLineId](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md#apex_IssueCreditMemo_CreditLineRequestInputRepresentations_invoiceLineId)**  
+  The ID of the invoice line to which the credit applies.
 
 ### creditLineAmount
 
@@ -156,3 +114,7 @@ The ID of the invoice line to which the credit applies.
 #### Property Value
 
 Type: String
+
+---
+
+> **Source attribution and limited-use note.** This file is a captured copy of publicly readable Salesforce developer documentation ([source](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm)), © Salesforce, Inc., kept in this repository as grounding material for people and AI agents. It is not an official or authoritative copy: the source URL is the system of record, and if this text differs from the live page, the live page wins. Do not republish it elsewhere without confirming Salesforce's terms.
