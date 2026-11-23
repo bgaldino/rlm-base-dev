@@ -127,19 +127,57 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
   public static String getSiteUrl(String networkId) {
     try {
       Id nId = Id.valueOf(networkId);
-      // The login URL is "<scheme>://<host>[/<sitePrefix>]/s/login". The site base
-      // URL is everything before "/s/", which preserves a path-based site prefix
-      // (e.g. "/customers") that getProtocol()+getHost() alone would drop. Fall back
-      // to scheme://host when there is no "/s/" segment (path-less site).
       String loginUrl = Network.getLoginUrl(nId);
-      Integer sIndex = loginUrl == null ? -1 : loginUrl.indexOf('/s/');
-      if (sIndex > 0) {
-        return loginUrl.substring(0, sIndex);
-      }
-      Url parsed = new Url(loginUrl);
-      return parsed.getProtocol() + '://' + parsed.getHost();
+      // Only a login URL with no "/s/" segment needs the site's path prefix looked up.
+      String pathPrefix = (loginUrl != null && !loginUrl.contains('/s/'))
+        ? lookupNetworkPathPrefix(nId)
+        : null;
+      return siteBaseUrl(loginUrl, pathPrefix);
     } catch (Exception e) {
       throw new AuraHandledException(e.getMessage());
+    }
+  }
+
+  // Shapes the site base URL from the login URL and the Network's UrlPathPrefix. Pure, so it is
+  // unit-tested over literal URLs.
+  //  - The login URL of an Experience Cloud site is "<scheme>://<host>[/<sitePrefix>]/s/login":
+  //    the base is everything before "/s/", which keeps a path-based prefix (e.g. "/customers").
+  //  - A site whose login URL has no "/s/" (for example a Visualforce site) carries no prefix in
+  //    that URL, so the base is scheme://host plus "/" + the Network's UrlPathPrefix.
+  //  - Decision: a blank prefix keeps scheme://host. A custom domain that maps a site to the
+  //    root while its Network still has a UrlPathPrefix would get the prefix appended here;
+  //    the login URL cannot distinguish that case, and sites without "/s/" are
+  //    served under their prefix on the default domains.
+  @TestVisible
+  private static String siteBaseUrl(String loginUrl, String urlPathPrefix) {
+    Integer sIndex = loginUrl == null ? -1 : loginUrl.indexOf('/s/');
+    if (sIndex > 0) {
+      return loginUrl.substring(0, sIndex);
+    }
+    Url parsed = new Url(loginUrl);
+    String base = parsed.getProtocol() + '://' + parsed.getHost();
+    // Strip every leading and trailing slash (String.removeStart/removeEnd would strip only one).
+    String prefix = urlPathPrefix == null ? '' : urlPathPrefix.trim().replaceAll('^/+|/+$', '');
+    return String.isBlank(prefix) ? base : base + '/' + prefix;
+  }
+
+  // Network exists only with Digital Experiences, so it is queried dynamically (a static
+  // reference would not compile without it). USER_MODE: a user who cannot read Network
+  // gets no prefix, the host-only URL the method returned before.
+  private static String lookupNetworkPathPrefix(Id networkId) {
+    try {
+      List<SObject> rows = Database.query(
+        'SELECT UrlPathPrefix FROM Network WHERE Id = :networkId LIMIT 1',
+        AccessLevel.USER_MODE
+      );
+      return rows.isEmpty() ? null : (String) rows[0].get('UrlPathPrefix');
+    } catch (Exception e) {
+      System.debug(
+        LoggingLevel.WARN,
+        'RLM_Learning_DynamicLinkHelper: could not read Network.UrlPathPrefix, using the host-only site URL: ' +
+        e.getMessage()
+      );
+      return null;
     }
   }
 

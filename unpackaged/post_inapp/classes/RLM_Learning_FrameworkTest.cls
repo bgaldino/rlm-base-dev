@@ -46,11 +46,6 @@
  *    loaded) cannot re-sequence that section;
  *    knownGap_learnerCannotResequenceRowsItDoesNotOwn pins this.
  *
- * Documented, not pinned:
- *  - Site path prefix. getSiteUrl drops the path prefix of a site whose login
- *    URL has no "/s/" segment (seen on a Visualforce site); it returns only
- *    protocol://host. Not pinned because it depends on the org's sites.
- *
  * Not covered here:
  *  - The learner's read access to Page, Section, Block, Icon and DynamicLink.
  *    The read-path tests run as the runner (normally an admin) plus
@@ -1382,10 +1377,11 @@ private class RLM_Learning_FrameworkTest {
 
   // A well-formed Id with no site behind it is rejected in every org. Then, for
   // every site with a login URL (the prm flag deploys the "rlm" site; other
-  // bundles deploy more), the site URL must be a prefix of the login URL, and
-  // when the login URL contains "/s/" the site URL must be exactly the part
-  // before "/s/". That holds whatever the custom domain or path prefix, and it
-  // catches a regression to protocol://host for a site with a path prefix.
+  // bundles deploy more): when the login URL contains "/s/" the site URL must be
+  // exactly the part before "/s/"; otherwise it must be the login URL's
+  // scheme://host plus the Network's UrlPathPrefix when it has one. That holds
+  // whatever the custom domain or path prefix, and it catches a regression to
+  // protocol://host for a site with a path prefix.
   // With no site, the check is skipped visibly (a WARN debug line).
   @IsTest
   static void getSiteUrl_rejectsAMissingSite_andReturnsThePartBeforeSlashS_whenTheOrgHasASite() {
@@ -1417,12 +1413,31 @@ private class RLM_Learning_FrameworkTest {
       String siteUrl = RLM_Learning_DynamicLinkHelper.getSiteUrl(site.Id);
       String context = ' (site ' + site.get('Name') + ', site URL: ' + siteUrl + ', login URL: ' + loginUrl + ')';
 
-      Assert.isTrue(loginUrl.startsWith(siteUrl), 'the site URL is a prefix of the login URL' + context);
       if (loginUrl.contains('/s/')) {
         Assert.isTrue(
           loginUrl.startsWith(siteUrl + '/s/'),
           'the site URL is the part of the login URL before "/s/"' + context
         );
+      } else {
+        // No "/s/": the site URL is scheme://host, plus "/" + the Network's UrlPathPrefix when it has one.
+        Url parsed = new Url(loginUrl);
+        String hostUrl = parsed.getProtocol() + '://' + parsed.getHost();
+        // Read the prefix the way the helper does (USER_MODE, same query and normalisation).
+        Id nId = site.Id;
+        String expected;
+        try {
+          List<SObject> rows = Database.query(
+            'SELECT UrlPathPrefix FROM Network WHERE Id = :nId LIMIT 1',
+            AccessLevel.USER_MODE
+          );
+          String rawPrefix = rows.isEmpty() ? null : (String) rows[0].get('UrlPathPrefix');
+          String prefix = rawPrefix == null ? '' : rawPrefix.trim().replaceAll('^/+|/+$', '');
+          expected = String.isBlank(prefix) ? hostUrl : hostUrl + '/' + prefix;
+        } catch (Exception e) {
+          // The helper falls back to the host-only URL when the runner cannot read Network.
+          expected = hostUrl;
+        }
+        Assert.areEqual(expected, siteUrl, 'the site URL is the login URL host plus the path prefix' + context);
       }
     }
     if (sitesChecked == 0) {
@@ -1432,6 +1447,42 @@ private class RLM_Learning_FrameworkTest {
         'getSiteUrl not verified'
       );
     }
+  }
+
+  // The URL shaping is a pure helper, so it is tested over literal URLs (no org sites).
+  @IsTest
+  static void siteBaseUrl_shapesTheBaseUrlFromTheLoginUrlAndPrefix() {
+    // "/s/" present: everything before it, prefix or not; the Network prefix is ignored.
+    Assert.areEqual(
+      'https://acme.my.site.com/customers',
+      RLM_Learning_DynamicLinkHelper.siteBaseUrl('https://acme.my.site.com/customers/s/login', 'customers')
+    );
+    Assert.areEqual(
+      'https://acme.my.site.com',
+      RLM_Learning_DynamicLinkHelper.siteBaseUrl('https://acme.my.site.com/s/login', null)
+    );
+    // No "/s/": scheme://host plus the Network's path prefix (the Visualforce site case).
+    Assert.areEqual(
+      'https://acme.my.salesforce-sites.com/sfpwebhookvforcesite',
+      RLM_Learning_DynamicLinkHelper.siteBaseUrl(
+        'https://acme.my.salesforce-sites.com/login',
+        'sfpwebhookvforcesite'
+      )
+    );
+    Assert.areEqual(
+      'https://acme.my.salesforce-sites.com/pfx',
+      RLM_Learning_DynamicLinkHelper.siteBaseUrl('https://acme.my.salesforce-sites.com/login', '/pfx/'),
+      'slashes around the prefix are normalised'
+    );
+    // No "/s/" and no prefix: host only.
+    Assert.areEqual(
+      'https://acme.my.salesforce-sites.com',
+      RLM_Learning_DynamicLinkHelper.siteBaseUrl('https://acme.my.salesforce-sites.com/login', null)
+    );
+    Assert.areEqual(
+      'https://acme.my.salesforce-sites.com',
+      RLM_Learning_DynamicLinkHelper.siteBaseUrl('https://acme.my.salesforce-sites.com/login', '  ')
+    );
   }
 
   // ---- UserInformation -------------------------------------------------------
