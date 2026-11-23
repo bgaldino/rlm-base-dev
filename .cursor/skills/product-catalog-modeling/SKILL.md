@@ -221,7 +221,8 @@ Read the one your decision needs:
   where a value can be set, and what pricing and CML need from them.
 - [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md) — read when choosing
   selling models and options, component selling models, `IsAssetizable`,
-  `IsSoldOnlyWithOtherProds`, ramps and their lifecycle effects.
+  `IsSoldOnlyWithOtherProds`, ramps and their lifecycle effects, and product images
+  (`DisplayUrl`).
 - [`catalogs-and-loading.md`](catalogs-and-loading.md) — read when organizing catalogs and
   categories, coding them, using `Family`, or turning the model into a plan.
 
@@ -346,8 +347,9 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **One-pass QuantumBit build.** Whether any classification attribute is left at its definition's value
   where that differs from its CSV (inferred from the traced copy: `AttributeNameOverride` and `IsRequired` already match their definitions, so probably not; not measured). See [Loading the model](#loading-the-model).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
-  sets them; Help's rule is written for a *new* static bundle. An insert of rows of that shape was
-  accepted on an existing org (not `CERT007`'s own rows); pricing and configurator behaviour are still open. See
+  sets them; Help's rule is written for a *new* static bundle. Under a new test bundle in an
+  existing org, an insert of rows of that shape was accepted (not `CERT007`'s own rows); pricing
+  and configurator behaviour are still open. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
 - **Component selling-model rules on a fresh build.** The static-bundle inserts were measured
   only on an existing org (the configurable refusal was also seen on a scratch load); repeat them

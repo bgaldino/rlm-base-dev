@@ -78,7 +78,9 @@ every shape.
 What an insert of a `ProductRelatedComponent` row did with `ParentSellingModelId` and
 `ChildSellingModelId`, through the standard record API. Help only says not to select them
 (above); this is what the platform enforced on one existing org, through API 68.0, with the
-Bundle to Bundle Component Relationship type. [Measured: 2026-11-10, 264, existing org]
+Bundle to Bundle Component Relationship type. The configurable parent was a shipped QuantumBit
+bundle; the static parent was a new, inactive test bundle created for the run, so the static
+rows are the new-static-bundle case Help's rule describes. [Measured: 2026-11-10, 264, existing org]
 **Existing org, fresh-build check pending**: the run used an org that had been built earlier,
 not a fresh harness build, so settings and schema carried over from its history may differ from
 a fresh build. The configurable-bundle refusal was also seen on a scratch load
@@ -99,10 +101,10 @@ harness build and record the outputs).
 
 - **No type-compatibility check on insert.** An Evergreen parent with a One Time child, and an
   Evergreen parent with a Term Defined child, were accepted once both options existed, as were
-  Evergreen with Evergreen and blank with blank. Accepted on insert is not valid at sale: the
-  configurator rule [above](#selling-models-inside-bundles) still draws a message for a
-  mismatched pair [Platform behaviour, traced in part]. How pricing treats such a pair is
-  **Open — needs live verification**.
+  Evergreen with Evergreen and blank with blank. Accepted on insert does not make the pair
+  valid: the traced configurator rule [above](#selling-models-inside-bundles) would flag a
+  mismatched pair, though one measured mismatch drew no message. How pricing treats such a
+  pair is **Open — needs live verification**.
 - **Duplicates are allowed.** Several rows for one parent and child pair coexisted.
 - **The bulk product view repeats a child once per row.** `/connect/pcm/products/bulk` for the
   parent listed the child once for each row, and each entry's `productRelatedComponent` carried
@@ -110,8 +112,9 @@ harness build and record the outputs).
   `productSellingModelOptions` lists the product's own options, not the component's model. So a
   duplicate row shows up as a duplicate child in the view.
 
-So for a static bundle that must carry component selling models, load both selling model
-options before the component row, and set both models or neither. Under a configurable
+Do not add component selling models to a new model (see the DO NOT in SKILL.md). If an
+existing plan already carries them, as `CERT007` does, load both selling model options before
+the component row, and set both models or neither. Under a configurable
 bundle, leave both blank and put the choice on the child's own options.
 
 ### Selling model of the bundle root
@@ -233,7 +236,8 @@ In this repo:
   `force-app/main/default/staticresources/`. A product with no art of its own points at one
   shared logo, and most do. **Known gap:** `/resource/omniserver` (product `PROD-455868158`)
   has no resource in either location, so that image does not resolve. [Repo:
-  `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
+  `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`; `unpackaged/post_quantumbit/staticresources/`;
+  `force-app/main/default/staticresources/`]
 - **Keep `DisplayUrl` in the product plan's own `Product2.csv`.** An image-only plan that ran
   after the product plan blanked the images whenever the product plan was reloaded alone; the
   URLs now live in the product CSV. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/README.md`]
@@ -251,4 +255,4 @@ In this repo:
   external `DisplayUrl` on a test product and open it in the configurator and the product page).
 
 In the shipped plan, all but one of the 314 products carry a `DisplayUrl`, in 54 distinct values,
-and one logo covers 220 of them. [Repo: the CSV above, counted 2026-11-23]
+and one logo covers 220 of them. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
