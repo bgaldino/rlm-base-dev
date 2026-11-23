@@ -238,6 +238,58 @@ private class RLM_OrderItemContractingUtilityTest {
     }
 
     /**
+     * Reaches the user-mode query fallback: the user can read the Order, OrderItem and OrderAction fields the
+     * pre-check names, but not ProductSellingModel, which only the query itself reads.
+     */
+    @IsTest
+    static void userWhoCannotReadTheSellingModelGetsAnErrorResultFromTheQuery() {
+        Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
+        insert o;
+        User limited = minimumAccessUser();
+        PermissionSet readOrders = new PermissionSet(Name = 'RLM_Test_Read_Orders_Only', Label = 'RLM test read orders only');
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert readOrders;
+            insert new List<ObjectPermissions>{
+                new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'Order', PermissionsRead = true),
+                new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'OrderItem', PermissionsRead = true),
+                new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'OrderAction', PermissionsRead = true)
+            };
+            insert new PermissionSetAssignment(AssigneeId = limited.Id, PermissionSetId = readOrders.Id);
+        }
+
+        List<RLM_OrderItemContractingUtility.OrderInfoResults> results;
+        Integer queriesUsed;
+        Test.startTest();
+        System.runAs(limited) {
+            Assert.isTrue(
+                Schema.SObjectType.Order.fields.EffectiveDate.isAccessible()
+                    && Schema.SObjectType.OrderItem.fields.ServiceDate.isAccessible()
+                    && Schema.SObjectType.OrderItem.fields.EndDate.isAccessible()
+                    && Schema.SObjectType.OrderAction.fields.Type.isAccessible(),
+                'PRECONDITION: the user passes the field-access pre-check'
+            );
+            Assert.isFalse(
+                Schema.SObjectType.ProductSellingModel.fields.SellingModelType.isAccessible(),
+                'PRECONDITION: the user cannot read ProductSellingModel.SellingModelType'
+            );
+            Integer queriesBefore = Limits.getQueries();
+            results = run(new List<Id>{ o.Id });
+            queriesUsed = Limits.getQueries() - queriesBefore;
+        }
+        Test.stopTest();
+
+        Assert.isTrue(queriesUsed > 0, 'The pre-check passed, so the refusal comes from the user-mode query');
+        Assert.areEqual(1, results.size(), 'The input still gets an output');
+        Assert.areEqual(o.Id, results[0].orderId, 'The output names its order');
+        Assert.isNotNull(results[0].errorMessage, 'The output says why it has no data');
+        Assert.isTrue(
+            results[0].errorMessage.startsWith('The orders could not be read as the running user'),
+            'The message is the query fallback, not the pre-check: ' + results[0].errorMessage
+        );
+        Assert.isNull(results[0].subscriptionItemCount, 'An unreadable order has no count, so a flow cannot read it as zero');
+    }
+
+    /**
      * A Minimum Access user: no object access to Order, OrderItem or OrderAction. The test fails, never
      * skips, when the precondition cannot be built: standard profile names can be translated, so this
      * needs the English profile name "Minimum Access - Salesforce" and a free seat for the user insert.

@@ -391,4 +391,62 @@ private class RLM_QuoteModelUtilityTest {
         Assert.areEqual('2026-11-09T00:00:00.000Z', RLM_QuoteModelUtility.convertStartDate(d), 'Start of day');
         Assert.areEqual('2026-11-09T23:59:59.000Z', RLM_QuoteModelUtility.convertEndDate(d), 'End of day');
     }
+
+    @IsTest
+    static void userWithoutQuoteAccessIsRefused() {
+        QuoteFixture f = buildQuote(1, false, false);
+        User noAccess = minimumAccessUser();
+
+        RLM_QuoteModelUtility.QuoteModelException refusal;
+        Test.startTest();
+        System.runAs(noAccess) {
+            Assert.isFalse(
+                Schema.SObjectType.Quote.isAccessible(), 'PRECONDITION: the user cannot read Quote'
+            );
+            try {
+                RLM_QuoteModelUtility.CreateQuoteContextString(new List<Id>{ f.quote.Id });
+            } catch (RLM_QuoteModelUtility.QuoteModelException e) {
+                refusal = e;
+            }
+        }
+        Test.stopTest();
+
+        Assert.isNotNull(refusal, 'WITH USER_MODE refuses the read for a user without Quote access');
+        Assert.isInstanceOfType(refusal.getCause(), QueryException.class, 'The refusal comes from the user-mode query');
+        Assert.isTrue(
+            refusal.getMessage().contains('running user'),
+            'The message says the read failed for the running user, not that the quote does not exist: ' + refusal.getMessage()
+        );
+    }
+
+    /**
+     * A Minimum Access user (no object access to Quote). The profile is found by its English standard
+     * name; if it is missing (translated org) the test fails with that reason rather than passing
+     * without testing anything. A DmlException on the user insert (for example no free seat) is not
+     * swallowed either.
+     */
+    private static User minimumAccessUser() {
+        List<Profile> profiles = [SELECT Id FROM Profile WHERE Name = 'Minimum Access - Salesforce' LIMIT 1];
+        Assert.areEqual(
+            1, profiles.size(),
+            'PRECONDITION: this test needs the standard profile "Minimum Access - Salesforce" (English name) in the org'
+        );
+        String stamp = String.valueOf(Crypto.getRandomInteger()).remove('-');
+        User u = new User(
+            ProfileId = profiles[0].Id,
+            LastName = 'QuoteModel',
+            Email = 'rlm.quotemodel@example.com',
+            Username = 'rlm.quotemodel.' + stamp + '@example.com',
+            Alias = 'rlmqm',
+            TimeZoneSidKey = 'America/Los_Angeles',
+            LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',
+            LanguageLocaleKey = 'en_US'
+        );
+        // Setup-object DML after the quote fixture needs its own runAs context (mixed DML).
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            insert u;
+        }
+        return u;
+    }
 }

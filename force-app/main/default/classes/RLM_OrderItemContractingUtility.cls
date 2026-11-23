@@ -29,7 +29,16 @@ public with sharing class RLM_OrderItemContractingUtility {
         // A child subquery with no LIMIT throws "Aggregate query has too many rows" past 200 items per
         // order (large transactions), so the item count comes from a separate aggregate query. Its COUNT(Id)
         // still counts every aggregated row toward the 50,000 query-row limit.
-        Map<Id, Order> ordersMap = new Map<Id, Order>([
+        // WITH USER_MODE also enforces object access and the fields the check above does not name
+        // (ProductSellingModel.SellingModelType, OrderItem and OrderAction rows), applies to the subqueries,
+        // and enforces sharing.
+        // The OrderActions subquery has no LIMIT on purpose: the counts are per action type, so a cap would
+        // undercount. An order carries one action per kind of change, not one per line (inferred, not
+        // measured); check an order with several hundred lines on a live run.
+        Map<Id, Order> ordersMap;
+        Map<Id, Integer> itemCountByOrder = new Map<Id, Integer>();
+        try {
+            ordersMap = new Map<Id, Order>([
             SELECT Id, EffectiveDate,
                 (SELECT Id, ServiceDate, EndDate, ProductSellingModel.SellingModelType
                  FROM OrderItems
@@ -38,15 +47,24 @@ public with sharing class RLM_OrderItemContractingUtility {
                 (SELECT Id, Type FROM OrderActions WHERE Type IN ('Add', 'Amend', 'Renew'))
             FROM Order
             WHERE Id IN :inputOrderIds
-        ]);
+            WITH USER_MODE
+            ]);
 
-        Map<Id, Integer> itemCountByOrder = new Map<Id, Integer>();
-        for (AggregateResult ar : [SELECT OrderId, COUNT(Id) itemCount
+            for (AggregateResult ar : [SELECT OrderId, COUNT(Id) itemCount
                                    FROM OrderItem
                                    WHERE OrderId IN :inputOrderIds
                                      AND ProductSellingModel.SellingModelType != 'OneTime' AND EndDate != null
+                                   WITH USER_MODE
                                    GROUP BY OrderId]) {
-            itemCountByOrder.put((Id) ar.get('OrderId'), Integer.valueOf(ar.get('itemCount')));
+                itemCountByOrder.put((Id) ar.get('OrderId'), Integer.valueOf(ar.get('itemCount')));
+            }
+        } catch (QueryException e) {
+            // Mostly a missing object or field permission for the running user, which the field check above
+            // cannot see (for example ProductSellingModel); any other query failure is reported the same way.
+            for (Id orderId : inputOrderIds) {
+                results.add(failedResult(orderId, 'The orders could not be read as the running user (a missing object or field permission, or another query error): ' + e.getMessage()));
+            }
+            return results;
         }
 
         for (Id orderId : inputOrderIds) {
