@@ -163,6 +163,11 @@ sent to an Active record:
     either needs a new Draft entry, or a deactivate/edit/reactivate cycle.
 - **`qb-rating` + `qb-rating-entitlements`**: same pattern (see *Reload-Safe Status
   Objects and Child Lookups* below).
+- **`UnitOfMeasureClass` in every pcm plan** (qb en-US and ja, q3, mfg): `Upsert` +
+  `skipExistingRecords: true`, so a pcm reload never sends `Status=Draft` to a class that
+  `activate_rating_records` has activated (todo 342). The class is created Draft because the
+  platform allows nothing else; a correction to an existing class's other fields lands only
+  through qb-rating's or q3-rating's pass 2.
 
 **A load that fails partway can leave children that no reload repairs** (todo 330). When
 SFDMU rejects a parent row, it still inserts the children that look it up, with that lookup
