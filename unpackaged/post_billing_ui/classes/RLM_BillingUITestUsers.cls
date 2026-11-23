@@ -74,6 +74,13 @@ public class RLM_BillingUITestUsers {
     public static User createWithBillingAccess(
         List<String> licenses, List<String> readObjects, List<String> viewAllObjects
     ) {
+        return createWithBillingAccess(licenses, readObjects, viewAllObjects, new List<String>());
+    }
+
+    /** As above, plus field read grants given as Object.Field (for example Account.BillingAddress). */
+    public static User createWithBillingAccess(
+        List<String> licenses, List<String> readObjects, List<String> viewAllObjects, List<String> readFields
+    ) {
         User u = create(new List<String>(), licenses);
         String stamp = String.valueOf(Crypto.getRandomInteger()).remove('-');
         System.runAs(new User(Id = UserInfo.getUserId())) {
@@ -92,8 +99,35 @@ public class RLM_BillingUITestUsers {
                     ParentId = ps.Id, SobjectType = objectName, PermissionsRead = true, PermissionsViewAllRecords = true));
             }
             insert grants;
+            List<FieldPermissions> fields = new List<FieldPermissions>();
+            for (String fieldName : readFields) {
+                fields.add(new FieldPermissions(
+                    ParentId = ps.Id, SobjectType = fieldName.substringBefore('.'), Field = fieldName, PermissionsRead = true));
+            }
+            insert fields;
             insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
         }
         return u;
+    }
+
+    /**
+     * Lets a test user see every record of the given objects. The shipped Billing sets grant object
+     * and field access only; which records a user sees comes from the org's sharing, which a fresh
+     * test user (not the owner of the admin-created rows) does not satisfy on BillingAccount (measured:
+     * the user reads zero rows with the shipped sets). Used to test the role's access without it.
+     */
+    public static void grantViewAll(User u, List<String> objects) {
+        String stamp = String.valueOf(Crypto.getRandomInteger()).remove('-');
+        System.runAs(new User(Id = UserInfo.getUserId())) {
+            PermissionSet ps = new PermissionSet(Name = 'RLM_TestViewAll_' + stamp, Label = 'RLM Test View All ' + stamp);
+            insert ps;
+            List<ObjectPermissions> grants = new List<ObjectPermissions>();
+            for (String objectName : objects) {
+                grants.add(new ObjectPermissions(
+                    ParentId = ps.Id, SobjectType = objectName, PermissionsRead = true, PermissionsViewAllRecords = true));
+            }
+            insert grants;
+            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
+        }
     }
 }

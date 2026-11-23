@@ -283,19 +283,19 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     // The role set that ships with the Billing UI must resolve a junction-only billing account:
-    // this needs AccountBillingAccount read. IsDefaultBillingAccount is not permissionable
-    // (describe on a 264 org reports it so), so the USER_MODE ORDER BY on it needs no field grant.
-    // Run as the role, not as an admin.
+    // this needs AccountBillingAccount read. Run as the role, not as an admin.
     @isTest
     static void getAccountBillingInfo_junctionOnlyBillingAccount_isResolvedForTheBillingRole() {
         Account a = new Account(Name = 'BSG Role Junction Acct');
         insert a;
         BillingAccount ba = new BillingAccount(Name = 'BSG Role Junction BA');
         insert ba;
-        insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = ba.Id, IsDefaultBillingAccount = true);
+        insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = ba.Id);
         User u = RLM_BillingUITestUsers.create(
             new List<String>{ 'RLM_BillingUI', 'RevenueLifecycleManagementBillingOperations' },
             new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
+        // Record visibility is the org's sharing, not the role set; see grantViewAll.
+        RLM_BillingUITestUsers.grantViewAll(u, new List<String>{ 'BillingAccount' });
 
         RLM_BillingScheduleGroupService.AccountInfo info;
         Test.startTest();
@@ -317,21 +317,16 @@ private class RLM_BillingScheduleGroupServiceTest {
         insert ba;
         insert new AccountBillingAccount(AccountId = a.Id, BillingAccountId = ba.Id);
 
-        // Account and BillingAccount reads only: no permission set or role grants the link object.
-        User u = RLM_BillingUITestUsers.create(new List<String>(),
-            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
-        System.runAs(new User(Id = UserInfo.getUserId())) {
-            PermissionSet ps = new PermissionSet(Name = 'RLM_Test_NoLinkAccess', Label = 'RLM Test No Link Access');
-            insert ps;
-            insert new List<ObjectPermissions>{
-                new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Account', PermissionsRead = true),
-                new ObjectPermissions(ParentId = ps.Id, SobjectType = 'BillingAccount', PermissionsRead = true)
-            };
-            // The compound Account.BillingAddress is the field grant RLM_BillingUI holds for the
-            // BillingCity read. BillingAccount.AccountId is not permissionable (describe), so it has no row.
-            insert new FieldPermissions(ParentId = ps.Id, SobjectType = 'Account', Field = 'Account.BillingAddress', PermissionsRead = true);
-            insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
-        }
+        // A billing user who reads Account and BillingAccount but not the link object. Provisioned
+        // with the Billing license and the platform Billing access permission, which makes the Billing
+        // objects visible; a custom set grants the two reads. A shipped Billing role set cannot stand
+        // for this user: every one of them also reads AccountBillingAccount, and a plain read grant
+        // on BillingAccount is not honoured without the access permission (both measured on a 264 org).
+        User u = RLM_BillingUITestUsers.createWithBillingAccess(
+            new List<String>{ RLM_BillingUITestUsers.BILLING_PSL },
+            new List<String>{ 'Account' },
+            new List<String>{ 'BillingAccount' },
+            new List<String>{ 'Account.BillingAddress' });
 
         String message;
         Test.startTest();
