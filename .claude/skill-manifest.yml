@@ -705,7 +705,6 @@ foundations:
 
     # Corrected 2026-07-26: the two filenames advertised here never existed in postman/.
     postman_collections:
-      - postman/Agentforce Revenue Management APIs.postman_collection.json
       - postman/Agentforce Revenue Management APIs (v66.0).postman_collection.json
     postman_environment: postman/Agentforce Revenue Management v66.0.postman_environment.json
     postman_v67_status: needs_refresh

@@ -22,8 +22,10 @@ Author: Claude (Anthropic)
 Date: 2026-03-26
 """
 
+import argparse
 import json
 import uuid
+from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
@@ -2612,6 +2614,12 @@ pm.test("Payment applied", function () {
 
 def main():
     """Generate the complete Postman collection."""
+    parser = argparse.ArgumentParser(description="Generate the Agentforce Revenue Management Postman collection.")
+    # No default: the generated collection is not byte-for-byte the shipped export (it carries extra
+    # request-level test scripts), so it must never overwrite the canonical file by accident.
+    parser.add_argument("--output", type=Path, required=True, help="Path of the collection JSON to write")
+    args = parser.parse_args()
+
     print("[*] Building Agentforce Revenue Management APIs (v66.0) Postman Collection...")
 
     builder = PostmanCollectionBuilder(
@@ -2686,7 +2694,7 @@ Generated: 2026-03-26
 
     # Build and save
     collection = builder.build()
-    output_path = "/sessions/clever-intelligent-ramanujan/mnt/rlm-base-dev/postman/Agentforce Revenue Management APIs.postman_collection.json"
+    output_path = str(args.output)
 
     with open(output_path, "w") as f:
         json.dump(collection, f, indent=2)

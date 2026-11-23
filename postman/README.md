@@ -6,9 +6,7 @@ API collections for Salesforce Revenue Cloud. The downloadable Postman collectio
 
 ## Collections
 
-**`Agentforce Revenue Management APIs (v66.0).postman_collection.json`** — The primary, comprehensive collection, covering PCM, Product Discovery, Pricing (Core Pricing + Procedure Plan Definitions), Product Configurator, Rate Management, Transaction Management (including the deprecated v63 quote/order place actions), Usage Management, Billing, and Context Service. Includes a Setup Runner plus three pre-configured runners for end-to-end workflows: Quote-to-Cash, eCommerce, and Billing.
-
-**`Agentforce Revenue Management APIs.postman_collection.json`** — A parallel Postman export of the same v66.0 collection (same domain coverage; differs only in export metadata and a handful of request-level test scripts). Prefer the versioned file above as the canonical import target.
+**`Agentforce Revenue Management APIs (v66.0).postman_collection.json`** — The primary, comprehensive collection, covering PCM, Product Discovery, Pricing (Core Pricing + Procedure Plan Definitions), Product Configurator, Rate Management, Transaction Management (including the deprecated v63 quote/order place actions), Usage Management, Billing, and Context Service. Includes a Setup Runner plus three pre-configured runners for end-to-end workflows: Quote-to-Cash, eCommerce, and Billing. This is the single canonical collection.
 
 ---
 
@@ -49,9 +47,8 @@ Per-domain endpoint references are in [`docs/api/`](../docs/api/). Each guide co
 
 Located in `utilities/`:
 
-- `build_agentforce_collection.py` — Generates the Agentforce collection from source. Run with `python3 utilities/build_agentforce_collection.py`.
-- `validate_collection.py` — Validates all collections for structural integrity, API version compliance, request body validity, and completeness against the v260 API inventory. Run with `python3 utilities/validate_collection.py`.
-- `update_existing_collections.py` — Applies v260 updates to the RLM and RCA collections. Idempotent.
+- `build_agentforce_collection.py` — Generates the Agentforce collection from source. Run with `python3 utilities/build_agentforce_collection.py --output <path>`. Its output is not identical to the shipped collection (it adds request-level test scripts), so write it to a new path and compare rather than overwriting the canonical file.
+- `validate_collection.py` — Validates all collections for structural integrity, API version compliance, request body validity, and completeness against the v260 (v66.0) API inventory. Validates every collection in `postman/` by default. Run with `python3 utilities/validate_collection.py`.
 
 ---
 
@@ -205,7 +202,7 @@ Services used in this collection:
 - Check the Postman console > Response tab for the error message from Salesforce
 
 **pn.execution / pm.execution errors in test scripts**
-- The collection uses `pm.execution.setNextRequest(null)` — if you see `pn.execution` references, regenerate the collection with `build_agentforce_collection.py`
+- The collection uses `pm.execution.setNextRequest(null)` — if you see `pn.execution` references, fix the reference by hand, or regenerate with `build_agentforce_collection.py --output <path>` to a new file and compare
 
 ---
 
