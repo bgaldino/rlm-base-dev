@@ -1004,7 +1004,9 @@ const DOMAINS = {
               {name:'contextId',type:'String',req:true,desc:'ID of the context to retrieve data records from.'},
               {name:'queryTags',type:'List&lt;String&gt;',req:false,desc:'List of objects to retrieve from the context (e.g., Quote, QuoteLineItem, Product).'},
               {name:'sobjectFieldMap',type:'Map&lt;String, List&lt;String&gt;&gt;',req:false,desc:'v67.0+. Maps an sObject name to a list of field names to query; an empty list queries all fields on that object.'},
-              {name:'filters',type:'List&lt;Sales Transaction Filter Condition Input&gt;',req:false,desc:'v67.0+. Filter conditions (sObjectName, fieldName, operator, operands) to query the context data.'}
+              {name:'filters',type:'List&lt;Sales Transaction Filter Condition Input&gt;',req:false,desc:'v67.0+. Filter conditions to query the context data. Name the field by sObjectName and fieldName, or by nodeName and attributeName, with an operator and operands. Nest conditions with underlyingFilters and combine them with operatorLogic (AND or OR).'},
+              {name:'batchIndices',type:'List&lt;Integer&gt;',req:false,desc:'v68.0+. Zero-based indices of the batches to fetch. When set, the response returns only those batches.'},
+              {name:'shouldReturnMetadataOnly',type:'Boolean',req:false,desc:'v68.0+. When true, returns only the batch metadata (batchMetadata) without fetching batch data.'}
             ]},
           { method:'POST', path:'/connect/rev/sales-transaction/actions/clone', title:'Clone Sales Transaction', version:'64.0',
             desc:'Create a clone of a sales transaction — a quote or an order. Supports cloning Quote, QuoteLineItem, OrderItem, QuoteLineGroup, Order, and OrderItemGroup records with their related records and configurations. Cloning a quote line group or order item group record clones all items within that group.',

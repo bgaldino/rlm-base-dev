@@ -40,9 +40,12 @@ The Sales Transactions APIs are the primary interface for creating and managing 
   - `contextId` (String, Required): ID of the context to retrieve data records from.
   - `queryTags` (List<String>, Optional): List of objects to retrieve from the context (e.g., `Quote`, `QuoteLineItem`, `Product`).
   - `sobjectFieldMap` (Map<String, List<String>>, Optional, **Available Version 67.0**): Maps an sObject name to a list of field names to query; an empty list queries all fields on that object.
-  - `filters` (List<Sales Transaction Filter Condition Input>, Optional, **Available Version 67.0**): Filter conditions (sObjectName, fieldName, operator, operands) to query the context data.
+  - `filters` (List<Sales Transaction Filter Condition Input>, Optional, **Available Version 67.0**): Filter conditions to query the context data. Each condition names the field to filter on by `sObjectName` and `fieldName`, or by `nodeName` and `attributeName`, plus an `operator` (`Equals`, `NotEquals`, `Gt`, `GtEq`, `Lt`, `LtEq`, `In`) and `operands` (each a `value` and a `type`). Conditions can be nested with `underlyingFilters` and combined with `operatorLogic` (`AND` or `OR`).
+  - `batchIndices` (List<Integer>, Optional, **Available Version 68.0**): Zero-based indices of the batches to fetch. When set, the response returns only those batches; several can be fetched in parallel.
+  - `shouldReturnMetadataOnly` (Boolean, Optional, **Available Version 68.0**): When `true`, returns only the batch metadata without fetching batch data.
+- **Response (batch fields, Available Version 68.0):** `batches` (the requested batches, each with a `batchIndex` and its `batchRecords`) and `batchMetadata` (`parentContextId`, `totalBatches`, `batchId`), alongside the existing `isSuccess`, `errors` and `response`. `batchMetadata` is returned when you request only the metadata or fetch specific batches. The 264 response examples also show `GrandTotalAmount` and `hasDeletedLines` among a Quote's returned `data` values; the guide lists them in examples only, not as documented properties.
 
-*Grounded against: `connect_resources_read_sales_transaction.htm.md`, `connect_requests_read_sales_transaction_input.htm.md`*
+*Grounded against: `connect_resources_read_sales_transaction.htm.md`, `connect_requests_read_sales_transaction_input.htm.md`, `connect_requests_sales_transaction_filter_condition_input.htm.md`, `connect_responses_read_sales_transaction_output.htm.md`, `connect_responses_batch_metadata_output.htm.md`*
 
 ---
 
