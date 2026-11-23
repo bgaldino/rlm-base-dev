@@ -122,13 +122,21 @@ private class RLM_PaymentsDataControllerTest {
         insert new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
             RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
 
-        // Test-only set: read on PaymentScheduleItem and nothing on Account.
+        // Test-only set: read on PaymentScheduleItem and its parent PaymentSchedule, nothing on
+        // Account. Measured read-only on a 264 org: PaymentScheduleId is a master-detail, the item
+        // is controlled by its parent, PaymentSchedule is Private, and every shipped permission set
+        // that grants the item also grants the parent. Not measured: that this exact set lets the
+        // user see the seeded row at runtime; the PRECONDITION below fails loudly if it does not.
         PermissionSet itemsOnly = new PermissionSet(Name = 'RLM_PaymentsItemsOnlyTest', Label = 'RLM Payments Items Only Test');
         User reader = RLM_BillingUITestUsers.create(new List<String>(), new List<String>{ RLM_BillingUITestUsers.BILLING_PSL });
         System.runAs(new User(Id = UserInfo.getUserId())) {
             insert itemsOnly;
-            insert new ObjectPermissions(ParentId = itemsOnly.Id, SobjectType = 'PaymentScheduleItem',
-                PermissionsRead = true, PermissionsViewAllRecords = true);
+            insert new List<ObjectPermissions>{
+                new ObjectPermissions(ParentId = itemsOnly.Id, SobjectType = 'PaymentSchedule',
+                    PermissionsRead = true, PermissionsViewAllRecords = true),
+                new ObjectPermissions(ParentId = itemsOnly.Id, SobjectType = 'PaymentScheduleItem',
+                    PermissionsRead = true, PermissionsViewAllRecords = true)
+            };
             insert new PermissionSetAssignment(AssigneeId = reader.Id, PermissionSetId = itemsOnly.Id);
         }
 
