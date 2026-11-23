@@ -1,10 +1,10 @@
 /**
- * RLM_CalculateTaxService posts the Avalara payload through RLM_HttpService, then — under
- * Test.isRunningTest() — parses its own canned success response instead of the callout body.
- * So the request side is asserted through the recorded callout, the response side through
- * the response type and its String form. The callout result itself is replaced under a test, so the
- * no-response (503) and incomplete-response (502) errors are reached through the testResponseBody
- * and simulateNoResponse seams, and so is the Avalara error-body (501) branch.
+ * RLM_CalculateTaxService posts the Avalara payload through RLM_HttpService and maps the response body.
+ * Every test drives the production path with an HttpCalloutMock (RLM_TaxTestFactory): the request side is
+ * asserted through the recorded callout, the response side through the response type and its String
+ * form. A mock body stands in for each engine response, a CalloutException-throwing mock for the
+ * failed callout (503), and bodies that lack a value, are not JSON or carry an "error" key reach the
+ * incomplete (502), unreadable (502) and engine-error (501) branches.
  * Setters in getTax that no assertion covers (every other setter call is asserted): header
  * referenceDocumentCode, header exemptAmount, effectiveDate and transactionDate; imposition subType and
  * type, and the setImposition call; jurisdiction country, region, stateAssignedNumber, id and level; detail taxAuthorityTypeId,
@@ -18,7 +18,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
 
     @IsTest
     static void getTax_withLines_postsAvalaraPayloadAndReturnsCalculateTaxResponse() {
-        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
+        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, RLM_TaxTestFactory.cannedSuccessBody());
         Test.setMock(HttpCalloutMock.class, mock);
         // The request line number and tax code differ from the engine payload's ("1", "P0000000"),
         // so the response can show which side each value came from.
@@ -99,7 +99,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
 
     @IsTest
     static void getTax_actualCommitRequest_sendsSalesInvoiceAndEchoesTransactionType() {
-        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
+        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, RLM_TaxTestFactory.cannedSuccessBody());
         Test.setMock(HttpCalloutMock.class, mock);
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Actual, 'DOC-CALC-2', new List<commercetax.TaxLineItemRequest>{
@@ -128,7 +128,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
 
     @IsTest
     static void getTax_withoutTransactionType_throwsAfterCallout() {
-        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
+        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, RLM_TaxTestFactory.cannedSuccessBody());
         Test.setMock(HttpCalloutMock.class, mock);
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, 'DOC-NO-TYPE', RLM_TaxTestFactory.lines(232));
@@ -188,18 +188,16 @@ private with sharing class RLM_CalculateTaxServiceTest {
         Assert.areEqual(0, mock.requests.size(), 'No callout is made without lines.');
     }
 
-    // RLM_HttpService swallows a failed callout and leaves a null response; getTax reads the body
-    // through bodyOrNull and returns an ErrorResponse when it is null. Under a test the callout result
-    // is replaced by a canned body, so simulateNoResponse stands in for the failed callout and the
-    // test goes through the public entry point. bodyOrNull itself is tested below.
+    // RLM_HttpService swallows a failed callout (RLM_HttpServiceTest covers that) and leaves a null
+    // response; getTax reads the body through bodyOrNull and returns an ErrorResponse when it is null.
+    // A mock that throws CalloutException drives that production path. bodyOrNull itself is tested below.
     @IsTest
     static void getTax_failedCallout_returnsTheNoResponseError() {
-        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
+        RLM_TaxTestFactory.CalloutFailureHttpMock mock = new RLM_TaxTestFactory.CalloutFailureHttpMock();
         Test.setMock(HttpCalloutMock.class, mock);
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, 'DOC-NO-RESPONSE', RLM_TaxTestFactory.lines(232));
         request.taxTransactionType = commercetax.TaxTransactionType.Debit;
-        RLM_CalculateTaxService.simulateNoResponse = true;
 
         Test.startTest();
         commercetax.TaxEngineResponse response = RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
@@ -214,11 +212,10 @@ private with sharing class RLM_CalculateTaxServiceTest {
 
     @IsTest
     static void getTax_avalaraErrorBody_returnsTheEngineMessage() {
-        Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, '{}'));
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, 'DOC-ENGINE-ERROR', RLM_TaxTestFactory.lines(232));
         request.taxTransactionType = commercetax.TaxTransactionType.Debit;
-        RLM_CalculateTaxService.testResponseBody = '{"error":{"code":"GetTaxError","message":"Address is invalid.","details":[]}}';
+        Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, '{"error":{"code":"GetTaxError","message":"Address is invalid.","details":[]}}'));
 
         commercetax.TaxEngineResponse response = RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
 
@@ -239,12 +236,11 @@ private with sharing class RLM_CalculateTaxServiceTest {
             'taxCalculated' => '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","lineAmount":10,"taxDate":"2020-07-15"}]}',
             'line taxDate' => '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5}]}'
         };
-        Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, '{}'));
         for (String missing : bodies.keySet()) {
             commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
                 commercetax.CalculateTaxType.Estimated, 'DOC-INCOMPLETE', RLM_TaxTestFactory.lines(232));
             request.taxTransactionType = commercetax.TaxTransactionType.Debit;
-            RLM_CalculateTaxService.testResponseBody = bodies.get(missing);
+            Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, bodies.get(missing)));
 
             commercetax.TaxEngineResponse response = RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
 
@@ -258,7 +254,6 @@ private with sharing class RLM_CalculateTaxServiceTest {
     // A response with no line list and a line with no tax details still maps to a success response.
     @IsTest
     static void getTax_responseWithoutLinesOrDetails_mapsToASuccessResponse() {
-        Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, '{}'));
         List<String> noLines = new List<String>{
             '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15"}',
             '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5,"taxDate":"2020-07-15"}]}'
@@ -267,7 +262,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
             commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
                 commercetax.CalculateTaxType.Estimated, 'DOC-SPARSE', RLM_TaxTestFactory.lines(232));
             request.taxTransactionType = commercetax.TaxTransactionType.Debit;
-            RLM_CalculateTaxService.testResponseBody = body;
+            Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, body));
 
             commercetax.TaxEngineResponse response = RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
 
@@ -279,12 +274,11 @@ private with sharing class RLM_CalculateTaxServiceTest {
     // reason and a jurisdiction name) must not turn it into an error response.
     @IsTest
     static void getTax_successBodyContainingTheWordError_isStillASuccess() {
-        Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, '{}'));
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, 'DOC-WORD-ERROR', RLM_TaxTestFactory.lines(232));
         request.taxTransactionType = commercetax.TaxTransactionType.Debit;
-        RLM_CalculateTaxService.testResponseBody = '{"code":"X","status":"Temporary","adjustmentReason":"corrected an error",'
-            + '"totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[]}';
+        Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, '{"code":"X","status":"Temporary","adjustmentReason":"corrected an error",'
+            + '"totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15","lines":[]}'));
 
         commercetax.TaxEngineResponse response = RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
 
@@ -297,7 +291,6 @@ private with sharing class RLM_CalculateTaxServiceTest {
     // NullPointerException), and an error of an unexpected type.
     @IsTest
     static void getTax_errorBodies_alwaysReturnAnErrorResponseWithAMessage() {
-        Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, '{}'));
         Map<String, String> expectedByBody = new Map<String, String>{
             '{"error":{"code":"E","message":"Address is invalid.","details":[]}}' => 'Address is invalid.',
             '{"error":{"code":"E","details":[{"message":"First."},{"message":""},{"message":"Last."}]}}' => 'Last.',
@@ -312,7 +305,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
             commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
                 commercetax.CalculateTaxType.Estimated, 'DOC-ERROR-SHAPE', RLM_TaxTestFactory.lines(232));
             request.taxTransactionType = commercetax.TaxTransactionType.Debit;
-            RLM_CalculateTaxService.testResponseBody = body;
+            Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, body));
 
             commercetax.TaxEngineResponse response = RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
 
@@ -322,15 +315,15 @@ private with sharing class RLM_CalculateTaxServiceTest {
         }
     }
 
-    // A body that is not JSON cannot be read: a 502 error response, not a JSONException.
+    // A body that is not JSON cannot be read: a 502 error response, not a JSONException. A blank body is
+    // sent as ' ' because an empty string may read back as no body, which is the 503 path above.
     @IsTest
     static void getTax_bodyThatIsNotJson_returnsAnUnreadableResponseError() {
-        Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, '{}'));
-        for (String body : new List<String>{ '<html>Bad gateway</html>', '[1,2]', '' }) {
+        for (String body : new List<String>{ '<html>Bad gateway</html>', '[1,2]', ' ' }) {
             commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
                 commercetax.CalculateTaxType.Estimated, 'DOC-NOT-JSON', RLM_TaxTestFactory.lines(232));
             request.taxTransactionType = commercetax.TaxTransactionType.Debit;
-            RLM_CalculateTaxService.testResponseBody = body;
+            Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, body));
 
             commercetax.TaxEngineResponse response = RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
 
@@ -345,7 +338,6 @@ private with sharing class RLM_CalculateTaxServiceTest {
     // the amount and no invented reason.
     @IsTest
     static void getTax_detailExemptAmount_nullIsNotExempt_andAnAmountIsMapped() {
-        Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, '{}'));
         String head = '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,"taxDate":"2020-07-15","date":"2020-07-15",'
             + '"lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5,"taxDate":"2020-07-15","details":[';
         String detailFields = '"taxName":"WA STATE TAX","jurisName":"WASHINGTON","rate":0.1,"taxCalculated":1.5,"taxableAmount":10';
@@ -358,7 +350,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
             commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
                 commercetax.CalculateTaxType.Estimated, 'DOC-EXEMPT', RLM_TaxTestFactory.lines(232));
             request.taxTransactionType = commercetax.TaxTransactionType.Debit;
-            RLM_CalculateTaxService.testResponseBody = bodies[i];
+            Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, bodies[i]));
 
             commercetax.TaxEngineResponse response = RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
 
@@ -367,6 +359,30 @@ private with sharing class RLM_CalculateTaxServiceTest {
                 'Only the detail that carries an exempt amount reports one.');
             RLM_TaxTestFactory.assertResponseFieldCount(response, 'exemptReason', 'Some reason we dont know', 0,
                 'No placeholder exempt reason is set.');
+        }
+    }
+
+    // A date the engine returns that Date.valueOf cannot read used to throw a TypeException out of getTax.
+    @IsTest
+    static void getTax_responseWithAnInvalidDate_returnsAnInvalidDateError() {
+        String head = '{"code":"X","status":"Temporary","totalAmount":10,"totalTax":1.5,';
+        Map<String, String> bodies = new Map<String, String>{
+            'taxDate' => head + '"taxDate":"not a date","date":"2020-07-15","lines":[]}',
+            'date' => head + '"taxDate":"2020-07-15","date":"not a date","lines":[]}',
+            'line taxDate' => head + '"taxDate":"2020-07-15","date":"2020-07-15","lines":[{"lineNumber":"1","lineAmount":10,"taxCalculated":1.5,"taxDate":"not a date"}]}'
+        };
+        for (String field : bodies.keySet()) {
+            Test.setMock(HttpCalloutMock.class, new RLM_TaxTestFactory.RecordingHttpMock(200, bodies.get(field)));
+            commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
+                commercetax.CalculateTaxType.Estimated, 'DOC-BAD-DATE', RLM_TaxTestFactory.lines(232));
+            request.taxTransactionType = commercetax.TaxTransactionType.Debit;
+
+            commercetax.TaxEngineResponse response = RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
+
+            Assert.isInstanceOfType(response, commercetax.ErrorResponse.class, field + ': an invalid date is an error response.');
+            RLM_TaxTestFactory.assertResponseField(response, 'errorCode', '502', field + ': the error code is 502.');
+            RLM_TaxTestFactory.assertResponseField(response, 'errorMessage',
+                RLM_CalculateTaxService.INVALID_DATE_PREFIX + field + ' is not a date.', field + ': the message names the date.');
         }
     }
 
@@ -381,7 +397,7 @@ private with sharing class RLM_CalculateTaxServiceTest {
     // Unit-tested with a mocked callout; not verified against an Avalara sandbox.
     @IsTest
     static void getTax_lineWithEffectiveDate_sendsALineLevelTaxDateOverride() {
-        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
+        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, RLM_TaxTestFactory.cannedSuccessBody());
         Test.setMock(HttpCalloutMock.class, mock);
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, 'DOC-OVERRIDE',
