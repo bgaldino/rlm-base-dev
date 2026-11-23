@@ -369,9 +369,8 @@ private class RLM_CollectionsDashboardControllerTest {
 
         Assert.areEqual(1, onlyB.disputedInvoices.size(), 'The account filter keeps only that account\'s case.');
         Assert.areEqual(b.Id, onlyB.disputedInvoices[0].accountId, 'The filtered row is account B.');
-        Assert.isTrue(onlyB.highValueDelinquents.size() == 1 && onlyB.highValueDelinquents[0].accountId == a.Id,
-            'Known gap: the filtered worklist keeps a placeholder row that ignores the account filter and '
-            + 'uses the first account by name. Update this test when it is fixed. Rows: '
+        Assert.isTrue(onlyB.highValueDelinquents.size() == 1 && onlyB.highValueDelinquents[0].accountId == b.Id,
+            'The filtered worklist\'s placeholder row uses the filtered account. Rows: '
             + onlyB.highValueDelinquents.size());
     }
 

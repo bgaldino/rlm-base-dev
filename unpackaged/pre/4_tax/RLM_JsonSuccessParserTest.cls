@@ -150,10 +150,10 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.areEqual('Committed', parsed.status, 'status');
         Assert.areEqual('SalesInvoice', parsed.type_Z, 'The JSON "type" key maps to type_Z.');
         Assert.areEqual(true, parsed.reconciled, 'reconciled');
-        Assert.areEqual(1000, parsed.totalAmount, 'totalAmount');
-        Assert.areEqual(50, parsed.totalExempt, 'totalExempt');
+        Assert.isTrue(parsed.totalAmount == 1000, 'totalAmount');
+        Assert.isTrue(parsed.totalExempt == 50, 'totalExempt');
         assertClose(72.5, parsed.totalTax, 'totalTax');
-        Assert.areEqual(950, parsed.totalTaxable, 'totalTaxable');
+        Assert.isTrue(parsed.totalTaxable == 950, 'totalTaxable');
         assertClose(72.75, parsed.totalTaxCalculated, 'totalTaxCalculated');
         Assert.areEqual('NotAdjusted', parsed.adjustmentReason, 'adjustmentReason');
         Assert.areEqual(false, parsed.locked, 'locked');
@@ -176,15 +176,15 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.areEqual('1', line.id, 'line.id');
         Assert.areEqual('123456', line.transactionId, 'line.transactionId');
         Assert.areEqual('L-1', line.lineNumber, 'line.lineNumber');
-        Assert.areEqual(0, line.discountAmount, 'line.discountAmount');
-        Assert.areEqual(50, line.exemptAmount, 'line.exemptAmount');
+        Assert.isTrue(line.discountAmount == 0, 'line.discountAmount');
+        Assert.isTrue(line.exemptAmount == 50, 'line.exemptAmount');
         Assert.areEqual(7, line.exemptCertId, 'line.exemptCertId');
         Assert.areEqual(true, line.isItemTaxable, 'line.isItemTaxable');
-        Assert.areEqual(1000, line.lineAmount, 'line.lineAmount');
+        Assert.isTrue(line.lineAmount == 1000, 'line.lineAmount');
         assertClose(2, line.quantity, 'line.quantity');
         Assert.areEqual('2026-01-17', line.reportingDate, 'line.reportingDate');
         assertClose(72.5, line.tax, 'line.tax');
-        Assert.areEqual(950, line.taxableAmount, 'line.taxableAmount');
+        Assert.isTrue(line.taxableAmount == 950, 'line.taxableAmount');
         assertClose(71.25, line.taxCalculated, 'line.taxCalculated');
         Assert.areEqual('P0000000', line.taxCode, 'line.taxCode');
         Assert.areEqual('2026-01-16', line.taxDate, 'line.taxDate');
@@ -198,15 +198,15 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.areEqual('123456', detail.transactionId, 'detail.transactionId');
         Assert.areEqual('US', detail.country, 'detail.country');
         Assert.areEqual('CA', detail.region, 'detail.region');
-        Assert.areEqual(0, detail.exemptAmount, 'detail.exemptAmount');
+        Assert.isTrue(detail.exemptAmount == 0, 'detail.exemptAmount');
         Assert.areEqual('06', detail.jurisCode, 'detail.jurisCode');
         Assert.areEqual('CALIFORNIA', detail.jurisName, 'detail.jurisName');
         Assert.areEqual('38', detail.stateAssignedNo, 'detail.stateAssignedNo');
         Assert.areEqual('STA', detail.jurisType, 'detail.jurisType');
-        Assert.areEqual(5, detail.nonTaxableAmount, 'detail.nonTaxableAmount');
+        Assert.isTrue(detail.nonTaxableAmount == 5, 'detail.nonTaxableAmount');
         assertClose(0.0725, detail.rate, 'detail.rate');
         assertClose(72.5, detail.tax, 'detail.tax');
-        Assert.areEqual(950, detail.taxableAmount, 'detail.taxableAmount');
+        Assert.isTrue(detail.taxableAmount == 950, 'detail.taxableAmount');
         Assert.areEqual('Sales', detail.taxType, 'detail.taxType');
         Assert.areEqual('CA STATE TAX', detail.taxName, 'detail.taxName');
         Assert.areEqual(45, detail.taxAuthorityTypeId, 'detail.taxAuthorityTypeId');
@@ -248,12 +248,12 @@ private with sharing class RLM_JsonSuccessParserTest {
         Assert.areEqual('WA STATE TAX', summary.taxName, 'summary.taxName');
         Assert.areEqual('Group-1', summary.taxGroup, 'summary.taxGroup');
         Assert.areEqual('General', summary.rateType, 'summary.rateType');
-        Assert.areEqual(232, summary.taxable, 'summary.taxable');
+        Assert.isTrue(summary.taxable == 232, 'summary.taxable');
         assertClose(0.065, summary.rate, 'summary.rate');
         assertClose(15.08, summary.tax, 'summary.tax');
         assertClose(15.09, summary.taxCalculated, 'summary.taxCalculated');
-        Assert.areEqual(0, summary.nonTaxable, 'summary.nonTaxable');
-        Assert.areEqual(7, summary.exemption, 'summary.exemption follows the skipped entries.');
+        Assert.isTrue(summary.nonTaxable == 0, 'summary.nonTaxable');
+        Assert.isTrue(summary.exemption == 7, 'summary.exemption follows the skipped entries.');
 
         RLM_JsonSuccessParser.Messages message = parsed.messages[0];
         Assert.areEqual('Address not geocoded', message.summary, 'message.summary');
@@ -276,16 +276,16 @@ private with sharing class RLM_JsonSuccessParserTest {
         Test.stopTest();
 
         Assert.isNull(parsed.referenceCode, 'A null String field stays null.');
-        Assert.isNull(parsed.totalAmount, 'A null Integer field stays null.');
+        Assert.isNull(parsed.totalAmount, 'A null Decimal field stays null.');
         Assert.areEqual('after-nulls', parsed.code, 'Parsing continues after the nulls.');
         Assert.areEqual(1, parsed.lines.size(), 'The line is parsed.');
         Assert.isNull(parsed.lines[0].lineNumber, 'A null String line field stays null.');
-        Assert.isNull(parsed.lines[0].lineAmount, 'A null Integer line field stays null.');
+        Assert.isNull(parsed.lines[0].lineAmount, 'A null Decimal line field stays null.');
         Assert.areEqual('after-nulls', parsed.lines[0].taxCode, 'Line parsing continues after the nulls.');
 
         RLM_JsonSuccessParser.Details detail = parsed.lines[0].details[0];
         Assert.isNull(detail.jurisName, 'A null String detail field stays null.');
-        Assert.isNull(detail.taxableAmount, 'A null Integer detail field stays null.');
+        Assert.isNull(detail.taxableAmount, 'A null Decimal detail field stays null.');
         Assert.areEqual('after-nulls', detail.taxName, 'Detail parsing continues after the nulls.');
 
         RLM_JsonSuccessParser.Addresses address = parsed.addresses[0];
@@ -295,7 +295,7 @@ private with sharing class RLM_JsonSuccessParserTest {
 
         RLM_JsonSuccessParser.Summary summary = parsed.summary[0];
         Assert.isNull(summary.jurisName, 'A null String summary field stays null.');
-        Assert.isNull(summary.taxable, 'A null Integer summary field stays null.');
+        Assert.isNull(summary.taxable, 'A null Decimal summary field stays null.');
         Assert.areEqual('after-nulls', summary.taxName, 'Summary parsing continues after the nulls.');
 
         // Messages map String fields only.
@@ -325,18 +325,15 @@ private with sharing class RLM_JsonSuccessParserTest {
     }
 
     @IsTest
-    static void parse_fractionalAmounts_truncatesIntegerFields() {
+    static void parse_fractionalAmounts_keepsTheFractionInDecimalFields() {
         Test.startTest();
         RLM_JsonSuccessParser parsed = RLM_JsonSuccessParser.parse(
             '{"totalAmount": 232.7, "lines": [{"lineAmount": 232.7, "taxCalculated": 23.43}]}');
         Test.stopTest();
 
-        Assert.areEqual(232, parsed.totalAmount,
-            'Known gap: Integer amount fields read with getIntegerValue truncate 232.7 to 232. '
-            + 'Update this test when it is fixed.');
-        Assert.areEqual(232, parsed.lines[0].lineAmount,
-            'Known gap: Integer amount fields read with getIntegerValue truncate 232.7 to 232. '
-            + 'Update this test when it is fixed.');
+        Assert.isTrue(parsed.totalAmount == 232.7, 'totalAmount keeps its fraction: ' + parsed.totalAmount);
+        Assert.isTrue(parsed.lines[0].lineAmount == 232.7,
+            'lineAmount keeps its fraction: ' + parsed.lines[0].lineAmount);
         Assert.isTrue(parsed.lines[0].taxCalculated == Double.valueOf('23.43'),
             'Double fields keep their fraction: ' + parsed.lines[0].taxCalculated);
     }

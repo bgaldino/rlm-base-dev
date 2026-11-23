@@ -53,9 +53,10 @@ private with sharing class RLM_CalculateTaxServiceTest {
             'The state jurisdiction detail is mapped.');
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'name', 'KING', 1,
             'The county jurisdiction detail is mapped.');
-        RLM_TaxTestFactory.assertResponseFieldCount(response, 'rate', '0.065', 2,
-            'Known gap: detail rates accumulate across a line\'s details instead of each detail keeping '
-            + 'its own rate (KING reports 0.065, not 0). Update this test when it is fixed.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'rate', '0.065', 1,
+            'Each detail keeps its own rate: WASHINGTON reports 0.065.');
+        RLM_TaxTestFactory.assertResponseFieldCount(response, 'rate', '0.0', 1,
+            'Each detail keeps its own rate: KING reports 0, not the running total.');
         // These compare the response amounts with the canned payload's: line and header total 232
         // with tax 23.43; the WASHINGTON detail taxes 15.08 and KING 0, each on 232.
         RLM_TaxTestFactory.assertResponseFieldCount(response, 'totalAmount', '232.0', 2, 'Header and line total amount.');
@@ -142,14 +143,13 @@ private with sharing class RLM_CalculateTaxServiceTest {
         Test.stopTest();
 
         Assert.isNotNull(caught,
-            'Known gap: a request without a tax transaction type throws a raw NullPointerException after the '
-            + 'callout, because the null is passed unvalidated to setTaxTransactionType (the mock adapters '
-            + 'default it to Debit). '
-            + 'Update this test when it is fixed.' + RLM_TaxTestFactory.SETTER_PREMISE_HINT);
+            'Accepted limitation: a request without a tax transaction type throws a raw NullPointerException '
+            + 'after the callout, because the platform always supplies one and the null reaches '
+            + 'setTaxTransactionType.' + RLM_TaxTestFactory.SETTER_PREMISE_HINT);
         // The setter's exception type is platform behaviour (see the accepted risk in RLM_TaxTestFactory).
         Assert.areEqual('System.NullPointerException', caught.getTypeName(),
-            'Known gap: the null transaction type reaches the platform setter, which throws a raw '
-            + 'NullPointerException. Update this test when it is fixed. ' + caught
+            'Accepted limitation: the null transaction type reaches the platform setter, which throws a raw '
+            + 'NullPointerException. ' + caught
             + RLM_TaxTestFactory.SETTER_PREMISE_HINT);
         Assert.areEqual(1, mock.requests.size(), 'The failure comes after the engine callout: ' + caught);
     }
@@ -172,25 +172,56 @@ private with sharing class RLM_CalculateTaxServiceTest {
     }
 
     @IsTest
-    static void getTax_nullLineList_rethrows() {
+    static void getTax_nullLineList_returnsNullWithoutCallout() {
+        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
+        Test.setMock(HttpCalloutMock.class, mock);
         commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
             commercetax.CalculateTaxType.Estimated, 'DOC-NULL-LINES', null);
 
-        commercetax.TaxEngineContext context = RLM_TaxTestFactory.context(request);
-        Exception caught;
         Test.startTest();
-        try {
-            RLM_CalculateTaxService.getTax(context);
-        } catch (Exception e) {
-            caught = e;
-        }
+        commercetax.TaxEngineResponse response = RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
         Test.stopTest();
 
-        Assert.isNotNull(caught,
-            'Known gap: a null line list is not guarded and getTax throws a raw NullPointerException. '
-            + 'Update this test when it is fixed.');
-        Assert.isInstanceOfType(caught, NullPointerException.class,
-            'Known gap: a null line list is not guarded and getTax throws a raw NullPointerException. '
-            + 'Update this test when it is fixed. ' + caught);
+        Assert.isNull(response, 'A null line list is treated like an empty one.');
+        Assert.areEqual(0, mock.requests.size(), 'No callout is made without lines.');
+    }
+
+    // RLM_HttpService swallows a failed callout and leaves a null response; getTax reads the body
+    // through bodyOrNull and returns an ErrorResponse when it is null. That branch is not reachable
+    // from a test (Test.isRunningTest() substitutes the canned body), so the helper is tested directly.
+    @IsTest
+    static void bodyOrNull_nullResponse_isNull_andABodyIsReturned() {
+        Assert.isNull(RLM_CalculateTaxService.bodyOrNull(null), 'No response, no body.');
+        HttpResponse response = new HttpResponse();
+        response.setBody('{"ok":true}');
+        Assert.areEqual('{"ok":true}', RLM_CalculateTaxService.bodyOrNull(response), 'The body is returned.');
+    }
+
+    // Unit-tested with a mocked callout; not verified against an Avalara sandbox.
+    @IsTest
+    static void getTax_lineWithEffectiveDate_sendsALineLevelTaxDateOverride() {
+        RLM_TaxTestFactory.RecordingHttpMock mock = new RLM_TaxTestFactory.RecordingHttpMock(200, '{}');
+        Test.setMock(HttpCalloutMock.class, mock);
+        commercetax.CalculateTaxRequest request = RLM_TaxTestFactory.request(
+            commercetax.CalculateTaxType.Estimated, 'DOC-OVERRIDE',
+            new List<commercetax.TaxLineItemRequest>{
+                RLM_TaxTestFactory.line(232, 'L1', Datetime.newInstanceGmt(2026, 1, 20, 12, 0, 0))
+            });
+        request.taxTransactionType = commercetax.TaxTransactionType.Debit;
+
+        Test.startTest();
+        RLM_CalculateTaxService.getTax(RLM_TaxTestFactory.context(request));
+        Test.stopTest();
+
+        Assert.areEqual(1, mock.requests.size(), 'One callout.');
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(mock.requests[0].getBody());
+        Map<String, Object> sentLine = (Map<String, Object>) ((List<Object>) body.get('lines'))[0];
+        Map<String, Object> addresses = (Map<String, Object>) sentLine.get('addresses');
+        Assert.isFalse(addresses.containsKey('taxOverride'), 'taxOverride is not inside addresses.');
+        Map<String, Object> sentOverride = (Map<String, Object>) sentLine.get('taxOverride');
+        Assert.isNotNull(sentOverride, 'taxOverride is on the line.');
+        Assert.areEqual('TaxDate', sentOverride.get('type'), 'type');
+        Assert.isNotNull(sentOverride.get('reason'), 'reason');
+        Assert.isTrue(String.valueOf(sentOverride.get('taxDate')).startsWith('2026-01-20'), 'taxDate: ' + sentOverride.get('taxDate'));
     }
 }

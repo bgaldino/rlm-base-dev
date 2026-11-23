@@ -64,15 +64,15 @@ global with sharing class RLM_JsonSuccessParser
         public String transactionId {get;set;}
         public String country {get;set;}
         public String region {get;set;}
-        public Integer exemptAmount {get;set;}
+        public Decimal exemptAmount {get;set;}
         public String jurisCode {get;set;}
         public String jurisName {get;set;}
         public String stateAssignedNo {get;set;}
         public String jurisType {get;set;}
-        public Integer nonTaxableAmount {get;set;}
+        public Decimal nonTaxableAmount {get;set;}
         public Double rate {get;set;}
         public Double tax {get;set;}
-        public Integer taxableAmount {get;set;}
+        public Decimal taxableAmount {get;set;}
         public String taxType {get;set;}
         public String taxName {get;set;}
         public Integer taxAuthorityTypeId {get;set;}
@@ -95,7 +95,7 @@ global with sharing class RLM_JsonSuccessParser
                         } else if (text == 'region') {
                             region = parser.getText();
                         } else if (text == 'exemptAmount') {
-                            exemptAmount = parser.getIntegerValue();
+                            exemptAmount = parser.getDecimalValue();
                         } else if (text == 'jurisCode') {
                             jurisCode = parser.getText();
                         } else if (text == 'jurisName') {
@@ -105,13 +105,13 @@ global with sharing class RLM_JsonSuccessParser
                         } else if (text == 'jurisType') {
                             jurisType = parser.getText();
                         } else if (text == 'nonTaxableAmount') {
-                            nonTaxableAmount = parser.getIntegerValue();
+                            nonTaxableAmount = parser.getDecimalValue();
                         } else if (text == 'rate') {
                             rate = parser.getDoubleValue();
                         } else if (text == 'tax') {
                             tax = parser.getDoubleValue();
                         } else if (text == 'taxableAmount') {
-                            taxableAmount = parser.getIntegerValue();
+                            taxableAmount = parser.getDecimalValue();
                         } else if (text == 'taxType') {
                             taxType = parser.getText();
                         } else if (text == 'taxName') {
@@ -171,10 +171,10 @@ global with sharing class RLM_JsonSuccessParser
     public String status {get;set;}
     public String type_Z {get;set;} // in json: type
     public Boolean reconciled {get;set;}
-    public Integer totalAmount {get;set;}
-    public Integer totalExempt {get;set;}
+    public Decimal totalAmount {get;set;}
+    public Decimal totalExempt {get;set;}
     public Double totalTax {get;set;}
-    public Integer totalTaxable {get;set;}
+    public Decimal totalTaxable {get;set;}
     public Double totalTaxCalculated {get;set;}
     public String adjustmentReason {get;set;}
     public Boolean locked {get;set;}
@@ -210,13 +210,13 @@ global with sharing class RLM_JsonSuccessParser
                     } else if (text == 'reconciled') {
                         reconciled = parser.getBooleanValue();
                     } else if (text == 'totalAmount') {
-                        totalAmount = parser.getIntegerValue();
+                        totalAmount = parser.getDecimalValue();
                     } else if (text == 'totalExempt') {
-                        totalExempt = parser.getIntegerValue();
+                        totalExempt = parser.getDecimalValue();
                     } else if (text == 'totalTax') {
                         totalTax = parser.getDoubleValue();
                     } else if (text == 'totalTaxable') {
-                        totalTaxable = parser.getIntegerValue();
+                        totalTaxable = parser.getDecimalValue();
                     } else if (text == 'totalTaxCalculated') {
                         totalTaxCalculated = parser.getDoubleValue();
                     } else if (text == 'adjustmentReason') {
@@ -269,12 +269,12 @@ global with sharing class RLM_JsonSuccessParser
         public String taxName {get;set;}
         public String taxGroup {get;set;}
         public String rateType {get;set;}
-        public Integer taxable {get;set;}
+        public Decimal taxable {get;set;}
         public Double rate {get;set;}
         public Double tax {get;set;}
         public Double taxCalculated {get;set;}
-        public Integer nonTaxable {get;set;}
-        public Integer exemption {get;set;}
+        public Decimal nonTaxable {get;set;}
+        public Decimal exemption {get;set;}
 
         public Summary(JSONParser parser) {
             while (parser.nextToken() != JSONToken.END_OBJECT) {
@@ -304,7 +304,7 @@ global with sharing class RLM_JsonSuccessParser
                         } else if (text == 'rateType') {
                             rateType = parser.getText();
                         } else if (text == 'taxable') {
-                            taxable = parser.getIntegerValue();
+                            taxable = parser.getDecimalValue();
                         } else if (text == 'rate') {
                             rate = parser.getDoubleValue();
                         } else if (text == 'tax') {
@@ -312,9 +312,9 @@ global with sharing class RLM_JsonSuccessParser
                         } else if (text == 'taxCalculated') {
                             taxCalculated = parser.getDoubleValue();
                         } else if (text == 'nonTaxable') {
-                            nonTaxable = parser.getIntegerValue();
+                            nonTaxable = parser.getDecimalValue();
                         } else if (text == 'exemption') {
-                            exemption = parser.getIntegerValue();
+                            exemption = parser.getDecimalValue();
                         } else {
                             consumeObject(parser);
                         }
@@ -328,15 +328,15 @@ global with sharing class RLM_JsonSuccessParser
         public String id {get;set;}
         public String transactionId {get;set;}
         public String lineNumber {get;set;}
-        public Integer discountAmount {get;set;}
-        public Integer exemptAmount {get;set;}
+        public Decimal discountAmount {get;set;}
+        public Decimal exemptAmount {get;set;}
         public Integer exemptCertId {get;set;}
         public Boolean isItemTaxable {get;set;}
-        public Integer lineAmount {get;set;}
+        public Decimal lineAmount {get;set;}
         public Double quantity {get;set;}
         public String reportingDate {get;set;}
         public Double tax {get;set;}
-        public Integer taxableAmount {get;set;}
+        public Decimal taxableAmount {get;set;}
         public Double taxCalculated {get;set;}
         public String taxCode {get;set;}
         public String taxDate {get;set;}
@@ -357,15 +357,15 @@ global with sharing class RLM_JsonSuccessParser
                         }else if (text == 'lineNumber') {
                             lineNumber = parser.getText();
                         } else if (text == 'discountAmount') {
-                            discountAmount = parser.getIntegerValue();
+                            discountAmount = parser.getDecimalValue();
                         } else if (text == 'exemptAmount') {
-                            exemptAmount = parser.getIntegerValue();
+                            exemptAmount = parser.getDecimalValue();
                         } else if (text == 'exemptCertId') {
                             exemptCertId = parser.getIntegerValue();
                         } else if (text == 'isItemTaxable') {
                             isItemTaxable = parser.getBooleanValue();
                         } else if (text == 'lineAmount') {
-                            lineAmount = parser.getIntegerValue();
+                            lineAmount = parser.getDecimalValue();
                         } else if (text == 'quantity') {
                             quantity = parser.getDoubleValue();
                         } else if (text == 'reportingDate') {
@@ -373,7 +373,7 @@ global with sharing class RLM_JsonSuccessParser
                         } else if (text == 'tax') {
                             tax = parser.getDoubleValue();
                         } else if (text == 'taxableAmount') {
-                            taxableAmount = parser.getIntegerValue();
+                            taxableAmount = parser.getDecimalValue();
                         } else if (text == 'taxCalculated') {
                             taxCalculated = parser.getDoubleValue();
                         } else if (text == 'taxCode') {

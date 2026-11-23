@@ -213,14 +213,17 @@ public with sharing class RLM_CollectionsDashboardController {
             invAccountField = getInvoiceAccountFieldNameFromDescribe();
             if (invAccountField != null) buildWorklistLastResort(wl, invAccountField, today, thirtyDaysAgo);
         }
-        addPlaceholderRowsIfEmpty(wl);
+        addPlaceholderRowsIfEmpty(wl, filterAccount ? accountId : null);
         return wl;
     }
 
-    private static void addPlaceholderRowsIfEmpty(WorklistData wl) {
+    private static void addPlaceholderRowsIfEmpty(WorklistData wl, Id filterAccountId) {
         List<Account> accts = new List<Account>();
         try {
-            accts = [SELECT Id, Name FROM Account WITH USER_MODE ORDER BY Name LIMIT 1];
+            // With an account filter the placeholder borrows that account, never another one.
+            accts = filterAccountId != null
+                ? [SELECT Id, Name FROM Account WHERE Id = :filterAccountId WITH USER_MODE LIMIT 1]
+                : [SELECT Id, Name FROM Account WITH USER_MODE ORDER BY Name LIMIT 1];
         } catch (Exception e) { return; }
         if (accts.isEmpty()) return;
         Id placeholderId = accts[0].Id;

@@ -36,29 +36,11 @@
  * 'OneTime' with no EndDate__std, as the 264 developer guide requires. The service derives it from
  * the billing term unit. See the buildTransactionDetailsJson_oneTime* tests.
  *
- * Known gap (documented, not pinned): getAccountBillingInfo reads one arbitrary
- * BillingAccount for the account (LIMIT 1 with no ORDER BY, ignoring
- * IsDefaultBillingProfile). With more than one billing account the result is
- * nondeterministic, so an assertion could not pin it reliably; the tests use at most one.
- *
- * Known gap (pinned): getAccountBillingInfo never resolves a billing account linked to the
- * account only through AccountBillingAccount, although the create path does resolve that
- * link. See getAccountBillingInfo_junctionOnlyBillingAccount_isNotResolved.
- *
- * Known gap (pinned): the 264 developer guide lists EndDate__std as required for a TermDefined
- * new sale, but a Termed create with no end date passes every guard and is sent without
- * EndDate__std. ParentTransactionId__std, also Required for TermDefined, is never sent; the
- * key-set test pins its absence. The pin is createViaAPI_termedWithoutEndDate_isAccepted (a
- * guard would land in the create path, not the builder).
- *
- * Known gap (pinned): TotalPrice__std is required for every selling model (developer guide,
- * and the service's own comment), but the create path never checks totalPrice, so a null
- * total is accepted. See createViaAPI_nullTotalPrice_isAccepted.
- *
- * Known gap (pinned): getTaxTreatments/getLegalEntities have no Status filter, so
- * Draft/Inactive records are offered. getTaxTreatments_returnsAllSortedByName pins the
- * TaxTreatment half (Draft treatments are returned) and getLegalEntities_returnsAllSortedByName
- * pins the LegalEntity half (an Inactive legal entity is returned).
+ * Fixed: getAccountBillingInfo picks the oldest billing account (ORDER BY CreatedDate, Id) and
+ * resolves one linked only through AccountBillingAccount; getLegalEntities/getTaxTreatments
+ * offer only Active records; the create path rejects a null total price and a Termed
+ * recurring create with no end date. ParentTransactionId__std (Required for TermDefined) is
+ * still never sent; the key-set test pins its absence.
  */
 @isTest
 private class RLM_BillingScheduleGroupServiceTest {
@@ -210,7 +192,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     @isTest
-    static void getAccountBillingInfo_junctionOnlyBillingAccount_isNotResolved() {
+    static void getAccountBillingInfo_junctionOnlyBillingAccount_isResolved() {
         Account a = new Account(Name = 'BSG Junction Acct');
         insert a;
         BillingAccount ba = new BillingAccount(Name = 'BSG Junction BA');
@@ -225,9 +207,9 @@ private class RLM_BillingScheduleGroupServiceTest {
         Test.stopTest();
 
         Assert.areEqual('BSG Junction Acct', info.accountName);
-        Assert.isNull(info.billingAccountId,
-            'Known gap: getAccountBillingInfo does not resolve a billing account linked only through '
-            + 'AccountBillingAccount; update this test when it is fixed.');
+        Assert.areEqual(ba.Id, info.billingAccountId,
+            'A billing account linked only through AccountBillingAccount is resolved.');
+        Assert.areEqual('BSG Junction BA', info.billingAccountName);
     }
 
     // ---- option queries ----
@@ -276,7 +258,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     @isTest
-    static void getLegalEntities_returnsAllSortedByName() {
+    static void getLegalEntities_returnsActiveSortedByName() {
         LegalEntity zulu = new LegalEntity(Name = 'BSG LE Zulu', Status = 'Active');
         LegalEntity alpha = new LegalEntity(Name = 'BSG LE Alpha', Status = 'Active');
         LegalEntity mike = new LegalEntity(Name = 'BSG LE Mike', Status = 'Inactive');
@@ -287,23 +269,18 @@ private class RLM_BillingScheduleGroupServiceTest {
             RLM_BillingScheduleGroupService.getLegalEntities();
         Test.stopTest();
 
-        Assert.areEqual(3, options.size(),
-            'Known gap: Inactive legal entities are offered (no Status filter); update this test when '
-            + 'a filter lands.');
+        Assert.areEqual(2, options.size(), 'Inactive legal entities are not offered.');
         Assert.areEqual(alpha.Id, options[0].id, 'Options are sorted by name.');
         Assert.areEqual('BSG LE Alpha', options[0].name);
-        Assert.areEqual(mike.Id, options[1].id);
-        Assert.areEqual('BSG LE Mike', options[1].name);
-        Assert.areEqual(zulu.Id, options[2].id);
-        Assert.areEqual('BSG LE Zulu', options[2].name);
+        Assert.areEqual(zulu.Id, options[1].id);
+        Assert.areEqual('BSG LE Zulu', options[1].name);
     }
 
     @isTest
-    static void getTaxTreatments_returnsAllSortedByName() {
+    static void getTaxTreatments_returnsActiveSortedByName() {
         // Two treatments on one legal entity with no tax policy or product code collided on
         // TaxTreatment's unique key, so each gets its own legal entity.
-        // The Active treatment is the control: it must be returned whether or not a Status
-        // filter lands, so losing it means the query broke, not that the gap was fixed.
+        // The Active treatment is the control; the Draft ones must be filtered out.
         LegalEntity le1 = new LegalEntity(Name = 'BSG TT LE 1', Status = 'Active');
         LegalEntity le2 = new LegalEntity(Name = 'BSG TT LE 2', Status = 'Active');
         LegalEntity le3 = new LegalEntity(Name = 'BSG TT LE 3', Status = 'Active');
@@ -323,14 +300,9 @@ private class RLM_BillingScheduleGroupServiceTest {
             returned.add(o.id);
         }
         Assert.isTrue(returned.contains(ttActive.Id), 'The Active tax treatment is returned (control).');
-        Assert.areEqual(3, options.size(),
-            'Known gap: Draft tax treatments are offered (no Status filter); update this test when '
-            + 'a filter lands. All three inserted tax treatments (two Draft, one Active) are returned.');
-        Assert.areEqual(ttActive.Id, options[0].id, 'Options are sorted by name.');
-        Assert.areEqual(ttFirst.Id, options[1].id);
-        Assert.areEqual('BSG TT First', options[1].name);
-        Assert.areEqual(ttSecond.Id, options[2].id);
-        Assert.areEqual('BSG TT Second', options[2].name);
+        Assert.areEqual(1, options.size(), 'Draft tax treatments are not offered.');
+        Assert.areEqual(ttActive.Id, options[0].id);
+        Assert.areEqual('BSG TT Active', options[0].name);
     }
 
     @isTest
@@ -443,7 +415,7 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     @isTest
-    static void createViaAPI_termedWithoutEndDate_isAccepted() {
+    static void createViaAPI_termedWithoutEndDate_isRejected() {
         Id baId = insertBillingAccount('BSG Termed No End');
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-GAP' };
         CreateArgs args = new CreateArgs(baId);
@@ -454,14 +426,11 @@ private class RLM_BillingScheduleGroupServiceTest {
         Boolean rejected = throwsAura(args);
         Test.stopTest();
 
-        Assert.isFalse(rejected,
-            'Known gap: a Termed create with no end date is accepted (the builder then omits '
-            + 'EndDate__std; see buildTransactionDetailsJson_termedWithoutEndDate_omitsEndDate); '
-            + 'update this test when a guard lands.');
+        Assert.isTrue(rejected, 'A Termed recurring create with no end date is rejected.');
     }
 
     @isTest
-    static void createViaAPI_nullTotalPrice_isAccepted() {
+    static void createViaAPI_nullTotalPrice_isRejected() {
         Id baId = insertBillingAccount('BSG Null Total');
         RLM_BillingScheduleGroupService.mockActionOutputs = new Map<String, Object>{ 'requestId' => 'REQ-GAP' };
         CreateArgs args = new CreateArgs(baId);
@@ -471,9 +440,7 @@ private class RLM_BillingScheduleGroupServiceTest {
         Boolean rejected = throwsAura(args);
         Test.stopTest();
 
-        Assert.isFalse(rejected,
-            'Known gap: a null total price is accepted although TotalPrice__std is required for every '
-            + 'selling model; update this test when a guard lands.');
+        Assert.isTrue(rejected, 'A null total price is rejected (TotalPrice__std is required).');
     }
 
     @isTest

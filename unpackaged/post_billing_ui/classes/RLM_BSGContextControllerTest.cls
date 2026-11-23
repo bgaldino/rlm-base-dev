@@ -13,17 +13,10 @@ private class RLM_BSGContextControllerTest {
     // license (no Billing PSL seat); billing-role read coverage for the controller's fields is
     // in RLM_BillingUIAccessTest (billingOperationsCanRunItsControllerReads).
     //
-    // Known gap (documented, not pinned; needs BSG records): getBSGContext reads
-    // bsBilledAmount and bsPendingAmount from one arbitrary BillingSchedule of the group
-    // (LIMIT 1, no ORDER BY), and the usage view's resource name likewise comes from one
-    // arbitrary schedule. Each usage sibling's resource name is also taken from whichever of
-    // its schedules the unordered query returns last (the last row wins). With several
-    // schedules the values shown are nondeterministic.
-    //
-    // Known gap (documented, not pinned; needs BSG records):
-    // ArrangementLineData.billingAccountName is never set. The arrangement-line query selects
-    // BillingAccountId but the controller never maps it, so the field always reaches the LWC
-    // as null.
+    // Fixed (live verification only; BillingScheduleGroup records are not insertable in Apex
+    // tests): bsBilledAmount/bsPendingAmount come from the group's TotalBilledAmount and
+    // TotalPendingAmount (no arbitrary single schedule), and the usage resource names come
+    // from the earliest schedule (ORDER BY CreatedDate, Id, first wins).
     private static Id fakeBsgId() {
         return Id.valueOf(
             BillingScheduleGroup.SObjectType.getDescribe().getKeyPrefix() + '000000000000'

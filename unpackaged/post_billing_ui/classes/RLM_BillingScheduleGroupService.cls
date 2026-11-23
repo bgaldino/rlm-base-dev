@@ -107,13 +107,41 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
         Account acc = accounts[0];
 
+        // Deterministic pick (oldest first). A billing account linked to the account only through
+        // AccountBillingAccount is resolved too (default link first), as the create path does.
         List<BillingAccount> billingAccounts = [
             SELECT Id, Name, Account.BillingCity
             FROM BillingAccount
             WHERE AccountId = :accountId
             WITH USER_MODE
+            ORDER BY CreatedDate, Id
             LIMIT 1
         ];
+
+        if (billingAccounts.isEmpty()) {
+            List<AccountBillingAccount> links = new List<AccountBillingAccount>();
+            try {
+                links = [
+                    SELECT BillingAccountId
+                    FROM AccountBillingAccount
+                    WHERE AccountId = :accountId
+                    WITH USER_MODE
+                    ORDER BY IsDefaultBillingAccount DESC, Id
+                    LIMIT 1
+                ];
+            } catch (QueryException qe) {
+                // The caller cannot read the junction: behave as before (no link resolved).
+            }
+            if (!links.isEmpty()) {
+                billingAccounts = [
+                    SELECT Id, Name, Account.BillingCity
+                    FROM BillingAccount
+                    WHERE Id = :links[0].BillingAccountId
+                    WITH USER_MODE
+                    LIMIT 1
+                ];
+            }
+        }
 
         if (billingAccounts.isEmpty()) {
             return new AccountInfo(acc.Name, null, null, null);
@@ -144,7 +172,7 @@ public with sharing class RLM_BillingScheduleGroupService {
     @AuraEnabled(cacheable=true)
     public static List<LegalEntityOption> getLegalEntities() {
         List<LegalEntityOption> results = new List<LegalEntityOption>();
-        for (LegalEntity le : [SELECT Id, Name FROM LegalEntity WITH USER_MODE ORDER BY Name]) {
+        for (LegalEntity le : [SELECT Id, Name FROM LegalEntity WHERE Status = 'Active' WITH USER_MODE ORDER BY Name]) {
             results.add(new LegalEntityOption(le.Id, le.Name));
         }
         return results;
@@ -153,7 +181,7 @@ public with sharing class RLM_BillingScheduleGroupService {
     @AuraEnabled(cacheable=true)
     public static List<TaxTreatmentOption> getTaxTreatments() {
         List<TaxTreatmentOption> results = new List<TaxTreatmentOption>();
-        for (TaxTreatment tt : [SELECT Id, Name FROM TaxTreatment WITH USER_MODE ORDER BY Name]) {
+        for (TaxTreatment tt : [SELECT Id, Name FROM TaxTreatment WHERE Status = 'Active' WITH USER_MODE ORDER BY Name]) {
             results.add(new TaxTreatmentOption(tt.Id, tt.Name));
         }
         return results;
@@ -296,6 +324,12 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
         if (billingStartMonth == null || billingStartMonth < 1 || billingStartMonth > 12) {
             throw new AuraHandledException('Billing Start Month must be between 1 and 12.');
+        }
+        if (totalPrice == null) {
+            throw new AuraHandledException('Total Price is required.');
+        }
+        if (termSetting == 'Termed' && billingTermUnitPicklist != 'OneTime' && endDate == null) {
+            throw new AuraHandledException('End Date is required for a termed charge.');
         }
 
         String transactionDetailsJson = buildTransactionDetailsJson(

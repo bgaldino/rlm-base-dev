@@ -66,7 +66,6 @@ public with sharing class RLM_AvalaraJSONBuilder
                     jsonGeneratorInstance.writeFieldName('ShipFrom');
                     jsonGeneratorInstance.writeStartObject();
                     jsonGeneratorInstance.writeStringField('line1', lineItem.addresses.shipfrom.street);
-                    jsonGeneratorInstance.writeStringField('line2', lineItem.addresses.shipfrom.street);
                     jsonGeneratorInstance.writeStringField('city', lineItem.addresses.shipfrom.city);
                     jsonGeneratorInstance.writeStringField('region', lineItem.addresses.shipfrom.state);
                     jsonGeneratorInstance.writeStringField('country', lineItem.addresses.shipfrom.country);
@@ -76,7 +75,6 @@ public with sharing class RLM_AvalaraJSONBuilder
                     jsonGeneratorInstance.writeFieldName('ShipTo');
                     jsonGeneratorInstance.writeStartObject();
                     jsonGeneratorInstance.writeStringField('line1', lineItem.addresses.shipto.street);
-                    jsonGeneratorInstance.writeStringField('line2', lineItem.addresses.shipto.street);
                     jsonGeneratorInstance.writeStringField('city', lineItem.addresses.shipto.city);
                     jsonGeneratorInstance.writeStringField('region', lineItem.addresses.shipto.state);
                     jsonGeneratorInstance.writeStringField('country', lineItem.addresses.shipto.country);
@@ -86,22 +84,24 @@ public with sharing class RLM_AvalaraJSONBuilder
                     jsonGeneratorInstance.writeFieldName('pointOfOrderOrigin');
                     jsonGeneratorInstance.writeStartObject();
                     jsonGeneratorInstance.writeStringField('line1', lineItem.addresses.soldto.street);
-                    jsonGeneratorInstance.writeStringField('line2', lineItem.addresses.soldto.street);
                     jsonGeneratorInstance.writeStringField('city', lineItem.addresses.soldto.city);
                     jsonGeneratorInstance.writeStringField('region', lineItem.addresses.soldto.state);
                     jsonGeneratorInstance.writeStringField('country', lineItem.addresses.soldto.country);
                     jsonGeneratorInstance.writeStringField('postalCode',lineItem.addresses.soldto.postalcode); 
                     jsonGeneratorInstance.writeEndObject(); 
-
+                    // close "addresses"; taxOverride belongs to the line, not to the addresses
+                    jsonGeneratorInstance.writeEndObject(); 
 
                     if(lineItem.effectiveDate != null)    
                     {
+                        // Avalara's line-level TaxOverride requires a type and a reason.
                         jsonGeneratorInstance.writeFieldName('taxOverride');
                         jsonGeneratorInstance.writeStartObject();
+                        jsonGeneratorInstance.writeStringField('type', 'TaxDate');
+                        jsonGeneratorInstance.writeStringField('reason', 'Tax date from the line effective date');
                         jsonGeneratorInstance.writeDateTimeField('taxDate', lineItem.effectiveDate);             
                         jsonGeneratorInstance.writeEndObject();               
                     }
-                    jsonGeneratorInstance.writeEndObject(); 
                     jsonGeneratorInstance.writeEndObject(); 
                 }
             }
