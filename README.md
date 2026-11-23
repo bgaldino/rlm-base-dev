@@ -120,6 +120,7 @@ for the step-by-step macOS setup referenced by the contributing guide.
 | MCP servers on a built org (opt-in `mcp` flag, `prepare_mcp` flow) | [MCP integration skill](.cursor/skills/mcp-integration/SKILL.md) |
 | Data plans, validation, and dataset READMEs | [Data-plan guide](docs/guides/data-plans.md) |
 | Deployment examples and troubleshooting | [Org operations](docs/guides/org-operations.md) |
+| What the build does not set up for Release 264 | [Known limitations](docs/guides/known-limitations-264.md) |
 | Revenue Cloud API collections | [Postman guide](postman/README.md) |
 | Data-model diagrams | [ERD guide](docs/erds/README.md) |
 | Hands-on learning | [Enablement exercises](docs/enablement/README.md) |

@@ -289,6 +289,8 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 2. **task** `deploy_post_collections`  `when: project_config.project__custom__collections`
 3. **task** `seed_collections_case_matrix`  `when: project_config.project__custom__collections`
 4. **task** `deploy_collections_case_flow`  `when: project_config.project__custom__collections`
+5. **task** `assign_permission_sets`  `when: project_config.project__custom__collections`
+   - `api_names`: `['RLM_CollectionsUI']`
 
 ---
 

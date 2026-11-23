@@ -6,7 +6,7 @@ This directory contains the Experience Cloud site metadata for the RLM Self-Serv
 
 The Self-Service Billing Portal lets customers view invoices, make payments, and manage cases without an internal login. It uses the same Aura `ChatterNetworkPicasso` Experience Cloud architecture as the Partner Central site (`unpackaged/post_prm/`) — not the newer LWR `DigitalExperienceBundle` used by Payments (`unpackaged/post_payments/`).
 
-This bundle is the unmodified, out-of-the-box "Self-Service Billing Portal" Experience Cloud template as shipped in Salesforce Release 262 (Summer '26, API v67.0), with only the portability fixes below applied. No page, theme, or content customization has been layered on top yet — this is the baseline to build on.
+This bundle is the unmodified, out-of-the-box "Self-Service Billing Portal" Experience Cloud template as retrieved from a Salesforce Release 262 (Summer '26, API v67.0) org, with only the portability fixes below applied. Release 264 carries it forward unchanged; it has not been re-retrieved from a 264 template instance, so it is the 262 baseline rather than a 264 template snapshot. No page, theme, or content customization has been layered on top yet — this is the baseline to build on.
 
 ## Contents
 
