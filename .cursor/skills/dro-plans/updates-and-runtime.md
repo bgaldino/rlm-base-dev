@@ -366,12 +366,16 @@ these conditions; rerun the amendment and cancel checks there.
     that ends normally having done nothing is not documented in the snapshot: it reads as a
     success [inferred; live check pending]. A decision with no connector on its Default
     Outcome therefore ends the interview normally, with no error.
-  - `RLM_Assetize_Order_DRO_Fulfillment` reports failure through two output variables,
-    `isSuccess` (defaults true) and `fulfillmentStepErrorCode`. Two failure assignments set
+  - `RLM_Assetize_Order_DRO_Fulfillment` reports failure through three output variables,
+    `isSuccess` (defaults true), `fulfillmentStepErrorCode` and `fulfillmentStepErrorMessage`.
+    The message carries the fault text (`$Flow.FaultMessage`) on the fault path and a fixed
+    sentence naming the unresolved source type on the other; whether DRO reads or surfaces it
+    is not measured. Two failure assignments set
     `isSuccess` false: `Check_Source_Data_Type`'s Default Outcome (a blank or unrecognized
     source type) sets `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`; a fault connector from each of
     the 5 action calls and 6 record lookups sets `RLM_ASSETIZE_FAULT`. The four recognized
-    source types are unchanged. Two connector-less ends are intended skips, not failures:
+    source types are unchanged. Two connector-less ends read as intended skips, not failures [inferred from the flow's
+    structure]:
     `Has_Parent_Id`'s `Parent_Exists` outcome (a component line is assetized through its
     parent) and the `exists` decision's Default Outcome (the source line is not in
     `Not_Components`). The step's status, error text and retries for these paths are not yet
@@ -381,10 +385,13 @@ these conditions; rerun the amendment and cancel checks there.
       flow ships `Draft` in source and nothing in `cumulusci.yml`, `tasks/` or `scripts/`
       activates it. In this repo only the `mfg-dro` `Convert Order to Asset` step binds it,
       and `mfg-dro` is not wired into `cumulusci.yml`. The `qb-dro` steps all have a blank
-      flow name, so it does not run on a `qb-dro` build today.
+      flow name, so no `qb-dro` step binds it; `qb-dro` jeopardy rule `000000002`
+      (`FulfillmentStepJeopardyRule.csv`) names it. What that jeopardy reference does on a
+      `qb-dro` build is not measured.
     - For a failed step, read `ExecutionMessage` and `State` on the `FulfillmentStep`, and
-      read Help's Auto Task article `ind.dro_auto_task` live for any message output
-      variable besides the two used here.
+      read Help's Auto Task article `ind.dro_auto_task` live for the message output
+      variable name it expects, and check whether DRO reads or shows
+      `fulfillmentStepErrorMessage` (unverified name).
     - `qb-dro` `FulfillmentFalloutRule` `000000002` is an AutoTask catch-all (blank flow and
       error code, 3 immediate retries). A permanent failure such as these codes is
       therefore retried by that rule before it goes Fatally Failed [from the dataset; the
