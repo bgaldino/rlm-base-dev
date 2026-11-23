@@ -136,7 +136,7 @@ private class RLM_BillingUIAccessTest {
         'PaymentSchedule' => new List<String>{ 'CollectionPlanItemId' },
         'CollectionPlan' => new List<String>{
             'Name', 'AccountId', 'Duedate', 'TotalInvoiceBalance', 'OwnerId', 'ClosedDate',
-            'CreatedDate', 'DaysPastDue'
+            'CreatedDate', 'DaysPastDue', 'InitialDueAmount'
         },
         'CollectionPlanItem' => new List<String>{ 'InvoiceId', 'CollectionPlanId' }
     };

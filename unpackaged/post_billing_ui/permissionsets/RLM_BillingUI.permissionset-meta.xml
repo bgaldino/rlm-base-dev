@@ -52,6 +52,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>false</editable>
+        <field>CollectionPlan.InitialDueAmount</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
         <field>CollectionPlanItem.InvoiceId</field>
         <readable>true</readable>
     </fieldPermissions>
