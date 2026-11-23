@@ -96,7 +96,7 @@ _slow = "MIN_API_VERSION: " + "|".join(["a[]"] * 60)
 _t0 = time.monotonic()
 bump.PROVENANCE_LINE_RE.search(_slow)
 check("no catastrophic backtracking on a 60-segment annotation", time.monotonic() - _t0 < 1.0)
-for text in ("# MIN_API_VERSION = v67.0 \u2014 some note", "// MIN_API_VERSION = 65", "as of v67.0", "as-of v67.0", "observed at v67.0", "MIN_API_VERSION = \"65.0\"",
+for text in ("# MIN_API_VERSION = v6" "7.0 \u2014 some note", "// MIN_API_VERSION = 65", "as of v67.0", "as-of v67.0", "observed at v67.0", "MIN_API_VERSION = \"65.0\"",
              'MIN_API_VERSION: str = "65.0"', "MIN_API_VERSION:str=\"65.0\"",
              'MIN_API_VERSION: Final[str] = "65.0"', 'MIN_API_VERSION: str | None = "65.0"',
              'MIN_API_VERSION: "str" = "65.0"', 'MIN_API_VERSION: Final[Literal["65.0"]] = "65.0"',
