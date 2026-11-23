@@ -629,3 +629,13 @@ def test_the_preflight_count_survives_bytes_that_are_not_utf8(tmp_path, monkeypa
     result = _rerun_preflight(tmp_path)
     assert result["status"] == "resume_blocked"
     assert result["retry_count"] == 1
+
+
+def test_repeated_passes_after_a_failure_write_exactly_one_success_row(tmp_path, monkeypatch) -> None:
+    _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
+    monkeypatch.setattr(scenario_runner, "verify_project_flags", lambda _root, _flags: None)
+    monkeypatch.setattr(scenario_runner, "probe_org", lambda *_a, **_k: {"state": "missing", "detail": "gone"})
+    _rerun_preflight(tmp_path)
+    _rerun_preflight(tmp_path)
+    statuses = [r["status"] for r in _read_step_results(tmp_path) if r.get("target_name") == "project_root_flags"]
+    assert statuses == ["failed", "success"]

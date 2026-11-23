@@ -50,7 +50,7 @@ def _trailing_transient_preflight_failures(step_results_path: Path) -> int:
     """Consecutive transient `project_root_flags` failures at the end of the step log.
 
     Any other row after them ends the run of failures: a step row, another preflight
-    check, or the `passed` row written when a later attempt passes this check.
+    check, or the `success` row written when a later attempt passes this check.
     """
     count = 0
     for row in reversed(_read_step_rows(step_results_path)):
@@ -242,9 +242,10 @@ def run_single_scenario(
                 can_resume=is_resume and flags_failure_class == "transient" and not exhausted,
             )
 
-        if any(_is_flags_row(row) for row in _read_step_rows(step_results_path)):
-            # An earlier attempt failed this check; record that this one passed, so the
-            # count of consecutive failures resets.
+        flags_rows = [row for row in _read_step_rows(step_results_path) if _is_flags_row(row)]
+        if flags_rows and flags_rows[-1].get("status") == "failed":
+            # The last attempt at this check failed; record that this one passed, so the
+            # count of consecutive failures resets. Later passes add no further rows.
             record_event(
                 {
                     "phase": "preflight",
