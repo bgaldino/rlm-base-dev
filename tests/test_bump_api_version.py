@@ -85,11 +85,14 @@ for text in ("alias offset v68.0", "it has offered v68.0", "unobserved at v68.0"
              "unverified on v68.0", "xlive-verified v68.0",
              "foo(MIN_API_VERSION, 'v68.0')", "see MIN_API_VERSION for v68.0",
              'if MIN_API_VERSION == "v68.0":', 'log("MIN_API_VERSION: %s", v); api = "v68.0"',
-             '# MIN_API_VERSION: see above; pin = "v68.0"'):
+             '# MIN_API_VERSION: see above; pin = "v68.0"', 'msg = "MIN_API_VERSION: unset, api = v68.0"',
+             '# MIN_API_VERSION: default api = "v68.0"', 'x = MIN_API_VERSION = "v68.0"'):
     check(f"does not spare a live pin on {text!r}", not bump.PROVENANCE_LINE_RE.search(text))
 for text in ("as of v67.0", "as-of v67.0", "observed at v67.0", "MIN_API_VERSION = \"65.0\"",
              'MIN_API_VERSION: str = "65.0"', "MIN_API_VERSION:str=\"65.0\"",
              'MIN_API_VERSION: Final[str] = "65.0"', 'MIN_API_VERSION: str | None = "65.0"',
+             'MIN_API_VERSION: "str" = "65.0"', 'MIN_API_VERSION: Final[Literal["65.0"]] = "65.0"',
+             '    MIN_API_VERSION = "65.0"', 'x = 1; MIN_API_VERSION = "65.0"',
              "live-verified v67.0", "verified on 262 / v67.0"):
     check(f"spares {text!r}", bool(bump.PROVENANCE_LINE_RE.search(text)))
 

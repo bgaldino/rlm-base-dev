@@ -132,12 +132,15 @@ PROVENANCE_LINE_RE = re.compile(
     # Word-bounded: bare "as of" also sits inside "alias offset" and "has offered", and a bare
     # MIN_API_VERSION anywhere on a line would spare a live pin sharing that line. Only the
     # assignment spelling, plain or typed (`MIN_API_VERSION: str = ...`), is a floor line; `==`
-    # is a comparison, not a definition. The annotation allows type characters only (names,
-    # brackets, dots, commas, spaces, `|`), so `log("MIN_API_VERSION: %s", v); api = ...` is
-    # not mistaken for one. The `verified (...)` forms end at a word boundary, so
-    # "verified payloads"/"verified inside"/"verified online" are NOT spared; no tracked line
-    # uses them beside a version (swept 2026-11-24), so add a form here if one ever does.
-    r"|\bas[- ]of\b|\bobserved (?:on|at)\b|\bMIN_API_VERSION\b\s*(?::[\w\[\]., |]*)?=(?!=)",
+    # is a comparison, not a definition. The name must open the statement (line start, or after
+    # `;`, `#` or `//`), and an annotation must be a type expression (a dotted name, optionally
+    # quoted and subscripted, joined by `|`), so `log("MIN_API_VERSION: %s", v); api = ...` and
+    # `# MIN_API_VERSION: default api = ...` are not mistaken for one. The `verified (...)`
+    # forms end at a word boundary, so "verified payloads"/"verified inside"/"verified online"
+    # are NOT spared; no tracked line uses them beside a version (swept 2026-11-24), so add a
+    # form here if one ever does.
+    r"|\bas[- ]of\b|\bobserved (?:on|at)\b|(?:^|[;#]|//)\s*MIN_API_VERSION\b\s*"
+    r"(?::\s*[\"']?[\w.]+(?:\[[^=\n]*\])?[\"']?(?:\s*\|\s*[\"']?[\w.]+(?:\[[^=\n]*\])?[\"']?)*\s*)?=(?!=)",
     re.IGNORECASE,
 )
 
