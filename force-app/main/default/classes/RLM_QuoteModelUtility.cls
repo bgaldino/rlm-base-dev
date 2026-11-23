@@ -140,6 +140,10 @@ public class RLM_QuoteModelUtility {
         return JSON.serialize(SalesContext).replace('null', '""');
     }
 
+    /**
+     * The quote for the first id. Every id in the list must resolve to a readable quote, or this throws a
+     * QuoteModelException naming the first id that does not; callers pass validated ids, as for the invocable.
+     */
     public static Quote getQuote(List<Id> quoteId){
         if(quoteId == null || quoteId.isEmpty()){
             throw new QuoteModelException('No quote id was given.');

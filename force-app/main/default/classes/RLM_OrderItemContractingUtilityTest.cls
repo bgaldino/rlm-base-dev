@@ -127,7 +127,7 @@ private class RLM_OrderItemContractingUtilityTest {
     }
 
     @IsTest
-    static void duplicateOrderIdsGetOneResult() {
+    static void duplicateOrderIdsEachGetAResult() {
         Order o = newOrder(accountId(), Date.newInstance(2026, 1, 1));
         insert o;
 
@@ -229,7 +229,7 @@ private class RLM_OrderItemContractingUtilityTest {
         }
         Test.stopTest();
 
-        // No query ran, so the empty result comes from the field-access check, not record sharing.
+        // No query ran, so the error result comes from the field-access check, not from a refused query.
         Assert.areEqual(0, queriesUsed, 'The field-access check returns before any query');
         Assert.areEqual(1, results.size(), 'The input still gets an output');
         Assert.areEqual(o.Id, results[0].orderId, 'The output names its order');

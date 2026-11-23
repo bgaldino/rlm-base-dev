@@ -27,7 +27,8 @@ public with sharing class RLM_OrderItemContractingUtility {
 
         // The item subquery keeps LIMIT 1: ordered latest end date first, its one row drives the term.
         // A child subquery with no LIMIT throws "Aggregate query has too many rows" past 200 items per
-        // order (large transactions), so the item count comes from a separate aggregate query.
+        // order (large transactions), so the item count comes from a separate aggregate query. Its COUNT(Id)
+        // still counts every aggregated row toward the 50,000 query-row limit.
         Map<Id, Order> ordersMap = new Map<Id, Order>([
             SELECT Id, EffectiveDate,
                 (SELECT Id, ServiceDate, EndDate, ProductSellingModel.SellingModelType

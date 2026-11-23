@@ -39,15 +39,14 @@ global class RLM_DFOTenantProvisioningCallout implements industriesintegrationfw
             return failure(503, 'The tenant callout failed: ' + e.getMessage());
         }
 
-        // Group response by groupId
-        Map<String, Object> responseGroup = getResponseGroupAfterCallout(response);
-
         // Success is the HTTP status of the tenant service, not the mere fact that a callout was made.
-        Boolean isSuccess = (Boolean) responseGroup.get('isSuccess');
-        if (!isSuccess) {
-            return failure(response.getStatusCode(), 'The tenant service answered HTTP ' + response.getStatusCode());
+        Integer statusCode = response.getStatusCode();
+        if (statusCode < 200 || statusCode >= 300) {
+            return failure(statusCode, 'The tenant service answered HTTP ' + statusCode + ': ' + bounded(response.getBody()));
         }
-        return new industriesintegrationfwk.IntegrationCalloutResponse(true);
+        industriesintegrationfwk.IntegrationCalloutResponse succeeded = new industriesintegrationfwk.IntegrationCalloutResponse(true);
+        succeeded.setResponseCode(statusCode);
+        return succeeded;
     }
 
     /**
@@ -98,24 +97,9 @@ global class RLM_DFOTenantProvisioningCallout implements industriesintegrationfw
         return failed;
     }
 
-    private static Map<String, Object> getResponseGroupAfterCallout(HttpResponse response) {
-        Map<String, Object> responseGroup = new Map<String, Object>();
-        Integer statusCode = response.getStatusCode();
-        responseGroup.put('isSuccess', statusCode >= 200 && statusCode < 300);
-        responseGroup.put('response', getResponseMap(response.getBody()));
-        return responseGroup;
-    }
-
-    // Convert response string into Map 
-    private static Map<String,Object> getResponseMap(String responseBody) {
-        try {
-            Map<String,Object> responseBodyMap = (Map<String,Object>) JSON.deserializeUntyped(responseBody);
-            return responseBodyMap;
-        } catch (Exception e) {
-            Map<String, Object> responseMap = new Map<String,Object>();
-            responseMap.put('response', responseBody);
-            return responseMap;
-        }
+    /** The start of a response body, so a failed step says what the service answered without logging a whole page. */
+    private static String bounded(String body) {
+        return body == null ? '' : body.abbreviate(255);
     }
 
     public List<industriesintegrationfwk.ApexProviderAttr> getProviderAttributes(){

@@ -152,12 +152,13 @@
         </connector>
     </assignments>
     <customErrors>
+        <description>Rolls back the order save when the contract information could not be read, so an order that needs a contract is never saved without one.</description>
         <name>Stop_Contract_Info_Unavailable</name>
         <label>Stop - Contract Info Unavailable</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <customErrorMessages>
-            <errorMessage>{!ContractInfoError}</errorMessage>
+            <errorMessage>No contract was created for this order: {!ContractInfoError}</errorMessage>
             <isFieldError>false</isFieldError>
         </customErrorMessages>
     </customErrors>
