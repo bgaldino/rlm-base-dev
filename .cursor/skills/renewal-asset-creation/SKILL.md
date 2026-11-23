@@ -20,8 +20,8 @@ The toolkit lives in `scripts/renewal_assets/`; its file-level reference is
 is **reused** from `scripts/build_quote_to_asset.py` — this skill does not
 reimplement it.
 
-Ported from the eng toolkit `git.soma.salesforce.com/tsubramaniam/RevAssetCreation`
-(the `create-revenue-asset-from-quote` skill), adapted to this repo's conventions
+Ported from an internal eng toolkit (the `create-revenue-asset-from-quote`
+skill), adapted to this repo's conventions
 (v68.0, feature-branch + PR, reuse of the existing builder).
 
 ## Quick Rules

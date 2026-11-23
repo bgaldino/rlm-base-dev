@@ -220,7 +220,7 @@ When you need to know whether a field is real RC, real other-cloud, or a PDF art
 # 1. Search code for <EntityName>.entity.xml in core-<release>-public
 #    (e.g. core-264-public) at p4/<release>-patch.
 # 2. Read the file at
-#    gitcore.soma.salesforce.com/core-2206/core-<release>-public, ref p4/<release>-patch,
+#    core-<release>-public, ref p4/<release>-patch (internal code search),
 #    path core/<module>-udd/java/resources/udd/<EntityName>.entity.xml
 # 3. Look for <flexField name="..."> elements with apiAccess/orgAccess gates
 ```
@@ -310,7 +310,7 @@ and 10 `refersTo` values whose casing matched no ERD node, which silently broke
 traversal (`PricebookEntry` vs the ERD's `PriceBookEntry`).
 
 **262 (2026-05-27).** 127 entities individually verified against canonical Core UDD
-source at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch`.
+source in `core-262-public` at `p4/262-patch` (internal code search).
 Outcome: 498 PDF artifacts removed, 38 orphans remain (all explicitly-documented
 feature-gated or cross-cloud fields). Findings persisted at:
 
