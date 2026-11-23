@@ -82,16 +82,17 @@ All Robot task wrappers follow this structure:
 
 ## Authentication
 
-All tests authenticate via `sf org open --url-only`:
+All tests authenticate via `sf org open --url-only`, through the guarded keyword:
 
 ```robot
-${result}=    Run Process    sf    org    open
-...    --url-only    --path    ${page_path}
-...    -o    ${ORG_ALIAS}
+Navigate To Authenticated Page    /lightning/app/c__RLM_Revenue_Cloud
+# or, in setup suites: Open Setup Page    /lightning/setup/RevenueSettings/home
 ```
 
-**Security:** `Set Log Level NONE` wraps all URL retrieval to prevent
-session tokens from appearing in `log.html`.
+**Security:** the frontdoor URL never enters Robot. `SessionUrlGuard.py` fetches it,
+navigates with the log level at `NONE` and redacts failures, so no session token reaches
+`output.xml`/`log.html`. Never run `sf org open --url-only` with `Run Process` and keep the
+result in a variable. See `SKILL.md` → Session URLs.
 
 ---
 
@@ -269,7 +270,7 @@ Most interaction keywords try strategies in order:
 | Group | Key Keywords |
 |-------|-------------|
 | Browser | `Open Browser For E2E`, `Close Browser For E2E` |
-| Navigation | `Navigate To App`, `Navigate To Record`, `Get Authenticated Url` |
+| Navigation | `Navigate To App`, `Navigate To Record`, `Navigate To Authenticated Page` |
 | Modals | `Wait For Modal`, `Fill Modal Field`, `Select Modal Picklist Value`, `Save Modal` |
 | Flows | `Advance Through Flow Screens` |
 | Browse Catalogs | `Click Browse Catalogs`, `Select Catalog By Name`, `Search Product In Catalog`, `Add Product By Name` |

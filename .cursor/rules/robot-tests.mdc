@@ -20,7 +20,7 @@ globs:
   `robot-testing/SKILL.md` → Verification, and AGENTS.md DO NOT #9.)
 - Use `//` comments in Robot JavaScript blocks — use `/* */`
 - Use standard `input_text` for LWC inputs — use native setter pattern
-- Log session tokens in Robot output (`Set Log Level NONE`)
+- Put a `sf org open --url-only` URL in a Robot variable, argument, return value or `Go To` — it lands in `output.xml`/`log.html`; use `Go To Authenticated Page` (`SessionUrlGuard.py`)
 - Forget `composed: true` on dispatched events (won't cross shadow DOM)
 
 ## Setup vs E2E — Different Purposes
@@ -69,9 +69,11 @@ Interaction keywords should try strategies in order:
 
 ## Security
 
-- Wrap all `sf org open --url-only` and URL navigation with
-  `Set Log Level NONE` / `Set Log Level INFO` to prevent session tokens
-  from appearing in `log.html`.
+- Authenticated navigation goes through `Go To Authenticated Page`
+  (`robot/rlm-base/resources/SessionUrlGuard.py`): the frontdoor URL stays in Python, is
+  used under `Set Log Level NONE` (restored in `finally`) and is redacted from failures, so
+  no session token reaches `output.xml`/`log.html`. `tests/test_robot_session_url_logging.py`
+  and `scripts/ai/check_robot_session_urls.py` enforce it.
 - `SalesforceAPI.py` validates Salesforce IDs (`_validate_salesforce_id`)
   and escapes SOQL strings (`_soql_escape`) to prevent injection.
 

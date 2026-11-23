@@ -25,8 +25,18 @@ Use this skill when writing, modifying, or debugging Robot Framework tests.
 
 - **DO NOT** use `//` comments in Robot JavaScript — use `/* */` instead
 - **DO NOT** use standard `input_text` for LWC inputs — use native setter pattern
-- **DO NOT** log session tokens — wrap URL retrieval with `Set Log Level NONE`
+- **DO NOT** put an authenticated (`sf org open --url-only`) URL in a Robot variable, keyword argument, return value or `Go To` — it carries a live session that lands in `output.xml`/`log.html`. Navigate with `Go To Authenticated Page` (`SessionUrlGuard.py`); see **Session URLs** below
 - **DO NOT** commit a behavioral robot change (keywords, locators, `Execute JavaScript`/DOM logic, click targets, wait/assert flow) **or** its Python task wrapper as verified — or merge it — on `robot --dryrun` alone. Run the affected suite against a live scratch org first. Dryrun never launches a browser. Exempt: comment/`[Documentation]`-only edits, and resource files with no behavioral change.
+
+## Session URLs — never in Robot results
+
+`sf org open --url-only` prints a frontdoor URL (`secur/frontdoor.jsp?sid=...&otp=...`) that is a live login. Robot writes keyword arguments, return values, library log lines and **failure messages** into `output.xml`/`log.html`, and those files persist under `robot/rlm-base/results/`, `.harness/runs/*/robot_results/` and `.harness/tui-runs/*/robot_results/` (and may be uploaded as artifacts).
+
+- The URL stays inside Python: `Go To Authenticated Page    ${ORG_ALIAS}    <setup path>` (`robot/rlm-base/resources/SessionUrlGuard.py`) fetches it, calls `driver.get` once with the log level at `NONE` (restored in `finally`), and re-raises failures with any session URL redacted. `Open Setup Page`, `Open Revenue Settings Page`, `Navigate To App` and `Navigate To Record` all use it. The log shows the org alias and setup path only.
+- Re-navigate by path (`_Open Target Page`), never by passing the URL around. Do not add `Get Location`/`Log Location`/`Log Source` calls on a page that could still carry the session.
+- Why not just `Set Log Level NONE` in the suite: a failed `Go To` puts the URL in the failure text at any level, the level stays `NONE` if the keyword fails before restoring it, and a URL passed to a helper keyword is logged as that keyword's argument. (Measured with Robot 7.5.)
+- An explicit `url=` argument or `REVENUE_SETTINGS_URL` is logged as given: it must be a plain page URL, never a frontdoor/`sid=`/`otp=` one.
+- Check: `python tests/test_robot_session_url_logging.py` (runs the real navigation keywords against a fake `sf`, no org; gated by `pr_gate.py`) and `python scripts/ai/check_robot_session_urls.py [results dir ...]`, which decodes `log.html`'s compressed strings. Run the scanner on the results of every live run you cite as verification. Failure screenshots are viewport captures and show no URL bar.
 
 ## Verification — dryrun is not enough
 

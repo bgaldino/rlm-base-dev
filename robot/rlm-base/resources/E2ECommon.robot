@@ -11,6 +11,7 @@ Library           ${EXECDIR}/robot/rlm-base/resources/WebDriverManager.py    WIT
 Library           ${EXECDIR}/robot/rlm-base/resources/ChromeOptionsHelper.py
 Library           ${EXECDIR}/robot/rlm-base/resources/ChromeDebugHelper.py
 Library           ${EXECDIR}/robot/rlm-base/resources/SalesforceAPI.py    WITH NAME    SalesforceAPI
+Library           ${EXECDIR}/robot/rlm-base/resources/SessionUrlGuard.py
 
 *** Variables ***
 ${ORG_ALIAS}                ${EMPTY}
@@ -72,50 +73,32 @@ Close Browser For E2E
 
 # ── Navigation ───────────────────────────────────────────────────────
 
-Get Authenticated Url
-    [Documentation]    Gets an authenticated URL for a Lightning page path using
-    ...    \`sf org open --url-only\`. Returns the full URL with session token.
-    ...    URL-handling steps are wrapped in Set Log Level NONE to prevent the
-    ...    session token from leaking into Robot log.html/CI artifacts.
+Navigate To Authenticated Page
+    [Documentation]    Opens a Lightning page path in the browser, logged in through a one-time
+    ...    \`sf org open --url-only\` session. SessionUrlGuard.py keeps that URL inside
+    ...    Python (never a Robot variable, argument or return value) and redacts it from
+    ...    failures, so the session token cannot reach output.xml, log.html or CI artifacts.
     [Arguments]    ${page_path}
     Run Keyword If    "${ORG_ALIAS}" == ""    Fail    msg=ORG_ALIAS must be set
-    ${prev_level}=    Set Log Level    NONE
-    ${result}=    Run Process    sf    org    open    -o    ${ORG_ALIAS}    --url-only    -p    ${page_path}    shell=False
-    Run Keyword If    ${result.rc} != 0    Set Log Level    ${prev_level}
-    Run Keyword If    ${result.rc} != 0    Fail    msg=sf org open failed: ${result.stderr}
-    ${raw}=    Strip String    ${result.stdout}
-    ${raw}=    Evaluate    $raw.replace(chr(10), ' ').replace(chr(13), ' ').strip()
-    ${url}=    Evaluate    $raw.split('with the following URL:')[-1].strip() if 'with the following URL:' in $raw else $raw
-    ${url}=    Strip String    ${url}
-    Set Log Level    ${prev_level}
-    RETURN    ${url}
+    Go To Authenticated Page    ${ORG_ALIAS}    ${page_path}
 
 Navigate To App
     [Documentation]    Navigates to a Salesforce Lightning app by its display name.
-    ...    Uses /lightning/app/<DeveloperName> with an authenticated URL.
+    ...    Uses /lightning/app/<DeveloperName> with an authenticated session.
     ...    The DeveloperName is derived by replacing spaces with underscores
     ...    and prepending the RLM namespace prefix.
-    ...    Set Log Level NONE wraps both URL retrieval and navigation to prevent
-    ...    the session token from appearing in Robot log.html/CI artifacts.
     [Arguments]    ${app_name}
     ${app_api_name}=    Evaluate    'RLM_' + $app_name.replace(' ', '_')
-    ${prev_level}=    Set Log Level    NONE
-    ${url}=    Get Authenticated Url    /lightning/app/c__${app_api_name}
-    Go To    ${url}
-    Set Log Level    ${prev_level}
+    Navigate To Authenticated Page    /lightning/app/c__${app_api_name}
     Wait Until Page Contains Element    css:body    timeout=${PAGE_LOAD_TIMEOUT}
     Sleep    ${LIGHTNING_RENDER_WAIT}    reason=Allow app to load
     Log    Navigated to app: ${app_name}
 
 Navigate To Record
-    [Documentation]    Navigates to a Salesforce record page by SObject type and Id.
-    ...    Set Log Level NONE wraps both URL retrieval and navigation to prevent
-    ...    the session token from appearing in Robot log.html/CI artifacts.
+    [Documentation]    Navigates to a Salesforce record page by SObject type and Id,
+    ...    through an authenticated session that is never logged.
     [Arguments]    ${sobject}    ${record_id}
-    ${prev_level}=    Set Log Level    NONE
-    ${url}=    Get Authenticated Url    /lightning/r/${sobject}/${record_id}/view
-    Go To    ${url}
-    Set Log Level    ${prev_level}
+    Navigate To Authenticated Page    /lightning/r/${sobject}/${record_id}/view
     Wait Until Page Contains Element    css:body    timeout=${PAGE_LOAD_TIMEOUT}
     Sleep    ${LIGHTNING_RENDER_WAIT}    reason=Allow Lightning to finish rendering
 

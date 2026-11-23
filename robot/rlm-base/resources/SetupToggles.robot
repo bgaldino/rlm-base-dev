@@ -1,11 +1,12 @@
 *** Settings ***
-Documentation     Keywords for enabling/disabling toggles on Salesforce Lightning Setup pages (e.g. Revenue Settings). These settings cannot be deployed via metadata and require browser automation. Use ORG_ALIAS with sf org open --url-only to get an authenticated URL so the Selenium browser session is logged in.
+Documentation     Keywords for enabling/disabling toggles on Salesforce Lightning Setup pages (e.g. Revenue Settings). These settings cannot be deployed via metadata and require browser automation. Use ORG_ALIAS to log the Selenium browser in through sf org open --url-only; SessionUrlGuard.py keeps that session URL out of every Robot log (never put it in a Robot variable or keyword argument).
 Library           SeleniumLibrary    timeout=15    implicit_wait=5
 Library           Collections
 Library           String
 Library           Process
 Library           ${EXECDIR}/robot/rlm-base/resources/WebDriverManager.py    WITH NAME    WebDriverManager
 Library           ${EXECDIR}/robot/rlm-base/resources/ChromeOptionsHelper.py
+Library           ${EXECDIR}/robot/rlm-base/resources/SessionUrlGuard.py
 
 *** Variables ***
 # Default timeout for waiting for setup page and toggle elements
@@ -24,67 +25,47 @@ ${_JS_GET_INPUT_FROM_TOGGLE}    function getInputFromToggle(li){if(!li.shadowRoo
 ${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
 
 *** Keywords ***
-Get Authenticated Setup Page Url
-    [Documentation]    Runs \`sf org open -o <org> --url-only -p <setup_path>\` to get a one-time authenticated URL. Requires Salesforce CLI and an authenticated org alias.
-    [Arguments]    ${org_alias}    ${setup_path}=/lightning/setup/RevenueSettings/home
-    Run Keyword If    """${org_alias}""" == ""    Fail    msg=ORG_ALIAS must be set (e.g. robot -v ORG_ALIAS:my-scratch ...)
-    ${result}=    Run Process    sf    org    open    -o    ${org_alias}    --url-only    -p    ${setup_path}    shell=False
-    Run Keyword If    ${result.rc} != 0    Fail    msg=sf org open failed: ${result.stderr}
-    ${raw}=    Strip String    ${result.stdout}
-    ${raw}=    Evaluate    $raw.replace(chr(10), ' ').replace(chr(13), ' ').strip()
-    # sf org open --url-only prints a message like "Access org ... with the following URL: https://..."
-    ${url}=    Evaluate    $raw.split('with the following URL:')[-1].strip() if 'with the following URL:' in $raw else $raw
-    ${url}=    Strip String    ${url}
-    Run Keyword If    """${url}""" == ""    Fail    msg=sf org open did not return a URL
-    RETURN    ${url}
-
-Get Authenticated Revenue Settings Url
-    [Documentation]    Convenience wrapper for Revenue Settings page.
-    [Arguments]    ${org_alias}
-    ${url}=    Get Authenticated Setup Page Url    ${org_alias}    /lightning/setup/RevenueSettings/home
-    RETURN    ${url}
-
-_Get Revenue Settings Target Url
-    [Documentation]    Returns the URL to use: url argument, or authenticated URL from sf org open when ORG_ALIAS set, or REVENUE_SETTINGS_URL.
-    [Arguments]    ${url}=${EMPTY}
-    Return From Keyword If    """${url}""" != ""    ${url}
-    ${auth}=    Run Keyword If    """${ORG_ALIAS}""" != ""    Get Authenticated Revenue Settings Url    ${ORG_ALIAS}
-    Return From Keyword If    """${ORG_ALIAS}""" != ""    ${auth}
-    Run Keyword If    """${REVENUE_SETTINGS_URL}""" == ""    Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or REVENUE_SETTINGS_URL
-    RETURN    ${REVENUE_SETTINGS_URL}
+_Open Target Page
+    [Documentation]    Navigates to an explicit \`${url}\` when given, otherwise to \`${setup_path}\` in
+    ...    \${ORG_ALIAS} through an authenticated session (see SessionUrlGuard.py). The
+    ...    authenticated URL never enters a Robot variable, so it cannot reach output.xml or log.html.
+    [Arguments]    ${setup_path}    ${url}=${EMPTY}
+    IF    """${url}""" != ""
+        Go To    ${url}
+    ELSE IF    """${ORG_ALIAS}""" != ""
+        Go To Authenticated Page    ${ORG_ALIAS}    ${setup_path}
+    ELSE
+        Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or provide a url argument
+    END
 
 Open Setup Page
-    [Documentation]    Opens any Salesforce setup page by path. If \${ORG_ALIAS} is set, uses \`sf org open --url-only\` to get an authenticated URL. Otherwise falls back to the provided url argument.
+    [Documentation]    Opens any Salesforce setup page by path. If \${ORG_ALIAS} is set, logs in with a one-time \`sf org open --url-only\` session. Otherwise uses the provided url argument, which must not itself carry a session (frontdoor/sid/otp); the authenticated URL is never logged (SessionUrlGuard.py).
     [Arguments]    ${setup_path}=/lightning/setup/RevenueSettings/home    ${url}=${EMPTY}    ${wait_for_login}=${True}
-    ${target}=    Set Variable If    """${url}""" != ""    ${url}    ${EMPTY}
-    ${target}=    Run Keyword If    """${target}""" == "" and """${ORG_ALIAS}""" != ""    Get Authenticated Setup Page Url    ${ORG_ALIAS}    ${setup_path}
-    ...    ELSE    Set Variable    ${target}
-    Run Keyword If    """${target}""" == "" or """${target}""" == "None"    Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or provide a url argument
-    Go To    ${target}
+    _Open Target Page    ${setup_path}    ${url}
     Wait Until Page Contains Element    css:body    timeout=${SETUP_PAGE_LOAD_TIMEOUT}
-    Run Keyword If    ${wait_for_login}    _Wait For Login If Needed    ${target}
+    Run Keyword If    ${wait_for_login}    _Wait For Login If Needed    ${setup_path}    ${url}
     Sleep    2s    reason=Allow Lightning to finish rendering
 
 Open Revenue Settings Page
-    [Documentation]    Opens the Revenue Settings setup page. If \${ORG_ALIAS} is set, uses \`sf org open --url-only\` to get an authenticated URL (recommended). Otherwise uses \${REVENUE_SETTINGS_URL} or url argument; if the page shows login, waits \${MANUAL_LOGIN_WAIT} for you to log in then reloads.
+    [Documentation]    Opens the Revenue Settings setup page. If \${ORG_ALIAS} is set, logs in with a one-time \`sf org open --url-only\` session (recommended; never logged). Otherwise uses the url argument or \${REVENUE_SETTINGS_URL}; if the page shows login, waits \${MANUAL_LOGIN_WAIT} for you to log in then reloads.
     [Arguments]    ${url}=${EMPTY}    ${wait_for_login}=${True}
-    ${target}=    _Get Revenue Settings Target Url    ${url}
-    Go To    ${target}
-    Wait Until Page Contains Element    css:body    timeout=${SETUP_PAGE_LOAD_TIMEOUT}
-    Run Keyword If    ${wait_for_login}    _Wait For Login If Needed    ${target}
-    Sleep    2s    reason=Allow Lightning to finish rendering
+    IF    """${url}""" == "" and """${ORG_ALIAS}""" == ""
+        Run Keyword If    """${REVENUE_SETTINGS_URL}""" == ""    Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or REVENUE_SETTINGS_URL
+        ${url}=    Set Variable    ${REVENUE_SETTINGS_URL}
+    END
+    Open Setup Page    /lightning/setup/RevenueSettings/home    ${url}    ${wait_for_login}
 
 _Wait For Login If Needed
-    [Arguments]    ${target_url}
+    [Arguments]    ${setup_path}    ${url}=${EMPTY}
     ${title}=    Get Title
     ${title_lower}=    Convert To Lower Case    ${title}
     ${is_login}=    Run Keyword And Return Status    Should Contain    ${title_lower}    log in
     Run Keyword If    ${is_login}    Run Keywords
     ...    Log    Login page detected. Please log in to Salesforce in the browser window. Waiting ${MANUAL_LOGIN_WAIT}.
     ...    AND    Sleep    ${MANUAL_LOGIN_WAIT}
-    ...    AND    Go To    ${target_url}
+    ...    AND    _Open Target Page    ${setup_path}    ${url}
     ...    AND    Sleep    2s
-    _Handle Change Password If Needed    ${target_url}
+    _Handle Change Password If Needed    ${setup_path}    ${url}
 
 _Handle Change Password If Needed
     [Documentation]    Safety net for scratch org definitions (e.g. the TSO-derived
@@ -95,7 +76,7 @@ _Handle Change Password If Needed
     ...    (prepare_core step 1) normally clears the flag before any UI step; this
     ...    keyword completes the reset in-browser if the page is still reached, then
     ...    returns to the target Setup URL.
-    [Arguments]    ${target_url}
+    [Arguments]    ${setup_path}    ${url}=${EMPTY}
     ${title}=    Get Title
     ${title_lower}=    Convert To Lower Case    ${title}
     ${is_change_pw}=    Run Keyword And Return Status    Should Contain    ${title_lower}    change your password
@@ -114,7 +95,7 @@ _Handle Change Password If Needed
     ...    xpath=//*[(self::input or self::button) and (contains(translate(@value,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'change password') or contains(translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'change password'))]
     Run Keyword If    not ${clicked}    Click Element    css:input[type="submit"], button[type="submit"]
     Wait Until Keyword Succeeds    20s    2s    _Change Password Page Gone
-    Go To    ${target_url}
+    _Open Target Page    ${setup_path}    ${url}
     Wait Until Page Contains Element    css:body    timeout=${SETUP_PAGE_LOAD_TIMEOUT}
     Sleep    3s    reason=Allow Setup page to load after password change
 
