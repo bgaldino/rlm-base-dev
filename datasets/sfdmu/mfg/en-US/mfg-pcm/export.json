@@ -11,9 +11,11 @@
       "externalId": "Code"
     },
     {
+      "$comment": "mfg carries no classes today (header-only CSV, no rating plan). skipExistingRecords is here for parity with qb and q3: a reload must never send Status=Draft to a class another plan has activated.",
       "query": "SELECT BaseUnitOfMeasureId, Code, DefaultUnitOfMeasureId, Description, Id, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
       "operation": "Upsert",
-      "externalId": "Code"
+      "externalId": "Code",
+      "skipExistingRecords": true
     },
     {
       "query": "SELECT ConversionFactor, Description, Id, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId FROM UnitOfMeasure ORDER BY UnitCode ASC",
