@@ -250,6 +250,55 @@ describe("c-rlm-billing-schedule-group-modal submit validation", () => {
     ).toBe(10);
   });
 
+  it("sends the one-time total and no end date after switching from a termed charge", async () => {
+    const element = await mount();
+    await fillRecurring(element, "Termed");
+    change(element, 'lightning-radio-group[name="chargeType"]', "OneTime");
+    await flushPromises();
+
+    expect(createButton(element).disabled).toBe(false);
+    createButton(element).click();
+    await flushPromises();
+
+    const args = createBillingScheduleGroupAndScheduleViaAPI.mock.calls[0][0];
+    expect(args.billingTermUnitPicklist).toBe("OneTime");
+    expect(args.totalPrice).toBe(10);
+    expect(args.endDate).toBeNull();
+  });
+
+  it("recomputes a hidden total price when switching from a termed charge with a cleared total to one time", async () => {
+    const element = await mount();
+    await fillRecurring(element, "Termed");
+    change(element, 'lightning-input[name="totalPrice"]', "");
+    await flushPromises();
+    expect(createButton(element).disabled).toBe(true);
+
+    change(element, 'lightning-radio-group[name="chargeType"]', "OneTime");
+    await flushPromises();
+
+    expect(createButton(element).disabled).toBe(false);
+    createButton(element).click();
+    await flushPromises();
+    expect(
+      createBillingScheduleGroupAndScheduleViaAPI.mock.calls[0][0].totalPrice
+    ).toBe(10);
+  });
+
+  it("warns, not errors, when the Account has no billing account", async () => {
+    const element = createElement("c-rlm-billing-schedule-group-modal", {
+      is: RlmBillingScheduleGroupModal
+    });
+    element.recordId = "001000000000001AAA";
+    const toasts = recordToasts(element);
+    document.body.appendChild(element);
+    getAccountBillingInfo.emit({ accountName: "Acme" });
+    await flushPromises();
+
+    expect(toasts.map((toast) => [toast.title, toast.variant])).toEqual([
+      ["No Billing Account", "warning"]
+    ]);
+  });
+
   it("sends a one-time charge with its total price and no end date", async () => {
     const element = await mount();
     await fillOneTime(element);

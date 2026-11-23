@@ -283,8 +283,9 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     // The role set that ships with the Billing UI must resolve a junction-only billing account:
-    // this needs AccountBillingAccount read and the IsDefaultBillingAccount field grant (the
-    // ORDER BY reads it under USER_MODE). Run as the role, not as an admin.
+    // this needs AccountBillingAccount read. IsDefaultBillingAccount is not permissionable
+    // (describe on a 264 org reports it so), so the USER_MODE ORDER BY on it needs no field grant.
+    // Run as the role, not as an admin.
     @isTest
     static void getAccountBillingInfo_junctionOnlyBillingAccount_isResolvedForTheBillingRole() {
         Account a = new Account(Name = 'BSG Role Junction Acct');
@@ -326,10 +327,9 @@ private class RLM_BillingScheduleGroupServiceTest {
                 new ObjectPermissions(ParentId = ps.Id, SobjectType = 'Account', PermissionsRead = true),
                 new ObjectPermissions(ParentId = ps.Id, SobjectType = 'BillingAccount', PermissionsRead = true)
             };
-            insert new List<FieldPermissions>{
-                new FieldPermissions(ParentId = ps.Id, SobjectType = 'Account', Field = 'Account.BillingCity', PermissionsRead = true),
-                new FieldPermissions(ParentId = ps.Id, SobjectType = 'BillingAccount', Field = 'BillingAccount.AccountId', PermissionsRead = true)
-            };
+            // The compound Account.BillingAddress is the field grant RLM_BillingUI holds for the
+            // BillingCity read. BillingAccount.AccountId is not permissionable (describe), so it has no row.
+            insert new FieldPermissions(ParentId = ps.Id, SobjectType = 'Account', Field = 'Account.BillingAddress', PermissionsRead = true);
             insert new PermissionSetAssignment(AssigneeId = u.Id, PermissionSetId = ps.Id);
         }
 

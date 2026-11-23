@@ -302,6 +302,17 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
         } else {
             this.billingTermUnitPicklist = undefined;
         }
+        this.syncDerivedValues();
+    }
+
+    // End date and total price are derived from the charge type, term setting and pricing inputs.
+    // Run after any change to the charge type or term setting so a hidden Total Price input never
+    // keeps a stale or cleared value, and a non-termed charge never keeps a stale end date.
+    syncDerivedValues() {
+        this.calculateEndDate();
+        if (!this.isTermed && this.hasPricingInputs) {
+            this.totalPrice = this.quantity * this.unitPrice;
+        }
     }
 
     handleBillingFrequencyChange(event) {
@@ -312,13 +323,9 @@ export default class RlmBillingScheduleGroupModal extends LightningElement {
 
     handleTermSettingChange(event) {
         this.termSetting = event.detail.value;
-        // Recalculate end date when term setting changes
-        this.calculateEndDate();
-        // The Total Price input is shown only for a termed charge. Leaving Termed must not keep
-        // a cleared (undefined) total behind a hidden field, so derive it from quantity and unit price.
-        if (!this.isTermed && this.quantity !== undefined && this.unitPrice !== undefined) {
-            this.totalPrice = this.quantity * this.unitPrice;
-        }
+        // The Total Price input is shown only for a termed charge, so leaving Termed must not keep
+        // a cleared total behind a hidden field.
+        this.syncDerivedValues();
     }
 
     handleTermDurationChange(event) {
