@@ -77,8 +77,8 @@ schedule forecast runs, and that turning it on needs the Billing Admin permissio
 ([Help](../salesforce/264/help/articles/ind.billing_forecast_enable.htm.md)); the release note adds
 that creating and managing forecast schedules needs the Billing Operations User permission set
 ([release note](../salesforce/264/release-notes/articles/release-notes.rn_billing_forecast.htm.md)).
-Turning the setting on adds a Billing Forecast Scheduler, which you create from Billing Batch
-Schedulers in the App Launcher, and forecast records
+With the setting on, you create a Billing Forecast Scheduler from Billing Batch Schedulers in the
+App Launcher, and a run produces Billing Forecast records
 ([Help](../salesforce/264/help/articles/ind.billing_forecast_schedule.htm.md)). Nothing runs until
 someone creates and activates a scheduler, so enabling the setting by itself starts no forecast run
 (inferred from that Help article; not measured on a build). The build does not provision what the

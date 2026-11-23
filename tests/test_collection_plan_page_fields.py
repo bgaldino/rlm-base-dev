@@ -1,8 +1,9 @@
 """Offline check: every CollectionPlan field the Collection Plan record page shows is readable.
 
 The page template lists its fields as `Record.<Field>` items. Each one must be granted read in
-RLM_CollectionsUI (the set that owns the page-only fields) or RLM_BillingUI (the fields the
-billing controllers select), or sit on the allowlist below with its reason. Stdlib only. Run with:
+RLM_CollectionsUI on its own (it ships with the collections flag, and RLM_BillingUI only with
+billing_ui, so a grant there does not count), or sit on the allowlist below with its reason.
+Stdlib only. Run with:
 python tests/test_collection_plan_page_fields.py
 """
 import os
@@ -15,8 +16,6 @@ PAGE = os.path.join(ROOT, "templates", "flexipages", "standalone", "collections"
 OWNERS = [
     os.path.join(ROOT, "unpackaged", "post_collections", "permissionsets",
                  "RLM_CollectionsUI.permissionset-meta.xml"),
-    os.path.join(ROOT, "unpackaged", "post_billing_ui", "permissionsets",
-                 "RLM_BillingUI.permissionset-meta.xml"),
 ]
 
 # Fields that need no grant, with the reason, checked against a 264 org's describe:

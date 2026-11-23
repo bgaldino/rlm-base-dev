@@ -4786,8 +4786,8 @@ flows:
         task: deploy_collections_case_flow
         when: project_config.project__custom__collections
       5:
-        # Read access to the Collection Plan record page's own fields, which no Apex controller
-        # selects and so RLM_BillingUI (billing_ui) does not grant. The page ships with this flag.
+        # Read access to every permissionable field the Collection Plan record page shows. The
+        # page ships with this flag, and RLM_BillingUI (billing_ui) is not always deployed.
         task: assign_permission_sets
         when: project_config.project__custom__collections
         options:
