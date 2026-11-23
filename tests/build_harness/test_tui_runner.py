@@ -430,7 +430,7 @@ def test_run_build_fails_loudly_when_cci_ignores_the_overrides(tmp_path, monkeyp
     code = runner.run_build(
         config=_build_config(overrides={"inapp": True}), stop_event=Event(), emit=_emit_collector(events)
     )
-    assert code != 0
+    assert code == 20
     assert commands == []
     failed = [e for e in events if e.kind.name == "RUN_FAILED"]
     assert failed and "inapp=False" in failed[0].payload["message"]

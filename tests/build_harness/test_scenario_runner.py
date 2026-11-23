@@ -11,6 +11,7 @@ import json
 
 import pytest
 
+from scripts.build_harness.harness.execution import PreflightFailure
 from scripts.build_harness.harness.io import write_json
 from scripts.build_harness.harness.config import Step
 from scripts.build_harness.harness import scenario_runner
@@ -443,7 +444,7 @@ def test_end_of_run_can_resume_follows_probe_state(tmp_path, monkeypatch, state,
     assert result["can_resume"] is expected
 
 
-def _preflight_failure(tmp_path, monkeypatch, *, is_resume):
+def _preflight_failure(tmp_path, monkeypatch, *, is_resume, failure_class="deterministic"):
     run_dir = tmp_path / "runs" / "run-10"
     run_dir.mkdir(parents=True)
     project_root = run_dir / "scenarios" / "ent-default" / "cci_project"
@@ -451,7 +452,7 @@ def _preflight_failure(tmp_path, monkeypatch, *, is_resume):
     monkeypatch.setattr(scenario_runner, "prepare_scenario_project_root", lambda **_k: project_root)
     monkeypatch.setattr(scenario_runner, "cleanup_scenario_project_root", lambda _r: None)
     monkeypatch.setattr(scenario_runner, "write_build_provenance", lambda **_k: None)
-    monkeypatch.setattr(scenario_runner, "verify_project_flags", lambda _root, _flags: "CCI read inapp=False")
+    monkeypatch.setattr(scenario_runner, "verify_project_flags", lambda _root, _flags: PreflightFailure("CCI read inapp=False", failure_class))
     # Neither a CCI command nor the org probe may run when the flags do not reach CCI.
     monkeypatch.setattr(scenario_runner, "run_command", lambda *_a, **_k: pytest.fail("CCI command ran"))
     monkeypatch.setattr(scenario_runner, "probe_org", lambda *_a, **_k: pytest.fail("org probe ran"))
@@ -470,6 +471,11 @@ def _preflight_failure(tmp_path, monkeypatch, *, is_resume):
     )
 
 
+def _read_step_results(tmp_path):
+    path = tmp_path / "runs" / "run-10" / "scenarios" / "ent-default" / "step_results.jsonl"
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+
 def test_run_single_scenario_fails_loudly_when_cci_ignores_the_overrides(tmp_path, monkeypatch) -> None:
     result = _preflight_failure(tmp_path, monkeypatch, is_resume=False)
     assert result["status"] == "failed"
@@ -477,6 +483,17 @@ def test_run_single_scenario_fails_loudly_when_cci_ignores_the_overrides(tmp_pat
     assert result["failure_class"] == "deterministic"
     assert "inapp=False" in result["failure_signature"]
     assert result["can_resume"] is False
+    rows = _read_step_results(tmp_path)
+    assert len(rows) == 1
+    assert rows[0]["phase"] == "preflight" and rows[0]["target_name"] == "project_root_flags"
+    assert rows[0]["status"] == "failed" and rows[0]["failure_class"] == "deterministic"
+
+
+def test_preflight_failure_class_comes_from_the_check(tmp_path, monkeypatch) -> None:
+    result = _preflight_failure(tmp_path, monkeypatch, is_resume=False, failure_class="transient")
+    assert result["failure_class"] == "transient"
+    assert result["can_resume"] is False
+    assert _read_step_results(tmp_path)[0]["failure_class"] == "transient"
 
 
 def test_resume_is_blocked_when_cci_ignores_the_overrides(tmp_path, monkeypatch) -> None:

@@ -46,10 +46,18 @@ Each scenario includes:
 The harness materializes each scenario into a scenario-scoped CCI project root with
 an overridden `cumulusci.yml`, so CCI `when:` evaluation (including nested
 sub-flows/tasks) uses the scenario's effective flags at execution time. Before creating or
-resuming an org, the harness (and the TUI) runs `cci project info` in the
-workspace and stops with target `project_root_flags` if CumulusCI loaded other
-flag values, which happens when a build starts from a git worktree (CumulusCI
-then takes the enclosing checkout as its project root).
+resuming an org, the harness (and the TUI) makes two checks in the workspace and stops with
+target `project_root_flags` if either fails:
+
+- The workspace's `.git` must be a directory. It is the checkout's `.git` entry, so it is a
+  file (and the check fails) when the build started from a git worktree. CumulusCI then
+  takes the enclosing checkout as its project root, with that checkout's `tasks/` and
+  robot results, even when the flag values happen to match.
+- `cci project info` must print the scenario's boolean flags exactly. This catches a
+  project root that resolves to another checkout with different flag defaults.
+
+On `resume` the failure is `resume_blocked` (exit 30); on `run` it is a failed scenario; the
+TUI exits 20.
 
 The workspace (`scenarios/<scenario_id>/cci_project/`) links most repo entries
 to the repo and copies `scripts/` and `robot/`. Robot output
@@ -270,8 +278,8 @@ Each run writes:
 
 - `0` - success
 - `10` - scenario/build failure
-- `20` - harness configuration/validation error
-- `30` - resume blocked (missing run/checkpoint/org, or the org probe could not confirm the org)
+- `20` - harness configuration/validation error (the TUI also exits 20 when the flag check fails)
+- `30` - resume blocked (missing run/checkpoint/org, the org probe could not confirm the org, or the `project_root_flags` check failed)
 
 ## Agent Policy
 

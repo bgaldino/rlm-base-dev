@@ -158,13 +158,28 @@ def run_single_scenario(
         flags_error = verify_project_flags(project_root, flags)
         if flags_error is not None:
             cleanup_workspace = False
+            flags_failure_class = getattr(flags_error, "failure_class", "deterministic")
+            record_event(
+                {
+                    "phase": "preflight",
+                    "step_number": 0,
+                    "target_type": "preflight",
+                    "target_name": "project_root_flags",
+                    "status": "failed",
+                    "duration_seconds": 0.0,
+                    "exit_code": 1,
+                    "failure_signature": str(flags_error),
+                    "failure_class": flags_failure_class,
+                    "retries_used": 0,
+                }
+            )
             return build_failure_result(
                 status="resume_blocked" if is_resume else "failed",
                 failed_step=resume_from_step if is_resume else 0,
                 failed_target="project_root_flags",
                 failure_phase="preflight",
-                failure_signature=flags_error,
-                failure_class="deterministic",
+                failure_signature=str(flags_error),
+                failure_class=flags_failure_class,
                 retry_count=0,
                 can_resume=False,
             )

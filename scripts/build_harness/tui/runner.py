@@ -133,8 +133,9 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
         )
         flags_error = verify_project_flags(project_root, effective_flags)
         if flags_error is not None:
-            emit(RunEvent(kind=RunEventKind.RUN_FAILED, payload={"message": flags_error}))
-            return 2
+            emit(RunEvent(kind=RunEventKind.RUN_FAILED, payload={"message": str(flags_error)}))
+            # 20 = harness configuration error, as in harness.py; 2 is the generic failure.
+            return 20
         create_cmd = [
             "cci",
             "org",

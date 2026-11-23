@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 import subprocess
 import time
 from collections import deque
@@ -318,6 +319,20 @@ def probe_org(
     return {"state": "error", "detail": failure}
 
 
+_CUSTOM_KEY_LINE = re.compile(r"^([A-Za-z_][\w.-]*):(?:\s+(.*))?$")
+
+
+class PreflightFailure(str):
+    """A preflight failure message that also carries its failure class."""
+
+    failure_class: str
+
+    def __new__(cls, message: str, failure_class: str) -> "PreflightFailure":
+        obj = super().__new__(cls, message)
+        obj.failure_class = failure_class
+        return obj
+
+
 def _parse_project_info_custom(output: str) -> Dict[str, str]:
     """Read the top-level `custom:` block of `cci project info` as name -> text.
 
@@ -342,10 +357,19 @@ def _parse_project_info_custom(output: str) -> Dict[str, str]:
             block_indent = indent
         if indent != block_indent:
             continue
-        name, separator, value = line.strip().partition(":")
-        if separator:
-            flags[name.strip()] = value.strip()
+        # A multi-line string value continues on lines that are not `key: value` or
+        # `key:`; ignore them rather than reading their text as a flag.
+        match = _CUSTOM_KEY_LINE.match(line.strip())
+        if match:
+            flags[match.group(1)] = (match.group(2) or "").strip()
     return flags
+
+
+_WORKTREE_HINT = (
+    "CumulusCI's project root is the first folder upward from the working directory whose "
+    ".git is a directory; start the build from the main checkout or a regular git clone, "
+    "not a git worktree."
+)
 
 
 def verify_project_flags(
@@ -366,9 +390,27 @@ def verify_project_flags(
     task whose flag the scenario turned on. `cci project info` prints the
     ``project.custom`` CumulusCI loaded, read-only and without an org.
 
-    Returns None when every flag matches, otherwise a message naming the
-    mismatches (or why they could not be read).
+    Two checks, because each catches a different case:
+
+    1. ``project_root/.git`` must be a directory. The workspace symlinks the checkout's
+       ``.git`` entry, so this is false exactly when the build started from a git
+       worktree. That case is not caught by the flag comparison when the scenario's
+       overrides happen to equal the enclosing checkout's defaults, yet CumulusCI would
+       still take that checkout's ``tasks/`` and ``robot/`` results.
+    2. ``cci project info`` must print the scenario's boolean flags. This catches a
+       project root that resolves to some other checkout with other defaults, however
+       it came about.
+
+    Returns None when both pass, otherwise a ``PreflightFailure`` (a ``str`` that also
+    carries ``failure_class``): ``deterministic`` for what is wrong with the setup,
+    ``transient`` for a timeout, ``unknown`` when ``cci`` could not run or report.
     """
+    if not (project_root / ".git").is_dir():
+        return PreflightFailure(
+            f"{project_root} has no `.git` directory, so CumulusCI would not take it as the project root "
+            "and would build with another checkout's tasks and flag defaults. " + _WORKTREE_HINT,
+            "deterministic",
+        )
     try:
         result = subprocess.run(
             ["cci", "project", "info"],
@@ -377,20 +419,33 @@ def verify_project_flags(
             text=True,
             timeout=timeout,
         )
-    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
-        return f"Could not run `cci project info` in {project_root} to confirm the scenario flags: {exc!r}"
+    except subprocess.TimeoutExpired as exc:
+        return PreflightFailure(
+            f"`cci project info` did not finish within {timeout:g}s in {project_root}; cannot confirm the scenario flags: {exc!r}",
+            "transient",
+        )
+    except (FileNotFoundError, OSError) as exc:
+        return PreflightFailure(
+            f"Could not run `cci project info` in {project_root} to confirm the scenario flags: {exc!r}",
+            "unknown",
+        )
     if result.returncode != 0:
-        return f"`cci project info` exited {result.returncode} in {project_root}; cannot confirm the scenario flags."
+        return PreflightFailure(
+            f"`cci project info` exited {result.returncode} in {project_root}; cannot confirm the scenario flags.",
+            "unknown",
+        )
     custom = _parse_project_info_custom(result.stdout or "")
     if not custom:
-        return "`cci project info` printed no `custom:` block; cannot confirm the scenario flags."
+        return PreflightFailure("`cci project info` printed no `custom:` block; cannot confirm the scenario flags.", "deterministic")
 
     # `when:` expressions read boolean flags; the rest of project.custom (the
     # `rlm_*_api_names`, `ps_*` and `dt_*` lists) is data, which `cci project info`
     # prints as a bare key over indented items.
     checked = {name: wanted for name, wanted in effective_flags.items() if isinstance(wanted, bool)}
     if not checked:
-        return "The scenario has no boolean flags to check against `cci project info`; cannot confirm them."
+        return PreflightFailure(
+            "The scenario has no boolean flags to check against `cci project info`; cannot confirm them.", "deterministic"
+        )
     mismatches = []
     for name, wanted in checked.items():
         if name not in custom:
@@ -399,11 +454,11 @@ def verify_project_flags(
             mismatches.append(f"{name}: scenario {wanted!r}, CumulusCI loaded {custom[name]!r}")
     if not mismatches:
         return None
-    return (
+    return PreflightFailure(
         "CumulusCI did not load the scenario's flags from the generated workspace, so `when:` checks "
         "inside flows would skip tasks the scenario enables. Mismatches: "
         + "; ".join(mismatches)
-        + ". CumulusCI's project root is the first folder upward from the working directory whose "
-        ".git is a directory; start the build from the main checkout or a regular git clone, "
-        "not a git worktree."
+        + ". "
+        + _WORKTREE_HINT,
+        "deterministic",
     )

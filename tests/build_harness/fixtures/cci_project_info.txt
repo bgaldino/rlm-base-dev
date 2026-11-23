@@ -1,0 +1,39 @@
+name: rlm-base
+package:
+    name: rlm-base
+    name_managed: None
+    namespace: None
+    install_class: None
+    uninstall_class: None
+    api_version: 68.0
+git:
+    default_branch: main
+    prefix_feature: feature/
+    prefix_beta: beta/
+    prefix_release: release/
+    push_prefix_sandbox: Sandbox orgs: 
+    push_prefix_production: Production orgs: 
+test:
+    name_match: %_TEST%
+dependencies: None
+source_format: sfdx
+custom:
+    qbrix: False
+    tso: False
+    pde: False
+    trial: False
+    refresh: False
+    billing: True
+    billing_ui: True
+    billing_portal: False
+    billing_portal_deploy: True
+    mcp: False
+    inapp: False
+    locale: en_US
+    rlm_psl_api_names:
+        - BREDesigner
+        - BRERuntime
+        - CorePricingDesignTime
+    rlm_ai_psg_api_names:
+        - CopilotSalesforceUserPSG
+        - CopilotSalesforceAdminPSG
