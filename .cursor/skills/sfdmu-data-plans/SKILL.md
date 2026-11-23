@@ -167,7 +167,8 @@ sent to an Active record:
   `skipExistingRecords: true`, so a pcm reload never sends `Status=Draft` to a class that
   `activate_rating_records` has activated. The class is created Draft because the
   platform allows nothing else; a correction to an existing class's other fields lands only
-  through qb-rating's or q3-rating's pass 2.
+  through qb-rating's or q3-rating's pass 2, for the classes those plans carry. ja and mfg have
+  no such pass: mfg has no rating plan (`datasets/sfdmu/mfg/en-US/` lists none) and no classes.
 
 **A load that fails partway can leave children that no reload repairs** (todo 330). When
 SFDMU rejects a parent row, it still inserts the children that look it up, with that lookup
