@@ -599,7 +599,11 @@ LOGLEVEL_SIG_FALLBACK = {
 
 
 def selib_loglevel_signatures():
-    """``{function: parameter names}`` for every public function with a ``loglevel`` parameter, or None."""
+    """``{function: parameter names}`` for every public function with a ``loglevel`` parameter.
+
+    None only when SeleniumLibrary cannot be imported; an importable library that yields nothing
+    returns ``{}`` so the comparison test fails instead of skipping.
+    """
     try:
         import importlib
         import inspect
@@ -618,7 +622,7 @@ def selib_loglevel_signatures():
                 params = tuple(inspect.signature(function).parameters)[1:]
                 if not name.startswith("_") and "loglevel" in params:
                     found[name] = params
-    return found or None
+    return found
 
 
 class RobotTreeSweepTest(unittest.TestCase):
@@ -662,7 +666,7 @@ class RobotTreeSweepTest(unittest.TestCase):
         r"(?:(?:\s{2,}|\t)loglevel=(?!=)|[(,]\s*loglevel\s*=(?!=)|[\"']loglevel[\"']\s*:)"
         r"\s*(?![\"']?(?:TRACE|NONE)\b)\S", re.IGNORECASE)
     # Positional form: the slot of ``loglevel`` in each function's installed signature.
-    LOGLEVEL_SIG = selib_loglevel_signatures() or LOGLEVEL_SIG_FALLBACK
+    LOGLEVEL_SIG = selib_loglevel_signatures() or LOGLEVEL_SIG_FALLBACK  # {} (empty walk) also falls back; the comparison test then fails
     LOGLEVEL_OK = {"TRACE", "NONE"}
     ARG_STOP = {"ELSE", "ELSE IF", "AND"}
 
@@ -715,7 +719,11 @@ class RobotTreeSweepTest(unittest.TestCase):
             return []
 
         def bad(node):
-            return not (isinstance(node, ast.Constant) and str(node.value).upper() in self.LOGLEVEL_OK)
+            return not (isinstance(node, ast.Constant) and str(node.value).strip().upper() in self.LOGLEVEL_OK)
+
+        def is_text(node, values=None):
+            return isinstance(node, ast.Constant) and isinstance(node.value, str) and (
+                values is None or node.value in values)
 
         found = set()
         for node in ast.walk(tree):
@@ -724,20 +732,30 @@ class RobotTreeSweepTest(unittest.TestCase):
             if any(k.arg == "loglevel" and bad(k.value) for k in node.keywords):
                 found.add(node.lineno)
             name = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, "id", "")
-            args, start = node.args, 0
             if name.lower().startswith("run_keyword"):
-                named = [i for i, a in enumerate(args) if isinstance(a, ast.Constant) and isinstance(a.value, str)
-                         and self.slot_of(a.value)[0]]
-                if not named:
+                segments, current = [], []
+                for arg in node.args:
+                    if is_text(arg, self.ARG_STOP):
+                        segments.append(current)
+                        current = []
+                    else:
+                        current.append(arg)
+                segments.append(current)
+                if name.lower() == "run_keywords" and len(segments) == 1:
+                    continue  # without AND every argument is a keyword name taking no arguments
+                calls = []
+                for segment in segments:
+                    named = [i for i, a in enumerate(segment) if is_text(a) and self.slot_of(a.value)[0]]
+                    if named:
+                        calls.append((segment[named[0]].value, segment[named[0] + 1:]))
+            else:
+                calls = [(name, node.args)]
+            for keyword_name, args in calls:
+                function, slot = self.slot_of(keyword_name)
+                if function is None or len(args) < slot or any(isinstance(a, ast.Starred) for a in args[:slot]):
                     continue
-                start = named[0]
-                name = args[start].value
-                args = args[start + 1:]
-            function, slot = self.slot_of(name)
-            if function is None or len(args) < slot or any(isinstance(a, ast.Starred) for a in args[:slot]):
-                continue
-            if bad(args[slot - 1]):
-                found.add(node.lineno)
+                if bad(args[slot - 1]):
+                    found.add(node.lineno)
         return sorted(found)
 
     ORG_OPEN = re.compile(r"org\s+open\b.*(?:--url-only|\s-r\b)|[\"']org[\"'],\s*[\"']open[\"']|\burl-only\b")
@@ -841,19 +859,29 @@ class RobotTreeSweepTest(unittest.TestCase):
                      's.table_footer_should_contain("t", "x", "WARN")', 's.table_header_should_contain("t", "x", "WARN")',
                      's.get_table_cell("t", 1, 2, "WARN")', 's.page_should_contain(\n    "x",\n    loglevel = "WARN",\n)',
                      's.page_should_contain("x", loglevel=level)', 'BuiltIn().run_keyword("Page Should Contain", "x", "WARN")',
-                     'b.run_keyword_if(ok, "Page Should Contain Element", "css:x", "m", "INFO")']:
+                     'b.run_keyword_if(ok, "Page Should Contain Element", "css:x", "m", "INFO")',
+                     'b.run_keyword_if(c, "Page Should Contain", "x", "TRACE", "ELSE", "Page Should Contain", "y", "WARN")',
+                     'b.run_keywords("Log", "z", "AND", "Page Should Contain", "x", "WARN")',
+                     's.page_should_contain("x", " WARN ")']:
             self.assertTrue(self.python_positional_levels(code), code)
         for code in ['s.page_should_contain("x")', 's.page_should_contain("x", "TRACE")', 's.page_should_contain("x", "none")',
                      's.page_should_contain_element("css:x", "WARN")', 's.page_should_contain(*args)', 'log("x", "WARN")',
                      's.table_footer_should_contain("t", "x")', 's.get_table_cell("t", 1, 2, "TRACE")',
                      's.page_should_contain("x", loglevel="TRACE")', 'BuiltIn().run_keyword("Log", "x", "WARN")',
-                     'BuiltIn().run_keyword("Page Should Contain", "x")', 'f(a, b)', 'run(loglevel="NONE")']:
+                     'BuiltIn().run_keyword("Page Should Contain", "x")', 'f(a, b)', 'run(loglevel="NONE")',
+                     'b.run_keywords("Page Should Contain", "x", "AND", "Log", "y")',
+                     'b.run_keywords("Page Should Contain", "x", "WARN")',
+                     'b.run_keyword_if(c, "Page Should Contain", "x", "ELSE", "Page Should Contain", "y", "TRACE")',
+                     's.page_should_contain("x", " trace ")']:
             self.assertFalse(self.python_positional_levels(code), code)
 
     def test_loglevel_slots_match_the_installed_signatures(self):
         real = selib_loglevel_signatures()
         if real is None:
-            self.skipTest("SeleniumLibrary is not importable here; the fallback slot table is unchecked")
+            message = "SeleniumLibrary is not importable: the fallback loglevel slot table is unchecked"
+            if os.environ.get("CI"):
+                self.fail(message + " (install robotframework-seleniumlibrary; the gate check declares it)")
+            self.skipTest(message)
         self.assertEqual(real, LOGLEVEL_SIG_FALLBACK,
                          "regenerate LOGLEVEL_SIG_FALLBACK from the installed SeleniumLibrary signatures")
 

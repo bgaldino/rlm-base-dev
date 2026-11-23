@@ -90,12 +90,14 @@ DEPS = {
     "textual": "textual",
     "requests": "requests",
     "robotframework": "robot",
+    "robotframework-seleniumlibrary": "SeleniumLibrary",
 }
 
 # What `--requirements` emits, so CI installs only what the selection needs. CumulusCI is
 # pinned to the version `prepare-rlm-org.yml` installs: two workflows resolving different
 # CumulusCI versions would let a flow-citation check pass here and fail there.
-PINS = {"cumulusci": "cumulusci==4.10.1", "robotframework": "robotframework>=7.5.1,<8"}
+PINS = {"cumulusci": "cumulusci==4.10.1", "robotframework": "robotframework>=7.5.1,<8",
+        "robotframework-seleniumlibrary": "robotframework-seleniumlibrary>=6.9.0,<7"}
 
 # Installed alongside a package. CumulusCI 4.8.1 needed setuptools for `fs` -> `pkg_resources`;
 # 4.10.1 dropped `fs`, so this is now only the same `setuptools>=75.4` floor that
@@ -793,10 +795,12 @@ CHECKS = [
         # Robot results must never hold a session URL: runs the real setup/E2E navigation
         # keywords in a Robot process against a fake sf and a stub SeleniumLibrary, then scans
         # output.xml/log.html (incl. log.html's compressed strings). No org or browser needed.
+        # The real SeleniumLibrary is a dependency so the suite can check its log-level slot
+        # table against the installed signatures (it fails, not skips, without it under CI).
         name="robot_session_url_suite",
         cmd=["python", "tests/test_robot_session_url_logging.py"],
         triggers=["robot/", "tasks/", "scripts/ai/check_robot_session_urls.py", "tests/test_robot_session_url_logging.py"],
-        deps=["robotframework"], gating=True,
+        deps=["robotframework", "robotframework-seleniumlibrary"], gating=True,
     ),
     dict(
         name="docgen_suite",
