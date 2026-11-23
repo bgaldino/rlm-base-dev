@@ -84,7 +84,7 @@ EXCLUDED_PREFIXES: dict[str, str] = {
     "docs/salesforce/": "frozen per-release Help/dev-guide snapshot corpora",
     "docs/enablement/260/": "frozen per-release enablement extract",
     "docs/enablement/262/": "frozen per-release enablement extract",
-    "postman/": "collection is version-branded end to end; regenerate, do not sed",
+    "postman/": "collection is version-branded end to end; re-export from Postman, do not sed",
     # Arrives via forward-merge of PR #289. Its low pins (61-63) may be
     # deliberate for the Babylon.js/RenderDraw prototype; confirm before sweeping.
     "unpackaged/post_manufacturing_visualization/": (

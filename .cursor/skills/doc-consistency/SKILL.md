@@ -75,7 +75,7 @@ release is diffed against.
 |---|---|
 | `docs/salesforce/**` | per-release Help/dev-guide snapshot corpora |
 | `docs/enablement/260/`, `docs/enablement/262/` | released per-release enablement extracts |
-| `postman/` | version-branded end to end; regenerate, do not `sed` |
+| `postman/` | version-branded end to end; re-export from Postman, do not `sed` |
 
 **`.agents/context/**` — excluded, and nothing in it needs retargeting.** The agent
 context files don't restate the active or prior-GA release or API version:
