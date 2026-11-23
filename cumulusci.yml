@@ -58,9 +58,6 @@ orgs:
       # ent-sb0 with country JP: a JPY-corporate org, for verifying the qb/ja plans (todo 212).
       config_file: orgs/internal/ent-sb0-jp.json
       days: 30
-    tfid:
-      config_file: orgs/tfid/tfid.json
-      days: 30
     tfid-cdo:
       config_file: orgs/tfid/tfid-cdo.json
       days: 30
@@ -2533,8 +2530,9 @@ tasks:
     description: >
       Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium).
       Required before billing_ui flexipages that reference industries_common:timeline can be deployed.
-      Once enabled, this toggle cannot be disabled. Skipped on TSO builds (tso=true), where Timeline
-      is enabled via metadata (Industries.settings enableTimelinePref) instead of the UI toggle.
+      Once enabled, this toggle cannot be disabled. Skipped on TSO builds (tso=true), which expect
+      the baseline template to have Timeline on via metadata (Industries.settings enableTimelinePref)
+      instead of the UI toggle.
     class_path: tasks.rlm_enable_timeline.EnableTimeline
     options:
       suite: robot/rlm-base/tests/setup/enable_timeline.robot
@@ -4245,7 +4243,8 @@ flows:
       8:
         task: enable_timeline
         # Skipped on TSO builds: Timeline is enabled via metadata
-        # (Industries.settings enableTimelinePref) on the tfid-cdo-rlm template,
+        # (Industries.settings enableTimelinePref) on the TSO baseline template
+        # (tfid-cdo-rlm when this was written; unverified on a tfid-cdo build, todo 407),
         # so the Robot UI toggle is only needed on non-TSO orgs.
         when: project_config.project__custom__billing_ui and not project_config.project__custom__tso
       9:

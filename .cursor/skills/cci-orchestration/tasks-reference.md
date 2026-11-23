@@ -2037,7 +2037,7 @@
 
 ### `enable_timeline`
 
-**Description:** Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium). Required before billing_ui flexipages that reference industries_common:timeline can be deployed. Once enabled, this toggle cannot be disabled. Skipped on TSO builds (tso=true), where Timeline is enabled via metadata (Industries.settings enableTimelinePref) instead of the UI toggle.
+**Description:** Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium). Required before billing_ui flexipages that reference industries_common:timeline can be deployed. Once enabled, this toggle cannot be disabled. Skipped on TSO builds (tso=true), which expect the baseline template to have Timeline on via metadata (Industries.settings enableTimelinePref) instead of the UI toggle.
 
 **Class:** `tasks.rlm_enable_timeline.EnableTimeline`
 
