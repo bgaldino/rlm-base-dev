@@ -408,24 +408,21 @@ class RedactionTest(unittest.TestCase):
             self.assertTrue(guard.SESSION_URL_PATTERN.search(f"cookie {encoded}"), encoded)
             self.assertTrue(scanner.SESSION_URL_PATTERN.search(encoded), encoded)
             self.assertEqual(guard.redact_session_urls(f"bad {encoded}"), guard.WITHHELD)
-        # Encoded context: the char before 00D is the last hex digit of an escape, not a boundary.
+        # No left anchor: any prefix still matches (single or double percent-encoding, JS/JSON escapes,
+        # a word character).
         for encoded in ["x%3D00D000000000000%21" + "A" * 24, "%22sessionId%22%3A%2200D000000000000%21" + "A" * 24,
-                        "a%2C00D000000000000%2521" + "A" * 24]:
-            self.assertTrue(guard.SESSION_URL_PATTERN.search(encoded), encoded)
-            self.assertTrue(scanner.SESSION_URL_PATTERN.search(encoded), encoded)
-            self.assertEqual(guard.redact_session_urls(f"bad {encoded}"), guard.WITHHELD)
-        # No left anchor: any prefix (double-encoded, JS/JSON escapes, a word char) still matches.
-        for encoded in ["%253D00D000000000000%2521" + "A" * 24, "%2522%253A%252200D000000000000%2521" + "A" * 24,
+                        "a%2C00D000000000000%2521" + "A" * 24, "%253D00D000000000000%2521" + "A" * 24, "%2522%253A%252200D000000000000%2521" + "A" * 24,
                         "\\x3d00D000000000000!" + "A" * 24, "x100D000000000000%21" + "A" * 24]:
             self.assertTrue(guard.SESSION_URL_PATTERN.search(encoded), encoded)
             self.assertTrue(scanner.SESSION_URL_PATTERN.search(encoded), encoded)
             self.assertEqual(guard.redact_session_urls(f"bad {encoded}"), guard.WITHHELD)
-        self.assertFalse(guard.SESSION_URL_PATTERN.search("00D00000000000%21" + "A" * 24))  # id too short
-        self.assertFalse(guard.SESSION_URL_PATTERN.search("00D000000000000%21" + "A" * 19))  # token too short
-        self.assertFalse(guard.SESSION_URL_PATTERN.search("00D000000000000" + "A" * 24))  # no separator
-        self.assertFalse(guard.SESSION_URL_PATTERN.search("00D000000000000%21short"))
-        self.assertFalse(guard.SESSION_URL_PATTERN.search("00D000000000000!short"))
-        self.assertFalse(guard.SESSION_URL_PATTERN.search("record 00D000000000000 is an org id"))
+        for text in ["00D00000000000%21" + "A" * 24,  # id too short
+                     "00D000000000000%21" + "A" * 19,  # token too short
+                     "00D000000000000" + "A" * 24,  # no separator
+                     "00D000000000000%21short", "00D000000000000!short",
+                     "record 00D000000000000 is an org id"]:
+            self.assertFalse(guard.SESSION_URL_PATTERN.search(text), text)
+            self.assertFalse(scanner.SESSION_URL_PATTERN.search(text), text)
 
     def test_raw_values_with_plus_are_redacted(self):
         url = "https://h.my.salesforce.com/secur/frontdoor.jsp?sid=AAAA+BBBB+CCCC&otp=DDDD"
@@ -592,6 +589,10 @@ class RobotTreeSweepTest(unittest.TestCase):
         r"|\blocation\.(?:href|search|hash|origin|host|hostname|toString)\b"
         r"|\bdocument\.(?:URL|documentURI|baseURI|referrer)\b",
         re.IGNORECASE)
+    # A failed ``*Should Contain*`` keyword logs the page source at its ``loglevel`` (TRACE by default),
+    # so any other level (including WARN/ERROR, which every run records) leaks it. Flags any
+    # ``loglevel=`` whose value is not TRACE or NONE, so a ``...`` continuation line is caught too.
+    LOGLEVEL = re.compile(r"\bloglevel\s*=\s*(?![\"']?(?:TRACE|NONE)\b)\S", re.IGNORECASE)
     ORG_OPEN = re.compile(r"org\s+open\b.*(?:--url-only|\s-r\b)|[\"']org[\"'],\s*[\"']open[\"']|\burl-only\b")
     # Python files: prose (docstrings) may name the command; only code that runs it counts.
     ORG_OPEN_PY = re.compile(
@@ -638,6 +639,23 @@ class RobotTreeSweepTest(unittest.TestCase):
         for line in ["    Click Element    link:Home", "    Click Element    id:save", "    Input Text    id:x    y",
                      "    Textarea Should Contain    x    y", "    Radio Button Should Be Set To    g    v"]:
             self.assertFalse(self.FORBIDDEN.search(line), line)
+
+    def test_loglevel_pattern_flags_any_level_but_trace_or_none(self):
+        for line in ["    Page Should Contain    x    loglevel=WARN", "    Page Should Not Contain    x    loglevel=ERROR",
+                     "    Table Cell Should Contain    t    1    1    x    loglevel=INFO", "    ...    loglevel=DEBUG",
+                     "    Page Should Contain    x    loglevel=${LEVEL}", "    Page Should Contain    x    LogLevel=warn",
+                     '        s.assert_page_contains(loc, "text field", None, loglevel="INFO")',
+                     "    Page Should Contain    x    loglevel = HTML", "    Page Should Contain    x    loglevel=TRACEX"]:
+            self.assertTrue(self.LOGLEVEL.search(line), line)
+        for line in ["    Page Should Contain    x", "    Page Should Contain    x    loglevel=TRACE",
+                     "    Page Should Contain    x    loglevel=none", "    ...    loglevel=NONE",
+                     '        s.assert_page_contains(loc, "text field", None, loglevel="TRACE")',
+                     "    Page Should Contain    x    loglevel=trace"]:
+            self.assertFalse(self.LOGLEVEL.search(line), line)
+
+    def test_no_loglevel_other_than_trace_or_none_in_the_tree(self):
+        self.assertEqual(self.hits(self.LOGLEVEL, self.files("robot", "tasks")), [],
+                         "a failed Should Contain keyword would log the page source at that level")
 
     def test_no_unguarded_url_or_source_reads(self):
         self.assertEqual(self.hits(self.FORBIDDEN, self.files("robot", "tasks")), [],
