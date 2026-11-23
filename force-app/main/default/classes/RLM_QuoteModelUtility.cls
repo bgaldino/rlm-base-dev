@@ -14,7 +14,7 @@ public class RLM_QuoteModelUtility {
         Map<Id, Quote> quotesById = getQuotes(quoteId);
         Map<Id, List<QuoteLineItem>> linesByQuote = getQuoteLinesByQuote(quotesById.keySet());
 
-        // Bulkified (pack 083): query the child objects ONCE for the whole batch and
+        // Bulkified: query the child objects ONCE for the whole batch and
         // group them by quote-line id, instead of issuing two SOQL queries per line
         // inside the loop — the per-line form hit `Too many SOQL queries: 101` on a
         // ~50-line quote. ORDER BY Id preserves the same per-line row ordering the

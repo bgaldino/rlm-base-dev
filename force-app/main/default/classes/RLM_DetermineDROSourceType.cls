@@ -2,7 +2,9 @@ public class RLM_DetermineDROSourceType {
     /**
      * One output per input, in input order (the Flow bulk contract). An input that names no usable
      * record id (none, an empty list, or a malformed id) gets a blank output instead of a platform
-     * exception, so the calling flow's decision falls to its default branch.
+     * exception. The calling flow's Check_Source_Data_Type decision has no connector on its default
+     * outcome, so for such an input the flow ends without creating assets and without a fault. The flow
+     * ships as Draft; a Custom Error cannot stop it because that element needs a record-triggered flow.
      */
     @InvocableMethod(label='Determine DRO Source Type' description='Returns string value of source object that initiated DRO Fulfillment' category='RLM SE TAT')
     public static List<String> returnDROSourceObjectType(List<droSourceInfo> sourceInfoArray){
