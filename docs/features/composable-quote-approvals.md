@@ -88,7 +88,11 @@ state on `ApprovalSubmission` and `ApprovalWorkItem`; this field mirrors it for 
 doesn't set the field on either. `RLM_AA_Reset_Quote_Status` is a
 record-triggered flow (after save, on update) on `ApprovalSubmission`. It runs when
 `Status` changes to `Recalled` or `Canceled` and `RelatedRecordObjectName = 'Quote'`,
-and updates the related quote.
+and updates the related quote's `RLM_Approval_Status__c` (the custom field, not the
+standard `Quote.Status`). The flow's decision `Which_Outcome` sends `Recalled` to
+`Set_Quote_Status_Recalled`; its default outcome, `Canceled`, goes to `Clear_Quote_Status`,
+which assigns no value. Cancel clears the field on purpose: a canceled submission leaves the
+quote with no approval status, and there is no `Canceled` value on the field.
 
 It lives outside `RLM_Quote_Smart_Approval` on purpose. The Help docs offer two
 patterns: a recall path inside the approval flow for recall, and a record-triggered
