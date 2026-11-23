@@ -22,6 +22,11 @@
  * entering planner context.
  *
  * `with sharing` entry point; null-safe Id handling via RLM_AI_ConfigServiceUtils.
+ *
+ * System mode is deliberate (demo agent code): the shipped agent permission sets
+ * (post_agents/permissionsets) carry only agent access, with no object or field permissions
+ * of their own, so USER_MODE would depend on grants made elsewhere. Sharing still applies
+ * through `with sharing`.
  */
 public with sharing class RLM_AI_AddProductToQuoteService {
 

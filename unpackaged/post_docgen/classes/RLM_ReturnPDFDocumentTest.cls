@@ -36,10 +36,10 @@ private class RLM_ReturnPDFDocumentTest {
             'The PDF version\'s document is returned.');
     }
 
-    // Requests without a PDF still produce an output (with null ids) in request
-    // order, so a Flow never fails on a missing result.
+    // A blank ResponseText still produces an output (with null ids) in request order,
+    // so a Flow never fails on a missing result; a later request is unaffected.
     @IsTest
-    static void returnsEmptyOutputsForRequestsWithoutAPdf_inRequestOrder() {
+    static void returnsEmptyOutputsForBlankRequests_inRequestOrder() {
         ContentVersion word = newVersion('Proposal.docx');
         ContentVersion pdf = newVersion('Contract.pdf');
         insert new List<ContentVersion>{ word, pdf };
@@ -49,29 +49,69 @@ private class RLM_ReturnPDFDocumentTest {
 
         RLM_ReturnPDFDocument.InputVariable blank = new RLM_ReturnPDFDocument.InputVariable();
         blank.ResponseText = '   ';
-        RLM_ReturnPDFDocument.InputVariable wordOnly = new RLM_ReturnPDFDocument.InputVariable();
-        wordOnly.ResponseText = String.valueOf(word.Id);
         RLM_ReturnPDFDocument.InputVariable withPdf = new RLM_ReturnPDFDocument.InputVariable();
         withPdf.ResponseText = String.valueOf(pdf.Id);
 
         Test.startTest();
         List<RLM_ReturnPDFDocument.OutputVariable> outputs =
             RLM_ReturnPDFDocument.ReturnPDFDocumentId(
-                new List<RLM_ReturnPDFDocument.InputVariable>{ blank, wordOnly, withPdf }
+                new List<RLM_ReturnPDFDocument.InputVariable>{ blank, withPdf }
             );
         Test.stopTest();
 
-        Assert.areEqual(3, outputs.size(), 'One output per request, in order.');
+        Assert.areEqual(2, outputs.size(), 'One output per request, in order.');
         Assert.isNull(outputs[0].ContentVersionId, 'Blank ResponseText yields an empty output.');
         Assert.isNull(outputs[0].ContentDocumentId);
-        Assert.isNull(outputs[1].ContentVersionId, 'A Word-only response has no PDF.');
-        Assert.isNull(outputs[1].ContentDocumentId);
-        Assert.areEqual(pdf.Id, outputs[2].ContentVersionId,
+        Assert.areEqual(pdf.Id, outputs[1].ContentVersionId,
             'A later request is unaffected by earlier empty ones.');
         Assert.areEqual(
             [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :pdf.Id].ContentDocumentId,
-            outputs[2].ContentDocumentId,
+            outputs[1].ContentDocumentId,
             'The PDF request also carries its ContentDocument.');
+    }
+
+    // Ids were given but none is a PDF (Word only, or malformed ids dropped to nothing readable):
+    // a specific exception, not an empty output that hides a failed generation.
+    @IsTest
+    static void throwsPdfNotFoundWhenIdsAreGivenButNoneIsAPdf() {
+        ContentVersion word = newVersion('Proposal.docx');
+        insert word;
+        Assert.areNotEqual('PDF',
+            [SELECT FileType FROM ContentVersion WHERE Id = :word.Id].FileType,
+            'PRECONDITION: the .docx version is not a PDF.');
+        RLM_ReturnPDFDocument.InputVariable wordOnly = new RLM_ReturnPDFDocument.InputVariable();
+        wordOnly.ResponseText = String.valueOf(word.Id);
+
+        try {
+            RLM_ReturnPDFDocument.ReturnPDFDocumentId(
+                new List<RLM_ReturnPDFDocument.InputVariable>{ wordOnly });
+            Assert.fail('Expected PdfNotFoundException for a Word-only response.');
+        } catch (RLM_ReturnPDFDocument.PdfNotFoundException caught) {
+            Assert.isTrue(caught.getMessage().contains('is a PDF the current user can read'),
+                caught.getMessage());
+        }
+    }
+
+    // The whole batch is served by one ContentVersion query.
+    @IsTest
+    static void usesOneQueryForTheWholeBatch() {
+        ContentVersion pdf = newVersion('Contract.pdf');
+        insert pdf;
+        List<RLM_ReturnPDFDocument.InputVariable> requests = new List<RLM_ReturnPDFDocument.InputVariable>();
+        for (Integer i = 0; i < 5; i++) {
+            RLM_ReturnPDFDocument.InputVariable request = new RLM_ReturnPDFDocument.InputVariable();
+            request.ResponseText = String.valueOf(pdf.Id);
+            requests.add(request);
+        }
+
+        Test.startTest();
+        Integer before = Limits.getQueries();
+        List<RLM_ReturnPDFDocument.OutputVariable> outputs = RLM_ReturnPDFDocument.ReturnPDFDocumentId(requests);
+        Integer used = Limits.getQueries() - before;
+        Test.stopTest();
+
+        Assert.areEqual(5, outputs.size());
+        Assert.areEqual(1, used, 'One ContentVersion query for all five requests.');
     }
 
     @IsTest

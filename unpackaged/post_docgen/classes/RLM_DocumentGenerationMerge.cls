@@ -1,10 +1,11 @@
-public class RLM_DocumentGenerationMerge {
+public with sharing class RLM_DocumentGenerationMerge {
     @InvocableMethod(label='Build a PDF file from Ids and return the merge id' description='Accepts a list of Ids and a DocTitle.' category='Document Generation')
     public static List<Response> MergeDocuments(List<Request> requests) {
         if (requests == null || requests.isEmpty()) {
             throw new IllegalArgumentException('RLM_DocumentGenerationMerge: at least one request is required.');
         }
         List<Response> responses = new List<Response>();
+        List<DocumentGenerationProcess> processes = new List<DocumentGenerationProcess>();
         for (Request req : requests) {
             List<String> idStrings = new List<String>();
 
@@ -28,8 +29,13 @@ public class RLM_DocumentGenerationMerge {
             dgp.DocGenApiVersionType = 'Advanced';
             dgp.ReferenceObject = req.CurrentRecordId;
 
-            insert dgp;
+            processes.add(dgp);
+        }
 
+        // One DML for the whole batch, as the running user. Every request is validated above
+        // before anything is inserted; the responses follow request order.
+        insert as user processes;
+        for (DocumentGenerationProcess dgp : processes) {
             Response res = new Response();
             res.MergedRecordId = dgp.Id;
             responses.add(res);

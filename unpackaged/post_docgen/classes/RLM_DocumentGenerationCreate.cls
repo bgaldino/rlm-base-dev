@@ -17,7 +17,7 @@ public with sharing class RLM_DocumentGenerationCreate {
         }
 
         Map<Id, DocumentTemplate> templateMap = new Map<Id, DocumentTemplate>(
-            [SELECT Id, TokenMappingMethodType FROM DocumentTemplate WHERE Id IN :templateIds]
+            [SELECT Id, TokenMappingMethodType FROM DocumentTemplate WHERE Id IN :templateIds WITH USER_MODE]
         );
         if (templateMap.size() != templateIds.size()) {
             throw new IllegalArgumentException(
@@ -26,7 +26,9 @@ public with sharing class RLM_DocumentGenerationCreate {
         }
 
         List<DocumentGenerationProcess> processes = buildProcesses(requests, templateMap);
-        insert processes;
+        // As the running user: the Sales Rep and billing personas need create access to the
+        // DocumentGenerationProcess fields this class sets (see the permission sets).
+        insert as user processes;
 
         List<Response> responses = new List<Response>();
         for (DocumentGenerationProcess process : processes) {

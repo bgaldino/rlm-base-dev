@@ -11,6 +11,12 @@
  * SOQL LIKE escaping. The two picklist-query shapes used by the attribute
  * services are intentionally NOT centralized here — they build different maps
  * for different purposes and the SOQL skeleton is the only shared part.
+ *
+ * Data access is deliberately system mode (the product lookup passes
+ * AccessLevel.SYSTEM_MODE; the quote-line lookup is a plain query): the shipped
+ * agent permission sets carry only agent access, with no object or field permissions
+ * of their own, so USER_MODE would depend on grants made elsewhere. Sharing is
+ * inherited from the `with sharing` entry points.
  */
 public inherited sharing class RLM_AI_ConfigServiceUtils {
 
