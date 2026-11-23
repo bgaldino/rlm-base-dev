@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 
 import yaml
 
+from scripts.build_harness.harness.execution import PreflightFailure
 from scripts.build_harness.tui import runner
 from scripts.build_harness.tui.state import BuildConfig, RunEvent
 
@@ -410,3 +411,27 @@ def test_run_build_failure_without_robot_output_removes_workspace(tmp_path, monk
 
     assert code == 5
     assert list(tui_runs.iterdir()) == []
+
+
+def test_run_build_fails_loudly_when_cci_ignores_the_overrides(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    base_cci = {"project": {"custom": {"inapp": False}}, "flows": {"prepare_rlm_org": {"steps": {}}}, "orgs": {"scratch": {"ent": {"config_file": "orgs/ent.json", "days": 30}}}}
+    monkeypatch.setattr(runner, "load_cci", lambda _: base_cci)
+    monkeypatch.setattr(runner, "load_prepare_steps", lambda _: [])
+    monkeypatch.setattr(runner, "verify_project_flags", lambda _root, _flags: PreflightFailure("CCI read inapp=False", "deterministic"))
+    commands: List[Any] = []
+    monkeypatch.setattr(
+        runner,
+        "_run_command",
+        lambda *args, **kwargs: commands.append(args[0]) or {"duration_seconds": 0, "exit_code": 0, "failure_signature": ""},
+    )
+    monkeypatch.setattr(runner, "cleanup_scenario_project_root", lambda _root: None)
+
+    events: List[RunEvent] = []
+    code = runner.run_build(
+        config=_build_config(overrides={"inapp": True}), stop_event=Event(), emit=_emit_collector(events)
+    )
+    assert code == 20
+    assert commands == []
+    failed = [e for e in events if e.kind.name == "RUN_FAILED"]
+    assert failed and "inapp=False" in failed[0].payload["message"]

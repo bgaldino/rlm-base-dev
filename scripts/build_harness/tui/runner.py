@@ -22,7 +22,7 @@ from scripts.build_harness.harness.config import (
     load_prepare_steps,
     prepare_scenario_project_root,
 )
-from scripts.build_harness.harness.execution import run_command_stream
+from scripts.build_harness.harness.execution import run_command_stream, verify_project_flags
 from scripts.build_harness.tui.state import BuildConfig, OrgShape, RunEvent, RunEventKind
 
 EventSink = Callable[[RunEvent], None]
@@ -131,6 +131,11 @@ def run_build(config: BuildConfig, stop_event: Event, emit: EventSink) -> int:
             base_cci=base_cci,
             effective_flags=effective_flags,
         )
+        flags_error = verify_project_flags(project_root, effective_flags)
+        if flags_error is not None:
+            emit(RunEvent(kind=RunEventKind.RUN_FAILED, payload={"message": flags_error.message}))
+            # 20 = harness configuration error, as in harness.py; 2 is the generic failure.
+            return 20
         create_cmd = [
             "cci",
             "org",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -12,9 +13,52 @@ from scripts.build_harness.harness.config import (
     evaluate_when,
     prepare_scenario_project_root,
 )
-from scripts.build_harness.harness.execution import probe_org, run_command, sf_alias_for
+from scripts.build_harness.harness.execution import probe_org, run_command, sf_alias_for, verify_project_flags
 from scripts.build_harness.harness.io import append_jsonl, now_utc, write_json
 from scripts.build_harness.harness.provenance import write_build_provenance
+
+
+_PREFLIGHT_RETRY_LIMIT = 2
+
+
+def _read_step_rows(step_results_path: Path) -> List[Dict[str, Any]]:
+    """Rows of the step log, skipping lines that are unparsable or not objects.
+
+    A last line cut off when the harness was killed mid-append, or bytes that are not
+    UTF-8, must not make the preflight failure path raise or hide a spent retry budget.
+    """
+    try:
+        text = step_results_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    rows: List[Dict[str, Any]] = []
+    for line in text.splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict):
+            rows.append(row)
+    return rows
+
+
+def _is_flags_row(row: Dict[str, Any]) -> bool:
+    return row.get("phase") == "preflight" and row.get("target_name") == "project_root_flags"
+
+
+def _trailing_transient_preflight_failures(step_results_path: Path) -> int:
+    """Consecutive transient `project_root_flags` failures at the end of the step log.
+
+    Any other row after them ends the run of failures: a step row, another preflight
+    check, or the `success` row written when a later attempt passes this check.
+    """
+    count = 0
+    for row in reversed(_read_step_rows(step_results_path)):
+        if _is_flags_row(row) and row.get("failure_class") == "transient":
+            count += 1
+        else:
+            break
+    return count
 
 
 def summarize_policy(
@@ -155,6 +199,68 @@ def run_single_scenario(
         }
 
     try:
+        flags_error = verify_project_flags(project_root, flags)
+        if flags_error is not None:
+            cleanup_workspace = False
+            # Consecutive earlier transient preflight failures, so a persistent timeout
+            # stops being treated as worth a retry once the limit is spent.
+            prior_preflight_attempts = _trailing_transient_preflight_failures(step_results_path)
+            flags_failure_class = flags_error.failure_class
+            flags_message = flags_error.message
+            exhausted = flags_failure_class == "transient" and prior_preflight_attempts >= _PREFLIGHT_RETRY_LIMIT
+            if exhausted:
+                flags_message += f" The `cci` command timed out on {prior_preflight_attempts + 1} consecutive attempts."
+            record_event(
+                {
+                    "phase": "preflight",
+                    "step_number": 0,
+                    "target_type": "preflight",
+                    "target_name": "project_root_flags",
+                    "status": "failed",
+                    "duration_seconds": 0.0,
+                    "exit_code": 1,
+                    "failure_signature": flags_message,
+                    "failure_class": flags_failure_class,
+                    "retries_used": 0,
+                }
+            )
+            return build_failure_result(
+                status="resume_blocked" if is_resume else "failed",
+                failed_step=resume_from_step if is_resume else 0,
+                failed_target="project_root_flags",
+                failure_phase="preflight",
+                failure_signature=flags_message,
+                # The log keeps the observed class (transient); once the retry limit is spent
+                # the result is terminal, so the policy asks for a manual fix instead of
+                # falling through to `rerun_full`.
+                failure_class="deterministic" if exhausted else flags_failure_class,
+                retry_count=prior_preflight_attempts,
+                # On resume the checkpoint and org are untouched, so only a transient failure
+                # (a cci timeout) keeps resume recommended, and only until the policy's retry
+                # limit counted from the earlier preflight rows. Anything else would make the
+                # policy recommend resume forever.
+                can_resume=is_resume and flags_failure_class == "transient" and not exhausted,
+            )
+
+        flags_rows = [row for row in _read_step_rows(step_results_path) if _is_flags_row(row)]
+        if flags_rows and flags_rows[-1].get("status") == "failed":
+            # The last attempt at this check failed; record that this one passed, so the
+            # count of consecutive failures resets. Later passes add no further rows.
+            record_event(
+                {
+                    "phase": "preflight",
+                    "step_number": 0,
+                    "target_type": "preflight",
+                    "target_name": "project_root_flags",
+                    "status": "success",
+                    "duration_seconds": 0.0,
+                    "exit_code": 0,
+                    "failure_signature": "",
+                    "failure_class": "none",
+                    "retries_used": 0,
+                }
+            )
+
         if not skip_validate and not is_resume:
             validate_result = run_command(
                 root,

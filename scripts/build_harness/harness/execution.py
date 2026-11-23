@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 import subprocess
 import time
 from collections import deque
+from dataclasses import dataclass
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Event, Thread
-from typing import Any, Callable, Dict, Optional, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence, Set, Tuple
 
 from scripts.build_harness.harness.failure import classify_signature, infer_failure_signature
 from scripts.build_harness.harness.io import now_utc
@@ -316,3 +318,176 @@ def probe_org(
         if gone:
             return {"state": "missing", "detail": f"{gone} {failure}"}
     return {"state": "error", "detail": failure}
+
+
+_CUSTOM_KEY_LINE = re.compile(r"^([A-Za-z_][\w.-]*):(?:\s+(.*))?$")
+
+
+@dataclass(frozen=True)
+class PreflightFailure:
+    """Why the workspace preflight failed, and whether a retry could change it."""
+
+    message: str
+    failure_class: str
+
+    def __str__(self) -> str:
+        return self.message
+
+
+def _parse_project_info_custom(output: str) -> Tuple[Dict[str, str], Set[str]]:
+    """Read the top-level `custom:` block of `cci project info`.
+
+    Returns (flags, ambiguous): flag name -> text, and the names that appeared more than
+    once with different values.
+
+    The output looks like YAML but is not (a value such as `Sandbox orgs: ` breaks a
+    YAML parser), so read the block by indentation: one `name: value` line per flag
+    directly under `custom:`; deeper lines (lists, mappings) are not flags.
+
+    CumulusCI prints a multi-line string value's continuation lines as they are, which
+    can be at column 0 or indented. Lines that are not shaped like `key: value` or `key:`
+    are ignored, and a column-0 line ends the block only when it is shaped like a
+    top-level key. A continuation that is itself shaped like `key: value` cannot be told
+    from a flag: it is read as one, and if it repeats a real flag with another value the
+    name is reported in `ambiguous` rather than guessed.
+    """
+    flags: Dict[str, str] = {}
+    ambiguous: Set[str] = set()
+    in_block = False
+    block_indent: Optional[int] = None
+    for line in output.splitlines():
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if indent == 0:
+            if line.rstrip() == "custom:":
+                in_block, block_indent = True, None
+            elif _CUSTOM_KEY_LINE.match(line):
+                in_block = False
+            continue
+        if not in_block:
+            continue
+        if block_indent is None:
+            block_indent = indent
+        if indent != block_indent:
+            continue
+        match = _CUSTOM_KEY_LINE.match(line.strip())
+        if not match:
+            continue
+        name, value = match.group(1), (match.group(2) or "").strip()
+        if name in flags and flags[name] != value:
+            ambiguous.add(name)
+        else:
+            flags.setdefault(name, value)
+    return flags, ambiguous
+
+
+_WORKTREE_HINT = (
+    "CumulusCI's project root is the first folder upward from the working directory whose "
+    ".git is a directory; start the build from the main checkout or a regular git clone, "
+    "not a git worktree."
+)
+
+
+def verify_project_flags(
+    project_root: Path,
+    effective_flags: Dict[str, Any],
+    *,
+    timeout: float = 60,
+) -> Optional[PreflightFailure]:
+    """Check that CumulusCI, run from ``project_root``, loads the scenario's flags.
+
+    Every ``when:`` check in a flow, including those of the nested flows' tasks, is
+    evaluated against the ``project.custom`` that CumulusCI itself loaded. The
+    harness writes the scenario's flags into the workspace's generated
+    ``cumulusci.yml``, but CumulusCI takes as its project root the first folder
+    upward from the working directory whose ``.git`` is a directory. When that is
+    not the workspace (the build started from a git worktree, where ``.git`` is a
+    file), CumulusCI loads another checkout's defaults and silently skips every
+    task whose flag the scenario turned on. `cci project info` prints the
+    ``project.custom`` CumulusCI loaded, read-only and without an org.
+
+    Two checks, because each catches a different case:
+
+    1. ``project_root/.git`` must be a directory. The workspace symlinks the checkout's
+       ``.git`` entry, so this is false exactly when the build started from a git
+       worktree. That case is not caught by the flag comparison when the scenario's
+       overrides happen to equal the enclosing checkout's defaults, yet CumulusCI would
+       still take that checkout's ``tasks/`` and ``robot/`` results.
+    2. ``cci project info`` must print the scenario's boolean flags. This catches a
+       project root that resolves to some other checkout with other defaults, however
+       it came about.
+
+    Returns None when both pass, otherwise a ``PreflightFailure`` (``message`` and
+    ``failure_class``): ``deterministic`` for what is wrong with the setup,
+    ``transient`` only for a ``cci`` timeout, which is the only class that keeps resume
+    recommended. A ``cci`` that cannot run, or exits non-zero (whatever its text says), is
+    ``deterministic``.
+    """
+    if not (project_root / ".git").is_dir():
+        return PreflightFailure(
+            f"{project_root} has no `.git` directory, so CumulusCI would not take it as the project root "
+            "and would build with another checkout's tasks and flag defaults. " + _WORKTREE_HINT,
+            "deterministic",
+        )
+    try:
+        result = subprocess.run(
+            ["cci", "project", "info"],
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        return PreflightFailure(
+            f"`cci project info` did not finish within {timeout:g}s in {project_root}; cannot confirm the scenario flags: {exc!r}",
+            "transient",
+        )
+    except (FileNotFoundError, OSError) as exc:
+        # `cci` is missing or not executable: a retry cannot change that.
+        return PreflightFailure(
+            f"Could not run `cci project info` in {project_root} to confirm the scenario flags: {exc!r}",
+            "deterministic",
+        )
+    if result.returncode != 0:
+        # `cci project info` reads local files and makes no org call, so a non-zero exit
+        # is a fault in the setup, never a passing network or platform condition. Matching
+        # a transient pattern in its text would misread e.g. `KeyError: 'org_timeout'`.
+        detail = infer_failure_signature((result.stderr or result.stdout or "").splitlines())
+        return PreflightFailure(
+            f"`cci project info` exited {result.returncode} in {project_root}; cannot confirm the scenario flags."
+            + (f" {detail}" if detail else ""),
+            "deterministic",
+        )
+    custom, ambiguous = _parse_project_info_custom(result.stdout or "")
+    if not custom:
+        has_block = any(line.rstrip() == "custom:" for line in (result.stdout or "").splitlines())
+        what = "no flags under `custom:`" if has_block else "no `custom:` block"
+        return PreflightFailure(f"`cci project info` printed {what}; cannot confirm the scenario flags.", "deterministic")
+
+    # `when:` expressions read boolean flags; the rest of project.custom (the
+    # `rlm_*_api_names`, `ps_*` and `dt_*` lists) is data, which `cci project info`
+    # prints as a bare key over indented items.
+    checked = {name: wanted for name, wanted in effective_flags.items() if isinstance(wanted, bool)}
+    if not checked:
+        return PreflightFailure(
+            "The scenario has no boolean flags to check against `cci project info`; cannot confirm them.", "deterministic"
+        )
+    mismatches = []
+    for name, wanted in checked.items():
+        if name in ambiguous:
+            mismatches.append(f"{name}: scenario {wanted!r}, but `cci project info` printed it more than once with different values")
+        elif name not in custom:
+            mismatches.append(f"{name}: scenario {wanted!r}, absent from CumulusCI's project.custom")
+        elif custom[name] != str(wanted):
+            mismatches.append(f"{name}: scenario {wanted!r}, CumulusCI loaded {custom[name]!r}")
+    if not mismatches:
+        return None
+    return PreflightFailure(
+        "CumulusCI did not load the scenario's flags from the generated workspace, so `when:` checks "
+        "inside flows would skip tasks the scenario enables. Mismatches: "
+        + "; ".join(mismatches)
+        + ". "
+        + _WORKTREE_HINT,
+        "deterministic",
+    )

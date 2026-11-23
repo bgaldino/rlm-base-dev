@@ -45,7 +45,23 @@ Each scenario includes:
 `flag_overrides` are merged with `project.custom` defaults in `cumulusci.yml`.
 The harness materializes each scenario into a scenario-scoped CCI project root with
 an overridden `cumulusci.yml`, so CCI `when:` evaluation (including nested
-sub-flows/tasks) uses the scenario's effective flags at execution time.
+sub-flows/tasks) uses the scenario's effective flags at execution time. Before creating or
+resuming an org, the harness (and the TUI) makes two checks in the workspace and stops with
+target `project_root_flags` if either fails:
+
+- The workspace's `.git` must be a directory. It is the checkout's `.git` entry, so it is a
+  file (and the check fails) when the build started from a git worktree. CumulusCI then
+  takes the enclosing checkout as its project root, with that checkout's `tasks/` and
+  robot results, even when the flag values happen to match.
+- `cci project info` must print the scenario's boolean flags exactly. This catches a
+  project root that resolves to another checkout with different flag defaults.
+
+On `resume` the failure is `resume_blocked` (exit 30); only a `cci` timeout keeps
+resume recommended, and only for two retries (the consecutive transient preflight rows at the end of the step log count; any later row resets them, including the success row written when a later attempt passes). After that the result is a deterministic `manual_fix_required` saying `cci` timed out repeatedly. The budget is per run directory (its `step_results.jsonl`): `resume` sees it, while every `run` gets a new run directory and starts over, where a single timeout stays `rerun_full`. A `cci`
+that cannot run, any non-zero exit (its text is not pattern-matched), and a wrong setup do not, so a policy-following agent does not loop
+on exit 30. On `run` it is a failed
+scenario. For the TUI, `run_build` returns 20 and emits `run_failed`; the TUI app does not
+use that return value.
 
 The workspace (`scenarios/<scenario_id>/cci_project/`) links most repo entries
 to the repo and copies `scripts/` and `robot/`. Robot output
@@ -266,8 +282,8 @@ Each run writes:
 
 - `0` - success
 - `10` - scenario/build failure
-- `20` - harness configuration/validation error
-- `30` - resume blocked (missing run/checkpoint/org, or the org probe could not confirm the org)
+- `20` - harness configuration/validation error (`run_build` returns 20 for a failed flag check; the TUI app ignores the return value)
+- `30` - resume blocked (missing run/checkpoint/org, the org probe could not confirm the org, or the `project_root_flags` check failed)
 
 ## Agent Policy
 
