@@ -111,8 +111,9 @@ public with sharing class RLM_BillingScheduleGroupService {
         }
         Account acc = accounts[0];
 
-        // Deterministic pick (oldest first). A billing account linked to the account only through
-        // AccountBillingAccount is resolved too (default link first), as the create path does.
+        // Deterministic pick: the account's default billing profile first, then oldest first. A billing
+        // account linked to the account only through AccountBillingAccount is resolved too, as the
+        // create path does.
         // Account.BillingCity is a component of the compound BillingAddress. Measured on a 264 org:
         // describe reports BillingCity permissionable, yet no permission set carries a FieldPermissions
         // row for Account.BillingCity, while 121 carry one for Account.BillingAddress. So the compound is
@@ -125,19 +126,23 @@ public with sharing class RLM_BillingScheduleGroupService {
             FROM BillingAccount
             WHERE AccountId = :accountId
             WITH USER_MODE
-            ORDER BY CreatedDate, Id
+            ORDER BY IsDefaultBillingProfile DESC, CreatedDate, Id
             LIMIT 1
         ];
 
         if (billingAccounts.isEmpty()) {
             List<AccountBillingAccount> links = new List<AccountBillingAccount>();
             try {
+                // AccountBillingAccount.IsDefaultBillingAccount is deprecated on 264: the platform
+                // refuses to set it to true ("use default field on billing account"), so a link is
+                // never the default and ordering by it picks nothing. A billing account with no
+                // AccountId cannot be a default billing profile either, so the oldest link wins.
                 links = [
                     SELECT BillingAccountId
                     FROM AccountBillingAccount
                     WHERE AccountId = :accountId
                     WITH USER_MODE
-                    ORDER BY IsDefaultBillingAccount DESC, Id
+                    ORDER BY CreatedDate, Id
                     LIMIT 1
                 ];
             } catch (QueryException qe) {

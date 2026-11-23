@@ -212,6 +212,26 @@ private class RLM_BillingScheduleGroupServiceTest {
         Assert.areEqual('BSG Junction BA', info.billingAccountName);
     }
 
+    // Among several billing accounts of the account, the one marked as the default billing profile wins
+    // over an older one. The platform accepts that flag only on a billing account that has an account:
+    // setting it on one without is refused, and AccountBillingAccount.IsDefaultBillingAccount is
+    // deprecated and cannot be set to true, so a junction-only billing account has no default.
+    @isTest
+    static void getAccountBillingInfo_prefersTheDefaultBillingProfile() {
+        Account a = new Account(Name = 'BSG Default Profile Acct');
+        insert a;
+        insert new BillingAccount(Name = 'BSG Older BA', AccountId = a.Id);
+        BillingAccount defaultProfile = new BillingAccount(Name = 'BSG Default Profile BA', AccountId = a.Id, IsDefaultBillingProfile = true);
+        insert defaultProfile;
+
+        Test.startTest();
+        RLM_BillingScheduleGroupService.AccountInfo info =
+            RLM_BillingScheduleGroupService.getAccountBillingInfo(a.Id);
+        Test.stopTest();
+
+        Assert.areEqual(defaultProfile.Id, info.billingAccountId, 'The default billing profile is picked over an older billing account.');
+    }
+
     // ---- option queries ----
 
     @isTest
