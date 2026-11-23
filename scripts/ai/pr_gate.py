@@ -592,6 +592,18 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="bump_api_version",
+        cmd=["python", "tests/test_bump_api_version.py"],
+        # Keeps release-provenance lines protected by their own text, and runs the script's
+        # --check (~1s) so a rule gone blind or a stray off-target pin in the rewritten scope
+        # surfaces here. Triggers are the script, its suite, and the two files whose provenance
+        # lines used to be protected by line number.
+        triggers=["scripts/ai/bump_api_version.py", "tests/test_bump_api_version.py",
+                  "scripts/context_service/examples/contextServiceLifecycle.apex",
+                  "unpackaged/post_utils/classes/RLM_DecisionTableManagerController.cls"],
+        deps=[], gating=True,
+    ),
+    dict(
         name="node_line",
         cmd=["python", "tests/test_node_line.py"],
         # Every file that names the Node major line, so bumping any one alone runs the check that
