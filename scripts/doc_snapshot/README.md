@@ -189,8 +189,10 @@ one `[accepted] <id>: <reason>` warning per page it lets through. It names pages
 never the whole run, so one real cut cannot switch the guard off for the rest.
 Use it only after reading each page and finding the loss is real upstream
 (verify against the live content API or page, as 413 did). It is a run flag, not
-a preset option. An id that no capture used in the run (a typo, a moved page, or a page that did not shrink) is named in a warning at the end; the exit code is unchanged. It never writes a not-found page: the id was retired or moved,
-so search the manifest by title for its new id.
+a preset option. An id that no capture used in the run (a typo, a moved page, or
+a page that did not shrink) is named in a warning at the end; the exit code is
+unchanged. It never writes a not-found page: the id was retired or moved, so
+search the manifest by title for its new id.
 
 The new body is measured without its leading H1 and preview banner, the same
 way the prior file's body is, so a long title cannot hide a stub.

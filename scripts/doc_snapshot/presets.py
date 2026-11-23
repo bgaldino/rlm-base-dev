@@ -160,7 +160,7 @@ def overrides_complete(kind: str, overrides: Optional[Dict[str, Any]]) -> bool:
     if kind == "help":
         return bool(overrides.get("root_article_id") and overrides.get("article_id_prefix"))
     # The deliverable has a default, but an unknown key must not fall back to it:
-    # a mistyped `--guide` would otherwise snapshot (or refresh) the RLM guide.
+    # a mistyped `--guide` would otherwise snapshot (or refresh) the Revenue Management Developer Guide.
     return bool(overrides.get("deliverable"))
 
 

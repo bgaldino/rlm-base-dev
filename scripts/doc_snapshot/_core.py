@@ -100,8 +100,8 @@ def raise_on_capture_errors(
         f"{len(failed)} of {attempted} {noun} failed to capture{detail}: {shown} "
         "(progress saved; errors are recorded in the manifest)"
     )
-    error.refused = refused
-    error.orphaned = orphaned
+    error.refused = tuple(refused)
+    error.orphaned = tuple(orphaned)
     raise error
 
 

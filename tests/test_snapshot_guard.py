@@ -393,6 +393,8 @@ def main():
           == ["Revenue Cloud, formerly Revenue Cloud"])
     check("rename lint does not flag a longer name that merely ends the same (L2)",
           renames("of Agentforce Sales, formerly Sales Cloud, with") == []
+          and renames("Sales, formerly Salesforce") == [] and renames("Flow, formerly Flows") == []
+          and renames("McDonald, formerly Donald") == []
           and renames("of Agentforce Sales, formerly Sales Cloud") == [])
     check("rename lint ignores a real rename",
           renames("Agentforce Revenue Management, formerly Revenue Cloud, with") == [])
@@ -440,32 +442,44 @@ def main():
           all("accept_shrinkage" in flags
               for flags in (cli.HELP_FLAGS, cli.DEV_GUIDE_FLAGS, cli.RUN_FLAGS)))
     # H1: the parsed flag must survive the real construction path (presets.resolve,
-    # then __init__ validation), not just a hand-built options dict.
+    # then __init__ validation), not just a hand-built options dict. A crash on
+    # the old code must record a FAIL, not abort the suite.
     from scripts.doc_snapshot import presets as presets_mod
     real = presets_mod.load_presets()
-    for argv, kind, key, cls in (
-        (["help", "--release", "264", "--area", "pcm", "--accept-shrinkage", "a.htm,b.htm"],
-         "help", "pcm", HelpSnapshot),
-        (["dev-guide", "--release", "264", "--guide", "rlm", "--accept-shrinkage", "a.htm"],
-         "dev_guide", None, DevGuideSnapshot),
-    ):
-        args = p.parse_args(argv)
+
+    def attempt(label, fn):
+        try:
+            ok = bool(fn())
+        except Exception as exc:  # noqa: BLE001 - any crash is a failed check
+            print(f"         {type(exc).__name__}: {exc}")
+            ok = False
+        check(label, ok)
+
+    def built(argv, kind, cls, with_flag=True):
+        args = p.parse_args(argv if with_flag else argv[:-2])
         flags = cli.HELP_FLAGS if kind == "help" else cli.DEV_GUIDE_FLAGS
-        keyname = key or cli._expand(real, "264", "dev_guide", args.guide)[0]
-        opts = presets_mod.resolve(real, "264", kind, keyname, cli._pick(args, flags))
-        snap = cls(opts, logger=_Log())
-        check(f"{kind}: --accept-shrinkage survives resolve and __init__ as a frozenset",
-              snap.options["accept_shrinkage"] == frozenset(args.accept_shrinkage))
-        bare_opts = presets_mod.resolve(real, "264", kind, keyname, cli._pick(
-            p.parse_args(argv[:-2]), flags))
-        check(f"{kind}: without the flag the option is the empty set",
-              cls(bare_opts, logger=_Log()).options["accept_shrinkage"] == frozenset())
+        key = (args.area if kind == "help"
+               else cli._expand(real, "264", "dev_guide", args.guide)[0])
+        opts = presets_mod.resolve(real, "264", kind, key, cli._pick(args, flags))
+        return cls(opts, logger=_Log()).options["accept_shrinkage"]
+
+    help_argv = ["help", "--release", "264", "--area", "pcm", "--accept-shrinkage", "a.htm,b.htm"]
+    dg_argv = ["dev-guide", "--release", "264", "--guide", "rlm", "--accept-shrinkage", "a.htm"]
+    attempt("help: --accept-shrinkage survives resolve and __init__ as a frozenset",
+            lambda: built(help_argv, "help", HelpSnapshot) == frozenset({"a.htm", "b.htm"}))
+    attempt("dev_guide: --accept-shrinkage survives resolve and __init__ as a frozenset",
+            lambda: built(dg_argv, "dev_guide", DevGuideSnapshot) == frozenset({"a.htm"}))
+    attempt("help: without the flag the option is the empty set",
+            lambda: built(help_argv, "help", HelpSnapshot, False) == frozenset())
+    attempt("dev_guide: without the flag the option is the empty set",
+            lambda: built(dg_argv, "dev_guide", DevGuideSnapshot, False) == frozenset())
     run_args = p.parse_args(["run", "--release", "264", "--accept-shrinkage", "x"])
-    check("run: --accept-shrinkage reaches every preset's snapshotter",
-          all(cls(presets_mod.resolve(real, "264", kind, key, cli._pick(run_args, cli.RUN_FLAGS)),
-                  logger=_Log()).options["accept_shrinkage"] == frozenset({"x"})
-              for _, kind, key, _ in presets_mod.iter_presets(real, "264")
-              for cls in [HelpSnapshot if kind == "help" else DevGuideSnapshot]))
+    attempt("run: --accept-shrinkage reaches every preset's snapshotter",
+            lambda: all(
+                (HelpSnapshot if kind == "help" else DevGuideSnapshot)(
+                    presets_mod.resolve(real, "264", kind, key, cli._pick(run_args, cli.RUN_FLAGS)),
+                    logger=_Log()).options["accept_shrinkage"] == frozenset({"x"})
+                for _, kind, key, _ in presets_mod.iter_presets(real, "264")))
 
     # L5: an id that no capture consumed is named in a warning; the exit code is unchanged.
     class QuietSnapshot:
@@ -481,20 +495,23 @@ def main():
 
     rel2 = {"264": {"release_name": "Winter '27", "help": {
         "good": {"root_article_id": "g.htm", "article_id_prefix": "g"}}}}
-    saved = cli._snapshot_class
-    cli._snapshot_class = lambda kind: QuietSnapshot
-    log = _Log()
-    try:
-        with contextlib.redirect_stdout(io.StringIO()):
-            code = cli.run_targets(rel2, [("264", "help", "good")],
-                                   {"accept_shrinkage": ["used.htm", "typo.htm"]}, log)
-        log2 = _Log()
-        cli.run_targets(rel2, [("264", "help", "good")], {"accept_shrinkage": ["used.htm"]}, log2)
-    finally:
-        cli._snapshot_class = saved
-    check("an --accept-shrinkage id nothing consumed is named in a warning, exit code unchanged",
-          code == 0 and any("typo.htm" in m and "used.htm" not in m for m in log.lines))
-    check("no warning when every named id was used", log2.lines == [])
+
+    def warned(ids):
+        saved = cli._snapshot_class
+        cli._snapshot_class = lambda kind: QuietSnapshot
+        log = _Log()
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                code = cli.run_targets(rel2, [("264", "help", "good")],
+                                       {"accept_shrinkage": ids}, log)
+        finally:
+            cli._snapshot_class = saved
+        return code, log.lines
+
+    attempt("an --accept-shrinkage id nothing consumed is named in a warning, exit code unchanged",
+            lambda: (lambda r: r[0] == 0 and any("typo.htm" in m and "used.htm" not in m for m in r[1]))(
+                warned(["used.htm", "typo.htm"])))
+    attempt("no warning when every named id was used", lambda: warned(["used.htm"])[1] == [])
     check("a real accepted page is recorded by the snapshotter",
           "ind.example_page.htm" in t2.accepted and "dg_page.htm" in d2.accepted)
 
@@ -511,7 +528,7 @@ def main():
     check("SnapshotError class defaults are immutable (L4)",
           SnapshotError.refused == () and SnapshotError.orphaned == ())
     check("the error carries refused and orphaned counts and ids",
-          err is not None and err.refused == d1.refused and err.orphaned == ["gone.htm"]
+          err is not None and err.refused == tuple(d1.refused) and err.orphaned == ("gone.htm",)
           and "1 refused by the capture guard" in str(err) and "1 no longer in the contents" in str(err))
 
     class FakeSnapshot:
