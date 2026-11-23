@@ -1,18 +1,19 @@
 /**
  * RLM_CalculateTaxService posts the Avalara payload through RLM_HttpService and maps the response body.
- * Every getTax test drives the production path with an HttpCalloutMock (RLM_TaxTestFactory): the request
- * side is asserted through the recorded callout, the response side through the response type and its String
- * form. bodyOrNull is unit-tested directly, without a mock. A mock body stands in for each engine response, a CalloutException-throwing mock for the
- * failed callout (503), and bodies that lack a value, are not JSON or carry an "error" key reach the
+ * Every getTax test that reaches the callout drives the production path with an HttpCalloutMock
+ * (RLM_TaxTestFactory): the request side is asserted through the recorded callout, the response side
+ * through the response type and its String form. The two no-lines tests set a mock but make no callout
+ * (they assert none was recorded), and bodyOrNull is unit-tested directly, without a mock. A mock body
+ * stands in for each engine response, a CalloutException-throwing mock for the failed callout (503), and bodies that lack a value, are not JSON or carry an "error" key reach the
  * incomplete (502), unreadable (502) and engine-error (501) branches.
  * Setters in getTax that no assertion covers (every other setter call is asserted): header
  * referenceDocumentCode, header exemptAmount, effectiveDate and transactionDate; imposition subType and
  * type, and the setImposition call; jurisdiction country, region, stateAssignedNumber, id and level; detail taxAuthorityTypeId,
  * taxId and taxRegionId (set from the detail's region code); line effectiveDate, isTaxable (set
  * twice), exemptAmount, productCode and quantity. The detail-level exemptAmount is covered by
- * getTax_detailExemptAmount_nullIsNotExempt_andAnAmountIsMapped (the canned payload's are all 0). Each test supplies its
- * own body, so both status branches are reachable: Temporary (the canned payload) maps to Uncommitted, and
- * getTax_committedStatus_mapsToCommitted covers Committed.
+ * getTax_detailExemptAmount_nullIsNotExempt_andAnAmountIsMapped (the canned payload's are all 0). Both status
+ * branches are covered: the canned payload's Temporary maps to Uncommitted, and
+ * getTax_committedStatus_mapsToCommitted supplies a body with status Committed.
  */
 @IsTest
 private with sharing class RLM_CalculateTaxServiceTest {
