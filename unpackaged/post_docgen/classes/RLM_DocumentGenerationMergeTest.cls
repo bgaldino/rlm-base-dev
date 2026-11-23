@@ -10,16 +10,21 @@ private class RLM_DocumentGenerationMergeTest {
     @IsTest
     static void mergeCreatesOneMergeProcessPerRequest() {
         Quote quote = createQuote();
-        ContentVersion first = newPdf('Proposal.pdf');
-        ContentVersion second = newPdf('Terms.pdf');
-        insert new List<ContentVersion>{ first, second };
+        ContentVersion pdfA = newPdf('Proposal.pdf');
+        ContentVersion pdfB = newPdf('Terms.pdf');
+        insert new List<ContentVersion>{ pdfA, pdfB };
+        // A bulk insert gives no guarantee about which Id sorts first, so pick the order from the
+        // Ids themselves: the given order is the descending one, which a sorted list would reverse.
+        Boolean aSortsFirst = String.valueOf(pdfA.Id) < String.valueOf(pdfB.Id);
+        ContentVersion first = aSortsFirst ? pdfA : pdfB;
+        ContentVersion second = aSortsFirst ? pdfB : pdfA;
         Assert.isTrue(String.valueOf(first.Id) < String.valueOf(second.Id),
             'PRECONDITION: second sorts after first, so a sorted list would differ.');
 
         RLM_DocumentGenerationMerge.Request withNulls = new RLM_DocumentGenerationMerge.Request();
         withNulls.CurrentRecordId = quote.Id;
-        // Passed against Id order (second was inserted after first), so the
-        // expected list below proves the given order is kept, not sorted.
+        // Passed against Id order (second sorts after first), so the expected list
+        // below proves the given order is kept, not sorted.
         withNulls.recordIds = new List<Id>{ second.Id, null, first.Id };
         withNulls.DocTitle = 'Merged "proposal"\nfinal';
 
