@@ -186,28 +186,19 @@ def sf_alias_for(project_name: str, alias: str) -> str:
     return f"{project_name}__{alias}"
 
 
-def _utc_today() -> dt.date:
-    return dt.datetime.now(dt.timezone.utc).date()
-
-
-def _expired_detail(org: Dict[str, Any], sf_alias: str, today: dt.date) -> Optional[str]:
+def _gone_detail(org: Dict[str, Any], sf_alias: str) -> Optional[str]:
     """Why an `sf` org record is no longer usable, or None when it still is.
 
-    An org that expires today is still usable; Salesforce removes it after that date.
+    Trusts only the status that `sf` itself reports (Expired or Deleted, or
+    `isExpired`). `expirationDate` is deliberately not compared with today's date:
+    ScratchOrgInfo.ExpirationDate carries no time zone, and a live org must never be
+    declared gone on its last day (`missing` blocks resume).
     """
     status = str(org.get("status") or "")
     if status.lower() in _GONE_ORG_STATUSES:
         return f"Org `{sf_alias}` has status {status}."
     if org.get("isExpired") is True:
         return f"Org `{sf_alias}` is expired."
-    expiration = org.get("expirationDate")
-    if expiration:
-        try:
-            expires = dt.date.fromisoformat(str(expiration)[:10])
-        except ValueError:
-            return None
-        if expires < today:
-            return f"Org `{sf_alias}` expired on {expiration}."
     return None
 
 
@@ -248,7 +239,7 @@ def _local_org_record(root: Path, sf_alias: str, timeout: float) -> Optional[Dic
             names = {org.get("alias"), org.get("username")}
             aliases = org.get("aliases")
             if isinstance(aliases, list):
-                names.update(aliases)
+                names.update(a for a in aliases if isinstance(a, str))
             if sf_alias in names:
                 return org
     return {}
@@ -259,7 +250,6 @@ def probe_org(
     sf_alias: str,
     *,
     timeout: float = ORG_PROBE_TIMEOUT_SECONDS,
-    today: Optional[dt.date] = None,
 ) -> Dict[str, str]:
     """Check that a scratch org is still usable, without any CumulusCI call.
 
@@ -274,12 +264,14 @@ def probe_org(
     list, or an unreadable list, leaves the state `error` (unknown).
 
     Returns {"state": ..., "detail": ...} where state is one of:
-      present - the org is authenticated and not expired
-      missing - no authorization for the alias, or the org is expired or deleted
+      present - the org is authenticated and `sf` does not report it Expired or Deleted
+      missing - no authorization for the alias, or `sf` reports the org Expired or Deleted
+                (never decided from `expirationDate` and today's date)
       timeout - the probe did not finish in time; the org's state is unknown
       error   - the probe could not run or its output was unreadable; state unknown
     """
-    today = today or _utc_today()
+    if not root.is_dir():
+        return {"state": "error", "detail": f"Working directory does not exist: {root}"}
     try:
         result = subprocess.run(
             ["sf", "org", "display", "--target-org", sf_alias, "--json"],
@@ -292,6 +284,8 @@ def probe_org(
         return {"state": "timeout", "detail": f"`sf org display` for `{sf_alias}` did not finish within {timeout:g}s."}
     except FileNotFoundError:
         return {"state": "error", "detail": "Command not found: sf"}
+    except (OSError, ValueError) as exc:  # ValueError includes UnicodeDecodeError
+        return {"state": "error", "detail": f"`sf org display` could not run or be read: {exc!r}"}
 
     try:
         payload = json.loads(result.stdout or "")
@@ -304,7 +298,7 @@ def probe_org(
         org = payload.get("result")
         if not isinstance(org, dict):
             return {"state": "error", "detail": "`sf org display` returned no org record."}
-        gone = _expired_detail(org, sf_alias, today)
+        gone = _gone_detail(org, sf_alias)
         if gone:
             return {"state": "missing", "detail": gone}
         return {"state": "present", "detail": ""}
@@ -318,7 +312,7 @@ def probe_org(
     if local is not None:
         if not local:
             return {"state": "error", "detail": f"`{sf_alias}` is not in `sf org list` (the dev hub may be unreachable). {failure}"}
-        gone = _expired_detail(local, sf_alias, today)
+        gone = _gone_detail(local, sf_alias)
         if gone:
             return {"state": "missing", "detail": f"{gone} {failure}"}
     return {"state": "error", "detail": failure}

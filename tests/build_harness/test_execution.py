@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import datetime as dt
 import json
 import re
 import subprocess
@@ -11,7 +10,6 @@ from threading import Event
 
 import pytest
 
-from scripts.build_harness.harness import execution
 from scripts.build_harness.harness.execution import (
     ORG_PROBE_TIMEOUT_SECONDS,
     make_run_id,
@@ -122,7 +120,7 @@ def test_sf_alias_for_joins_project_and_alias() -> None:
 def test_probe_org_present_uses_sf_not_cci(tmp_path, monkeypatch) -> None:
     payload = json.dumps({"status": 0, "result": {"status": "Active", "expirationDate": "2026-11-30"}})
     calls = _fake_sf(monkeypatch, stdout=payload)
-    result = probe_org(tmp_path, "rlm-base__demo", today=dt.date(2026, 11, 24))
+    result = probe_org(tmp_path, "rlm-base__demo")
     assert result["state"] == "present"
     command, kwargs = calls[0]
     assert command[:3] == ["sf", "org", "display"]
@@ -149,11 +147,13 @@ def test_probe_org_expired_or_deleted_status_is_missing(tmp_path, monkeypatch, s
     assert probe_org(tmp_path, "rlm-base__demo")["state"] == "missing"
 
 
-def test_probe_org_past_expiration_date_is_missing(tmp_path, monkeypatch) -> None:
-    payload = json.dumps({"status": 0, "result": {"status": "Active", "expirationDate": "2026-11-20"}})
+@pytest.mark.parametrize("expiration", ["2026-11-20", "2020-01-01", "2026-11-24", "2999-01-01"])
+def test_probe_org_never_decides_from_expiration_date(tmp_path, monkeypatch, expiration) -> None:
+    # ScratchOrgInfo.ExpirationDate has no time zone: a live org on its last day (or
+    # one whose date looks past) must not be declared gone from the date alone.
+    payload = json.dumps({"status": 0, "result": {"status": "Active", "expirationDate": expiration}})
     _fake_sf(monkeypatch, stdout=payload)
-    result = probe_org(tmp_path, "rlm-base__demo", today=dt.date(2026, 11, 24))
-    assert result["state"] == "missing"
+    assert probe_org(tmp_path, "rlm-base__demo")["state"] == "present"
 
 
 def test_probe_org_other_failure_is_error_not_missing(tmp_path, monkeypatch) -> None:
@@ -184,7 +184,7 @@ def _org_list(*orgs):
 def test_probe_org_display_failure_with_locally_expired_org_is_missing(tmp_path, monkeypatch) -> None:
     listing = _org_list({"alias": "rlm-base__demo", "isExpired": True, "status": "Deleted", "expirationDate": "2026-11-13"})
     calls = _fake_sf(monkeypatch, stdout=_FAILED_DISPLAY, returncode=1, list_payload=listing)
-    result = probe_org(tmp_path, "rlm-base__demo", today=dt.date(2026, 11, 24))
+    result = probe_org(tmp_path, "rlm-base__demo")
     assert result["state"] == "missing"
     assert "RefreshTokenError" in result["detail"]
     commands = [c for c, _ in calls]
@@ -198,13 +198,13 @@ def test_probe_org_real_expired_org_error_shape_is_missing(tmp_path, monkeypatch
     display = json.dumps({"status": 2, "name": "DomainNotFoundError", "message": "The org cannot be found"})
     listing = _org_list({"alias": "rlm-base__demo", "isExpired": True, "status": "Deleted", "expirationDate": "2026-11-13"})
     _fake_sf(monkeypatch, stdout=display, returncode=2, list_payload=listing)
-    assert probe_org(tmp_path, "rlm-base__demo", today=dt.date(2026, 11, 24))["state"] == "missing"
+    assert probe_org(tmp_path, "rlm-base__demo")["state"] == "missing"
 
 
-def test_probe_org_display_failure_with_past_expiration_in_list_is_missing(tmp_path, monkeypatch) -> None:
-    listing = _org_list({"alias": "rlm-base__demo", "isExpired": False, "expirationDate": "2026-11-20"})
+def test_probe_org_display_failure_with_past_expiration_in_list_stays_error(tmp_path, monkeypatch) -> None:
+    listing = _org_list({"alias": "rlm-base__demo", "isExpired": False, "status": "Active", "expirationDate": "2026-11-20"})
     _fake_sf(monkeypatch, stdout=_FAILED_DISPLAY, returncode=1, list_payload=listing)
-    assert probe_org(tmp_path, "rlm-base__demo", today=dt.date(2026, 11, 24))["state"] == "missing"
+    assert probe_org(tmp_path, "rlm-base__demo")["state"] == "error"
 
 
 def test_probe_org_display_failure_with_alias_absent_from_list_stays_error(tmp_path, monkeypatch) -> None:
@@ -238,7 +238,7 @@ def test_probe_org_list_matches_aliases_list_and_username(tmp_path, monkeypatch,
 def test_probe_org_display_failure_with_live_org_in_list_stays_error(tmp_path, monkeypatch) -> None:
     listing = _org_list({"alias": "rlm-base__demo", "isExpired": False, "expirationDate": "2026-11-30", "status": "Active"})
     _fake_sf(monkeypatch, stdout=_FAILED_DISPLAY, returncode=1, list_payload=listing)
-    assert probe_org(tmp_path, "rlm-base__demo", today=dt.date(2026, 11, 24))["state"] == "error"
+    assert probe_org(tmp_path, "rlm-base__demo")["state"] == "error"
 
 
 def test_probe_org_display_failure_with_unreadable_list_stays_error(tmp_path, monkeypatch) -> None:
@@ -246,34 +246,31 @@ def test_probe_org_display_failure_with_unreadable_list_stays_error(tmp_path, mo
     assert probe_org(tmp_path, "rlm-base__demo")["state"] == "error"
 
 
-def test_probe_org_expiring_today_is_still_present(tmp_path, monkeypatch) -> None:
-    payload = json.dumps({"status": 0, "result": {"status": "Active", "expirationDate": "2026-11-24"}})
-    _fake_sf(monkeypatch, stdout=payload)
-    assert probe_org(tmp_path, "rlm-base__demo", today=dt.date(2026, 11, 24))["state"] == "present"
-
-
-def test_utc_today_uses_the_utc_date_not_the_local_date(monkeypatch) -> None:
-    # 23:30 on the 23rd in UTC-5 is already the 24th in UTC, and 00:30 on the 24th in
-    # UTC+5 is still the 23rd in UTC. _utc_today must convert before taking the date.
-    class _Clock(dt.datetime):
-        instant = dt.datetime(2026, 11, 24, 4, 30, tzinfo=dt.timezone.utc)
-
-        @classmethod
-        def now(cls, tz=None):
-            return cls.instant.astimezone(tz) if tz else cls.instant.astimezone(dt.timezone(dt.timedelta(hours=-5))).replace(tzinfo=None)
-
-    monkeypatch.setattr(execution.dt, "datetime", _Clock)
-    assert execution._utc_today() == dt.date(2026, 11, 24)  # local (UTC-5) date would be the 23rd
-
-
-def test_probe_org_default_today_comes_from_utc_today(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr(execution, "_utc_today", lambda: dt.date(2026, 11, 24))
-    payload = json.dumps({"status": 0, "result": {"status": "Active", "expirationDate": "2026-11-24"}})
-    _fake_sf(monkeypatch, stdout=payload)
-    assert probe_org(tmp_path, "rlm-base__demo")["state"] == "present"
-    payload = json.dumps({"status": 0, "result": {"status": "Active", "expirationDate": "2026-11-23"}})
-    _fake_sf(monkeypatch, stdout=payload)
+def test_probe_org_isexpired_in_display_result_is_missing(tmp_path, monkeypatch) -> None:
+    _fake_sf(monkeypatch, stdout=json.dumps({"status": 0, "result": {"status": "Active", "isExpired": True}}))
     assert probe_org(tmp_path, "rlm-base__demo")["state"] == "missing"
+
+
+def test_probe_org_unhashable_aliases_entries_do_not_crash(tmp_path, monkeypatch) -> None:
+    listing = _org_list({"alias": "other", "aliases": [["x"], {"a": 1}, None, "rlm-base__demo"], "status": "Deleted"})
+    _fake_sf(monkeypatch, stdout=_FAILED_DISPLAY, returncode=1, list_payload=listing)
+    assert probe_org(tmp_path, "rlm-base__demo")["state"] == "missing"
+
+
+@pytest.mark.parametrize("raises", [PermissionError("denied"), OSError("boom"), UnicodeDecodeError("utf-8", b"\xff", 0, 1, "bad"), ValueError("v")])
+def test_probe_org_os_and_decode_errors_are_error_not_a_crash(tmp_path, monkeypatch, raises) -> None:
+    _fake_sf(monkeypatch, raises=raises)
+    result = probe_org(tmp_path, "rlm-base__demo")
+    assert result["state"] == "error"
+    assert "Command not found" not in result["detail"]
+
+
+def test_probe_org_missing_working_directory_is_not_reported_as_missing_sf(tmp_path, monkeypatch) -> None:
+    calls = _fake_sf(monkeypatch, raises=FileNotFoundError())
+    result = probe_org(tmp_path / "gone", "rlm-base__demo")
+    assert result["state"] == "error"
+    assert "Working directory does not exist" in result["detail"]
+    assert calls == []
 
 
 @pytest.mark.parametrize("result", [None, [], "Active"])
