@@ -356,7 +356,7 @@ private class RLM_Learning_FrameworkTest {
   // ---- Data helpers -------------------------------------------------------------
   //
   // Fixture reads and writes on the learning objects are explicitly system mode
-  // (WITH SYSTEM_MODE / "as system"). Observed once on an API 68.0 org, in an
+  // (WITH SYSTEM_MODE / "as system"). Observed on an API 68.0 org (once), in an
   // earlier version of this class: with these statements written plainly and
   // the runner not holding RLM_Learning, about half the tests failed, every one
   // in a fixture statement, with "No such column 'RLM_Learning_Header__c' on

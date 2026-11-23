@@ -105,24 +105,11 @@ EXCLUDED_FILES: dict[str, str] = {
     ),
 }
 
-# Exact (path, 1-based line) pairs holding provenance rather than a live pin.
-#
-# Each value is (reason, marker): the marker is a distinctive substring of the line
-# itself, and it is what makes the entry self-identifying. A line number alone cannot
-# tell "still the right line" from "a different version-bearing line slid into this
-# position" -- and the second case is the dangerous one, because the exclusion would
-# shield a live pin from the bump while `process` still reports the original line as
-# skipped. Requiring the marker to be present makes that substitution fail loudly.
-EXCLUDED_LINES: dict[tuple[str, int], tuple[str, str]] = {
-    ("scripts/context_service/examples/contextServiceLifecycle.apex", 28): (
-        "records dataPath semantics as verified on 262/v67.0",
-        "dataPath semantics",
-    ),
-    ("unpackaged/post_utils/classes/RLM_DecisionTableManagerController.cls", 238): (
-        "records bindingobjectformula behavior as observed at 262/v67.0",
-        "bindingobjectformula",
-    ),
-}
+# There is deliberately no per-line (path, line-number) exclusion table. One existed,
+# keyed on positions; it drifted whenever a line was inserted above its target and then
+# shielded an unrelated live pin. A single provenance line is protected by what it SAYS:
+# put a PROVENANCE_FORMS phrase ("verified on", "observed at", "as of", ...) on the same
+# line as the version, and PROVENANCE_LINE_RE spares it wherever the line moves.
 
 # Any line matching one of these keeps its version, wherever it appears: the
 # version is part of a statement about the past, or a floor, not a pin.
@@ -140,9 +127,29 @@ PROVENANCE_LINE_RE = re.compile(
     # matches), but it was a live trap: add a service path to a line reading
     # "live-verified v67.0" and the bump rewrites the claim, turning recorded evidence
     # into a false assertion -- strictly worse than missing a bump.
-    r"live-(?:verified|tested|proven|confirmed)"
-    r"|verified (?:live|on|in|against|by|via|payload)"
-    r"|as[- ]of|observed (?:on|at)|MIN_API_VERSION",
+    r"\blive-(?:verified|tested|proven|confirmed)"
+    r"|\bverified (?:live|on|in|against|by|via|payload)\b"
+    # Word-bounded: bare "as of" also sits inside "alias offset" and "has offered", and a bare
+    # MIN_API_VERSION anywhere on a line would spare a live pin sharing that line. Only the
+    # assignment spelling, plain or typed (`MIN_API_VERSION: str = ...`), is a floor line; `==`
+    # is a comparison, not a definition. The name must open the statement (line start, or after
+    # `;`, `#` or `//`), and an annotation must be a type expression (a dotted name, optionally
+    # quoted and subscripted, joined by `|`), so `log("MIN_API_VERSION: %s", v); api = ...` and
+    # `# MIN_API_VERSION: default api = ...` are not mistaken for one. Anchoring: the name opens
+    # the line (optionally behind one `#` or `//`), or follows a `;` whose prefix holds no quote,
+    # `#` or `/`; so a trailing comment or a string that merely mentions the name
+    # (a pin followed by `# MIN_API_VERSION = ...`, or `log("x; MIN_API_VERSION = %s"); api = ...`)
+    # does not spare the live pin. By design it still cannot tell prose from a floor when the
+    # annotation is a bare word (`# MIN_API_VERSION: default = <pin>` is spared), and a floor
+    # after `;` on a line whose prefix has a quote is bumped with that line, while with a
+    # quote-free prefix the whole line, any pin included, is spared. Subscripts allow one nesting level
+    # (`Final[Literal[...]]`) with disjoint alternatives, so a long no-`=` line cannot backtrack. The `verified (...)`
+    # forms end at a word boundary, so "verified payloads"/"verified inside"/"verified online"
+    # are NOT spared; no tracked line uses them beside a version (swept 2026-11-24), so add a
+    # form here if one ever does.
+    r"|\bas[- ]of\b|\bobserved (?:on|at)\b|(?:^\s*(?:#|//)?|^[^\"'#/]*;)\s*MIN_API_VERSION\b\s*"
+    r"(?::\s*[\"']?[\w.]+(?:\[(?:[^=\n\[\]]|\[[^=\n\[\]]*\])*\])?[\"']?"
+    r"(?:\s*\|\s*[\"']?[\w.]+(?:\[(?:[^=\n\[\]]|\[[^=\n\[\]]*\])*\])?[\"']?)*\s*)?=(?!=)",
     re.IGNORECASE,
 )
 
@@ -202,7 +209,7 @@ PROVENANCE_FORMS = (
     "live-verified", "live-tested", "live-proven", "live-confirmed",
     "verified live", "verified on", "verified in", "verified against",
     "verified by", "verified via", "verified payload",
-    "as of", "as-of", "observed on", "observed at", "MIN_API_VERSION",
+    "as of", "as-of", "observed on", "observed at", "MIN_API_VERSION =",
 )
 
 
@@ -229,51 +236,6 @@ def next_version(target: str) -> str:
         return f"{int(float(target)) + 1}.0"
     except ValueError:
         return f"{PROBE_CEILING}.0"
-
-
-def validate_excluded_lines() -> list[str]:
-    """Check every EXCLUDED_LINES entry still points at the line it was written for.
-
-    These entries are keyed on a 1-based line number, and nothing kept them
-    honest: insert a line above one and the exclusion silently starts shielding
-    an unrelated line while the rule rewrites the provenance it was meant to
-    protect. Worse, ``process`` counts the skip either way, so the run report
-    still says the original line was spared.
-
-    Checking only "is there a version here" is too weak to catch the case that
-    matters. Both drift modes move *some* version-bearing line into the slot as
-    often as not, so that test passes while the entry now shields a live pin —
-    the precise failure it exists to prevent. Each entry therefore carries a
-    ``marker`` naming its own content, and identity is asserted on the marker;
-    the version check remains as a cheap sanity test on top.
-    """
-    problems: list[str] = []
-    for (rel_path, lineno), (reason, marker) in sorted(EXCLUDED_LINES.items()):
-        abs_path = os.path.join(REPO_ROOT, rel_path)
-        if not os.path.isfile(abs_path):
-            problems.append(f"{rel_path}:{lineno} — file no longer exists ({reason})")
-            continue
-        with open(abs_path, encoding="utf-8", errors="ignore") as fh:
-            lines = fh.read().splitlines()
-        if lineno < 1 or lineno > len(lines):
-            problems.append(
-                f"{rel_path}:{lineno} — out of range, file has {len(lines)} line(s) ({reason})"
-            )
-            continue
-        line = lines[lineno - 1]
-        if marker not in line:
-            problems.append(
-                f"{rel_path}:{lineno} — expected {marker!r} on this line, so the key "
-                f"has drifted and the exclusion is now shielding a different line "
-                f"({reason}); line reads: {line.strip()[:70]!r}"
-            )
-            continue
-        if not re.search(r"v?\d{2}\.0", line):
-            problems.append(
-                f"{rel_path}:{lineno} — no API version on this line, so the entry no "
-                f"longer protects anything ({reason}); line reads: {line.strip()[:70]!r}"
-            )
-    return problems
 
 
 def excluded_reason(rel_path: str) -> str | None:
@@ -437,9 +399,9 @@ def build_rules() -> list[Rule]:
             suffixes=(".cls", ".apex"),
             # Two-digit range for the same reason as the two rules above: capped
             # at 6[0-7], this stopped seeing anything at 68.0 or later. In tracked
-            # scope its only remaining matches are a provenance line and the one
-            # EXCLUDED_LINES entry, both deliberately skipped -- so it was already
-            # inert on live code.
+            # scope it matches the live vNN.0 pins in Apex (class constants, REST
+            # paths, createTaxEngine.apex) plus provenance and floor lines, which
+            # PROVENANCE_LINE_RE spares by content.
             pattern=re.compile(r"(?P<pre>v)(?P<ver>[0-9]{2}\.0)"),
             replace=_version_only,
         ),
@@ -478,10 +440,6 @@ def process(rule: Rule, target: str, apply: bool, verbose: bool) -> tuple[int, i
         out_lines: list[str] = []
         file_hits = 0
         for lineno, line in enumerate(original.splitlines(keepends=True), start=1):
-            if (rel, lineno) in EXCLUDED_LINES:
-                skipped[EXCLUDED_LINES[(rel, lineno)][0]] += 1
-                out_lines.append(line)
-                continue
             if PROVENANCE_LINE_RE.search(line):
                 if rule.pattern.search(line):
                     skipped["provenance / floor line"] += 1
@@ -562,23 +520,6 @@ def main() -> int:
             print(f"error: unknown rule(s): {', '.join(sorted(unknown))}", file=sys.stderr)
             return 2
         rules = [r for r in rules if r.name in wanted]
-
-    stale = validate_excluded_lines()
-    if stale:
-        print(
-            "error: EXCLUDED_LINES is keyed on line numbers that have moved, so it is "
-            "now protecting the wrong lines (and the run report would still claim the "
-            "old ones were skipped):",
-            file=sys.stderr,
-        )
-        for entry in stale:
-            print(f"  {entry}", file=sys.stderr)
-        print(
-            "Re-point the line numbers, or better, reword the target lines so "
-            "PROVENANCE_LINE_RE protects them by content instead of position.",
-            file=sys.stderr,
-        )
-        return 2
 
     # Normalize the mode BEFORE the banner is built. --check forces a dry run, so
     # computing the banner first printed "[APPLY]" for `--apply --check` while the

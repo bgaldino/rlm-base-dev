@@ -249,7 +249,7 @@ public with sharing class RLM_DecisionTableManagerController {
      * turns into a false Fresh — which is why the list is short and cited rather than
      * convenient.
      *
-     * - assetratecardentry.bindingobjectformula (262 / API v67.0):
+     * - assetratecardentry.bindingobjectformula (observed at 262 / API v67.0):
      *   "The formula that returns the ID of the associated binding object, if
      *   specified. If binding object isn't added, the formula returns the asset ID of
      *   the asset related to this asset rate card entry."

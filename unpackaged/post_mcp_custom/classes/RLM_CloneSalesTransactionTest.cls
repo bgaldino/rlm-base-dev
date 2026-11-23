@@ -1,5 +1,5 @@
 /**
- * Coverage for the async-capable (v68.0) clone invocable.
+ * Coverage for the async-capable (as of v68.0) clone invocable.
  *
  * The happy path is deliberately not asserted. ConnectApi calls are unsupported in a
  * test context without a platform-supplied mock, and none exists for
