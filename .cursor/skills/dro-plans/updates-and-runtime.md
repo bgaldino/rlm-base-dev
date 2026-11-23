@@ -365,15 +365,31 @@ these conditions; rerun the amendment and cancel checks there.
     [Help: `ind.dro_fallout_design_and_management`]. How DRO treats an autolaunched flow
     that ends normally having done nothing is not documented in the snapshot: it reads as a
     success [inferred; live check pending]. A decision with no connector on its Default
-    Outcome therefore ends the interview normally. The Custom Error flow element is limited
-    to record-triggered flows (Flow Builder documentation, outside the snapshot), so an
-    autolaunched Auto Task flow reports failure through its output variables instead.
-    `RLM_Assetize_Order_DRO_Fulfillment` does this: its `Check_Source_Data_Type` Default
-    Outcome (a blank or unrecognized source type from `RLM_DetermineDROSourceType`) now
-    sets `isSuccess` false and `fulfillmentStepErrorCode`
-    `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`; `isSuccess` defaults true, so the four recognized
-    paths are unchanged. The step's status, error text and retry behavior for this path are
-    not yet measured [inferred; live check pending].
+    Outcome therefore ends the interview normally, with no error.
+  - `RLM_Assetize_Order_DRO_Fulfillment` reports failure through two output variables,
+    `isSuccess` (defaults true) and `fulfillmentStepErrorCode`. Two failure assignments set
+    `isSuccess` false: `Check_Source_Data_Type`'s Default Outcome (a blank or unrecognized
+    source type) sets `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`; a fault connector from each of
+    the 5 action calls and 6 record lookups sets `RLM_ASSETIZE_FAULT`. The four recognized
+    source types are unchanged. Two connector-less ends are intended skips, not failures:
+    `Has_Parent_Id`'s `Parent_Exists` outcome (a component line is assetized through its
+    parent) and the `exists` decision's Default Outcome (the source line is not in
+    `Not_Components`). The step's status, error text and retries for these paths are not yet
+    measured [inferred; live check pending].
+  - Not yet checked on a live org:
+    - Can an AutoTask step launch a flow whose status is Draft, and what does DRO do? The
+      flow ships `Draft` in source and nothing in `cumulusci.yml`, `tasks/` or `scripts/`
+      activates it. In this repo only the `mfg-dro` `Convert Order to Asset` step binds it,
+      and `mfg-dro` is not wired into `cumulusci.yml`. The `qb-dro` steps all have a blank
+      flow name, so it does not run on a `qb-dro` build today.
+    - For a failed step, read `ExecutionMessage` and `State` on the `FulfillmentStep`, and
+      read Help's Auto Task article `ind.dro_auto_task` live for any message output
+      variable besides the two used here.
+    - `qb-dro` `FulfillmentFalloutRule` `000000002` is an AutoTask catch-all (blank flow and
+      error code, 3 immediate retries). A permanent failure such as these codes is
+      therefore retried by that rule before it goes Fatally Failed [from the dataset; the
+      match not yet measured]. A no-retry rule for the two codes is not added until the
+      rule matching is measured.
   - A jeopardy rule with its own flow definition matched a manual task through the step's
     `FlowDefinitionName`. The step showed the rule's threshold and a planned completion of
     start plus the estimated duration. The per-flow rule applied although blank-flow manual

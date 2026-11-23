@@ -7,6 +7,9 @@
         <locationY>1598</locationY>
         <actionName>createOrUpdateAssetFromOrderItem</actionName>
         <actionType>createOrUpdateAssetFromOrderItem</actionType>
+        <faultConnector>
+            <targetReference>Fail_Action_Fault</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>orderItemIds</name>
@@ -25,6 +28,9 @@
         <locationY>866</locationY>
         <actionName>createOrUpdateAssetFromOrderItem</actionName>
         <actionType>createOrUpdateAssetFromOrderItem</actionType>
+        <faultConnector>
+            <targetReference>Fail_Action_Fault</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>orderItemIds</name>
@@ -43,6 +49,9 @@
         <locationY>350</locationY>
         <actionName>createOrUpdateAssetFromOrderItem</actionName>
         <actionType>createOrUpdateAssetFromOrderItem</actionType>
+        <faultConnector>
+            <targetReference>Fail_Action_Fault</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>orderItemIds</name>
@@ -61,6 +70,9 @@
         <locationY>674</locationY>
         <actionName>createOrUpdateAssetFromOrderItem</actionName>
         <actionType>createOrUpdateAssetFromOrderItem</actionType>
+        <faultConnector>
+            <targetReference>Fail_Action_Fault</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>orderItemIds</name>
@@ -82,6 +94,9 @@
         <connector>
             <targetReference>Check_Source_Data_Type</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Fail_Action_Fault</targetReference>
+        </faultConnector>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>recordId</name>
@@ -163,6 +178,26 @@
         <connector>
             <targetReference>Loop_2</targetReference>
         </connector>
+    </assignments>
+    <assignments>
+        <name>Fail_Action_Fault</name>
+        <label>Fail Action Fault</label>
+        <locationX>1326</locationX>
+        <locationY>458</locationY>
+        <assignmentItems>
+            <assignToReference>isSuccess</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>fulfillmentStepErrorCode</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>RLM_ASSETIZE_FAULT</stringValue>
+            </value>
+        </assignmentItems>
     </assignments>
     <assignments>
         <name>Fail_Unresolved_Source_Type</name>
@@ -419,6 +454,9 @@
         <connector>
             <targetReference>Add_Order_Id_from_Current_FOP</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Fail_Action_Fault</targetReference>
+        </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>FulfilmentOrderLineId</field>
@@ -440,6 +478,9 @@
         <connector>
             <targetReference>Get_Source_Relationship</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Fail_Action_Fault</targetReference>
+        </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
@@ -461,6 +502,9 @@
         <connector>
             <targetReference>Loop_Over_FOPs</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Fail_Action_Fault</targetReference>
+        </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
@@ -482,6 +526,9 @@
         <connector>
             <targetReference>Has_Parent_Id</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Fail_Action_Fault</targetReference>
+        </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
@@ -503,6 +550,9 @@
         <connector>
             <targetReference>Collection_Filter_1</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Fail_Action_Fault</targetReference>
+        </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
@@ -524,6 +574,9 @@
         <connector>
             <targetReference>Add_Order_Item_Id_from_FOP</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Fail_Action_Fault</targetReference>
+        </faultConnector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>FulfilmentOrderLineId</field>

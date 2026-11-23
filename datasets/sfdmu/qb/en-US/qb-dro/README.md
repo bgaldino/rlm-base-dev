@@ -41,10 +41,10 @@ from loading. The tenant-provisioning callout remains on
 That callout (`RLM_DFOTenantProvisioningCallout`) posts to
 `callout:RLM/services/apexrest/QuantumBitTenantEnvironment/createNewTenant`. This repo no
 longer ships either end: the in-org `@RestResource` (`RLM_TenantProvisioningAPI`, with its
-tenant-environment object and flows) was removed in 2025-01 and the self-referencing `RLM`
-named credential in 2026-03 (git history). On a fresh build the step therefore has no
+tenant-environment object and flows) was removed in 2025-01 and the `RLM` named credential,
+which pointed at a single, hard-coded org, in 2026-03 (git history). On a fresh build the step therefore has no
 target. How the step ends (status, error, whether the plan continues) is not yet measured.
-Pack 419 tracks the decision. The step is reached by products decomposed to
+The step is reached by products decomposed to
 `QB-DRO-APIPLAT` (`QB-API-MGMT` via the `Platform` scenario); `mfg-dro` carries the same
 callout on its tenant-provisioning steps.
 
