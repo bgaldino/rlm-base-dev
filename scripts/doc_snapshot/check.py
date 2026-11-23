@@ -45,12 +45,13 @@ GLUED_LINK_RE = re.compile(
 # no brand substitution; not re-checked against the live page).
 # A word boundary before the name keeps "McDonald, formerly Donald" out; the
 # lookahead after it keeps "Sales, formerly Salesforce", "Sales, formerly
-# Sales-Cloud", "Sales, formerly Sales's" and "Agentforce Sales, formerly Sales
-# Cloud" (a longer old name that merely starts like the new one) out. It misses,
-# by design, a real artifact followed by a capitalised word, names of five or more
-# words, and non-ASCII names.
+# Sales-Cloud" and "Agentforce Sales, formerly Sales Cloud" (a longer old name
+# that merely starts like the new one) out. It misses, by design, a real artifact
+# followed by a capitalised word or by "-" or a letter, names of five or more words,
+# and names that are not plain Capitalised words: acronyms, digits or non-ASCII
+# letters ("Salesforce CPQ", "B2B Commerce").
 SELF_RENAME_RE = re.compile(
-    r"\b((?:[A-Z][a-z]+ ){0,3}[A-Z][a-z]+), formerly \1(?![\w'-]| [A-Z])"
+    r"\b((?:[A-Z][a-z]+ ){0,3}[A-Z][a-z]+), formerly \1(?![\w-]| [A-Z])"
 )
 ALL_CORPORA_GLOB = "docs/salesforce/{release}/*/articles/*.md"
 

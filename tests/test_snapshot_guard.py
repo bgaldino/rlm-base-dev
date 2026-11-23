@@ -395,8 +395,11 @@ def main():
           renames("of Agentforce Sales, formerly Sales Cloud, with") == []
           and renames("Sales, formerly Salesforce") == [] and renames("Flow, formerly Flows") == []
           and renames("McDonald, formerly Donald") == []
-          and renames("Sales, formerly Sales-Cloud") == [] and renames("Sales, formerly Sales's") == []
+          and renames("Sales, formerly Sales-Cloud") == []
           and renames("of Agentforce Sales, formerly Sales Cloud") == [])
+    check("rename lint finds a possessive and a straight-quoted artifact",
+          renames("Sales, formerly Sales's quota") == ["Sales, formerly Sales"]
+          and renames("'Revenue Cloud, formerly Revenue Cloud'") == ["Revenue Cloud, formerly Revenue Cloud"])
     check("rename lint ignores a real rename",
           renames("Agentforce Revenue Management, formerly Revenue Cloud, with") == [])
     saved_root = check_mod.REPO_ROOT
