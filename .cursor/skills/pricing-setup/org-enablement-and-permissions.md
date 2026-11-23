@@ -27,7 +27,7 @@ run. Everything downstream (decision tables, recipes, procedures, runtime APIs) 
 Edition gate: Enterprise, Unlimited, Developer editions of Revenue Cloud with the Revenue
 Cloud Growth or Advanced license. Supported products also include Health, Communications,
 Energy & Utilities, Insurance, Financial Services, Media Cloud and Asset Service Lifecycle
-Management (Enterprise, Performance, Unlimited). Lightning Experience only. [Help]
+Management (Enterprise, Unlimited, and Developer). Lightning Experience only. [Help]
 `ind.pricing_permissions_salesforce_pricing.htm`
 
 1. **Turn on Salesforce Pricing** (System Admin): Setup > Quick Find "Salesforce Pricing" >

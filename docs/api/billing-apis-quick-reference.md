@@ -2,7 +2,7 @@
 
 **API Version:** v68.0 (Winter '27) | **Total Endpoints:** 51 | **Source:** Revenue Management Developer Guide (264/Winter '27 dev-guide snapshot), Chapter 11: Billing — grounded re-extraction, up from 30 in the v260 (Spring '26) extraction
 
-**Provenance split**: 45 of the 51 endpoints below are grounded in the 264 (v68.0) RLM dev-guide snapshot. The 6 endpoints in Section 9 (Salesforce Commerce Payments) are external Commerce Payments APIs — they are not part of the 264 RLM dev-guide and are retained here for continuity only. See `billing-business-apis-reference.md` for the full per-endpoint provenance and field detail.
+**Provenance split**: 45 of the 51 endpoints below are grounded in the 264 (v68.0) Revenue Management Developer Guide snapshot. The 6 endpoints in Section 9 (Salesforce Commerce Payments) are external Commerce Payments APIs — they are not part of the 264 Revenue Management Developer Guide and are retained here for continuity only. See `billing-business-apis-reference.md` for the full per-endpoint provenance and field detail.
 
 ---
 

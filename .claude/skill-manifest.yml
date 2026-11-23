@@ -138,7 +138,7 @@ foundations:
       consumed_by_pmos: [spec, technical-review, prd]
       provenance: grounded re-extraction from the tracked 264 (v68.0) dev-guide snapshot (docs/salesforce/264/dev-guide/) — 143 grounded, 12 retained/external
       caveats:
-        - "264 is pre-GA — treat a live 264 org as ground truth over the dev-guide-derived references"
+        - "Treat a live 264 org as ground truth over the dev-guide-derived references"
         - "The Postman collection JSON under postman/ is still the v66.0 baseline pending regeneration against a live 264 org; cite docs/api/ Markdown, not collection payloads"
         - "The docs/api/index.html viewer (155 endpoints) is hand-maintained; the docs/api/ Markdown wins on any disagreement"
 
