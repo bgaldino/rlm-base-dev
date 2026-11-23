@@ -2,7 +2,7 @@
 """
 Comprehensive Postman Collection Validator for Revenue Cloud APIs (v260/Spring '26)
 
-Validates ALL three collections in the postman directory against:
+Validates every collection in the postman directory against:
   1. Structural integrity (metadata, folders, endpoints, auth, JSON bodies)
   2. v66.0 API versioning standards ({{version}} variable usage)
   3. Completeness against the v260 API inventory (95 endpoints across 8 categories)
@@ -14,6 +14,7 @@ Exit codes:
 """
 
 import json
+import re
 import argparse
 import sys
 from pathlib import Path
@@ -624,37 +625,54 @@ class ValidationReport:
 
 
 def auto_fix_hardcoded_versions(collection_path: Path) -> int:
-    """Auto-fix hardcoded API versions by replacing with {{version}}."""
+    """Auto-fix hardcoded API versions by replacing them with v{{version}}."""
     print(f"\n🔧 Auto-fixing {collection_path.name}...")
 
     with open(collection_path, "r") as f:
         collection = json.load(f)
 
     fixed_count = 0
+    # A hardcoded version segment, whether followed by a path, a query string or nothing.
+    versions = "|".join(re.escape(v) for v in PostmanCollectionValidator.HARDCODED_VERSIONS)
+    version_re = re.compile(rf"/(?:{versions})(?=[/?#]|$)")
+    # A string path may start with the version segment, with no leading slash.
+    path_version_re = re.compile(rf"(^|/)(?:{versions})(?=[/?#]|$)")
 
     def fix_items(items):
         nonlocal fixed_count
         for item in items:
             if "item" in item and "request" not in item:
                 fix_items(item["item"])
+                continue
+            request = item.get("request", {})
+            url_data = request.get("url", {})
+            raw_url = url_data.get("raw", "") if isinstance(url_data, dict) else url_data
+            if not isinstance(raw_url, str):
+                continue
+            if not version_re.search(raw_url):
+                continue
+            raw_url = version_re.sub("/v{{version}}", raw_url)
+            if isinstance(url_data, dict):
+                url_data["raw"] = raw_url
+                # Keep the path segments in step with the raw URL.
+                path = url_data.get("path")
+                if isinstance(path, list):
+                    url_data["path"] = [
+                        "v{{version}}" if seg in PostmanCollectionValidator.HARDCODED_VERSIONS else seg
+                        for seg in path
+                    ]
+                elif isinstance(path, str):
+                    url_data["path"] = path_version_re.sub(r"\1v{{version}}", path)
             else:
-                request = item.get("request", {})
-                url_data = request.get("url", {})
-                if isinstance(url_data, dict):
-                    raw_url = url_data.get("raw", "")
-                    for version in ["v60.0", "v61.0", "v62.0", "v63.0", "v64.0", "v65.0"]:
-                        if f"/{version}/" in raw_url:
-                            new_url = raw_url.replace(f"/{version}/", "/v{{{{version}}}}/")
-                            url_data["raw"] = new_url
-                            fixed_count += 1
+                request["url"] = raw_url
+            fixed_count += 1
 
-    for folder in collection.get("item", []):
-        fix_items(folder.get("item", []))
+    fix_items(collection.get("item", []))
 
     if fixed_count > 0:
         with open(collection_path, "w") as f:
             json.dump(collection, f, indent=2)
-        print(cls._colorize(f"✅ Fixed {fixed_count} hardcoded versions", "GREEN"))
+        print(ValidationReport._colorize(f"✅ Fixed {fixed_count} URLs with hardcoded versions", "GREEN"))
     else:
         print("ℹ️  No hardcoded versions found to fix")
 
@@ -668,17 +686,17 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  validate_collection.py              # Validate all collections in current directory
+  validate_collection.py              # Validate all collections in the postman/ directory
   validate_collection.py --verbose    # Validate with detailed endpoint output
   validate_collection.py --fix        # Auto-fix hardcoded API versions
-  validate_collection.py --collection RLM.postman_collection.json
+  validate_collection.py --collection "Agentforce Revenue Management APIs (v66.0).postman_collection.json"   # run from postman/
         """,
     )
 
     parser.add_argument(
         "--collection",
         type=Path,
-        help="Path to a specific collection to validate (default: all in directory)",
+        help="Path to a specific collection to validate (default: all in the postman/ directory)",
     )
     parser.add_argument(
         "--verbose",
@@ -695,14 +713,14 @@ Examples:
     args = parser.parse_args()
 
     # Find collections
-    script_dir = Path(__file__).parent
+    postman_dir = Path(__file__).resolve().parent.parent
     if args.collection:
         collections = [args.collection]
     else:
-        collections = sorted(script_dir.glob("*.postman_collection.json"))
+        collections = sorted(postman_dir.glob("*.postman_collection.json"))
 
     if not collections:
-        print("❌ No Postman collections found in current directory")
+        print("❌ No Postman collections found in the postman/ directory")
         return 1
 
     # Print header
