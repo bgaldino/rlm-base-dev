@@ -309,7 +309,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
 
         } catch (Exception e) {
             System.debug('saveLineAttributes failed: ' + e.getMessage());
-            throw new AuraHandledException('Failed to save attributes: ' + e.getMessage());
+            throw RLM_AuraErrors.handled('Failed to save attributes: ' + e.getMessage());
         }
     }
 
@@ -532,7 +532,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
             return result;
 
         } catch (Exception e) {
-            throw new AuraHandledException('Error fetching invoice product summary: ' + e.getMessage());
+            throw RLM_AuraErrors.handled('Error fetching invoice product summary: ' + e.getMessage());
         }
     }
 }

@@ -146,7 +146,7 @@ public with sharing class RLM_UsageUploaderController {
         ];
 
         if (ast.Product2Id == null) {
-            throw new AuraHandledException('This asset is not associated with a product.');
+            throw RLM_UtilsAuraErrors.handled('This asset is not associated with a product.');
         }
 
         List<ProductUsageResource> purList = [
@@ -223,14 +223,14 @@ public with sharing class RLM_UsageUploaderController {
         Id unitOfMeasureId
     ) {
         if (!Schema.sObjectType.TransactionJournal.isCreateable()) {
-            throw new AuraHandledException('You do not have permission to create usage records.');
+            throw RLM_UtilsAuraErrors.handled('You do not have permission to create usage records.');
         }
 
         if (quantity == null || quantity <= 0) {
-            throw new AuraHandledException('Quantity must be greater than 0');
+            throw RLM_UtilsAuraErrors.handled('Quantity must be greater than 0');
         }
         if (transactionDate == null) {
-            throw new AuraHandledException('Transaction date is required');
+            throw RLM_UtilsAuraErrors.handled('Transaction date is required');
         }
 
         // Resolve the AccountId from the Asset
@@ -252,7 +252,7 @@ public with sharing class RLM_UsageUploaderController {
             LIMIT 1
         ];
         if (purMatches.isEmpty()) {
-            throw new AuraHandledException('This usage resource is not available for the asset\'s product.');
+            throw RLM_UtilsAuraErrors.handled('This usage resource is not available for the asset\'s product.');
         }
 
         UsageResource ur = [
@@ -277,7 +277,7 @@ public with sharing class RLM_UsageUploaderController {
                 LIMIT 1
             ];
             if (candidates.isEmpty() || candidates[0].Status != 'Active') {
-                throw new AuraHandledException('The selected unit of measure is not valid for this usage resource.');
+                throw RLM_UtilsAuraErrors.handled('The selected unit of measure is not valid for this usage resource.');
             }
             resolvedUomId = candidates[0].Id;
         }
@@ -440,7 +440,7 @@ public with sharing class RLM_UsageUploaderController {
 
         if (!toInsert.isEmpty()) {
             if (!Schema.sObjectType.TransactionJournal.isCreateable()) {
-                throw new AuraHandledException('You do not have permission to create usage records.');
+                throw RLM_UtilsAuraErrors.handled('You do not have permission to create usage records.');
             }
 
             SObjectAccessDecision accessDecision = Security.stripInaccessible(

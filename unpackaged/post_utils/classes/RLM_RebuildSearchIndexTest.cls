@@ -400,4 +400,25 @@ private with sharing class RLM_RebuildSearchIndexTest {
         Assert.isTrue(results.isEmpty(), 'No requests, no results');
         Assert.areEqual(0, mock.received.size(), 'No requests, no callouts');
     }
+
+    @IsTest
+    static void deployPcmIndexGuardsANullListAndSkipsNullElements() {
+        PcmDeployMock mock = new PcmDeployMock(201, 'Created', FULL_SUCCESS_BODY);
+        Test.setMock(HttpCalloutMock.class, mock);
+
+        Test.startTest();
+        List<RLM_RebuildSearchIndex.PCMDeployResult> fromNull = RLM_RebuildSearchIndex.deployPCMIndex(null);
+        List<RLM_RebuildSearchIndex.PCMDeployResult> fromMixed = RLM_RebuildSearchIndex.deployPCMIndex(
+            new List<RLM_RebuildSearchIndex.PCMDeployRequest>{
+                null,
+                new RLM_RebuildSearchIndex.PCMDeployRequest(),
+                null
+            }
+        );
+        Test.stopTest();
+
+        Assert.isTrue(fromNull.isEmpty(), 'A null request list yields no results and no exception');
+        Assert.areEqual(1, fromMixed.size(), 'Null elements are skipped; the real request still runs');
+        Assert.areEqual(1, mock.received.size(), 'Only the real request makes a callout');
+    }
 }

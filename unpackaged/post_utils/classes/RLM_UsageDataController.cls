@@ -75,7 +75,7 @@ public with sharing class RLM_UsageDataController {
         String fieldSetName
     ) {
         if (!ALLOWED_OBJECTS.contains(objectApiName)) {
-            throw new AuraHandledException('Invalid SObject: ' + objectApiName);
+            throw RLM_UtilsAuraErrors.handled('Invalid SObject: ' + objectApiName);
         }
 
         // Use describeSObjects() instead of getGlobalDescribe() to avoid loading all SObject metadata
@@ -85,7 +85,7 @@ public with sharing class RLM_UsageDataController {
 
         Schema.FieldSet fs = objDescribe.fieldSets.getMap().get(fieldSetName);
         if (fs == null) {
-            throw new AuraHandledException('Invalid FieldSet: ' + fieldSetName + ' on ' + objectApiName);
+            throw RLM_UtilsAuraErrors.handled('Invalid FieldSet: ' + fieldSetName + ' on ' + objectApiName);
         }
 
         // Build SOQL field list and column definitions from the FieldSet
@@ -100,16 +100,16 @@ public with sharing class RLM_UsageDataController {
 
         // Validate filterField exists on the object and is explicitly allowlisted for this object
         if (!fieldMap.containsKey(filterField)) {
-            throw new AuraHandledException('Invalid filter field: ' + filterField + ' on ' + objectApiName);
+            throw RLM_UtilsAuraErrors.handled('Invalid filter field: ' + filterField + ' on ' + objectApiName);
         }
         Set<String> allowedFilterFields = ALLOWED_FILTER_FIELDS.get(objectApiName);
         if (allowedFilterFields == null || !allowedFilterFields.contains(filterField)) {
-            throw new AuraHandledException('Unsupported filter field: ' + filterField + ' on ' + objectApiName);
+            throw RLM_UtilsAuraErrors.handled('Unsupported filter field: ' + filterField + ' on ' + objectApiName);
         }
         // A null recordId would run "<filterField> = null": on UsageSummary and
         // UsageBillingPeriodItem that returns asset-less rows across accounts.
         if (recordId == null) {
-            throw new AuraHandledException('A record Id is required.');
+            throw RLM_UtilsAuraErrors.handled('A record Id is required.');
         }
 
         for (Schema.FieldSetMember fsm : fs.getFields()) {
@@ -118,7 +118,7 @@ public with sharing class RLM_UsageDataController {
             String label = fsm.getLabel();
             Schema.SObjectField sObjField = fieldMap.get(fieldApiName);
             if (sObjField == null) {
-                throw new AuraHandledException(
+                throw RLM_UtilsAuraErrors.handled(
                     'FieldSet entry "' + fieldApiName + '" on ' + objectApiName +
                     ' is not a direct field on the object. Relationship paths and non-field entries are not supported.'
                 );

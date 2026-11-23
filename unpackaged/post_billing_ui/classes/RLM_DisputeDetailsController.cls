@@ -66,7 +66,7 @@ public with sharing class RLM_DisputeDetailsController {
 
         Schema.SObjectType diType = Schema.getGlobalDescribe().get('DisputeItem');
         if (diType == null) {
-            throw new AuraHandledException('DisputeItem object not found.');
+            throw RLM_AuraErrors.handled('DisputeItem object not found.');
         }
 
         // Find the approved amount field by scanning all fields.
@@ -100,7 +100,7 @@ public with sharing class RLM_DisputeDetailsController {
                 allFields.add(fieldMap.get(key).getDescribe().getName());
             }
             allFields.sort();
-            throw new AuraHandledException('Approved Amount field not found. All fields: ' + String.join(allFields, ', '));
+            throw RLM_AuraErrors.handled('Approved Amount field not found. All fields: ' + String.join(allFields, ', '));
         }
 
         // Collect IDs and amounts
@@ -120,7 +120,7 @@ public with sharing class RLM_DisputeDetailsController {
             String query = 'SELECT Id, ' + approvedFieldApi + ' FROM DisputeItem WHERE Id IN :itemIds';
             records = Database.query(query, AccessLevel.USER_MODE);
         } catch (Exception e) {
-            throw new AuraHandledException('Save failed (field: ' + approvedFieldApi + '): ' + e.getMessage());
+            throw RLM_AuraErrors.handled('Save failed (field: ' + approvedFieldApi + '): ' + e.getMessage());
         }
         // Report ids that did not resolve (missing, deleted or not visible) instead of
         // silently saving a subset. Nothing is updated in that case.
@@ -128,9 +128,7 @@ public with sharing class RLM_DisputeDetailsController {
             Integer missing = amountMap.size() - records.size();
             String message = missing + ' of ' + amountMap.size()
                 + ' dispute items were not found or are not accessible; nothing was saved.';
-            AuraHandledException rejected = new AuraHandledException(message);
-            rejected.setMessage(message); // getMessage() is otherwise "Script-thrown exception"
-            throw rejected;
+            throw RLM_AuraErrors.handled(message);
         }
         try {
             for (SObject rec : records) {
@@ -138,7 +136,7 @@ public with sharing class RLM_DisputeDetailsController {
             }
             update as user records;
         } catch (Exception e) {
-            throw new AuraHandledException('Save failed (field: ' + approvedFieldApi + '): ' + e.getMessage());
+            throw RLM_AuraErrors.handled('Save failed (field: ' + approvedFieldApi + '): ' + e.getMessage());
         }
     }
 }

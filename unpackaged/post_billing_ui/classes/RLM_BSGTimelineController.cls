@@ -95,7 +95,7 @@ public with sharing class RLM_BSGTimelineController {
             ];
             
             if (bsgList.isEmpty()) {
-                throw handled('Billing Schedule Group not found');
+                throw RLM_AuraErrors.handled('Billing Schedule Group not found');
             }
             
             BillingScheduleGroup bsg = bsgList[0];
@@ -187,17 +187,8 @@ public with sharing class RLM_BSGTimelineController {
         } catch (AuraHandledException ae) {
             throw ae; // already carries the user-facing text; do not wrap it
         } catch (Exception e) {
-            throw handled('Error retrieving Billing Schedule Group: ' + e.getMessage());
+            throw RLM_AuraErrors.handled('Error retrieving Billing Schedule Group: ' + e.getMessage());
         }
-    }
-
-    // Sets the message explicitly so Apex-side getMessage() returns it too (the LWC receives the
-    // constructor text either way). The defect fixed above was the generic catch re-wrapping an
-    // AuraHandledException via e.getMessage(), which surfaced as 'Script-thrown exception'.
-    private static AuraHandledException handled(String message) {
-        AuraHandledException e = new AuraHandledException(message);
-        e.setMessage(message);
-        return e;
     }
 
     @AuraEnabled(cacheable=true)
@@ -341,7 +332,7 @@ public with sharing class RLM_BSGTimelineController {
         } catch (AuraHandledException ae) {
             throw ae;
         } catch (Exception e) {
-            throw handled('Error calculating consolidated timeline: ' + e.getMessage());
+            throw RLM_AuraErrors.handled('Error calculating consolidated timeline: ' + e.getMessage());
         }
     }
 }

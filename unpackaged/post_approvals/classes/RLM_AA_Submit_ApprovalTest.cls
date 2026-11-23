@@ -7,10 +7,6 @@
  * and flows as active" is on, so when it is not active those tests are skipped
  * visibly (a WARN debug line) instead of failing. Those tests are environment probes: in an org
  * where the flow is inactive they prove nothing, and the debug line is the only sign.
- *
- * Limits: each request starts its own flow interview, so a batch is bounded by the per-transaction
- * limits (for example the 150 DML statements and 100 SOQL queries any interview's elements use).
- * Pass the smallest batches the caller can; the invocable does not chunk or bulkify the flow.
  */
 @IsTest
 private class RLM_AA_Submit_ApprovalTest {

@@ -80,7 +80,7 @@ public with sharing class RLM_BillingScheduleGroupController {
             return wrappers;
             
         } catch (Exception e) {
-            throw new AuraHandledException('Error fetching billing schedule groups: ' + e.getMessage());
+            throw RLM_AuraErrors.handled('Error fetching billing schedule groups: ' + e.getMessage());
         }
     }
 }

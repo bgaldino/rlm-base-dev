@@ -10,13 +10,16 @@ public with sharing class RLM_RebuildSearchIndex {
             HttpResponse httpRes = callPcmDeploy(DEFAULT_BUILD_TYPE, DEFAULT_ACTIVATION_TYPE);
             return buildResultMap(httpRes);
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            throw RLM_UtilsAuraErrors.handled(e.getMessage());
         }
     }
 
     @InvocableMethod(label='Deploy PCM Index' description='Calls the Connect API to deploy PCM index after Decision Table refresh')
     public static List<PCMDeployResult> deployPCMIndex(List<PCMDeployRequest> requests) {
         List<PCMDeployResult> results = new List<PCMDeployResult>();
+        if (requests == null) {
+            return results;
+        }
 
         // One deploy per distinct buildType, not one per request: identical requests share a
         // single callout (a batch of 100+ would otherwise exceed the callout limit), and each
@@ -26,6 +29,9 @@ public with sharing class RLM_RebuildSearchIndex {
         Map<String, String> failureByKey = new Map<String, String>();
 
         for (PCMDeployRequest request : requests) {
+            if (request == null) {
+                continue; // nothing to deploy for a null element, so it yields no result
+            }
             String buildType = normalizeBuildType(request.buildType);
             if (buildType == null) {
                 // An unknown build type is rejected, not silently run as a FULL rebuild.

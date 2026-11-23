@@ -13,8 +13,9 @@ public with sharing class RLM_BSGContextController {
         @AuraEnabled public BundleData bundle;
         @AuraEnabled public UsageData usage;
 
-        @AuraEnabled public Decimal bsBilledAmount;
-        @AuraEnabled public Decimal bsPendingAmount;
+        // Totals for the whole billing schedule group (TotalBilledAmount / TotalPendingAmount), not one schedule.
+        @AuraEnabled public Decimal groupBilledAmount;
+        @AuraEnabled public Decimal groupPendingAmount;
 
         // Billing Arrangement (applicable to any view type)
         @AuraEnabled public ArrangementData arrangement;
@@ -150,8 +151,8 @@ public with sharing class RLM_BSGContextController {
             // Group-level billed/pending for the panel's % calculation. The group's own rollups
             // are used (no extra query, record currency like the panel's formatting); a sum over
             // schedules would be corporate-currency converted in a multi-currency org.
-            ctx.bsBilledAmount = bsg.TotalBilledAmount;
-            ctx.bsPendingAmount = bsg.TotalPendingAmount;
+            ctx.groupBilledAmount = bsg.TotalBilledAmount;
+            ctx.groupPendingAmount = bsg.TotalPendingAmount;
 
             // 1. Check for Milestone. BillingSchedule.BillingMilestonePlanId and the
             // BillingMilestonePlan(Item) objects are license-gated billing extensions that are

@@ -36,7 +36,7 @@ public with sharing class RLM_UsageOrchestrationController {
             return 'started';
 
         } catch (Exception e) {
-            throw new AuraHandledException('Failed to start orchestration: ' + e.getMessage());
+            throw RLM_UtilsAuraErrors.handled('Failed to start orchestration: ' + e.getMessage());
         }
     }
 }

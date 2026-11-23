@@ -14,7 +14,7 @@ private class RLM_BSGContextControllerTest {
     // in RLM_BillingUIAccessTest (billingOperationsCanRunItsControllerReads).
     //
     // Fixed (live verification only; BillingScheduleGroup records are not insertable in Apex
-    // tests): bsBilledAmount/bsPendingAmount come from the group's TotalBilledAmount and
+    // tests): groupBilledAmount/groupPendingAmount come from the group's TotalBilledAmount and
     // TotalPendingAmount (no arbitrary single schedule), and the usage resource names come
     // from the earliest schedule (ORDER BY CreatedDate, Id, first wins).
     private static Id fakeBsgId() {
