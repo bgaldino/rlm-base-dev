@@ -12,8 +12,9 @@ The Release 264 clause migration walkthrough and validation constraints are in
 the separate Revenue Lifecycle Management Developer Guide deliverable:
 [Clause Migration Considerations](../../../docs/salesforce/264/dev-guide/articles/deployment_contracts_clause_migration.htm.md)
 and [Clause Validations and Migration Constraints](../../../docs/salesforce/264/dev-guide/articles/deployment_contracts_clause_validation_migration_constraints.htm.md).
-Keep those corpora distinct. The migration pages carry a preview-release caveat;
-check current Salesforce availability and release guidance before applying them.
+Keep those corpora distinct. The 264 captures of these two pages no longer carry
+the preview-release caveat that the earlier capture had; still check current
+Salesforce availability and release guidance before applying them.
 
 ## Clause library
 
@@ -27,12 +28,16 @@ before building a plan. Do not treat a clause as ordinary mutable text:
   exact status and version rules before proposing an update.
 - A clause set must exist before its clauses. Preserve the one-main-clause and
   alternate-clause constraints documented for the target release.
-- Salesforce's migration sequence is category configuration, clause set, then
-  clause. Category configuration is deployed as metadata; clause sets and clause
-  records are data.
+- Salesforce's migration sequence is category configuration, clause set, clause,
+  then clause content token. Category configuration is deployed as metadata;
+  clause sets, clause records and clause content tokens are data. Each content
+  token belongs to a parent clause (DocumentClause), so migrate tokens after
+  their parents and resolve the clause references to target-org IDs first.
 - Microsoft 365 template migration resolves clause references by clause-set
   name, clause name, version, and language rather than carrying source record
   IDs. Ensure exact matching target records exist before migrating templates.
+  If a clause contains clause content tokens, those tokens must also exist in
+  the target org, and template migration stops when a clause or token is missing.
 - Keep source and target clause data stable between clause export and template
   migration. Follow the release-matched migration guide if the docs change.
 
@@ -58,7 +63,8 @@ add-in.
    clause sets, clauses, templates, files, and integration requirements.
 2. Compare fields and relationships using target-org describes; don't assume IDs
    or field-level schema align across orgs/releases.
-3. Migrate clause category configuration, then sets, then clauses. Preserve
+3. Migrate clause category configuration, then sets, then clauses, then clause
+   content tokens (after their parent clauses). Preserve
    versions, languages, status rules, hierarchy, and content/file access.
 4. Verify clause identity attributes used by the target template before moving
    template data. Resolve missing or mismatched clauses before template migration.

@@ -3,7 +3,7 @@
 > Release 264 / API v68.0. Sources: `ind.pricing_promotion_execution_element.htm`
 > (stub); shipped XML: none; core source (behavior only).
 
-Connects Global Promotions Management (GPM) with Revenue Management: executes
+Connects Global Promotions Management (GPM) with Revenue Cloud: executes
 the applicable promotions for the transaction line items.
 
 ## When to use it

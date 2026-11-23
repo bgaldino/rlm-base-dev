@@ -1,7 +1,8 @@
 # Cost Books
 
 > Sub-file of `.cursor/skills/pricing-setup/SKILL.md`. Release 264 / API v68.0. Sources:
-> `ind.pricing_define_costs_in_cost_books.htm`, `ind.pricing_price_books_salesforce_pricing.htm`;
+> `ind.pricing_define_costs_in_cost_books.htm`, `ind.pricing_price_books_and_cost_books.htm`,
+> `ind.pricing_calculate_margin_by_using_a_standard_cost_book.htm`;
 > `datasets/sfdmu/qb/en-US/qb-pricing/README.md`, `.cursor/skills/pricing-wiring/SKILL.md`. Not live-verified except
 > where tagged [Measured] (2026-11-11, a fresh 264 `ent-sb0` scratch org).
 
@@ -21,7 +22,10 @@ does not calculate margins or markups from them, and they cannot be referenced d
 Cost Book Entries decision table (output `ItemUnitCost__std`), then a List Group computes cost and margin
 (`../pricing-procedures/elements/list-group-and-list-operation.md`). Reading: no out-of-box margin is computed
 for you and no direct reference exists, but a decision table over the cost entries, read by List Price, works.
-Treat cost-based pricing as custom wiring, not a supported-by-default feature: the default pricing usage type has no cost book element and the pricing runtime reads no cost book entries. [Core]
+Since 264 Help also carries an illustrative worked example of that custom wiring, which says it is not a packaged feature or a supported
+configuration path: custom cost and margin fields on the quote line, context attributes and mapping for the cost, a decision table
+that looks up the cost, and a procedure lookup element [Help: `ind.pricing_calculate_margin_by_using_a_standard_cost_book.htm`]. It computes margin in a formula
+field, where the repo computes it in the procedure. Treat cost-based pricing as custom wiring, not a supported-by-default feature: the default pricing usage type has no cost book element and the pricing runtime reads no cost book entries. [Core]
 
 ## Set it up
 

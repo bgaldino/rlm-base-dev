@@ -73,7 +73,7 @@ Where the dev guide and the org disagree, this file follows the org and says so.
   it can be unbound or ambiguous `[Dev guide: cml_best_practice_access_quantity]`.
 - **DO NOT** write several `setdefault` rules that target the same `relation[Type]`. Only
   the last one evaluates reliably. Combine the conditions into one derived variable and
-  one `setdefault` `[Dev guide: cml_cml_best_practices]` (*Consolidate Multiple Default
+  one `setdefault` `[Dev guide: cml_best_practice_consolidate_defaults]` (*Consolidate Multiple Default
   Configurations*).
 - **DO NOT** use `Warning` severity for a note that must not hold the rep up. `Warning`
   blocks the next step until the rep acts; `Info` doesn't

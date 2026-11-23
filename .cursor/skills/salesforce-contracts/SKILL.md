@@ -25,8 +25,8 @@ in Salesforce orgs and the Revenue Cloud Foundations repository.
 4. Treat setup prerequisites as a dependency chain: feature/license access,
    settings and permissions, contract type/state configuration, then content
    and workflow verification.
-5. Keep clause category configuration, clause sets, and clause records aligned;
-   migration order and lifecycle validations are significant.
+5. Keep clause category configuration, clause sets, clause records, and clause
+   content tokens aligned; migration order and lifecycle validations are significant.
 6. Route document-template and ODT implementation details to
    `document-generation` and `odt-authoring`; use `context-service` for Context
    Definitions and mappings.
@@ -119,7 +119,7 @@ The `clm_data` flag is separate from the `clm` feature flag.
   clearly identify the external source and its date.
 - Confirm each object, field, lookup, and relationship in the target org before
   using SOQL or recommending a data plan.
-- Confirm clause category/set/clause migration order and clause lifecycle
+- Confirm clause category/set/clause/content-token migration order and clause lifecycle
   constraints before planning a content migration.
 - Check CLM license and permission prerequisites against the target org, not only
   the permission-set group shipped in this repo.

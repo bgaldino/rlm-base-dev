@@ -95,7 +95,7 @@ Ground new claims with [`revenue-cloud-docs`](../revenue-cloud-docs/SKILL.md).
 - **DO NOT** edit Net Unit Price, Net Total Price, Total Adjustment Amount or Pricing Term Count
   in the editor when Salesforce Pricing is active [Help: `ind.qocal_view_and_edit_quotes`].
 - **DO NOT** add or edit lines with the standard Quote Line Items or Order Products related-list
-  buttons; Revenue Management doesn't support them [Help: `ind.qocal_discover_and_configure_products`].
+  buttons; Revenue Cloud doesn't support them [Help: `ind.qocal_discover_and_configure_products`].
 - **DO NOT** expect admin-created custom actions in the header action picker; only built-in
   actions are available [Help: `ind.qocal_action_button_group_important_considerations`].
 - **DO NOT** update `Calculation Status` by hand to unstick a transaction left in *Saving* while

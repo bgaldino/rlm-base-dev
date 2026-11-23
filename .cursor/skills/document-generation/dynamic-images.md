@@ -247,5 +247,5 @@ contexts for server-side generation).
   (not in the captured 264 or 262 Help snapshot)
 - Help: [Known Limitations](https://help.salesforce.com/s/articleView?id=ind.doc_gen_known_limitations_in_dynamic_rich_texts__hyperlinks__and_images.htm&type=5)
   (not in the captured 264 or 262 Help snapshot)
-- Help: [Generate Invoice PDFs with Your Company Logo](https://help.salesforce.com/s/articleView?id=ind.billing_document_generation_logo.htm&type=5)
+- Help: [Customise Invoice PDF Template with Your Company Logo](https://help.salesforce.com/s/articleView?id=ind.billing_document_generation_logo.htm&type=5)
 - Developer Guide: [OpenInterface](https://developer.salesforce.com/docs/atlas.en-us.clm_developer_guide.meta/clm_developer_guide/apex_interface_ind_docgen_api_OpenInterface.htm)

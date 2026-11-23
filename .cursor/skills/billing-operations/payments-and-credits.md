@@ -171,7 +171,11 @@ automatically or credit balances held [inferred from Help].
   schedule items, and uncollectible invoices can be written off
   [Help: `ind.billing_collections`, `ind.billing_dunning_orchestration_enable`,
   `ind.billing_collection_plan_payment_promise_collect`]. Orchestration step design:
-  `dro-plans`.
+  `dro-plans`. Collections and Recovery is a separate Help area (`ind.collections.htm` and its
+  children: console app, portal, payment plans, direct debit, risk scores) whose editions page
+  lists Financial Services Cloud and Automotive Cloud, not Revenue Cloud
+  [Help: `ind.collections_editions_permissions`]; Billing's workflow above is in
+  `ind.billing_collections` and `ind.billing_collections_overview`.
 - **Invoice aging** components show buckets and overdue counts on Account and Order pages
   [Help: `ind.billing_invoice_aging`]. The repo ships aging, dispute and collections
   components [Repo: `cumulusci.yml` → `deploy_post_billing_ui`].
