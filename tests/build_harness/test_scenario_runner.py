@@ -611,7 +611,8 @@ def test_a_pass_after_a_failure_writes_a_row_that_resets_the_count(tmp_path, mon
     assert result["retry_count"] == 0 and result["can_resume"] is True
 
 
-def test_an_exhausted_budget_is_terminal_on_a_fresh_run_too(tmp_path, monkeypatch) -> None:
+def test_an_exhausted_budget_is_terminal_when_not_resuming(tmp_path, monkeypatch) -> None:
+    # Calls run_single_scenario(is_resume=False) directly; cmd_run always uses a new run directory.
     _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
     _rerun_preflight(tmp_path)
     _rerun_preflight(tmp_path)
