@@ -80,7 +80,8 @@ What an insert of a `ProductRelatedComponent` row did with `ParentSellingModelId
 (above); this is what the platform enforced on one existing org, through API 68.0, with the
 Bundle to Bundle Component Relationship type. The configurable parent was a shipped QuantumBit
 bundle; the static parent was a new, inactive test bundle created for the run, so the static
-rows are the new-static-bundle case Help's rule describes. [Measured: 2026-11-10, 264, existing org]
+rows are the new-static-bundle case Help's rule describes; an active static bundle was not
+tried. [Measured: 2026-11-10, 264, existing org]
 **Existing org, fresh-build check pending**: the run used an org that had been built earlier,
 not a fresh harness build, so settings and schema carried over from its history may differ from
 a fresh build. The configurable-bundle refusal was also seen on a scratch load
@@ -102,9 +103,10 @@ harness build and record the outputs).
 - **No type-compatibility check on insert.** An Evergreen parent with a One Time child, and an
   Evergreen parent with a Term Defined child, were accepted once both options existed, as were
   Evergreen with Evergreen and blank with blank. Accepted on insert does not make the pair
-  valid: the traced configurator rule [above](#selling-models-inside-bundles) would flag a
-  mismatched pair, though one measured mismatch drew no message. How pricing treats such a
-  pair is **Open — needs live verification**.
+  valid. The traced configurator rule [above](#selling-models-inside-bundles) compares quote
+  lines, not component rows, and a static bundle is not configured at run time, so whether it
+  applies here is not known. How pricing and the configurator treat such a pair is **Open —
+  needs live verification**.
 - **Duplicates are allowed.** Several rows for one parent and child pair coexisted.
 - **The bulk product view repeats a child once per row.** `/connect/pcm/products/bulk` for the
   parent listed the child once for each row, and each entry's `productRelatedComponent` carried
@@ -229,7 +231,7 @@ as `displayUrl`. [Dev guide: `connect_responses_recommended_products_output.htm`
 `connect_responses_guided_selection_output.htm`, `connect_responses_configurator_product_catalog_output.htm`]
 In this repo:
 
-- **It is a static-resource path, not a web address.** QuantumBit stores `/resource/<name>`,
+- **QuantumBit uses static-resource paths.** The qb plan stores `/resource/<name>`,
   with the files shipped as static resources in two places: most in
   `unpackaged/post_quantumbit/staticresources/`, and six (`powersupply`, `liquidcooler`,
   `nvexpand`, `RAIDController`, `cacheboost`, `cpuheatsink`) in
@@ -250,9 +252,11 @@ In this repo:
   and the CSV row. [Repo: `cumulusci.yml`, `prepare_rlm_org` steps 5, 7 and 8]
 - **Decide the fallback on purpose.** Choose a shared placeholder for products without art,
   or accept a blank; do not leave the choice to whichever rows were filled in.
-- **An external `https` address** appears in the dev guide's example response, but whether this
-  repo's UI renders one without a trusted-site entry is **Open — needs live verification** (set an
-  external `DisplayUrl` on a test product and open it in the configurator and the product page).
+- **The q3 plan uses external `https` addresses.** 39 rows of
+  `datasets/sfdmu/q3/en-US/q3-pcm/Product2.csv` point at third-party image hosts (`CERT007`
+  among them), as does the dev guide's example response. Whether this repo's UI renders such an
+  address without a trusted-site entry is **Open — needs live verification** (open a q3 product
+  such as `CERT007` in the configurator and on the product page).
 
-In the shipped plan, all but one of the 314 products carry a `DisplayUrl`, in 54 distinct values,
+In the qb plan, all but one of the 314 products carry a `DisplayUrl`, in 54 distinct values,
 and one logo covers 220 of them. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
