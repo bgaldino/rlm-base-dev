@@ -100,10 +100,10 @@ harness build and record the outputs).
 | Static bundle | Both set, each product has the option | Accepted. |
 | Static bundle | Both blank | Accepted. |
 
-- **No type-compatibility check on insert.** An Evergreen parent with a One Time child, and an
-  Evergreen parent with a Term Defined child, were accepted once both options existed, as was
-  Evergreen with Evergreen; blank with blank needs no options. Accepted on insert does not make the pair
-  valid. The traced configurator rule [above](#selling-models-inside-bundles) compares quote
+- **No type-compatibility check on insert.** An Evergreen parent with a One Time, a Term
+  Defined or an Evergreen child was accepted once each product had the selling model option. A
+  row with both models blank was also accepted. Being accepted on insert does not show that a
+  mismatched pair is valid. The traced configurator rule [above](#selling-models-inside-bundles) compares quote
   lines, not component rows, and a static bundle is not configured at run time, so whether it
   applies here is not known. How pricing and the configurator treat such a pair is **Open —
   needs live verification**.
