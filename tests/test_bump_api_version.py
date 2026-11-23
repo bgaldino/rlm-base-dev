@@ -55,8 +55,13 @@ FLOOR_FILES = {
     "unpackaged/post_mcp_custom/classes/RLM_CloneSalesTransaction.cls": ["ASYNC-CAPABLE", "exist only"],
     "unpackaged/post_mcp_custom/classes/RLM_CloneSalesTransactionTest.cls": ["async-capable ("],
 }
-UNGUARDED_WORDINGS = ("baseline", "introduced in", "pinned to", "at least", "floor", "only from",
-                      "minimum", "since", "gone in", "min_api_version")
+# Matched case-insensitively against each line the dry run would rewrite. "since" counts only
+# before a version, so a causal "since" beside a live pin does not trip it. Any rewritten line
+# naming MIN_API_VERSION trips it on purpose: only the assignment is spared, and a line that
+# names the constant beside a version needs a human look.
+UNGUARDED_WORDINGS = tuple(re.compile(p, re.IGNORECASE) for p in (
+    r"baseline", r"introduced in", r"pinned to", r"at least", r"floor", r"only from",
+    r"minimum", r"\bsince v?[0-9]{2}\.0", r"gone in", r"min_api_version"))
 
 print("position-keyed exclusions")
 check("EXCLUDED_LINES table is gone", not hasattr(bump, "EXCLUDED_LINES"))
@@ -79,12 +84,19 @@ print("provenance regex is word-bounded")
 for text in ("alias offset v68.0", "it has offered v68.0", "unobserved at v68.0",
              "unverified on v68.0", "xlive-verified v68.0",
              "foo(MIN_API_VERSION, 'v68.0')", "see MIN_API_VERSION for v68.0",
-             'if MIN_API_VERSION == "v68.0":'):
+             'if MIN_API_VERSION == "v68.0":', 'log("MIN_API_VERSION: %s", v); api = "v68.0"',
+             '# MIN_API_VERSION: see above; pin = "v68.0"'):
     check(f"does not spare a live pin on {text!r}", not bump.PROVENANCE_LINE_RE.search(text))
 for text in ("as of v67.0", "as-of v67.0", "observed at v67.0", "MIN_API_VERSION = \"65.0\"",
              'MIN_API_VERSION: str = "65.0"', "MIN_API_VERSION:str=\"65.0\"",
+             'MIN_API_VERSION: Final[str] = "65.0"', 'MIN_API_VERSION: str | None = "65.0"',
              "live-verified v67.0", "verified on 262 / v67.0"):
     check(f"spares {text!r}", bool(bump.PROVENANCE_LINE_RE.search(text)))
+
+print("unguarded-wording check reads 'since' only before a version")
+since = next(w for w in UNGUARDED_WORDINGS if "since" in w.pattern)
+check("'since v67.0' is an unguarded floor wording", bool(since.search("supported since v67.0")))
+check("causal 'since' beside a pin is not", not since.search('apiVersion "68.0" // since the gateway needs it'))
 
 print("floor lines exist and are spared by content")
 for rel, needles in FLOOR_FILES.items():
@@ -119,7 +131,7 @@ forms = [f.lower() for f in bump.PROVENANCE_FORMS]
 leaked = [(p, ln.strip()[:80]) for p, ln in changed if any(f in ln.lower() for f in forms)]
 check("no changed line carries a provenance phrase (process() guard)", not leaked, str(leaked[:3]))
 unguarded = [(p, ln.strip()[:80]) for p, ln in changed
-             if any(w in ln.lower() for w in UNGUARDED_WORDINGS)]
+             if any(w.search(ln) for w in UNGUARDED_WORDINGS)]
 check("no changed line uses a floor wording the grammar does not guard", not unguarded,
       str(unguarded[:3]))
 marked = list(FORMER.values()) + [n for needles in FLOOR_FILES.values() for n in needles]
