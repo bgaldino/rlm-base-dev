@@ -592,15 +592,25 @@ CHECKS = [
         deps=[], gating=True,
     ),
     dict(
+        name="api_version_pins",
+        cmd=["python", "scripts/ai/bump_api_version.py", "--check"],
+        # Every API-version pin in the script's scope is at the target, and every rule still
+        # matches its own probe. Any tracked file can hold a pin, so a trigger list mirroring the
+        # rule scopes would drift from them; like release_refs it always runs (about one second).
+        triggers=["scripts/ai/bump_api_version.py"], always=True,
+        deps=[], gating=True,
+    ),
+    dict(
         name="bump_api_version",
         cmd=["python", "tests/test_bump_api_version.py"],
-        # Keeps release-provenance lines protected by their own text, and runs the script's
-        # --check (~1s) so a rule gone blind or a stray off-target pin in the rewritten scope
-        # surfaces here. Triggers are the script, its suite, and the two files whose provenance
-        # lines used to be protected by line number.
-        triggers=["scripts/ai/bump_api_version.py", "tests/test_bump_api_version.py",
+        # Keeps release-provenance and floor lines protected by their own text, by a dry run to
+        # the next version. The repo-wide pin check is the always-run api_version_pins. Triggers
+        # are the script, its suite, cumulusci.yml (the target it reads), and the files whose lines it asserts on.
+        triggers=["scripts/ai/bump_api_version.py", "tests/test_bump_api_version.py", "cumulusci.yml",
                   "scripts/context_service/examples/contextServiceLifecycle.apex",
-                  "unpackaged/post_utils/classes/RLM_DecisionTableManagerController.cls"],
+                  "unpackaged/post_utils/classes/RLM_DecisionTableManagerController.cls",
+                  "unpackaged/post_mcp_custom/classes/RLM_CloneSalesTransaction.cls",
+                  "unpackaged/post_mcp_custom/classes/RLM_CloneSalesTransactionTest.cls"],
         deps=[], gating=True,
     ),
     dict(

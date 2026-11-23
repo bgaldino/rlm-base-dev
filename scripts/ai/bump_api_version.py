@@ -379,8 +379,9 @@ def build_rules() -> list[Rule]:
             suffixes=(".cls", ".apex"),
             # Two-digit range for the same reason as the two rules above: capped
             # at 6[0-7], this stopped seeing anything at 68.0 or later. In tracked
-            # scope its only remaining matches are provenance lines, deliberately
-            # skipped by PROVENANCE_LINE_RE -- so it was already inert on live code.
+            # scope it matches the live vNN.0 pins in Apex (class constants, REST
+            # paths, createTaxEngine.apex) plus provenance and floor lines, which
+            # PROVENANCE_LINE_RE spares by content.
             pattern=re.compile(r"(?P<pre>v)(?P<ver>[0-9]{2}\.0)"),
             replace=_version_only,
         ),

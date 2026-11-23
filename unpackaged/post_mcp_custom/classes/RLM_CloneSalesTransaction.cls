@@ -1,8 +1,8 @@
 /**
- * RLM_CloneSalesTransaction — ASYNC-CAPABLE (v68.0).
+ * RLM_CloneSalesTransaction — ASYNC-CAPABLE (as of v68.0).
  *
- * ASYNC-CAPABLE (264 / v68.0 baseline). The async members (input.contextId,
- * options.contextId, output.trackerId) exist only from v68.0 / 264 on. Foundations is
+ * ASYNC-CAPABLE (264 / baseline as of v68.0). The async members (input.contextId,
+ * options.contextId, output.trackerId) exist only as of v68.0 / 264. Foundations is
  * owned for this class: edits belong here. A user calling this
  * through the CLASSIC action endpoint also needs class access; the RLM_McpSalesTransactions
  * permission set grants it.
