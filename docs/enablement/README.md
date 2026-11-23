@@ -13,7 +13,7 @@ Hands-on enablement exercises for Salesforce Revenue Cloud, maintained as part o
 - **2 master exercises drafted** (PCM, Pricing) · **10 per-release 260 drafts complete** · **264 QB demo script** relabeled from the 262 draft (`docs/enablement/264/qb-demo-script.md`) · **Master Configurator + Transaction Mgmt + 6 more areas pending** · **262 per-area extracts pending** (deferred until master coverage broadens)
 - Standing customer accounts (Infinitech, Global Media) come from `scratch_data`; channel partner (Robot Resellers) comes from `qb-prm`; everything else from the QB data plans
 - All content is **markdown source**; rendered PDFs/Word for distribution come later
-- **Salesforce Help grounding** uses the per-article markdown snapshots: `docs/salesforce/264/help/` for the current release (1703 articles) and `docs/salesforce/262/help/` for the prior GA reference (935 articles) — they replace the old per-release master Help PDFs
+- **Salesforce Help grounding** uses the per-article markdown snapshots: `docs/salesforce/264/help/` for the current release (1,703 articles) and `docs/salesforce/262/help/` for the prior GA reference (935 articles) — they replace the old per-release master Help PDFs
 - **Where to start your review** depends on your role — see [Reading paths by reviewer role](#reading-paths-by-reviewer-role) below
 
 > **Release context:** which release each branch carries is in [README → Branch Information](../../README.md#branch-information). 262 (Summer '26) is the **prior GA reference** and 264 (Winter '27) is the **current release cycle**; `docs/enablement/264/` has no 264 Hands-On extracts yet; it holds the QB demo script, relabeled from the 262 draft on 2026-10-29. The [264 feature index](../salesforce/264/feature-index.md) is populated from the Help corpus, but authoring waits on tier verification. The 264 Revenue release notes are captured under `docs/salesforce/264/release-notes/` (PR #480) and cross-referenced into the index; they label no feature Beta or Pilot, so rows backed by a release note are provisionally GA. Invoice Risk Scoring is Pilot (Help titles), and three New rows with no note (Billing Start Month and Next Billing Date Override, Exclude From Billing, Custom Dynamic Addition Screen Flow) have no known tier; every tier still needs confirming on a live org at GA. The 262 feature index is populated at [`../salesforce/262/feature-index.md`](../salesforce/262/feature-index.md) and the Help-portal snapshot lives at [`../salesforce/262/help/`](../salesforce/262/help/) (935 articles, replaces the prior per-release master Help PDFs). The QB demo script, generated 2026-05-24 as the 262 draft via the [`qb-demo-script` SKILL](../../.cursor/skills/qb-demo-script/SKILL.md), now lives at [`264/qb-demo-script.md`](264/qb-demo-script.md) (262 orgs no longer exist); 262 per-area Hands-On extracts are still pending and will be derived from master coverage as it broadens.
@@ -109,7 +109,7 @@ Your goal: confirm the feature descriptions, version metadata, and behavior clai
 
 1. Skim **[`master/qb-scenario-reference.md`](master/qb-scenario-reference.md)** Section 7 (CML Constraint Models) and the Pricing-feature mapping in Section 3
 2. Review **[`docs/salesforce/260/feature-index.md`](../salesforce/260/feature-index.md)** — every 260 feature, with my interpretation of customer need / solution / use case. Flag anything I got wrong.
-3. Review **[`docs/salesforce/262/feature-index.md`](../salesforce/262/feature-index.md)** — same for 262 preview.
+3. Review **[`docs/salesforce/262/feature-index.md`](../salesforce/262/feature-index.md)** — same for 262 (prior GA reference).
 4. Spot-check a feature in **[`master/02-salesforce-pricing.md`](master/02-salesforce-pricing.md)** to verify the version metadata (e.g., "introduced: 256 · enhanced_in: [260]") matches your knowledge.
 
 **Feedback I want from you:**
@@ -363,10 +363,11 @@ Project conventions that affect this work:
 | 🔧 [Release Enablement Skill](../../.cursor/skills/release-enablement/SKILL.md) | For authoring agents — workflow + source inventory |
 | 📐 [Authoring Patterns](../../.cursor/skills/release-enablement/authoring-patterns.md) | 11 patterns for edge cases |
 | 📋 [260 Feature Index](../salesforce/260/feature-index.md) | What's new in 260, by area |
-| 📋 [262 Feature Index](../salesforce/262/feature-index.md) | What's new in 262 (preview) |
+| 📋 [262 Feature Index](../salesforce/262/feature-index.md) | What's new in 262 (prior GA reference) |
+| 📋 [264 Feature Index](../salesforce/264/feature-index.md) | What's new in 264 (current release cycle; Help-derived, tiers pending) |
 | 🗂️ [260 Per-Release Drafts](260/) | All 10 area drafts for 260 |
 | 🎬 [264 QB Demo Script](264/qb-demo-script.md) | Per-release SE/partner demo script for 264 (relabeled from the 262 draft) |
-| 📚 [264 Help Snapshot](../salesforce/264/help/) | Per-article markdown mirror of help.salesforce.com for 264 (1703 articles) |
+| 📚 [264 Help Snapshot](../salesforce/264/help/) | Per-article markdown mirror of help.salesforce.com for 264 (1,703 articles) |
 | 📚 [262 Help Snapshot](../salesforce/262/help/) | Per-article markdown mirror of help.salesforce.com for 262 (935 articles) |
 
 ---

@@ -16,7 +16,7 @@ End-to-end workflow for keeping `docs/erds/erd-data.json` aligned to canonical R
 
 1. **The ERD reflects PLATFORM schema only.** Custom fields (any `__c` suffix, including project `RLM_*__c` and managed-package fields) are excluded by every validator and extraction script. Don't override this.
 2. **Always cross-validate against TWO orgs** when classifying orphan fields — a field present in one org but absent in another is feature-gated, not removed. Hold the **release** constant and let the **shapes differ**: `find_orphans` keeps a field present in *any* queried org, so a second org can only rescue fields from deletion, never accuse one. That makes complementary shapes (`ent` + `pde`, feature on + off) the only pairing that can actually disprove an orphan, and a same-shape pair worthless — it cannot disagree, so "two orgs agreed" is not corroboration. Absence is never positive evidence of removal either way; see DO NOT #1.
-3. **Verify against Core source** before bulk-removing fields. The validators surface candidates; codesearch confirms ground truth. For a pre-GA release there may be no Core UDD branch yet (264 had none at its 2026-08 refresh; `core-264-public` `p4/264-patch` exists now, and its verification pass has not been run), in which case a live org is the only ground truth and the previous release's UDD verification carries forward unchanged rather than being re-run.
+3. **Verify against Core source** before bulk-removing fields. The validators surface candidates; codesearch confirms ground truth. For a pre-GA release there may be no Core UDD branch yet (264 had none at its 2026-08 refresh; a `core-264-public` `p4/264-patch` branch was listed in code search on 2026-11-24, and no 264 UDD verification pass has been run against it), in which case a live org is the only ground truth and the previous release's UDD verification carries forward unchanged rather than being re-run.
 4. **Use `prepare_rlm_org`-built scratch orgs.** The 264 refresh used two of them — `rlm-base__264merged` and `rlm-base__264fresh` — and diffed against the *committed* `scripts/erd/schema_diff/262-schema.json` rather than a live 262 org, so the baseline is byte-identical to what the previous refresh was built from.
 5. **All schema diff scripts default to skipping custom fields**. Pass `--include-custom` only for project-internal tooling that needs to see deployed `RLM_*__c` fields.
 
@@ -216,21 +216,12 @@ assuming:
 
 When you need to know whether a field is real RC, real other-cloud, or a PDF artifact:
 
-```python
-# 1. Find the entity's canonical XML in codesearch:
-mcp__plugin_codesearch_codesearch__search(
-    query='file:"<EntityName>.entity.xml" repo:"core-<release>-public" branch:"<release>-patch"'
-)
-
-# 2. Read the entity XML:
-mcp__plugin_codesearch_codesearch__blob(
-    code_host="gitcore.soma.salesforce.com",
-    org="core-2206",
-    repo="core-<release>-public",   # e.g. core-264-public
-    ref="p4/<release>-patch",
-    file_path="core/<module>-udd/java/resources/udd/<EntityName>.entity.xml"
-)
-
+```text
+# 1. Search code for <EntityName>.entity.xml in core-<release>-public
+#    (e.g. core-264-public) at p4/<release>-patch.
+# 2. Read the file at
+#    gitcore.soma.salesforce.com/core-2206/core-<release>-public, ref p4/<release>-patch,
+#    path core/<module>-udd/java/resources/udd/<EntityName>.entity.xml
 # 3. Look for <flexField name="..."> elements with apiAccess/orgAccess gates
 ```
 
@@ -300,9 +291,10 @@ The pattern `*CnvAmount` / `*CnvRate` / `*CnvDate` / `*IsoCode` IS canonical RC 
 **264 (2026-08-15).** `erd-data.json` is a 264 capture: 263 objects, 4,252 fields,
 674 relationships. Cross-validated across `rlm-base__264merged` and
 `rlm-base__264fresh` (both `ent`), which agreed field-for-field — 254 describable
-objects, 3,913 platform fields each. 264 has no Core UDD branch or Metadata Coverage
-Report yet, so the Core verification below carries forward from 262 rather than being
-re-run, and a live org is ground truth for this release. The refresh added 70 fields
+objects, 3,913 platform fields each. 264 had no Core UDD branch or Metadata Coverage
+Report at this refresh (a `core-264-public` `p4/264-patch` branch was listed in code
+search on 2026-11-24; its UDD pass is pending), so the Core verification below carries
+forward from 262 rather than being re-run, and a live org is ground truth for this release. The refresh added 70 fields
 and 12 relationships, removed the 8 fields 264 retired, and left the previous
 release's documented orphan set untouched. Delta:
 `scripts/erd/schema_diff/262-vs-264-diff.md`.
