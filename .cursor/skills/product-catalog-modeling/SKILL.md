@@ -67,6 +67,9 @@ drop the `.md` suffix of the snapshot file name.
 - **DO NOT** set a component selling model on a configurable bundle's components, or,
   under a new static bundle, a parent selling model other than None or any component selling
   model. [Help: `ind.product_catalog_product_relationships.htm`; `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
+  The platform rejects the configurable case on insert; the static case is accepted, so Help's
+  rule there is guidance, not a guard
+  ([measured](selling-models-and-lifecycle.md#measured-component-selling-model-rules)).
 - **DO NOT** override a price-impacting attribute in a bundle context. The attribute-based
   adjustment stops applying. [Help: `ind.pricing_attribute_based_pricing_limits.htm`]
 - **DO NOT** rename a `Family` value or a category/classification code that is already in
@@ -343,7 +346,8 @@ Every item marked **Open — needs live verification** in this skill and its sub
 - **One-pass QuantumBit build.** Whether any classification attribute is left at its definition's value
   where that differs from its CSV (inferred from the traced copy: `AttributeNameOverride` and `IsRequired` already match their definitions, so probably not; not measured). See [Loading the model](#loading-the-model).
 - **Selling models on an existing static bundle's components.** The q3 plan's `CERT007`
-  sets them; Help forbids them under a *new* static bundle. See
+  sets them; Help's rule is written for a *new* static bundle. An insert of such rows was accepted
+  on an existing org; pricing and configurator behaviour are still open. See
   [`selling-models-and-lifecycle.md`](selling-models-and-lifecycle.md#selling-models-inside-bundles).
 - **A `Readonly` anchor behind a `$$` lookup.** Fact (b) saw its lookups fail without a CSV;
   `sfdmu-data-plans` verified a single-field traversal without one. The open check and its owner are in

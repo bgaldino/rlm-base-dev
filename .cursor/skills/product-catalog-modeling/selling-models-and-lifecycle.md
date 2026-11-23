@@ -52,8 +52,11 @@ blank on reload. [Repo: `sfdmu-data-plans/SKILL.md` → *Reloading a Plan Into a
 - **New static bundle:** parent selling model None, and no component selling model. [Help: `ind.product_catalog_add_components_to_a_static_product_bundle.htm`]
   The shipped q3 plan's static bundle `CERT007` sets Term Annual as both parent and component
   selling model on its two children. [Repo: `datasets/sfdmu/q3/en-US/q3-pcm/ProductRelatedComponent.csv`]
-  Whether Help's rule, written for a *new* static bundle, makes such rows invalid is **Open —
-  needs live verification**; do not copy the pattern into a new model.
+  Help's rule, written for a *new* static bundle, is guidance: an insert of such rows was
+  accepted when both products had their selling model options (see
+  [Measured component rules](#measured-component-selling-model-rules)). Whether pricing and the
+  configurator treat them correctly is **Open — needs live verification**; do not copy the
+  pattern into a new model.
 - **Bundle-based adjustments** need three selling models: the product's, its parent
   product's and its root bundle's. Help lists all three as prerequisites, and all three
   products must be in a price book. [Help: `ind.pricing_create_bundle_based_adjustments.htm`]
@@ -67,6 +70,43 @@ Starter bundle the root is One-Time while a maintenance child is Term Annual.
 renews is **Open — needs live verification** beyond the one-time rule above and the one
 measured shape ([below](#selling-model-of-the-bundle-root)); how it co-terminates is open for
 every shape.
+
+### Measured component selling-model rules
+
+What an insert of a `ProductRelatedComponent` row did with `ParentSellingModelId` and
+`ChildSellingModelId`, through the standard record API. Help only says not to select them
+(above); this is what the platform enforced. [Measured: 2026-11-10, 264, existing Enterprise
+build, API 68.0, Bundle to Bundle relationship type] **Existing org, fresh-build check pending**:
+the run used an org that had been built earlier, not a fresh harness build, so settings and
+schema carried over from its history may differ from a fresh build. Re-measure on a fresh build
+before relying on it.
+[Open: repeat these inserts on a fresh harness build and record the outputs.]
+
+| Parent product | Insert | Result |
+|---|---|---|
+| Configurable bundle (`ConfigureDuringSale` Allowed) | A parent selling model | Rejected, INVALID_INPUT: the parent selling model is unsupported for configurable product bundles. |
+| Configurable bundle | A component selling model | Rejected, INVALID_INPUT: the component selling model is unsupported for configurable product bundles. |
+| Configurable bundle | Any row | Needs a component group ("Group is mandatory for configurable parent product"). |
+| Static bundle (`ConfigureDuringSale` Not Allowed) | `IsDefaultComponent` false | Rejected: the child must be added by default for a static parent. |
+| Static bundle | One selling model set, the other blank | Rejected: both must have values or both be empty. |
+| Static bundle | Both set, a selling model option missing on either product | Rejected: first add a selling model option to the related product and selling model. |
+| Static bundle | Both set, each product has the option | Accepted. |
+| Static bundle | Both blank | Accepted. |
+
+- **No type-compatibility check on insert.** An Evergreen parent with a One Time child, and an
+  Evergreen parent with a Term Defined child, were accepted once both options existed, as were
+  Evergreen with Evergreen and blank with blank. How pricing or the configurator treats a
+  mismatched pair was not tested.
+- **Duplicates are allowed.** Several rows for one parent and child pair coexisted.
+- **The bulk product view repeats a child once per row.** `/connect/pcm/products/bulk` for the
+  parent listed the child once for each row, and each entry's `productRelatedComponent` carried
+  `parentSellingModelId` and `childSellingModelId` (omitted when blank). Its
+  `productSellingModelOptions` lists the product's own options, not the component's model. So a
+  duplicate row shows up as a duplicate child in the view.
+
+So for a static bundle that must carry component selling models, load both selling model
+options before the component row, and set both models or neither. Under a configurable
+bundle, leave both blank and put the choice on the child's own options.
 
 ### Selling model of the bundle root
 
@@ -161,6 +201,7 @@ QuantumBit plan sets the flag on no product. [Repo: `datasets/sfdmu/qb/en-US/qb-
 | `UsageModelType` | Anchor (main subscription), Pack (add-on that grants usage), or a commitment type. Help lists one Commit value; the dev guide lists Monetary, Quantity and Token commitments, and `usage-consumption` names the API values. [Help: `ind.product_catalog_create_simple_products.htm`; Dev guide: `usage_management_fields_on_product2.htm`] | `usage-consumption` |
 | `DecompositionScope`, `FulfillmentQtyCalcMethod` | How many fulfillment lines; Always One vs Aggregate. [Help: `ind.product_catalog_create_simple_products.htm`] | `dro-plans` |
 | `AvailabilityDate`, `DiscontinuedDate`, `EndOfLifeDate` | No enforcement found (see note below) | see note below |
+| `DisplayUrl` | The product's image; Connect product responses return it as `displayUrl`. See [Product images](#product-images). [Dev guide: `connect_responses_recommended_products_output.htm`] | this skill |
 
 **Help describes the end dates in opposite ways.** The simple-product article ties
 `DiscontinuedDate` to sale and `EndOfLifeDate` to support; the bundled-product article says
@@ -172,3 +213,36 @@ the order availability <= discontinued <= end of life, but no date was found tha
 browsing, adding to a quote, ordering, amending or renewing. Treat them as informational and
 use `IsActive` or a rule if a product must be blocked [Platform behaviour, traced in part].
 Not run live.
+
+### Product images
+
+`Product2.DisplayUrl` holds the image shown for a product, and Connect product responses return it
+as `displayUrl`. [Dev guide: `connect_responses_recommended_products_output.htm`,
+`connect_responses_guided_selection_output.htm`, `connect_responses_configurator_product_catalog_output.htm`]
+In this repo:
+
+- **It is a static-resource path, not a web address.** QuantumBit stores `/resource/<name>`,
+  with the files shipped as static resources in two places: most in
+  `unpackaged/post_quantumbit/staticresources/`, and six (`powersupply`, `liquidcooler`,
+  `nvexpand`, `RAIDController`, `cacheboost`, `cpuheatsink`) in
+  `force-app/main/default/staticresources/`. A product with no art of its own points at one
+  shared logo, and most do. **Known gap:** `/resource/omniserver` (product `PROD-455868158`)
+  has no resource in either location, so that image does not resolve. [Repo:
+  `datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv`]
+- **Keep `DisplayUrl` in the product plan's own `Product2.csv`.** An image-only plan that ran
+  after the product plan blanked the images whenever the product plan was reloaded alone; the
+  URLs now live in the product CSV. [Repo: `datasets/sfdmu/qb/en-US/qb-pcm/README.md`]
+- **Deploy the resource before the plan that points at it.** `prepare_rlm_org` deploys
+  `force-app` (`deploy_full`, step 5) and the QuantumBit metadata (`prepare_quantumbit`, step 7)
+  before the product plan (`prepare_product_data`, step 8), so the paths resolve when the first
+  quote opens. A new image is two changes in one PR: the resource,
+  and the CSV row. [Repo: `cumulusci.yml`, `prepare_rlm_org` steps 5, 7 and 8]
+- **Decide the fallback on purpose.** Choose a shared placeholder for products without art,
+  or accept a blank; do not leave the choice to whichever rows were filled in.
+- **An external `https` address** appears in the dev guide's example response, but whether this
+  repo's UI renders one without a trusted-site entry was not checked.
+  [Open: set an external `DisplayUrl` on a test product and open it in the configurator and the
+  product page.]
+
+In the shipped plan, all but one of the 314 products carry a `DisplayUrl`, in 54 distinct values,
+and one logo covers 220 of them. [Repo: the CSV above, counted 2026-11-23]
