@@ -249,17 +249,20 @@ private class RLM_OrderItemContractingUtilityTest {
         PermissionSet readOrders = new PermissionSet(Name = 'RLM_Test_Read_Orders_Only', Label = 'RLM test read orders only');
         System.runAs(new User(Id = UserInfo.getUserId())) {
             insert readOrders;
-            // Measured on a 264 org (describe and SOQL): ObjectPermissions.SobjectType is a restricted
-            // picklist that has Order but neither OrderItem nor OrderAction, and no ObjectPermissions row
-            // in the org names either, so the only object grant possible here is Order. OrderAction.Type
-            // is not permissionable, and FieldPermissions.SobjectType lists OrderItem with rows for
-            // OrderItem.ServiceDate.
-            // Not run yet (inferred): that Order.EffectiveDate is not permissionable, that
-            // OrderItem.EndDate is (so the test grants only the two OrderItem fields), and that Order
-            // Read alone makes OrderItem and OrderAction readable.
-            // The preconditions below assert the outcome, so a wrong inference fails the test instead
-            // of passing it.
-            insert new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'Order', PermissionsRead = true);
+            // Measured on a 264 org with Minimum Access users: ObjectPermissions.SobjectType is a restricted
+            // picklist that lists Order but neither OrderItem nor OrderAction, so OrderItem access can only
+            // come from its parents. Order Read alone leaves OrderItem unreadable; Order Read plus Product2
+            // Read plus Pricebook2 Read makes it readable, and neither of the two extra reads works alone.
+            // OrderAction is readable with Order Read. A field grant on an OrderItem field has no effect
+            // until the object is readable, and OrderItem.ServiceDate and EndDate then need their own field
+            // grants (OrderItem.Quantity does not). ProductSellingModel stays unreadable throughout.
+            // The preconditions below assert the outcome, so a change in platform behaviour fails the test
+            // instead of passing it.
+            insert new List<ObjectPermissions>{
+                new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'Order', PermissionsRead = true),
+                new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'Product2', PermissionsRead = true),
+                new ObjectPermissions(ParentId = readOrders.Id, SobjectType = 'Pricebook2', PermissionsRead = true)
+            };
             insert new List<FieldPermissions>{
                 new FieldPermissions(ParentId = readOrders.Id, SobjectType = 'OrderItem', Field = 'OrderItem.ServiceDate', PermissionsRead = true),
                 new FieldPermissions(ParentId = readOrders.Id, SobjectType = 'OrderItem', Field = 'OrderItem.EndDate', PermissionsRead = true)
