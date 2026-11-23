@@ -347,6 +347,5 @@ Placement:
 | `docs/enablement/` | Hands-on exercises: `master/` (living source), `{version}/` (release extracts), `_template/` |
 | `docs/erds/` | ERD diagrams (Mermaid source + HTML viewer) |
 | `docs/salesforce/{version}/` | Per-release feature indexes and Help portal snapshots |
-| `docs/integration/` | Integration-related documentation |
 
 ---

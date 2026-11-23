@@ -31,6 +31,11 @@ from typing import Any, Dict, List, Optional
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
+AUTO_GENERATED_BANNER = (
+    "> **Auto-generated** by `scripts/erd/schema_diff/diff_schemas.py`. "
+    "Do not edit manually — re-run the script (see the `schema-validation` skill)."
+)
+
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 import sfdmu_export  # noqa: E402
 import repo_paths  # noqa: E402
@@ -353,6 +358,8 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
 
     lines.append("# Schema Diff Report")
     lines.append("")
+    lines.append(AUTO_GENERATED_BANNER)
+    lines.append("")
     lines.append(f"**Baseline:** {b_meta.get('org_alias', 'unknown')} "
                  f"(extracted {b_meta.get('extracted_at', 'unknown')})")
     lines.append(f"**Target:** {t_meta.get('org_alias', 'unknown')} "
@@ -544,7 +551,7 @@ def main():
 
     if args.report:
         Path(args.report).parent.mkdir(parents=True, exist_ok=True)
-        with open(args.report, "w") as f:
+        with open(args.report, "w", encoding="utf-8") as f:
             f.write(report)
         print(f"\nReport written to {args.report}")
     else:
@@ -556,7 +563,7 @@ def main():
         if impacts:
             output["impacts"] = impacts
         Path(args.json_output).parent.mkdir(parents=True, exist_ok=True)
-        with open(args.json_output, "w") as f:
+        with open(args.json_output, "w", encoding="utf-8") as f:
             json.dump(output, f, indent=2)
         print(f"JSON diff written to {args.json_output}")
 
