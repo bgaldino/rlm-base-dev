@@ -408,6 +408,13 @@ class RedactionTest(unittest.TestCase):
             self.assertTrue(guard.SESSION_URL_PATTERN.search(f"cookie {encoded}"), encoded)
             self.assertTrue(scanner.SESSION_URL_PATTERN.search(encoded), encoded)
             self.assertEqual(guard.redact_session_urls(f"bad {encoded}"), guard.WITHHELD)
+        # Encoded context: the char before 00D is the last hex digit of an escape, not a boundary.
+        for encoded in ["x%3D00D000000000000%21" + "A" * 24, "%22sessionId%22%3A%2200D000000000000%21" + "A" * 24,
+                        "a%2C00D000000000000%2521" + "A" * 24]:
+            self.assertTrue(guard.SESSION_URL_PATTERN.search(encoded), encoded)
+            self.assertTrue(scanner.SESSION_URL_PATTERN.search(encoded), encoded)
+            self.assertEqual(guard.redact_session_urls(f"bad {encoded}"), guard.WITHHELD)
+        self.assertFalse(guard.SESSION_URL_PATTERN.search("x100D000000000000%21" + "A" * 24))
         self.assertFalse(guard.SESSION_URL_PATTERN.search("00D000000000000%21short"))
         self.assertFalse(guard.SESSION_URL_PATTERN.search("00D000000000000!short"))
         self.assertFalse(guard.SESSION_URL_PATTERN.search("record 00D000000000000 is an org id"))
@@ -550,9 +557,11 @@ class RobotTreeSweepTest(unittest.TestCase):
 
     Name based: it flags the keywords and calls below by text. It cannot see a URL reached through a
     keyword it does not know, so the live-run scan (check_robot_session_urls.py) stays the backstop.
-    The forbidden keywords are exactly those of the installed SeleniumLibrary that read
-    ``driver.current_url`` (which selenium then logs at DEBUG): the location keywords, the window
-    keywords that build window info, ``Log Source``, cookies, and every keyword that finds an element
+    The forbidden keywords are those of the installed SeleniumLibrary that read
+    ``driver.current_url`` (which selenium then logs at DEBUG), plus a few that do not themselves
+    read it but sit in the same family and are barred by design (``Close Window`` and
+    ``Get Window Handles`` only use ``driver.close()``/``driver.window_handles``): the location
+    keywords, the window keywords, ``Log Source``, cookies, and every keyword that finds an element
     by an ``a``/``img``/``input`` tag (links, images, buttons, checkboxes, radio buttons, text
     fields). With an unprefixed locator the element finder reads the base URL, because those tags'
     key attributes include ``@href``/``@src``. Keywords that find by ``button``/``textarea``/``select``
@@ -562,14 +571,14 @@ class RobotTreeSweepTest(unittest.TestCase):
     """
 
     FORBIDDEN = re.compile(
-        r"\b(?:Get Locations?|Location Should (?:Not )?(?:Be|Contain)|Log Location"
-        r"|Wait Until Location (?:Is|Is Not|Contains|Does Not Contain)"
-        r"|Get Source|Log Source|Get Cookies?|Add Cookie|Delete (?:All )?Cookies?"
-        r"|Switch Window|Close Window|Get Window (?:Titles|Names|Identifiers|Handles)"
-        r"|Click (?:Link|Image|Button)|Mouse Down On (?:Link|Image)"
-        r"|Page Should (?:Not )?Contain (?:Link|Image|Button|Checkbox|Radio Button|Textfield)"
-        r"|(?:Select|Unselect) Checkbox|Checkbox Should (?:Not )?Be Selected"
-        r"|Textfield (?:Should Contain|Value Should Be)"
+        r"\b(?:Get[ _]?Locations?|Location[ _]?Should[ _]?(?:Not[ _]?)?(?:Be|Contain)|Log[ _]?Location"
+        r"|Wait[ _]?Until[ _]?Location[ _]?(?:Is|Is[ _]?Not|Contains|Does[ _]?Not[ _]?Contain)"
+        r"|Get[ _]?Source|Log[ _]?Source|Get[ _]?Cookies?|Add[ _]?Cookie|Delete[ _]?(?:All[ _]?)?Cookies?"
+        r"|Switch[ _]?Window|Close[ _]?Window|Get[ _]?Window[ _]?(?:Titles|Names|Identifiers|Handles)"
+        r"|Click[ _]?(?:Link|Image|Button)|Mouse[ _]?Down[ _]?On[ _]?(?:Link|Image)"
+        r"|Page[ _]?Should[ _]?(?:Not[ _]?)?Contain[ _]?(?:Link|Image|Button|Checkbox|Radio[ _]?Button|Textfield)"
+        r"|(?:Select|Unselect)[ _]?Checkbox|Checkbox[ _]?Should[ _]?(?:Not[ _]?)?Be[ _]?Selected"
+        r"|Textfield[ _]?(?:Should[ _]?Contain|Value[ _]?Should[ _]?Be)"
         r"|get_location|get_locations|current_url|page_source|window_handles)\b"
         r"|(?:window\.|document\.)location\b(?!\.pathname)"
         r"|\blocation\.(?:href|search|hash|origin|host|hostname|toString)\b"
@@ -609,6 +618,12 @@ class RobotTreeSweepTest(unittest.TestCase):
                      "    Checkbox Should Be Selected    x", "    Checkbox Should Not Be Selected    x",
                      "    Page Should Contain Radio Button    x", "    Page Should Contain Textfield    x",
                      "    Textfield Should Contain    x    y", "    Textfield Value Should Be    x    y"]:
+            self.assertTrue(self.FORBIDDEN.search(line), line)
+        # Python spellings and Robot's case/space/underscore-insensitive names.
+        for line in ['        selib.click_button("Save")', "        selib.select_checkbox('x')",
+                     "        self.selenium.checkbox_should_be_selected(loc)", "        s.page_should_contain_textfield(x)",
+                     "        s.textfield_value_should_be(a, b)", "    Click_Button    Save", "    clickbutton    Save",
+                     "    Page_Should_Not_Contain_Button    x", "        s.click_link(x)", "        s.get_location()"]:
             self.assertTrue(self.FORBIDDEN.search(line), line)
         self.assertFalse(self.FORBIDDEN.search("    ... window.location.pathname ..."))
         # Prefixed locators and tags that do not read the URL stay allowed.
