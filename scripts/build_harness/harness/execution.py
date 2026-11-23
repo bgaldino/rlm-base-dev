@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Event, Thread
-from typing import Any, Callable, Dict, Optional, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence, Set, Tuple
 
 from scripts.build_harness.harness.failure import classify_signature, infer_failure_signature
 from scripts.build_harness.harness.io import now_utc
@@ -334,14 +334,25 @@ class PreflightFailure:
         return self.message
 
 
-def _parse_project_info_custom(output: str) -> Dict[str, str]:
-    """Read the top-level `custom:` block of `cci project info` as name -> text.
+def _parse_project_info_custom(output: str) -> Tuple[Dict[str, str], Set[str]]:
+    """Read the top-level `custom:` block of `cci project info`.
+
+    Returns (flags, ambiguous): flag name -> text, and the names that appeared more than
+    once with different values.
 
     The output looks like YAML but is not (a value such as `Sandbox orgs: ` breaks a
     YAML parser), so read the block by indentation: one `name: value` line per flag
     directly under `custom:`; deeper lines (lists, mappings) are not flags.
+
+    CumulusCI prints a multi-line string value's continuation lines as they are, which
+    can be at column 0 or indented. Lines that are not shaped like `key: value` or `key:`
+    are ignored, and a column-0 line ends the block only when it is shaped like a
+    top-level key. A continuation that is itself shaped like `key: value` cannot be told
+    from a flag: it is read as one, and if it repeats a real flag with another value the
+    name is reported in `ambiguous` rather than guessed.
     """
     flags: Dict[str, str] = {}
+    ambiguous: Set[str] = set()
     in_block = False
     block_indent: Optional[int] = None
     for line in output.splitlines():
@@ -349,8 +360,10 @@ def _parse_project_info_custom(output: str) -> Dict[str, str]:
             continue
         indent = len(line) - len(line.lstrip(" "))
         if indent == 0:
-            in_block = line.rstrip() == "custom:"
-            block_indent = None
+            if line.rstrip() == "custom:":
+                in_block, block_indent = True, None
+            elif _CUSTOM_KEY_LINE.match(line):
+                in_block = False
             continue
         if not in_block:
             continue
@@ -358,12 +371,15 @@ def _parse_project_info_custom(output: str) -> Dict[str, str]:
             block_indent = indent
         if indent != block_indent:
             continue
-        # A multi-line string value continues on lines that are not `key: value` or
-        # `key:`; ignore them rather than reading their text as a flag.
         match = _CUSTOM_KEY_LINE.match(line.strip())
-        if match:
-            flags[match.group(1)] = (match.group(2) or "").strip()
-    return flags
+        if not match:
+            continue
+        name, value = match.group(1), (match.group(2) or "").strip()
+        if name in flags and flags[name] != value:
+            ambiguous.add(name)
+        else:
+            flags.setdefault(name, value)
+    return flags, ambiguous
 
 
 _WORKTREE_HINT = (
@@ -378,7 +394,7 @@ def verify_project_flags(
     effective_flags: Dict[str, Any],
     *,
     timeout: float = 60,
-) -> Optional[str]:
+) -> Optional[PreflightFailure]:
     """Check that CumulusCI, run from ``project_root``, loads the scenario's flags.
 
     Every ``when:`` check in a flow, including those of the nested flows' tasks, is
@@ -404,7 +420,9 @@ def verify_project_flags(
 
     Returns None when both pass, otherwise a ``PreflightFailure`` (``message`` and
     ``failure_class``): ``deterministic`` for what is wrong with the setup,
-    ``transient`` for a timeout, ``unknown`` when ``cci`` could not run or report.
+    ``transient`` for a timeout or a transient ``cci`` error, which is the only class
+    that keeps resume recommended. A ``cci`` that cannot run, or exits non-zero without a
+    transient signature, is ``deterministic``.
     """
     if not (project_root / ".git").is_dir():
         return PreflightFailure(
@@ -426,16 +444,23 @@ def verify_project_flags(
             "transient",
         )
     except (FileNotFoundError, OSError) as exc:
+        # `cci` is missing or not executable: a retry cannot change that.
         return PreflightFailure(
             f"Could not run `cci project info` in {project_root} to confirm the scenario flags: {exc!r}",
-            "unknown",
+            "deterministic",
         )
     if result.returncode != 0:
+        detail = infer_failure_signature((result.stderr or result.stdout or "").splitlines())
+        failure_class = classify_signature(detail)
         return PreflightFailure(
-            f"`cci project info` exited {result.returncode} in {project_root}; cannot confirm the scenario flags.",
-            "unknown",
+            f"`cci project info` exited {result.returncode} in {project_root}; cannot confirm the scenario flags."
+            + (f" {detail}" if detail else ""),
+            # Only a transient signature (a timeout, a 503) is worth a retry. A failure
+            # `cci` reported that matches no pattern is treated as a fault in the setup,
+            # so an agent following the policy does not loop on it.
+            "transient" if failure_class == "transient" else "deterministic",
         )
-    custom = _parse_project_info_custom(result.stdout or "")
+    custom, ambiguous = _parse_project_info_custom(result.stdout or "")
     if not custom:
         return PreflightFailure("`cci project info` printed no `custom:` block; cannot confirm the scenario flags.", "deterministic")
 
@@ -449,7 +474,9 @@ def verify_project_flags(
         )
     mismatches = []
     for name, wanted in checked.items():
-        if name not in custom:
+        if name in ambiguous:
+            mismatches.append(f"{name}: scenario {wanted!r}, but `cci project info` printed it more than once with different values")
+        elif name not in custom:
             mismatches.append(f"{name}: scenario {wanted!r}, absent from CumulusCI's project.custom")
         elif custom[name] != str(wanted):
             mismatches.append(f"{name}: scenario {wanted!r}, CumulusCI loaded {custom[name]!r}")

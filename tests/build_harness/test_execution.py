@@ -293,7 +293,7 @@ def workspace(tmp_path):
     return tmp_path
 
 
-def _fake_cci_project_info(monkeypatch, *, output="", returncode=0, raises=None):
+def _fake_cci_project_info(monkeypatch, *, output="", returncode=0, raises=None, stderr=""):
     calls = []
 
     class _Result:
@@ -304,7 +304,7 @@ def _fake_cci_project_info(monkeypatch, *, output="", returncode=0, raises=None)
         if raises is not None:
             raise raises
         result = _Result()
-        result.returncode, result.stdout, result.stderr = returncode, output, ""
+        result.returncode, result.stdout, result.stderr = returncode, output, stderr
         return result
 
     monkeypatch.setattr("scripts.build_harness.harness.execution.subprocess.run", _run)
@@ -416,7 +416,9 @@ def test_parse_project_info_custom_reads_flags_and_blanks_list_keys() -> None:
         "    mcp: True\n"
         "tail: x\n"
     )
-    assert _parse_project_info_custom(output) == {"clm": "False", "inapp": "True", "ps_list": "", "mcp": "True"}
+    flags, ambiguous = _parse_project_info_custom(output)
+    assert flags == {"clm": "False", "inapp": "True", "ps_list": "", "mcp": "True"}
+    assert ambiguous == set()
 
 
 def test_parse_project_info_custom_ignores_multiline_string_continuations() -> None:
@@ -429,7 +431,7 @@ def test_parse_project_info_custom_ignores_multiline_string_continuations() -> N
         "    URL: https://example.test/x\n"
         "tail: x\n"
     )
-    parsed = _parse_project_info_custom(output)
+    parsed, _ = _parse_project_info_custom(output)
     assert parsed["inapp"] == "True" and parsed["clm"] == "False"
     assert "continued text with" not in parsed  # not shaped like `key: value`
     # A continuation shaped like `key: value` is indistinguishable from a flag and is
@@ -439,7 +441,8 @@ def test_parse_project_info_custom_ignores_multiline_string_continuations() -> N
 
 def test_parse_project_info_custom_reads_real_cci_output_fixture() -> None:
     fixture = Path(__file__).parent / "fixtures" / "cci_project_info.txt"
-    parsed = _parse_project_info_custom(fixture.read_text(encoding="utf-8"))
+    parsed, ambiguous = _parse_project_info_custom(fixture.read_text(encoding="utf-8"))
+    assert ambiguous == set()
     assert parsed["billing"] == "True" and parsed["qbrix"] == "False" and parsed["inapp"] == "False"
     assert parsed["locale"] == "en_US"
     assert parsed["rlm_psl_api_names"] == "" and parsed["rlm_ai_psg_api_names"] == ""
@@ -470,14 +473,64 @@ def test_verify_project_flags_fails_when_there_is_no_git_entry(tmp_path, monkeyp
     assert verify_project_flags(tmp_path, {"inapp": True}) is not None
 
 
-def test_verify_project_flags_failure_classes(workspace, monkeypatch) -> None:
-    _fake_cci_project_info(monkeypatch, raises=subprocess.TimeoutExpired(cmd=["cci"], timeout=60))
-    assert verify_project_flags(workspace, {"inapp": True}).failure_class == "transient"
-    _fake_cci_project_info(monkeypatch, raises=FileNotFoundError())
-    assert verify_project_flags(workspace, {"inapp": True}).failure_class == "unknown"
-    _fake_cci_project_info(monkeypatch, raises=PermissionError())
-    assert verify_project_flags(workspace, {"inapp": True}).failure_class == "unknown"
-    _fake_cci_project_info(monkeypatch, returncode=1)
-    assert verify_project_flags(workspace, {"inapp": True}).failure_class == "unknown"
+def test_parse_project_info_custom_survives_column_zero_continuations() -> None:
+    # Real `cci project info` output prints a multi-line string value's continuation
+    # lines at column 0 (see _render_recursive); they must not end the custom: block.
+    custom = {"inapp": True, "notes": "first line\nsecond line at column zero\nthird", "clm": False, "mcp": True}
+    output = _project_info(custom)
+    assert "\nsecond line at column zero\n" in output, "the mirror must print the continuation at column 0"
+    flags, ambiguous = _parse_project_info_custom(output)
+    assert flags["inapp"] == "True" and flags["clm"] == "False" and flags["mcp"] == "True"
+    assert ambiguous == set()
+
+
+def test_verify_project_flags_passes_after_a_column_zero_continuation(workspace, monkeypatch) -> None:
+    effective = {"inapp": True, "notes": "a\nb at zero", "clm": False}
+    _fake_cci_project_info(monkeypatch, output=_project_info(effective))
+    assert verify_project_flags(workspace, effective) is None
+
+
+def test_parse_project_info_custom_reports_a_flag_repeated_with_another_value() -> None:
+    output = (
+        "custom:\n"
+        "    notes: first line\n"
+        "    clm: False\n"
+        "    mcp: True\n"
+        "    clm: True\n"
+        "tail: x\n"
+    )
+    flags, ambiguous = _parse_project_info_custom(output)
+    assert ambiguous == {"clm"}
+    assert flags["mcp"] == "True"
+
+
+def test_verify_project_flags_refuses_an_ambiguous_flag(workspace, monkeypatch) -> None:
+    output = "custom:\n    clm: False\n    note: x\n    clm: True\nz: 1\n"
+    _fake_cci_project_info(monkeypatch, output=output)
+    failure = verify_project_flags(workspace, {"clm": False})
+    assert failure is not None and "more than once" in failure.message
+    assert failure.failure_class == "deterministic"
+
+
+@pytest.mark.parametrize(
+    "kwargs,expected",
+    [
+        ({"raises": subprocess.TimeoutExpired(cmd=["cci"], timeout=60)}, "transient"),
+        ({"raises": FileNotFoundError()}, "deterministic"),
+        ({"raises": PermissionError()}, "deterministic"),
+        ({"returncode": 1}, "deterministic"),
+        ({"returncode": 1, "stderr": "ConnectionError: connection reset by peer"}, "transient"),
+        ({"returncode": 1, "stderr": "Traceback (most recent call last):\nKeyError: 'x'"}, "deterministic"),
+        ({"returncode": 1, "stderr": "something unrecognised"}, "deterministic"),
+    ],
+)
+def test_verify_project_flags_failure_classes(workspace, monkeypatch, kwargs, expected) -> None:
+    _fake_cci_project_info(monkeypatch, **kwargs)
+    failure = verify_project_flags(workspace, {"inapp": True})
+    assert failure.failure_class == expected
+    assert failure.failure_class in {"transient", "deterministic"}, "no preflight failure is left `unknown`"
+
+
+def test_verify_project_flags_wrong_flags_are_deterministic(workspace, monkeypatch) -> None:
     _fake_cci_project_info(monkeypatch, output=_project_info({"inapp": False}))
     assert verify_project_flags(workspace, {"inapp": True}).failure_class == "deterministic"

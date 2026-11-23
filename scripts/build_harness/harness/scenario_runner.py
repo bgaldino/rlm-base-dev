@@ -181,9 +181,10 @@ def run_single_scenario(
                 failure_signature=flags_error.message,
                 failure_class=flags_failure_class,
                 retry_count=0,
-                # On resume the checkpoint and org are untouched, so a transient or unknown
-                # failure (a cci timeout) keeps resume recommended; a wrong setup does not.
-                can_resume=is_resume and flags_failure_class != "deterministic",
+                # On resume the checkpoint and org are untouched, so only a transient failure
+                # (a cci timeout) keeps resume recommended. Anything else would make the
+                # policy recommend resume forever.
+                can_resume=is_resume and flags_failure_class == "transient",
             )
 
         if not skip_validate and not is_resume:

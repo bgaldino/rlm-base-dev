@@ -505,18 +505,20 @@ def test_resume_is_blocked_when_cci_ignores_the_overrides(tmp_path, monkeypatch)
     assert result["policy"]["recommended_action"] != "resume"
 
 
-@pytest.mark.parametrize("failure_class", ["transient", "unknown"])
-def test_resume_stays_recommended_after_a_non_deterministic_preflight_failure(tmp_path, monkeypatch, failure_class) -> None:
-    result = _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class=failure_class)
+def test_resume_stays_recommended_after_a_transient_preflight_failure(tmp_path, monkeypatch) -> None:
+    result = _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="transient")
     assert result["status"] == "resume_blocked"
     assert result["can_resume"] is True
     assert result["policy"]["recommended_action"] == "resume"
 
 
-def test_resume_is_not_recommended_after_a_deterministic_preflight_failure(tmp_path, monkeypatch) -> None:
-    result = _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class="deterministic")
+@pytest.mark.parametrize("failure_class", ["unknown", "deterministic"])
+def test_resume_is_not_recommended_after_a_non_transient_preflight_failure(tmp_path, monkeypatch, failure_class) -> None:
+    # `unknown` would otherwise make summarize_policy recommend resume at retry_count 0
+    # on every attempt, and an agent following the policy would loop on exit 30.
+    result = _preflight_failure(tmp_path, monkeypatch, is_resume=True, failure_class=failure_class)
     assert result["can_resume"] is False
-    assert result["policy"]["recommended_action"] == "manual_fix_required"
+    assert result["policy"]["recommended_action"] != "resume"
 
 
 def test_a_fresh_run_never_offers_resume_after_a_preflight_failure(tmp_path, monkeypatch) -> None:
