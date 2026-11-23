@@ -47,7 +47,7 @@ GLUED_LINK_RE = re.compile(
 # lookahead after it keeps "Sales, formerly Salesforce", "Sales, formerly
 # Sales-Cloud" and "Agentforce Sales, formerly Sales Cloud" (a longer old name
 # that merely starts like the new one) out. It misses, by design, a real artifact
-# followed by a capitalised word or by "-" or a letter, names of five or more words,
+# followed by a capitalised word, a word character or "-", names of five or more words,
 # and names that are not plain Capitalised words: acronyms, digits or non-ASCII
 # letters ("Salesforce CPQ", "B2B Commerce").
 SELF_RENAME_RE = re.compile(
