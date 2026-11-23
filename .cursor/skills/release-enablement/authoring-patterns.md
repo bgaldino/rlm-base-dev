@@ -120,7 +120,7 @@ In the **secondary** area's exercise file, add a **brief reference section** at 
 - Pointer to the primary area's exercise file for the full walkthrough
 
 ```markdown
-## Cross-Area: Promotions in Agentforce Revenue Management (Beta)
+## Cross-Area: Promotions in Revenue Cloud (Beta)
 
 Promotions is documented in full in `260-salesforce-pricing-hands-on.md`. From a Transaction Management perspective: when a quote/order is processed, the Promotion Execution Element in the pricing procedure evaluates eligible promotions and applies them at runtime. Sellers see eligible promotions in the Quote line item product details panel; manual/coupon-code promotions require seller selection.
 
