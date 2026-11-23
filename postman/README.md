@@ -47,8 +47,9 @@ Per-domain endpoint references are in [`docs/api/`](../docs/api/). Each guide co
 
 Located in `utilities/`:
 
-- `build_agentforce_collection.py` — Generates the Agentforce collection from source. Run with `python3 utilities/build_agentforce_collection.py --output <path>`. Its output is not identical to the shipped collection (it adds request-level test scripts), so write it to a new path and compare rather than overwriting the canonical file.
 - `validate_collection.py` — Validates all collections for structural integrity, API version compliance, request body validity, and completeness against the v260 (v66.0) API inventory. Validates every collection in `postman/` by default. Run with `python3 utilities/validate_collection.py`.
+
+The checked-in collection JSON is the only source of truth. It is a Postman export (OAuth 2.0 collection auth, request scripts, bodies), edited in Postman or by hand and re-exported. There is no generator; a former Python builder was retired because it produced different output (bearer auth, different scripts, headers, bodies and descriptions) and had never been used after its initial import. Run `validate_collection.py` after every change.
 
 ---
 
@@ -202,7 +203,7 @@ Services used in this collection:
 - Check the Postman console > Response tab for the error message from Salesforce
 
 **pn.execution / pm.execution errors in test scripts**
-- The collection uses `pm.execution.setNextRequest(null)` — if you see `pn.execution` references, fix the reference by hand, or regenerate with `build_agentforce_collection.py --output <path>` to a new file and compare
+- The collection uses `pm.execution.setNextRequest(null)` — if you see `pn.execution` references, fix the reference by hand in the canonical collection JSON
 
 ---
 
