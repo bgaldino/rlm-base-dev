@@ -64,9 +64,9 @@ From `unpackaged/post_billing/` [Repo]:
 
 - `settings/Billing.settings-meta.xml` turns on, among others, milestone plans for amended
   billing schedules (`enableMilestoneBillingForAmend`), invoice email and PDF, dunning, and
-  payment schedules, and Billing Forecast (`enableBillingForecast`; the forecast console also needs
-  Data 360, which the build does not provision). It sets credit, payment and refund application to line level; its
-  comment records what that changes.
+  payment schedules, and Billing Forecast (`enableBillingForecast`; the forecast console also
+  needs Data 360, which the build does not provision). It sets credit, payment and refund
+  application to line level; its comment records what that changes.
 - `RLM_Order_to_Billing_Schedule_Flow`: record-triggered on Order update when the order is
   Activated and its orchestration submission status is Submitted. On an asynchronous path,
   for orders whose usage type is Revenue Lifecycle Management, it calls

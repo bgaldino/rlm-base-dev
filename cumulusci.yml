@@ -4785,6 +4785,14 @@ flows:
         # once the matrix version is activated by the seed step above.
         task: deploy_collections_case_flow
         when: project_config.project__custom__collections
+      5:
+        # Read access to the Collection Plan record page's own fields, which no Apex controller
+        # selects and so RLM_BillingUI (billing_ui) does not grant. The page ships with this flag.
+        task: assign_permission_sets
+        when: project_config.project__custom__collections
+        options:
+          api_names:
+            - RLM_CollectionsUI
     # Collections flexipages (RLM_Collections_Home_Page, RLM_Collection_Plan_Record_Page,
     # RLM_Collections_Account_Record_Page) and the standard__CollectionConsole app variant
     # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 30), gated on

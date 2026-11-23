@@ -699,6 +699,8 @@ CHECKS = [
         # was not selected to notice.
         triggers=["tasks/", "scripts/", "tests/", "datasets/", "cumulusci.yml",
                   "force-app/", "unpackaged/",
+                  # tests/test_collection_plan_page_fields.py reads this page template.
+                  "templates/flexipages/standalone/collections/",
                   ".agents/", ".claude/", ".cursor/", "docs/references/",
                   "AGENTS.md", "CLAUDE.md", "README.md",
                   # tests/test_toolchain_audit.py runs the guide's ~/.zshenv NVM block against the
@@ -932,6 +934,7 @@ STDLIB_SUITES = [
     "tests/test_billing_flow_copies.py",
     "tests/test_build_billing_ui_module.py",
     "tests/test_build_quote_ramp_args.py",
+    "tests/test_collection_plan_page_fields.py",
     "tests/test_check_node_ca.py",
     "tests/test_check_permission_set_dependencies.py",
     "tests/test_check_private_refs.py",
