@@ -379,12 +379,16 @@ these conditions; rerun the amendment and cancel checks there.
   - What `RLM_DetermineDROSourceType` does with a blank or malformed id, read from the Apex
     (the class on `main` when this was written; another change may alter it). With
     `recordId` set, it casts it to an `Id`, so a non-Id string throws. With only `recordIds`
-    set, it reads the first element, so an empty (non-null) list throws and a non-Id element
-    throws; a valid first Id returns the type name with `s` appended. With both null it
+    set, it reads the first element, so an empty (non-null) list throws, a non-Id element
+    throws, and a null first element throws a null-pointer error at `getSObjectType()`
+    [inferred; not run]; a valid first Id returns the type name with `s` appended. With both null it
     returns an empty list without throwing. A throw reaches the flow as a fault on
     `Determine_DRO_Source_Type`, so it takes `RLM_ASSETIZE_FAULT` [inferred; not run]. What the flow sees from the
     empty list (a null output, so the Default Outcome and
-    `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`, or a fault) is not measured [inferred]; invoke the
+    `RLM_ASSETIZE_UNRESOLVED_SOURCE_TYPE`, or a fault) is not measured [inferred]. An invocable
+    that returns fewer results than inputs usually errors at runtime (a "number of results does
+    not match the number of interviews" error), which would make the empty-list case a fault
+    rather than the Default Outcome [inferred; not run]; invoke the
     flow with both inputs null and with an empty `recordIds` to settle it.
   - Two connector-less ends read as intended skips, not failures [inferred from the flow's
     structure]:
